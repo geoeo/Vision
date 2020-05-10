@@ -17,8 +17,8 @@ impl Octave {
     }
 
     pub fn blur(gray_image: &GrayImage, sigma: f32) -> Image {
-        let blurred_gray_imaage = blur(gray_image,sigma);
-        Image::from_gray_image(&blurred_gray_imaage)
+        let blurred_gray_image = blur(gray_image,sigma);
+        Image::from_gray_image(&blurred_gray_image)
     }
 
     pub fn blur_and_add(octave: &mut Octave, gray_image: &GrayImage, sigma: f32) -> () {
