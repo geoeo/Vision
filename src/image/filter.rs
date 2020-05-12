@@ -2,7 +2,7 @@ use std::f64::consts::PI;
 use crate::image::Image;
 
 fn gaussian_sample(mean: f64, std: f64, x:f64) -> f64 {
-    let exponent = ((x-mean)/(-2.0*std)).powi(2).exp();
+    let exponent = (-0.5*((x-mean)/std).powi(2)).exp();
     let factor = 1.0/(std*(2.0*PI).sqrt());
     factor*exponent
 }
@@ -14,6 +14,8 @@ fn gaussian_1_d_kernel(mean: f64, std: f64, step: i8, end: i8) -> Vec<f64> {
     let range = (-end..end+1).step_by(step as usize);
     range.map(|x| gaussian_sample(mean,std,x as f64)).collect()
 }
+
+//TODO: normalize both
 
 pub fn gaussian_1_d_convolution_horizontal(image: &mut Image,mean: f64, std: f64) -> () {
     let step: i8 = 1;
@@ -29,11 +31,11 @@ pub fn gaussian_1_d_convolution_horizontal(image: &mut Image,mean: f64, std: f64
     for y in 0..height {
         for x in offset..width-offset {
             let mut acc = 0.0;
-            for i in (-offset_signed..offset_signed+1). step_by(step as usize){
+            for i in (-offset_signed..offset_signed+1).step_by(step as usize){
                 let sample_idx = (x as i32)+i;
-                let kenel_idx = i as usize +offset;
+                let kenel_idx = i +offset as i32;
                 let sample_value = buffer.index((y,sample_idx as usize));
-                let kenel_value = kernel[kenel_idx];
+                let kenel_value = kernel[kenel_idx as usize];
                 acc +=sample_value*kenel_value;
             }
             buffer[(y,x)] = acc;
