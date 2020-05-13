@@ -18,6 +18,12 @@ pub struct Image {
 }
 
 impl Image {
+
+    pub fn empty(width: usize, height: usize, image_encoding: ImageEncoding) -> Image {
+        let buffer =  DMatrix::<Float>::from_element(height,width,0.0);
+        Image{ buffer, original_encoding: image_encoding}
+    }
+
     pub fn from_matrix(matrix: &DMatrix<Float>, original_encoding: ImageEncoding) -> Image {
         let buffer = matrix.clone();
         Image{ buffer: buffer, original_encoding}
