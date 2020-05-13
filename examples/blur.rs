@@ -17,7 +17,7 @@ fn main() {
     let mut target = Image::empty(frame.buffer.nrows(), frame.buffer.ncols(), ImageEncoding::U8);
 
     filter::gaussian_1_d_convolution_horizontal(&frame,&mut target, 0.0, 5.5);
-    //filter::gaussian_1_d_convolution_vertical(&frame,&mut target, 0.0, 5.5);
+    filter::gaussian_1_d_convolution_vertical(&frame,&mut target, 0.0, 5.5);
 
     let new_image = target.to_image();
 

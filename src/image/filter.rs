@@ -28,32 +28,32 @@ pub fn gaussian_1_d_convolution_horizontal(source: & Image, target: &mut Image ,
     let width = buffer.ncols();
     let height = buffer.nrows();
 
+
     for y in 0..height {
-        for x in offset..width-offset {
+        for x in 0..width {
+                let mut acc = 0.0;
+                for i in (-offset_signed..offset_signed+1).step_by(step as usize){
+                    let sample_idx = (x as i32)+i;
+                    let kenel_idx = i +offset as i32;
 
+                    let sample_value = match x {
+                        x if x < offset =>  buffer.index((y,0)),
+                        x if x >=  width-offset => buffer.index((y,width -1)),
+                        _ => buffer.index((y,sample_idx as usize))
+                    };
+                    let kenel_value = kernel[kenel_idx as usize];
+                    acc +=sample_value*kenel_value;
+                }
 
-            //TODO:If outside of filter range copy source values
+                target.buffer[(y,x)] = acc;
 
-            let mut acc = 0.0;
-            for i in (-offset_signed..offset_signed+1).step_by(step as usize){
-                let sample_idx = (x as i32)+i;
-                let kenel_idx = i +offset as i32;
-                let sample_value = buffer.index((y,sample_idx as usize));
-                let kenel_value = kernel[kenel_idx as usize];
-                acc +=sample_value*kenel_value;
-            }
-            target.buffer[(y,x)] = acc;
         }
 
 
 
     }
 
-   let max =  target.buffer.max();
-   let buffer_itr =  target.buffer.iter_mut();
-   for elem in buffer_itr {
-    *elem = *elem/max;
-   }
+
 
 
 
@@ -71,29 +71,24 @@ pub fn gaussian_1_d_convolution_vertical(source: & Image, target: &mut Image,mea
     let height = buffer.nrows();
 
     for x in 0..width {
-        for y in offset..height-offset {
-
-            
-            //TODO:If outside of filter range copy source values
-
+        for y in 0..height {
 
             let mut acc = 0.0;
             for i in (-offset_signed..offset_signed+1). step_by(step as usize){
                 let sample_idx = (y as i32)+i;
                 let kenel_idx = i +offset as i32;
-                let sample_value = buffer.index((sample_idx as usize, x));
+                let sample_value = match y {
+                    y if y < offset =>  buffer.index((0,x)),
+                    y if y >=  height-offset => buffer.index((height -1,x)),
+                    _ =>  buffer.index((sample_idx as usize, x))
+                };
                 let kenel_value = kernel[kenel_idx as usize];
                 acc +=sample_value*kenel_value;
             }
+
             target.buffer[(y,x)] = acc;
         }
 
-    }
-
-    let max =  target.buffer.max();
-    let buffer_itr = target.buffer.iter_mut();
-    for elem in buffer_itr {
-     *elem = *elem/max;
     }
 
 }
