@@ -15,9 +15,7 @@ fn gaussian_1_d_kernel(mean: f64, std: f64, step: i8, end: i8) -> Vec<f64> {
     range.map(|x| gaussian_sample(mean,std,x as f64)).collect()
 }
 
-//TODO: normalize both
-
-pub fn gaussian_1_d_convolution_horizontal(source: & Image, target: &mut Image ,mean: f64, std: f64) -> () {
+pub fn gaussian_1_d_convolution_horizontal(source: &Image, mean: f64, std: f64) -> Image {
     let step: i8 = 1;
     let end: i8 = 3;
     let offset = (end as usize)/(step as usize);
@@ -27,6 +25,7 @@ pub fn gaussian_1_d_convolution_horizontal(source: & Image, target: &mut Image ,
     let buffer = &source.buffer;
     let width = buffer.ncols();
     let height = buffer.nrows();
+    let mut target =  Image::empty(height, width, source.original_encoding);
 
 
     for y in 0..height {
@@ -36,9 +35,9 @@ pub fn gaussian_1_d_convolution_horizontal(source: & Image, target: &mut Image ,
                     let sample_idx = (x as i32)+i;
                     let kenel_idx = i +offset as i32;
 
-                    let sample_value = match x {
-                        x if x < offset =>  buffer.index((y,0)),
-                        x if x >=  width-offset => buffer.index((y,width -1)),
+                    let sample_value = match sample_idx {
+                        sample_idx if sample_idx < 0 =>  buffer.index((y,0)),
+                        sample_idx if sample_idx >=  (width-offset) as i32 => buffer.index((y,width -1)),
                         _ => buffer.index((y,sample_idx as usize))
                     };
                     let kenel_value = kernel[kenel_idx as usize];
@@ -48,18 +47,13 @@ pub fn gaussian_1_d_convolution_horizontal(source: & Image, target: &mut Image ,
                 target.buffer[(y,x)] = acc;
 
         }
-
-
-
     }
 
-
-
-
+    target
 
 }
 
-pub fn gaussian_1_d_convolution_vertical(source: & Image, target: &mut Image,mean: f64, std: f64) -> () {
+pub fn gaussian_1_d_convolution_vertical(source: & Image,mean: f64, std: f64) -> Image {
     let step: i8 = 1;
     let end: i8 = 3;
     let offset = (end as usize)/(step as usize);
@@ -69,6 +63,7 @@ pub fn gaussian_1_d_convolution_vertical(source: & Image, target: &mut Image,mea
     let buffer =  &source.buffer;
     let width = buffer.ncols();
     let height = buffer.nrows();
+    let mut target =  Image::empty(height, width, source.original_encoding);
 
     for x in 0..width {
         for y in 0..height {
@@ -77,9 +72,9 @@ pub fn gaussian_1_d_convolution_vertical(source: & Image, target: &mut Image,mea
             for i in (-offset_signed..offset_signed+1). step_by(step as usize){
                 let sample_idx = (y as i32)+i;
                 let kenel_idx = i +offset as i32;
-                let sample_value = match y {
-                    y if y < offset =>  buffer.index((0,x)),
-                    y if y >=  height-offset => buffer.index((height -1,x)),
+                let sample_value = match sample_idx {
+                    sample_idx if sample_idx < 0 =>  buffer.index((0,x)),
+                    sample_idx if sample_idx >=  (height-offset) as i32 => buffer.index((height -1,x)),
                     _ =>  buffer.index((sample_idx as usize, x))
                 };
                 let kenel_value = kernel[kenel_idx as usize];
@@ -91,5 +86,12 @@ pub fn gaussian_1_d_convolution_vertical(source: & Image, target: &mut Image,mea
 
     }
 
+    target
+
+}
+
+pub fn blur(image: &Image, sigma: f32) -> Image {
+    //TODO separate into 2x 1d
+    image.clone()
 }
 

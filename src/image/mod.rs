@@ -39,12 +39,6 @@ impl Image {
         return Image::matrix_to_image(&self.buffer,  self.original_encoding);
     }
 
-    pub fn blur(image: &Image, sigma: f32) -> Image {
-
-        //TODO separate into 2x 1d
-        image.clone()
-    }
-
     fn image_to_matrix(gray_image: &GrayImage) -> DMatrix<Float> {
         debug_assert!(gray_image.sample_layout().is_normal(NormalForm::RowMajorPacked));
     

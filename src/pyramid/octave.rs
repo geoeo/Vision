@@ -1,7 +1,7 @@
 extern crate image as image_rs;
 
 use image_rs::GrayImage;
-use crate::image::Image;
+use crate::image::{Image, filter};
 
 #[derive(Debug,Clone)]
 pub struct Octave {
@@ -18,7 +18,7 @@ impl Octave {
         let base_image = Image::from_gray_image(gray_image);
 
         let sigmas: Vec<f32> = range.map(|x| sigma_initial*Octave::generate_k(x as f32, s as f32)).collect();
-        let images = sigmas.iter().map(|&sigma| Image::blur(&base_image, sigma)).collect();
+        let images = sigmas.iter().map(|&sigma| filter::blur(&base_image, sigma)).collect();
 
         Octave {images,sigmas}
     }
