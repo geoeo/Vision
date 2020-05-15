@@ -1,23 +1,23 @@
 use std::f64::consts::PI;
 use crate::image::Image;
 
-fn gaussian_sample(mean: f64, std: f64, x:f64) -> f64 {
+use crate::Float;
+
+fn gaussian_sample(mean: Float, std: Float, x:Float) -> Float {
     let exponent = (-0.5*((x-mean)/std).powi(2)).exp();
     let factor = 1.0/(std*(2.0*PI).sqrt());
     factor*exponent
 }
 
-fn gaussian_1_d_kernel(mean: f64, std: f64, step: i8, end: i8) -> Vec<f64> {
+fn gaussian_1_d_kernel(mean: Float, std: Float, step: i8, end: i8) -> Vec<Float> {
     assert_eq!(end%step,0);
     assert!(end > 0);
 
     let range = (-end..end+1).step_by(step as usize);
-    range.map(|x| gaussian_sample(mean,std,x as f64)).collect()
+    range.map(|x| gaussian_sample(mean,std,x as Float)).collect()
 }
 
-pub fn gaussian_1_d_convolution_horizontal(source: &Image, mean: f64, std: f64) -> Image {
-    let step: i8 = 1;
-    let end: i8 = 3;
+pub fn gaussian_1_d_convolution_horizontal(source: &Image, mean: Float, std: Float, step: i8, end: i8) -> Image {
     let offset = (end as usize)/(step as usize);
     let offset_signed = offset as i32;
 
@@ -53,9 +53,7 @@ pub fn gaussian_1_d_convolution_horizontal(source: &Image, mean: f64, std: f64) 
 
 }
 
-pub fn gaussian_1_d_convolution_vertical(source: & Image,mean: f64, std: f64) -> Image {
-    let step: i8 = 1;
-    let end: i8 = 3;
+pub fn gaussian_1_d_convolution_vertical(source: & Image, mean: Float, std: Float, step: i8, end: i8) -> Image {
     let offset = (end as usize)/(step as usize);
     let offset_signed = offset as i32;
 
@@ -87,11 +85,11 @@ pub fn gaussian_1_d_convolution_vertical(source: & Image,mean: f64, std: f64) ->
     }
 
     target
-
+ 
 }
 
-pub fn blur(image: &Image, sigma: f32) -> Image {
-    //TODO separate into 2x 1d
-    image.clone()
+pub fn blur(image: &Image, mean:Float, sigma: Float, step: i8, end: i8) -> Image {
+    let blur_hor = gaussian_1_d_convolution_horizontal(image, mean, sigma, step, end);
+    gaussian_1_d_convolution_vertical(&blur_hor, mean, sigma, step, end)
 }
 
