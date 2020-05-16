@@ -1,7 +1,9 @@
-use std::f64::consts::PI;
+use crate::{Float,float};
+use float::consts::PI;
+
 use crate::image::Image;
 
-use crate::Float;
+
 
 fn gaussian_sample(mean: Float, std: Float, x:Float) -> Float {
     let exponent = (-0.5*((x-mean)/std).powi(2)).exp();

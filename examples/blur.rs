@@ -3,7 +3,7 @@ extern crate sift;
 
 use std::path::Path;
 
-use sift::image::{Image,filter, image_encoding::ImageEncoding};
+use sift::image::{Image,filter};
 
 fn main() {
     let image_name = "lenna";
