@@ -40,6 +40,29 @@ impl Image {
         return Image::matrix_to_image(&self.buffer,  self.original_encoding);
     }
 
+    pub fn downsample(image: &Image) -> Image {
+        let width = image.buffer.ncols();
+        let height = image.buffer.ncols();
+
+        let new_width = width/2;
+        let new_height = height/2;
+
+        let mut new_buffer = DMatrix::<Float>::from_element(new_height,new_width,0.0);
+        for x in (0..width).step_by(2) {
+            for y in (0..height).step_by(2) {
+                let new_y = y/2;
+                let new_x = x/2;
+                new_buffer[(new_y,new_x)] = image.buffer[(y,x)];
+            }
+        }
+
+        Image{
+            buffer: new_buffer,
+            original_encoding: image.original_encoding
+        }
+
+    }
+
     fn image_to_matrix(gray_image: &GrayImage) -> DMatrix<Float> {
         debug_assert!(gray_image.sample_layout().is_normal(NormalForm::RowMajorPacked));
     
