@@ -7,12 +7,13 @@ use crate::Float;
 #[derive(Debug,Clone)]
 pub struct Octave {
     pub images: Vec<Image>,
+    pub difference_of_gaussians: Vec<Image>,
     pub sigmas: Vec<Float>
 }
 
 impl Octave {
 
-    pub fn build_octave(gray_image: &GrayImage, s: u32, sigma_initial: Float) -> Octave {
+    pub fn build_octave(gray_image: &GrayImage, s: usize, sigma_initial: Float) -> Octave {
 
         let image_count = s + 3;
         let range = 0..image_count;
@@ -22,10 +23,17 @@ impl Octave {
         let step = 1;
 
         let sigmas: Vec<Float> = range.map(|x| sigma_initial*Octave::generate_k(x as Float, s as Float)).collect();
-        let kernels: Vec<GaussKernel> =  sigmas.iter().map(|&sigma| GaussKernel::new(mean, sigma,step,end)).collect();
-        let images = kernels.iter().map(|kernel| filter::gaussian_2_d_convolution(&base_image, kernel)).collect();
+        let kernels: Vec<GaussKernel> = sigmas.iter().map(|&sigma| GaussKernel::new(mean, sigma,step,end)).collect();
+        let images: Vec<Image> = kernels.iter().map(|kernel| filter::gaussian_2_d_convolution(&base_image, kernel)).collect();
 
-        Octave {images,sigmas}
+        let mut difference_of_gaussians: Vec<Image> = Vec::with_capacity(image_count-1);
+        for i in 0..images.len()-1 {
+
+            let difference_buffer = &images[i+1].buffer - &images[i].buffer;
+            difference_of_gaussians.push(Image{buffer: difference_buffer, original_encoding: base_image.original_encoding});
+        }
+
+        Octave {images,difference_of_gaussians,sigmas}
     }
 
     pub fn base_image_for_next_octave(octave: &Octave) -> &Image {
