@@ -3,7 +3,7 @@ extern crate sift;
 
 use std::path::Path;
 
-use sift::image::{Image,filter, filter::FilterDirection};
+use sift::image::{Image,filter, filter::FilterDirection, gauss_kernel::GaussKernel};
 
 fn main() {
     let image_name = "lenna";
@@ -16,18 +16,20 @@ fn main() {
 
     let image = image_rs::open(&Path::new(&image_path)).unwrap().to_luma();
     let frame = Image::from_gray_image(&image);
+
+    let filter_kernel = GaussKernel::new(0.0, 5.5,1,3);
     
 
-    let blur_hor = filter::gaussian_1_d_convolution(&frame,FilterDirection::HORIZINTAL, 0.0, 5.5,1,3);
+    let blur_hor = filter::gaussian_1_d_convolution(&frame,FilterDirection::HORIZINTAL, &filter_kernel);
 
     let blur_hor_image = blur_hor.to_image();
     blur_hor_image.save(blur_hor_file_out_path).unwrap();
 
-    let blur_vert = filter::gaussian_1_d_convolution(&frame,FilterDirection::VERTICAL, 0.0, 5.5,1,3);
+    let blur_vert = filter::gaussian_1_d_convolution(&frame,FilterDirection::VERTICAL, &filter_kernel);
     let blur_vert_image = blur_vert.to_image();
     blur_vert_image.save(blur_vert_file_out_path).unwrap();
 
-    let blur_2d = filter::gaussian_2_d_convolution(&frame, 0.0, 5.5,1,3);
+    let blur_2d = filter::gaussian_2_d_convolution(&frame, &filter_kernel);
     let blur_2d_image = blur_2d.to_image();
     blur_2d_image.save(blur_2d_file_out_path).unwrap();
 }

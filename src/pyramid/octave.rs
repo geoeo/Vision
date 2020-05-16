@@ -1,7 +1,7 @@
 extern crate image as image_rs;
 
 use image_rs::GrayImage;
-use crate::image::{Image, filter};
+use crate::image::{Image, filter, gauss_kernel::GaussKernel};
 use crate::Float;
 
 #[derive(Debug,Clone)]
@@ -22,7 +22,8 @@ impl Octave {
         let step = 1;
 
         let sigmas: Vec<Float> = range.map(|x| sigma_initial*Octave::generate_k(x as Float, s as Float)).collect();
-        let images = sigmas.iter().map(|&sigma| filter::gaussian_2_d_convolution(&base_image, mean, sigma,step,end)).collect();
+        let kernels: Vec<GaussKernel> =  sigmas.iter().map(|&sigma| GaussKernel::new(mean, sigma,step,end)).collect();
+        let images = kernels.iter().map(|kernel| filter::gaussian_2_d_convolution(&base_image, kernel)).collect();
 
         Octave {images,sigmas}
     }

@@ -2,9 +2,9 @@ use crate::{Float,float};
 use float::consts::PI;
 
 pub struct GaussKernel {
-    kernel: Vec<Float>,
-    step: usize,
-    end: usize
+    pub kernel: Vec<Float>,
+    pub step: usize,
+    pub end: usize
 }
 
 impl GaussKernel {
