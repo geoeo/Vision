@@ -17,9 +17,12 @@ impl Octave {
         let image_count = s + 3;
         let range = 0..image_count;
         let base_image = Image::from_gray_image(gray_image);
+        let mean = 0.0;
+        let end = 3;
+        let step = 1;
 
         let sigmas: Vec<Float> = range.map(|x| sigma_initial*Octave::generate_k(x as Float, s as Float)).collect();
-        let images = sigmas.iter().map(|&sigma| filter::blur(&base_image, 0.0, sigma,1,3)).collect();
+        let images = sigmas.iter().map(|&sigma| filter::gaussian_2_d_convolution(&base_image, mean, sigma,step,end)).collect();
 
         Octave {images,sigmas}
     }

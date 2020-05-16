@@ -10,6 +10,7 @@ use self::image_encoding::ImageEncoding;
 
 pub mod image_encoding;
 pub mod filter;
+pub mod gauss_kernel;
 
 #[derive(Debug,Clone)]
 pub struct Image {

@@ -3,6 +3,12 @@ use float::consts::PI;
 
 use crate::image::Image;
 
+#[repr(u8)]
+#[derive(Debug,Copy,Clone)]
+pub enum FilterDirection {
+    HORIZINTAL,
+    VERTICAL
+}
 
 
 fn gaussian_sample(mean: Float, std: Float, x:Float) -> Float {
@@ -19,11 +25,9 @@ fn gaussian_1_d_kernel(mean: Float, std: Float, step: i8, end: i8) -> Vec<Float>
     range.map(|x| gaussian_sample(mean,std,x as Float)).collect()
 }
 
-pub fn gaussian_1_d_convolution_horizontal(source: &Image, mean: Float, std: Float, step: i8, end: i8) -> Image {
-    let offset = (end as usize)/(step as usize);
-    let offset_signed = offset as i32;
-
+pub fn gaussian_1_d_convolution(source: &Image, filter_direction: FilterDirection, mean: Float, std: Float, step: i8, end: i8) -> Image {
     let kernel = gaussian_1_d_kernel(mean, std, step, end);
+    
     let buffer = &source.buffer;
     let width = buffer.ncols();
     let height = buffer.nrows();
@@ -33,21 +37,33 @@ pub fn gaussian_1_d_convolution_horizontal(source: &Image, mean: Float, std: Flo
     for y in 0..height {
         for x in 0..width {
                 let mut acc = 0.0;
-                for i in (-offset_signed..offset_signed+1).step_by(step as usize){
-                    let sample_idx = (x as i32)+i;
-                    let kenel_idx = i +offset as i32;
+                for kenel_idx in (-end..end+1).step_by(step as usize){
 
-                    let sample_value = match sample_idx {
-                        sample_idx if sample_idx < 0 =>  buffer.index((y,0)),
-                        sample_idx if sample_idx >=  (width-offset) as i32 => buffer.index((y,width -1)),
-                        _ => buffer.index((y,sample_idx as usize))
+
+                    let sample_value = match filter_direction {
+                        FilterDirection::HORIZINTAL => {
+                            let sample_idx = (x as i32)+(kenel_idx as i32);
+                            match sample_idx {
+                                sample_idx if sample_idx < 0 =>  buffer.index((y,0)),
+                                sample_idx if sample_idx >=  (width-end as usize) as i32 => buffer.index((y,width -1)),
+                                _ => buffer.index((y,sample_idx as usize))
+                            }
+                        },
+                        FilterDirection::VERTICAL => {
+                            let sample_idx = (y as i32)+(kenel_idx as i32);
+                            match sample_idx {
+                                sample_idx if sample_idx < 0 =>  buffer.index((0,x)),
+                                sample_idx if sample_idx >=  (height-end as usize) as i32 => buffer.index((height -1,x)),
+                                _ =>  buffer.index((sample_idx as usize, x))
+                            }
+                        }
                     };
-                    let kenel_value = kernel[kenel_idx as usize];
+
+                
+                    let kenel_value = kernel[(kenel_idx + end) as usize];
                     acc +=sample_value*kenel_value;
                 }
-
                 target.buffer[(y,x)] = acc;
-
         }
     }
 
@@ -55,43 +71,9 @@ pub fn gaussian_1_d_convolution_horizontal(source: &Image, mean: Float, std: Flo
 
 }
 
-pub fn gaussian_1_d_convolution_vertical(source: & Image, mean: Float, std: Float, step: i8, end: i8) -> Image {
-    let offset = (end as usize)/(step as usize);
-    let offset_signed = offset as i32;
 
-    let kernel = gaussian_1_d_kernel(mean, std, step, end);
-    let buffer =  &source.buffer;
-    let width = buffer.ncols();
-    let height = buffer.nrows();
-    let mut target =  Image::empty(height, width, source.original_encoding);
-
-    for x in 0..width {
-        for y in 0..height {
-
-            let mut acc = 0.0;
-            for i in (-offset_signed..offset_signed+1). step_by(step as usize){
-                let sample_idx = (y as i32)+i;
-                let kenel_idx = i +offset as i32;
-                let sample_value = match sample_idx {
-                    sample_idx if sample_idx < 0 =>  buffer.index((0,x)),
-                    sample_idx if sample_idx >=  (height-offset) as i32 => buffer.index((height -1,x)),
-                    _ =>  buffer.index((sample_idx as usize, x))
-                };
-                let kenel_value = kernel[kenel_idx as usize];
-                acc +=sample_value*kenel_value;
-            }
-
-            target.buffer[(y,x)] = acc;
-        }
-
-    }
-
-    target
- 
-}
-
-pub fn blur(image: &Image, mean:Float, sigma: Float, step: i8, end: i8) -> Image {
-    let blur_hor = gaussian_1_d_convolution_horizontal(image, mean, sigma, step, end);
-    gaussian_1_d_convolution_vertical(&blur_hor, mean, sigma, step, end)
+pub fn gaussian_2_d_convolution(image: &Image, mean:Float, sigma: Float, step: i8, end: i8) -> Image {
+    let blur_hor = gaussian_1_d_convolution(image,FilterDirection::HORIZINTAL, mean, sigma, step, end);
+    gaussian_1_d_convolution(&blur_hor,FilterDirection::VERTICAL, mean, sigma, step, end)
 }
 
