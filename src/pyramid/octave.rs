@@ -34,9 +34,9 @@ impl Octave {
         Octave {images,difference_of_gaussians,sigmas}
     }
 
-    pub fn base_image_for_next_octave(octave: &Octave) -> &Image {
+    pub fn image_sigma_for_next_octave(octave: &Octave) -> (&Image,Float) {
         let size = octave.images.len();
-        &octave.images[size-3]
+        (&octave.images[size-3], octave.sigmas[size-3])
     }
 
     fn generate_k(n: Float, s: Float) -> Float {
