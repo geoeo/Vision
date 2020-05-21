@@ -1,6 +1,5 @@
 extern crate image as image_rs;
 
-use image_rs::GrayImage;
 use crate::image::{Image, filter, gauss_kernel::GaussKernel};
 use crate::Float;
 
@@ -13,11 +12,10 @@ pub struct Octave {
 
 impl Octave {
 
-    pub fn build_octave(gray_image: &GrayImage, s: usize, sigma_initial: Float) -> Octave {
+    pub fn build_octave(base_image: &Image, s: usize, sigma_initial: Float) -> Octave {
 
         let image_count = s + 3;
         let range = 0..image_count;
-        let base_image = Image::from_gray_image(gray_image);
         let mean = 0.0;
         let end = 3;
         let step = 1;

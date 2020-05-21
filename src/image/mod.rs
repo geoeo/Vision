@@ -40,14 +40,18 @@ impl Image {
         return Image::matrix_to_image(&self.buffer,  self.original_encoding);
     }
 
-    pub fn downsample(image: &Image) -> Image {
+    pub fn downsample_half(image: &Image) -> Image {
         let width = image.buffer.ncols();
         let height = image.buffer.ncols();
 
-        let new_width = width/2;
-        let new_height = height/2;
+        let new_width = (width as Float)/2.0;
+        let new_height = (height as Float)/2.0;
 
-        let mut new_buffer = DMatrix::<Float>::from_element(new_height,new_width,0.0);
+        if new_height.fract() != 0.0 || new_width.fract() != 0.0  {
+            panic!("new (height,width): ({},{}) are not multiple of 2",new_height,new_width);
+        }
+
+        let mut new_buffer = DMatrix::<Float>::from_element(new_height as usize,new_width as usize,0.0);
         for x in (0..width).step_by(2) {
             for y in (0..height).step_by(2) {
                 let new_y = y/2;
