@@ -22,10 +22,13 @@ impl Pyramid {
         let mut sigma = sigma_initial;
         for i in 0..octave_count {
 
-            octaves[i] = Octave::build_octave(octave_image, s, sigma);
-            let octave_sigma_tuple = Octave::image_sigma_for_next_octave(&octaves[i]);
-            octave_image = octave_sigma_tuple.0;
-            sigma = octave_sigma_tuple.1;
+            let new_octave = Octave::build_octave(octave_image, s, sigma);
+            let idx_for_next = Octave::index_for_next_octave(&new_octave);
+
+            octaves.push(new_octave);
+
+            octave_image = &octaves[i].images[idx_for_next];
+            sigma = octaves[i].sigmas[idx_for_next];
         }
 
     Pyramid{octaves,s}
