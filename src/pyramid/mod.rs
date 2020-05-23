@@ -18,16 +18,16 @@ impl Pyramid {
         let mut octaves: Vec<Octave> = Vec::with_capacity(octave_count);
 
         let base_image = Image::from_gray_image(base_gray_image);
-        let mut octave_image = &base_image;
+        let mut octave_image = base_image;
         let mut sigma = sigma_initial;
         for i in 0..octave_count {
 
-            let new_octave = Octave::build_octave(octave_image, s, sigma);
+            let new_octave = Octave::build_octave(&octave_image, s, sigma);
             let idx_for_next = Octave::index_for_next_octave(&new_octave);
 
             octaves.push(new_octave);
 
-            octave_image = &octaves[i].images[idx_for_next];
+            octave_image = Image::downsample_half(&octaves[i].images[idx_for_next]);
             sigma = octaves[i].sigmas[idx_for_next];
         }
 
