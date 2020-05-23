@@ -17,11 +17,11 @@ fn main() {
     
     let pyramid = Pyramid::build_pyramid(&gray_image, 3, 3, 0.5);
 
-    let first_octave = &pyramid.octaves[2];
-    let first_ocatve_images = &first_octave.images;
+    let first_octave = &pyramid.octaves[0];
+    let ocatve_images = &first_octave.difference_of_gaussians;
 
-    for i in 0..first_ocatve_images.len() {
-        let image = &first_ocatve_images[i];
+    for i in 0..ocatve_images.len() {
+        let image = &ocatve_images[i];
         let gray_image  = image.to_image();
         let name = format!("image_{}",i);
         let file_path = format!("{}{}.{}",image_out_folder,name,image_format);
