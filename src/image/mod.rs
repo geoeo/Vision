@@ -40,6 +40,20 @@ impl Image {
         return Image::matrix_to_image(&self.buffer,  self.original_encoding);
     }
 
+    pub fn draw_square(image: &mut Image, x: usize, y: usize, side_length: usize) -> () {
+
+        for i in x-side_length..x+side_length+1 {
+            image.buffer[(y + side_length,i)] = 0.0;
+            image.buffer[(y - side_length,i)] = 0.0;
+        }
+
+        for j in y-side_length+1..y+side_length {
+            image.buffer[(j,x +side_length)] = 0.0;
+            image.buffer[(j,x -side_length)] = 0.0;
+        }
+
+    }
+
     pub fn downsample_half(image: &Image) -> Image {
         let width = image.buffer.ncols();
         let height = image.buffer.ncols();
