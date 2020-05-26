@@ -5,6 +5,7 @@
     "version": "0.2.0",
     "configurations": [
 
+
         {
             "name": "Blur Launch",
             "type": "lldb",
@@ -38,6 +39,17 @@
             "symbolSearchPath": "https://msdl.microsoft.com/download/symbols",
             "environment": [],
             "externalConsole": false
-        }
+        },
+        {
+            "name": "Features Launch",
+            "type": "lldb",
+            "request": "launch",
+            "program": "${workspaceRoot}/target/debug/examples/features",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false
+        },
     ]
 }
