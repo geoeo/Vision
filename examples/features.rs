@@ -17,7 +17,7 @@ fn main() {
 
 
     let gray_image = image_rs::open(&Path::new(&image_path)).unwrap().to_luma();
-    let mut display = Image::from_gray_image(&gray_image);
+    let mut display = Image::from_gray_image(&gray_image, false);
     
     let pyramid = Pyramid::build_pyramid(&gray_image, 3, 3, 0.5);
 

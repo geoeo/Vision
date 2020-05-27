@@ -25,13 +25,29 @@ impl Image {
         Image{ buffer, original_encoding: image_encoding}
     }
 
-    pub fn from_matrix(matrix: &DMatrix<Float>, original_encoding: ImageEncoding) -> Image {
-        let buffer = matrix.clone();
+    pub fn from_matrix(matrix: &DMatrix<Float>, original_encoding: ImageEncoding, normalize: bool) -> Image {
+        let mut buffer = matrix.clone();
+
+        if normalize {
+            let max = buffer.amax();
+            for elem in buffer.iter_mut() {
+                *elem = *elem/max;
+            }
+        }
+
         Image{ buffer: buffer, original_encoding}
     }
 
-    pub fn from_gray_image(image: &GrayImage) -> Image {
-        let buffer = Image::image_to_matrix(image);
+    pub fn from_gray_image(image: &GrayImage, normalize: bool) -> Image {
+        let mut buffer = Image::image_to_matrix(image);
+
+        if normalize {
+            let max = buffer.amax();
+            for elem in buffer.iter_mut() {
+                *elem = *elem/max;
+            }
+        }
+
         Image{ buffer: buffer,original_encoding:  ImageEncoding::U8}
     }
 

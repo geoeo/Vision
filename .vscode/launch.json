@@ -6,6 +6,7 @@
     "configurations": [
 
 
+
         {
             "name": "Blur Launch",
             "type": "lldb",
@@ -29,18 +30,6 @@
             "externalConsole": false
         },
         {
-            "name": "Pyramid Launch (C++)",
-            "type": "cppvsdbg",
-            "request": "launch",
-            "program": "${workspaceRoot}/target/debug/examples/pyramid.exe",
-            "args": [],
-            "stopAtEntry": false,
-            "cwd": "${workspaceFolder}",
-            "symbolSearchPath": "https://msdl.microsoft.com/download/symbols",
-            "environment": [],
-            "externalConsole": false
-        },
-        {
             "name": "Features Launch",
             "type": "lldb",
             "request": "launch",
@@ -51,5 +40,16 @@
             "environment": [],
             "externalConsole": false
         },
+        {
+            "name": "Load Save Launch",
+            "type": "lldb",
+            "request": "launch",
+            "program": "${workspaceRoot}/target/debug/examples/load_save",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false
+        }
     ]
 }

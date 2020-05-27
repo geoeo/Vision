@@ -16,7 +16,7 @@ fn main() {
     image.save(gray_image_path).unwrap();
 
 
-    let mut frame = Image::from_gray_image(&image);
+    let mut frame = Image::from_gray_image(&image, false);
     Image::draw_square(&mut frame, 50, 50, 10);
     let new_image = frame.to_image();
 
