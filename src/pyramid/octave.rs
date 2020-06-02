@@ -5,6 +5,7 @@ use crate::Float;
 
 #[derive(Debug,Clone)]
 pub struct Octave {
+    //TODO: Maybe make this a 3d Matrix
     pub images: Vec<Image>,
     pub difference_of_gaussians: Vec<Image>,
     pub sigmas: Vec<Float>

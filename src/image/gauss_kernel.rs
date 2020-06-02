@@ -1,10 +1,11 @@
 use crate::{Float,float};
 use float::consts::PI;
+use super::kernel::Kernel;
+
 
 pub struct GaussKernel {
-    pub kernel: Vec<Float>,
-    pub step: usize,
-    pub end: usize
+    kernel: Vec<Float>,
+    step: usize,
 }
 
 impl GaussKernel {
@@ -22,9 +23,18 @@ impl GaussKernel {
         let range = (start..end_exclusive).step_by(step);
         GaussKernel {
             kernel: range.map(|x| GaussKernel::sample(mean,std,x as Float)).collect(),
-            step,
-            end
+            step
         }
+    }
+}
+
+impl Kernel for GaussKernel {
+    fn kernel(&self) -> &Vec<Float> {
+        &self.kernel
+    }
+
+    fn step(&self) -> usize {
+        self.step
     }
 }
 
