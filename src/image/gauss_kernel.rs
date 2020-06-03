@@ -36,6 +36,10 @@ impl Kernel for GaussKernel {
     fn step(&self) -> usize {
         self.step
     }
+
+    fn half_repeat(&self) -> usize {
+        0
+    }
 }
 
 

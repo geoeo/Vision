@@ -19,13 +19,12 @@ fn main() {
 
     let filter_kernel = GaussKernel::new(0.0, 5.5,1,3);
     
-
-    let blur_hor = filter::gaussian_1_d_convolution(&frame,FilterDirection::HORIZINTAL, &filter_kernel);
+    let blur_hor = filter::filter_convolution(&frame,FilterDirection::HORIZINTAL, &filter_kernel);
 
     let blur_hor_image = blur_hor.to_image();
     blur_hor_image.save(blur_hor_file_out_path).unwrap();
 
-    let blur_vert = filter::gaussian_1_d_convolution(&frame,FilterDirection::VERTICAL, &filter_kernel);
+    let blur_vert = filter::filter_convolution(&frame,FilterDirection::VERTICAL, &filter_kernel);
     let blur_vert_image = blur_vert.to_image();
     blur_vert_image.save(blur_vert_file_out_path).unwrap();
 
