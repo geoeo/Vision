@@ -7,6 +7,7 @@
 
 
 
+
         {
             "name": "Blur Launch",
             "type": "lldb",
@@ -45,6 +46,17 @@
             "type": "lldb",
             "request": "launch",
             "program": "${workspaceRoot}/target/debug/examples/load_save",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false
+        },
+        {
+            "name": "Edges Launch",
+            "type": "lldb",
+            "request": "launch",
+            "program": "${workspaceRoot}/target/debug/examples/edges",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
