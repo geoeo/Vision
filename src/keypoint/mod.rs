@@ -9,7 +9,7 @@ use na::DMatrix;
 pub struct ExtremaParameters {
     x: usize,
     y: usize,
-    sigma: Float
+    sigma_level: usize
 } 
 
 #[repr(u8)]
@@ -77,6 +77,13 @@ fn is_sample_extrema_in_neighbourhood(sample: Float, x_sample: usize, y_sample: 
 //TODO: Refactor the method for single (x,y,sigma) coordinate / Maybe make a new method
 pub fn keypoint_localization(source_octave: &Octave, input_params: ExtremaParameters, gradient_direction: GradientDirection, filter_kernel: &dyn Kernel) -> ExtremaParameters {
 
+    let x_input = input_params.x; 
+    let x_input_signed = input_params.x as isize; 
+    let y_input = input_params.y; 
+    let y_input_signed = input_params.y as isize; 
+    let sigma_level_input = input_params.sigma_level;
+    let sigma_level_input_signed = input_params.sigma_level as isize;
+
     let kernel = filter_kernel.kernel();
     let step = filter_kernel.step();
     let repeat = filter_kernel.half_repeat() as isize;
@@ -84,44 +91,38 @@ pub fn keypoint_localization(source_octave: &Octave, input_params: ExtremaParame
     let kernel_half_width = filter_kernel.half_width();
     let kernel_half_width_signed = kernel_half_width as isize;
     
-    let source = &source_octave.images[0]; //TODO: select correct image
+    let source = &source_octave.images[sigma_level_input]; 
     let buffer = &source.buffer;
     let width = buffer.ncols();
     let height = buffer.nrows();
 
-    let x = 0; let y = 0; //TODO: make input params
+
+    assert!(x_input_signed -kernel_half_width_signed >= 0 && x_input + kernel_half_width <= width);
+    assert!(x_input_signed -repeat >= 0 && x_input + ((repeat+1) as usize) < width);
+
+    assert!(y_input_signed -kernel_half_width_signed >= 0 && y_input + kernel_half_width <= height);
+    assert!(y_input_signed -repeat >= 0 && y_input + ((repeat+1) as usize) < height);
+
+    assert!(sigma_level_input_signed -kernel_half_width_signed > 0 && sigma_level_input + kernel_half_width < source_octave.sigmas.len());
+    assert!(sigma_level_input_signed - repeat > 0 && sigma_level_input + ((repeat+1) as usize) < source_octave.sigmas.len());
+    
 
     for kenel_idx in (-kernel_half_width_signed..kernel_half_width_signed+1).step_by(step){
 
         for repeat_idx in repeat_range.clone() {
             let sample_value = match gradient_direction {
                 GradientDirection::HORIZINTAL => {
-                    let sample_idx = (x as isize)+kenel_idx;
-                    let y_repeat_idx =  match y as isize + repeat_idx {
-                        y_idx if y_idx < 0 => 0,
-                        y_idx if y_idx >= height as isize => height-1,
-                        y_idx => y_idx as usize
-                    };
+                    let sample_idx = x_input_signed +kenel_idx;
+                    let y_repeat_idx =  y_input_signed + repeat_idx;
+
+                    buffer.index((y_repeat_idx as usize,sample_idx as usize))
                     
-                    match sample_idx {
-                        sample_idx if sample_idx < 0 =>  buffer.index((y_repeat_idx,0)),
-                        sample_idx if sample_idx >=  (width-kernel_half_width) as isize => buffer.index((y_repeat_idx,width -1)),
-                        _ => buffer.index((y_repeat_idx,sample_idx as usize))
-                    }
                 },
                 GradientDirection::VERTICAL => {
-                    let sample_idx = (y as isize)+kenel_idx;
-                    let x_repeat_idx = match x as isize + repeat_idx {
-                        x_idx if x_idx < 0 => 0,
-                        x_idx if x_idx >= width as isize => width-1,
-                        x_idx => x_idx as usize
-                    };
-
-                    match sample_idx {
-                        sample_idx if sample_idx < 0 =>  buffer.index((0,x_repeat_idx)),
-                        sample_idx if sample_idx >=  (height-kernel_half_width) as isize => buffer.index((height -1,x_repeat_idx)),
-                        _ =>  buffer.index((sample_idx as usize, x_repeat_idx))
-                    }
+                    let sample_idx = y_input_signed+kenel_idx;
+                    let x_repeat_idx = x_input_signed + repeat_idx;
+                    buffer.index((sample_idx as usize, x_repeat_idx as usize))
+ 
                 },
                 GradientDirection::SIGMA => { 
                     buffer.index((0, 0)) //TODO
@@ -133,6 +134,6 @@ pub fn keypoint_localization(source_octave: &Octave, input_params: ExtremaParame
     }
 
 
-    ExtremaParameters {x: 0, y: 0, sigma: 0.0} //TODO
+    ExtremaParameters {x: 0, y: 0, sigma_level: 0} //TODO
 
 }
