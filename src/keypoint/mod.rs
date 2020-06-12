@@ -1,6 +1,6 @@
 extern crate nalgebra as na;
 
-use crate::image::{Image,kernel::Kernel};
+use crate::image::{Image,kernel::Kernel,prewitt_kernel::PrewittKernel, laplace_kernel::LaplaceKernel};
 use crate::Float;
 use crate::pyramid::octave::Octave;
 use na::DMatrix;
@@ -75,7 +75,44 @@ fn is_sample_extrema_in_neighbourhood(sample: Float, x_sample: usize, y_sample: 
 }
 
 //TODO: Refactor the method for single (x,y,sigma) coordinate / Maybe make a new method
-pub fn keypoint_localization(source_octave: &Octave, input_params: ExtremaParameters, gradient_direction: GradientDirection, filter_kernel: &dyn Kernel) -> ExtremaParameters {
+pub fn keypoint_localization(source_octave: &Octave, input_params: &ExtremaParameters) -> ExtremaParameters {
+
+
+    let first_order_derivative_filter = PrewittKernel::new(1);
+    let second_order_derivative_filter = LaplaceKernel::new(1);
+
+    let first_order_derivative_x = gradient_eval(source_octave,input_params,&first_order_derivative_filter,GradientDirection::HORIZINTAL);
+    let first_order_derivative_y = gradient_eval(source_octave,input_params,&first_order_derivative_filter,GradientDirection::VERTICAL);
+    let first_order_derivative_sigma = gradient_eval(source_octave,input_params,&first_order_derivative_filter,GradientDirection::SIGMA);
+
+    let second_order_derivative_x = gradient_eval(source_octave,input_params,&second_order_derivative_filter,GradientDirection::HORIZINTAL);
+    let second_order_derivative_y = gradient_eval(source_octave,input_params,&second_order_derivative_filter,GradientDirection::VERTICAL);
+    let second_order_derivative_sigma = gradient_eval(source_octave,input_params,&second_order_derivative_filter,GradientDirection::SIGMA);
+
+    let pertub_x = first_order_derivative_x/second_order_derivative_x;
+    let pertub_y = first_order_derivative_y/second_order_derivative_y;
+    let pertub_sigma = first_order_derivative_sigma/second_order_derivative_sigma;
+
+    if pertub_x > 0.5 || pertub_y > 0.5 || pertub_sigma > 0.5 {
+        //skip
+    }
+
+    let dog_x = source_octave.difference_of_gaussians[input_params.sigma_level].buffer.index((input_params.y,input_params.x));
+    let first_order_derivative_pertub_dot = first_order_derivative_x*pertub_x + first_order_derivative_y*pertub_y+first_order_derivative_sigma+pertub_sigma;
+    let dog_x_pertub = dog_x + 0.5*first_order_derivative_pertub_dot;
+
+    if dog_x_pertub.abs() < 0.3 {
+        //TODO: make sure difference of gaussians are normalized to 0..1 range
+        //discard!
+    }
+
+
+
+    ExtremaParameters {x: 0, y: 0, sigma_level: 0} //TODO
+
+}
+
+fn gradient_eval(source_octave: &Octave,input_params: &ExtremaParameters, filter_kernel: &dyn Kernel, gradient_direction: GradientDirection) -> Float {
 
     let x_input = input_params.x; 
     let x_input_signed = input_params.x as isize; 
@@ -90,24 +127,26 @@ pub fn keypoint_localization(source_octave: &Octave, input_params: ExtremaParame
     let repeat_range = -repeat..repeat+1;
     let kernel_half_width = filter_kernel.half_width();
     let kernel_half_width_signed = kernel_half_width as isize;
-    
-    let source = &source_octave.images[sigma_level_input]; 
-    let buffer = &source.buffer;
-    let width = buffer.ncols();
-    let height = buffer.nrows();
 
+    let width = source_octave.difference_of_gaussians[sigma_level_input].buffer.ncols();
+    let height = source_octave.difference_of_gaussians[sigma_level_input].buffer.nrows();
 
-    assert!(x_input_signed -kernel_half_width_signed >= 0 && x_input + kernel_half_width <= width);
-    assert!(x_input_signed -repeat >= 0 && x_input + ((repeat+1) as usize) < width);
+    match gradient_direction {
+        GradientDirection::HORIZINTAL => {
+            assert!(x_input_signed -kernel_half_width_signed >= 0 && x_input + kernel_half_width <= width);
+            assert!(x_input_signed -repeat >= 0 && x_input + ((repeat+1) as usize) < width);
+         },
+        GradientDirection::VERTICAL => { 
+            assert!(y_input_signed -kernel_half_width_signed >= 0 && y_input + kernel_half_width <= height);
+            assert!(y_input_signed -repeat >= 0 && y_input + ((repeat+1) as usize) < height);
+         },
+        GradientDirection::SIGMA => { 
+            assert!(sigma_level_input_signed -kernel_half_width_signed > 0 && sigma_level_input + kernel_half_width < source_octave.difference_of_gaussians.len());
+            assert!(sigma_level_input_signed - repeat > 0 && sigma_level_input + ((repeat+1) as usize) < source_octave.difference_of_gaussians.len());
+        }
 
-    assert!(y_input_signed -kernel_half_width_signed >= 0 && y_input + kernel_half_width <= height);
-    assert!(y_input_signed -repeat >= 0 && y_input + ((repeat+1) as usize) < height);
+    }
 
-    assert!(sigma_level_input_signed -kernel_half_width_signed > 0 && sigma_level_input + kernel_half_width < source_octave.sigmas.len());
-    assert!(sigma_level_input_signed - repeat > 0 && sigma_level_input + ((repeat+1) as usize) < source_octave.sigmas.len());
-    
-    
-    //TODO: Refactor so that the following GradientDirection calls are encapsulated
     let mut convolved_value = 0.0;
     for kenel_idx in (-kernel_half_width_signed..kernel_half_width_signed+1).step_by(step){
         let kenel_value = kernel[(kenel_idx + kernel_half_width_signed) as usize];
@@ -115,6 +154,8 @@ pub fn keypoint_localization(source_octave: &Octave, input_params: ExtremaParame
             let weighted_sample = match gradient_direction {
                 GradientDirection::HORIZINTAL => {
                     let mut acc = 0.0;
+                    let source = &source_octave.difference_of_gaussians[sigma_level_input]; 
+                    let buffer = &source.buffer;
                     for repeat_idx in repeat_range.clone() {
                         let sample_idx = x_input_signed +kenel_idx;
                         let y_repeat_idx =  y_input_signed + repeat_idx;
@@ -127,6 +168,8 @@ pub fn keypoint_localization(source_octave: &Octave, input_params: ExtremaParame
                 },
                 GradientDirection::VERTICAL => {
                     let mut acc = 0.0;
+                    let source = &source_octave.difference_of_gaussians[sigma_level_input]; 
+                    let buffer = &source.buffer;
                     for repeat_idx in repeat_range.clone() {
                         let sample_idx = y_input_signed+kenel_idx;
                         let x_repeat_idx = x_input_signed + repeat_idx;
@@ -139,7 +182,7 @@ pub fn keypoint_localization(source_octave: &Octave, input_params: ExtremaParame
                 GradientDirection::SIGMA => { 
                     //TODO: Not sure how repeat/2D kernels should work along the sigma axis
                     let sample_idx = sigma_level_input_signed + kenel_idx;
-                    let sample_buffer =  &source_octave.images[sample_idx as usize].buffer;
+                    let sample_buffer =  &source_octave.difference_of_gaussians[sample_idx as usize].buffer;
                     let sample_value = sample_buffer.index((y_input,x_input));
                     sample_value*kenel_value
                 }
@@ -150,7 +193,5 @@ pub fn keypoint_localization(source_octave: &Octave, input_params: ExtremaParame
     
     }
 
-
-    ExtremaParameters {x: 0, y: 0, sigma_level: 0} //TODO
-
+    convolved_value
 }
