@@ -29,7 +29,7 @@ impl Octave {
         for i in 0..images.len()-1 {
 
             let difference_buffer = &images[i+1].buffer - &images[i].buffer;
-            difference_of_gaussians.push(Image{buffer: difference_buffer, original_encoding: base_image.original_encoding});
+            difference_of_gaussians.push(Image::from_matrix(&difference_buffer, base_image.original_encoding, true));
         }
 
         Octave {images,difference_of_gaussians,sigmas}
