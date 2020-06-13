@@ -7,9 +7,9 @@ use na::DMatrix;
 
 #[derive(Debug,Clone)]
 pub struct ExtremaParameters {
-    x: usize,
-    y: usize,
-    sigma_level: usize
+    pub x: usize,
+    pub y: usize,
+    pub sigma_level: usize
 } 
 
 #[repr(u8)]
@@ -20,16 +20,17 @@ pub enum GradientDirection {
     SIGMA
 }
 
-pub fn detect_extrema(image: &Image, prev_image: &Image, next_image: &Image, x_step: usize, y_step: usize) -> Vec<(usize,usize)> {
+//TODO: encapsulate input params better
+pub fn detect_extrema(source_octave: &Octave, sigma_level: usize,x_offset: usize, y_offset: usize , x_step: usize, y_step: usize) -> Vec<ExtremaParameters> {
 
-    let mut extrema_vec: Vec<(usize,usize)> = Vec::new();
+    let mut extrema_vec: Vec<ExtremaParameters> = Vec::new();
 
-    let image_buffer = &image.buffer;
-    let prev_buffer = &prev_image.buffer;
-    let next_buffer = &next_image.buffer;
+    let image_buffer = &source_octave.difference_of_gaussians[sigma_level].buffer;
+    let prev_buffer = &source_octave.difference_of_gaussians[sigma_level-1].buffer;
+    let next_buffer = &source_octave.difference_of_gaussians[sigma_level+1].buffer;
 
-    for x in (1..image_buffer.ncols()-1).step_by(x_step) {
-        for y in (1..image_buffer.nrows()-1).step_by(y_step)  {
+    for x in (x_offset..image_buffer.ncols()-x_offset).step_by(x_step) {
+        for y in (y_offset..image_buffer.nrows()-y_offset).step_by(y_step)  {
 
             let sample_value = image_buffer[(y,x)];
 
@@ -40,7 +41,7 @@ pub fn detect_extrema(image: &Image, prev_image: &Image, next_image: &Image, x_s
                 is_sample_extrema_in_neighbourhood(sample_value,x,y,next_buffer,false);
 
             if is_extrema {
-                extrema_vec.push((x,y));
+                extrema_vec.push(ExtremaParameters{x,y,sigma_level});
             }
         }
     }
@@ -74,8 +75,13 @@ fn is_sample_extrema_in_neighbourhood(sample: Float, x_sample: usize, y_sample: 
     is_smallest || is_largest
 }
 
-//TODO: Refactor the method for single (x,y,sigma) coordinate / Maybe make a new method
-pub fn keypoint_localization(source_octave: &Octave, input_params: &ExtremaParameters) -> ExtremaParameters {
+pub fn extrema_refinement(extrema: &Vec<ExtremaParameters>, source_octave: &Octave) -> Vec<ExtremaParameters> {
+
+    extrema.iter().cloned().filter(|x| contrast_rejection(source_octave, x)).collect()
+
+}
+
+pub fn contrast_rejection(source_octave: &Octave, input_params: &ExtremaParameters) -> bool {
 
 
     let first_order_derivative_filter = PrewittKernel::new(1);
@@ -94,21 +100,15 @@ pub fn keypoint_localization(source_octave: &Octave, input_params: &ExtremaParam
     let pertub_sigma = first_order_derivative_sigma/second_order_derivative_sigma;
 
     if pertub_x > 0.5 || pertub_y > 0.5 || pertub_sigma > 0.5 {
-        //skip
+        return false;
     }
 
     let dog_x = source_octave.difference_of_gaussians[input_params.sigma_level].buffer.index((input_params.y,input_params.x));
     let first_order_derivative_pertub_dot = first_order_derivative_x*pertub_x + first_order_derivative_y*pertub_y+first_order_derivative_sigma+pertub_sigma;
     let dog_x_pertub = dog_x + 0.5*first_order_derivative_pertub_dot;
 
-    if dog_x_pertub.abs() < 0.3 {
-        //TODO: make sure difference of gaussians are normalized to 0..1 range
-        //discard!
-    }
-
-
-
-    ExtremaParameters {x: 0, y: 0, sigma_level: 0} //TODO
+    //TODO: make sure difference of gaussians are normalized to 0..1 range
+    dog_x_pertub.abs() >= 0.3
 
 }
 
@@ -141,8 +141,7 @@ fn gradient_eval(source_octave: &Octave,input_params: &ExtremaParameters, filter
             assert!(y_input_signed -repeat >= 0 && y_input + ((repeat+1) as usize) < height);
          },
         GradientDirection::SIGMA => { 
-            assert!(sigma_level_input_signed -kernel_half_width_signed > 0 && sigma_level_input + kernel_half_width < source_octave.difference_of_gaussians.len());
-            assert!(sigma_level_input_signed - repeat > 0 && sigma_level_input + ((repeat+1) as usize) < source_octave.difference_of_gaussians.len());
+            assert!(sigma_level_input_signed -kernel_half_width_signed >= 0 && sigma_level_input + kernel_half_width < source_octave.difference_of_gaussians.len());
         }
 
     }
