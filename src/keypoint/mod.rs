@@ -134,11 +134,11 @@ fn gradient_eval(source_octave: &Octave,input_params: &ExtremaParameters, filter
     match gradient_direction {
         GradientDirection::HORIZINTAL => {
             assert!(x_input_signed -kernel_half_width_signed >= 0 && x_input + kernel_half_width <= width);
-            assert!(x_input_signed -repeat >= 0 && x_input + ((repeat+1) as usize) < width);
+            assert!(x_input_signed -repeat >= 0 && x_input + (repeat as usize) < width);
          },
         GradientDirection::VERTICAL => { 
             assert!(y_input_signed -kernel_half_width_signed >= 0 && y_input + kernel_half_width <= height);
-            assert!(y_input_signed -repeat >= 0 && y_input + ((repeat+1) as usize) < height);
+            assert!(y_input_signed -repeat >= 0 && y_input + (repeat as usize) < height);
          },
         GradientDirection::SIGMA => { 
             assert!(sigma_level_input_signed -kernel_half_width_signed >= 0 && sigma_level_input + kernel_half_width < source_octave.difference_of_gaussians.len());

@@ -25,7 +25,7 @@ fn main() {
 
     let first_octave = &pyramid.octaves[0];
 
-    let features = keypoint::detect_extrema(first_octave,1,2,2,1, 1);
+    let features = keypoint::detect_extrema(first_octave,1,1,1,1, 1);
     let refined_features = keypoint::extrema_refinement(&features, first_octave);
 
     let number_of_features = features.len();
