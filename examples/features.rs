@@ -24,9 +24,10 @@ fn main() {
     let pyramid = Pyramid::build_pyramid(&gray_image, 3, 3, 0.5);
 
     let first_octave = &pyramid.octaves[0];
+    let kernel_half_width = 1;
 
-    let features = keypoint::detect_extrema(first_octave,1,1,1,1, 1);
-    let refined_features = keypoint::extrema_refinement(&features, first_octave);
+    let features = keypoint::detect_extrema(first_octave,1,kernel_half_width,1, 1);
+    let refined_features = keypoint::extrema_refinement(&features, first_octave, kernel_half_width);
 
     let number_of_features = features.len();
     let number_of_refined_features = refined_features.len();

@@ -1,6 +1,6 @@
 extern crate nalgebra as na;
 
-use crate::image::{Image,kernel::Kernel,prewitt_kernel::PrewittKernel, laplace_kernel::LaplaceKernel};
+use crate::image::{kernel::Kernel,prewitt_kernel::PrewittKernel, laplace_kernel::LaplaceKernel};
 use crate::Float;
 use crate::pyramid::octave::Octave;
 use na::DMatrix;
@@ -21,7 +21,7 @@ pub enum GradientDirection {
 }
 
 //TODO: encapsulate input params better
-pub fn detect_extrema(source_octave: &Octave, sigma_level: usize,x_offset: usize, y_offset: usize , x_step: usize, y_step: usize) -> Vec<ExtremaParameters> {
+pub fn detect_extrema(source_octave: &Octave, sigma_level: usize, feature_offset: usize, x_step: usize, y_step: usize) -> Vec<ExtremaParameters> {
 
     let mut extrema_vec: Vec<ExtremaParameters> = Vec::new();
 
@@ -29,8 +29,8 @@ pub fn detect_extrema(source_octave: &Octave, sigma_level: usize,x_offset: usize
     let prev_buffer = &source_octave.difference_of_gaussians[sigma_level-1].buffer;
     let next_buffer = &source_octave.difference_of_gaussians[sigma_level+1].buffer;
 
-    for x in (x_offset..image_buffer.ncols()-x_offset).step_by(x_step) {
-        for y in (y_offset..image_buffer.nrows()-y_offset).step_by(y_step)  {
+    for x in (feature_offset..image_buffer.ncols()-feature_offset).step_by(x_step) {
+        for y in (feature_offset..image_buffer.nrows()-feature_offset).step_by(y_step)  {
 
             let sample_value = image_buffer[(y,x)];
 
@@ -75,17 +75,17 @@ fn is_sample_extrema_in_neighbourhood(sample: Float, x_sample: usize, y_sample: 
     is_smallest || is_largest
 }
 
-pub fn extrema_refinement(extrema: &Vec<ExtremaParameters>, source_octave: &Octave) -> Vec<ExtremaParameters> {
+pub fn extrema_refinement(extrema: &Vec<ExtremaParameters>, source_octave: &Octave, kernel_half_width: usize) -> Vec<ExtremaParameters> {
 
-    extrema.iter().cloned().filter(|x| contrast_rejection(source_octave, x)).collect()
+    extrema.iter().cloned().filter(|x| contrast_rejection(source_octave, x, kernel_half_width)).collect()
 
 }
 
-pub fn contrast_rejection(source_octave: &Octave, input_params: &ExtremaParameters) -> bool {
+pub fn contrast_rejection(source_octave: &Octave, input_params: &ExtremaParameters, kernel_half_width: usize) -> bool {
 
 
-    let first_order_derivative_filter = PrewittKernel::new(1);
-    let second_order_derivative_filter = LaplaceKernel::new(1);
+    let first_order_derivative_filter = PrewittKernel::new(kernel_half_width);
+    let second_order_derivative_filter = LaplaceKernel::new(kernel_half_width);
 
     let first_order_derivative_x = gradient_eval(source_octave,input_params,&first_order_derivative_filter,GradientDirection::HORIZINTAL);
     let first_order_derivative_y = gradient_eval(source_octave,input_params,&first_order_derivative_filter,GradientDirection::VERTICAL);
