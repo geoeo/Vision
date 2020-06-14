@@ -10,3 +10,18 @@ macro_rules! define_float {
 }
 
 define_float!(f64);
+
+#[derive(Debug,Clone)]
+pub struct ExtremaParameters {
+    pub x: usize,
+    pub y: usize,
+    pub sigma_level: usize
+} 
+
+#[repr(u8)]
+#[derive(Debug,Copy,Clone)]
+pub enum GradientDirection {
+    HORIZINTAL,
+    VERTICAL,
+    SIGMA
+}

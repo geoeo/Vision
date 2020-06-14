@@ -1,24 +1,11 @@
 extern crate nalgebra as na;
 
 use crate::image::{kernel::Kernel,prewitt_kernel::PrewittKernel, laplace_kernel::LaplaceKernel};
-use crate::Float;
+use crate::{Float,ExtremaParameters, GradientDirection};
 use crate::pyramid::octave::Octave;
-use na::DMatrix;
+use na::{Matrix2,DMatrix};
 
-#[derive(Debug,Clone)]
-pub struct ExtremaParameters {
-    pub x: usize,
-    pub y: usize,
-    pub sigma_level: usize
-} 
 
-#[repr(u8)]
-#[derive(Debug,Copy,Clone)]
-pub enum GradientDirection {
-    HORIZINTAL,
-    VERTICAL,
-    SIGMA
-}
 
 //TODO: encapsulate input params better
 pub fn detect_extrema(source_octave: &Octave, sigma_level: usize, feature_offset: usize, x_step: usize, y_step: usize) -> Vec<ExtremaParameters> {
@@ -108,10 +95,40 @@ pub fn contrast_rejection(source_octave: &Octave, input_params: &ExtremaParamete
     let dog_x_pertub = dog_x + 0.5*first_order_derivative_pertub_dot;
 
     //TODO: make sure difference of gaussians are normalized to 0..1 range
-    dog_x_pertub.abs() >= 0.3
+    dog_x_pertub.abs() >= 0.03
 
 }
 
+//TODO: @Investigate: maybe precomputing the gradient images is more efficient
+pub fn hessian(source_octave: &Octave, input_params: &ExtremaParameters, kernel_half_width: usize) -> Matrix2<Float> {
+
+    let extrema_top = ExtremaParameters{x: input_params.x, y: input_params.y - 1, sigma_level: input_params.sigma_level};
+    let extrema_bottom = ExtremaParameters{x: input_params.x, y: input_params.y + 1, sigma_level: input_params.sigma_level};
+    let extrema_left = ExtremaParameters{x: input_params.x - 1, y: input_params.y, sigma_level: input_params.sigma_level};
+    let extrema_right = ExtremaParameters{x: input_params.x + 1, y: input_params.y, sigma_level: input_params.sigma_level};
+
+    let first_order_derivative_filter = PrewittKernel::new(kernel_half_width);
+    let second_order_derivative_filter = LaplaceKernel::new(kernel_half_width);
+
+    let dx = gradient_eval(source_octave,&input_params,&first_order_derivative_filter,GradientDirection::HORIZINTAL);
+    let dx_top = gradient_eval(source_octave,&extrema_top,&first_order_derivative_filter,GradientDirection::HORIZINTAL);
+    let dx_bottom = gradient_eval(source_octave,&extrema_bottom,&first_order_derivative_filter,GradientDirection::HORIZINTAL);
+    let dy =  gradient_eval(source_octave,&input_params,&first_order_derivative_filter,GradientDirection::VERTICAL);
+    let dy_left = gradient_eval(source_octave,&extrema_left,&first_order_derivative_filter,GradientDirection::VERTICAL);
+    let dy_right = gradient_eval(source_octave,&extrema_right,&first_order_derivative_filter,GradientDirection::VERTICAL);
+
+    let dxx = gradient_eval(source_octave,input_params,&second_order_derivative_filter,GradientDirection::HORIZINTAL);
+    let dyy = gradient_eval(source_octave,input_params,&second_order_derivative_filter,GradientDirection::VERTICAL);
+
+    let dxy = dx_top - 2.0*dx + dx_bottom; 
+    let dyx = dy_left - 2.0*dy + dy_right; 
+
+    Matrix2::new(dxx,dxy,
+                 dyx,dyy)
+
+}
+
+//TODO: Move this to filter?
 fn gradient_eval(source_octave: &Octave,input_params: &ExtremaParameters, filter_kernel: &dyn Kernel, gradient_direction: GradientDirection) -> Float {
 
     let x_input = input_params.x; 
