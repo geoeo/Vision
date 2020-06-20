@@ -99,6 +99,12 @@ pub fn contrast_rejection(source_octave: &Octave, input_params: &ExtremaParamete
 
 }
 
+//TODO:
+pub fn edge_response_rejection(source_octave: &Octave, input_params: &ExtremaParameters, kernel_half_width: usize, r: usize) -> bool {
+    let hessian = hessian(source_octave,input_params,kernel_half_width);
+    eval_hessian(&hessian, r)
+}
+
 //TODO: @Investigate: maybe precomputing the gradient images is more efficient
 pub fn hessian(source_octave: &Octave, input_params: &ExtremaParameters, kernel_half_width: usize) -> Matrix2<Float> {
 
@@ -126,6 +132,17 @@ pub fn hessian(source_octave: &Octave, input_params: &ExtremaParameters, kernel_
     Matrix2::new(dxx,dxy,
                  dyx,dyy)
 
+
+
+}
+
+pub fn eval_hessian(hessian: &Matrix2<Float>, r: usize) -> bool {
+    let trace = hessian.trace();
+    let determinant = hessian.determinant();
+    let hessian_factor = trace.powi(2)/determinant;
+    let r_factor = (r+1).pow(2)/r;
+
+    hessian_factor < r_factor as Float
 }
 
 //TODO: Move this to filter?
