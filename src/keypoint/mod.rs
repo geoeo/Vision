@@ -64,7 +64,10 @@ fn is_sample_extrema_in_neighbourhood(sample: Float, x_sample: usize, y_sample: 
 
 pub fn extrema_refinement(extrema: &Vec<ExtremaParameters>, source_octave: &Octave, kernel_half_width: usize) -> Vec<ExtremaParameters> {
 
-    extrema.iter().cloned().filter(|x| contrast_rejection(source_octave, x, kernel_half_width)).collect()
+    //TODO: maybe extra filter step here to filter points for which we cant compute all the greadients
+    
+    extrema.iter().cloned().filter(|x| contrast_rejection(source_octave, x, kernel_half_width)).filter(|x| edge_response_rejection(source_octave, x, kernel_half_width,10)).collect()
+    //extrema.iter().cloned().filter(|x| contrast_rejection(source_octave, x, kernel_half_width)).collect()
 
 }
 
@@ -94,12 +97,10 @@ pub fn contrast_rejection(source_octave: &Octave, input_params: &ExtremaParamete
     let first_order_derivative_pertub_dot = first_order_derivative_x*pertub_x + first_order_derivative_y*pertub_y+first_order_derivative_sigma+pertub_sigma;
     let dog_x_pertub = dog_x + 0.5*first_order_derivative_pertub_dot;
 
-    //TODO: make sure difference of gaussians are normalized to 0..1 range
     dog_x_pertub.abs() >= 0.03
 
 }
 
-//TODO:
 pub fn edge_response_rejection(source_octave: &Octave, input_params: &ExtremaParameters, kernel_half_width: usize, r: usize) -> bool {
     let hessian = hessian(source_octave,input_params,kernel_half_width);
     eval_hessian(&hessian, r)
@@ -108,13 +109,15 @@ pub fn edge_response_rejection(source_octave: &Octave, input_params: &ExtremaPar
 //TODO: @Investigate: maybe precomputing the gradient images is more efficient
 pub fn hessian(source_octave: &Octave, input_params: &ExtremaParameters, kernel_half_width: usize) -> Matrix2<Float> {
 
+    //TODO: this crashes
     let extrema_top = ExtremaParameters{x: input_params.x, y: input_params.y - 1, sigma_level: input_params.sigma_level};
     let extrema_bottom = ExtremaParameters{x: input_params.x, y: input_params.y + 1, sigma_level: input_params.sigma_level};
     let extrema_left = ExtremaParameters{x: input_params.x - 1, y: input_params.y, sigma_level: input_params.sigma_level};
     let extrema_right = ExtremaParameters{x: input_params.x + 1, y: input_params.y, sigma_level: input_params.sigma_level};
 
-    let first_order_derivative_filter = PrewittKernel::new(kernel_half_width);
-    let second_order_derivative_filter = LaplaceKernel::new(kernel_half_width);
+    //TOOD: this doesnt work with repeat parameter. Need to pass it to extrema_refinement
+    let first_order_derivative_filter = PrewittKernel::new(0);
+    let second_order_derivative_filter = LaplaceKernel::new(0);
 
     let dx = gradient_eval(source_octave,&input_params,&first_order_derivative_filter,GradientDirection::HORIZINTAL);
     let dx_top = gradient_eval(source_octave,&extrema_top,&first_order_derivative_filter,GradientDirection::HORIZINTAL);

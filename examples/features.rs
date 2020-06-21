@@ -38,7 +38,7 @@ fn main() {
     let refined_percentage = number_of_refined_features as f32/size as f32;
 
     println!("Features: {} out of {}, ({}%)",number_of_features, size, percentage);
-    println!("Refined Features: {} out of {}, ({}%)",refined_percentage, size, refined_percentage);
+    println!("Refined Features: {} out of {}, ({}%)",number_of_refined_features, size, refined_percentage);
 
     for feature in features {
         let x = feature.x;
