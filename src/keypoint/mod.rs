@@ -1,14 +1,13 @@
 extern crate nalgebra as na;
 
-use crate::image::{kernel::Kernel,prewitt_kernel::PrewittKernel, laplace_kernel::LaplaceKernel};
+use crate::image::kernel::Kernel;
 use crate::{Float,ExtremaParameters, GradientDirection};
 use crate::pyramid::octave::Octave;
 use na::{Matrix2,DMatrix};
 
 
 
-//TODO: encapsulate input params better
-pub fn detect_extrema(source_octave: &Octave, sigma_level: usize, feature_offset: usize, x_step: usize, y_step: usize) -> Vec<ExtremaParameters> {
+pub fn detect_extrema(source_octave: &Octave, sigma_level: usize, filter_half_width: usize,filter_half_repeat: usize, x_step: usize, y_step: usize) -> Vec<ExtremaParameters> {
 
     let mut extrema_vec: Vec<ExtremaParameters> = Vec::new();
 
@@ -16,8 +15,11 @@ pub fn detect_extrema(source_octave: &Octave, sigma_level: usize, feature_offset
     let prev_buffer = &source_octave.difference_of_gaussians[sigma_level-1].buffer;
     let next_buffer = &source_octave.difference_of_gaussians[sigma_level+1].buffer;
 
-    for x in (feature_offset..image_buffer.ncols()-feature_offset).step_by(x_step) {
-        for y in (feature_offset..image_buffer.nrows()-feature_offset).step_by(y_step)  {
+    let gradient_range = 1;
+    let offset = std::cmp::max(filter_half_width,filter_half_repeat)+gradient_range;
+
+    for x in (offset..image_buffer.ncols()-offset).step_by(x_step) {
+        for y in (offset..image_buffer.nrows()-offset).step_by(y_step)  {
 
             let sample_value = image_buffer[(y,x)];
 
@@ -62,28 +64,25 @@ fn is_sample_extrema_in_neighbourhood(sample: Float, x_sample: usize, y_sample: 
     is_smallest || is_largest
 }
 
-pub fn extrema_refinement(extrema: &Vec<ExtremaParameters>, source_octave: &Octave, kernel_half_width: usize) -> Vec<ExtremaParameters> {
+pub fn extrema_refinement(extrema: &Vec<ExtremaParameters>, source_octave: &Octave, first_order_kernel: &dyn Kernel, second_order_kernel: &dyn Kernel) -> Vec<ExtremaParameters> {
 
-    //TODO: maybe extra filter step here to filter points for which we cant compute all the greadients
-    
-    extrema.iter().cloned().filter(|x| contrast_rejection(source_octave, x, kernel_half_width)).filter(|x| edge_response_rejection(source_octave, x, kernel_half_width,10)).collect()
+    assert!(second_order_kernel.half_repeat() <= first_order_kernel.half_repeat());
+    assert!(second_order_kernel.half_width() <= first_order_kernel.half_width());
+
+    extrema.iter().cloned().filter(|x| contrast_rejection(source_octave, x, first_order_kernel,second_order_kernel)).filter(|x| edge_response_rejection(source_octave, x, first_order_kernel,second_order_kernel,10)).collect()
     //extrema.iter().cloned().filter(|x| contrast_rejection(source_octave, x, kernel_half_width)).collect()
 
 }
 
-pub fn contrast_rejection(source_octave: &Octave, input_params: &ExtremaParameters, kernel_half_width: usize) -> bool {
+pub fn contrast_rejection(source_octave: &Octave, input_params: &ExtremaParameters, first_order_kernel: &dyn Kernel, second_order_kernel: &dyn Kernel) -> bool {
 
+    let first_order_derivative_x = gradient_eval(source_octave,input_params,first_order_kernel,GradientDirection::HORIZINTAL);
+    let first_order_derivative_y = gradient_eval(source_octave,input_params,first_order_kernel,GradientDirection::VERTICAL);
+    let first_order_derivative_sigma = gradient_eval(source_octave,input_params,first_order_kernel,GradientDirection::SIGMA);
 
-    let first_order_derivative_filter = PrewittKernel::new(kernel_half_width);
-    let second_order_derivative_filter = LaplaceKernel::new(kernel_half_width);
-
-    let first_order_derivative_x = gradient_eval(source_octave,input_params,&first_order_derivative_filter,GradientDirection::HORIZINTAL);
-    let first_order_derivative_y = gradient_eval(source_octave,input_params,&first_order_derivative_filter,GradientDirection::VERTICAL);
-    let first_order_derivative_sigma = gradient_eval(source_octave,input_params,&first_order_derivative_filter,GradientDirection::SIGMA);
-
-    let second_order_derivative_x = gradient_eval(source_octave,input_params,&second_order_derivative_filter,GradientDirection::HORIZINTAL);
-    let second_order_derivative_y = gradient_eval(source_octave,input_params,&second_order_derivative_filter,GradientDirection::VERTICAL);
-    let second_order_derivative_sigma = gradient_eval(source_octave,input_params,&second_order_derivative_filter,GradientDirection::SIGMA);
+    let second_order_derivative_x = gradient_eval(source_octave,input_params,second_order_kernel,GradientDirection::HORIZINTAL);
+    let second_order_derivative_y = gradient_eval(source_octave,input_params,second_order_kernel,GradientDirection::VERTICAL);
+    let second_order_derivative_sigma = gradient_eval(source_octave,input_params,second_order_kernel,GradientDirection::SIGMA);
 
     let pertub_x = first_order_derivative_x/second_order_derivative_x;
     let pertub_y = first_order_derivative_y/second_order_derivative_y;
@@ -101,33 +100,31 @@ pub fn contrast_rejection(source_octave: &Octave, input_params: &ExtremaParamete
 
 }
 
-pub fn edge_response_rejection(source_octave: &Octave, input_params: &ExtremaParameters, kernel_half_width: usize, r: usize) -> bool {
-    let hessian = hessian(source_octave,input_params,kernel_half_width);
+pub fn edge_response_rejection(source_octave: &Octave, input_params: &ExtremaParameters, first_order_kernel: &dyn Kernel, second_order_kernel: &dyn Kernel, r: usize) -> bool {
+    let hessian = hessian(source_octave,input_params,first_order_kernel,second_order_kernel);
     eval_hessian(&hessian, r)
 }
 
 //TODO: @Investigate: maybe precomputing the gradient images is more efficient
-pub fn hessian(source_octave: &Octave, input_params: &ExtremaParameters, kernel_half_width: usize) -> Matrix2<Float> {
+pub fn hessian(source_octave: &Octave, input_params: &ExtremaParameters,  first_order_kernel: &dyn Kernel, second_order_kernel: &dyn Kernel) -> Matrix2<Float> {
 
-    //TODO: this crashes
     let extrema_top = ExtremaParameters{x: input_params.x, y: input_params.y - 1, sigma_level: input_params.sigma_level};
     let extrema_bottom = ExtremaParameters{x: input_params.x, y: input_params.y + 1, sigma_level: input_params.sigma_level};
     let extrema_left = ExtremaParameters{x: input_params.x - 1, y: input_params.y, sigma_level: input_params.sigma_level};
     let extrema_right = ExtremaParameters{x: input_params.x + 1, y: input_params.y, sigma_level: input_params.sigma_level};
+    
+    //let first_order_derivative_filter = PrewittKernel::new(kernel_half_repeat);
+    //let second_order_derivative_filter = LaplaceKernel::new(kernel_half_repeat);
 
-    //TOOD: this doesnt work with repeat parameter. Need to pass it to extrema_refinement
-    let first_order_derivative_filter = PrewittKernel::new(0);
-    let second_order_derivative_filter = LaplaceKernel::new(0);
+    let dx = gradient_eval(source_octave,&input_params,first_order_kernel,GradientDirection::HORIZINTAL);
+    let dx_top = gradient_eval(source_octave,&extrema_top,first_order_kernel,GradientDirection::HORIZINTAL);
+    let dx_bottom = gradient_eval(source_octave,&extrema_bottom,first_order_kernel,GradientDirection::HORIZINTAL);
+    let dy =  gradient_eval(source_octave,&input_params,first_order_kernel,GradientDirection::VERTICAL);
+    let dy_left = gradient_eval(source_octave,&extrema_left,first_order_kernel,GradientDirection::VERTICAL);
+    let dy_right = gradient_eval(source_octave,&extrema_right,first_order_kernel,GradientDirection::VERTICAL);
 
-    let dx = gradient_eval(source_octave,&input_params,&first_order_derivative_filter,GradientDirection::HORIZINTAL);
-    let dx_top = gradient_eval(source_octave,&extrema_top,&first_order_derivative_filter,GradientDirection::HORIZINTAL);
-    let dx_bottom = gradient_eval(source_octave,&extrema_bottom,&first_order_derivative_filter,GradientDirection::HORIZINTAL);
-    let dy =  gradient_eval(source_octave,&input_params,&first_order_derivative_filter,GradientDirection::VERTICAL);
-    let dy_left = gradient_eval(source_octave,&extrema_left,&first_order_derivative_filter,GradientDirection::VERTICAL);
-    let dy_right = gradient_eval(source_octave,&extrema_right,&first_order_derivative_filter,GradientDirection::VERTICAL);
-
-    let dxx = gradient_eval(source_octave,input_params,&second_order_derivative_filter,GradientDirection::HORIZINTAL);
-    let dyy = gradient_eval(source_octave,input_params,&second_order_derivative_filter,GradientDirection::VERTICAL);
+    let dxx = gradient_eval(source_octave,input_params,second_order_kernel,GradientDirection::HORIZINTAL);
+    let dyy = gradient_eval(source_octave,input_params,second_order_kernel,GradientDirection::VERTICAL);
 
     let dxy = dx_top - 2.0*dx + dx_bottom; 
     let dyx = dy_left - 2.0*dy + dy_right; 

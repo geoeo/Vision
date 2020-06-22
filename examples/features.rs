@@ -6,6 +6,7 @@ use std::path::Path;
 use sift::pyramid::Pyramid;
 use sift::keypoint;
 use sift::image::Image;
+use sift::image::{kernel::Kernel,laplace_kernel::LaplaceKernel,prewitt_kernel::PrewittKernel};
 
 fn main() {
     let image_name = "lenna";
@@ -22,12 +23,16 @@ fn main() {
     let mut refined_display = Image::from_gray_image(&gray_image, false);
     
     let pyramid = Pyramid::build_pyramid(&gray_image, 3, 3, 0.5);
+    let x_step = 1;
+    let y_step = 1;
+    let kernel_half_repeat = 1;
+    let first_order_derivative_filter = PrewittKernel::new(kernel_half_repeat);
+    let second_order_derivative_filter = LaplaceKernel::new(kernel_half_repeat);
 
     let first_octave = &pyramid.octaves[0];
-    let kernel_half_width = 1;
 
-    let features = keypoint::detect_extrema(first_octave,1,kernel_half_width,1, 1);
-    let refined_features = keypoint::extrema_refinement(&features, first_octave, kernel_half_width);
+    let features = keypoint::detect_extrema(first_octave,1,first_order_derivative_filter.half_width(),first_order_derivative_filter.half_repeat(),x_step, y_step);
+    let refined_features = keypoint::extrema_refinement(&features, first_octave, &first_order_derivative_filter,&second_order_derivative_filter);
 
     let number_of_features = features.len();
     let number_of_refined_features = refined_features.len();
