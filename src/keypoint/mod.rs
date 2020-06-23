@@ -1,10 +1,10 @@
 extern crate nalgebra as na;
 
-use crate::image::kernel::Kernel;
+use crate::image::{kernel::Kernel,filter::gradient_eval};
 use crate::{Float,ExtremaParameters, GradientDirection};
 use crate::pyramid::octave::Octave;
-use na::{Matrix2,DMatrix};
-
+use crate::math::{hessian,eval_hessian};
+use na::DMatrix;
 
 
 pub fn detect_extrema(source_octave: &Octave, sigma_level: usize, filter_half_width: usize,filter_half_repeat: usize, x_step: usize, y_step: usize) -> Vec<ExtremaParameters> {
@@ -70,8 +70,6 @@ pub fn extrema_refinement(extrema: &Vec<ExtremaParameters>, source_octave: &Octa
     assert!(second_order_kernel.half_width() <= first_order_kernel.half_width());
 
     extrema.iter().cloned().filter(|x| contrast_rejection(source_octave, x, first_order_kernel,second_order_kernel)).filter(|x| edge_response_rejection(source_octave, x, first_order_kernel,second_order_kernel,10)).collect()
-    //extrema.iter().cloned().filter(|x| contrast_rejection(source_octave, x, kernel_half_width)).collect()
-
 }
 
 pub fn contrast_rejection(source_octave: &Octave, input_params: &ExtremaParameters, first_order_kernel: &dyn Kernel, second_order_kernel: &dyn Kernel) -> bool {
@@ -105,126 +103,3 @@ pub fn edge_response_rejection(source_octave: &Octave, input_params: &ExtremaPar
     eval_hessian(&hessian, r)
 }
 
-//TODO: @Investigate: maybe precomputing the gradient images is more efficient
-pub fn hessian(source_octave: &Octave, input_params: &ExtremaParameters,  first_order_kernel: &dyn Kernel, second_order_kernel: &dyn Kernel) -> Matrix2<Float> {
-
-    let extrema_top = ExtremaParameters{x: input_params.x, y: input_params.y - 1, sigma_level: input_params.sigma_level};
-    let extrema_bottom = ExtremaParameters{x: input_params.x, y: input_params.y + 1, sigma_level: input_params.sigma_level};
-    let extrema_left = ExtremaParameters{x: input_params.x - 1, y: input_params.y, sigma_level: input_params.sigma_level};
-    let extrema_right = ExtremaParameters{x: input_params.x + 1, y: input_params.y, sigma_level: input_params.sigma_level};
-    
-    //let first_order_derivative_filter = PrewittKernel::new(kernel_half_repeat);
-    //let second_order_derivative_filter = LaplaceKernel::new(kernel_half_repeat);
-
-    let dx = gradient_eval(source_octave,&input_params,first_order_kernel,GradientDirection::HORIZINTAL);
-    let dx_top = gradient_eval(source_octave,&extrema_top,first_order_kernel,GradientDirection::HORIZINTAL);
-    let dx_bottom = gradient_eval(source_octave,&extrema_bottom,first_order_kernel,GradientDirection::HORIZINTAL);
-    let dy =  gradient_eval(source_octave,&input_params,first_order_kernel,GradientDirection::VERTICAL);
-    let dy_left = gradient_eval(source_octave,&extrema_left,first_order_kernel,GradientDirection::VERTICAL);
-    let dy_right = gradient_eval(source_octave,&extrema_right,first_order_kernel,GradientDirection::VERTICAL);
-
-    let dxx = gradient_eval(source_octave,input_params,second_order_kernel,GradientDirection::HORIZINTAL);
-    let dyy = gradient_eval(source_octave,input_params,second_order_kernel,GradientDirection::VERTICAL);
-
-    let dxy = dx_top - 2.0*dx + dx_bottom; 
-    let dyx = dy_left - 2.0*dy + dy_right; 
-
-    Matrix2::new(dxx,dxy,
-                 dyx,dyy)
-
-
-
-}
-
-pub fn eval_hessian(hessian: &Matrix2<Float>, r: usize) -> bool {
-    let trace = hessian.trace();
-    let determinant = hessian.determinant();
-    let hessian_factor = trace.powi(2)/determinant;
-    let r_factor = (r+1).pow(2)/r;
-
-    hessian_factor < r_factor as Float
-}
-
-//TODO: Move this to filter?
-fn gradient_eval(source_octave: &Octave,input_params: &ExtremaParameters, filter_kernel: &dyn Kernel, gradient_direction: GradientDirection) -> Float {
-
-    let x_input = input_params.x; 
-    let x_input_signed = input_params.x as isize; 
-    let y_input = input_params.y; 
-    let y_input_signed = input_params.y as isize; 
-    let sigma_level_input = input_params.sigma_level;
-    let sigma_level_input_signed = input_params.sigma_level as isize;
-
-    let kernel = filter_kernel.kernel();
-    let step = filter_kernel.step();
-    let repeat = filter_kernel.half_repeat() as isize;
-    let repeat_range = -repeat..repeat+1;
-    let kernel_half_width = filter_kernel.half_width();
-    let kernel_half_width_signed = kernel_half_width as isize;
-
-    let width = source_octave.difference_of_gaussians[sigma_level_input].buffer.ncols();
-    let height = source_octave.difference_of_gaussians[sigma_level_input].buffer.nrows();
-
-    match gradient_direction {
-        GradientDirection::HORIZINTAL => {
-            assert!(x_input_signed -kernel_half_width_signed >= 0 && x_input + kernel_half_width <= width);
-            assert!(x_input_signed -repeat >= 0 && x_input + (repeat as usize) < width);
-         },
-        GradientDirection::VERTICAL => { 
-            assert!(y_input_signed -kernel_half_width_signed >= 0 && y_input + kernel_half_width <= height);
-            assert!(y_input_signed -repeat >= 0 && y_input + (repeat as usize) < height);
-         },
-        GradientDirection::SIGMA => { 
-            assert!(sigma_level_input_signed -kernel_half_width_signed >= 0 && sigma_level_input + kernel_half_width < source_octave.difference_of_gaussians.len());
-        }
-
-    }
-
-    let mut convolved_value = 0.0;
-    for kenel_idx in (-kernel_half_width_signed..kernel_half_width_signed+1).step_by(step){
-        let kenel_value = kernel[(kenel_idx + kernel_half_width_signed) as usize];
-
-            let weighted_sample = match gradient_direction {
-                GradientDirection::HORIZINTAL => {
-                    let mut acc = 0.0;
-                    let source = &source_octave.difference_of_gaussians[sigma_level_input]; 
-                    let buffer = &source.buffer;
-                    for repeat_idx in repeat_range.clone() {
-                        let sample_idx = x_input_signed +kenel_idx;
-                        let y_repeat_idx =  y_input_signed + repeat_idx;
-
-                        let sample_value = buffer.index((y_repeat_idx as usize,sample_idx as usize));
-                        acc += kenel_value*sample_value;
-                    }
-                    let range_size = repeat_range.end - repeat_range.start;
-                    acc/ range_size as Float
-                },
-                GradientDirection::VERTICAL => {
-                    let mut acc = 0.0;
-                    let source = &source_octave.difference_of_gaussians[sigma_level_input]; 
-                    let buffer = &source.buffer;
-                    for repeat_idx in repeat_range.clone() {
-                        let sample_idx = y_input_signed+kenel_idx;
-                        let x_repeat_idx = x_input_signed + repeat_idx;
-                        let sample_value = buffer.index((sample_idx as usize, x_repeat_idx as usize));
-                        acc += kenel_value*sample_value;
-                    }
-                    let range_size = repeat_range.end - repeat_range.start;
-                    acc/ range_size as Float
-                },
-                GradientDirection::SIGMA => { 
-                    //TODO: Not sure how repeat/2D kernels should work along the sigma axis
-                    let sample_idx = sigma_level_input_signed + kenel_idx;
-                    let sample_buffer =  &source_octave.difference_of_gaussians[sample_idx as usize].buffer;
-                    let sample_value = sample_buffer.index((y_input,x_input));
-                    sample_value*kenel_value
-                }
-                
-            };
-
-            convolved_value += weighted_sample;
-    
-    }
-
-    convolved_value
-}
