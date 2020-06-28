@@ -1,13 +1,9 @@
 use crate::image::{Image,gauss_kernel::GaussKernel, kernel::Kernel};
 use crate::pyramid::octave::Octave;
-use crate::{Float,ExtremaParameters, GradientDirection};
+use crate::{Float,ExtremaParameters, GradientDirection, FilterDirection2D};
 
-#[repr(u8)]
-#[derive(Debug,Copy,Clone)]
-pub enum FilterDirection2D {
-    HORIZINTAL,
-    VERTICAL
-}
+
+
 
 pub fn filter_1d_convolution(source: &Image, filter_direction: FilterDirection2D, filter_kernel: &dyn Kernel) -> Image {
     let kernel = &filter_kernel.kernel();

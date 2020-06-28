@@ -9,18 +9,22 @@ use crate::image::{kernel::Kernel,filter::gradient_eval};
 //TODO: @Investigate: maybe precomputing the gradient images is more efficient
 pub fn new(source_octave: &Octave, input_params: &ExtremaParameters,  first_order_kernel: &dyn Kernel, second_order_kernel: &dyn Kernel) -> Matrix2<Float> {
 
-    let extrema_top = ExtremaParameters{x: input_params.x, y: input_params.y - 1, sigma_level: input_params.sigma_level};
-    let extrema_bottom = ExtremaParameters{x: input_params.x, y: input_params.y + 1, sigma_level: input_params.sigma_level};
-    let extrema_left = ExtremaParameters{x: input_params.x - 1, y: input_params.y, sigma_level: input_params.sigma_level};
-    let extrema_right = ExtremaParameters{x: input_params.x + 1, y: input_params.y, sigma_level: input_params.sigma_level};
+    let center = (input_params.y,input_params.x);
+    let left = (input_params.y,input_params.x-1);
+    let right = (input_params.y,input_params.x+1);
+    let top = (input_params.y-1,input_params.x);
+    let bottom = (input_params.y+1,input_params.x);
 
 
-    let dx = gradient_eval(source_octave,&input_params,first_order_kernel,GradientDirection::HORIZINTAL);
-    let dx_top = gradient_eval(source_octave,&extrema_top,first_order_kernel,GradientDirection::HORIZINTAL);
-    let dx_bottom = gradient_eval(source_octave,&extrema_bottom,first_order_kernel,GradientDirection::HORIZINTAL);
-    let dy =  gradient_eval(source_octave,&input_params,first_order_kernel,GradientDirection::VERTICAL);
-    let dy_left = gradient_eval(source_octave,&extrema_left,first_order_kernel,GradientDirection::VERTICAL);
-    let dy_right = gradient_eval(source_octave,&extrema_right,first_order_kernel,GradientDirection::VERTICAL);
+    let x_gradient_image = &source_octave.x_gradient[input_params.sigma_level];
+    let y_gradient_image = &source_octave.y_gradient[input_params.sigma_level];
+
+    let dx = x_gradient_image.buffer.index(center);
+    let dx_top = x_gradient_image.buffer.index(top);
+    let dx_bottom = x_gradient_image.buffer.index(bottom);
+    let dy =  y_gradient_image.buffer.index(center);
+    let dy_left = y_gradient_image.buffer.index(left);
+    let dy_right = y_gradient_image.buffer.index(right);
 
     let dxx = gradient_eval(source_octave,input_params,second_order_kernel,GradientDirection::HORIZINTAL);
     let dyy = gradient_eval(source_octave,input_params,second_order_kernel,GradientDirection::VERTICAL);

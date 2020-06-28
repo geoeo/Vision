@@ -3,7 +3,8 @@ extern crate sift;
 
 use std::path::Path;
 
-use sift::image::{Image,filter, filter::FilterDirection2D, prewitt_kernel::PrewittKernel};
+use sift::image::{Image,filter, prewitt_kernel::PrewittKernel};
+use sift::FilterDirection2D;
 
 fn main() {
     let image_name = "lenna";

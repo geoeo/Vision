@@ -3,7 +3,8 @@ extern crate sift;
 
 use std::path::Path;
 
-use sift::image::{Image,filter, filter::FilterDirection2D, gauss_kernel::GaussKernel};
+use sift::image::{Image,filter, gauss_kernel::GaussKernel};
+use sift::FilterDirection2D;
 
 fn main() {
     let image_name = "lenna";
