@@ -1,7 +1,6 @@
 pub mod image;
 pub mod pyramid;
 pub mod keypoint;
-pub mod math;
 
 macro_rules! define_float {
     ($f:tt) => {

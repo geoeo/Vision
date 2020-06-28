@@ -7,7 +7,7 @@ use crate::image::{kernel::Kernel,filter::gradient_eval};
 
 
 //TODO: @Investigate: maybe precomputing the gradient images is more efficient
-pub fn hessian(source_octave: &Octave, input_params: &ExtremaParameters,  first_order_kernel: &dyn Kernel, second_order_kernel: &dyn Kernel) -> Matrix2<Float> {
+pub fn new(source_octave: &Octave, input_params: &ExtremaParameters,  first_order_kernel: &dyn Kernel, second_order_kernel: &dyn Kernel) -> Matrix2<Float> {
 
     let extrema_top = ExtremaParameters{x: input_params.x, y: input_params.y - 1, sigma_level: input_params.sigma_level};
     let extrema_bottom = ExtremaParameters{x: input_params.x, y: input_params.y + 1, sigma_level: input_params.sigma_level};
@@ -31,7 +31,6 @@ pub fn hessian(source_octave: &Octave, input_params: &ExtremaParameters,  first_
     Matrix2::new(dxx,dxy,
                  dyx,dyy)
 
-
 }
 
 pub fn eval_hessian(hessian: &Matrix2<Float>, r: usize) -> bool {
@@ -41,15 +40,4 @@ pub fn eval_hessian(hessian: &Matrix2<Float>, r: usize) -> bool {
     let r_factor = (r+1).pow(2)/r;
 
     hessian_factor < r_factor as Float
-}
-
-// http://fourier.eng.hmc.edu/e176/lectures/NM/node25.html
-pub fn lagrange_interpolation_quadratic(a: Float, b: Float, c: Float, f_a: Float, f_b: Float, f_c: Float) -> Float {
-    assert!( a < b && b < c);
-    assert!( f_a > f_b && f_b < f_c);
-
-    let numerator = (f_a-f_b)*(c-b).powi(2)-(f_c-f_b)*(b-a).powi(2);
-    let denominator = (f_a-f_b)*(c-b)+(f_c-f_b)*(b-a);
-
-    b + 0.5*(numerator/denominator)
 }

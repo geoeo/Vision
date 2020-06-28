@@ -3,8 +3,9 @@ extern crate nalgebra as na;
 use crate::image::{kernel::Kernel,filter::gradient_eval};
 use crate::{Float,ExtremaParameters, GradientDirection};
 use crate::pyramid::octave::Octave;
-use crate::math::{hessian,eval_hessian};
 use na::DMatrix;
+
+mod hessian;
 
 
 pub fn detect_extrema(source_octave: &Octave, sigma_level: usize, filter_half_width: usize,filter_half_repeat: usize, x_step: usize, y_step: usize) -> Vec<ExtremaParameters> {
@@ -99,7 +100,7 @@ pub fn contrast_rejection(source_octave: &Octave, input_params: &ExtremaParamete
 }
 
 pub fn edge_response_rejection(source_octave: &Octave, input_params: &ExtremaParameters, first_order_kernel: &dyn Kernel, second_order_kernel: &dyn Kernel, r: usize) -> bool {
-    let hessian = hessian(source_octave,input_params,first_order_kernel,second_order_kernel);
-    eval_hessian(&hessian, r)
+    let hessian = hessian::new(source_octave,input_params,first_order_kernel,second_order_kernel);
+    hessian::eval_hessian(&hessian, r)
 }
 
