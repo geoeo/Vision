@@ -1,11 +1,11 @@
 use crate::image::{Image,gauss_kernel::GaussKernel, kernel::Kernel};
 use crate::pyramid::octave::Octave;
-use crate::{Float,ExtremaParameters, GradientDirection, FilterDirection2D};
+use crate::{Float,ExtremaParameters, GradientDirection};
 
 
 
 
-pub fn filter_1d_convolution(source: &Image, filter_direction: FilterDirection2D, filter_kernel: &dyn Kernel) -> Image {
+pub fn filter_1d_convolution(source: &Image, filter_direction: GradientDirection, filter_kernel: &dyn Kernel) -> Image {
     let kernel = &filter_kernel.kernel();
     let step = filter_kernel.step();
     let kernel_half_width = filter_kernel.half_width();
@@ -24,7 +24,7 @@ pub fn filter_1d_convolution(source: &Image, filter_direction: FilterDirection2D
 
 
                     let sample_value = match filter_direction {
-                        FilterDirection2D::HORIZINTAL => {
+                        GradientDirection::HORIZINTAL => {
                             let sample_idx = (x as isize)+kenel_idx;
                             match sample_idx {
                                 sample_idx if sample_idx < 0 =>  buffer.index((y,0)),
@@ -32,14 +32,15 @@ pub fn filter_1d_convolution(source: &Image, filter_direction: FilterDirection2D
                                 _ => buffer.index((y,sample_idx as usize))
                             }
                         },
-                        FilterDirection2D::VERTICAL => {
+                        GradientDirection::VERTICAL => {
                             let sample_idx = (y as isize)+kenel_idx;
                             match sample_idx {
                                 sample_idx if sample_idx < 0 =>  buffer.index((0,x)),
                                 sample_idx if sample_idx >=  (height-kernel_half_width) as isize => buffer.index((height -1,x)),
                                 _ =>  buffer.index((sample_idx as usize, x))
                             }
-                        }
+                        },
+                        GradientDirection::SIGMA => panic!("Sigma convolution not implemented for whole image!")  
                     };
 
                 
@@ -140,7 +141,7 @@ pub fn gradient_eval_at_sample(source_octave: &Octave,input_params: &ExtremaPara
 
 
 pub fn gaussian_2_d_convolution(image: &Image, filter_kernel: &GaussKernel) -> Image {
-    let blur_hor = filter_1d_convolution(image,FilterDirection2D::HORIZINTAL, filter_kernel);
-    filter_1d_convolution(&blur_hor,FilterDirection2D::VERTICAL, filter_kernel)
+    let blur_hor = filter_1d_convolution(image,GradientDirection::HORIZINTAL, filter_kernel);
+    filter_1d_convolution(&blur_hor,GradientDirection::VERTICAL, filter_kernel)
 }
 

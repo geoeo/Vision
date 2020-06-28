@@ -1,7 +1,7 @@
 extern crate image as image_rs;
 
 use crate::image::{Image, filter, gauss_kernel::GaussKernel, prewitt_kernel::PrewittKernel};
-use crate::{Float,FilterDirection2D};
+use crate::{Float,GradientDirection};
 
 #[derive(Debug,Clone)]
 pub struct Octave {
@@ -29,8 +29,8 @@ impl Octave {
         let sigmas: Vec<Float> = range.map(|x| sigma_initial*Octave::generate_k(x as Float, s as Float)).collect();
         let kernels: Vec<GaussKernel> = sigmas.iter().map(|&sigma| GaussKernel::new(mean, sigma,step,end)).collect();
         let images: Vec<Image> = kernels.iter().map(|kernel| filter::gaussian_2_d_convolution(&base_image, kernel)).collect();
-        let x_gradient = images.iter().map(|x| filter::filter_1d_convolution(x, FilterDirection2D::HORIZINTAL, &gradient_kernel)).collect();
-        let y_gradient = images.iter().map(|x| filter::filter_1d_convolution(x, FilterDirection2D::VERTICAL, &gradient_kernel)).collect();
+        let x_gradient = images.iter().map(|x| filter::filter_1d_convolution(x, GradientDirection::HORIZINTAL, &gradient_kernel)).collect();
+        let y_gradient = images.iter().map(|x| filter::filter_1d_convolution(x, GradientDirection::VERTICAL, &gradient_kernel)).collect();
 
         let mut difference_of_gaussians: Vec<Image> = Vec::with_capacity(image_count-1);
         for i in 0..images.len()-1 {

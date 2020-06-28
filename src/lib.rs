@@ -18,15 +18,6 @@ pub struct ExtremaParameters {
     pub sigma_level: usize
 } 
 
-
-//TODO: better names for these
-#[repr(u8)]
-#[derive(Debug,Copy,Clone)]
-pub enum FilterDirection2D {
-    HORIZINTAL,
-    VERTICAL
-}
-
 #[repr(u8)]
 #[derive(Debug,Copy,Clone)]
 pub enum GradientDirection {
