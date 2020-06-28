@@ -32,7 +32,6 @@ impl Octave {
         let x_gradient = images.iter().map(|x| filter::filter_1d_convolution(x, FilterDirection2D::HORIZINTAL, &gradient_kernel)).collect();
         let y_gradient = images.iter().map(|x| filter::filter_1d_convolution(x, FilterDirection2D::VERTICAL, &gradient_kernel)).collect();
 
-
         let mut difference_of_gaussians: Vec<Image> = Vec::with_capacity(image_count-1);
         for i in 0..images.len()-1 {
 

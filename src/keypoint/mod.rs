@@ -70,7 +70,7 @@ pub fn extrema_refinement(extrema: &Vec<ExtremaParameters>, source_octave: &Octa
     assert!(second_order_kernel.half_repeat() <= first_order_kernel.half_repeat());
     assert!(second_order_kernel.half_width() <= first_order_kernel.half_width());
 
-    extrema.iter().cloned().filter(|x| contrast_rejection(source_octave, x, first_order_kernel,second_order_kernel)).filter(|x| edge_response_rejection(source_octave, x, first_order_kernel,second_order_kernel,10)).collect()
+    extrema.iter().cloned().filter(|x| contrast_rejection(source_octave, x, first_order_kernel,second_order_kernel)).filter(|x| edge_response_rejection(source_octave, x,second_order_kernel,10)).collect()
 }
 
 pub fn contrast_rejection(source_octave: &Octave, input_params: &ExtremaParameters, first_order_kernel: &dyn Kernel, second_order_kernel: &dyn Kernel) -> bool {
@@ -99,8 +99,8 @@ pub fn contrast_rejection(source_octave: &Octave, input_params: &ExtremaParamete
 
 }
 
-pub fn edge_response_rejection(source_octave: &Octave, input_params: &ExtremaParameters, first_order_kernel: &dyn Kernel, second_order_kernel: &dyn Kernel, r: usize) -> bool {
-    let hessian = hessian::new(source_octave,input_params,first_order_kernel,second_order_kernel);
+pub fn edge_response_rejection(source_octave: &Octave, input_params: &ExtremaParameters, second_order_kernel: &dyn Kernel, r: usize) -> bool {
+    let hessian = hessian::new(source_octave,input_params,second_order_kernel);
     hessian::eval_hessian(&hessian, r)
 }
 

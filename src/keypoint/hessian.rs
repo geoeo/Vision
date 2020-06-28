@@ -7,7 +7,7 @@ use crate::image::{kernel::Kernel,filter::gradient_eval};
 
 
 //TODO: @Investigate: maybe precomputing the gradient images is more efficient
-pub fn new(source_octave: &Octave, input_params: &ExtremaParameters,  first_order_kernel: &dyn Kernel, second_order_kernel: &dyn Kernel) -> Matrix2<Float> {
+pub fn new(source_octave: &Octave, input_params: &ExtremaParameters, second_order_kernel: &dyn Kernel) -> Matrix2<Float> {
 
     let center = (input_params.y,input_params.x);
     let left = (input_params.y,input_params.x-1);
