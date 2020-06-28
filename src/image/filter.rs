@@ -54,7 +54,7 @@ pub fn filter_1d_convolution(source: &Image, filter_direction: FilterDirection2D
 
 }
 
-pub fn gradient_eval(source_octave: &Octave,input_params: &ExtremaParameters, filter_kernel: &dyn Kernel, gradient_direction: GradientDirection) -> Float {
+pub fn gradient_eval_at_sample(source_octave: &Octave,input_params: &ExtremaParameters, filter_kernel: &dyn Kernel, gradient_direction: GradientDirection) -> Float {
 
     let x_input = input_params.x; 
     let x_input_signed = input_params.x as isize; 
