@@ -3,8 +3,6 @@ use crate::pyramid::octave::Octave;
 use crate::{Float,ExtremaParameters, GradientDirection};
 
 
-
-
 pub fn filter_1d_convolution(source: &Image, filter_direction: GradientDirection, filter_kernel: &dyn Kernel) -> Image {
     let kernel = &filter_kernel.kernel();
     let step = filter_kernel.step();
