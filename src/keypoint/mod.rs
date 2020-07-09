@@ -1,6 +1,6 @@
 extern crate nalgebra as na;
 
-use crate::image::{kernel::Kernel,filter::gradient_eval_at_sample};
+use crate::image::{kernel::Kernel,filter::gradient_convolution_at_sample};
 use crate::{Float,ExtremaParameters, GradientDirection};
 use crate::pyramid::octave::Octave;
 use na::DMatrix;
@@ -75,13 +75,13 @@ pub fn extrema_refinement(extrema: &Vec<ExtremaParameters>, source_octave: &Octa
 
 pub fn contrast_rejection(source_octave: &Octave, input_params: &ExtremaParameters, first_order_kernel: &dyn Kernel, second_order_kernel: &dyn Kernel) -> bool {
 
-    let first_order_derivative_x = gradient_eval_at_sample(source_octave,input_params,first_order_kernel,GradientDirection::HORIZINTAL);
-    let first_order_derivative_y = gradient_eval_at_sample(source_octave,input_params,first_order_kernel,GradientDirection::VERTICAL);
-    let first_order_derivative_sigma = gradient_eval_at_sample(source_octave,input_params,first_order_kernel,GradientDirection::SIGMA);
+    let first_order_derivative_x = gradient_convolution_at_sample(source_octave,input_params,first_order_kernel,GradientDirection::HORIZINTAL);
+    let first_order_derivative_y = gradient_convolution_at_sample(source_octave,input_params,first_order_kernel,GradientDirection::VERTICAL);
+    let first_order_derivative_sigma = gradient_convolution_at_sample(source_octave,input_params,first_order_kernel,GradientDirection::SIGMA);
 
-    let second_order_derivative_x = gradient_eval_at_sample(source_octave,input_params,second_order_kernel,GradientDirection::HORIZINTAL);
-    let second_order_derivative_y = gradient_eval_at_sample(source_octave,input_params,second_order_kernel,GradientDirection::VERTICAL);
-    let second_order_derivative_sigma = gradient_eval_at_sample(source_octave,input_params,second_order_kernel,GradientDirection::SIGMA);
+    let second_order_derivative_x = gradient_convolution_at_sample(source_octave,input_params,second_order_kernel,GradientDirection::HORIZINTAL);
+    let second_order_derivative_y = gradient_convolution_at_sample(source_octave,input_params,second_order_kernel,GradientDirection::VERTICAL);
+    let second_order_derivative_sigma = gradient_convolution_at_sample(source_octave,input_params,second_order_kernel,GradientDirection::SIGMA);
 
     let pertub_x = first_order_derivative_x/second_order_derivative_x;
     let pertub_y = first_order_derivative_y/second_order_derivative_y;

@@ -3,7 +3,7 @@ extern crate nalgebra as na;
 use na::Matrix2;
 use crate::pyramid::octave::Octave;
 use crate::{Float,ExtremaParameters, GradientDirection};
-use crate::image::{kernel::Kernel,filter::gradient_eval_at_sample};
+use crate::image::{kernel::Kernel,filter::gradient_convolution_at_sample};
 
 
 //TODO: @Investigate: maybe precomputing the gradient images is more efficient
@@ -26,8 +26,8 @@ pub fn new(source_octave: &Octave, input_params: &ExtremaParameters, second_orde
     let dy_left = y_gradient_image.buffer.index(left);
     let dy_right = y_gradient_image.buffer.index(right);
 
-    let dxx = gradient_eval_at_sample(source_octave,input_params,second_order_kernel,GradientDirection::HORIZINTAL);
-    let dyy = gradient_eval_at_sample(source_octave,input_params,second_order_kernel,GradientDirection::VERTICAL);
+    let dxx = gradient_convolution_at_sample(source_octave,input_params,second_order_kernel,GradientDirection::HORIZINTAL);
+    let dyy = gradient_convolution_at_sample(source_octave,input_params,second_order_kernel,GradientDirection::VERTICAL);
 
     let dxy = dx_top - 2.0*dx + dx_bottom; 
     let dyx = dy_left - 2.0*dy + dy_right; 
