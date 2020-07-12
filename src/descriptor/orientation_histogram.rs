@@ -2,14 +2,13 @@ extern crate nalgebra as na;
 
 use na::{Matrix1x2,Matrix2};
 
-use crate::{float,Float, ExtremaParameters};
+use crate::{float,Float, ExtremaParameters, KeyPoint};
 use crate::image::Image;
 use crate::pyramid::octave::Octave;
 
 
 #[derive(Debug,Clone)]
 pub struct OrientationHistogram {
-    max_val: Float,
     max_bin: usize,
     pub bins: Vec<Float>
 }
@@ -18,7 +17,6 @@ impl OrientationHistogram {
 
     pub fn new(bin_size: usize) -> OrientationHistogram {
         OrientationHistogram{
-            max_val: 0.0,
             max_bin: bin_size+1,
             bins: vec![0.0;bin_size]
         }
@@ -66,8 +64,7 @@ pub fn gauss_2d(x_center: Float, y_center: Float, x: Float, y: Float, sigma: Flo
 }
 
 
-
-pub fn process_window(octave: &Octave,  keypoint: &ExtremaParameters) -> OrientationHistogram {
+pub fn process_window(octave: &Octave, keypoint: &ExtremaParameters) -> Vec<KeyPoint> {
 
     let w = 3;
     let x = keypoint.x;
@@ -84,11 +81,28 @@ pub fn process_window(octave: &Octave,  keypoint: &ExtremaParameters) -> Orienta
             let gauss_weight = gauss_2d(x as Float, y as Float, x_sample as Float, y_sample as Float, new_sigma); //TODO: maybe precompute this
             let grad_orientation = gradient_and_orientation(x_grad, y_grad, x, y);
             histogram.add_measurement(grad_orientation, gauss_weight);
-        
         }
     }
 
+    let mut iter = histogram.bins.iter().enumerate();
 
+    let init = iter.next().unwrap();
+    
+    histogram.max_bin = iter.fold(init, |acc, x| {
+        let cmp = x.1.partial_cmp(acc.1).unwrap();
+        let max = if let std::cmp::Ordering::Greater = cmp {
+            x
+        } else {
+            acc
+        };
+        max
+    }).0;
+
+    post_process(&histogram)
+}
+
+fn post_process(histogram: &OrientationHistogram) ->  Vec<KeyPoint> {
     //TODO: peak post processing
-    histogram
+    Vec::with_capacity(2)
+
 }

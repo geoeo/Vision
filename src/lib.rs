@@ -19,6 +19,14 @@ pub struct ExtremaParameters {
     pub sigma_level: usize
 } 
 
+#[derive(Debug,Clone)]
+pub struct KeyPoint {
+    pub x: usize,
+    pub y: usize,
+    pub sigma_level: usize,
+    pub orientation: Float
+} 
+
 #[repr(u8)]
 #[derive(Debug,Copy,Clone)]
 pub enum GradientDirection {
