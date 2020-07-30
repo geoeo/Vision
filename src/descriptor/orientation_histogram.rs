@@ -101,7 +101,7 @@ fn post_process(histogram: &OrientationHistogram, extrema: &ExtremaParameters) -
     let peaks_indices = histogram.bins.clone().into_iter().enumerate().filter(|x| x.1 >= threshold).map(|t| t.0).collect::<Vec<usize>>();
     let peak_neighbours_indices = peaks_indices.iter().map(|&x| get_cirular_closest(histogram, x)).collect::<Vec<(usize,usize,usize)>>();
     let interpolated_peaks_indices = peak_neighbours_indices.iter().map(|&(l,c,r)| 
-        lagrange_interpolation_quadratic(l as Float,c as Float,r as Float,histogram.bins[l],histogram.bins[c],histogram.bins[r],0.0, (histogram.bins.len() - 1) as Float)
+        lagrange_interpolation_quadratic(l as Float,c as Float,r as Float,histogram.bins[l],histogram.bins[c],histogram.bins[r],0.0, (histogram.bins.len()) as Float)
     ).collect::<Vec<Float>>();
 
     interpolated_peaks_indices.iter().map(|&peak_idx| {KeyPoint{x: extrema.x, y: extrema.y, sigma_level: extrema.sigma_level, orientation: histogram.index_to_radian(peak_idx)}}).collect::<Vec<KeyPoint>>()

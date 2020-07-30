@@ -5,13 +5,14 @@ use crate::{float,Float};
 
 pub mod orientation_histogram;
 
+// http://fourier.eng.hmc.edu/e176/lectures/NM/node25.html
 pub fn lagrange_interpolation_quadratic(a: Float, b: Float, c: Float, f_a: Float, f_b: Float, f_c: Float, range_min: Float, range_max: Float) -> Float {
 
     let a_corrected = if a > b { a - range_max} else {a};
     let c_corrected = if b > c { c + range_max} else {c};
 
-    assert!( a < b && b < c);
-    assert!( f_a > f_b && f_b < f_c); //TODO: investigate crash here
+    assert!( a_corrected < b && b < c_corrected);
+    assert!(f_a < f_b && f_b > f_c );
 
     let numerator = (f_a-f_b)*(c_corrected-b).powi(2)-(f_c-f_b)*(b-a_corrected).powi(2);
     let denominator = (f_a-f_b)*(c_corrected-b)+(f_c-f_b)*(b-a_corrected);
