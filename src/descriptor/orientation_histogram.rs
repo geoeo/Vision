@@ -1,11 +1,9 @@
 extern crate nalgebra as na;
 
-use na::{Matrix1x2,Matrix2};
-
 use crate::{float,Float, ExtremaParameters, KeyPoint};
 use crate::image::Image;
 use crate::pyramid::octave::Octave;
-use crate::descriptor::lagrange_interpolation_quadratic;
+use crate::descriptor::{lagrange_interpolation_quadratic,gauss_2d};
 
 
 #[derive(Debug,Clone)]
@@ -40,7 +38,7 @@ impl OrientationHistogram {
 }
 
 
-pub fn gradient_and_orientation(x_gradient: &Image, y_gradient: &Image, x: usize, y: usize) -> (Float,Float) {
+fn gradient_and_orientation(x_gradient: &Image, y_gradient: &Image, x: usize, y: usize) -> (Float,Float) {
 
     let x_diff = x_gradient.buffer.index((y,x));
     let y_diff = y_gradient.buffer.index((y,x));
@@ -51,24 +49,8 @@ pub fn gradient_and_orientation(x_gradient: &Image, y_gradient: &Image, x: usize
     (gradient,orientation)
 }
 
-pub fn gauss_2d(x_center: Float, y_center: Float, x: Float, y: Float, sigma: Float) -> Float {
-    let offset = Matrix1x2::new(x-x_center,y-y_center);
-    let offset_transpose = offset.transpose();
-    let sigma_recip = 1.0/sigma;
-    let covariance = Matrix2::new(sigma_recip, 0.0,0.0, sigma_recip);
 
-
-    let exponent = -0.5*offset*(covariance*offset_transpose);
-    let exp = exponent.index((0,0)).exp();
-
-    let det = sigma.powi(2);
-    let denom = 2.0*float::consts::PI*det.sqrt();
-
-    exp/denom
-}
-
-
-pub fn process_window(octave: &Octave, keypoint: &ExtremaParameters) -> Vec<KeyPoint> {
+pub fn generate_keypoints_from_extrema(octave: &Octave, keypoint: &ExtremaParameters) -> Vec<KeyPoint> {
 
     let w = 3;
     let x = keypoint.x;
@@ -78,8 +60,15 @@ pub fn process_window(octave: &Octave, keypoint: &ExtremaParameters) -> Vec<KeyP
     let y_grad = &octave.y_gradient[keypoint.sigma_level]; //TODO: check 
     let mut histogram = OrientationHistogram::new(36);
 
-    for x_sample in x-w..x+w {
-        for y_sample in y-w..y+w {
+    //TODO: think of a better solution to image border
+    //TODO: make image dimensions more easily accesible
+    //TODO: reduce numbers of casts
+    if x as isize -w < 0 || x +w as usize >= octave.images[0].buffer.ncols() || y as isize -w <0 || y+w as usize >= octave.images[0].buffer.nrows() {
+        return Vec::new()
+    }
+
+    for x_sample in x-w as usize..x+w as usize {
+        for y_sample in y-w as usize..y+w as usize {
 
             let new_sigma = 1.5*sigma;
             let gauss_weight = gauss_2d(x as Float, y as Float, x_sample as Float, y_sample as Float, new_sigma); //TODO: maybe precompute this
@@ -106,7 +95,6 @@ pub fn process_window(octave: &Octave, keypoint: &ExtremaParameters) -> Vec<KeyP
 }
 
 fn post_process(histogram: &OrientationHistogram, extrema: &ExtremaParameters) -> Vec<KeyPoint> {
-
 
     let max_val = histogram.bins[histogram.max_bin];
     let threshold = max_val*0.8;
