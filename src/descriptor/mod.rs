@@ -5,6 +5,29 @@ use crate::{float,Float};
 
 pub mod orientation_histogram;
 
+//TODO: Doesnt seem to work as well as lagrange -> produces out  of scope results
+pub fn newton_interpolation_quadratic(a: Float, b: Float, c: Float, f_a: Float, f_b: Float, f_c: Float, range_min: Float, range_max: Float) -> Float {
+
+    let a_corrected = if a > b { a - range_max} else {a};
+    let c_corrected = if b > c { c + range_max} else {c};
+
+    assert!( a_corrected < b && b < c_corrected);
+    assert!(f_a <= f_b && f_b >= f_c ); 
+
+    let b_2 = (f_b - f_c)/(b-c_corrected);
+    let b_3 = (((f_c - f_b)/(c_corrected-b))-((f_b-f_a)/(b-a_corrected)))/(c_corrected-a_corrected);
+
+    let result  = (-b_2 + a_corrected + b) / (2.0*b_3);
+
+    match result {
+        res if res < range_min => res + range_max,
+        res if res > range_max => res - range_max,
+        res => res
+    }
+
+}
+
+
 // http://fourier.eng.hmc.edu/e176/lectures/NM/node25.html
 pub fn lagrange_interpolation_quadratic(a: Float, b: Float, c: Float, f_a: Float, f_b: Float, f_c: Float, range_min: Float, range_max: Float) -> Float {
 
@@ -12,7 +35,7 @@ pub fn lagrange_interpolation_quadratic(a: Float, b: Float, c: Float, f_a: Float
     let c_corrected = if b > c { c + range_max} else {c};
 
     assert!( a_corrected < b && b < c_corrected);
-    assert!(f_a < f_b && f_b > f_c );
+    assert!(f_a <= f_b && f_b >= f_c ); 
 
     let numerator = (f_a-f_b)*(c_corrected-b).powi(2)-(f_c-f_b)*(b-a_corrected).powi(2);
     let denominator = (f_a-f_b)*(c_corrected-b)+(f_c-f_b)*(b-a_corrected);

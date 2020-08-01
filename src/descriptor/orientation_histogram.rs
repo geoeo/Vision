@@ -3,7 +3,7 @@ extern crate nalgebra as na;
 use crate::{float,Float, ExtremaParameters, KeyPoint};
 use crate::image::Image;
 use crate::pyramid::octave::Octave;
-use crate::descriptor::{lagrange_interpolation_quadratic,gauss_2d};
+use crate::descriptor::{lagrange_interpolation_quadratic,newton_interpolation_quadratic, gauss_2d};
 
 
 #[derive(Debug,Clone)]
@@ -72,7 +72,7 @@ pub fn generate_keypoints_from_extrema(octave: &Octave, keypoint: &ExtremaParame
 
             let new_sigma = 1.5*sigma;
             let gauss_weight = gauss_2d(x as Float, y as Float, x_sample as Float, y_sample as Float, new_sigma); //TODO: maybe precompute this
-            let grad_orientation = gradient_and_orientation(x_grad, y_grad, x, y);
+            let grad_orientation = gradient_and_orientation(x_grad, y_grad, x_sample, y_sample);
             histogram.add_measurement(grad_orientation, gauss_weight);
         }
     }
@@ -94,29 +94,71 @@ pub fn generate_keypoints_from_extrema(octave: &Octave, keypoint: &ExtremaParame
     post_process(&histogram,keypoint)
 }
 
+
 fn post_process(histogram: &OrientationHistogram, extrema: &ExtremaParameters) -> Vec<KeyPoint> {
 
     let max_val = histogram.bins[histogram.max_bin];
     let threshold = max_val*0.8;
     let peaks_indices = histogram.bins.clone().into_iter().enumerate().filter(|x| x.1 >= threshold).map(|t| t.0).collect::<Vec<usize>>();
-    let peak_neighbours_indices = peaks_indices.iter().map(|&x| get_cirular_closest(histogram, x)).collect::<Vec<(usize,usize,usize)>>();
+
+    let peak_neighbours_indices = peaks_indices.iter().map(|&x| get_cirular_closest(histogram, x as isize)).collect::<Vec<(usize,usize,usize)>>();
     let interpolated_peaks_indices = peak_neighbours_indices.iter().map(|&(l,c,r)| 
         lagrange_interpolation_quadratic(l as Float,c as Float,r as Float,histogram.bins[l],histogram.bins[c],histogram.bins[r],0.0, (histogram.bins.len()) as Float)
     ).collect::<Vec<Float>>();
+
 
     interpolated_peaks_indices.iter().map(|&peak_idx| {KeyPoint{x: extrema.x, y: extrema.y, sigma_level: extrema.sigma_level, orientation: histogram.index_to_radian(peak_idx)}}).collect::<Vec<KeyPoint>>()
 
 }
 
-fn get_cirular_closest(histogram: &OrientationHistogram, bin_idx: usize) -> (usize,usize,usize) {
-    let bin_len = histogram.bins.len();
+fn get_cirular_closest(histogram: &OrientationHistogram, bin_idx: isize) -> (usize,usize,usize) {
+    let bin_len = histogram.bins.len() as isize;
     assert!(bin_len >=3);
 
-    match bin_idx {
-        idx if idx == 0 => (bin_len-1,idx,1),
-        idx if idx == bin_len - 1 => (idx-1,idx,0),
-        idx => (idx - 1,idx, idx + 1)
-    }
+    let mut left_found = false;
+    let mut left_final_idx = 0;
+    let mut right_found = false;
+    let mut right_final_idx = 0;
+
+    let center_value = histogram.bins[bin_idx as usize];
+
+    for i in 0..bin_len {
+
+        if !left_found {
+            let left_index = match bin_idx -i {
+                idx if idx < 0 => bin_len + idx,
+                idx => idx
+            };
     
+            let left_value = histogram.bins[left_index as usize];
+    
+            if left_value < center_value {
+                left_final_idx = left_index;
+                left_found = true;
+            }
+        }
+
+        if !right_found {
+            let right_index = match bin_idx + i {
+                idx if idx >= bin_len => idx - bin_len,
+                idx => idx 
+            };
+            let right_value = histogram.bins[right_index as usize];
+    
+            if right_value < center_value {
+                right_final_idx = right_index;
+                right_found = true;
+            }
+        }
+
+        if left_found && right_found {
+            break;
+        }
+
+    };
+
+    (left_final_idx as usize,bin_idx as usize,right_final_idx as usize)
+
 }
+
 

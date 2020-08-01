@@ -39,14 +39,18 @@ fn main() {
 
     let number_of_features = features.len();
     let number_of_refined_features = refined_features.len();
+    let number_of_keypoints = keypoints.len();
+
     let rows = first_octave.images[0].buffer.nrows();
     let cols = first_octave.images[0].buffer.ncols();
     let size = rows*cols;
     let percentage = number_of_features as f32/size as f32;
     let refined_percentage = number_of_refined_features as f32/size as f32;
+    let keypoint_percentage = number_of_keypoints as f32/size as f32;
 
     println!("Features: {} out of {}, ({}%)",number_of_features, size, percentage);
     println!("Refined Features: {} out of {}, ({}%)",number_of_refined_features, size, refined_percentage);
+    println!("Keypoints: {} out of {}, ({}%)",number_of_keypoints, size, keypoint_percentage);
 
     for feature in features {
         let x = feature.x;
