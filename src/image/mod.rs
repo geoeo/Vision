@@ -5,7 +5,7 @@ use image_rs::{GrayImage, DynamicImage,Pixel, Luma};
 use image_rs::flat::NormalForm;
 use na::{DMatrix};
 
-use crate::Float;
+use crate::{Float,KeyPoint};
 use self::image_encoding::ImageEncoding;
 
 pub mod image_encoding;
@@ -71,6 +71,29 @@ impl Image {
             image.buffer[(j,x -side_length)] = 0.0;
         }
 
+    }
+
+    pub fn visualize_keypoint(image: &mut Image,x_gradient: &Image, y_gradient: &Image, keypoint: &KeyPoint) -> () {
+        let x = keypoint.x;
+        let y = keypoint.y;
+        let orientation = keypoint.orientation;
+
+        let x_diff = x_gradient.buffer.index((y,x));
+        let y_diff = y_gradient.buffer.index((y,x));
+    
+        let gradient = (x_diff.powi(2) + y_diff.powi(2)).sqrt();
+        
+        let x_image_end = match x + (gradient*orientation.cos()).floor() as usize {
+            x if x >= image.buffer.ncols() => image.buffer.ncols() -1,
+            x => x
+        };
+        let y_image_end = match y + (-gradient*orientation.sin()).floor() as usize {
+            y if y >= image.buffer.nrows() => image.buffer.nrows() -1,
+            y => y
+        };
+
+        
+        //TODO step through all pixel on the vector (x,y) => (x_end,y_end)
     }
 
     pub fn downsample_half(image: &Image) -> Image {

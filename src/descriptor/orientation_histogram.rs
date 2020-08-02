@@ -44,7 +44,10 @@ fn gradient_and_orientation(x_gradient: &Image, y_gradient: &Image, x: usize, y:
     let y_diff = y_gradient.buffer.index((y,x));
 
     let gradient = (x_diff.powi(2) + y_diff.powi(2)).sqrt();
-    let orientation = (y_diff/x_diff).atan();
+    let orientation = match  y_diff.atan2(x_diff.clone()) {
+        angle if angle < 0.0 => 2.0*float::consts::PI + angle,
+        angle => angle
+    };
 
     (gradient,orientation)
 }
