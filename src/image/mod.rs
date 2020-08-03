@@ -77,23 +77,41 @@ impl Image {
         let x = keypoint.x;
         let y = keypoint.y;
         let orientation = keypoint.orientation;
+        let width = image.buffer.ncols();
+        let height = image.buffer.nrows();
 
         let x_diff = x_gradient.buffer.index((y,x));
         let y_diff = y_gradient.buffer.index((y,x));
-    
         let gradient = (x_diff.powi(2) + y_diff.powi(2)).sqrt();
-        
-        let x_image_end = match x + (gradient*orientation.cos()).floor() as usize {
-            x if x >= image.buffer.ncols() => image.buffer.ncols() -1,
-            x => x
-        };
-        let y_image_end = match y + (-gradient*orientation.sin()).floor() as usize {
-            y if y >= image.buffer.nrows() => image.buffer.nrows() -1,
-            y => y
-        };
 
+        let max_delta_x = (gradient*orientation.cos()).floor() as isize;
+        let max_delta_y = (gradient*orientation.sin()).floor() as isize;
+        let max_side = std::cmp::max(max_delta_x, max_delta_y);
+        //let step = ((max_side as Float/gradient)*100.0).floor() as usize; // This crashes
+        let step = 1;
+
+        for i in (0..100).step_by(step) {
+            let t = i as Float/100.0;
+
+            let x_image_end = match x + (t*gradient*orientation.cos()).floor() as usize {
+                x_pos if x_pos >= image.buffer.ncols() => width -1,
+                x_pos => x_pos
+            };
+            let y_image_end = match y + (t*-gradient*orientation.sin()).floor() as usize {
+                y_pos if y_pos >= image.buffer.nrows() => height -1,
+                y_pos => y_pos
+            };
+
+           image.buffer[(y_image_end,x_image_end)] = 0.0;
+           //println!("(x,y):({},{}),(x_end,y_end):({},{})",x,y,x_image_end,y_image_end);
+
+
+        }
+
+
+
+        //println!("*********");
         
-        //TODO step through all pixel on the vector (x,y) => (x_end,y_end)
     }
 
     pub fn downsample_half(image: &Image) -> Image {

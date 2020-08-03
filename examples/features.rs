@@ -18,10 +18,12 @@ fn main() {
     let image_path = format!("{}{}.{}",image_folder,image_name, image_format);
     let converted_file_out_path = format!("{}{}_squares.{}",image_out_folder,image_name,image_format);
     let converted_refined_file_out_path = format!("{}{}_refined_squares.{}",image_out_folder,image_name,image_format);
+    let orientation_file_out_path = format!("{}{}_orientation.{}",image_out_folder,image_name,image_format);
 
 
     let gray_image = image_rs::open(&Path::new(&image_path)).unwrap().to_luma();
     let mut display = Image::from_gray_image(&gray_image, false);
+    let mut orientation_display =  Image::from_gray_image(&gray_image, false);
     let mut refined_display = Image::from_gray_image(&gray_image, false);
     
     let pyramid = Pyramid::build_pyramid(&gray_image, 3, 3, 0.5);
@@ -35,7 +37,9 @@ fn main() {
 
     let features = extrema::detect_extrema(first_octave,1,first_order_derivative_filter.half_width(),first_order_derivative_filter.half_repeat(),x_step, y_step);
     let refined_features = extrema::extrema_refinement(&features, first_octave, &first_order_derivative_filter,&second_order_derivative_filter);
-    let keypoints = refined_features.iter().map(|x| generate_keypoints_from_extrema(first_octave, x)).flatten().collect::<Vec<KeyPoint>>(); // TODO: this crashes
+    let keypoints = refined_features.iter().map(|x| generate_keypoints_from_extrema(first_octave, x)).flatten().collect::<Vec<KeyPoint>>();
+
+
 
     let number_of_features = features.len();
     let number_of_refined_features = refined_features.len();
@@ -51,6 +55,11 @@ fn main() {
     println!("Features: {} out of {}, ({}%)",number_of_features, size, percentage);
     println!("Refined Features: {} out of {}, ({}%)",number_of_refined_features, size, refined_percentage);
     println!("Keypoints: {} out of {}, ({}%)",number_of_keypoints, size, keypoint_percentage);
+
+
+    for keypoint in keypoints {
+        Image::visualize_keypoint(&mut orientation_display, &first_octave.x_gradient[keypoint.sigma_level], &first_octave.y_gradient[keypoint.sigma_level], &keypoint);
+    }
 
     for feature in features {
         let x = feature.x;
@@ -74,9 +83,11 @@ fn main() {
 
     let new_image = display.to_image();
     let refined_new_image = refined_display.to_image();
+    let orientation_new_image = orientation_display.to_image();
 
     new_image.save(converted_file_out_path).unwrap();
     refined_new_image.save(converted_refined_file_out_path).unwrap();
+    orientation_new_image.save(orientation_file_out_path).unwrap();
 
 
 
