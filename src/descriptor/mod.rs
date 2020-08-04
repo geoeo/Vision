@@ -65,4 +65,11 @@ pub fn gauss_2d(x_center: Float, y_center: Float, x: Float, y: Float, sigma: Flo
     exp/denom
 }
 
+pub fn rotation_matrix_2d_from_orientation(orientation: Float) -> Matrix2<Float> {
+
+    Matrix2::new(orientation.cos(), -orientation.sin(),
+                orientation.sin(), orientation.cos())
+
+}
+
 
