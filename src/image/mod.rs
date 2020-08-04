@@ -83,34 +83,26 @@ impl Image {
         let x_diff = x_gradient.buffer.index((y,x));
         let y_diff = y_gradient.buffer.index((y,x));
         let gradient = (x_diff.powi(2) + y_diff.powi(2)).sqrt();
+        let orientation_cos = orientation.cos();
+        let orientation_sin = orientation.sin();
 
-        let max_delta_x = (gradient*orientation.cos()).floor() as isize;
-        let max_delta_y = (gradient*orientation.sin()).floor() as isize;
-        let max_side = std::cmp::max(max_delta_x, max_delta_y);
-        //let step = ((max_side as Float/gradient)*100.0).floor() as usize; // This crashes
-        let step = 1;
 
-        for i in (0..100).step_by(step) {
+        //TODO: maybe optimize this
+        for i in (0..100).step_by(1) {
             let t = i as Float/100.0;
 
-            let x_image_end = match x + (t*gradient*orientation.cos()).floor() as usize {
+            let x_image_end = match x + (t*gradient*orientation_cos).floor() as usize {
                 x_pos if x_pos >= image.buffer.ncols() => width -1,
                 x_pos => x_pos
             };
-            let y_image_end = match y + (t*-gradient*orientation.sin()).floor() as usize {
+            let y_image_end = match y + (t*-gradient*orientation_sin).floor() as usize {
                 y_pos if y_pos >= image.buffer.nrows() => height -1,
                 y_pos => y_pos
             };
 
-           image.buffer[(y_image_end,x_image_end)] = 0.0;
-           //println!("(x,y):({},{}),(x_end,y_end):({},{})",x,y,x_image_end,y_image_end);
-
+           image.buffer[(y_image_end,x_image_end)] = t*255.0;
 
         }
-
-
-
-        //println!("*********");
         
     }
 
