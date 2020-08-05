@@ -1,11 +1,11 @@
 extern crate nalgebra as na;
 
 use crate::{float,Float, ExtremaParameters, KeyPoint};
-use crate::image::Image;
 use crate::pyramid::octave::Octave;
-use crate::descriptor::{lagrange_interpolation_quadratic,newton_interpolation_quadratic, gauss_2d};
+use crate::descriptor::{lagrange_interpolation_quadratic,newton_interpolation_quadratic, gauss_2d, gradient_and_orientation};
 
 
+//TODO: make this private?
 #[derive(Debug,Clone)]
 pub struct OrientationHistogram {
     max_bin: usize,
@@ -36,22 +36,6 @@ impl OrientationHistogram {
     }
 
 }
-
-
-fn gradient_and_orientation(x_gradient: &Image, y_gradient: &Image, x: usize, y: usize) -> (Float,Float) {
-
-    let x_diff = x_gradient.buffer.index((y,x));
-    let y_diff = y_gradient.buffer.index((y,x));
-
-    let gradient = (x_diff.powi(2) + y_diff.powi(2)).sqrt();
-    let orientation = match  y_diff.atan2(x_diff.clone()) {
-        angle if angle < 0.0 => 2.0*float::consts::PI + angle,
-        angle => angle
-    };
-
-    (gradient,orientation)
-}
-
 
 pub fn generate_keypoints_from_extrema(octave: &Octave, keypoint: &ExtremaParameters) -> Vec<KeyPoint> {
 
