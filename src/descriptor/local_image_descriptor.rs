@@ -1,11 +1,11 @@
 extern crate nalgebra as na;
 
-use na::{Matrix,Dim,DimName,DefaultAllocator,MatrixN};
+use na::{Matrix,Dim,DimName,DefaultAllocator,MatrixN,Vector2};
 use na::allocator::Allocator;
 use crate::{float,Float, ExtremaParameters, KeyPoint};
 use crate::image::Image;
 use crate::pyramid::octave::Octave;
-use crate::descriptor::gauss_2d;
+use crate::descriptor::{rotation_matrix_2d_from_orientation,gauss_2d};
 
 #[derive(Debug,Clone)]
 pub struct LocalImageDescriptor {
@@ -20,6 +20,7 @@ fn generate_sample_array<S: Dim + DimName>(keypoint: &KeyPoint) -> MatrixN<Float
     let square_length = (side_length/2) as isize;
     let x_center = keypoint.x as Float;
     let y_center = keypoint.y as Float;
+    let rot_mat = rotation_matrix_2d_from_orientation(keypoint.orientation);
 
     let mut m = MatrixN::<Float,S>::zeros();
 
@@ -30,8 +31,10 @@ fn generate_sample_array<S: Dim + DimName>(keypoint: &KeyPoint) -> MatrixN<Float
             let gauss_sample_offset_y = -(r as isize) + square_length;
             let x = x_center + gauss_sample_offset_x as Float;
             let y = y_center + gauss_sample_offset_y as Float;
+            let coordinates_vector = Vector2::new(x,y);
+            let rotated_coordinates = rot_mat*coordinates_vector;
             let sigma = 1.0; //TODO: correct value
-            let gauss_weight = gauss_2d(x_center, y_center,x, y, sigma);
+            let gauss_weight = gauss_2d(x_center, y_center,rotated_coordinates[(0,0)], rotated_coordinates[(1,0)], sigma);
             
             m[matrix_index] = 1.0;
             //TODO: set weighted value
