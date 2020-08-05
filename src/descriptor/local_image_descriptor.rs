@@ -14,7 +14,7 @@ pub struct LocalImageDescriptor {
     pub bins: Vec<Float>
 }
 
-fn generate_sample_array<S: Dim + DimName>(keypoint: &KeyPoint) -> MatrixN<Float, S> where DefaultAllocator: Allocator<Float, S, S>   {
+fn generate_sample_array<S: Dim + DimName>(image:&Image, keypoint: &KeyPoint) -> MatrixN<Float, S> where DefaultAllocator: Allocator<Float, S, S>   {
 
     let side_length = S::try_to_usize().unwrap();
     let square_length = (side_length/2) as isize;
@@ -33,11 +33,14 @@ fn generate_sample_array<S: Dim + DimName>(keypoint: &KeyPoint) -> MatrixN<Float
             let y = y_center + gauss_sample_offset_y as Float;
             let coordinates_vector = Vector2::new(x,y);
             let rotated_coordinates = rot_mat*coordinates_vector;
+            let rot_x = rotated_coordinates[(0,0)].floor() as usize; 
+            let rot_y = rotated_coordinates[(1,0)].floor() as usize; 
             let sigma = 1.0; //TODO: correct value
-            let gauss_weight = gauss_2d(x_center, y_center,rotated_coordinates[(0,0)], rotated_coordinates[(1,0)], sigma);
+            let gauss_weight = gauss_2d(x_center, y_center,x, y, sigma);
+            let weighted_value = image.buffer[(rot_y,rot_x)]*gauss_weight; //TODO: use correct weighting
             
-            m[matrix_index] = 1.0;
-            //TODO: set weighted value
+            m[matrix_index] = weighted_value;
+
         }
     }
 
