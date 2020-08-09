@@ -30,9 +30,23 @@ impl LocalImageDescriptor {
             for r in 0..sample_gradient_slice.nrows() {
                 for c in 0..sample_gradient_slice.ncols() {
                     let gradient_orientation = (sample_gradient_slice[(r,c)],sample_orientations_slice[(r,c)]);
-                    descriptor[i].add_measurement(gradient_orientation,1.0); 
-
+                    descriptor[i].add_measurement_to_all_with_interp(gradient_orientation); 
                 }
+            }
+        }
+
+        let other_descriptor = descriptor.clone();
+
+        for i in 0..other_descriptor.len() {
+            let target_histogram = &mut descriptor[i];
+            for j in 0..other_descriptor.len() {
+                if j == i {
+                    continue;
+                }
+                let other_histogram = &other_descriptor[j];
+                let weight = 0.0; //TODO Correct weight
+                target_histogram.add_histogram(other_histogram, weight);
+
             }
         }
 

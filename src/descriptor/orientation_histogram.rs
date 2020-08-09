@@ -22,11 +22,32 @@ impl OrientationHistogram {
         }
     }
 
-    pub fn add_measurement(& mut self, grad_orientation: (Float,Float), weight: Float) -> () {
+    pub fn add_measurement(&mut self, grad_orientation: (Float,Float), weight: Float) -> () {
         let grad = grad_orientation.0;
         let orientation = grad_orientation.1;
         let index = (orientation/self.bin_range).floor() as usize;
         self.bins[index] += grad*weight;
+    }
+
+    pub fn add_measurement_to_all_with_interp(&mut self, grad_orientation: (Float,Float)) -> () {
+        let grad = grad_orientation.0;
+        let orientation = grad_orientation.1;
+        let index = (orientation/self.bin_range).floor() as isize;
+
+        for i in 0..self.bins.len() {
+            let weight = 1.0 - (index - i as isize).abs() as Float;
+            self.bins[i] += grad*weight;
+        }
+
+    }
+
+    pub fn add_histogram(&mut self, other_histogram: &OrientationHistogram, weight: Float) -> () {
+
+        for i in 0..self.bins.len() {
+            let value = other_histogram.bins[i];
+            self.bins[i] += value*weight;
+        }
+
     }
 
     pub fn index_to_radian(&self, index: Float) -> Float {
