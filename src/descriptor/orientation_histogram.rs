@@ -5,7 +5,6 @@ use crate::pyramid::octave::Octave;
 use crate::descriptor::{lagrange_interpolation_quadratic,newton_interpolation_quadratic, gauss_2d, gradient_and_orientation};
 
 
-//TODO: make this private?
 #[derive(Debug,Clone)]
 pub struct OrientationHistogram {
     max_bin: usize,
