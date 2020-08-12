@@ -15,11 +15,13 @@ pub struct LocalImageDescriptor {
 impl LocalImageDescriptor {
     //TODO: maybe make sampe side length also a generic param
     //TODO: maybe just pass one weight matrix and calculate grad_oreintation here instead of generate_weighted..
-    pub fn new<S: Dim + DimName>(gradient_orientation_samples:  &(MatrixN<Float, S>,MatrixN<Float, S>), orientation_bins: usize) -> LocalImageDescriptor  where DefaultAllocator: Allocator<Float, S, S> {
+    pub fn new<S: Dim + DimName>(gradient_orientation_samples:  &(MatrixN<Float, S>,MatrixN<Float, S>),  keypoint: &KeyPoint) -> LocalImageDescriptor where DefaultAllocator: Allocator<Float, S, S> {
         let sample_side_length = 4;
+        let orientation_bins = 8;
+
         let sample_gradients = &gradient_orientation_samples.0;
         let sample_orientation = &gradient_orientation_samples.1;
-        let descriptor_bins = (sample_gradients.nrows()/sample_side_length).pow(2);
+        let descriptor_bins = (sample_gradients.nrows()/sample_side_length).pow(2); // 16 in original impl
         let mut descriptor = vec![OrientationHistogram::new(orientation_bins);descriptor_bins];
 
         for i in 0..descriptor.len() {
@@ -30,13 +32,15 @@ impl LocalImageDescriptor {
             for r in 0..sample_gradient_slice.nrows() {
                 for c in 0..sample_gradient_slice.ncols() {
                     let gradient_orientation = (sample_gradient_slice[(r,c)],sample_orientations_slice[(r,c)]);
-                    descriptor[i].add_measurement_to_all_with_interp(gradient_orientation); 
+                    descriptor[i].add_measurement_to_adjecent_with_interp(gradient_orientation, keypoint.orientation); 
+
                 }
             }
         }
 
         let other_descriptor = descriptor.clone();
 
+        //TODO: pick the closest patches with main orientation for that patch!
         for i in 0..other_descriptor.len() {
             let target_histogram = &mut descriptor[i];
             for j in 0..other_descriptor.len() {

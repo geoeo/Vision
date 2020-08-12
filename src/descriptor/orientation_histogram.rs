@@ -25,20 +25,25 @@ impl OrientationHistogram {
     pub fn add_measurement(&mut self, grad_orientation: (Float,Float), weight: Float) -> () {
         let grad = grad_orientation.0;
         let orientation = grad_orientation.1;
-        let index = (orientation/self.bin_range).floor() as usize;
+        let index = radian_to_index(self,orientation);
         self.bins[index] += grad*weight;
     }
 
-    pub fn add_measurement_to_all_with_interp(&mut self, grad_orientation: (Float,Float)) -> () {
+
+    pub fn add_measurement_to_adjecent_with_interp(&mut self, grad_orientation: (Float,Float), main_orientation: Float) -> () {
         let grad = grad_orientation.0;
         let orientation = grad_orientation.1;
-        let index = (orientation/self.bin_range).floor() as isize;
+        let index = radian_to_index(self,orientation);
+        let main_index = radian_to_index(self,main_orientation) as isize;
 
-        for i in 0..self.bins.len() {
-            let weight = 1.0 - (index - i as isize).abs() as Float;
-            self.bins[i] += grad*weight;
-        }
+        let(l,c,r) = get_cirular_adjecent(self,index as isize);
+        let l_weight = (main_index - l as isize).abs();
+        let c_weight = (main_index - c as isize).abs();
+        let r_weight = (main_index - r as isize).abs();
 
+        self.bins[l] += grad*l_weight as Float;
+        self.bins[c] += grad*c_weight as Float;
+        self.bins[r] += grad*r_weight as Float;
     }
 
     pub fn add_histogram(&mut self, other_histogram: &OrientationHistogram, weight: Float) -> () {
@@ -50,11 +55,15 @@ impl OrientationHistogram {
 
     }
 
-    pub fn index_to_radian(&self, index: Float) -> Float {
-        assert!(index >=0.0 && index < self.bins.len() as Float);
-        index*self.bin_range
-    }
+}
 
+pub fn index_to_radian(histogram: &OrientationHistogram, index: Float) -> Float {
+    assert!(index >=0.0 && index < histogram.bins.len() as Float);
+    index*histogram.bin_range
+}
+
+pub fn radian_to_index(histogram: &OrientationHistogram, orientation: Float) -> usize {
+    (orientation/histogram.bin_range).floor() as usize
 }
 
 pub fn generate_keypoints_from_extrema(octave: &Octave, keypoint: &ExtremaParameters) -> Vec<KeyPoint> {
@@ -108,17 +117,17 @@ fn post_process(histogram: &OrientationHistogram, extrema: &ExtremaParameters) -
     let threshold = max_val*0.8;
     let peaks_indices = histogram.bins.clone().into_iter().enumerate().filter(|x| x.1 >= threshold).map(|t| t.0).collect::<Vec<usize>>();
 
-    let peak_neighbours_indices = peaks_indices.iter().map(|&x| get_cirular_closest(histogram, x as isize)).collect::<Vec<(usize,usize,usize)>>();
+    let peak_neighbours_indices = peaks_indices.iter().map(|&x| get_cirular_adjecent(histogram, x as isize)).collect::<Vec<(usize,usize,usize)>>();
     let interpolated_peaks_indices = peak_neighbours_indices.iter().map(|&(l,c,r)| 
         lagrange_interpolation_quadratic(l as Float,c as Float,r as Float,histogram.bins[l],histogram.bins[c],histogram.bins[r],0.0, (histogram.bins.len()) as Float)
     ).collect::<Vec<Float>>();
 
 
-    interpolated_peaks_indices.iter().map(|&peak_idx| {KeyPoint{x: extrema.x, y: extrema.y, sigma_level: extrema.sigma_level, orientation: histogram.index_to_radian(peak_idx)}}).collect::<Vec<KeyPoint>>()
+    interpolated_peaks_indices.iter().map(|&peak_idx| {KeyPoint{x: extrema.x, y: extrema.y, sigma_level: extrema.sigma_level, orientation: index_to_radian(histogram,peak_idx)}}).collect::<Vec<KeyPoint>>()
 
 }
 
-fn get_cirular_closest(histogram: &OrientationHistogram, bin_idx: isize) -> (usize,usize,usize) {
+pub fn get_cirular_adjecent(histogram: &OrientationHistogram, bin_idx: isize) -> (usize,usize,usize) {
     let bin_len = histogram.bins.len() as isize;
     assert!(bin_len >=3);
 
