@@ -1,6 +1,6 @@
 extern crate nalgebra as na;
 
-use na::{Matrix,Dim,DimName,DefaultAllocator,MatrixN,Vector2};
+use na::{Dim,MatrixN,Vector2,base::dimension::{U16,U4}};
 use na::allocator::Allocator;
 use crate::{float,Float, ExtremaParameters, KeyPoint};
 use crate::image::Image;
@@ -15,42 +15,37 @@ pub struct LocalImageDescriptor {
 impl LocalImageDescriptor {
     //TODO: maybe make sampe side length also a generic param
     //TODO: maybe just pass one weight matrix and calculate grad_oreintation here instead of generate_weighted..
-    pub fn new<S: Dim + DimName>(gradient_orientation_samples:  &(MatrixN<Float, S>,MatrixN<Float, S>),  keypoint: &KeyPoint) -> LocalImageDescriptor where DefaultAllocator: Allocator<Float, S, S> {
+    pub fn new(gradient_orientation_samples:  &(MatrixN<Float, U16>,MatrixN<Float, U16>),  keypoint: &KeyPoint) -> LocalImageDescriptor {
+        let descriptor_bins = 16;
         let sample_side_length = 4;
         let orientation_bins = 8;
 
         let sample_gradients = &gradient_orientation_samples.0;
         let sample_orientation = &gradient_orientation_samples.1;
-        let descriptor_bins = (sample_gradients.nrows()/sample_side_length).pow(2); // 16 in original impl
         let mut descriptor = vec![OrientationHistogram::new(orientation_bins);descriptor_bins];
 
         for i in 0..descriptor.len() {
-            let column_offset = i % sample_side_length;
-            let row_offset = i / sample_side_length;
-            let sample_gradient_slice = sample_gradients.slice((row_offset,column_offset),(sample_side_length,sample_side_length));
-            let sample_orientations_slice = sample_orientation.slice((row_offset,column_offset),(sample_side_length,sample_side_length));
+            let column_histogram = (i % sample_side_length);
+            let row_histogram =  i / sample_side_length;
+
+            let column_submatrix = column_histogram * sample_side_length;
+            let row_submatrix = row_histogram*sample_side_length;
+
+            let sample_gradient_slice = sample_gradients.fixed_slice::<U4,U4>(row_submatrix,column_submatrix);
+            let sample_orientations_slice = sample_orientation.fixed_slice::<U4,U4>(row_submatrix,column_submatrix);
             for r in 0..sample_gradient_slice.nrows() {
                 for c in 0..sample_gradient_slice.ncols() {
                     let gradient_orientation = (sample_gradient_slice[(r,c)],sample_orientations_slice[(r,c)]);
                     descriptor[i].add_measurement_to_adjecent_with_interp(gradient_orientation, keypoint.orientation); 
 
+                    //TODO: Pick up to 3 adjecent histrograms -  current one is already set
+                    let window_x = column_submatrix*sample_side_length + c;
+                    let window_y = row_submatrix*sample_side_length + r;
+
+                    let closest_histograms = closest_histograms(sample_side_length as isize,column_histogram as isize,row_histogram as isize,c as isize,r as isize);
+
+
                 }
-            }
-        }
-
-        let other_descriptor = descriptor.clone();
-
-        //TODO: pick the closest patches with main orientation for that patch!
-        for i in 0..other_descriptor.len() {
-            let target_histogram = &mut descriptor[i];
-            for j in 0..other_descriptor.len() {
-                if j == i {
-                    continue;
-                }
-                let other_histogram = &other_descriptor[j];
-                let weight = 0.0; //TODO Correct weight
-                target_histogram.add_histogram(other_histogram, weight);
-
             }
         }
 
@@ -58,21 +53,20 @@ impl LocalImageDescriptor {
     }
 }
 
-fn generate_weighted_sample_array<S: Dim + DimName>(image:&Image,x_gradient: &Image, y_gradient: &Image, keypoint: &KeyPoint) -> (MatrixN<Float, S>,MatrixN<Float, S>) where DefaultAllocator: Allocator<Float, S, S>   {
+fn generate_weighted_sample_array(x_gradient: &Image, y_gradient: &Image, keypoint: &KeyPoint) -> (MatrixN<Float, U16>,MatrixN<Float, U16>) {
 
-    let side_length = S::try_to_usize().unwrap();
+    let side_length = U16::try_to_usize().unwrap();
     let square_length = (side_length/2) as isize;
     let x_center = keypoint.x as Float;
     let y_center = keypoint.y as Float;
     let rot_mat = rotation_matrix_2d_from_orientation(keypoint.orientation);
 
-    let mut sample_weights = MatrixN::<Float,S>::zeros();
-    let mut sample_orientations = MatrixN::<Float,S>::zeros();
+    let mut sample_weights = MatrixN::<Float,U16>::zeros();
+    let mut sample_orientations = MatrixN::<Float,U16>::zeros();
 
     for r in 0..side_length {
         for c in 0..side_length {
             let matrix_index = (r,c);
-            //TODO: check this arithmatic
             let gauss_sample_offset_x = c as isize - square_length;
             let gauss_sample_offset_y = -(r as isize) + square_length;
             let x = x_center + gauss_sample_offset_x as Float;
@@ -93,6 +87,58 @@ fn generate_weighted_sample_array<S: Dim + DimName>(image:&Image,x_gradient: &Im
     }
 
     (sample_weights,sample_orientations)
+}
+
+//TODO: correct signature
+fn closest_histograms(side_length: isize, column_histogram: isize, row_histogram: isize, delta_c: isize, delta_r: isize) -> Vec::<(usize,usize,usize)> {
+
+    let window_x = column_histogram*side_length + delta_c;
+    let window_y = row_histogram*side_length + delta_r;
+
+    
+    let left_histogram = (row_histogram,column_histogram-1);
+    let right_histogram = (row_histogram,column_histogram+1);
+    let top_histogram = (row_histogram-1,column_histogram);
+    let bottom_histogram = (row_histogram+1,column_histogram);
+    let top_left_histogram = (row_histogram-1,column_histogram-1);
+    let top_right_histogram = (row_histogram-1,column_histogram+1);
+    let bottom_left_histogram = (row_histogram+1,column_histogram-1);
+    let bottom_right_histogram = (row_histogram+1,column_histogram+1);
+
+    let possible_histrograms 
+        = vec![left_histogram,right_histogram,top_histogram,bottom_histogram,top_left_histogram,top_right_histogram,bottom_left_histogram,bottom_right_histogram];
+    let valid_histograms = possible_histrograms.into_iter().filter(|&(r,c)| r >= 0 && c >= 0).collect::<Vec<_>>();
+    let histogram_distances = valid_histograms.into_iter().map(|(r,c)| {
+        let x = r*side_length;
+        let y = c*side_length;
+
+        let square_distance = (x-window_x).pow(2) + (y-window_y).pow(2);
+        (r as usize,c as usize,square_distance as usize)
+
+    } ).collect::<Vec<_>>();
+    
+    let mut closest_positions = vec![(std::usize::MAX,std::usize::MAX,std::usize::MAX);3];
+
+    for(r,c,square_distance) in histogram_distances {
+
+        if square_distance < closest_positions[0].2 {
+            closest_positions[2] = closest_positions[1];
+            closest_positions[1] = closest_positions[0];
+            closest_positions[0] = (r,c,square_distance);
+        } 
+        
+        else if square_distance < closest_positions[1].2 {
+            closest_positions[2] = closest_positions[1];
+            closest_positions[1] = (r,c,square_distance);
+        }  
+        
+        else if square_distance < closest_positions[2].2 {
+            closest_positions[2] = (r,c,square_distance);
+        }
+
+    }
+
+    closest_positions
 }
 
 
