@@ -25,7 +25,7 @@ impl LocalImageDescriptor {
         let mut descriptor = vec![OrientationHistogram::new(orientation_bins);descriptor_bins];
 
         for i in 0..descriptor.len() {
-            let column_histogram = (i % sample_side_length);
+            let column_histogram = i % sample_side_length;
             let row_histogram =  i / sample_side_length;
 
             let column_submatrix = column_histogram * sample_side_length;
@@ -89,7 +89,6 @@ fn generate_weighted_sample_array(x_gradient: &Image, y_gradient: &Image, keypoi
     (sample_weights,sample_orientations)
 }
 
-//TODO: correct signature
 fn closest_histograms(side_length: isize, column_histogram: isize, row_histogram: isize, delta_c: isize, delta_r: isize) -> Vec::<(usize,usize,usize)> {
 
     let window_x = column_histogram*side_length + delta_c;
@@ -119,6 +118,7 @@ fn closest_histograms(side_length: isize, column_histogram: isize, row_histogram
     
     let mut closest_positions = vec![(std::usize::MAX,std::usize::MAX,std::usize::MAX);3];
 
+    //TODO: maybe this can be done more elegantly
     for(r,c,square_distance) in histogram_distances {
 
         if square_distance < closest_positions[0].2 {
