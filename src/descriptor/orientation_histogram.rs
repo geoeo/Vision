@@ -30,7 +30,7 @@ impl OrientationHistogram {
     }
 
 
-    pub fn add_measurement_to_adjecent_with_interp(&mut self, grad_orientation: (Float,Float), main_orientation: Float) -> () {
+    pub fn add_measurement_to_adjecent_with_interp(&mut self, grad_orientation: (Float,Float), main_orientation: Float, weight: Float) -> () {
         let grad = grad_orientation.0;
         let orientation = grad_orientation.1;
         let index = radian_to_index(self,orientation);
@@ -41,9 +41,9 @@ impl OrientationHistogram {
         let c_weight = (main_index - c as isize).abs();
         let r_weight = (main_index - r as isize).abs();
 
-        self.bins[l] += grad*l_weight as Float;
-        self.bins[c] += grad*c_weight as Float;
-        self.bins[r] += grad*r_weight as Float;
+        self.bins[l] += grad*weight*l_weight as Float;
+        self.bins[c] += grad*weight*c_weight as Float;
+        self.bins[r] += grad*weight*r_weight as Float;
     }
 
     pub fn add_histogram(&mut self, other_histogram: &OrientationHistogram, weight: Float) -> () {
