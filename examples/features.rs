@@ -8,6 +8,7 @@ use sift::extrema;
 use sift::image::Image;
 use sift::image::{kernel::Kernel,laplace_kernel::LaplaceKernel,prewitt_kernel::PrewittKernel};
 use sift::descriptor::orientation_histogram::generate_keypoints_from_extrema;
+use sift::descriptor::local_image_descriptor::{is_rotated_keypoint_within_image,LocalImageDescriptor};
 use sift::KeyPoint;
 
 fn main() {
@@ -38,6 +39,7 @@ fn main() {
     let features = extrema::detect_extrema(first_octave,1,first_order_derivative_filter.half_width(),first_order_derivative_filter.half_repeat(),x_step, y_step);
     let refined_features = extrema::extrema_refinement(&features, first_octave, &first_order_derivative_filter,&second_order_derivative_filter);
     let keypoints = refined_features.iter().map(|x| generate_keypoints_from_extrema(first_octave, x)).flatten().collect::<Vec<KeyPoint>>();
+    let descriptors = keypoints.iter().filter(|x| is_rotated_keypoint_within_image(first_octave, x)).map(|x| LocalImageDescriptor::new(first_octave,x)).collect::<Vec<LocalImageDescriptor>>();
 
 
 

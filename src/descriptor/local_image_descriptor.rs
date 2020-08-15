@@ -1,7 +1,7 @@
 extern crate nalgebra as na;
 
-use na::{Dim,MatrixN,Vector2,base::dimension::{U16,U4}};
-use crate::{float,Float, ExtremaParameters, KeyPoint};
+use na::{Dim,MatrixN,Vector2,base::dimension::{U16,U4,U2,U1}, Matrix2x4};
+use crate::{Float, KeyPoint};
 use crate::image::Image;
 use crate::pyramid::octave::Octave;
 use crate::descriptor::{rotation_matrix_2d_from_orientation,gauss_2d,gradient_and_orientation,orientation_histogram::OrientationHistogram};
@@ -12,16 +12,16 @@ pub struct LocalImageDescriptor {
 }
 
 impl LocalImageDescriptor {
-    //TODO: maybe make sampe side length also a generic param
-    //TODO: maybe just pass one weight matrix and calculate grad_oreintation here instead of generate_weighted..
-    pub fn new(gradient_orientation_samples:  &(MatrixN<Float, U16>,MatrixN<Float, U16>),  keypoint: &KeyPoint) -> LocalImageDescriptor {
+    pub fn new(octave: &Octave,  keypoint: &KeyPoint) -> LocalImageDescriptor {
         let descriptor_bins = 16;
         let submatrix_length = 4;
         let orientation_bins = 8;
         let sample_length = 16;
 
-        let sample_gradients = &gradient_orientation_samples.0;
-        let sample_orientation = &gradient_orientation_samples.1;
+        let weighted_gradient_orientation_samples = generate_weighted_sample_array(&octave.x_gradient[keypoint.sigma_level], &octave.y_gradient[keypoint.sigma_level], keypoint);
+
+        let weighted_sample_gradients = &weighted_gradient_orientation_samples.0;
+        let sample_orientation = &weighted_gradient_orientation_samples.1;
         let mut descriptor = vec![OrientationHistogram::new(orientation_bins);descriptor_bins];
 
         for i in 0..descriptor.len() {
@@ -31,11 +31,11 @@ impl LocalImageDescriptor {
             let column_submatrix = column_histogram * submatrix_length;
             let row_submatrix = row_histogram*submatrix_length;
 
-            let sample_gradient_slice = sample_gradients.fixed_slice::<U4,U4>(row_submatrix,column_submatrix);
+            let weighted_sample_gradient_slice = weighted_sample_gradients.fixed_slice::<U4,U4>(row_submatrix,column_submatrix);
             let sample_orientations_slice = sample_orientation.fixed_slice::<U4,U4>(row_submatrix,column_submatrix);
-            for r in 0..sample_gradient_slice.nrows() {
-                for c in 0..sample_gradient_slice.ncols() {
-                    let weighted_gradient_orientation = (sample_gradient_slice[(r,c)],sample_orientations_slice[(r,c)]);
+            for r in 0..weighted_sample_gradient_slice.nrows() {
+                for c in 0..weighted_sample_gradient_slice.ncols() {
+                    let weighted_gradient_orientation = (weighted_sample_gradient_slice[(r,c)],sample_orientations_slice[(r,c)]);
 
                     let sample_x = column_submatrix*submatrix_length + c;
                     let sample_y = row_submatrix*submatrix_length + r;
@@ -62,6 +62,29 @@ impl LocalImageDescriptor {
     }
 }
 
+pub fn is_rotated_keypoint_within_image(octave: &Octave, keypoint: &KeyPoint) -> bool {
+    let half_sample_length = 8.0;
+    let image = &octave.images[keypoint.sigma_level];
+    let rot_mat = rotation_matrix_2d_from_orientation(keypoint.orientation);
+    let key_x = keypoint.x as Float;
+    let key_y = keypoint.y as Float;
+    let corner_coordinates = Matrix2x4::new(key_x-half_sample_length,key_x+half_sample_length,key_x-half_sample_length,key_x+half_sample_length,
+        key_y-half_sample_length ,key_y-half_sample_length,key_y+half_sample_length,key_y+half_sample_length);
+
+    let rotated_corners = rot_mat*corner_coordinates;
+    let mut valid = true;
+
+    for i in 0..4 {
+        let coordiantes = rotated_corners.fixed_slice::<U2,U1>(0,i);
+        let x =  coordiantes[(0,0)];
+        let y =  coordiantes[(1,0)];
+        valid &= x >= 0.0 && x < image.buffer.ncols() as Float && y >= 0.0 && y < image.buffer.nrows() as Float;
+    }
+
+    valid
+
+}
+
 fn generate_weighted_sample_array(x_gradient: &Image, y_gradient: &Image, keypoint: &KeyPoint) -> (MatrixN<Float, U16>,MatrixN<Float, U16>) {
 
     let side_length = U16::try_to_usize().unwrap();
@@ -86,7 +109,7 @@ fn generate_weighted_sample_array(x_gradient: &Image, y_gradient: &Image, keypoi
             let rot_y = rotated_coordinates[(1,0)].floor() as usize; 
             let sigma = submatrix_length as Float;
             let gauss_weight = gauss_2d(x_center, y_center,x, y, sigma);
-            let grad_orientation =gradient_and_orientation(x_gradient,y_gradient,rot_x,rot_y);
+            let grad_orientation = gradient_and_orientation(x_gradient,y_gradient,rot_x,rot_y); //TODO: this may go out of bounds due to rotation
             let weighted_gradient = grad_orientation.0*gauss_weight; 
             
             sample_weights[matrix_index] = weighted_gradient;
@@ -114,7 +137,7 @@ fn closest_histograms(side_length: isize, column_histogram: isize, row_histogram
 
     let possible_histrograms 
         = vec![left_histogram,right_histogram,top_histogram,bottom_histogram,top_left_histogram,top_right_histogram,bottom_left_histogram,bottom_right_histogram];
-    let valid_histograms = possible_histrograms.into_iter().filter(|&(r,c)| r >= 0 && c >= 0).collect::<Vec<_>>();
+    let valid_histograms = possible_histrograms.into_iter().filter(|&(r,c)| r >= 0 && c >= 0 && r < side_length && c < side_length).collect::<Vec<_>>();
     let histogram_distances = valid_histograms.into_iter().map(|(r,c)| {
         let x = r*side_length;
         let y = c*side_length;
