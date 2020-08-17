@@ -4,32 +4,31 @@ use na::{Dim,MatrixN,Vector2,base::dimension::{U16,U4,U2,U1}, Matrix2x4};
 use crate::{Float, KeyPoint};
 use crate::image::Image;
 use crate::pyramid::octave::Octave;
-use crate::descriptor::{rotation_matrix_2d_from_orientation,gauss_2d,gradient_and_orientation,orientation_histogram::OrientationHistogram};
+use crate::descriptor::{ORIENTATION_BINS,DESCRIPTOR_BINS,rotation_matrix_2d_from_orientation,gauss_2d,gradient_and_orientation,orientation_histogram::OrientationHistogram};
+
+const SUBMATRIX_LENGTH: usize = 4;
+const SAMPLE_LENGTH: Float = 16.0;
 
 #[derive(Debug,Clone)]
 pub struct LocalImageDescriptor {
     pub descriptor_vector: Vec<OrientationHistogram>
 }
 
+
 impl LocalImageDescriptor {
     pub fn new(octave: &Octave,  keypoint: &KeyPoint) -> LocalImageDescriptor {
-        let descriptor_bins = 16;
-        let submatrix_length = 4;
-        let orientation_bins = 8;
-        let sample_length = 16;
-
         let weighted_gradient_orientation_samples = generate_weighted_sample_array(&octave.x_gradient[keypoint.sigma_level], &octave.y_gradient[keypoint.sigma_level], keypoint);
 
         let weighted_sample_gradients = &weighted_gradient_orientation_samples.0;
         let sample_orientation = &weighted_gradient_orientation_samples.1;
-        let mut descriptor = vec![OrientationHistogram::new(orientation_bins);descriptor_bins];
+        let mut descriptor = vec![OrientationHistogram::new(ORIENTATION_BINS);DESCRIPTOR_BINS];
 
         for i in 0..descriptor.len() {
-            let column_histogram = i % submatrix_length;
-            let row_histogram =  i / submatrix_length;
+            let column_histogram = i % SUBMATRIX_LENGTH;
+            let row_histogram =  i / SUBMATRIX_LENGTH;
 
-            let column_submatrix = column_histogram * submatrix_length;
-            let row_submatrix = row_histogram*submatrix_length;
+            let column_submatrix = column_histogram * SUBMATRIX_LENGTH;
+            let row_submatrix = row_histogram*SUBMATRIX_LENGTH;
 
             let weighted_sample_gradient_slice = weighted_sample_gradients.fixed_slice::<U4,U4>(row_submatrix,column_submatrix);
             let sample_orientations_slice = sample_orientation.fixed_slice::<U4,U4>(row_submatrix,column_submatrix);
@@ -37,19 +36,19 @@ impl LocalImageDescriptor {
                 for c in 0..weighted_sample_gradient_slice.ncols() {
                     let weighted_gradient_orientation = (weighted_sample_gradient_slice[(r,c)],sample_orientations_slice[(r,c)]);
 
-                    let sample_x = column_submatrix*submatrix_length + c;
-                    let sample_y = row_submatrix*submatrix_length + r;
+                    let sample_x = column_submatrix*SUBMATRIX_LENGTH + c;
+                    let sample_y = row_submatrix*SUBMATRIX_LENGTH + r;
 
-                    let closest_histograms = closest_histograms(submatrix_length as isize,column_histogram as isize,row_histogram as isize,c as isize,r as isize);
+                    let closest_histograms = closest_histograms(SUBMATRIX_LENGTH as isize,column_histogram as isize,row_histogram as isize,c as isize,r as isize);
 
-                    let (dist_x,dist_y) = get_normalized_distance_to_center_for_histogram(sample_x as Float, sample_y as Float, row_histogram as Float, column_histogram as Float, submatrix_length as Float, sample_length as Float);
+                    let (dist_x,dist_y) = get_normalized_distance_to_center_for_histogram(sample_x as Float, sample_y as Float, row_histogram as Float, column_histogram as Float, SUBMATRIX_LENGTH as Float, SAMPLE_LENGTH);
                     let weight = (1.0-dist_x)*(1.0-dist_y);
                     descriptor[i].add_measurement_to_adjecent_with_interp(weighted_gradient_orientation, keypoint.orientation,weight); 
 
                     for (r,c,square_distance) in closest_histograms {
                         if square_distance < std::usize::MAX {
-                            let j = submatrix_length*r+c;
-                            let (other_dist_x,other_dist_y) = get_normalized_distance_to_center_for_histogram(sample_x as Float, sample_y as Float, r as Float, c as Float, submatrix_length as Float, sample_length as Float);
+                            let j = SUBMATRIX_LENGTH*r+c;
+                            let (other_dist_x,other_dist_y) = get_normalized_distance_to_center_for_histogram(sample_x as Float, sample_y as Float, r as Float, c as Float, SUBMATRIX_LENGTH as Float, SAMPLE_LENGTH);
                             let weight = (1.0-other_dist_x)*(1.0-other_dist_y);
                             descriptor[j].add_measurement_to_adjecent_with_interp(weighted_gradient_orientation, keypoint.orientation,weight); 
                         }
@@ -194,6 +193,8 @@ fn get_normalized_distance_to_center_for_histogram(sample_x: Float, sample_y: Fl
     }
 
 }
+
+
 
 
 

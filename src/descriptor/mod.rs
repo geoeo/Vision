@@ -6,6 +6,10 @@ use crate::image::Image;
 
 pub mod orientation_histogram;
 pub mod local_image_descriptor;
+pub mod feature_vector;
+
+pub const DESCRIPTOR_BINS: usize = 16;
+pub const ORIENTATION_BINS: usize = 8;
 
 //TODO: Doesnt seem to work as well as lagrange -> produces out  of scope results
 pub fn newton_interpolation_quadratic(a: Float, b: Float, c: Float, f_a: Float, f_b: Float, f_c: Float, range_min: Float, range_max: Float) -> Float {
