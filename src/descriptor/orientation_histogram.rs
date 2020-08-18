@@ -8,6 +8,7 @@ use crate::descriptor::{lagrange_interpolation_quadratic,newton_interpolation_qu
 #[derive(Debug,Clone)]
 pub struct OrientationHistogram {
     max_bin: usize,
+    pub squared_magnitude: Float,
     pub bin_range: Float,
     pub bins: Vec<Float>
 }
@@ -17,6 +18,7 @@ impl OrientationHistogram {
     pub fn new(bin_len: usize) -> OrientationHistogram {
         OrientationHistogram{
             max_bin: bin_len,
+            squared_magnitude: 0.0,
             bin_range: 2.0*float::consts::PI/(bin_len as Float),
             bins: vec![0.0;bin_len]
         }
@@ -26,7 +28,9 @@ impl OrientationHistogram {
         let grad = grad_orientation.0;
         let orientation = grad_orientation.1;
         let index = radian_to_index(self,orientation);
-        self.bins[index] += grad*weight;
+        let v = grad*weight;
+        self.bins[index] += v;
+        self.squared_magnitude = v.powi(2);
     }
 
 
@@ -41,9 +45,15 @@ impl OrientationHistogram {
         let c_weight = (main_index - c as isize).abs();
         let r_weight = (main_index - r as isize).abs();
 
-        self.bins[l] += grad*weight*l_weight as Float;
-        self.bins[c] += grad*weight*c_weight as Float;
-        self.bins[r] += grad*weight*r_weight as Float;
+        let v_l = grad*weight*l_weight as Float;
+        let v_c = grad*weight*c_weight as Float;
+        let v_r = grad*weight*r_weight as Float;
+
+        self.bins[l] += v_l;
+        self.bins[c] += v_c;
+        self.bins[r] += v_r;
+
+        self.squared_magnitude = v_l.powi(2) + v_c.powi(2) + v_r.powi(2);
     }
 
     pub fn add_histogram(&mut self, other_histogram: &OrientationHistogram, weight: Float) -> () {

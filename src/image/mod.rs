@@ -86,7 +86,6 @@ impl Image {
         let orientation_cos = orientation.cos();
         let orientation_sin = orientation.sin();
 
-
         //TODO: maybe optimize this
         for i in (0..100).step_by(1) {
             let t = i as Float/100.0;
