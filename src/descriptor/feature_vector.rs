@@ -29,7 +29,7 @@ impl FeatureVector {
             FeatureVector{data}
     }
 
-    pub fn distance_between(&self, other_feature_vector: &FeatureVector) -> Float {
+    pub fn distance_between(&self, other_feature_vector: &FeatureVector, threshold: Float) -> Float {
         let mut squared_distance = 0;
         for i in 0..DESCRIPTOR_BINS {
             for j in 0..ORIENTATION_BINS {
@@ -39,6 +39,6 @@ impl FeatureVector {
             }
         }
 
-        (squared_distance as Float).sqrt()
+        threshold*(squared_distance as Float).sqrt()
     }
 }
