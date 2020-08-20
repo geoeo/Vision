@@ -1,4 +1,5 @@
 
+use crate::Float;
 use crate::descriptor::{ORIENTATION_BINS,DESCRIPTOR_BINS,local_image_descriptor::LocalImageDescriptor};
 
 #[derive(Debug,Clone)]
@@ -26,6 +27,18 @@ impl FeatureVector {
                 }
             }
             FeatureVector{data}
-        
+    }
+
+    pub fn distance_between(&self, other_feature_vector: &FeatureVector) -> Float {
+        let mut squared_distance = 0;
+        for i in 0..DESCRIPTOR_BINS {
+            for j in 0..ORIENTATION_BINS {
+                let val = self.data[i][j];
+                let other_val = other_feature_vector.data[i][j];
+                squared_distance += (val-other_val).pow(2);
+            }
+        }
+
+        (squared_distance as Float).sqrt()
     }
 }
