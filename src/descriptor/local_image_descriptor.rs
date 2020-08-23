@@ -11,6 +11,8 @@ const SAMPLE_LENGTH: Float = 16.0;
 
 #[derive(Debug,Clone)]
 pub struct LocalImageDescriptor {
+    pub x: usize,
+    pub y: usize,
     pub descriptor_vector: Vec<OrientationHistogram>
 }
 
@@ -57,7 +59,7 @@ impl LocalImageDescriptor {
             }
         }
 
-        LocalImageDescriptor{descriptor_vector: descriptor}
+        LocalImageDescriptor{x: keypoint.x, y: keypoint.y, descriptor_vector: descriptor}
     }
 }
 

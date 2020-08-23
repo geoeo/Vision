@@ -4,10 +4,6 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
-
-
-
-
         {
             "name": "Blur Launch",
             "type": "lldb",
@@ -35,6 +31,17 @@
             "type": "lldb",
             "request": "launch",
             "program": "${workspaceRoot}/target/debug/examples/features",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false
+        },
+        {
+            "name": "All Features Launch",
+            "type": "lldb",
+            "request": "launch",
+            "program": "${workspaceRoot}/target/debug/examples/all_features",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",

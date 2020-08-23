@@ -50,7 +50,7 @@ pub fn lagrange_interpolation_quadratic(a: Float, b: Float, c: Float, f_a: Float
 
     match result {
         res if res < range_min => res + range_max,
-        res if res > range_max => res - range_max,
+        res if res >= range_max => res - range_max,
         res => res
     }
 }

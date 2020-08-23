@@ -4,11 +4,14 @@ use crate::descriptor::{ORIENTATION_BINS,DESCRIPTOR_BINS,local_image_descriptor:
 
 #[derive(Debug,Clone)]
 pub struct FeatureVector {
-    data: [[u8;ORIENTATION_BINS];DESCRIPTOR_BINS]
+    pub x: usize,
+    pub y: usize,
+    pub octave_level: usize,
+    pub data: [[u8;ORIENTATION_BINS];DESCRIPTOR_BINS]
 }
 
 impl FeatureVector {
-    pub fn new(descriptor: &LocalImageDescriptor) -> FeatureVector {
+    pub fn new(descriptor: &LocalImageDescriptor, octave_level: usize) -> FeatureVector {
             let orientation = [0;ORIENTATION_BINS];
             let mut data = [orientation;DESCRIPTOR_BINS];
 
@@ -26,7 +29,7 @@ impl FeatureVector {
                     data[i][j] = quantized_value;
                 }
             }
-            FeatureVector{data}
+            FeatureVector{x:descriptor.x, y: descriptor.y,octave_level, data}
     }
 
     pub fn distance_between(&self, other_feature_vector: &FeatureVector) -> Float {
