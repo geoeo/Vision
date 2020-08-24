@@ -5,7 +5,7 @@ use std::path::Path;
 
 use sift::pyramid::Pyramid;
 use sift::image::Image;
-use sift::{feature_vectors_from_octave,reconstruct_original_coordiantes};
+use sift::{feature_vectors_from_octave,reconstruct_original_coordiantes,feature_vectors_from_pyramid};
 
 fn main() {
     
@@ -28,7 +28,9 @@ fn main() {
 
     let features_octave = feature_vectors_from_octave(&pyramid,octave_level,sigma_level);
 
+    let _ = feature_vectors_from_pyramid(&pyramid);
 
+    
     let number_of_features = features_octave.len();
 
     let rows = pyramid.octaves[0].images[0].buffer.nrows();

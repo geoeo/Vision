@@ -2,7 +2,7 @@ extern crate nalgebra as na;
 
 use crate::{float,Float, ExtremaParameters, KeyPoint};
 use crate::pyramid::octave::Octave;
-use crate::descriptor::{lagrange_interpolation_quadratic,newton_interpolation_quadratic, gauss_2d, gradient_and_orientation};
+use crate::descriptor::{lagrange_interpolation_quadratic, gauss_2d, gradient_and_orientation};
 
 
 #[derive(Debug,Clone)]

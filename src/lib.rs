@@ -43,6 +43,21 @@ pub enum GradientDirection {
     SIGMA
 }
 
+pub fn feature_vectors_from_pyramid(pyramid: &Pyramid) -> Vec<FeatureVector> {
+
+    //let mut features = 
+
+    for octave_level in 0..pyramid.octaves.len() {
+        let octave = &pyramid.octaves[octave_level];
+        for sigma_level in 1..octave.sigmas.len()-2 {
+            println!("{}",sigma_level);
+        }
+    }
+
+    Vec::<FeatureVector>::new() // TODO
+
+}
+
 pub fn feature_vectors_from_octave(pyramid: &Pyramid, octave_level: usize, sigma_level: usize) -> Vec<FeatureVector> {
     let x_step = 1;
     let y_step = 1;
