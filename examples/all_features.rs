@@ -15,10 +15,7 @@ fn main() {
     let image_out_folder = "output/";
     let image_path = format!("{}{}.{}",image_folder,image_name, image_format);
 
-
-    let octave_level = 1;
-    let sigma_level = 1;
-    let converted_file_out_path = format!("{}{}_squares_{}.{}",image_out_folder,image_name,octave_level,image_format);
+    let converted_file_out_path = format!("{}{}_squares_all.{}",image_out_folder,image_name,image_format);
 
 
     let gray_image = image_rs::open(&Path::new(&image_path)).unwrap().to_luma();
@@ -26,23 +23,23 @@ fn main() {
     
     let pyramid = Pyramid::build_pyramid(&gray_image, 3, 3, 0.5);
 
-    let features_octave = feature_vectors_from_octave(&pyramid,octave_level,sigma_level);
+    //let features_octave = feature_vectors_from_octave(&pyramid,octave_level,sigma_level);
 
-    let _ = feature_vectors_from_pyramid(&pyramid);
+    let all_features = feature_vectors_from_pyramid(&pyramid);
 
-    
-    let number_of_features = features_octave.len();
+
+    let number_of_features = all_features.len();
 
     let rows = pyramid.octaves[0].images[0].buffer.nrows();
     let cols = pyramid.octaves[0].images[0].buffer.ncols();
     let size = rows*cols;
     let percentage = number_of_features as f32/size as f32;
 
-    println!("Features from Octave Level {}: {} out of {}, ({}%)",octave_level,number_of_features, size, percentage);
+    println!("Features from Image: {} out of {}, ({}%)",number_of_features, size, percentage);
 
 
-    for feature in features_octave {
-        let(x,y) = reconstruct_original_coordiantes(feature.x, feature.y,octave_level as u32);
+    for feature in all_features {
+        let(x,y) = reconstruct_original_coordiantes(feature.x, feature.y,feature.octave_level as u32);
 
         assert!(x < display.buffer.ncols());
         assert!(y < display.buffer.nrows());

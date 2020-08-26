@@ -44,7 +44,7 @@ fn main() {
     let feature_vectors = descriptors.iter().map(|x| FeatureVector::new(x,0)).collect::<Vec<FeatureVector>>();
 
 
-    let number_of_features = features.len();
+    let number_of_features = feature_vectors.len();
     let number_of_refined_features = refined_features.len();
     let number_of_keypoints = keypoints.len();
 
