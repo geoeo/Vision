@@ -93,6 +93,7 @@ pub fn match_feature(a: &FeatureVector, bs: &Vec<FeatureVector>) -> Option<usize
 
     let nearest_index = index_distances[0].0;
 
+    
     match nearest_distance < RELATIVE_MATCH_THRESHOLD*second_nearest_distance {
         true => Some(nearest_index),
         false => None
