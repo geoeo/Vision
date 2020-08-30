@@ -17,6 +17,8 @@ macro_rules! define_float {
     }
 }
 
+pub const RELATIVE_MATCH_THRESHOLD: Float = 0.6;
+
 define_float!(f64);
 
 #[derive(Debug,Clone)]
@@ -32,7 +34,7 @@ pub struct KeyPoint {
     pub y: usize,
     pub sigma_level: usize,
     pub orientation: Float
-    //TODO: maybe put octave here aswell for debugging
+    //TODO: maybe put octave here as well for debugging
 } 
 
 #[repr(u8)]
@@ -77,4 +79,22 @@ pub fn feature_vectors_from_octave(pyramid: &Pyramid, octave_level: usize, sigma
 pub fn reconstruct_original_coordiantes(x: usize, y: usize, octave_level: u32) -> (usize,usize) {
     let factor = 2usize.pow(octave_level);
     (x*factor,y*factor)
+}
+
+
+pub fn match_feature(a: &FeatureVector, bs: &Vec<FeatureVector>) -> Option<usize> {
+    assert!(bs.len() > 1);
+
+    let mut index_distances = bs.iter().enumerate().map(|b| (b.0,a.distance_between(b.1))).collect::<Vec<(usize,Float)>>();
+    index_distances.sort_by(|x,y| x.1.partial_cmp(&y.1).unwrap());
+
+    let nearest_distance = index_distances[0].1;
+    let second_nearest_distance = index_distances[1].1;
+
+    let nearest_index = index_distances[0].0;
+
+    match nearest_distance < RELATIVE_MATCH_THRESHOLD*second_nearest_distance {
+        true => Some(nearest_index),
+        false => None
+    }
 }
