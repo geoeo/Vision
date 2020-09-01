@@ -93,9 +93,12 @@ pub fn match_feature(a: &FeatureVector, bs: &Vec<FeatureVector>) -> Option<usize
 
     let nearest_index = index_distances[0].0;
 
-    
     match nearest_distance < RELATIVE_MATCH_THRESHOLD*second_nearest_distance {
         true => Some(nearest_index),
         false => None
     }
+}
+
+pub fn generate_match_pairs(feature_list_a: &Vec<FeatureVector>, feature_list_b: &Vec<FeatureVector>) -> Vec<(usize,usize)> {
+    feature_list_a.iter().enumerate().map(|a| (a.0,match_feature(a.1,feature_list_b))).filter(|&x| x.1 != None).map(|x| (x.0,x.1.unwrap())).collect::<Vec<(usize,usize)>>()
 }
