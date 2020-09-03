@@ -82,7 +82,7 @@ pub fn reconstruct_original_coordiantes(x: usize, y: usize, octave_level: u32) -
 }
 
 
-pub fn match_feature(a: &FeatureVector, bs: &Vec<FeatureVector>) -> Option<usize> {
+pub fn match_feature(a: &FeatureVector, bs: &Vec<FeatureVector>) -> Option<usize> { 
     assert!(bs.len() > 1);
 
     let mut index_distances = bs.iter().enumerate().map(|b| (b.0,a.distance_between(b.1))).collect::<Vec<(usize,Float)>>();

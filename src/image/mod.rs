@@ -6,7 +6,9 @@ use image_rs::flat::NormalForm;
 use na::{DMatrix};
 
 use crate::{Float,KeyPoint};
+use crate::descriptor::feature_vector::FeatureVector;
 use self::image_encoding::ImageEncoding;
+
 
 pub mod image_encoding;
 pub mod filter;
@@ -61,16 +63,19 @@ impl Image {
 
     pub fn draw_square(image: &mut Image, x: usize, y: usize, side_length: usize) -> () {
 
-        for i in x-side_length..x+side_length+1 {
-            image.buffer[(y + side_length,i)] = 0.0;
-            image.buffer[(y - side_length,i)] = 0.0;
+        if y + side_length >= image.buffer.nrows() || x + side_length >= image.buffer.ncols()  {
+            println!("Image width,height = {},{}. Max square width,height: {},{}", image.buffer.ncols(), image.buffer.nrows(),x+side_length,y+side_length);
+        } else {
+            for i in x-side_length..x+side_length+1 {
+                image.buffer[(y + side_length,i)] = 0.0;
+                image.buffer[(y - side_length,i)] = 0.0;
+            }
+    
+            for j in y-side_length+1..y+side_length {
+                image.buffer[(j,x +side_length)] = 0.0;
+                image.buffer[(j,x -side_length)] = 0.0;
+            }
         }
-
-        for j in y-side_length+1..y+side_length {
-            image.buffer[(j,x +side_length)] = 0.0;
-            image.buffer[(j,x -side_length)] = 0.0;
-        }
-
     }
 
     pub fn visualize_keypoint(image: &mut Image,x_gradient: &Image, y_gradient: &Image, keypoint: &KeyPoint) -> () {
@@ -163,6 +168,45 @@ impl Image {
             }
         }
         gray_image
+    }
+
+    pub fn display_matches(image_a: &Image, image_b: &Image, features_a: &Vec<FeatureVector>,features_b: &Vec<FeatureVector> , match_indices: &Vec<(usize,usize)>) -> Image {
+
+        assert_eq!(image_a.buffer.nrows(),image_b.buffer.nrows());
+        assert_eq!(image_a.buffer.ncols(),image_b.buffer.ncols());
+
+        let height = image_a.buffer.nrows();
+        let width = image_a.buffer.ncols() + image_b.buffer.ncols();
+
+        let mut target_image = Image::empty(width, height, image_a.original_encoding);
+   
+        for x in 0..image_a.buffer.ncols() {
+            for y in 0..image_a.buffer.nrows() {
+                target_image.buffer[(y,x)] = image_a.buffer[(y,x)];
+                target_image.buffer[(y,x+image_a.buffer.ncols())] = image_b.buffer[(y,x)];
+            }
+        }
+
+
+        for (a_index,b_index) in match_indices {
+            let feature_a = &features_a[a_index.clone()];
+            let feature_b = &features_b[b_index.clone()];
+
+            let target_a_x = feature_a.x;
+            let target_a_y = feature_a.y;
+
+            let target_b_x = image_a.buffer.ncols() + feature_b.x;
+            let target_b_y = feature_b.y;
+
+            Image::draw_square(&mut target_image,target_a_x,target_a_y, 1);
+            Image::draw_square(&mut target_image,target_b_x,target_b_y, 1);
+
+            //TODO: Draw line
+            
+        }
+
+        target_image
+
     }
 }
 

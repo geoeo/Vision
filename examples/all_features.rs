@@ -23,8 +23,6 @@ fn main() {
     
     let pyramid = Pyramid::build_pyramid(&gray_image, 3, 3, 0.5);
 
-    //let features_octave = feature_vectors_from_octave(&pyramid,octave_level,sigma_level);
-
     let all_features = feature_vectors_from_pyramid(&pyramid);
 
 
@@ -36,7 +34,6 @@ fn main() {
     let percentage = number_of_features as f32/size as f32;
 
     println!("Features from Image: {} out of {}, ({}%)",number_of_features, size, percentage);
-
 
     for feature in all_features {
         let(x,y) = reconstruct_original_coordiantes(feature.x, feature.y,feature.octave_level as u32);
