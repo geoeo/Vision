@@ -45,6 +45,7 @@ pub fn filter_1d_convolution(source: &Image, filter_direction: GradientDirection
                     let kenel_value = kernel[(kenel_idx + kernel_half_width_signed) as usize];
                     acc +=sample_value*kenel_value;
                 }
+                //target.buffer[(y,x)] = acc.abs();
                 target.buffer[(y,x)] = acc;
         }
     }

@@ -7,7 +7,7 @@ pub struct FeatureVector {
     pub x: usize,
     pub y: usize,
     pub octave_level: usize,
-    pub data: [[u8;ORIENTATION_BINS];DESCRIPTOR_BINS]
+    pub data: [[i16;ORIENTATION_BINS];DESCRIPTOR_BINS]
 }
 
 impl FeatureVector {
@@ -16,6 +16,7 @@ impl FeatureVector {
             let mut data = [orientation;DESCRIPTOR_BINS];
 
 
+            //TODO: investigate differenece between FLoat and i16
             for i in 0..DESCRIPTOR_BINS{
                 let descriptor_vector = &descriptor.descriptor_vector[i];
                 let magnitude = descriptor_vector.squared_magnitude.sqrt();
@@ -25,23 +26,23 @@ impl FeatureVector {
                         (a,b) if a <= b => a,
                         (_,b) => b
                     };
-                    let quantized_value = std::cmp::min(saturated_value.floor() as u8,255);
+                    let quantized_value = std::cmp::min(saturated_value.floor() as i16,255);
                     data[i][j] = quantized_value;
+
                 }
             }
             FeatureVector{x:descriptor.x, y: descriptor.y,octave_level, data}
     }
 
     pub fn distance_between(&self, other_feature_vector: &FeatureVector) -> Float {
-        let mut squared_distance = 0;
+        let mut squared_distance: Float = 0.0;
         for i in 0..DESCRIPTOR_BINS {
             for j in 0..ORIENTATION_BINS {
-                let val = self.data[i][j];
-                let other_val = other_feature_vector.data[i][j];
-                squared_distance += (val-other_val).pow(2);
+                let val = self.data[i][j] as Float;
+                let other_val = other_feature_vector.data[i][j] as Float;
+                squared_distance += (val-other_val).powf(2.0); //TODO: investifat abs, pow i , pow f
             }
         }
-
-        (squared_distance as Float).sqrt()
+        (squared_distance).sqrt()
     }
 }

@@ -13,7 +13,7 @@ use sift::descriptor::feature_vector::FeatureVector;
 use sift::KeyPoint;
 
 fn main() {
-    let image_name = "lenna";
+    let image_name = "circles";
     let image_format = "png";
     let image_folder = "images/";
     let image_out_folder = "output/";
@@ -24,32 +24,39 @@ fn main() {
 
 
     let gray_image = image_rs::open(&Path::new(&image_path)).unwrap().to_luma();
-    let mut display = Image::from_gray_image(&gray_image, false);
-    let mut orientation_display =  Image::from_gray_image(&gray_image, false);
-    let mut refined_display = Image::from_gray_image(&gray_image, false);
+
     
-    let pyramid = Pyramid::build_pyramid(&gray_image, 3, 3, 0.5);
+    let pyramid = Pyramid::build_pyramid(&gray_image, 3, 4, 0.5);
+    let octave_level = 1;
+    let sigma_level = 1;
+    let octave = &pyramid.octaves[octave_level];
+
+
+    let mut display = Image::from_matrix(&pyramid.octaves[octave_level].images[0].buffer,pyramid.octaves[octave_level].images[0].original_encoding,false);
+    let mut orientation_display =  Image::from_matrix(&pyramid.octaves[octave_level].images[0].buffer,pyramid.octaves[octave_level].images[0].original_encoding,false);
+    let mut refined_display = Image::from_matrix(&pyramid.octaves[octave_level].images[0].buffer,pyramid.octaves[octave_level].images[0].original_encoding,false);
+
     let x_step = 1;
     let y_step = 1;
     let kernel_half_repeat = 1;
     let first_order_derivative_filter = PrewittKernel::new(kernel_half_repeat);
     let second_order_derivative_filter = LaplaceKernel::new(kernel_half_repeat);
 
-    let first_octave = &pyramid.octaves[0];
 
-    let features = extrema::detect_extrema(first_octave,1,first_order_derivative_filter.half_width(),first_order_derivative_filter.half_repeat(),x_step, y_step);
-    let refined_features = extrema::extrema_refinement(&features, first_octave, &first_order_derivative_filter,&second_order_derivative_filter);
-    let keypoints = refined_features.iter().map(|x| generate_keypoints_from_extrema(first_octave, x)).flatten().collect::<Vec<KeyPoint>>();
-    let descriptors = keypoints.iter().filter(|x| is_rotated_keypoint_within_image(first_octave, x)).map(|x| LocalImageDescriptor::new(first_octave,x)).collect::<Vec<LocalImageDescriptor>>();
-    let feature_vectors = descriptors.iter().map(|x| FeatureVector::new(x,0)).collect::<Vec<FeatureVector>>();
+
+    let features = extrema::detect_extrema(octave,sigma_level,first_order_derivative_filter.half_width(),first_order_derivative_filter.half_repeat(),x_step, y_step);
+    let refined_features = extrema::extrema_refinement(&features, octave, &first_order_derivative_filter,&second_order_derivative_filter);
+    let keypoints = refined_features.iter().map(|x| generate_keypoints_from_extrema(octave, x)).flatten().collect::<Vec<KeyPoint>>();
+    let descriptors = keypoints.iter().filter(|x| is_rotated_keypoint_within_image(octave, x)).map(|x| LocalImageDescriptor::new(octave,x)).collect::<Vec<LocalImageDescriptor>>();
+    let feature_vectors = descriptors.iter().map(|x| FeatureVector::new(x,octave_level)).collect::<Vec<FeatureVector>>();
 
 
     let number_of_features = feature_vectors.len();
     let number_of_refined_features = refined_features.len();
     let number_of_keypoints = keypoints.len();
 
-    let rows = first_octave.images[0].buffer.nrows();
-    let cols = first_octave.images[0].buffer.ncols();
+    let rows = octave.images[0].buffer.nrows();
+    let cols = octave.images[0].buffer.ncols();
     let size = rows*cols;
     let percentage = number_of_features as f32/size as f32;
     let refined_percentage = number_of_refined_features as f32/size as f32;
@@ -61,7 +68,7 @@ fn main() {
 
 
     for keypoint in keypoints {
-        Image::visualize_keypoint(&mut orientation_display, &first_octave.x_gradient[keypoint.sigma_level], &first_octave.y_gradient[keypoint.sigma_level], &keypoint);
+        Image::visualize_keypoint(&mut orientation_display, &octave.x_gradient[keypoint.sigma_level], &octave.y_gradient[keypoint.sigma_level], &keypoint);
     }
 
     for feature in features {

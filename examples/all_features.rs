@@ -9,7 +9,7 @@ use sift::{feature_vectors_from_octave,reconstruct_original_coordiantes,feature_
 
 fn main() {
     
-    let image_name = "beaver_90";
+    let image_name = "circles";
     let image_format = "png";
     let image_folder = "images/";
     let image_out_folder = "output/";

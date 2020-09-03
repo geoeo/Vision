@@ -67,13 +67,13 @@ impl Image {
             println!("Image width,height = {},{}. Max square width,height: {},{}", image.buffer.ncols(), image.buffer.nrows(),x+side_length,y+side_length);
         } else {
             for i in x-side_length..x+side_length+1 {
-                image.buffer[(y + side_length,i)] = 0.0;
-                image.buffer[(y - side_length,i)] = 0.0;
+                image.buffer[(y + side_length,i)] = 128.0;
+                image.buffer[(y - side_length,i)] = 128.0;
             }
     
             for j in y-side_length+1..y+side_length {
-                image.buffer[(j,x +side_length)] = 0.0;
-                image.buffer[(j,x -side_length)] = 0.0;
+                image.buffer[(j,x +side_length)] = 128.0;
+                image.buffer[(j,x -side_length)] = 128.0;
             }
         }
     }
