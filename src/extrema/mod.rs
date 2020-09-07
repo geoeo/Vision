@@ -13,6 +13,7 @@ pub fn detect_extrema(source_octave: &Octave, sigma_level: usize, filter_half_wi
     let mut extrema_vec: Vec<ExtremaParameters> = Vec::new();
 
     assert!(sigma_level+1 < source_octave.difference_of_gaussians.len());
+    assert!(sigma_level > 0);
 
     let image_buffer = &source_octave.difference_of_gaussians[sigma_level].buffer;
     let prev_buffer = &source_octave.difference_of_gaussians[sigma_level-1].buffer;
