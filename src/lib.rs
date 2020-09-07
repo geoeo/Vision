@@ -34,7 +34,7 @@ pub struct KeyPoint {
     pub y: usize,
     pub sigma_level: usize,
     pub orientation: Float
-    //TODO: maybe put octave here as well for debugging
+    //TODO: maybe put octave/orientation histogram here as well for debugging
 } 
 
 #[repr(u8)]

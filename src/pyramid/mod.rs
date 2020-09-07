@@ -26,7 +26,7 @@ impl Pyramid {
             let idx_for_next = Octave::index_for_next_octave(&new_octave);
 
             octaves.push(new_octave);
-
+            
             octave_image = Image::downsample_half(&octaves[i].images[idx_for_next]);
             sigma = octaves[i].sigmas[idx_for_next];
         }

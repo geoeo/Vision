@@ -6,7 +6,7 @@ use std::path::Path;
 use sift::pyramid::Pyramid;
 
 fn main() {
-    let image_name = "lenna";
+    let image_name = "circles";
     let image_format = "png";
     let image_folder = "images/";
     let image_out_folder = "output/";
@@ -17,7 +17,7 @@ fn main() {
     
     let pyramid = Pyramid::build_pyramid(&gray_image, 3, 3, 0.5);
 
-    let first_octave = &pyramid.octaves[0];
+    let first_octave = &pyramid.octaves[2];
     let ocatve_images = &first_octave.difference_of_gaussians;
 
     for i in 0..ocatve_images.len() {

@@ -7,6 +7,7 @@ use na::{DMatrix};
 
 use crate::{Float,KeyPoint};
 use crate::descriptor::feature_vector::FeatureVector;
+use crate::descriptor::orientation_histogram::OrientationHistogram;
 use self::image_encoding::ImageEncoding;
 
 
@@ -206,6 +207,39 @@ impl Image {
         }
 
         target_image
+
+    }
+
+    pub fn display_histogram(histogram: &OrientationHistogram, width_scaling:usize, height: usize) -> Image {
+
+        let bin_len = histogram.bins.len();
+        let width = width_scaling*bin_len;
+        let mut image = Image::empty(width, height, ImageEncoding::U8);
+        let mut max_val = histogram.bins[0];
+        for i in 1..bin_len {
+            let val = histogram.bins[i];
+            if val > max_val {
+                max_val = val;
+            }
+        }
+
+        let max_height = height as Float*0.8;
+
+        for i in 0..bin_len {
+            let bin_val = histogram.bins[i];
+            let scale = bin_val/max_val;
+            let bin_height = (max_height*scale) as usize;
+            let bin_width = width/bin_len;
+            for w in 0..bin_width {
+                let x = i*bin_width+w;
+                for y in 0..bin_height {
+                    image.buffer[(height-1-y,x)] = 255.0;
+                }
+            }
+
+        }
+
+        image
 
     }
 }

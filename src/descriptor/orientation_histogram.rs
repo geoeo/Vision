@@ -7,7 +7,7 @@ use crate::descriptor::{lagrange_interpolation_quadratic, gauss_2d, gradient_and
 
 #[derive(Debug,Clone)]
 pub struct OrientationHistogram {
-    max_bin: usize,
+    pub max_bin: usize,
     pub squared_magnitude: Float,
     pub bin_range: Float,
     pub bins: Vec<Float>
@@ -17,7 +17,7 @@ impl OrientationHistogram {
 
     pub fn new(bin_len: usize) -> OrientationHistogram {
         OrientationHistogram{
-            max_bin: bin_len,
+            max_bin: bin_len, // not set for descriptor histograms
             squared_magnitude: 0.0,
             bin_range: 2.0*float::consts::PI/(bin_len as Float),
             bins: vec![0.0;bin_len]
@@ -132,7 +132,7 @@ fn post_process(histogram: &OrientationHistogram, extrema: &ExtremaParameters) -
         lagrange_interpolation_quadratic(l as Float,c as Float,r as Float,histogram.bins[l],histogram.bins[c],histogram.bins[r],0.0, (histogram.bins.len()) as Float)
     ).collect::<Vec<Float>>();
 
-
+    //TODO: maybe split up the return of histogram and keypoint so that it can be debugged
     interpolated_peaks_indices.iter().map(|&peak_idx| {KeyPoint{x: extrema.x, y: extrema.y, sigma_level: extrema.sigma_level, orientation: index_to_radian(histogram,peak_idx)}}).collect::<Vec<KeyPoint>>()
 
 }
