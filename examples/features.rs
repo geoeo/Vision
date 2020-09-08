@@ -11,6 +11,7 @@ use sift::descriptor::orientation_histogram::generate_keypoints_from_extrema;
 use sift::descriptor::local_image_descriptor::{is_rotated_keypoint_within_image,LocalImageDescriptor};
 use sift::descriptor::feature_vector::FeatureVector;
 use sift::KeyPoint;
+use sift::visualize::{draw_square,visualize_keypoint};
 
 fn main() {
     let image_name = "circles";
@@ -68,7 +69,7 @@ fn main() {
 
 
     for keypoint in keypoints {
-        Image::visualize_keypoint(&mut orientation_display, &octave.x_gradient[keypoint.sigma_level], &octave.y_gradient[keypoint.sigma_level], &keypoint);
+        visualize_keypoint(&mut orientation_display, &octave.x_gradient[keypoint.sigma_level], &octave.y_gradient[keypoint.sigma_level], &keypoint);
     }
 
     for feature in features {
@@ -78,7 +79,7 @@ fn main() {
         assert!(x < display.buffer.ncols());
         assert!(y < display.buffer.nrows());
 
-        Image::draw_square(&mut display, x, y, 1);
+        draw_square(&mut display, x, y, 1);
     }
 
     for feature in refined_features {
@@ -88,7 +89,7 @@ fn main() {
         assert!(x < display.buffer.ncols());
         assert!(y < display.buffer.nrows());
 
-        Image::draw_square(&mut refined_display, x, y, 1);
+        draw_square(&mut refined_display, x, y, 1);
     }
 
     let new_image = display.to_image();

@@ -9,6 +9,7 @@ pub mod image;
 pub mod pyramid;
 pub mod extrema;
 pub mod descriptor;
+pub mod visualize;
 
 macro_rules! define_float {
     ($f:tt) => {

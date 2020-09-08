@@ -6,6 +6,7 @@ use std::path::Path;
 use sift::pyramid::Pyramid;
 use sift::image::Image;
 use sift::{feature_vectors_from_octave,reconstruct_original_coordiantes,feature_vectors_from_pyramid};
+use sift::visualize::draw_square;
 
 fn main() {
     
@@ -41,7 +42,7 @@ fn main() {
         assert!(x < display.buffer.ncols());
         assert!(y < display.buffer.nrows());
 
-        Image::draw_square(&mut display, x, y, 1);
+        draw_square(&mut display, x, y, 1);
     }
 
 

@@ -4,6 +4,7 @@ extern crate sift;
 use std::path::Path;
 
 use sift::image::Image;
+use sift::visualize::draw_square;
 
 fn main() {
     let image_name = "lenna";
@@ -17,7 +18,7 @@ fn main() {
 
 
     let mut frame = Image::from_gray_image(&image, false);
-    Image::draw_square(&mut frame, 50, 50, 10);
+    draw_square(&mut frame, 50, 50, 10);
     let new_image = frame.to_image();
 
     new_image.save(converted_file_out_path).unwrap();

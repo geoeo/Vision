@@ -7,7 +7,7 @@ use crate::descriptor::{lagrange_interpolation_quadratic, gauss_2d, gradient_and
 
 #[derive(Debug,Clone)]
 pub struct OrientationHistogram {
-    pub max_bin: usize,
+    max_bin: usize, // not set for descriptor histograms
     pub squared_magnitude: Float,
     pub bin_range: Float,
     pub bins: Vec<Float>
@@ -17,7 +17,7 @@ impl OrientationHistogram {
 
     pub fn new(bin_len: usize) -> OrientationHistogram {
         OrientationHistogram{
-            max_bin: bin_len, // not set for descriptor histograms
+            max_bin: bin_len, 
             squared_magnitude: 0.0,
             bin_range: 2.0*float::consts::PI/(bin_len as Float),
             bins: vec![0.0;bin_len]

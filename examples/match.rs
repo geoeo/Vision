@@ -6,6 +6,7 @@ use std::path::Path;
 use sift::pyramid::Pyramid;
 use sift::image::Image;
 use sift::{feature_vectors_from_octave,reconstruct_original_coordiantes,feature_vectors_from_pyramid, generate_match_pairs};
+use sift::visualize::display_matches;
 
 fn main() {
     
@@ -35,7 +36,7 @@ fn main() {
 
     println!("number of matched pairs: {}", match_pairs.len());
 
-    let match_dispay = Image::display_matches(&display, &display_2, &all_features, &all_features_2, &match_pairs);
+    let match_dispay = display_matches(&display, &display_2, &all_features, &all_features_2, &match_pairs);
 
     let new_image = match_dispay.to_image();
     new_image.save(converted_file_out_path).unwrap();

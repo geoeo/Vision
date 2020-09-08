@@ -11,6 +11,7 @@ use sift::descriptor::orientation_histogram::generate_keypoints_from_extrema;
 use sift::descriptor::local_image_descriptor::{is_rotated_keypoint_within_image,LocalImageDescriptor};
 use sift::descriptor::feature_vector::FeatureVector;
 use sift::KeyPoint;
+use sift::visualize::display_histogram;
 
 fn main() {
     let image_name = "circles";
@@ -41,7 +42,7 @@ fn main() {
     let descriptors : Vec<LocalImageDescriptor> = keypoints.iter().filter(|x| is_rotated_keypoint_within_image(octave, x)).map(|x| LocalImageDescriptor::new(octave,x)).collect::<Vec<LocalImageDescriptor>>();
     let feature_vectors = descriptors.iter().map(|x| FeatureVector::new(x,octave_level)).collect::<Vec<FeatureVector>>();
 
-    let new_image = Image::display_histogram(&descriptors[0].descriptor_vector[1], 20, 400);
+    let new_image = display_histogram(&descriptors[0].descriptor_vector[1], 20, 400);
 
     new_image.to_image().save(converted_file_out_path).unwrap();
 
