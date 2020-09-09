@@ -3,7 +3,7 @@ extern crate image as image_rs;
 use crate::image::Image;
 use crate::image::image_encoding::ImageEncoding;
 use crate::descriptor::{orientation_histogram::OrientationHistogram,feature_vector::FeatureVector};
-use crate::{KeyPoint,Float};
+use crate::{KeyPoint,Float,float};
 
 pub fn display_histogram(histogram: &OrientationHistogram, width_scaling:usize, height: usize) -> Image {
 
@@ -77,7 +77,7 @@ pub fn display_matches(image_a: &Image, image_b: &Image, features_a: &Vec<Featur
 
 }
 
-    
+//TODO: Improve this wit Circle and line 
 pub fn visualize_keypoint(image: &mut Image,x_gradient: &Image, y_gradient: &Image, keypoint: &KeyPoint) -> () {
     let x = keypoint.x;
     let y = keypoint.y;
@@ -111,19 +111,38 @@ pub fn visualize_keypoint(image: &mut Image,x_gradient: &Image, y_gradient: &Ima
 }
 
 
-pub fn draw_square(image: &mut Image, x: usize, y: usize, side_length: usize) -> () {
+pub fn draw_square(image: &mut Image, x_center: usize, y_center: usize, side_length: usize) -> () {
 
-    if y + side_length >= image.buffer.nrows() || x + side_length >= image.buffer.ncols()  {
-        println!("Image width,height = {},{}. Max square width,height: {},{}", image.buffer.ncols(), image.buffer.nrows(),x+side_length,y+side_length);
+    if y_center + side_length >= image.buffer.nrows() || x_center + side_length >= image.buffer.ncols()  {
+        println!("Image width,height = {},{}. Max square width,height: {},{}", image.buffer.ncols(), image.buffer.nrows(),x_center+side_length,y_center+side_length);
     } else {
-        for i in x-side_length..x+side_length+1 {
-            image.buffer[(y + side_length,i)] = 128.0;
-            image.buffer[(y - side_length,i)] = 128.0;
+        for i in x_center-side_length..x_center+side_length+1 {
+            image.buffer[(y_center + side_length,i)] = 128.0;
+            image.buffer[(y_center - side_length,i)] = 128.0;
         }
 
-        for j in y-side_length+1..y+side_length {
-            image.buffer[(j,x +side_length)] = 128.0;
-            image.buffer[(j,x -side_length)] = 128.0;
+        for j in y_center-side_length+1..y_center+side_length {
+            image.buffer[(j,x_center +side_length)] = 128.0;
+            image.buffer[(j,x_center -side_length)] = 128.0;
         }
     }
 }
+
+pub fn draw_circle(image: &mut Image, x_center: usize, y_center: usize, radius: Float) -> () {
+    for t in (0..360).step_by(1) {
+        let rad = (t as Float)*float::consts::PI/180.0;
+        let x_pos = (x_center as Float + 0.5 + radius*rad.cos()).trunc() as usize;
+        let y_pos = (y_center as Float + 0.5 + radius*rad.sin()).trunc() as usize;
+
+        if x_pos < image.buffer.ncols() && y_pos < image.buffer.nrows()  {
+            image.buffer[(y_pos,x_pos)] = 64.0;
+        }
+
+    }
+}
+
+pub fn draw_orientation(image: &mut Image, x_center: usize, y_center: usize, keypoint: &KeyPoint) -> () {
+
+        //TODO
+
+    }
