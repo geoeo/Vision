@@ -13,7 +13,7 @@ pub mod visualize;
 
 macro_rules! define_float {
     ($f:tt) => {
-        use std::$f as float;
+        pub use std::$f as float;
         pub type Float = $f;
     }
 }

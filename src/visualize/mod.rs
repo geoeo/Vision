@@ -77,37 +77,29 @@ pub fn display_matches(image_a: &Image, image_b: &Image, features_a: &Vec<Featur
 
 }
 
-//TODO: Improve this wit Circle and line 
-pub fn visualize_keypoint(image: &mut Image,x_gradient: &Image, y_gradient: &Image, keypoint: &KeyPoint) -> () {
-    let x = keypoint.x;
-    let y = keypoint.y;
-    let orientation = keypoint.orientation;
-    let width = image.buffer.ncols();
-    let height = image.buffer.nrows();
+pub fn draw_line(image: &mut Image, x_center: usize, y_center: usize, length: Float, angle: Float) -> () {
 
-    let x_diff = x_gradient.buffer.index((y,x));
-    let y_diff = y_gradient.buffer.index((y,x));
-    let gradient = (x_diff.powi(2) + y_diff.powi(2)).sqrt();
-    let orientation_cos = orientation.cos();
-    let orientation_sin = orientation.sin();
+    let dir_x = length*angle.cos();
+    let dir_y = length*angle.sin();
 
-    //TODO: maybe optimize this
     for i in (0..100).step_by(1) {
         let t = i as Float/100.0;
 
-        let x_image_end = match x + (t*gradient*orientation_cos).floor() as usize {
-            x_pos if x_pos >= image.buffer.ncols() => width -1,
-            x_pos => x_pos
-        };
-        let y_image_end = match y + (t*-gradient*orientation_sin).floor() as usize {
-            y_pos if y_pos >= image.buffer.nrows() => height -1,
-            y_pos => y_pos
-        };
+        let x_pos = (x_center as Float + 0.5 + t*dir_x).trunc() as usize;
+        let y_pos = (y_center as Float + 0.5 - t*dir_y).trunc() as usize;
 
-        image.buffer[(y_image_end,x_image_end)] = t*255.0;
-
+        if x_pos < image.buffer.ncols() && y_pos < image.buffer.nrows()  {
+            image.buffer[(y_pos,x_pos)] = 64.0;
+        }
     }
     
+}
+
+pub fn visualize_keypoint(image: &mut Image, keypoint: &KeyPoint) -> () {
+    let radius = 5.0; //TODO: get from sigma level
+    draw_circle(image,keypoint.x,keypoint.y, radius)
+    //TODO: draw orientation
+
 }
 
 
@@ -140,9 +132,3 @@ pub fn draw_circle(image: &mut Image, x_center: usize, y_center: usize, radius: 
 
     }
 }
-
-pub fn draw_orientation(image: &mut Image, x_center: usize, y_center: usize, keypoint: &KeyPoint) -> () {
-
-        //TODO
-
-    }

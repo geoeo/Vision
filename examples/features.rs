@@ -69,7 +69,7 @@ fn main() {
 
 
     for keypoint in keypoints {
-        visualize_keypoint(&mut orientation_display, &octave.x_gradient[keypoint.sigma_level], &octave.y_gradient[keypoint.sigma_level], &keypoint);
+        visualize_keypoint(&mut orientation_display, &keypoint);
     }
 
     for feature in features {
