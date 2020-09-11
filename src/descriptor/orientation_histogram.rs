@@ -76,7 +76,7 @@ pub fn radian_to_index(histogram: &OrientationHistogram, orientation: Float) -> 
     (orientation/histogram.bin_range).floor() as usize
 }
 
-pub fn generate_keypoints_from_extrema(octave: &Octave, keypoint: &ExtremaParameters) -> Vec<KeyPoint> {
+pub fn generate_keypoints_from_extrema(octave: &Octave,octave_level: usize, keypoint: &ExtremaParameters) -> Vec<KeyPoint> {
 
     let w = 3;
     let x = keypoint.x;
@@ -117,11 +117,11 @@ pub fn generate_keypoints_from_extrema(octave: &Octave, keypoint: &ExtremaParame
         max
     }).0;
 
-    post_process(&histogram,keypoint)
+    post_process(&histogram,keypoint, octave_level)
 }
 
 
-fn post_process(histogram: &OrientationHistogram, extrema: &ExtremaParameters) -> Vec<KeyPoint> {
+fn post_process(histogram: &OrientationHistogram, extrema: &ExtremaParameters,octave_level: usize) -> Vec<KeyPoint> {
 
     let max_val = histogram.bins[histogram.max_bin];
     let threshold = max_val*0.8;
@@ -133,7 +133,7 @@ fn post_process(histogram: &OrientationHistogram, extrema: &ExtremaParameters) -
     ).collect::<Vec<Float>>();
 
     //TODO: maybe split up the return of histogram and keypoint so that it can be debugged
-    interpolated_peaks_indices.iter().map(|&peak_idx| {KeyPoint{x: extrema.x, y: extrema.y, sigma_level: extrema.sigma_level, orientation: index_to_radian(histogram,peak_idx)}}).collect::<Vec<KeyPoint>>()
+    interpolated_peaks_indices.iter().map(|&peak_idx| {KeyPoint{x: extrema.x, y: extrema.y, octave_level: octave_level, sigma_level: extrema.sigma_level, orientation: index_to_radian(histogram,peak_idx)}}).collect::<Vec<KeyPoint>>()
 
 }
 

@@ -77,7 +77,7 @@ pub fn display_matches(image_a: &Image, image_b: &Image, features_a: &Vec<Featur
 
 }
 
-pub fn draw_line(image: &mut Image, x_center: usize, y_center: usize, length: Float, angle: Float) -> () {
+pub fn draw_line(image: &mut Image, x_start: usize, y_start: usize, length: Float, angle: Float) -> () {
 
     let dir_x = length*angle.cos();
     let dir_y = length*angle.sin();
@@ -85,8 +85,8 @@ pub fn draw_line(image: &mut Image, x_center: usize, y_center: usize, length: Fl
     for i in (0..100).step_by(1) {
         let t = i as Float/100.0;
 
-        let x_pos = (x_center as Float + 0.5 + t*dir_x).trunc() as usize;
-        let y_pos = (y_center as Float + 0.5 - t*dir_y).trunc() as usize;
+        let x_pos = (x_start as Float + 0.5 + t*dir_x).trunc() as usize;
+        let y_pos = (y_start as Float + 0.5 - t*dir_y).trunc() as usize;
 
         if x_pos < image.buffer.ncols() && y_pos < image.buffer.nrows()  {
             image.buffer[(y_pos,x_pos)] = 64.0;
@@ -96,10 +96,9 @@ pub fn draw_line(image: &mut Image, x_center: usize, y_center: usize, length: Fl
 }
 
 pub fn visualize_keypoint(image: &mut Image, keypoint: &KeyPoint) -> () {
-    let radius = 5.0; //TODO: get from sigma level
-    draw_circle(image,keypoint.x,keypoint.y, radius)
-    //TODO: draw orientation
-
+    let radius = keypoint.octave_level as Float *10.0; 
+    draw_circle(image,keypoint.x,keypoint.y, radius);
+    draw_line(image, keypoint.x, keypoint.y, radius, keypoint.orientation);
 }
 
 
