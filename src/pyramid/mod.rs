@@ -20,17 +20,25 @@ impl Pyramid {
         let base_image = Image::from_gray_image(base_gray_image, false);
         let mut octave_image = base_image;
         let mut sigma = sigma_initial;
+
+
+
         for i in 0..octave_count {
 
+            if i > 0 {
+                octave_image = Image::downsample_half(&octaves[i-1].images[s]);
+                sigma = octaves[i-1].sigmas[s];
+            }
+
             let new_octave = Octave::build_octave(&octave_image, s, sigma);
-            let idx_for_next = Octave::index_for_next_octave(&new_octave);
 
             octaves.push(new_octave);
             
-            octave_image = Image::downsample_half(&octaves[i].images[idx_for_next]);
-            sigma = octaves[i].sigmas[idx_for_next];
+
         }
 
     Pyramid{octaves,s}
     }
+
+
 }

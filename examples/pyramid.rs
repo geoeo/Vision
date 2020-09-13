@@ -15,9 +15,9 @@ fn main() {
 
     let gray_image = image_rs::open(&Path::new(&image_path)).unwrap().to_luma();
     
-    let pyramid = Pyramid::build_pyramid(&gray_image, 3, 3, 0.5);
+    let pyramid = Pyramid::build_pyramid(&gray_image, 3, 5, 0.5);
 
-    let first_octave = &pyramid.octaves[2];
+    let first_octave = &pyramid.octaves[4];
     let ocatve_images = &first_octave.difference_of_gaussians;
 
     for i in 0..ocatve_images.len() {

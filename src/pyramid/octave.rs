@@ -42,10 +42,6 @@ impl Octave {
         Octave {images,x_gradient,y_gradient,difference_of_gaussians,sigmas}
     }
 
-    pub fn index_for_next_octave(octave: &Octave) -> usize {
-        octave.images.len()-3
-    }
-
     fn generate_k(n: Float, s: Float) -> Float {
         assert!(n >= 0.0);
         let exp = n/s;

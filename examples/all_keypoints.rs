@@ -5,8 +5,8 @@ use std::path::Path;
 
 use sift::pyramid::Pyramid;
 use sift::image::Image;
-use sift::{reconstruct_original_coordiantes,feature_vectors_from_pyramid};
-use sift::visualize::draw_square;
+use sift::{feature_vectors_from_octave,reconstruct_original_coordiantes,keypoint_from_pyramid};
+use sift::visualize::visualize_keypoint;
 
 fn main() {
     
@@ -16,7 +16,7 @@ fn main() {
     let image_out_folder = "output/";
     let image_path = format!("{}{}.{}",image_folder,image_name, image_format);
 
-    let converted_file_out_path = format!("{}{}_squares_all.{}",image_out_folder,image_name,image_format);
+    let converted_file_out_path = format!("{}{}_keypoints_all.{}",image_out_folder,image_name,image_format);
 
 
     let gray_image = image_rs::open(&Path::new(&image_path)).unwrap().to_luma();
@@ -24,25 +24,19 @@ fn main() {
     
     let pyramid = Pyramid::build_pyramid(&gray_image, 3, 5, 0.5);
 
-    let all_features = feature_vectors_from_pyramid(&pyramid);
+    let all_keypoints = keypoint_from_pyramid(&pyramid);
 
-
-    let number_of_features = all_features.len();
+    let number_of_features = all_keypoints.len();
 
     let rows = pyramid.octaves[0].images[0].buffer.nrows();
     let cols = pyramid.octaves[0].images[0].buffer.ncols();
     let size = rows*cols;
     let percentage = number_of_features as f32/size as f32;
 
-    println!("Features from Image: {} out of {}, ({}%)",number_of_features, size, percentage);
+    println!("Keypoints from Image: {} out of {}, ({}%)",number_of_features, size, percentage);
 
-    for feature in all_features {
-        let(x,y) = reconstruct_original_coordiantes(feature.x, feature.y,feature.octave_level as u32);
-
-        assert!(x < display.buffer.ncols());
-        assert!(y < display.buffer.nrows());
-
-        draw_square(&mut display, x, y, 1);
+    for keypoint in all_keypoints {
+        visualize_keypoint(&mut display, &keypoint);
     }
 
 

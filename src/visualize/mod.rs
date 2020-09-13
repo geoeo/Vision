@@ -3,7 +3,7 @@ extern crate image as image_rs;
 use crate::image::Image;
 use crate::image::image_encoding::ImageEncoding;
 use crate::descriptor::{orientation_histogram::OrientationHistogram,feature_vector::FeatureVector};
-use crate::{KeyPoint,Float,float};
+use crate::{KeyPoint,Float,float,reconstruct_original_coordiantes};
 
 pub fn display_histogram(histogram: &OrientationHistogram, width_scaling:usize, height: usize) -> Image {
 
@@ -38,6 +38,7 @@ pub fn display_histogram(histogram: &OrientationHistogram, width_scaling:usize, 
 
 }
 
+//TODO: maybe account for original x,y
 pub fn display_matches(image_a: &Image, image_b: &Image, features_a: &Vec<FeatureVector>,features_b: &Vec<FeatureVector> , match_indices: &Vec<(usize,usize)>) -> Image {
 
     assert_eq!(image_a.buffer.nrows(),image_b.buffer.nrows());
@@ -96,9 +97,11 @@ pub fn draw_line(image: &mut Image, x_start: usize, y_start: usize, length: Floa
 }
 
 pub fn visualize_keypoint(image: &mut Image, keypoint: &KeyPoint) -> () {
-    let radius = keypoint.octave_level as Float *10.0; 
-    draw_circle(image,keypoint.x,keypoint.y, radius);
-    draw_line(image, keypoint.x, keypoint.y, radius, keypoint.orientation);
+    let radius = (keypoint.octave_level+1) as Float *10.0; 
+    assert!(radius > 0.0);
+    let (x_orig,y_orig) = reconstruct_original_coordiantes(keypoint.x,keypoint.y,keypoint.octave_level as u32);
+    draw_circle(image,x_orig,y_orig, radius);
+    draw_line(image, x_orig, y_orig, radius, keypoint.orientation);
 }
 
 

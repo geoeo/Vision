@@ -14,7 +14,7 @@ use sift::KeyPoint;
 use sift::visualize::{draw_square,visualize_keypoint};
 
 fn main() {
-    let image_name = "circles";
+    let image_name = "lenna_90";
     let image_format = "png";
     let image_folder = "images/";
     let image_out_folder = "output/";
@@ -27,14 +27,14 @@ fn main() {
     let gray_image = image_rs::open(&Path::new(&image_path)).unwrap().to_luma();
 
     
-    let pyramid = Pyramid::build_pyramid(&gray_image, 3, 4, 0.5);
+    let pyramid = Pyramid::build_pyramid(&gray_image, 3, 5, 0.5);
     let octave_level = 1;
     let sigma_level = 1;
     let octave = &pyramid.octaves[octave_level];
 
 
     let mut display = Image::from_matrix(&pyramid.octaves[octave_level].images[0].buffer,pyramid.octaves[octave_level].images[0].original_encoding,false);
-    let mut orientation_display =  Image::from_matrix(&pyramid.octaves[octave_level].images[0].buffer,pyramid.octaves[octave_level].images[0].original_encoding,false);
+    let mut orientation_display =  Image::from_matrix(&pyramid.octaves[0].images[0].buffer,pyramid.octaves[octave_level].images[0].original_encoding,false);
     let mut refined_display = Image::from_matrix(&pyramid.octaves[octave_level].images[0].buffer,pyramid.octaves[octave_level].images[0].original_encoding,false);
 
     let x_step = 1;
