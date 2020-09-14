@@ -5,7 +5,7 @@ use std::path::Path;
 
 use sift::pyramid::Pyramid;
 use sift::image::Image;
-use sift::{feature_vectors_from_octave,reconstruct_original_coordiantes,keypoint_from_pyramid};
+use sift::{feature_vectors_from_octave,reconstruct_original_coordiantes,keypoints_from_pyramid, keypoints_from_octave};
 use sift::visualize::visualize_keypoint;
 
 fn main() {
@@ -22,9 +22,10 @@ fn main() {
     let gray_image = image_rs::open(&Path::new(&image_path)).unwrap().to_luma();
     let mut display = Image::from_gray_image(&gray_image, false);
     
-    let pyramid = Pyramid::build_pyramid(&gray_image, 3, 5, 0.5);
+    let pyramid = Pyramid::build_pyramid(&gray_image, 5, 3, 0.25);
 
-    let all_keypoints = keypoint_from_pyramid(&pyramid);
+    let all_keypoints = keypoints_from_pyramid(&pyramid);
+    //let all_keypoints = keypoints_from_octave(&pyramid, 2);
 
     let number_of_features = all_keypoints.len();
 

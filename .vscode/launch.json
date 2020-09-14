@@ -5,6 +5,7 @@
     "version": "0.2.0",
     "configurations": [
 
+
         {
             "name": "Blur Launch",
             "type": "lldb",
@@ -14,7 +15,8 @@
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],
-            "externalConsole": false
+            "externalConsole": false,
+            "env": {"RUST_BACKTRACE":"1"}
         },
         {
             "name": "Pyramid Launch",
@@ -25,7 +27,8 @@
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],
-            "externalConsole": false
+            "externalConsole": false,
+            "env": {"RUST_BACKTRACE":"1"}
         },
         {
             "name": "Draw Line Launch",
@@ -36,7 +39,8 @@
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],
-            "externalConsole": false
+            "externalConsole": false,
+            "env": {"RUST_BACKTRACE":"1"}
         },
         {
             "name": "Features Launch",
@@ -47,7 +51,8 @@
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],
-            "externalConsole": false
+            "externalConsole": false,
+            "env": {"RUST_BACKTRACE":"1"}
         },
         {
             "name": "All Features Launch",
@@ -58,7 +63,8 @@
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],
-            "externalConsole": false
+            "externalConsole": false,
+            "env": {"RUST_BACKTRACE":"1"}
         },
         {
             "name": "Load Save Launch",
@@ -69,7 +75,8 @@
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],
-            "externalConsole": false
+            "externalConsole": false,
+            "env": {"RUST_BACKTRACE":"1"}
         },
         {
             "name": "Edges Launch",
@@ -80,7 +87,8 @@
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],
-            "externalConsole": false
+            "externalConsole": false,
+            "env": {"RUST_BACKTRACE":"1"}
         }
     ]
 }

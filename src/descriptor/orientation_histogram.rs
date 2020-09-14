@@ -73,7 +73,7 @@ pub fn index_to_radian(histogram: &OrientationHistogram, index: Float) -> Float 
 }
 
 pub fn radian_to_index(histogram: &OrientationHistogram, orientation: Float) -> usize {
-    (orientation/histogram.bin_range).floor() as usize
+    (orientation/histogram.bin_range).trunc() as usize
 }
 
 pub fn generate_keypoints_from_extrema(octave: &Octave,octave_level: usize, keypoint: &ExtremaParameters) -> Vec<KeyPoint> {

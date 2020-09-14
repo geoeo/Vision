@@ -62,15 +62,12 @@ pub fn feature_vectors_from_pyramid(pyramid: &Pyramid) -> Vec<FeatureVector> {
 
 }
 
-pub fn keypoint_from_pyramid(pyramid: &Pyramid) -> Vec<KeyPoint> {
+pub fn keypoints_from_pyramid(pyramid: &Pyramid) -> Vec<KeyPoint> {
 
     let mut all_vectors = Vec::<Vec<KeyPoint>>::new();
 
     for octave_level in 0..pyramid.octaves.len() {
-        let octave = &pyramid.octaves[octave_level];
-        for sigma_level in 1..octave.sigmas.len()-2 {
-            all_vectors.push(keypoints_from_octave(pyramid,octave_level,sigma_level));
-        }
+        all_vectors.push(keypoints_from_octave(pyramid, octave_level));
     }
 
     all_vectors.into_iter().flatten().collect()
@@ -94,7 +91,18 @@ pub fn feature_vectors_from_octave(pyramid: &Pyramid, octave_level: usize, sigma
     descriptors.iter().map(|x| FeatureVector::new(x,octave_level)).collect::<Vec<FeatureVector>>()
 }
 
-pub fn keypoints_from_octave(pyramid: &Pyramid, octave_level: usize, sigma_level: usize) -> Vec<KeyPoint> {
+pub fn keypoints_from_octave(pyramid: &Pyramid, octave_level: usize) -> Vec<KeyPoint> {
+    let mut all_vectors = Vec::<Vec<KeyPoint>>::new();
+
+    let octave = &pyramid.octaves[octave_level];
+    for sigma_level in 1..octave.sigmas.len()-2 {
+        all_vectors.push(keypoints_from_sigma(pyramid,octave_level,sigma_level));
+    }
+
+    all_vectors.into_iter().flatten().collect()
+}
+
+pub fn keypoints_from_sigma(pyramid: &Pyramid, octave_level: usize, sigma_level: usize) -> Vec<KeyPoint> {
     let x_step = 1;
     let y_step = 1;
     let kernel_half_repeat = 1;
@@ -134,4 +142,9 @@ pub fn match_feature(a: &FeatureVector, bs: &Vec<FeatureVector>) -> Option<usize
 
 pub fn generate_match_pairs(feature_list_a: &Vec<FeatureVector>, feature_list_b: &Vec<FeatureVector>) -> Vec<(usize,usize)> {
     feature_list_a.iter().enumerate().map(|a| (a.0,match_feature(a.1,feature_list_b))).filter(|&x| x.1 != None).map(|x| (x.0,x.1.unwrap())).collect::<Vec<(usize,usize)>>()
+}
+
+pub fn round(number: Float, dp: i32) -> Float {
+    let n = (10.0 as Float).powi(dp);
+    (number * n).round()/n
 }

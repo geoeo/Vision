@@ -1,7 +1,7 @@
 extern crate nalgebra as na;
 
 use na::{Matrix1x2,Matrix2};
-use crate::{float,Float};
+use crate::{float,Float,round};
 use crate::image::Image;
 
 pub mod orientation_histogram;
@@ -80,8 +80,8 @@ pub fn rotation_matrix_2d_from_orientation(orientation: Float) -> Matrix2<Float>
 
 pub fn gradient_and_orientation(x_gradient: &Image, y_gradient: &Image, x: usize, y: usize) -> (Float,Float) {
 
-    let x_diff = x_gradient.buffer.index((y,x));
-    let y_diff = y_gradient.buffer.index((y,x));
+    let x_diff = round(x_gradient.buffer.index((y,x)).clone(),5);
+    let y_diff = round(y_gradient.buffer.index((y,x)).clone(),5);
 
     let gradient = (x_diff.powi(2) + y_diff.powi(2)).sqrt();
     let orientation = match  y_diff.atan2(x_diff.clone()) {
