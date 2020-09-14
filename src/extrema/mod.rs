@@ -68,6 +68,7 @@ fn is_sample_extrema_in_neighbourhood(sample: Float, x_sample: usize, y_sample: 
     is_smallest || is_largest
 }
 
+//TODO: check this
 pub fn extrema_refinement(extrema: &Vec<ExtremaParameters>, source_octave: &Octave, first_order_kernel: &dyn Kernel, second_order_kernel: &dyn Kernel) -> Vec<ExtremaParameters> {
 
     assert!(second_order_kernel.half_repeat() <= first_order_kernel.half_repeat());
@@ -104,6 +105,6 @@ pub fn contrast_rejection(source_octave: &Octave, input_params: &ExtremaParamete
 
 pub fn edge_response_rejection(source_octave: &Octave, input_params: &ExtremaParameters, second_order_kernel: &dyn Kernel, r: usize) -> bool {
     let hessian = hessian::new(source_octave,input_params,second_order_kernel);
-    hessian::eval_hessian(&hessian, r)
+    !hessian::eval_hessian(&hessian, r)
 }
 

@@ -10,7 +10,7 @@ use sift::visualize::visualize_keypoint;
 
 fn main() {
     
-    let image_name = "circles";
+    let image_name = "blur";
     let image_format = "png";
     let image_folder = "images/";
     let image_out_folder = "output/";
@@ -22,10 +22,10 @@ fn main() {
     let gray_image = image_rs::open(&Path::new(&image_path)).unwrap().to_luma();
     let mut display = Image::from_gray_image(&gray_image, false);
     
-    let pyramid = Pyramid::build_pyramid(&gray_image, 5, 3, 0.25);
+    let pyramid = Pyramid::build_pyramid(&gray_image, 3, 3, 0.5);
 
     let all_keypoints = keypoints_from_pyramid(&pyramid);
-    //let all_keypoints = keypoints_from_octave(&pyramid, 2);
+    //let all_keypoints = keypoints_from_octave(&pyramid, 1);
 
     let number_of_features = all_keypoints.len();
 

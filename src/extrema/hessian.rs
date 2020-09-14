@@ -43,5 +43,5 @@ pub fn eval_hessian(hessian: &Matrix2<Float>, r: usize) -> bool {
     let hessian_factor = trace.powi(2)/determinant;
     let r_factor = (r+1).pow(2)/r;
 
-    hessian_factor < r_factor as Float
+    hessian_factor < r_factor as Float && determinant > 0.0
 }

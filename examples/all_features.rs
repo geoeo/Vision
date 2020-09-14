@@ -10,7 +10,7 @@ use sift::visualize::draw_square;
 
 fn main() {
     
-    let image_name = "circles";
+    let image_name = "blur";
     let image_format = "png";
     let image_folder = "images/";
     let image_out_folder = "output/";
@@ -22,7 +22,7 @@ fn main() {
     let gray_image = image_rs::open(&Path::new(&image_path)).unwrap().to_luma();
     let mut display = Image::from_gray_image(&gray_image, false);
     
-    let pyramid = Pyramid::build_pyramid(&gray_image, 5, 5, 0.25);
+    let pyramid = Pyramid::build_pyramid(&gray_image, 3, 3, 1.6);
 
     let all_features = feature_vectors_from_pyramid(&pyramid);
 
