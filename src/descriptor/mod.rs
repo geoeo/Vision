@@ -1,6 +1,6 @@
 extern crate nalgebra as na;
 
-use na::{Matrix1x2,Matrix2};
+use na::{Matrix1x2,Matrix2,Matrix3,Matrix3x1,linalg::LU};
 use crate::{float,Float,round};
 use crate::image::Image;
 
@@ -47,6 +47,30 @@ pub fn lagrange_interpolation_quadratic(a: Float, b: Float, c: Float, f_a: Float
     let denominator = (f_a-f_b)*(c_corrected-b)+(f_c-f_b)*(b-a_corrected);
 
     let result  = b + 0.5*(numerator/denominator);
+
+    match result {
+        res if res < range_min => res + range_max,
+        res if res >= range_max => res - range_max,
+        res => res
+    }
+}
+
+// https://stackoverflow.com/questions/717762/how-to-calculate-the-vertex-of-a-parabola-given-three-points
+pub fn quadatric_interpolation(a: Float, b: Float, c: Float, f_a: Float, f_b: Float, f_c: Float, range_min: Float, range_max: Float) -> Float {
+
+    let a = Matrix3::new(a.powi(2),a,1.0,
+                         b.powi(2),b,1.0,
+                         c.powi(2),c,1.0);
+    let b = Matrix3x1::new(f_a,f_b,f_c);
+
+    let decomp = a.lu();
+    let x = decomp.solve(&b).expect("Linear resolution failed.");
+
+    let coeff_a = x[(0,0)];
+    let coeff_b = x[(1,0)];
+
+
+    let result = -coeff_b/(2.0*coeff_a);
 
     match result {
         res if res < range_min => res + range_max,
