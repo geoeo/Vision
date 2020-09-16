@@ -7,7 +7,7 @@ use crate::image::{kernel::Kernel,filter::gradient_convolution_at_sample};
 
 
 //TODO: @Investigate: maybe precomputing the gradient images is more efficient
-pub fn new(source_octave: &Octave, input_params: &ExtremaParameters, second_order_kernel: &dyn Kernel) -> Matrix2<Float> {
+pub fn new(source_octave: &Octave, input_params: &ExtremaParameters, first_order_kernel: &dyn Kernel) -> Matrix2<Float> {
 
     let center = (input_params.y,input_params.x);
     let left = (input_params.y,input_params.x-1);
@@ -26,8 +26,8 @@ pub fn new(source_octave: &Octave, input_params: &ExtremaParameters, second_orde
     let dy_left = y_gradient_image.buffer.index(left);
     let dy_right = y_gradient_image.buffer.index(right);
 
-    let dxx = gradient_convolution_at_sample(source_octave,input_params,second_order_kernel,GradientDirection::HORIZINTAL);
-    let dyy = gradient_convolution_at_sample(source_octave,input_params,second_order_kernel,GradientDirection::VERTICAL);
+    let dxx = gradient_convolution_at_sample(source_octave,&source_octave.x_gradient,input_params,first_order_kernel,GradientDirection::HORIZINTAL);
+    let dyy = gradient_convolution_at_sample(source_octave,&source_octave.y_gradient,input_params,first_order_kernel,GradientDirection::VERTICAL);
 
     let dxy = dx_top - 2.0*dx + dx_bottom; 
     let dyx = dy_left - 2.0*dy + dy_right; 

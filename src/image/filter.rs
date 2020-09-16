@@ -2,8 +2,8 @@ use crate::image::{Image,gauss_kernel::GaussKernel, kernel::Kernel};
 use crate::pyramid::octave::Octave;
 use crate::{Float,ExtremaParameters, GradientDirection};
 
-
-pub fn filter_1d_convolution(source: &Image, filter_direction: GradientDirection, filter_kernel: &dyn Kernel) -> Image {
+//TODO: think of better way of combining the two 1d filters
+pub fn filter_1d_convolution_no_sigma(source: &Image, filter_direction: GradientDirection, filter_kernel: &dyn Kernel) -> Image {
     let kernel = &filter_kernel.kernel();
     let step = filter_kernel.step();
     let kernel_half_width = filter_kernel.half_width();
@@ -13,7 +13,6 @@ pub fn filter_1d_convolution(source: &Image, filter_direction: GradientDirection
     let width = buffer.ncols();
     let height = buffer.nrows();
     let mut target =  Image::empty(height, width, source.original_encoding);
-
 
     for y in 0..height {
         for x in 0..width {
@@ -45,7 +44,6 @@ pub fn filter_1d_convolution(source: &Image, filter_direction: GradientDirection
                     let kenel_value = kernel[(kenel_idx + kernel_half_width_signed) as usize];
                     acc +=sample_value*kenel_value;
                 }
-                //target.buffer[(y,x)] = acc.abs();
                 target.buffer[(y,x)] = acc;
         }
     }
@@ -54,7 +52,65 @@ pub fn filter_1d_convolution(source: &Image, filter_direction: GradientDirection
 
 }
 
-pub fn gradient_convolution_at_sample(source_octave: &Octave,input_params: &ExtremaParameters, filter_kernel: &dyn Kernel, gradient_direction: GradientDirection) -> Float {
+pub fn filter_1d_convolution(source_images: &Vec<Image>, sigma_level: usize, filter_direction: GradientDirection, filter_kernel: &dyn Kernel) -> Image {
+    let kernel = &filter_kernel.kernel();
+    let step = filter_kernel.step();
+    let kernel_half_width = filter_kernel.half_width();
+    let kernel_half_width_signed = kernel_half_width as isize;
+    
+    let source = &source_images[sigma_level];
+    let buffer = &source.buffer;
+    let width = buffer.ncols();
+    let height = buffer.nrows();
+    let mut target =  Image::empty(height, width, source.original_encoding);
+
+    for y in 0..height {
+        for x in 0..width {
+                let mut acc = 0.0;
+                for kenel_idx in (-kernel_half_width_signed..kernel_half_width_signed+1).step_by(step){
+
+                    let sample_value = match filter_direction {
+                        GradientDirection::HORIZINTAL => {
+                            let sample_idx = (x as isize)+kenel_idx;
+                            match sample_idx {
+                                sample_idx if sample_idx < 0 =>  buffer.index((y,0)),
+                                sample_idx if sample_idx >=  (width-kernel_half_width) as isize => buffer.index((y,width -1)),
+                                _ => buffer.index((y,sample_idx as usize))
+                            }
+                        },
+                        GradientDirection::VERTICAL => {
+                            let sample_idx = (y as isize)+kenel_idx;
+                            match sample_idx {
+                                sample_idx if sample_idx < 0 =>  buffer.index((0,x)),
+                                sample_idx if sample_idx >=  (height-kernel_half_width) as isize => buffer.index((height -1,x)),
+                                _ =>  buffer.index((sample_idx as usize, x))
+                            }
+                        },
+                        GradientDirection::SIGMA => {
+                            let sample_idx = sigma_level as isize + kenel_idx;
+                            let sample_buffer = match sample_idx {
+                                sample_idx if sample_idx < 0 =>  &source_images[0].buffer,
+                                sample_idx if sample_idx >=  (height-kernel_half_width) as isize => &source_images[source_images.len()-1].buffer,
+                                _ => &source_images[sample_idx as usize].buffer
+                            };
+
+                            sample_buffer.index((y,x))
+
+                        }
+                    };
+
+                
+                    let kenel_value = kernel[(kenel_idx + kernel_half_width_signed) as usize];
+                    acc +=sample_value*kenel_value;
+                }
+                target.buffer[(y,x)] = acc;
+        }
+    }
+
+    target
+}
+
+pub fn gradient_convolution_at_sample(source_octave: &Octave,source_images: &Vec<Image>, input_params: &ExtremaParameters, filter_kernel: &dyn Kernel, gradient_direction: GradientDirection) -> Float {
 
     let x_input = input_params.x; 
     let x_input_signed = input_params.x as isize; 
@@ -70,8 +126,10 @@ pub fn gradient_convolution_at_sample(source_octave: &Octave,input_params: &Extr
     let kernel_half_width = filter_kernel.half_width();
     let kernel_half_width_signed = kernel_half_width as isize;
 
-    let width = source_octave.difference_of_gaussians[sigma_level_input].buffer.ncols();
-    let height = source_octave.difference_of_gaussians[sigma_level_input].buffer.nrows();
+    let buffer = &source_images[input_params.sigma_level].buffer;
+    let width = buffer.ncols();
+    let height = buffer.nrows();
+
 
     match gradient_direction {
         GradientDirection::HORIZINTAL => {
@@ -95,8 +153,6 @@ pub fn gradient_convolution_at_sample(source_octave: &Octave,input_params: &Extr
             let weighted_sample = match gradient_direction {
                 GradientDirection::HORIZINTAL => {
                     let mut acc = 0.0;
-                    let source = &source_octave.difference_of_gaussians[sigma_level_input]; 
-                    let buffer = &source.buffer;
                     for repeat_idx in repeat_range.clone() {
                         let sample_idx = x_input_signed +kenel_idx;
                         let y_repeat_idx =  y_input_signed + repeat_idx;
@@ -109,8 +165,6 @@ pub fn gradient_convolution_at_sample(source_octave: &Octave,input_params: &Extr
                 },
                 GradientDirection::VERTICAL => {
                     let mut acc = 0.0;
-                    let source = &source_octave.difference_of_gaussians[sigma_level_input]; 
-                    let buffer = &source.buffer;
                     for repeat_idx in repeat_range.clone() {
                         let sample_idx = y_input_signed+kenel_idx;
                         let x_repeat_idx = x_input_signed + repeat_idx;
@@ -123,7 +177,7 @@ pub fn gradient_convolution_at_sample(source_octave: &Octave,input_params: &Extr
                 GradientDirection::SIGMA => { 
                     //TODO: Not sure how repeat/2D kernels should work along the sigma axis
                     let sample_idx = sigma_level_input_signed + kenel_idx;
-                    let sample_buffer =  &source_octave.difference_of_gaussians[sample_idx as usize].buffer;
+                    let sample_buffer =  &source_images[sample_idx as usize].buffer;
                     let sample_value = sample_buffer.index((y_input,x_input));
                     sample_value*kenel_value
                 }
@@ -140,7 +194,7 @@ pub fn gradient_convolution_at_sample(source_octave: &Octave,input_params: &Extr
 
 
 pub fn gaussian_2_d_convolution(image: &Image, filter_kernel: &GaussKernel) -> Image {
-    let blur_hor = filter_1d_convolution(image,GradientDirection::HORIZINTAL, filter_kernel);
-    filter_1d_convolution(&blur_hor,GradientDirection::VERTICAL, filter_kernel)
+    let blur_hor = filter_1d_convolution_no_sigma(image,GradientDirection::HORIZINTAL, filter_kernel);
+    filter_1d_convolution_no_sigma(&blur_hor,GradientDirection::VERTICAL, filter_kernel)
 }
 

@@ -68,43 +68,55 @@ fn is_sample_extrema_in_neighbourhood(sample: Float, x_sample: usize, y_sample: 
     is_smallest || is_largest
 }
 
-//TODO: check this
 pub fn extrema_refinement(extrema: &Vec<ExtremaParameters>, source_octave: &Octave, first_order_kernel: &dyn Kernel, second_order_kernel: &dyn Kernel) -> Vec<ExtremaParameters> {
 
     assert!(second_order_kernel.half_repeat() <= first_order_kernel.half_repeat());
     assert!(second_order_kernel.half_width() <= first_order_kernel.half_width());
 
-    extrema.iter().cloned().filter(|x| contrast_rejection(source_octave, x, first_order_kernel,second_order_kernel)).filter(|x| edge_response_rejection(source_octave, x,second_order_kernel,10)).collect()
+    extrema.iter().cloned().filter(|x| contrast_rejection(source_octave, x, first_order_kernel,second_order_kernel)).filter(|x| edge_response_rejection(source_octave, x,first_order_kernel,10)).collect()
 }
 
 pub fn contrast_rejection(source_octave: &Octave, input_params: &ExtremaParameters, first_order_kernel: &dyn Kernel, second_order_kernel: &dyn Kernel) -> bool {
 
-    let first_order_derivative_x = gradient_convolution_at_sample(source_octave,input_params,first_order_kernel,GradientDirection::HORIZINTAL);
-    let first_order_derivative_y = gradient_convolution_at_sample(source_octave,input_params,first_order_kernel,GradientDirection::VERTICAL);
-    let first_order_derivative_sigma = gradient_convolution_at_sample(source_octave,input_params,first_order_kernel,GradientDirection::SIGMA);
+    //TODO: use precomputed gradients
+    let dx = source_octave.dog_x_gradient[input_params.sigma_level].buffer[(input_params.y,input_params.x)];
+    let dy = source_octave.dog_y_gradient[input_params.sigma_level].buffer[(input_params.y,input_params.x)];
+    let ds = source_octave.dog_s_gradient[input_params.sigma_level].buffer[(input_params.y,input_params.x)];
 
-    let second_order_derivative_x = gradient_convolution_at_sample(source_octave,input_params,second_order_kernel,GradientDirection::HORIZINTAL);
-    let second_order_derivative_y = gradient_convolution_at_sample(source_octave,input_params,second_order_kernel,GradientDirection::VERTICAL);
-    let second_order_derivative_sigma = gradient_convolution_at_sample(source_octave,input_params,second_order_kernel,GradientDirection::SIGMA);
+    let dxx = gradient_convolution_at_sample(source_octave,&source_octave.dog_x_gradient,input_params,first_order_kernel,GradientDirection::HORIZINTAL);
+    let dyy = gradient_convolution_at_sample(source_octave,&source_octave.dog_y_gradient,input_params,first_order_kernel,GradientDirection::VERTICAL);
+    let dss = gradient_convolution_at_sample(source_octave,&source_octave.dog_s_gradient,input_params,first_order_kernel,GradientDirection::SIGMA);
 
-    let pertub_x = first_order_derivative_x/second_order_derivative_x;
-    let pertub_y = first_order_derivative_y/second_order_derivative_y;
-    let pertub_sigma = first_order_derivative_sigma/second_order_derivative_sigma;
+    let dxy = gradient_convolution_at_sample(source_octave,&source_octave.dog_x_gradient,input_params,first_order_kernel,GradientDirection::VERTICAL);
+    let dxs = gradient_convolution_at_sample(source_octave,&source_octave.dog_x_gradient,input_params,first_order_kernel,GradientDirection::SIGMA);
+
+    let dyx = gradient_convolution_at_sample(source_octave,&source_octave.dog_y_gradient,input_params,first_order_kernel,GradientDirection::HORIZINTAL);
+    let dys = gradient_convolution_at_sample(source_octave,&source_octave.dog_y_gradient,input_params,first_order_kernel,GradientDirection::SIGMA);
+
+    let dsx = gradient_convolution_at_sample(source_octave,&source_octave.dog_s_gradient,input_params,first_order_kernel,GradientDirection::HORIZINTAL);
+    let dsy = gradient_convolution_at_sample(source_octave,&source_octave.dog_s_gradient,input_params,first_order_kernel,GradientDirection::VERTICAL);
+
+
+    //TODO: this is wrong
+    let pertub_x = dx/dxx;
+    let pertub_y = dy/dyy;
+    let pertub_sigma = ds/dss;
 
     if pertub_x > 0.5 || pertub_y > 0.5 || pertub_sigma > 0.5 {
         return false;
     }
 
     let dog_x = source_octave.difference_of_gaussians[input_params.sigma_level].buffer.index((input_params.y,input_params.x));
-    let first_order_derivative_pertub_dot = first_order_derivative_x*pertub_x + first_order_derivative_y*pertub_y+first_order_derivative_sigma+pertub_sigma;
+    let first_order_derivative_pertub_dot = dx*pertub_x + dy*pertub_y+ds+pertub_sigma;
     let dog_x_pertub = dog_x + 0.5*first_order_derivative_pertub_dot;
+    //
 
     dog_x_pertub.abs() >= 0.03
 
 }
 
-pub fn edge_response_rejection(source_octave: &Octave, input_params: &ExtremaParameters, second_order_kernel: &dyn Kernel, r: usize) -> bool {
-    let hessian = hessian::new(source_octave,input_params,second_order_kernel);
+pub fn edge_response_rejection(source_octave: &Octave, input_params: &ExtremaParameters, first_order_kernel: &dyn Kernel, r: usize) -> bool {
+    let hessian = hessian::new(source_octave,input_params,first_order_kernel);
     !hessian::eval_hessian(&hessian, r)
 }
 
