@@ -1,6 +1,6 @@
 extern crate nalgebra as na;
 
-use na::{Matrix1x2,Matrix2,Matrix3,Matrix3x1,linalg::LU};
+use na::{Matrix1x2,Matrix2,Matrix3,Matrix3x1};
 use crate::{float,Float,round};
 use crate::image::Image;
 
@@ -63,8 +63,7 @@ pub fn quadatric_interpolation(a: Float, b: Float, c: Float, f_a: Float, f_b: Fl
                          c.powi(2),c,1.0);
     let b = Matrix3x1::new(f_a,f_b,f_c);
 
-    let decomp = a.lu();
-    let x = decomp.solve(&b).expect("Linear resolution failed.");
+    let x = a.lu().solve(&b).expect("Linear resolution failed.");
 
     let coeff_a = x[(0,0)];
     let coeff_b = x[(1,0)];

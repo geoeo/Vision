@@ -2,6 +2,8 @@ use crate::image::{Image,gauss_kernel::GaussKernel, kernel::Kernel};
 use crate::pyramid::octave::Octave;
 use crate::{Float,ExtremaParameters, GradientDirection};
 
+//TODO: go over these methods!
+
 //TODO: think of better way of combining the two 1d filters
 pub fn filter_1d_convolution_no_sigma(source: &Image, filter_direction: GradientDirection, filter_kernel: &dyn Kernel) -> Image {
     let kernel = &filter_kernel.kernel();
@@ -25,7 +27,7 @@ pub fn filter_1d_convolution_no_sigma(source: &Image, filter_direction: Gradient
                             let sample_idx = (x as isize)+kenel_idx;
                             match sample_idx {
                                 sample_idx if sample_idx < 0 =>  buffer.index((y,0)),
-                                sample_idx if sample_idx >=  (width-kernel_half_width) as isize => buffer.index((y,width -1)),
+                                sample_idx if sample_idx >= width as isize => buffer.index((y,width -1)),
                                 _ => buffer.index((y,sample_idx as usize))
                             }
                         },
@@ -33,7 +35,7 @@ pub fn filter_1d_convolution_no_sigma(source: &Image, filter_direction: Gradient
                             let sample_idx = (y as isize)+kenel_idx;
                             match sample_idx {
                                 sample_idx if sample_idx < 0 =>  buffer.index((0,x)),
-                                sample_idx if sample_idx >=  (height-kernel_half_width) as isize => buffer.index((height -1,x)),
+                                sample_idx if sample_idx >= height as isize => buffer.index((height -1,x)),
                                 _ =>  buffer.index((sample_idx as usize, x))
                             }
                         },
@@ -74,7 +76,7 @@ pub fn filter_1d_convolution(source_images: &Vec<Image>, sigma_level: usize, fil
                             let sample_idx = (x as isize)+kenel_idx;
                             match sample_idx {
                                 sample_idx if sample_idx < 0 =>  buffer.index((y,0)),
-                                sample_idx if sample_idx >=  (width-kernel_half_width) as isize => buffer.index((y,width -1)),
+                                sample_idx if sample_idx >= width as isize => buffer.index((y,width -1)),
                                 _ => buffer.index((y,sample_idx as usize))
                             }
                         },
@@ -82,7 +84,7 @@ pub fn filter_1d_convolution(source_images: &Vec<Image>, sigma_level: usize, fil
                             let sample_idx = (y as isize)+kenel_idx;
                             match sample_idx {
                                 sample_idx if sample_idx < 0 =>  buffer.index((0,x)),
-                                sample_idx if sample_idx >=  (height-kernel_half_width) as isize => buffer.index((height -1,x)),
+                                sample_idx if sample_idx >= height as isize => buffer.index((height -1,x)),
                                 _ =>  buffer.index((sample_idx as usize, x))
                             }
                         },
@@ -90,8 +92,9 @@ pub fn filter_1d_convolution(source_images: &Vec<Image>, sigma_level: usize, fil
                             let sample_idx = sigma_level as isize + kenel_idx;
                             let sample_buffer = match sample_idx {
                                 sample_idx if sample_idx < 0 =>  &source_images[0].buffer,
-                                sample_idx if sample_idx >=  (height-kernel_half_width) as isize => &source_images[source_images.len()-1].buffer,
+                                sample_idx if sample_idx >= source_images.len() as isize => &source_images[source_images.len()-1].buffer,
                                 _ => &source_images[sample_idx as usize].buffer
+                                
                             };
 
                             sample_buffer.index((y,x))

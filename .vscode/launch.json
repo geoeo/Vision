@@ -67,6 +67,18 @@
             "env": {"RUST_BACKTRACE":"1"}
         },
         {
+            "name": "All Keypoints Launch",
+            "type": "lldb",
+            "request": "launch",
+            "program": "${workspaceRoot}/target/debug/examples/all_keypoints",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "env": {"RUST_BACKTRACE":"1"}
+        },
+        {
             "name": "Load Save Launch",
             "type": "lldb",
             "request": "launch",

@@ -1,5 +1,6 @@
 extern crate nalgebra as na;
 
+use na::{Matrix3x1,Matrix3,LU};
 use crate::image::{kernel::Kernel,filter::gradient_convolution_at_sample};
 use crate::{Float,ExtremaParameters, GradientDirection};
 use crate::pyramid::octave::Octave;
@@ -73,12 +74,47 @@ pub fn extrema_refinement(extrema: &Vec<ExtremaParameters>, source_octave: &Octa
     assert!(second_order_kernel.half_repeat() <= first_order_kernel.half_repeat());
     assert!(second_order_kernel.half_width() <= first_order_kernel.half_width());
 
-    extrema.iter().cloned().filter(|x| contrast_rejection(source_octave, x, first_order_kernel,second_order_kernel)).filter(|x| edge_response_rejection(source_octave, x,first_order_kernel,10)).collect()
+    extrema.iter().cloned().filter(|x| contrast_filter(source_octave, x, first_order_kernel,second_order_kernel)).filter(|x| edge_response_filter(source_octave, x,first_order_kernel, 10)).collect()
 }
 
-pub fn contrast_rejection(source_octave: &Octave, input_params: &ExtremaParameters, first_order_kernel: &dyn Kernel, second_order_kernel: &dyn Kernel) -> bool {
+pub fn contrast_filter(source_octave: &Octave, input_params: &ExtremaParameters, first_order_kernel: &dyn Kernel, second_order_kernel: &dyn Kernel) -> bool {
 
-    //TODO: use precomputed gradients
+    let dx = source_octave.dog_x_gradient[input_params.sigma_level].buffer[(input_params.y,input_params.x)];
+    let dy = source_octave.dog_y_gradient[input_params.sigma_level].buffer[(input_params.y,input_params.x)];
+    let ds = source_octave.dog_s_gradient[input_params.sigma_level].buffer[(input_params.y,input_params.x)];
+
+    let b = Matrix3x1::new(dx,dy,ds);
+    let perturb = interpolate(source_octave,input_params,first_order_kernel);
+
+    if perturb[(0,0)].abs() > 0.5 || perturb[(1,0)].abs() > 0.5 || perturb[(2,0)].abs() > 0.5 {
+        return false;
+    }
+
+    // let perturb_final = match perturb {
+    //     perturb if perturb[(0,0)] > 0.5 && input_params.y + 1 < source_octave.dog_x_gradient[0].buffer.ncols() => interpolate(source_octave,&ExtremaParameters{x:input_params.x + 1,y:input_params.y,sigma_level:input_params.sigma_level},first_order_kernel),
+    //     perturb if perturb[(0,0)] < -0.5  && input_params.x - 1 > 0 => interpolate(source_octave,&ExtremaParameters{x:input_params.x -1,y:input_params.y,sigma_level:input_params.sigma_level},first_order_kernel),
+    //     perturb if perturb[(1,0)] > 0.5  && input_params.y + 1 < source_octave.dog_x_gradient[0].buffer.nrows() => interpolate(source_octave,&ExtremaParameters{x:input_params.x,y:input_params.y + 1,sigma_level:input_params.sigma_level},first_order_kernel),
+    //     perturb if perturb[(1,0)] < -0.5 && input_params.y - 1 > 0 => interpolate(source_octave,&ExtremaParameters{x:input_params.x,y:input_params.y - 1,sigma_level:input_params.sigma_level},first_order_kernel),
+    //     perturb if perturb[(2,0)] > 0.5 && input_params.sigma_level + 1 < source_octave.dog_s_gradient.len()  => interpolate(source_octave,&ExtremaParameters{x:input_params.x ,y:input_params.y,sigma_level:input_params.sigma_level + 1},first_order_kernel),
+    //     perturb if perturb[(2,0)] < -0.5 && input_params.sigma_level - 1 > 0 => interpolate(source_octave,&ExtremaParameters{x:input_params.x + 1,y:input_params.y,sigma_level:input_params.sigma_level - 1},first_order_kernel),
+    //     _ => perturb
+    // };
+
+
+    let dog_sample = source_octave.difference_of_gaussians[input_params.sigma_level].buffer.index((input_params.y,input_params.x));
+    let dog_x_pertub = dog_sample + 0.5*b.dot(&perturb);
+    
+    dog_x_pertub.abs() >= 0.03
+
+}
+
+pub fn edge_response_filter(source_octave: &Octave, input_params: &ExtremaParameters, first_order_kernel: &dyn Kernel, r: usize) -> bool {
+    let hessian = hessian::new(source_octave,input_params,first_order_kernel);
+    hessian::accept_hessian(&hessian, r)
+}
+
+fn interpolate(source_octave: &Octave, input_params: &ExtremaParameters, first_order_kernel: &dyn Kernel) -> Matrix3x1<Float> {
+
     let dx = source_octave.dog_x_gradient[input_params.sigma_level].buffer[(input_params.y,input_params.x)];
     let dy = source_octave.dog_y_gradient[input_params.sigma_level].buffer[(input_params.y,input_params.x)];
     let ds = source_octave.dog_s_gradient[input_params.sigma_level].buffer[(input_params.y,input_params.x)];
@@ -96,27 +132,11 @@ pub fn contrast_rejection(source_octave: &Octave, input_params: &ExtremaParamete
     let dsx = gradient_convolution_at_sample(source_octave,&source_octave.dog_s_gradient,input_params,first_order_kernel,GradientDirection::HORIZINTAL);
     let dsy = gradient_convolution_at_sample(source_octave,&source_octave.dog_s_gradient,input_params,first_order_kernel,GradientDirection::VERTICAL);
 
+    let a = Matrix3::new(dxx,dxy,dxs,
+                         dyx,dyy,dys,
+                         dsx,dsy,dss);
 
-    //TODO: this is wrong
-    let pertub_x = dx/dxx;
-    let pertub_y = dy/dyy;
-    let pertub_sigma = ds/dss;
-
-    if pertub_x > 0.5 || pertub_y > 0.5 || pertub_sigma > 0.5 {
-        return false;
-    }
-
-    let dog_x = source_octave.difference_of_gaussians[input_params.sigma_level].buffer.index((input_params.y,input_params.x));
-    let first_order_derivative_pertub_dot = dx*pertub_x + dy*pertub_y+ds+pertub_sigma;
-    let dog_x_pertub = dog_x + 0.5*first_order_derivative_pertub_dot;
-    //
-
-    dog_x_pertub.abs() >= 0.03
-
-}
-
-pub fn edge_response_rejection(source_octave: &Octave, input_params: &ExtremaParameters, first_order_kernel: &dyn Kernel, r: usize) -> bool {
-    let hessian = hessian::new(source_octave,input_params,first_order_kernel);
-    !hessian::eval_hessian(&hessian, r)
+    let b = Matrix3x1::new(dx,dy,ds);
+    a.lu().solve(&b).expect("Linear resolution failed.")
 }
 
