@@ -69,15 +69,11 @@ fn is_sample_extrema_in_neighbourhood(sample: Float, x_sample: usize, y_sample: 
     is_smallest || is_largest
 }
 
-pub fn extrema_refinement(extrema: &Vec<ExtremaParameters>, source_octave: &Octave, first_order_kernel: &dyn Kernel, second_order_kernel: &dyn Kernel) -> Vec<ExtremaParameters> {
-
-    assert!(second_order_kernel.half_repeat() <= first_order_kernel.half_repeat());
-    assert!(second_order_kernel.half_width() <= first_order_kernel.half_width());
-
-    extrema.iter().cloned().filter(|x| contrast_filter(source_octave, x, first_order_kernel,second_order_kernel)).filter(|x| edge_response_filter(source_octave, x,first_order_kernel, 10)).collect()
+pub fn extrema_refinement(extrema: &Vec<ExtremaParameters>, source_octave: &Octave, first_order_kernel: &dyn Kernel) -> Vec<ExtremaParameters> {
+    extrema.iter().cloned().filter(|x| contrast_filter(source_octave, x, first_order_kernel)).filter(|x| edge_response_filter(source_octave, x,first_order_kernel, 10)).collect()
 }
 
-pub fn contrast_filter(source_octave: &Octave, input_params: &ExtremaParameters, first_order_kernel: &dyn Kernel, second_order_kernel: &dyn Kernel) -> bool {
+pub fn contrast_filter(source_octave: &Octave, input_params: &ExtremaParameters, first_order_kernel: &dyn Kernel) -> bool {
 
     let dx = source_octave.dog_x_gradient[input_params.sigma_level].buffer[(input_params.y,input_params.x)];
     let dy = source_octave.dog_y_gradient[input_params.sigma_level].buffer[(input_params.y,input_params.x)];
@@ -85,24 +81,45 @@ pub fn contrast_filter(source_octave: &Octave, input_params: &ExtremaParameters,
 
     let b = Matrix3x1::new(dx,dy,ds);
     let perturb = interpolate(source_octave,input_params,first_order_kernel);
+    let width = source_octave.dog_x_gradient[0].buffer.ncols() as isize;
+    let height = source_octave.dog_x_gradient[0].buffer.nrows() as isize;
+    let kernel_half_width = first_order_kernel.half_width() as isize;
 
-    if perturb[(0,0)].abs() > 0.5 || perturb[(1,0)].abs() > 0.5 || perturb[(2,0)].abs() > 0.5 {
-        return false;
-    }
+    let input_x = input_params.x as isize;
+    let input_y = input_params.y as isize;
+    let input_s = input_params.sigma_level as isize;
 
-    // let perturb_final = match perturb {
-    //     perturb if perturb[(0,0)] > 0.5 && input_params.y + 1 < source_octave.dog_x_gradient[0].buffer.ncols() => interpolate(source_octave,&ExtremaParameters{x:input_params.x + 1,y:input_params.y,sigma_level:input_params.sigma_level},first_order_kernel),
-    //     perturb if perturb[(0,0)] < -0.5  && input_params.x - 1 > 0 => interpolate(source_octave,&ExtremaParameters{x:input_params.x -1,y:input_params.y,sigma_level:input_params.sigma_level},first_order_kernel),
-    //     perturb if perturb[(1,0)] > 0.5  && input_params.y + 1 < source_octave.dog_x_gradient[0].buffer.nrows() => interpolate(source_octave,&ExtremaParameters{x:input_params.x,y:input_params.y + 1,sigma_level:input_params.sigma_level},first_order_kernel),
-    //     perturb if perturb[(1,0)] < -0.5 && input_params.y - 1 > 0 => interpolate(source_octave,&ExtremaParameters{x:input_params.x,y:input_params.y - 1,sigma_level:input_params.sigma_level},first_order_kernel),
-    //     perturb if perturb[(2,0)] > 0.5 && input_params.sigma_level + 1 < source_octave.dog_s_gradient.len()  => interpolate(source_octave,&ExtremaParameters{x:input_params.x ,y:input_params.y,sigma_level:input_params.sigma_level + 1},first_order_kernel),
-    //     perturb if perturb[(2,0)] < -0.5 && input_params.sigma_level - 1 > 0 => interpolate(source_octave,&ExtremaParameters{x:input_params.x + 1,y:input_params.y,sigma_level:input_params.sigma_level - 1},first_order_kernel),
-    //     _ => perturb
-    // };
+    let (perturb_final,extrema_final) = match perturb {
+        perturb if perturb[(0,0)] > 0.5 && input_x + 1 + kernel_half_width < width => {
+            let extrema= ExtremaParameters{x:input_params.x + 1,y:input_params.y,sigma_level:input_params.sigma_level};
+            (interpolate(source_octave,&extrema,first_order_kernel),extrema)
+        },
+        perturb if perturb[(0,0)] < -0.5  && input_x - 1  -kernel_half_width > 0 => {
+            let extrema = ExtremaParameters{x:input_params.x -1,y:input_params.y,sigma_level:input_params.sigma_level};
+            (interpolate(source_octave,&extrema,first_order_kernel),extrema)
+        },
+        perturb if perturb[(1,0)] > 0.5  && input_y + 1 + kernel_half_width < height => {
+            let extrema = ExtremaParameters{x:input_params.x,y:input_params.y + 1,sigma_level:input_params.sigma_level};
+            (interpolate(source_octave,&extrema,first_order_kernel),extrema)
+        },
+        perturb if perturb[(1,0)] < -0.5 && input_y - 1 - kernel_half_width > 0 => {
+            let extrema = ExtremaParameters{x:input_params.x,y:input_params.y - 1,sigma_level:input_params.sigma_level};
+            (interpolate(source_octave,&extrema,first_order_kernel),extrema)
+        },
+        perturb if perturb[(2,0)] > 0.5 && input_s + 1 + kernel_half_width  < source_octave.dog_s_gradient.len() as isize=> {
+            let extrema = ExtremaParameters{x:input_params.x ,y:input_params.y,sigma_level:input_params.sigma_level + 1};
+            (interpolate(source_octave,&extrema,first_order_kernel),extrema)
+        },
+        perturb if perturb[(2,0)] < -0.5 && input_s - 1 - kernel_half_width > 0 => {
+            let extrema = ExtremaParameters{x:input_params.x + 1,y:input_params.y,sigma_level:input_params.sigma_level - 1};
+            (interpolate(source_octave,&extrema,first_order_kernel),extrema)
+        },
+        _ => (perturb,input_params.clone())
+    };
 
 
-    let dog_sample = source_octave.difference_of_gaussians[input_params.sigma_level].buffer.index((input_params.y,input_params.x));
-    let dog_x_pertub = dog_sample + 0.5*b.dot(&perturb);
+    let dog_sample = source_octave.difference_of_gaussians[extrema_final.sigma_level].buffer.index((extrema_final.y,extrema_final.x));
+    let dog_x_pertub = dog_sample + 0.5*b.dot(&perturb_final);
     
     dog_x_pertub.abs() >= 0.03
 

@@ -1,7 +1,7 @@
 extern crate image as image_rs;
 
 use crate::image::{Image, filter, gauss_kernel::GaussKernel, prewitt_kernel::PrewittKernel};
-use crate::{Float,GradientDirection};
+use crate::{Float,GradientDirection,BLUR_HALF_WIDTH};
 
 #[derive(Debug,Clone)]
 pub struct Octave {
@@ -22,14 +22,14 @@ impl Octave {
         let image_count = s + 3;
         let range = 0..image_count;
         let mean = 0.0;
-        let end = 3;
+        let half_width = BLUR_HALF_WIDTH;
         let step = 1;
 
-        let gradient_kernel = PrewittKernel::new(1);
+        let gradient_kernel = PrewittKernel::new();
 
 
         let sigmas: Vec<Float> = range.map(|x| sigma_initial*Octave::generate_k(x as Float, s as Float)).collect();
-        let kernels: Vec<GaussKernel> = sigmas.iter().map(|&sigma| GaussKernel::new(mean, sigma,step,end)).collect();
+        let kernels: Vec<GaussKernel> = sigmas.iter().map(|&sigma| GaussKernel::new(mean, sigma,step,half_width)).collect();
         let images: Vec<Image> = kernels.iter().map(|kernel| filter::gaussian_2_d_convolution(&base_image, kernel)).collect();
         let x_gradient = images.iter().map(|x| filter::filter_1d_convolution_no_sigma(x, GradientDirection::HORIZINTAL, &gradient_kernel)).collect();
         let y_gradient = images.iter().map(|x| filter::filter_1d_convolution_no_sigma(x, GradientDirection::VERTICAL, &gradient_kernel)).collect();

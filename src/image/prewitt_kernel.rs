@@ -10,10 +10,10 @@ pub struct PrewittKernel {
 impl PrewittKernel {
 
 
-    pub fn new(half_repeat: usize) -> PrewittKernel {
+    pub fn new() -> PrewittKernel {
         PrewittKernel {
             kernel: vec![-1.0,0.0,1.0],
-            half_repeat
+            half_repeat: 1
         }
     }
 }

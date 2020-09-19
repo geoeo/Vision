@@ -21,8 +21,6 @@ impl Pyramid {
         let mut octave_image = base_image;
         let mut sigma = sigma_initial;
 
-
-
         for i in 0..octave_count {
 
             if i > 0 {

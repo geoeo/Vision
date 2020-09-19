@@ -22,7 +22,9 @@ fn main() {
     let gray_image = image_rs::open(&Path::new(&image_path)).unwrap().to_luma();
     let mut display = Image::from_gray_image(&gray_image, false);
     
-    let pyramid = Pyramid::build_pyramid(&gray_image, 3, 3, 0.5);
+    //TODO: experiment with blur half width and pyramid params
+    //let pyramid = Pyramid::build_pyramid(&gray_image, 2, 3, 0.5);
+    let pyramid = Pyramid::build_pyramid(&gray_image, 3, 3, 1.5);
 
     let all_keypoints = keypoints_from_pyramid(&pyramid);
     //let all_keypoints = keypoints_from_octave(&pyramid, 1);

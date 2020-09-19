@@ -17,7 +17,7 @@ fn main() {
     let image = image_rs::open(&Path::new(&image_path)).unwrap().to_luma();
     let frame = Image::from_gray_image(&image, false);
 
-    let filter_kernel = PrewittKernel::new(1);
+    let filter_kernel = PrewittKernel::new();
     
     let blur_hor = filter::filter_1d_convolution_no_sigma(&frame,GradientDirection::HORIZINTAL, &filter_kernel);
 

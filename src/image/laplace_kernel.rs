@@ -11,10 +11,10 @@ pub struct LaplaceKernel {
 impl LaplaceKernel {
 
 
-    pub fn new(half_repeat: usize) -> LaplaceKernel {
+    pub fn new() -> LaplaceKernel {
         LaplaceKernel {
             kernel: vec![1.0,-2.0,1.0],
-            half_repeat
+            half_repeat: 1
         }
     }
 }

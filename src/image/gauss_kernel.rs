@@ -15,11 +15,11 @@ impl GaussKernel {
         factor*exponent
     }
 
-    pub fn new(mean: Float, std: Float, step: usize , end: usize ) -> GaussKernel {
-        assert_eq!(end%step,0);
+    pub fn new(mean: Float, std: Float, step: usize , half_width: usize ) -> GaussKernel {
+        assert_eq!(half_width%step,0);
 
-        let start = -(end as isize);
-        let end_exclusive = (end as isize) + 1;
+        let start = -(half_width as isize);
+        let end_exclusive = (half_width as isize) + 1;
         let range = (start..end_exclusive).step_by(step);
         GaussKernel {
             kernel: range.map(|x| GaussKernel::sample(mean,std,x as Float)).collect(),
