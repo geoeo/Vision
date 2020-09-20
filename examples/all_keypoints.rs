@@ -25,7 +25,6 @@ fn main() {
     let mut display = Image::from_gray_image(&gray_image, false);
     
     //TODO: experiment with blur half width and pyramid params
-    //let pyramid = Pyramid::build_pyramid(&gray_image, 2, 3, 0.5);
     let pyramid = Pyramid::build_pyramid(&gray_image, 3, 3, 1.5);
 
     let all_keypoints = keypoints_from_pyramid(&pyramid);

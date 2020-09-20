@@ -70,7 +70,7 @@ fn is_sample_extrema_in_neighbourhood(sample: Float, x_sample: usize, y_sample: 
 }
 
 pub fn extrema_refinement(extrema: &Vec<ExtremaParameters>, source_octave: &Octave, first_order_kernel: &dyn Kernel) -> Vec<ExtremaParameters> {
-    extrema.iter().cloned().map(|x| contrast_filter(source_octave, &x, first_order_kernel)).filter(|x| x.0 >= 0.03).map(|x| x.1).filter(|x| edge_response_filter(source_octave, &x,first_order_kernel, 10)).collect()
+    extrema.iter().cloned().map(|x| contrast_filter(source_octave, &x, first_order_kernel)).filter(|x| x.0 >= 0.03).map(|x| x.1).filter(|x| edge_response_filter(source_octave, &x,first_order_kernel, 2.5)).collect() //TODO: put these into lib.rs
 }
 
 //TODO: maybe return new extrema instead due to potential change of coordiantes in interpolation
@@ -112,7 +112,7 @@ pub fn contrast_filter(source_octave: &Octave, input_params: &ExtremaParameters,
             (interpolate(source_octave,&extrema,first_order_kernel),extrema)
         },
         perturb if perturb[(2,0)] < -0.5 && input_s - 1 - kernel_half_width > 0 => {
-            let extrema = ExtremaParameters{x:input_params.x + 1,y:input_params.y,sigma_level:input_params.sigma_level - 1};
+            let extrema = ExtremaParameters{x:input_params.x,y:input_params.y,sigma_level:input_params.sigma_level - 1};
             (interpolate(source_octave,&extrema,first_order_kernel),extrema)
         },
         _ => (perturb,input_params.clone())
@@ -126,7 +126,7 @@ pub fn contrast_filter(source_octave: &Octave, input_params: &ExtremaParameters,
 
 }
 
-pub fn edge_response_filter(source_octave: &Octave, input_params: &ExtremaParameters, first_order_kernel: &dyn Kernel, r: usize) -> bool {
+pub fn edge_response_filter(source_octave: &Octave, input_params: &ExtremaParameters, first_order_kernel: &dyn Kernel, r: Float) -> bool {
     let hessian = hessian::new(source_octave,input_params,first_order_kernel);
     hessian::accept_hessian(&hessian, r)
 }
@@ -155,6 +155,6 @@ fn interpolate(source_octave: &Octave, input_params: &ExtremaParameters, first_o
                          dsx,dsy,dss);
 
     let b = Matrix3x1::new(dx,dy,ds);
-    a.lu().solve(&b).expect("Linear resolution failed.")
+    -a.lu().solve(&b).expect("Linear resolution failed.")
 }
 

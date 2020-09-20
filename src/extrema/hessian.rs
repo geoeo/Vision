@@ -20,11 +20,11 @@ pub fn new(source_octave: &Octave, input_params: &ExtremaParameters, first_order
 
 }
 
-pub fn accept_hessian(hessian: &Matrix2<Float>, r: usize) -> bool {
+pub fn accept_hessian(hessian: &Matrix2<Float>, r: Float) -> bool {
     let trace = hessian.trace();
     let determinant = hessian.determinant();
     let hessian_factor = trace.powi(2)/determinant;
-    let r_factor = (r+1).pow(2)/r;
+    let r_factor = (r+1.0).powi(2)/r;
 
     hessian_factor < r_factor as Float && determinant > 0.0
 }
