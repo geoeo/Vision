@@ -20,7 +20,6 @@ fn main() {
     let converted_file_out_path = format!("{}{}_matches.{}",image_out_folder,image_name,image_format);
 
 
-
     let gray_image = image_rs::open(&Path::new(&image_path)).unwrap().to_luma();
     let gray_image_2 = image_rs::open(&Path::new(&image_path_2)).unwrap().to_luma();
     let display = Image::from_gray_image(&gray_image, false);
