@@ -70,10 +70,11 @@ fn is_sample_extrema_in_neighbourhood(sample: Float, x_sample: usize, y_sample: 
 }
 
 pub fn extrema_refinement(extrema: &Vec<ExtremaParameters>, source_octave: &Octave, first_order_kernel: &dyn Kernel) -> Vec<ExtremaParameters> {
-    extrema.iter().cloned().filter(|x| contrast_filter(source_octave, x, first_order_kernel)).filter(|x| edge_response_filter(source_octave, x,first_order_kernel, 10)).collect()
+    extrema.iter().cloned().map(|x| contrast_filter(source_octave, &x, first_order_kernel)).filter(|x| x.0 >= 0.03).map(|x| x.1).filter(|x| edge_response_filter(source_octave, &x,first_order_kernel, 10)).collect()
 }
 
-pub fn contrast_filter(source_octave: &Octave, input_params: &ExtremaParameters, first_order_kernel: &dyn Kernel) -> bool {
+//TODO: maybe return new extrema instead due to potential change of coordiantes in interpolation
+pub fn contrast_filter(source_octave: &Octave, input_params: &ExtremaParameters, first_order_kernel: &dyn Kernel) -> (Float,ExtremaParameters) {
 
     let dx = source_octave.dog_x_gradient[input_params.sigma_level].buffer[(input_params.y,input_params.x)];
     let dy = source_octave.dog_y_gradient[input_params.sigma_level].buffer[(input_params.y,input_params.x)];
@@ -121,7 +122,7 @@ pub fn contrast_filter(source_octave: &Octave, input_params: &ExtremaParameters,
     let dog_sample = source_octave.difference_of_gaussians[extrema_final.sigma_level].buffer.index((extrema_final.y,extrema_final.x));
     let dog_x_pertub = dog_sample + 0.5*b.dot(&perturb_final);
     
-    dog_x_pertub.abs() >= 0.03
+    (dog_x_pertub.abs(), extrema_final)
 
 }
 

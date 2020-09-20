@@ -10,7 +10,7 @@ use sift::visualize::visualize_keypoint;
 
 fn main() {
     
-    let image_name = "blur";
+    let image_name = "circles";
     let image_format = "png";
     let image_folder = "images/";
     let image_out_folder = "output/";
