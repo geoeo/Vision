@@ -3,7 +3,7 @@ use self::pyramid::Pyramid;
 use self::descriptor::feature_vector::FeatureVector;
 use self::descriptor::orientation_histogram::generate_keypoints_from_extrema;
 use self::descriptor::local_image_descriptor::{is_rotated_keypoint_within_image,LocalImageDescriptor};
-use self::image::{kernel::Kernel,laplace_kernel::LaplaceKernel,prewitt_kernel::PrewittKernel};
+use self::image::{kernel::Kernel,prewitt_kernel::PrewittKernel};
 
 pub mod image;
 pub mod pyramid;
@@ -19,7 +19,7 @@ macro_rules! define_float {
 }
 
 pub const RELATIVE_MATCH_THRESHOLD: Float = 0.6;
-pub const BLUR_HALF_WIDTH: usize = 4; // TODO: make this a input param to pyramid
+pub const BLUR_HALF_WIDTH: usize = 8; // TODO: make this a input param to pyramid
 
 define_float!(f64);
 

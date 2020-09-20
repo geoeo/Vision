@@ -5,7 +5,7 @@ use std::path::Path;
 
 use sift::pyramid::Pyramid;
 use sift::image::Image;
-use sift::{feature_vectors_from_octave,reconstruct_original_coordiantes,keypoints_from_pyramid, keypoints_from_octave};
+use sift::keypoints_from_pyramid;
 use sift::visualize::visualize_keypoint;
 
 fn main() {
@@ -17,6 +17,8 @@ fn main() {
     let image_path = format!("{}{}.{}",image_folder,image_name, image_format);
 
     let converted_file_out_path = format!("{}{}_keypoints_all.{}",image_out_folder,image_name,image_format);
+
+    println!("Processing Image: {}", image_name);
 
 
     let gray_image = image_rs::open(&Path::new(&image_path)).unwrap().to_luma();

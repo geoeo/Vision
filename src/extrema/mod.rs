@@ -1,6 +1,6 @@
 extern crate nalgebra as na;
 
-use na::{Matrix3x1,Matrix3,LU};
+use na::{Matrix3x1,Matrix3};
 use crate::image::{kernel::Kernel,filter::gradient_convolution_at_sample};
 use crate::{Float,ExtremaParameters, GradientDirection};
 use crate::pyramid::octave::Octave;

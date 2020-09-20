@@ -6,7 +6,7 @@ use std::path::Path;
 use sift::pyramid::Pyramid;
 use sift::extrema;
 use sift::image::Image;
-use sift::image::{kernel::Kernel,laplace_kernel::LaplaceKernel,prewitt_kernel::PrewittKernel};
+use sift::image::{kernel::Kernel,prewitt_kernel::PrewittKernel};
 use sift::descriptor::orientation_histogram::generate_keypoints_from_extrema;
 use sift::descriptor::local_image_descriptor::{is_rotated_keypoint_within_image,LocalImageDescriptor};
 use sift::descriptor::feature_vector::FeatureVector;
@@ -32,9 +32,7 @@ fn main() {
 
     let x_step = 1;
     let y_step = 1;
-    let kernel_half_repeat = 1;
     let first_order_derivative_filter = PrewittKernel::new();
-    let second_order_derivative_filter = LaplaceKernel::new();
 
     let features = extrema::detect_extrema(octave,sigma_level,first_order_derivative_filter.half_width(),first_order_derivative_filter.half_repeat(),x_step, y_step);
     let refined_features = extrema::extrema_refinement(&features, octave, &first_order_derivative_filter);
