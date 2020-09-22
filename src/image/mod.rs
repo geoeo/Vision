@@ -62,24 +62,31 @@ impl Image {
 
 
 
-    pub fn downsample_half(image: &Image) -> Image {
+    pub fn downsample_half(image: &Image, normalize: bool) -> Image {
         let width = image.buffer.ncols();
         let height = image.buffer.ncols();
 
-        let new_width = (width as Float)/2.0;
-        let new_height = (height as Float)/2.0;
+        let new_width = ((width as Float)/2.0).trunc() as usize;
+        let new_height = ((height as Float)/2.0).trunc() as usize;
 
-        if new_height.fract() != 0.0 || new_width.fract() != 0.0  {
-            panic!("new (height,width): ({},{}) are not multiple of 2",new_height,new_width);
+        if new_height <= 25 || new_width <= 25  {
+            panic!("new (height,width): ({},{}) are too small",new_height,new_width);
         }
 
-        let mut new_buffer = DMatrix::<Float>::from_element(new_height as usize,new_width as usize,0.0);
+        let mut new_buffer = DMatrix::<Float>::from_element(new_height,new_width,0.0);
         for x in (0..width).step_by(2) {
             for y in (0..height).step_by(2) {
                 let new_y = y/2;
                 let new_x = x/2;
-                new_buffer[(new_y,new_x)] = image.buffer[(y,x)];
+                if new_y < new_height && new_x < new_width {
+                    new_buffer[(new_y,new_x)] = image.buffer[(y,x)];
+                }
+
             }
+        }
+
+        if normalize {
+            new_buffer.normalize_mut();
         }
 
         Image{

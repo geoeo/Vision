@@ -10,6 +10,8 @@ use sift::visualize::visualize_keypoint;
 
 fn main() {
     
+    //let image_name = "blur_rotated";
+    //let image_name = "blur";
     let image_name = "circles";
     let image_format = "png";
     let image_folder = "images/";
@@ -25,10 +27,9 @@ fn main() {
     let mut display = Image::from_gray_image(&gray_image, false);
     
     //TODO: experiment with blur half width and pyramid params
-    let pyramid = Pyramid::build_pyramid(&gray_image, 3, 3, 1.5);
+    let pyramid = Pyramid::build_pyramid(&gray_image, 4, 4, 1.0);
 
     let all_keypoints = keypoints_from_pyramid(&pyramid);
-    //let all_keypoints = keypoints_from_octave(&pyramid, 1);
 
     let number_of_features = all_keypoints.len();
 

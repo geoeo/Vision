@@ -1,15 +1,15 @@
 extern crate nalgebra as na;
 
-use na::{Matrix3x1,Matrix3};
+use na::{Matrix3x1,Matrix3,DMatrix};
 use crate::image::{kernel::Kernel,filter::gradient_convolution_at_sample};
-use crate::{Float,ExtremaParameters, GradientDirection};
+use crate::{Float,ExtremaParameters, GradientDirection,CONTRAST_R,EDGE_R};
 use crate::pyramid::octave::Octave;
-use na::DMatrix;
+
 
 mod hessian;
 
 
-pub fn detect_extrema(source_octave: &Octave, sigma_level: usize, filter_half_width: usize,filter_half_repeat: usize, x_step: usize, y_step: usize) -> Vec<ExtremaParameters> {
+pub fn detect_extrema(source_octave: &Octave, sigma_level: usize, filter_half_width: usize, x_step: usize, y_step: usize) -> Vec<ExtremaParameters> {
 
     let mut extrema_vec: Vec<ExtremaParameters> = Vec::new();
 
@@ -20,8 +20,7 @@ pub fn detect_extrema(source_octave: &Octave, sigma_level: usize, filter_half_wi
     let prev_buffer = &source_octave.difference_of_gaussians[sigma_level-1].buffer;
     let next_buffer = &source_octave.difference_of_gaussians[sigma_level+1].buffer;
 
-    let gradient_range = 1;
-    let offset = std::cmp::max(filter_half_width,filter_half_repeat)+gradient_range;
+    let offset = 1;
 
     for x in (offset..image_buffer.ncols()-offset).step_by(x_step) {
         for y in (offset..image_buffer.nrows()-offset).step_by(y_step)  {
@@ -70,7 +69,7 @@ fn is_sample_extrema_in_neighbourhood(sample: Float, x_sample: usize, y_sample: 
 }
 
 pub fn extrema_refinement(extrema: &Vec<ExtremaParameters>, source_octave: &Octave, first_order_kernel: &dyn Kernel) -> Vec<ExtremaParameters> {
-    extrema.iter().cloned().map(|x| contrast_filter(source_octave, &x, first_order_kernel)).filter(|x| x.0 >= 0.03).map(|x| x.1).filter(|x| edge_response_filter(source_octave, &x,first_order_kernel, 2.5)).collect() //TODO: put these into lib.rs
+    extrema.iter().cloned().map(|x| contrast_filter(source_octave, &x, first_order_kernel)).filter(|x| x.0 >= CONTRAST_R).map(|x| x.1).filter(|x| edge_response_filter(source_octave, &x,first_order_kernel, EDGE_R)).collect()
 }
 
 //TODO: maybe return new extrema instead due to potential change of coordiantes in interpolation

@@ -5,7 +5,8 @@ use crate::{Float,ExtremaParameters, GradientDirection};
 //TODO: go over these methods!
 
 //TODO: think of better way of combining the two 1d filters
-pub fn filter_1d_convolution_no_sigma(source: &Image, filter_direction: GradientDirection, filter_kernel: &dyn Kernel) -> Image {
+//TODO: investigate normlaizing images
+pub fn filter_1d_convolution_no_sigma(source: &Image, filter_direction: GradientDirection, filter_kernel: &dyn Kernel,  normalize: bool) -> Image {
     let kernel = &filter_kernel.kernel();
     let step = filter_kernel.step();
     let kernel_half_width = filter_kernel.half_width();
@@ -15,6 +16,7 @@ pub fn filter_1d_convolution_no_sigma(source: &Image, filter_direction: Gradient
     let width = buffer.ncols();
     let height = buffer.nrows();
     let mut target =  Image::empty(height, width, source.original_encoding);
+    let mut max = 0.0;
 
     for y in 0..height {
         for x in 0..width {
@@ -46,15 +48,22 @@ pub fn filter_1d_convolution_no_sigma(source: &Image, filter_direction: Gradient
                     let kenel_value = kernel[(kenel_idx + kernel_half_width_signed) as usize];
                     acc +=sample_value*kenel_value;
                 }
+                if acc > max {
+                    max = acc;
+                }
                 target.buffer[(y,x)] = acc;
         }
     }
 
+
+    if normalize {
+        target.buffer.normalize_mut();
+    }
     target
 
 }
 
-pub fn filter_1d_convolution(source_images: &Vec<Image>, sigma_level: usize, filter_direction: GradientDirection, filter_kernel: &dyn Kernel) -> Image {
+pub fn filter_1d_convolution(source_images: &Vec<Image>, sigma_level: usize, filter_direction: GradientDirection, filter_kernel: &dyn Kernel, normalize: bool) -> Image {
     let kernel = &filter_kernel.kernel();
     let step = filter_kernel.step();
     let kernel_half_width = filter_kernel.half_width();
@@ -110,6 +119,9 @@ pub fn filter_1d_convolution(source_images: &Vec<Image>, sigma_level: usize, fil
         }
     }
 
+    if normalize {
+        target.buffer.normalize_mut();
+    }
     target
 }
 
@@ -196,8 +208,8 @@ pub fn gradient_convolution_at_sample(source_octave: &Octave,source_images: &Vec
  
 
 
-pub fn gaussian_2_d_convolution(image: &Image, filter_kernel: &GaussKernel) -> Image {
-    let blur_hor = filter_1d_convolution_no_sigma(image,GradientDirection::HORIZINTAL, filter_kernel);
-    filter_1d_convolution_no_sigma(&blur_hor,GradientDirection::VERTICAL, filter_kernel)
+pub fn gaussian_2_d_convolution(image: &Image, filter_kernel: &GaussKernel, normalize: bool) -> Image {
+    let blur_hor = filter_1d_convolution_no_sigma(image,GradientDirection::HORIZINTAL, filter_kernel, normalize);
+    filter_1d_convolution_no_sigma(&blur_hor,GradientDirection::VERTICAL, filter_kernel, normalize)
 }
 

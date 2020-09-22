@@ -5,7 +5,7 @@ pub trait Kernel {
     fn kernel(&self) -> &Vec<Float>;
     // Size at which the filter is traversed
     fn step(&self) -> usize;
-    // Half of the width of the kernel save tjhe center element
+    // Half of the width of the kernel save the center element
     fn half_width(&self) -> usize {
         (self.kernel().len()-1)/2
     }

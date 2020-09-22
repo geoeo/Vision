@@ -20,8 +20,10 @@ macro_rules! define_float {
 }
 
 pub const RELATIVE_MATCH_THRESHOLD: Float = 0.6;
-pub const BLUR_HALF_WIDTH: usize = 8; // TODO: make this a input param to pyramid
-pub const ORIENTATION_HISTOGRAM_WINDOW_SIZE: usize = 8; // TODO: make this a input param to pyramid
+pub const BLUR_HALF_WIDTH: usize = 11; // TODO: make this a input param to pyramid / Scale this with octave level
+pub const ORIENTATION_HISTOGRAM_WINDOW_SIZE: usize = 9; // TODO: make this a input param to pyramid
+pub const EDGE_R: Float = 3.0; // TODO: make this a input param to pyramid
+pub const CONTRAST_R: Float = 0.03; // TODO: make this a input param to pyramid
 
 define_float!(f64);
 
@@ -91,7 +93,7 @@ pub fn feature_vectors_from_octave(pyramid: &Pyramid, octave_level: usize, sigma
 
     let octave = &pyramid.octaves[octave_level];
 
-    let features = extrema::detect_extrema(octave,sigma_level,first_order_derivative_filter.half_width(),first_order_derivative_filter.half_repeat(),x_step, y_step);
+    let features = extrema::detect_extrema(octave,sigma_level,first_order_derivative_filter.half_width(),x_step, y_step);
     let refined_features = extrema::extrema_refinement(&features, octave, &first_order_derivative_filter);
     let keypoints = refined_features.iter().map(|x| generate_keypoints_from_extrema(octave,octave_level, x)).flatten().collect::<Vec<KeyPoint>>();
     let descriptors = keypoints.iter().filter(|x| is_rotated_keypoint_within_image(octave, x)).map(|x| LocalImageDescriptor::new(octave,x)).collect::<Vec<LocalImageDescriptor>>();
@@ -116,7 +118,7 @@ pub fn keypoints_from_sigma(pyramid: &Pyramid, octave_level: usize, dog_level: u
 
     let octave = &pyramid.octaves[octave_level];
 
-    let features = extrema::detect_extrema(octave,dog_level,first_order_derivative_filter.half_width(),first_order_derivative_filter.half_repeat(),x_step, y_step);
+    let features = extrema::detect_extrema(octave,dog_level,first_order_derivative_filter.half_width(),x_step, y_step);
     let refined_features = extrema::extrema_refinement(&features, octave, &first_order_derivative_filter);
     refined_features.iter().map(|x| generate_keypoints_from_extrema(octave,octave_level, x)).flatten().collect::<Vec<KeyPoint>>()
 }
