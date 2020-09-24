@@ -1,7 +1,8 @@
 extern crate image as image_rs;
 
 use crate::image::{Image, filter, gauss_kernel::GaussKernel, prewitt_kernel::PrewittKernel};
-use crate::{Float,GradientDirection,BLUR_HALF_WIDTH};
+use crate::{Float,GradientDirection};
+use crate::pyramid::runtime_params::RuntimeParams;
 
 #[derive(Debug,Clone)]
 pub struct Octave {
@@ -17,12 +18,12 @@ pub struct Octave {
 
 impl Octave {
 
-    pub fn build_octave(base_image: &Image, s: usize, sigma_initial: Float) -> Octave {
+    pub fn build_octave(base_image: &Image, s: usize, sigma_initial: Float, runtime_params: &RuntimeParams) -> Octave {
 
         let image_count = s + 3;
         let range = 0..image_count;
         let mean = 0.0;
-        let half_width = BLUR_HALF_WIDTH;
+        let half_width = runtime_params.blur_half_width;
         let step = 1;
 
         let gradient_kernel = PrewittKernel::new();

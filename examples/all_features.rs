@@ -3,7 +3,7 @@ extern crate sift;
 
 use std::path::Path;
 
-use sift::pyramid::Pyramid;
+use sift::pyramid::{Pyramid, runtime_params::RuntimeParams};
 use sift::image::Image;
 use sift::{reconstruct_original_coordiantes,feature_vectors_from_pyramid};
 use sift::visualize::draw_square;
@@ -21,11 +21,21 @@ fn main() {
 
     let gray_image = image_rs::open(&Path::new(&image_path)).unwrap().to_luma();
     let mut display = Image::from_gray_image(&gray_image, false);
+
+    let runtime_params = RuntimeParams {
+        blur_half_width: 9,
+        orientation_histogram_window_size: 9,
+        edge_r: 2.5,
+        contrast_r: 0.1,
+        sigma_initial: 1.0,
+        octave_count: 4,
+        sigma_count: 4
+    };
+
     
-    let pyramid = Pyramid::build_pyramid(&gray_image, 3, 3, 1.6);
+    let pyramid = Pyramid::build_pyramid(&gray_image, &runtime_params);
 
-    let all_features = feature_vectors_from_pyramid(&pyramid);
-
+    let all_features = feature_vectors_from_pyramid(&pyramid, &runtime_params);
 
     let number_of_features = all_features.len();
 
@@ -49,8 +59,6 @@ fn main() {
     let new_image = display.to_image();
 
     new_image.save(converted_file_out_path).unwrap();
-
-
 
 
 

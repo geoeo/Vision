@@ -1,9 +1,9 @@
 extern crate nalgebra as na;
 
 use crate::{float,Float};
-use crate::pyramid::octave::Octave;
+use crate::pyramid::{octave::Octave,runtime_params::RuntimeParams};
 use crate::descriptor::{lagrange_interpolation_quadratic, gauss_2d, gradient_and_orientation, keypoint::KeyPoint};
-use crate::ORIENTATION_HISTOGRAM_WINDOW_SIZE;
+//use crate::ORIENTATION_HISTOGRAM_WINDOW_SIZE;
 use crate::extrema::extrema_parameters::ExtremaParameters;
 
 
@@ -78,9 +78,9 @@ pub fn radian_to_index(histogram: &OrientationHistogram, orientation: Float) -> 
     (orientation/histogram.bin_range).trunc() as usize
 }
 
-pub fn generate_keypoints_from_extrema(octave: &Octave,octave_level: usize, keypoint: &ExtremaParameters) -> Vec<KeyPoint> {
+pub fn generate_keypoints_from_extrema(octave: &Octave,octave_level: usize, keypoint: &ExtremaParameters, runtime_params: &RuntimeParams) -> Vec<KeyPoint> {
 
-    let w = ORIENTATION_HISTOGRAM_WINDOW_SIZE as isize;
+    let w = runtime_params.orientation_histogram_window_size as isize;
     let x = keypoint.x;
     let y = keypoint.y;
     let sigma = octave.sigmas[keypoint.sigma_level];

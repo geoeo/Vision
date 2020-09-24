@@ -3,7 +3,7 @@ extern crate sift;
 
 use std::path::Path;
 
-use sift::pyramid::Pyramid;
+use sift::pyramid::{Pyramid, runtime_params::RuntimeParams};
 use sift::extrema;
 use sift::image::Image;
 use sift::image::{kernel::Kernel,prewitt_kernel::PrewittKernel};
@@ -26,8 +26,18 @@ fn main() {
 
     let gray_image = image_rs::open(&Path::new(&image_path)).unwrap().to_luma();
 
+    let runtime_params = RuntimeParams {
+        blur_half_width: 9,
+        orientation_histogram_window_size: 9,
+        edge_r: 2.5,
+        contrast_r: 0.1,
+        sigma_initial: 1.0,
+        octave_count: 4,
+        sigma_count: 4
+    };
+
     
-    let pyramid = Pyramid::build_pyramid(&gray_image, 3, 5, 0.5);
+    let pyramid = Pyramid::build_pyramid(&gray_image, &runtime_params);
     let octave_level = 1;
     let sigma_level = 1;
     let octave = &pyramid.octaves[octave_level];
@@ -44,8 +54,8 @@ fn main() {
 
 
     let features = extrema::detect_extrema(octave,sigma_level,first_order_derivative_filter.half_width(),x_step, y_step);
-    let refined_features = extrema::extrema_refinement(&features, octave, &first_order_derivative_filter);
-    let keypoints = refined_features.iter().map(|x| generate_keypoints_from_extrema(octave,octave_level, x)).flatten().collect::<Vec<KeyPoint>>();
+    let refined_features = extrema::extrema_refinement(&features, octave, &first_order_derivative_filter, &runtime_params);
+    let keypoints = refined_features.iter().map(|x| generate_keypoints_from_extrema(octave,octave_level, x, &runtime_params)).flatten().collect::<Vec<KeyPoint>>();
     let descriptors = keypoints.iter().filter(|x| is_rotated_keypoint_within_image(octave, x)).map(|x| LocalImageDescriptor::new(octave,x)).collect::<Vec<LocalImageDescriptor>>();
     let feature_vectors = descriptors.iter().map(|x| FeatureVector::new(x,octave_level)).collect::<Vec<FeatureVector>>();
 

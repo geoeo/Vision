@@ -2,8 +2,8 @@ extern crate nalgebra as na;
 
 use na::{Matrix3x1,Matrix3,DMatrix};
 use crate::image::{kernel::Kernel,filter::gradient_convolution_at_sample};
-use crate::{Float, GradientDirection,CONTRAST_R,EDGE_R};
-use crate::pyramid::octave::Octave;
+use crate::{Float, GradientDirection};
+use crate::pyramid::{octave::Octave, runtime_params::RuntimeParams};
 use extrema_parameters::ExtremaParameters;
 
 
@@ -70,8 +70,8 @@ fn is_sample_extrema_in_neighbourhood(sample: Float, x_sample: usize, y_sample: 
     is_smallest || is_largest
 }
 
-pub fn extrema_refinement(extrema: &Vec<ExtremaParameters>, source_octave: &Octave, first_order_kernel: &dyn Kernel) -> Vec<ExtremaParameters> {
-    extrema.iter().cloned().map(|x| contrast_filter(source_octave, &x, first_order_kernel)).filter(|x| x.0 >= CONTRAST_R).map(|x| x.1).filter(|x| edge_response_filter(source_octave, &x,first_order_kernel, EDGE_R)).collect()
+pub fn extrema_refinement(extrema: &Vec<ExtremaParameters>, source_octave: &Octave, first_order_kernel: &dyn Kernel, runtime_params: &RuntimeParams) -> Vec<ExtremaParameters> {
+    extrema.iter().cloned().map(|x| contrast_filter(source_octave, &x, first_order_kernel)).filter(|x| x.0 >= runtime_params.contrast_r).map(|x| x.1).filter(|x| edge_response_filter(source_octave, &x,first_order_kernel, runtime_params.edge_r)).collect()
 }
 
 //TODO: maybe return new extrema instead due to potential change of coordiantes in interpolation

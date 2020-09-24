@@ -2,20 +2,22 @@ extern crate image as image_rs;
 
 use image_rs::GrayImage;
 use self::octave::Octave;
-use crate::{BLUR_HALF_WIDTH,Float};
+use crate::{Float};
 use crate::image::{Image, filter, gauss_kernel::GaussKernel};
+use crate::pyramid::runtime_params::RuntimeParams;
 
 pub mod octave;
+pub mod runtime_params;
 
 #[derive(Debug,Clone)]
 pub struct Pyramid {
     pub octaves: Vec<Octave>,
-    pub s: usize
+    pub s: usize //TODO: maybe save runtime params
 }
 
 impl Pyramid {
-    pub fn build_pyramid(base_gray_image: &GrayImage, s: usize, octave_count: usize, sigma_initial: Float) -> Pyramid {
-        let mut octaves: Vec<Octave> = Vec::with_capacity(octave_count);
+    pub fn build_pyramid(base_gray_image: &GrayImage, runtime_params: &RuntimeParams) -> Pyramid {
+        let mut octaves: Vec<Octave> = Vec::with_capacity(runtime_params.octave_count);
 
         let base_image = Image::from_gray_image(base_gray_image, true);
 
@@ -23,24 +25,24 @@ impl Pyramid {
         let initial_blur =  filter::gaussian_2_d_convolution(&base_image, &kernel, false);
 
         let mut octave_image = base_image;
-        let mut sigma = sigma_initial;
+        let mut sigma = runtime_params.sigma_initial;
 
 
-        for i in 0..octave_count {
+        for i in 0..runtime_params.octave_count {
 
             if i > 0 {
-                octave_image = Image::downsample_half(&octaves[i-1].images[s], false);
-                sigma = octaves[i-1].sigmas[s];
+                octave_image = Image::downsample_half(&octaves[i-1].images[runtime_params.sigma_count], false);
+                sigma = octaves[i-1].sigmas[runtime_params.sigma_count];
             }
 
-            let new_octave = Octave::build_octave(&octave_image, s, sigma);
+            let new_octave = Octave::build_octave(&octave_image, runtime_params.sigma_count, sigma, runtime_params);
 
             octaves.push(new_octave);
             
 
         }
 
-    Pyramid{octaves,s}
+    Pyramid{octaves,s: runtime_params.sigma_count}
     }
 
 

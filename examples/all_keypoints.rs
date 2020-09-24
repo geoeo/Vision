@@ -3,7 +3,7 @@ extern crate sift;
 
 use std::path::Path;
 
-use sift::pyramid::Pyramid;
+use sift::pyramid::{Pyramid, runtime_params::RuntimeParams};
 use sift::image::Image;
 use sift::keypoints_from_pyramid;
 use sift::visualize::visualize_keypoint;
@@ -26,10 +26,21 @@ fn main() {
     let gray_image = image_rs::open(&Path::new(&image_path)).unwrap().to_luma();
     let mut display = Image::from_gray_image(&gray_image, false);
     
-    //TODO: experiment with blur half width and pyramid params
-    let pyramid = Pyramid::build_pyramid(&gray_image, 4, 4, 1.0);
+    
+    let runtime_params = RuntimeParams {
+        blur_half_width: 9,
+        orientation_histogram_window_size: 9,
+        edge_r: 2.5,
+        contrast_r: 0.1,
+        sigma_initial: 1.0,
+        octave_count: 4,
+        sigma_count: 4
+    };
 
-    let all_keypoints = keypoints_from_pyramid(&pyramid);
+    //TODO: experiment with blur half width and pyramid params
+    let pyramid = Pyramid::build_pyramid(&gray_image,&runtime_params);
+
+    let all_keypoints = keypoints_from_pyramid(&pyramid, &runtime_params);
 
     let number_of_features = all_keypoints.len();
 

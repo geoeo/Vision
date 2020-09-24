@@ -1,5 +1,5 @@
 
-use self::pyramid::Pyramid;
+use self::pyramid::{Pyramid,runtime_params::RuntimeParams};
 use self::descriptor::{
     feature_vector::FeatureVector,
     orientation_histogram::generate_keypoints_from_extrema,
@@ -22,10 +22,10 @@ macro_rules! define_float {
 }
 
 pub const RELATIVE_MATCH_THRESHOLD: Float = 0.6;
-pub const BLUR_HALF_WIDTH: usize = 9; // TODO: make this a input param to pyramid / Scale this with octave level
-pub const ORIENTATION_HISTOGRAM_WINDOW_SIZE: usize = 9; // TODO: make this a input param to pyramid
-pub const EDGE_R: Float = 2.5; // TODO: make this a input param to pyramid
-pub const CONTRAST_R: Float = 0.1; // TODO: make this a input param to pyramid
+//pub const BLUR_HALF_WIDTH: usize = 9; // TODO: make this a input param to pyramid / Scale this with octave level
+//pub const ORIENTATION_HISTOGRAM_WINDOW_SIZE: usize = 9; // TODO: make this a input param to pyramid
+//pub const EDGE_R: Float = 2.5; // TODO: make this a input param to pyramid
+//pub const CONTRAST_R: Float = 0.1; // TODO: make this a input param to pyramid
 
 define_float!(f64);
 
@@ -37,14 +37,14 @@ pub enum GradientDirection {
     SIGMA
 }
 
-pub fn feature_vectors_from_pyramid(pyramid: &Pyramid) -> Vec<FeatureVector> {
+pub fn feature_vectors_from_pyramid(pyramid: &Pyramid, runtime_params:&RuntimeParams) -> Vec<FeatureVector> {
 
     let mut all_vectors = Vec::<Vec<FeatureVector>>::new();
 
     for octave_level in 0..pyramid.octaves.len() {
         let octave = &pyramid.octaves[octave_level];
         for sigma_level in 1..octave.sigmas.len()-2 {
-            all_vectors.push(feature_vectors_from_octave(pyramid,octave_level,sigma_level));
+            all_vectors.push(feature_vectors_from_octave(pyramid,octave_level,sigma_level,runtime_params));
         }
     }
 
@@ -52,12 +52,12 @@ pub fn feature_vectors_from_pyramid(pyramid: &Pyramid) -> Vec<FeatureVector> {
 
 }
 
-pub fn keypoints_from_pyramid(pyramid: &Pyramid) -> Vec<KeyPoint> {
+pub fn keypoints_from_pyramid(pyramid: &Pyramid, runtime_params:&RuntimeParams) -> Vec<KeyPoint> {
 
     let mut all_vectors = Vec::<Vec<KeyPoint>>::new();
 
     for octave_level in 0..pyramid.octaves.len() {
-        all_vectors.push(keypoints_from_octave(pyramid, octave_level));
+        all_vectors.push(keypoints_from_octave(pyramid, octave_level,runtime_params));
     }
 
     all_vectors.into_iter().flatten().collect()
@@ -65,7 +65,7 @@ pub fn keypoints_from_pyramid(pyramid: &Pyramid) -> Vec<KeyPoint> {
 }
 
 
-pub fn feature_vectors_from_octave(pyramid: &Pyramid, octave_level: usize, sigma_level: usize) -> Vec<FeatureVector> {
+pub fn feature_vectors_from_octave(pyramid: &Pyramid, octave_level: usize, sigma_level: usize, runtime_params:&RuntimeParams) -> Vec<FeatureVector> {
     let x_step = 1;
     let y_step = 1;
     let first_order_derivative_filter = PrewittKernel::new();
@@ -73,24 +73,24 @@ pub fn feature_vectors_from_octave(pyramid: &Pyramid, octave_level: usize, sigma
     let octave = &pyramid.octaves[octave_level];
 
     let features = extrema::detect_extrema(octave,sigma_level,first_order_derivative_filter.half_width(),x_step, y_step);
-    let refined_features = extrema::extrema_refinement(&features, octave, &first_order_derivative_filter);
-    let keypoints = refined_features.iter().map(|x| generate_keypoints_from_extrema(octave,octave_level, x)).flatten().collect::<Vec<KeyPoint>>();
+    let refined_features = extrema::extrema_refinement(&features, octave, &first_order_derivative_filter, runtime_params);
+    let keypoints = refined_features.iter().map(|x| generate_keypoints_from_extrema(octave,octave_level, x, runtime_params)).flatten().collect::<Vec<KeyPoint>>();
     let descriptors = keypoints.iter().filter(|x| is_rotated_keypoint_within_image(octave, x)).map(|x| LocalImageDescriptor::new(octave,x)).collect::<Vec<LocalImageDescriptor>>();
     descriptors.iter().map(|x| FeatureVector::new(x,octave_level)).collect::<Vec<FeatureVector>>()
 }
 
-pub fn keypoints_from_octave(pyramid: &Pyramid, octave_level: usize) -> Vec<KeyPoint> {
+pub fn keypoints_from_octave(pyramid: &Pyramid, octave_level: usize, runtime_params: &RuntimeParams) -> Vec<KeyPoint> {
     let mut all_vectors = Vec::<Vec<KeyPoint>>::new();
 
     let octave = &pyramid.octaves[octave_level];
     for dog_level in 1..octave.difference_of_gaussians.len()-1 {
-        all_vectors.push(keypoints_from_sigma(pyramid,octave_level,dog_level));
+        all_vectors.push(keypoints_from_sigma(pyramid, octave_level,dog_level, runtime_params));
     }
 
     all_vectors.into_iter().flatten().collect()
 }
 
-pub fn keypoints_from_sigma(pyramid: &Pyramid, octave_level: usize, dog_level: usize) -> Vec<KeyPoint> {
+pub fn keypoints_from_sigma(pyramid: &Pyramid, octave_level: usize, dog_level: usize, runtime_params: &RuntimeParams) -> Vec<KeyPoint> {
     let x_step = 1;
     let y_step = 1;
     let first_order_derivative_filter = PrewittKernel::new();
@@ -98,8 +98,8 @@ pub fn keypoints_from_sigma(pyramid: &Pyramid, octave_level: usize, dog_level: u
     let octave = &pyramid.octaves[octave_level];
 
     let features = extrema::detect_extrema(octave,dog_level,first_order_derivative_filter.half_width(),x_step, y_step);
-    let refined_features = extrema::extrema_refinement(&features, octave, &first_order_derivative_filter);
-    refined_features.iter().map(|x| generate_keypoints_from_extrema(octave,octave_level, x)).flatten().collect::<Vec<KeyPoint>>()
+    let refined_features = extrema::extrema_refinement(&features, octave, &first_order_derivative_filter, runtime_params);
+    refined_features.iter().map(|x| generate_keypoints_from_extrema(octave,octave_level, x, runtime_params)).flatten().collect::<Vec<KeyPoint>>()
 }
 
 pub fn reconstruct_original_coordiantes(x: usize, y: usize, octave_level: u32) -> (usize,usize) {
