@@ -2,11 +2,13 @@ extern crate nalgebra as na;
 
 use na::{Matrix3x1,Matrix3,DMatrix};
 use crate::image::{kernel::Kernel,filter::gradient_convolution_at_sample};
-use crate::{Float,ExtremaParameters, GradientDirection,CONTRAST_R,EDGE_R};
+use crate::{Float, GradientDirection,CONTRAST_R,EDGE_R};
 use crate::pyramid::octave::Octave;
+use extrema_parameters::ExtremaParameters;
 
 
 mod hessian;
+pub mod extrema_parameters;
 
 
 pub fn detect_extrema(source_octave: &Octave, sigma_level: usize, filter_half_width: usize, x_step: usize, y_step: usize) -> Vec<ExtremaParameters> {

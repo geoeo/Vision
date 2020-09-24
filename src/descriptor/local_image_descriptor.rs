@@ -1,10 +1,10 @@
 extern crate nalgebra as na;
 
 use na::{Dim,MatrixN,Vector2,base::dimension::{U16,U4,U2,U1}, Matrix2x4};
-use crate::{Float, KeyPoint};
+use crate::Float;
 use crate::image::Image;
 use crate::pyramid::octave::Octave;
-use crate::descriptor::{ORIENTATION_BINS,DESCRIPTOR_BINS,rotation_matrix_2d_from_orientation,gauss_2d,gradient_and_orientation,orientation_histogram::OrientationHistogram};
+use crate::descriptor::{ORIENTATION_BINS,DESCRIPTOR_BINS,rotation_matrix_2d_from_orientation,gauss_2d,gradient_and_orientation,orientation_histogram::OrientationHistogram,keypoint::KeyPoint};
 
 const SUBMATRIX_LENGTH: usize = 4;
 const SAMPLE_LENGTH: Float = 16.0;

@@ -1,6 +1,7 @@
 use crate::image::{Image,gauss_kernel::GaussKernel, kernel::Kernel};
 use crate::pyramid::octave::Octave;
-use crate::{Float,ExtremaParameters, GradientDirection};
+use crate::{Float, GradientDirection};
+use crate::extrema::extrema_parameters::ExtremaParameters;
 
 //TODO: go over these methods!
 

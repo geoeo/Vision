@@ -1,10 +1,12 @@
 
 use self::pyramid::Pyramid;
-use self::descriptor::feature_vector::FeatureVector;
-use self::descriptor::orientation_histogram::generate_keypoints_from_extrema;
-use self::descriptor::local_image_descriptor::{is_rotated_keypoint_within_image,LocalImageDescriptor};
+use self::descriptor::{
+    feature_vector::FeatureVector,
+    orientation_histogram::generate_keypoints_from_extrema,
+    local_image_descriptor::{is_rotated_keypoint_within_image,LocalImageDescriptor},
+    keypoint::KeyPoint
+};
 use self::image::{kernel::Kernel,prewitt_kernel::PrewittKernel};
-use std::fmt;
 
 pub mod image;
 pub mod pyramid;
@@ -26,29 +28,6 @@ pub const EDGE_R: Float = 2.5; // TODO: make this a input param to pyramid
 pub const CONTRAST_R: Float = 0.1; // TODO: make this a input param to pyramid
 
 define_float!(f64);
-
-#[derive(Debug,Clone)]
-pub struct ExtremaParameters {
-    pub x: usize,
-    pub y: usize,
-    pub sigma_level: usize
-} 
-
-impl fmt::Display for ExtremaParameters {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "x: {}, y: {}, s: {}", self.x, self.y, self.sigma_level)
-    }
-}
-
-#[derive(Debug,Clone)]
-pub struct KeyPoint {
-    pub x: usize,
-    pub y: usize,
-    pub sigma_level: usize,
-    pub octave_level: usize,
-    pub orientation: Float
-    //TODO: maybe put octave/orientation histogram here as well for debugging
-} 
 
 #[repr(u8)]
 #[derive(Debug,Copy,Clone)]

@@ -1,9 +1,10 @@
 extern crate nalgebra as na;
 
-use crate::{float,Float, ExtremaParameters, KeyPoint};
+use crate::{float,Float};
 use crate::pyramid::octave::Octave;
-use crate::descriptor::{lagrange_interpolation_quadratic, gauss_2d, gradient_and_orientation};
+use crate::descriptor::{lagrange_interpolation_quadratic, gauss_2d, gradient_and_orientation, keypoint::KeyPoint};
 use crate::ORIENTATION_HISTOGRAM_WINDOW_SIZE;
+use crate::extrema::extrema_parameters::ExtremaParameters;
 
 
 #[derive(Debug,Clone)]

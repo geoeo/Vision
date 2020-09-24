@@ -2,8 +2,9 @@ extern crate nalgebra as na;
 
 use na::Matrix2;
 use crate::pyramid::octave::Octave;
-use crate::{Float,ExtremaParameters, GradientDirection};
+use crate::{Float, GradientDirection};
 use crate::image::{kernel::Kernel,filter::gradient_convolution_at_sample};
+use crate::extrema::extrema_parameters::ExtremaParameters;
 
 
 //TODO: @Investigate: maybe precomputing the gradient images is more efficient
