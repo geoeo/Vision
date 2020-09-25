@@ -42,12 +42,13 @@ pub fn lagrange_interpolation_quadratic(a: Float, b: Float, c: Float, f_a: Float
     let c_corrected = if b > c { c + range_max} else {c};
 
     assert!( a_corrected < b && b < c_corrected);
-    assert!(f_a <= f_b && f_b >= f_c ); 
+    assert!(f_b >= f_a  && f_b >= f_c ); 
 
     let numerator = (f_a-f_b)*(c_corrected-b).powi(2)-(f_c-f_b)*(b-a_corrected).powi(2);
     let denominator = (f_a-f_b)*(c_corrected-b)+(f_c-f_b)*(b-a_corrected);
 
-    let result  = b + 0.5*(numerator/denominator);
+    let mut result  = b + 0.5*(numerator/denominator);
+    //result += 5.0; // extra 5 to move the orientation into the center of the bin
 
     match result {
         res if res < range_min => res + range_max,

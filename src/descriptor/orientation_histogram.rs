@@ -2,7 +2,7 @@ extern crate nalgebra as na;
 
 use crate::{float,Float};
 use crate::pyramid::{octave::Octave,runtime_params::RuntimeParams};
-use crate::descriptor::{lagrange_interpolation_quadratic, gauss_2d, gradient_and_orientation, keypoint::KeyPoint};
+use crate::descriptor::{lagrange_interpolation_quadratic,quadatric_interpolation, gauss_2d, gradient_and_orientation, keypoint::KeyPoint};
 //use crate::ORIENTATION_HISTOGRAM_WINDOW_SIZE;
 use crate::extrema::extrema_parameters::ExtremaParameters;
 
@@ -42,7 +42,7 @@ impl OrientationHistogram {
         let index = radian_to_index(self,orientation);
         let main_index = radian_to_index(self,main_orientation) as isize;
 
-        let(l,c,r) = get_cirular_adjecent(self,index as isize);
+        let(l,c,r) = get_adjacent_circular_by_value(self,index as isize);
         let l_weight = (main_index - l as isize).abs();
         let c_weight = (main_index - c as isize).abs();
         let r_weight = (main_index - r as isize).abs();
@@ -64,7 +64,25 @@ impl OrientationHistogram {
             let value = other_histogram.bins[i];
             self.bins[i] += value*weight;
         }
+    }
 
+    pub fn get_value_bounded(&self, i: isize) -> Float {
+        let len = self.bins.len() as isize;
+        match i {
+            idx if idx <= 0 => self.bins[0],
+            idx if idx >= len => self.bins[(len-1) as usize],
+            idx => self.bins[idx as usize]
+        }
+    }
+
+    pub fn smooth(self: &mut OrientationHistogram) -> () {
+        for i in 0..self.bins.len() {
+            let idx = i as isize;
+            self.bins[i] = 
+                (self.get_value_bounded(idx-2) + self.get_value_bounded(idx+2))/16.0 + 
+                (self.get_value_bounded(idx-1) + self.get_value_bounded(idx+1))*4.0/16.0 + 
+                self.get_value_bounded(idx)*6.0/16.0
+        }
     }
 
 }
@@ -119,27 +137,34 @@ pub fn generate_keypoints_from_extrema(octave: &Octave,octave_level: usize, keyp
         max
     }).0;
 
-    post_process(&histogram,keypoint, octave_level)
+    post_process(&mut histogram,keypoint, octave_level)
 }
 
 
-fn post_process(histogram: &OrientationHistogram, extrema: &ExtremaParameters,octave_level: usize) -> Vec<KeyPoint> {
+fn post_process(histogram: &mut OrientationHistogram, extrema: &ExtremaParameters,octave_level: usize) -> Vec<KeyPoint> {
 
     let max_val = histogram.bins[histogram.max_bin];
     let threshold = max_val*0.8;
     let peaks_indices = histogram.bins.clone().into_iter().enumerate().filter(|x| x.1 >= threshold).map(|t| t.0).collect::<Vec<usize>>();
 
-    let peak_neighbours_indices = peaks_indices.iter().map(|&x| get_cirular_adjecent(histogram, x as isize)).collect::<Vec<(usize,usize,usize)>>();
+    let peak_neighbours_indices = peaks_indices.into_iter().filter(|&x| filter_adjacent(histogram,x as isize)).map(|x| get_adjacent_circular_by_value(histogram, x as isize)).collect::<Vec<(usize,usize,usize)>>();
     let interpolated_peaks_indices = peak_neighbours_indices.iter().map(|&(l,c,r)| 
         lagrange_interpolation_quadratic(l as Float,c as Float,r as Float,histogram.bins[l],histogram.bins[c],histogram.bins[r],0.0, (histogram.bins.len()) as Float)
     ).collect::<Vec<Float>>();
 
+    //histogram.smooth();
     //TODO: maybe split up the return of histogram and keypoint so that it can be debugged
     interpolated_peaks_indices.iter().map(|&peak_idx| {KeyPoint{x: extrema.x, y: extrema.y, octave_level: octave_level, sigma_level: extrema.sigma_level, orientation: index_to_radian(histogram,peak_idx)}}).collect::<Vec<KeyPoint>>()
 
 }
 
-pub fn get_cirular_adjecent(histogram: &OrientationHistogram, bin_idx: isize) -> (usize,usize,usize) {
+pub fn filter_adjacent(histogram: &OrientationHistogram, bin_idx: isize) -> bool {
+    let (l,c,r) = get_adjacent_circular_by_index(histogram, bin_idx);
+    let c_val = histogram.bins[c];
+    return c_val > histogram.bins[l] && c_val > histogram.bins[r]
+}
+
+pub fn get_adjacent_circular_by_value(histogram: &OrientationHistogram, bin_idx: isize) -> (usize,usize,usize) {
     let bin_len = histogram.bins.len() as isize;
     assert!(bin_len >=3);
 
@@ -188,5 +213,24 @@ pub fn get_cirular_adjecent(histogram: &OrientationHistogram, bin_idx: isize) ->
     (left_final_idx as usize,bin_idx as usize,right_final_idx as usize)
 
 }
+
+fn get_adjacent_circular_by_index(histogram: &OrientationHistogram, bin_idx: isize) -> (usize,usize,usize) {
+    let bin_len = histogram.bins.len() as isize;
+    assert!(bin_len >=3);
+
+    let l = match bin_idx - 1 {
+        idx if idx < 0 => bin_len-1,
+        idx => idx
+    };
+
+    let r = match bin_idx + 1 {
+        idx if idx == bin_len => 0,
+        idx => idx
+    };
+
+    (l as usize, bin_idx as usize, r as usize)
+}
+
+
 
 

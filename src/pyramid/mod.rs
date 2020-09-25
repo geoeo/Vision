@@ -2,7 +2,6 @@ extern crate image as image_rs;
 
 use image_rs::GrayImage;
 use self::octave::Octave;
-use crate::{Float};
 use crate::image::{Image, filter, gauss_kernel::GaussKernel};
 use crate::pyramid::runtime_params::RuntimeParams;
 
