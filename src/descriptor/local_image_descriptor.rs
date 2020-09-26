@@ -63,22 +63,24 @@ impl LocalImageDescriptor {
     }
 }
 
+//TODO: this is buggy
 pub fn is_rotated_keypoint_within_image(octave: &Octave, keypoint: &KeyPoint) -> bool {
-    let half_sample_length = 8.0;
+    let half_sample_length = 8.0; //TODO but this into input parameters or make this constant
     let image = &octave.images[keypoint.sigma_level];
     let rot_mat = rotation_matrix_2d_from_orientation(keypoint.orientation);
     let key_x = keypoint.x as Float;
     let key_y = keypoint.y as Float;
-    let corner_coordinates = Matrix2x4::new(key_x-half_sample_length,key_x+half_sample_length,key_x-half_sample_length,key_x+half_sample_length,
-        key_y-half_sample_length ,key_y-half_sample_length,key_y+half_sample_length,key_y+half_sample_length);
+    let corner_coordinates = Matrix2x4::new(
+        -half_sample_length,half_sample_length,-half_sample_length,half_sample_length,
+        -half_sample_length,-half_sample_length,half_sample_length,half_sample_length);
 
     let rotated_corners = rot_mat*corner_coordinates;
     let mut valid = true;
 
     for i in 0..4 {
         let coordiantes = rotated_corners.fixed_slice::<U2,U1>(0,i);
-        let x =  coordiantes[(0,0)];
-        let y =  coordiantes[(1,0)];
+        let x =  key_x + coordiantes[(0,0)];
+        let y =  key_y + coordiantes[(1,0)];
         valid &= x >= 0.0 && x < image.buffer.ncols() as Float && y >= 0.0 && y < image.buffer.nrows() as Float;
     }
 

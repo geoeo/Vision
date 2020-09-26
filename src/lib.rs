@@ -64,7 +64,7 @@ pub fn keypoints_from_pyramid(pyramid: &Pyramid, runtime_params:&RuntimeParams) 
 
 }
 
-
+//TODO: unify these methods
 pub fn feature_vectors_from_octave(pyramid: &Pyramid, octave_level: usize, sigma_level: usize, runtime_params:&RuntimeParams) -> Vec<FeatureVector> {
     let x_step = 1;
     let y_step = 1;
@@ -99,7 +99,7 @@ pub fn keypoints_from_sigma(pyramid: &Pyramid, octave_level: usize, dog_level: u
 
     let features = extrema::detect_extrema(octave,dog_level,first_order_derivative_filter.half_width(),x_step, y_step);
     let refined_features = extrema::extrema_refinement(&features, octave, &first_order_derivative_filter, runtime_params);
-    refined_features.iter().map(|x| generate_keypoints_from_extrema(octave,octave_level, x, runtime_params)).flatten().collect::<Vec<KeyPoint>>()
+    refined_features.iter().map(|x| generate_keypoints_from_extrema(octave,octave_level, x, runtime_params)).flatten().filter(|x| is_rotated_keypoint_within_image(octave, x)).collect::<Vec<KeyPoint>>()
 }
 
 pub fn reconstruct_original_coordiantes(x: usize, y: usize, octave_level: u32) -> (usize,usize) {
