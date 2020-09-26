@@ -10,8 +10,8 @@ use sift::visualize::display_matches;
 
 fn main() {
     
-    let image_name = "beaver_90";
-    let image_name_2 = "beaver";
+    let image_name = "blur";
+    let image_name_2 = "blur_rotated";
     let image_format = "png";
     let image_folder = "images/";
     let image_out_folder = "output/";

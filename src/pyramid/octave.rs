@@ -23,18 +23,17 @@ impl Octave {
         let image_count = s + 3;
         let range = 0..image_count;
         let mean = 0.0;
-        let half_width = runtime_params.blur_half_width;
+        let blur_half_factor = runtime_params.blur_half_factor;
         let step = 1;
 
         let gradient_kernel = PrewittKernel::new();
 
 
         let sigmas: Vec<Float> = range.map(|x| sigma_initial*Octave::generate_k(x as Float, s as Float)).collect();
-        let kernels: Vec<GaussKernel> = sigmas.iter().map(|&sigma| GaussKernel::new(mean, sigma,step,half_width)).collect();
+        let kernels: Vec<GaussKernel> = sigmas.iter().map(|&sigma| GaussKernel::new(mean, sigma,step,sigma*blur_half_factor)).collect();
         let images: Vec<Image> = kernels.iter().map(|kernel| filter::gaussian_2_d_convolution(&base_image, kernel, false)).collect();
-        let x_gradient = images.iter().map(|x| filter::filter_1d_convolution_no_sigma(x, GradientDirection::HORIZINTAL, &gradient_kernel, false)).collect();
-        let y_gradient = images.iter().map(|x| filter::filter_1d_convolution_no_sigma(x, GradientDirection::VERTICAL, &gradient_kernel, false)).collect();
-
+        let x_gradient = images.iter().map(|x| filter::filter_1d_convolution_no_sigma(x, GradientDirection::HORIZINTAL, &gradient_kernel, true)).collect();
+        let y_gradient = images.iter().map(|x| filter::filter_1d_convolution_no_sigma(x, GradientDirection::VERTICAL, &gradient_kernel, true)).collect();
 
 
         let mut difference_of_gaussians: Vec<Image> = Vec::with_capacity(image_count-1);
@@ -56,6 +55,10 @@ impl Octave {
         assert!(n >= 0.0);
         let exp = n/s;
         exp.exp2()
+    }
+
+    pub fn inter_pixel_distance(octave_level: usize) -> Float {
+        0.5*(octave_level as Float).exp2()
     }
 }
 
