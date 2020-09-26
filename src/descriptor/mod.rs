@@ -83,15 +83,16 @@ pub fn quadatric_interpolation(a: Float, b: Float, c: Float, f_a: Float, f_b: Fl
 pub fn gauss_2d(x_center: Float, y_center: Float, x: Float, y: Float, sigma: Float) -> Float {
     let offset = Matrix1x2::new(x-x_center,y-y_center);
     let offset_transpose = offset.transpose();
-    let sigma_recip = 1.0/sigma;
-    let covariance = Matrix2::new(sigma_recip, 0.0,0.0, sigma_recip);
+    let sigma_sqr = sigma.powi(2);
+    let sigma_sqr_recip = 1.0/sigma_sqr;
+    let covariance = Matrix2::new(sigma_sqr_recip, 0.0,0.0, sigma_sqr_recip);
 
 
     let exponent = -0.5*offset*(covariance*offset_transpose);
     let exp = exponent.index((0,0)).exp();
 
-    let det = sigma.powi(2);
-    let denom = 2.0*float::consts::PI*det.sqrt();
+
+    let denom = 2.0*float::consts::PI*sigma_sqr;
 
     exp/denom
 }

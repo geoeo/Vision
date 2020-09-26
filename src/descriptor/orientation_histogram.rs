@@ -103,8 +103,8 @@ pub fn generate_keypoints_from_extrema(octave: &Octave,octave_level: usize, keyp
     let x = keypoint.x;
     let y = keypoint.y;
     let sigma = octave.sigmas[keypoint.sigma_level];
-    let new_sigma = 1.5*octave.sigmas[keypoint.sigma_level];
-    let w = (runtime_params.orientation_histogram_window_factor as Float * new_sigma).trunc() as isize;
+    let new_sigma = 1.5*sigma;
+    let w = (runtime_params.orientation_histogram_window_factor as Float * new_sigma).trunc();
     //let w = (runtime_params.orientation_histogram_window_factor as Float * sigma).trunc() as isize;
     let x_grad = &octave.x_gradient[keypoint.sigma_level]; //TODO: check 
     let y_grad = &octave.y_gradient[keypoint.sigma_level]; //TODO: check 
@@ -113,20 +113,26 @@ pub fn generate_keypoints_from_extrema(octave: &Octave,octave_level: usize, keyp
 
     //TODO: think of a better solution to image border
     //TODO: make image dimensions more easily accesible
+
+
+
     //TODO: reduce numbers of casts
-    if x as isize -w < 0 || 
-    x +w as usize >= octave.images[keypoint.sigma_level].buffer.ncols() || 
-    y as isize -w <0 || 
-    y+w as usize >= octave.images[keypoint.sigma_level].buffer.nrows(){
+    if (x as Float -w)/inter_pixel_distance < 0.0 || 
+    (x as Float + w)/inter_pixel_distance >= octave.images[keypoint.sigma_level].buffer.ncols() as Float || 
+    (y as Float -w)/inter_pixel_distance <0.0 || 
+    (y as Float+w)/inter_pixel_distance >= octave.images[keypoint.sigma_level].buffer.nrows() as Float{
         return Vec::new()
     }
 
     //TODO: extra filter for max 
+    
+    let x_range = ((x as Float-w)/inter_pixel_distance).trunc() as usize .. ((x as Float+w)/inter_pixel_distance).trunc() as usize;
+    let y_range = ((y as Float-w)/inter_pixel_distance).trunc() as usize .. ((y as Float+w)/inter_pixel_distance).trunc() as usize;
 
-    for x_sample in x-w as usize..x+w as usize {
-        for y_sample in y-w as usize..y+w as usize {
-            let x_corrected = (inter_pixel_distance * x_sample as Float);
-            let y_corrected = (inter_pixel_distance * y_sample as Float);
+    for x_sample in x_range {
+        for y_sample in y_range.clone() {
+            let x_corrected = inter_pixel_distance * x_sample as Float;
+            let y_corrected = inter_pixel_distance * y_sample as Float;
             let gauss_weight = gauss_2d(x as Float, y as Float, x_corrected,y_corrected, new_sigma); //TODO: maybe precompute this
             //let gauss_weight = gauss_2d(x as Float, y as Float,  x_sample as Float, y_sample as Float, new_sigma); //TODO: maybe precompute this
             let grad_orientation = gradient_and_orientation(x_grad, y_grad, x_sample, y_sample);

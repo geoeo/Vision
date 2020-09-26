@@ -20,7 +20,7 @@ impl Pyramid {
 
         let base_image = Image::from_gray_image(base_gray_image, true);
 
-        let kernel = GaussKernel::new(0.0, 0.5,1,4.0);
+        let kernel = GaussKernel::new(0.0, 0.1,1,4.0);
         let initial_blur =  filter::gaussian_2_d_convolution(&base_image, &kernel, false);
 
         let mut octave_image = initial_blur;
@@ -34,7 +34,7 @@ impl Pyramid {
                 sigma = octaves[i-1].sigmas[runtime_params.sigma_count];
             }
 
-            let new_octave = Octave::build_octave(&octave_image, runtime_params.sigma_count, sigma, runtime_params);
+            let new_octave = Octave::build_octave(&octave_image, runtime_params.sigma_count, sigma,i, runtime_params);
 
             octaves.push(new_octave);
             

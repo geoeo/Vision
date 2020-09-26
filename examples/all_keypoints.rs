@@ -5,14 +5,14 @@ use std::path::Path;
 
 use sift::pyramid::{Pyramid, runtime_params::RuntimeParams};
 use sift::image::Image;
-use sift::keypoints_from_pyramid;
+use sift::{keypoints_from_pyramid,keypoints_from_octave};
 use sift::visualize::visualize_keypoint;
 
 fn main() {
     
     //let image_name = "blur_rotated";
-    //let image_name = "blur";
-    let image_name = "circles";
+    let image_name = "blur";
+    //let image_name = "circles";
     //let image_name = "beaver_90";
     let image_format = "png";
     let image_folder = "images/";
@@ -29,8 +29,8 @@ fn main() {
     
     
     let runtime_params = RuntimeParams {
-        blur_half_factor: 4.0,
-        orientation_histogram_window_factor: 1,
+        blur_half_factor: 6.0,
+        orientation_histogram_window_factor: 1, //TODO: investigate
         edge_r: 10.0,
         contrast_r: 0.03,
         sigma_initial: 1.0,
@@ -42,6 +42,7 @@ fn main() {
     let pyramid = Pyramid::build_pyramid(&gray_image,&runtime_params);
 
     let all_keypoints = keypoints_from_pyramid(&pyramid, &runtime_params);
+    //let all_keypoints = keypoints_from_octave(&pyramid,2, &runtime_params);
 
     let number_of_features = all_keypoints.len();
 

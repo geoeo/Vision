@@ -71,6 +71,7 @@ pub fn is_rotated_keypoint_within_image(octave: &Octave, keypoint: &KeyPoint) ->
     let rot_mat = rotation_matrix_2d_from_orientation(keypoint.orientation);
     let key_x = keypoint.x as Float;
     let key_y = keypoint.y as Float;
+    let inter_pixel_distance = Octave::inter_pixel_distance(keypoint.octave_level);
     let corner_coordinates = Matrix2x4::new(
         -half_sample_length,half_sample_length,-half_sample_length,half_sample_length,
         -half_sample_length,-half_sample_length,half_sample_length,half_sample_length);
@@ -120,6 +121,10 @@ fn generate_weighted_sample_array(x_gradient: &Image, y_gradient: &Image, keypoi
             let rotated_coordinates = rot_mat*coordinates_vector;
             //let rot_x = rotated_coordinates[(0,0)].floor() as usize; 
             //let rot_y = rotated_coordinates[(1,0)].floor() as usize;
+
+            // let x_corrected = inter_pixel_distance * x_sample as Float;
+            // let y_corrected = inter_pixel_distance * y_sample as Float;
+
             let rot_x = (x_center + rotated_coordinates[(0,0)].trunc()) as usize; 
             let rot_y = (y_center + rotated_coordinates[(1,0)].trunc()) as usize;  
             let gauss_weight = gauss_2d(x_center, y_center,x, y, sigma);
