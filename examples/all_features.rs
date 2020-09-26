@@ -22,11 +22,21 @@ fn main() {
     let gray_image = image_rs::open(&Path::new(&image_path)).unwrap().to_luma();
     let mut display = Image::from_gray_image(&gray_image, false);
 
+    // let runtime_params = RuntimeParams {
+    //     blur_half_width: 9,
+    //     orientation_histogram_window_size: 9,
+    //     edge_r: 2.5,
+    //     contrast_r: 0.1,
+    //     sigma_initial: 1.0,
+    //     octave_count: 4,
+    //     sigma_count: 4
+    // };
+
     let runtime_params = RuntimeParams {
-        blur_half_width: 9,
-        orientation_histogram_window_size: 9,
-        edge_r: 2.5,
-        contrast_r: 0.1,
+        blur_half_factor: 6.0,
+        orientation_histogram_window_factor: 1, //TODO: investigate
+        edge_r: 10.0,
+        contrast_r: 0.03,
         sigma_initial: 1.0,
         octave_count: 4,
         sigma_count: 4

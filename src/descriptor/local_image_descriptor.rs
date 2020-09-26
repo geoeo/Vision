@@ -1,7 +1,7 @@
 extern crate nalgebra as na;
 
 use na::{Dim,MatrixN,Vector2,base::dimension::{U16,U4,U2,U1}, Matrix2x4};
-use crate::Float;
+use crate::{Float,float};
 use crate::image::Image;
 use crate::pyramid::octave::Octave;
 use crate::descriptor::{ORIENTATION_BINS,DESCRIPTOR_BINS,rotation_matrix_2d_from_orientation,gauss_2d,gradient_and_orientation,orientation_histogram::OrientationHistogram,keypoint::KeyPoint};
@@ -20,7 +20,7 @@ pub struct LocalImageDescriptor {
 //TODO: fix this
 impl LocalImageDescriptor {
     pub fn new(octave: &Octave,  keypoint: &KeyPoint) -> LocalImageDescriptor {
-        let weighted_gradient_orientation_samples = generate_weighted_sample_array(&octave.x_gradient[keypoint.sigma_level], &octave.y_gradient[keypoint.sigma_level], keypoint);
+        let weighted_gradient_orientation_samples = generate_normalized_weight_orientation_arrays(&octave, keypoint);
 
         let weighted_sample_gradients = &weighted_gradient_orientation_samples.0;
         let sample_orientation = &weighted_gradient_orientation_samples.1;
@@ -65,27 +65,29 @@ impl LocalImageDescriptor {
 }
 
 pub fn is_rotated_keypoint_within_image(octave: &Octave, keypoint: &KeyPoint) -> bool {
-    let half_sample_length = 8.0; //TODO but this into input parameters or make this constant
+    let total_desciptor_side_length = 8.0; //TODO but this into input parameters or make this constant
     let image = &octave.images[keypoint.sigma_level];
     let keypoint_sigma = &octave.sigmas[keypoint.sigma_level];
     let rot_mat = rotation_matrix_2d_from_orientation(keypoint.orientation);
     let key_x = keypoint.x as Float;
     let key_y = keypoint.y as Float;
-    let inter_pixel_distance = Octave::inter_pixel_distance(keypoint.octave_level);
+    //let inter_pixel_distance = Octave::inter_pixel_distance(keypoint.octave_level);
     let corner_coordinates = Matrix2x4::new(
-        -half_sample_length,half_sample_length,-half_sample_length,half_sample_length,
-        -half_sample_length,-half_sample_length,half_sample_length,half_sample_length);
+        -total_desciptor_side_length,total_desciptor_side_length,-total_desciptor_side_length,total_desciptor_side_length,
+        -total_desciptor_side_length,-total_desciptor_side_length,total_desciptor_side_length,total_desciptor_side_length);
 
     let rotated_corners = rot_mat*corner_coordinates;
     let mut valid = true;
 
     for i in 0..4 {
         let coordiantes = rotated_corners.fixed_slice::<U2,U1>(0,i);
+        //TODO: refactor this into a method
         let x_norm = coordiantes[(0,0)]/(keypoint_sigma);
         let y_norm = coordiantes[(1,0)]/(keypoint_sigma);
         let x =  key_x + x_norm;
         let y =  key_y + y_norm;
-        valid &= x >= 0.0 && x < image.buffer.ncols() as Float && y >= 0.0 && y < image.buffer.nrows() as Float && x_norm <= half_sample_length/2.0 &&  y_norm <= half_sample_length/2.0;
+        valid &= x >= 0.0 && x < image.buffer.ncols() as Float && y >= 0.0 && y < image.buffer.nrows() as Float && 
+        x_norm <= total_desciptor_side_length/2.0 && x_norm >= -total_desciptor_side_length/2.0 && y_norm <= total_desciptor_side_length/2.0 && y_norm >= -total_desciptor_side_length/2.0;
     }
 
     valid
@@ -93,13 +95,15 @@ pub fn is_rotated_keypoint_within_image(octave: &Octave, keypoint: &KeyPoint) ->
 }
 
 //TODO: Fix this
-fn generate_weighted_sample_array(x_gradient: &Image, y_gradient: &Image, keypoint: &KeyPoint) -> (MatrixN<Float, U16>,MatrixN<Float, U16>) {
+fn generate_normalized_weight_orientation_arrays(octave: &Octave, keypoint: &KeyPoint) -> (MatrixN<Float, U16>,MatrixN<Float, U16>) {
 
-    let total_descriptor_size = U16::try_to_usize().unwrap();
-    let total_desciptor_side_length = (total_descriptor_size/2) as isize;
+    let total_desciptor_side_length = 8 as isize;
     let submatrix_length = (total_desciptor_side_length/2) as isize;
-    let sigma = submatrix_length as Float;
-
+    let sigma = 1.5*octave.sigmas[keypoint.sigma_level];
+    let lambda_descriptor = 6.0; //TODO: get this from runtime parms i.e. blur_half_factor
+    let x_gradient = &octave.x_gradient[keypoint.sigma_level];
+    let y_gradient = &octave.y_gradient[keypoint.sigma_level];
+    let inter_pixel_distance = Octave::inter_pixel_distance(keypoint.octave_level);
 
     let x_center = keypoint.x as Float;
     let y_center = keypoint.y as Float;
@@ -108,31 +112,21 @@ fn generate_weighted_sample_array(x_gradient: &Image, y_gradient: &Image, keypoi
     let mut sample_weights = MatrixN::<Float,U16>::zeros();
     let mut sample_orientations = MatrixN::<Float,U16>::zeros();
 
-    for r in 0..total_descriptor_size {
-        for c in 0..total_descriptor_size {
-            let matrix_index = (r,c);
-            let gauss_sample_offset_x = c as isize - total_desciptor_side_length;
-            let gauss_sample_offset_y = -(r as isize) + total_desciptor_side_length;
-            //let x = x_center + gauss_sample_offset_x as Float;
-            //let y = y_center + gauss_sample_offset_y as Float;
-            let x =  gauss_sample_offset_x as Float;
-            let y =  gauss_sample_offset_y as Float;
-            let coordinates_vector = Vector2::new(x,y);
+    for x_off in -total_desciptor_side_length..total_desciptor_side_length {
+        for y_off in -total_desciptor_side_length..total_desciptor_side_length {
+            let matrix_index = ((y_off+total_desciptor_side_length) as usize,(x_off+total_desciptor_side_length) as usize);
+
+            let coordinates_vector = Vector2::new(sigma*(x_off as Float)/inter_pixel_distance,sigma*(y_off as Float)/inter_pixel_distance);
             let rotated_coordinates = rot_mat*coordinates_vector;
-            //let rot_x = rotated_coordinates[(0,0)].floor() as usize; 
-            //let rot_y = rotated_coordinates[(1,0)].floor() as usize;
 
-            // let x_corrected = inter_pixel_distance * x_sample as Float;
-            // let y_corrected = inter_pixel_distance * y_sample as Float;
-
-            let rot_x = (x_center + rotated_coordinates[(0,0)].trunc()) as usize; 
-            let rot_y = (y_center + rotated_coordinates[(1,0)].trunc()) as usize;  
-            let gauss_weight = gauss_2d(x_center, y_center,x, y, sigma);
-            let grad_orientation = gradient_and_orientation(x_gradient,y_gradient,rot_x,rot_y); //TODO: this may go out of bounds due to rotation
+            let rot_x = x_center + rotated_coordinates[(0,0)]; 
+            let rot_y = y_center + rotated_coordinates[(1,0)];  
+            let gauss_weight = gauss_2d(x_center, y_center,rot_x, rot_y,sigma);
+            let grad_orientation = gradient_and_orientation(x_gradient,y_gradient,rot_x.trunc() as usize,rot_y.trunc() as usize); 
             let weighted_gradient = grad_orientation.0*gauss_weight; 
             
             sample_weights[matrix_index] = weighted_gradient;
-            sample_orientations[matrix_index] = grad_orientation.1;
+            sample_orientations[matrix_index] = (grad_orientation.1 - keypoint.orientation) % (2.0*float::consts::PI);
 
         }
     }

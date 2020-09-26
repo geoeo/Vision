@@ -23,7 +23,7 @@ impl Pyramid {
         let kernel = GaussKernel::new(0.0, 0.1,1,4.0);
         let initial_blur =  filter::gaussian_2_d_convolution(&base_image, &kernel, false);
 
-        let mut octave_image = initial_blur;
+        let mut octave_image = base_image;
         let mut sigma = runtime_params.sigma_initial;
 
 

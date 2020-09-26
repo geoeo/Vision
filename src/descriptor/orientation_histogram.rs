@@ -114,20 +114,20 @@ pub fn generate_keypoints_from_extrema(octave: &Octave,octave_level: usize, keyp
     //TODO: think of a better solution to image border
     //TODO: make image dimensions more easily accesible
 
-
-
-    //TODO: reduce numbers of casts
-    if (x as Float -w)/inter_pixel_distance < 0.0 || 
-    (x as Float + w)/inter_pixel_distance >= octave.images[keypoint.sigma_level].buffer.ncols() as Float || 
-    (y as Float -w)/inter_pixel_distance <0.0 || 
-    (y as Float+w)/inter_pixel_distance >= octave.images[keypoint.sigma_level].buffer.nrows() as Float{
+    let w_min_x =  (x as Float -w)/inter_pixel_distance;
+    let w_max_x =  (x as Float +w)/inter_pixel_distance;
+    let w_min_y =  (y as Float -w)/inter_pixel_distance;
+    let w_max_y =  (y as Float +w)/inter_pixel_distance;
+    
+    if w_min_x < 0.0 || 
+    w_max_x >= octave.images[keypoint.sigma_level].buffer.ncols() as Float || 
+    w_min_y <0.0 || 
+    w_max_y >= octave.images[keypoint.sigma_level].buffer.nrows() as Float{
         return Vec::new()
     }
-
-    //TODO: extra filter for max 
     
-    let x_range = ((x as Float-w)/inter_pixel_distance).trunc() as usize .. ((x as Float+w)/inter_pixel_distance).trunc() as usize;
-    let y_range = ((y as Float-w)/inter_pixel_distance).trunc() as usize .. ((y as Float+w)/inter_pixel_distance).trunc() as usize;
+    let x_range = w_min_x.trunc() as usize .. w_max_x.trunc() as usize;
+    let y_range = w_min_y.trunc() as usize .. w_max_y.trunc() as usize;
 
     for x_sample in x_range {
         for y_sample in y_range.clone() {
@@ -155,6 +155,7 @@ pub fn generate_keypoints_from_extrema(octave: &Octave,octave_level: usize, keyp
     }).0;
 
     //TODO: maybe smooth here
+    histogram.smooth();
     post_process(&mut histogram,keypoint, octave_level)
 }
 
