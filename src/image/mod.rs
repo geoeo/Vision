@@ -69,7 +69,7 @@ impl Image {
         let new_width = ((width as Float)/2.0).trunc() as usize;
         let new_height = ((height as Float)/2.0).trunc() as usize;
 
-        if new_height <= 25 || new_width <= 25  {
+        if new_height <= 2 || new_width <= 2  {
             panic!("new (height,width): ({},{}) are too small",new_height,new_width);
         }
 

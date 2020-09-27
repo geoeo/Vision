@@ -29,4 +29,8 @@ impl Kernel for LaplaceKernel {
     fn half_repeat(&self) -> usize {
         self.half_repeat
     }
+
+    fn normalizing_constant(&self) -> Float{
+        1.0
+    }
 }

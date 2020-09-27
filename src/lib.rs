@@ -43,7 +43,7 @@ pub fn feature_vectors_from_pyramid(pyramid: &Pyramid, runtime_params:&RuntimePa
 
     for octave_level in 0..pyramid.octaves.len() {
         let octave = &pyramid.octaves[octave_level];
-        for sigma_level in 1..octave.sigmas.len()-2 {
+        for sigma_level in 1..pyramid.s+1 {
             all_vectors.push(feature_vectors_from_octave(pyramid,octave_level,sigma_level,runtime_params));
         }
     }
@@ -82,8 +82,7 @@ pub fn feature_vectors_from_octave(pyramid: &Pyramid, octave_level: usize, sigma
 pub fn keypoints_from_octave(pyramid: &Pyramid, octave_level: usize, runtime_params: &RuntimeParams) -> Vec<KeyPoint> {
     let mut all_vectors = Vec::<Vec<KeyPoint>>::new();
 
-    let octave = &pyramid.octaves[octave_level];
-    for dog_level in 1..octave.difference_of_gaussians.len()-1 {
+    for dog_level in 1..pyramid.s+1 {
         all_vectors.push(keypoints_from_sigma(pyramid, octave_level,dog_level, runtime_params));
     }
 

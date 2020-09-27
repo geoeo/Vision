@@ -13,7 +13,7 @@ impl PrewittKernel {
     pub fn new() -> PrewittKernel {
         PrewittKernel {
             kernel: vec![-1.0,0.0,1.0],
-            half_repeat: 1
+            half_repeat: 0
         }
     }
 }
@@ -29,5 +29,9 @@ impl Kernel for PrewittKernel {
 
     fn half_repeat(&self) -> usize {
         self.half_repeat
+    }
+
+    fn normalizing_constant(&self) -> Float{
+        2.0
     }
 }

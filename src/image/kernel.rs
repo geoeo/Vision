@@ -11,4 +11,6 @@ pub trait Kernel {
     }
     // Half the number of extra repeats of the kernel
     fn half_repeat(&self) -> usize;
+
+    fn normalizing_constant(&self) -> Float;
 }

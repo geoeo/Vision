@@ -41,6 +41,10 @@ impl Kernel for GaussKernel {
     fn half_repeat(&self) -> usize {
         0
     }
+
+    fn normalizing_constant(&self) -> Float{
+        1.0
+    }
 }
 
 

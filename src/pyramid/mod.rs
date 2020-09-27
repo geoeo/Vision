@@ -4,6 +4,7 @@ use image_rs::GrayImage;
 use self::octave::Octave;
 use crate::image::{Image, filter, gauss_kernel::GaussKernel};
 use crate::pyramid::runtime_params::RuntimeParams;
+use crate::Float;
 
 pub mod octave;
 pub mod runtime_params;
@@ -20,10 +21,12 @@ impl Pyramid {
 
         let base_image = Image::from_gray_image(base_gray_image, true);
 
-        let kernel = GaussKernel::new(0.0, 0.1,1,4.0);
+        let sigma_init = 0.5;
+        let blur_width = Octave::generate_blur_width(runtime_params.blur_half_factor, sigma_init, base_image.buffer.ncols() as Float);
+        let kernel = GaussKernel::new(0.0, sigma_init,1,blur_width);
         let initial_blur =  filter::gaussian_2_d_convolution(&base_image, &kernel, false);
 
-        let mut octave_image = base_image;
+        let mut octave_image = initial_blur;
         let mut sigma = runtime_params.sigma_initial;
 
 

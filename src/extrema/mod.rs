@@ -75,6 +75,7 @@ pub fn extrema_refinement(extrema: &Vec<ExtremaParameters>, source_octave: &Octa
 }
 
 //TODO: maybe return new extrema instead due to potential change of coordiantes in interpolation
+//TODO: needs to be more stable
 pub fn contrast_filter(source_octave: &Octave, input_params: &ExtremaParameters, first_order_kernel: &dyn Kernel) -> (Float,ExtremaParameters) {
 
     let dx = source_octave.dog_x_gradient[input_params.sigma_level].buffer[(input_params.y,input_params.x)];
@@ -97,7 +98,7 @@ pub fn contrast_filter(source_octave: &Octave, input_params: &ExtremaParameters,
     
         let mut perturb_final = perturb;
         let mut extrema_final =  ExtremaParameters{x:input_params.x ,y:input_params.y,sigma_level:input_params.sigma_level};
-        let max_it = 10;
+        let max_it = 1;
         let mut counter = 0;
     
         while (perturb_final[(0,0)].abs() > 0.5 || perturb_final[(1,0)].abs() > 0.5 || perturb_final[(2,0)].abs() > 0.5) && counter < max_it  {
@@ -105,27 +106,33 @@ pub fn contrast_filter(source_octave: &Octave, input_params: &ExtremaParameters,
             let (perturb_it,extrema_it) = match perturb_final {
                 perturb if perturb[(0,0)] > 0.5 && extrema_final.x as isize + 1 + kernel_half_width < width => {
                     let extrema= ExtremaParameters{x:extrema_final.x + 1,y:extrema_final.y,sigma_level:extrema_final.sigma_level};
-                    (interpolate(source_octave,&extrema,first_order_kernel),extrema)
+                    //(interpolate(source_octave,&extrema,first_order_kernel),extrema)
+                    (perturb,extrema)
                 },
                 perturb if perturb[(0,0)] < -0.5  && extrema_final.x as isize - 1  -kernel_half_width > 0 => {
                     let extrema = ExtremaParameters{x:extrema_final.x -1,y:extrema_final.y,sigma_level:extrema_final.sigma_level};
-                    (interpolate(source_octave,&extrema,first_order_kernel),extrema)
+                    //(interpolate(source_octave,&extrema,first_order_kernel),extrema)
+                    (perturb,extrema)
                 },
                 perturb if perturb[(1,0)] < -0.5  && extrema_final.y as isize + 1 + kernel_half_width < height => {
                     let extrema = ExtremaParameters{x:extrema_final.x,y:extrema_final.y + 1,sigma_level:extrema_final.sigma_level};
-                    (interpolate(source_octave,&extrema,first_order_kernel),extrema)
+                    //(interpolate(source_octave,&extrema,first_order_kernel),extrema)
+                    (perturb,extrema)
                 },
                 perturb if perturb[(1,0)] > 0.5 && extrema_final.y as isize - 1 - kernel_half_width > 0 => {
                     let extrema = ExtremaParameters{x:extrema_final.x,y:extrema_final.y - 1,sigma_level:extrema_final.sigma_level};
-                    (interpolate(source_octave,&extrema,first_order_kernel),extrema)
+                    //(interpolate(source_octave,&extrema,first_order_kernel),extrema)
+                    (perturb,extrema)
                 },
                 perturb if perturb[(2,0)] > 0.5 && extrema_final.sigma_level as isize + 1 + kernel_half_width  < source_octave.dog_s_gradient.len() as isize=> {
                     let extrema = ExtremaParameters{x:extrema_final.x ,y:extrema_final.y,sigma_level:extrema_final.sigma_level + 1};
-                    (interpolate(source_octave,&extrema,first_order_kernel),extrema)
+                    //(interpolate(source_octave,&extrema,first_order_kernel),extrema)
+                    (perturb,extrema)
                 },
                 perturb if perturb[(2,0)] < -0.5 && extrema_final.sigma_level as isize - 1 - kernel_half_width > 0 => {
                     let extrema = ExtremaParameters{x:extrema_final.x,y:extrema_final.y,sigma_level:extrema_final.sigma_level - 1};
-                    (interpolate(source_octave,&extrema,first_order_kernel),extrema)
+                    //(interpolate(source_octave,&extrema,first_order_kernel),extrema)
+                    (perturb,extrema)
                 },
                 _ => {
                     counter = max_it;
@@ -185,7 +192,7 @@ fn interpolate(source_octave: &Octave, input_params: &ExtremaParameters, first_o
                          dsx,dsy,dss);
 
     let b = Matrix3x1::new(dx,dy,ds);
-    let solve_option = a.lu().solve(&b); //.expect("Linear resolution failed.")
+    let solve_option = a.qr().solve(&b); //.expect("Linear resolution failed.")
     match solve_option {
         Some(a) => -a,
         None => panic!("Linear resolution failed.") 
