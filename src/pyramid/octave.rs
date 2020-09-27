@@ -1,6 +1,6 @@
 extern crate image as image_rs;
 
-use crate::image::{Image, filter, gauss_kernel::GaussKernel, prewitt_kernel::PrewittKernel, image_encoding::ImageEncoding};
+use crate::image::{Image, filter, gauss_kernel::GaussKernel1D, prewitt_kernel::PrewittKernel, image_encoding::ImageEncoding};
 use crate::{Float,GradientDirection};
 use crate::pyramid::runtime_params::RuntimeParams;
 
@@ -18,7 +18,7 @@ pub struct Octave {
 
 impl Octave {
 
-    pub fn build_octave(base_image: &Image, s: usize, sigma_initial: Float,octave_level: usize, runtime_params: &RuntimeParams) -> Octave {
+    pub fn build_octave(base_image: &Image, s: usize, sigma_initial: Float, runtime_params: &RuntimeParams) -> Octave {
 
         let image_count = s + 3;
         let range = 0..image_count;
@@ -30,7 +30,7 @@ impl Octave {
 
 
         let sigmas: Vec<Float> = range.clone().map(|x| sigma_initial*Octave::generate_k(x as Float, s as Float)).collect();
-        let kernels: Vec<GaussKernel> = sigmas.iter().map(|&sigma| GaussKernel::new(mean, sigma,step,Octave::generate_blur_width(blur_width,sigma,base_image.buffer.ncols() as Float))).collect();
+        let kernels: Vec<GaussKernel1D> = sigmas.iter().map(|&sigma| GaussKernel1D::new(mean, sigma,step,Octave::generate_blur_half_width(blur_width,sigma))).collect();
         let images: Vec<Image> = kernels.iter().map(|kernel| filter::gaussian_2_d_convolution(base_image, kernel, true)).collect();
         let images_borrows: Vec<&Image> = images.iter().map(|x| x).collect();
         let x_gradient = range.clone().map(|x| filter::filter_1d_convolution(&images_borrows,x, GradientDirection::HORIZINTAL, &gradient_kernel, false)).collect();
@@ -60,10 +60,8 @@ impl Octave {
     }
 
     //TODO: check this
-    pub fn generate_blur_width(blur_half_factor: Float, sigma: Float, image_width: Float) -> Float {
-        let k = blur_half_factor*sigma;
-        let width_double = 2.0*image_width;
-        (k % width_double).min((width_double - 1.0 - k) % width_double).abs()
+    pub fn generate_blur_half_width(blur_half_factor: Float, sigma: Float) -> Float {
+        blur_half_factor*sigma
     }
 
     pub fn inter_pixel_distance(octave_level: usize) -> Float {

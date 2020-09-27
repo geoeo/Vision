@@ -3,7 +3,7 @@ extern crate sift;
 
 use std::path::Path;
 
-use sift::image::{Image,filter, gauss_kernel::GaussKernel};
+use sift::image::{Image,filter, gauss_kernel::GaussKernel1D};
 use sift::GradientDirection;
 
 fn main() {
@@ -19,7 +19,7 @@ fn main() {
     let frame = Image::from_gray_image(&image, false);
     let vec = vec![&frame];
 
-    let filter_kernel = GaussKernel::new(0.0, 5.5,1,3.0);
+    let filter_kernel = GaussKernel1D::new(0.0, 5.5,1,3.0);
     
     let blur_hor = filter::filter_1d_convolution(&vec,0,GradientDirection::HORIZINTAL, &filter_kernel, false);
 

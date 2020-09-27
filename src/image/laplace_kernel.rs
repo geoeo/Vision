@@ -1,9 +1,12 @@
+extern crate nalgebra as na;
+
+use na::DMatrix;
 use crate::Float;
 use super::kernel::Kernel;
 
 
 pub struct LaplaceKernel {
-    kernel: Vec<Float>,
+    kernel: DMatrix<Float>, 
     half_repeat: usize
 
 }
@@ -13,14 +16,14 @@ impl LaplaceKernel {
 
     pub fn new() -> LaplaceKernel {
         LaplaceKernel {
-            kernel: vec![1.0,-2.0,1.0],
+            kernel: DMatrix::from_vec(1,3,vec![1.0,-2.0,1.0]),
             half_repeat: 1
         }
     }
 }
 
 impl Kernel for LaplaceKernel {
-    fn kernel(&self) -> &Vec<Float> {
+    fn kernel(&self) -> &DMatrix<Float> {
         &self.kernel
     }
     fn step(&self) -> usize {

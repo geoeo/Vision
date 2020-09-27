@@ -1,4 +1,4 @@
-use crate::image::{Image,gauss_kernel::GaussKernel, kernel::Kernel};
+use crate::image::{Image,gauss_kernel::GaussKernel1D, kernel::Kernel};
 use crate::pyramid::octave::Octave;
 use crate::{Float, GradientDirection};
 use crate::extrema::extrema_parameters::ExtremaParameters;
@@ -52,7 +52,7 @@ pub fn filter_1d_convolution(source_images: &Vec<&Image>, sigma_level: usize, fi
                     };
 
                 
-                    let kenel_value = kernel[(kenel_idx + kernel_half_width_signed) as usize];
+                    let kenel_value = kernel[(0,(kenel_idx + kernel_half_width_signed) as usize)];
                     acc +=sample_value*kenel_value;
                 }
                 target.buffer[(y,x)] = acc/filter_kernel.normalizing_constant(); //TODO: this is not correct for all filters
@@ -65,7 +65,7 @@ pub fn filter_1d_convolution(source_images: &Vec<&Image>, sigma_level: usize, fi
     target
 }
 
-//TODO: improve this
+//TODO: rewrite this
 pub fn gradient_convolution_at_sample(source_octave: &Octave,source_images: &Vec<Image>, input_params: &ExtremaParameters, filter_kernel: &dyn Kernel, gradient_direction: GradientDirection) -> Float {
 
     let x_input = input_params.x; 
@@ -157,7 +157,7 @@ pub fn gradient_convolution_at_sample(source_octave: &Octave,source_images: &Vec
  
 
 
-pub fn gaussian_2_d_convolution(image: &Image, filter_kernel: &GaussKernel, normalize: bool) -> Image {
+pub fn gaussian_2_d_convolution(image: &Image, filter_kernel: &GaussKernel1D, normalize: bool) -> Image {
     let vec = vec![image];
     let blur_hor = filter_1d_convolution(&vec,0,GradientDirection::HORIZINTAL, filter_kernel, normalize);
     let vec_2 = vec![&blur_hor];

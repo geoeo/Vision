@@ -2,9 +2,8 @@ extern crate image as image_rs;
 
 use image_rs::GrayImage;
 use self::octave::Octave;
-use crate::image::{Image, filter, gauss_kernel::GaussKernel};
+use crate::image::{Image, filter, gauss_kernel::GaussKernel1D};
 use crate::pyramid::runtime_params::RuntimeParams;
-use crate::Float;
 
 pub mod octave;
 pub mod runtime_params;
@@ -22,8 +21,8 @@ impl Pyramid {
         let base_image = Image::from_gray_image(base_gray_image, true);
 
         let sigma_init = 0.5;
-        let blur_width = Octave::generate_blur_width(runtime_params.blur_half_factor, sigma_init, base_image.buffer.ncols() as Float);
-        let kernel = GaussKernel::new(0.0, sigma_init,1,blur_width);
+        let blur_width = Octave::generate_blur_half_width(runtime_params.blur_half_factor, sigma_init);
+        let kernel = GaussKernel1D::new(0.0, sigma_init,1,blur_width);
         let initial_blur =  filter::gaussian_2_d_convolution(&base_image, &kernel, false);
 
         let mut octave_image = initial_blur;
@@ -37,7 +36,7 @@ impl Pyramid {
                 sigma = octaves[i-1].sigmas[runtime_params.sigma_count];
             }
 
-            let new_octave = Octave::build_octave(&octave_image, runtime_params.sigma_count, sigma,i, runtime_params);
+            let new_octave = Octave::build_octave(&octave_image, runtime_params.sigma_count, sigma, runtime_params);
 
             octaves.push(new_octave);
             
