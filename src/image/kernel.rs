@@ -13,7 +13,8 @@ pub trait Kernel{
         (self.kernel().ncols()-1)/2
     }
     // Half the number of extra repeats of the kernel -> TODO: Make this dervied from Matrix height
-    fn half_repeat(&self) -> usize;
-
+    fn half_repeat(&self) -> usize {
+        (self.kernel().nrows()-1)/2
+    }
     fn normalizing_constant(&self) -> Float;
 }

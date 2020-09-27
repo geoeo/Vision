@@ -42,10 +42,6 @@ impl Kernel for GaussKernel1D {
         self.step
     }
 
-    fn half_repeat(&self) -> usize {
-        0
-    }
-
     fn normalizing_constant(&self) -> Float{
         1.0
     }

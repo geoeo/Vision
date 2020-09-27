@@ -6,9 +6,7 @@ use super::kernel::Kernel;
 
 
 pub struct LaplaceKernel {
-    kernel: DMatrix<Float>, 
-    half_repeat: usize
-
+    kernel: DMatrix<Float>
 }
 
 impl LaplaceKernel {
@@ -16,8 +14,7 @@ impl LaplaceKernel {
 
     pub fn new() -> LaplaceKernel {
         LaplaceKernel {
-            kernel: DMatrix::from_vec(1,3,vec![1.0,-2.0,1.0]),
-            half_repeat: 1
+            kernel: DMatrix::from_vec(1,3,vec![1.0,-2.0,1.0])
         }
     }
 }
@@ -28,9 +25,6 @@ impl Kernel for LaplaceKernel {
     }
     fn step(&self) -> usize {
         1
-    }
-    fn half_repeat(&self) -> usize {
-        self.half_repeat
     }
 
     fn normalizing_constant(&self) -> Float{
