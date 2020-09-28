@@ -68,12 +68,11 @@ pub fn keypoints_from_pyramid(pyramid: &Pyramid, runtime_params:&RuntimeParams) 
 pub fn feature_vectors_from_octave(pyramid: &Pyramid, octave_level: usize, sigma_level: usize, runtime_params:&RuntimeParams) -> Vec<FeatureVector> {
     let x_step = 1;
     let y_step = 1;
-    let first_order_derivative_filter = PrewittKernel::new();
 
     let octave = &pyramid.octaves[octave_level];
 
-    let features = extrema::detect_extrema(octave,sigma_level,first_order_derivative_filter.half_width(),x_step, y_step);
-    let refined_features = extrema::extrema_refinement(&features, octave, &first_order_derivative_filter, runtime_params);
+    let features = extrema::detect_extrema(octave,sigma_level,x_step, y_step);
+    let refined_features = extrema::extrema_refinement(&features, octave, runtime_params);
     let keypoints = refined_features.iter().map(|x| generate_keypoints_from_extrema(octave,octave_level, x, runtime_params)).flatten().collect::<Vec<KeyPoint>>();
     let descriptors = keypoints.iter().filter(|x| is_rotated_keypoint_within_image(octave, x)).map(|x| LocalImageDescriptor::new(octave,x)).collect::<Vec<LocalImageDescriptor>>();
     descriptors.iter().map(|x| FeatureVector::new(x,octave_level)).collect::<Vec<FeatureVector>>()
@@ -92,12 +91,11 @@ pub fn keypoints_from_octave(pyramid: &Pyramid, octave_level: usize, runtime_par
 pub fn keypoints_from_sigma(pyramid: &Pyramid, octave_level: usize, dog_level: usize, runtime_params: &RuntimeParams) -> Vec<KeyPoint> {
     let x_step = 1;
     let y_step = 1;
-    let first_order_derivative_filter = PrewittKernel::new();
 
     let octave = &pyramid.octaves[octave_level];
 
-    let features = extrema::detect_extrema(octave,dog_level,first_order_derivative_filter.half_width(),x_step, y_step);
-    let refined_features = extrema::extrema_refinement(&features, octave, &first_order_derivative_filter, runtime_params);
+    let features = extrema::detect_extrema(octave,dog_level,x_step, y_step);
+    let refined_features = extrema::extrema_refinement(&features, octave, runtime_params);
     refined_features.iter().map(|x| generate_keypoints_from_extrema(octave,octave_level, x, runtime_params)).flatten().filter(|x| is_rotated_keypoint_within_image(octave, x)).collect::<Vec<KeyPoint>>()
 }
 

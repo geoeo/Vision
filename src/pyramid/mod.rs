@@ -20,11 +20,13 @@ impl Pyramid {
 
         let base_image = Image::from_gray_image(base_gray_image, true);
 
+        //TODO: check this
         let sigma_init = 0.5;
         let blur_width = Octave::generate_blur_half_width(runtime_params.blur_half_factor, sigma_init);
+        //let blur_width = runtime_params.blur_half_factor;
         let kernel = GaussKernel1D::new(0.0, sigma_init,1,blur_width);
-        let initial_blur =  filter::gaussian_2_d_convolution(&base_image, &kernel, false);
-
+        let initial_blur =  filter::gaussian_2_d_convolution(&base_image, &kernel, true);
+        
         let mut octave_image = initial_blur;
         let mut sigma = runtime_params.sigma_initial;
 
@@ -32,7 +34,7 @@ impl Pyramid {
         for i in 0..runtime_params.octave_count {
 
             if i > 0 {
-                octave_image = Image::downsample_half(&octaves[i-1].images[runtime_params.sigma_count], false);
+                octave_image = Image::downsample_half(&octaves[i-1].images[runtime_params.sigma_count], true);
                 sigma = octaves[i-1].sigmas[runtime_params.sigma_count];
             }
 

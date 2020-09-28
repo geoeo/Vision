@@ -1,7 +1,7 @@
 extern crate nalgebra as na;
 
 use na::{Matrix3x1,Matrix3,DMatrix};
-use crate::image::{kernel::Kernel,filter::gradient_convolution_at_sample};
+use crate::image::{kernel::Kernel,filter::gradient_convolution_at_sample,prewitt_kernel::PrewittKernel,laplace_kernel::LaplaceKernel,laplace_off_center_kernel::LaplaceOffCenterKernel};
 use crate::{Float,float, GradientDirection, round};
 use crate::pyramid::{octave::Octave, runtime_params::RuntimeParams};
 use extrema_parameters::ExtremaParameters;
@@ -11,7 +11,7 @@ mod hessian;
 pub mod extrema_parameters;
 
 
-pub fn detect_extrema(source_octave: &Octave, sigma_level: usize, filter_half_width: usize, x_step: usize, y_step: usize) -> Vec<ExtremaParameters> {
+pub fn detect_extrema(source_octave: &Octave, sigma_level: usize, x_step: usize, y_step: usize) -> Vec<ExtremaParameters> {
 
     let mut extrema_vec: Vec<ExtremaParameters> = Vec::new();
 
@@ -21,6 +21,7 @@ pub fn detect_extrema(source_octave: &Octave, sigma_level: usize, filter_half_wi
     let image_buffer = &source_octave.difference_of_gaussians[sigma_level].buffer;
     let prev_buffer = &source_octave.difference_of_gaussians[sigma_level-1].buffer;
     let next_buffer = &source_octave.difference_of_gaussians[sigma_level+1].buffer;
+    let sigma = source_octave.sigmas[sigma_level];
 
     let offset = 1;
 
@@ -36,7 +37,7 @@ pub fn detect_extrema(source_octave: &Octave, sigma_level: usize, filter_half_wi
                 is_sample_extrema_in_neighbourhood(sample_value,x,y,next_buffer,false);
 
             if is_extrema {
-                extrema_vec.push(ExtremaParameters{x,y,sigma_level});
+                extrema_vec.push(ExtremaParameters{x: x as Float,y: y as Float, sigma});
             }
         }
     }
@@ -70,113 +71,90 @@ fn is_sample_extrema_in_neighbourhood(sample: Float, x_sample: usize, y_sample: 
     is_smallest || is_largest
 }
 
-pub fn extrema_refinement(extrema: &Vec<ExtremaParameters>, source_octave: &Octave, first_order_kernel: &dyn Kernel, runtime_params: &RuntimeParams) -> Vec<ExtremaParameters> {
-    extrema.iter().cloned().map(|x| contrast_filter(source_octave, &x, first_order_kernel)).filter(|x| x.0 >= runtime_params.contrast_r).map(|x| x.1).filter(|x| edge_response_filter(source_octave, &x,first_order_kernel, runtime_params.edge_r)).collect()
+pub fn extrema_refinement(extrema: &Vec<ExtremaParameters>, source_octave: &Octave, runtime_params: &RuntimeParams) -> Vec<ExtremaParameters> {
+    extrema.iter().cloned().map(|x| contrast_filter(source_octave, &x)).filter(|x| x.0 >= runtime_params.contrast_r).map(|x| x.1).filter(|x| edge_response_filter(source_octave, &x, runtime_params.edge_r)).collect()
 }
 
 //TODO: maybe return new extrema instead due to potential change of coordiantes in interpolation
 //TODO: needs to be more stable
-pub fn contrast_filter(source_octave: &Octave, input_params: &ExtremaParameters, first_order_kernel: &dyn Kernel) -> (Float,ExtremaParameters) {
+pub fn contrast_filter(source_octave: &Octave, input_params: &ExtremaParameters) -> (Float,ExtremaParameters) {
 
-    let dx = source_octave.dog_x_gradient[input_params.sigma_level].buffer[(input_params.y,input_params.x)];
-    let dy = source_octave.dog_y_gradient[input_params.sigma_level].buffer[(input_params.y,input_params.x)];
-    let ds = source_octave.dog_s_gradient[input_params.sigma_level].buffer[(input_params.y,input_params.x)];
+    let dx = source_octave.dog_x_gradient[input_params.closest_sigma_level(source_octave.sigmas[0],source_octave.s())].buffer[(input_params.y_image(),input_params.x_image())];
+    let dy = source_octave.dog_y_gradient[input_params.closest_sigma_level(source_octave.sigmas[0],source_octave.s())].buffer[(input_params.y_image(),input_params.x_image())];
+    let ds = source_octave.dog_s_gradient[input_params.closest_sigma_level(source_octave.sigmas[0],source_octave.s())].buffer[(input_params.y_image(),input_params.x_image())];
+
+    let first_order_kernel = PrewittKernel::new();
+    let second_order_kernel = LaplaceKernel::new();
+    let second_order_off_center_kernel = LaplaceOffCenterKernel::new();
+
 
     if round(dx, 10) == 0.0 && round(dy, 10) == 0.0 && round(ds, 10) == 0.0 {
         (float::MAX,input_params.clone())
     } else {
 
         let b = Matrix3x1::new(dx,dy,ds);
-        let perturb = interpolate(source_octave,input_params,first_order_kernel);
-        let width = source_octave.dog_x_gradient[0].buffer.ncols() as isize;
-        let height = source_octave.dog_x_gradient[0].buffer.nrows() as isize;
-        let kernel_half_width = first_order_kernel.half_width() as isize;
-    
-        // let input_x = input_params.x as isize;
-        // let input_y = input_params.y as isize;
-        // let input_s = input_params.sigma_level as isize;
+        let perturb = interpolate(source_octave,input_params,&first_order_kernel,&second_order_kernel);
+        let width = source_octave.dog_x_gradient[0].buffer.ncols();
+        let height = source_octave.dog_x_gradient[0].buffer.nrows();
+        let kernel_half_width = first_order_kernel.half_width();
     
         let mut perturb_final = perturb;
-        let mut extrema_final =  ExtremaParameters{x:input_params.x ,y:input_params.y,sigma_level:input_params.sigma_level};
+        let mut extrema_final =  ExtremaParameters{x:input_params.x ,y:input_params.y,sigma:input_params.sigma};
         let max_it = 1;
         let mut counter = 0;
     
         while (perturb_final[(0,0)].abs() > 0.5 || perturb_final[(1,0)].abs() > 0.5 || perturb_final[(2,0)].abs() > 0.5) && counter < max_it  {
-    
-            let (perturb_it,extrema_it) = match perturb_final {
-                perturb if perturb[(0,0)] > 0.5 && extrema_final.x as isize + 1 + kernel_half_width < width => {
-                    let extrema= ExtremaParameters{x:extrema_final.x + 1,y:extrema_final.y,sigma_level:extrema_final.sigma_level};
-                    //(interpolate(source_octave,&extrema,first_order_kernel),extrema)
-                    (perturb,extrema)
-                },
-                perturb if perturb[(0,0)] < -0.5  && extrema_final.x as isize - 1  -kernel_half_width > 0 => {
-                    let extrema = ExtremaParameters{x:extrema_final.x -1,y:extrema_final.y,sigma_level:extrema_final.sigma_level};
-                    //(interpolate(source_octave,&extrema,first_order_kernel),extrema)
-                    (perturb,extrema)
-                },
-                perturb if perturb[(1,0)] < -0.5  && extrema_final.y as isize + 1 + kernel_half_width < height => {
-                    let extrema = ExtremaParameters{x:extrema_final.x,y:extrema_final.y + 1,sigma_level:extrema_final.sigma_level};
-                    //(interpolate(source_octave,&extrema,first_order_kernel),extrema)
-                    (perturb,extrema)
-                },
-                perturb if perturb[(1,0)] > 0.5 && extrema_final.y as isize - 1 - kernel_half_width > 0 => {
-                    let extrema = ExtremaParameters{x:extrema_final.x,y:extrema_final.y - 1,sigma_level:extrema_final.sigma_level};
-                    //(interpolate(source_octave,&extrema,first_order_kernel),extrema)
-                    (perturb,extrema)
-                },
-                perturb if perturb[(2,0)] > 0.5 && extrema_final.sigma_level as isize + 1 + kernel_half_width  < source_octave.dog_s_gradient.len() as isize=> {
-                    let extrema = ExtremaParameters{x:extrema_final.x ,y:extrema_final.y,sigma_level:extrema_final.sigma_level + 1};
-                    //(interpolate(source_octave,&extrema,first_order_kernel),extrema)
-                    (perturb,extrema)
-                },
-                perturb if perturb[(2,0)] < -0.5 && extrema_final.sigma_level as isize - 1 - kernel_half_width > 0 => {
-                    let extrema = ExtremaParameters{x:extrema_final.x,y:extrema_final.y,sigma_level:extrema_final.sigma_level - 1};
-                    //(interpolate(source_octave,&extrema,first_order_kernel),extrema)
-                    (perturb,extrema)
-                },
-                _ => {
-                    counter = max_it;
-                    (perturb,extrema_final.clone())
-                }
-            };
-    
-            perturb_final = perturb_it;
-            extrema_final = extrema_it;
-            counter = counter +1;
+
+            perturb_final = interpolate(source_octave,&extrema_final, &first_order_kernel,&second_order_kernel);
+            
+            extrema_final.x += perturb_final[(0,0)];
+            extrema_final.y += perturb_final[(1,0)];
+            extrema_final.sigma += perturb_final[(2,0)];
+
+            let closest_sigma_level = extrema_final.closest_sigma_level(source_octave.sigmas[0],source_octave.s());
+
+            if extrema_final.y_image() >= kernel_half_width && extrema_final.y_image() < height-kernel_half_width && 
+            extrema_final.x_image() >= kernel_half_width &&  extrema_final.x_image() < width-kernel_half_width &&
+            closest_sigma_level >=kernel_half_width && closest_sigma_level < source_octave.difference_of_gaussians.len()-kernel_half_width {
+                counter = counter +1;
+            } else {
+                counter = max_it;
+            }
     
         }
     
     
-    
-    
-        let dog_sample = source_octave.difference_of_gaussians[extrema_final.sigma_level].buffer.index((extrema_final.y,extrema_final.x));
-        let dog_x_pertub = dog_sample + 0.5*b.dot(&perturb_final);
-        
+        let closest_sigma_level = extrema_final.closest_sigma_level(source_octave.sigmas[0],source_octave.s());
 
-        (dog_x_pertub.abs(), extrema_final)
-        
-
+// We have to interpolate in the next step. so we check filter size here
+        if extrema_final.y_image() >= kernel_half_width && extrema_final.y_image() < height-kernel_half_width && 
+        extrema_final.x_image() >= kernel_half_width &&  extrema_final.x_image() < width-kernel_half_width &&
+        closest_sigma_level >=kernel_half_width && closest_sigma_level < source_octave.difference_of_gaussians.len()-kernel_half_width {
+                let dog_sample = source_octave.difference_of_gaussians[closest_sigma_level].buffer.index((extrema_final.y_image(),extrema_final.x_image()));
+                let dog_x_pertub = dog_sample + 0.5*b.dot(&perturb_final);
+                (dog_x_pertub.abs(), extrema_final)
+            } else {
+                (0.0, extrema_final)
+            }
 
     }
 
-
-
 }
 
-pub fn edge_response_filter(source_octave: &Octave, input_params: &ExtremaParameters, first_order_kernel: &dyn Kernel, r: Float) -> bool {
-    let hessian = hessian::new(source_octave,input_params,first_order_kernel);
+pub fn edge_response_filter(source_octave: &Octave, input_params: &ExtremaParameters, r: Float) -> bool {
+    let hessian = hessian::new(source_octave,input_params);
     hessian::accept_hessian(&hessian, r)
 }
 
-fn interpolate(source_octave: &Octave, input_params: &ExtremaParameters, first_order_kernel: &dyn Kernel) -> Matrix3x1<Float> {
+fn interpolate(source_octave: &Octave, input_params: &ExtremaParameters, first_order_kernel: &dyn Kernel, second_order_kernel: &dyn Kernel) -> Matrix3x1<Float> {
 
-    let dx = source_octave.dog_x_gradient[input_params.sigma_level].buffer[(input_params.y,input_params.x)];
-    let dy = source_octave.dog_y_gradient[input_params.sigma_level].buffer[(input_params.y,input_params.x)];
-    let ds = source_octave.dog_s_gradient[input_params.sigma_level].buffer[(input_params.y,input_params.x)];
+    let dx = source_octave.dog_x_gradient[input_params.closest_sigma_level(source_octave.sigmas[0],source_octave.s())].buffer[(input_params.y_image(),input_params.x_image())];
+    let dy = source_octave.dog_y_gradient[input_params.closest_sigma_level(source_octave.sigmas[0],source_octave.s())].buffer[(input_params.y_image(),input_params.x_image())];
+    let ds = source_octave.dog_s_gradient[input_params.closest_sigma_level(source_octave.sigmas[0],source_octave.s())].buffer[(input_params.y_image(),input_params.x_image())];
 
-    let dxx = gradient_convolution_at_sample(source_octave,&source_octave.dog_x_gradient,input_params,first_order_kernel,GradientDirection::HORIZINTAL);
-    let dyy = gradient_convolution_at_sample(source_octave,&source_octave.dog_y_gradient,input_params,first_order_kernel,GradientDirection::VERTICAL);
-    let dss = gradient_convolution_at_sample(source_octave,&source_octave.dog_s_gradient,input_params,first_order_kernel,GradientDirection::SIGMA);
+    let dxx = gradient_convolution_at_sample(source_octave,&source_octave.difference_of_gaussians,input_params,second_order_kernel,GradientDirection::HORIZINTAL);
+    let dyy = gradient_convolution_at_sample(source_octave,&source_octave.difference_of_gaussians,input_params,second_order_kernel,GradientDirection::VERTICAL);
+    let dss = gradient_convolution_at_sample(source_octave,&source_octave.difference_of_gaussians,input_params,second_order_kernel,GradientDirection::SIGMA);
 
     let dxy = gradient_convolution_at_sample(source_octave,&source_octave.dog_x_gradient,input_params,first_order_kernel,GradientDirection::VERTICAL);
     let dxs = gradient_convolution_at_sample(source_octave,&source_octave.dog_x_gradient,input_params,first_order_kernel,GradientDirection::SIGMA);

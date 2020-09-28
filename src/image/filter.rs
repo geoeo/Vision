@@ -68,12 +68,12 @@ pub fn filter_1d_convolution(source_images: &Vec<&Image>, sigma_level: usize, fi
 //TODO: rewrite this
 pub fn gradient_convolution_at_sample(source_octave: &Octave,source_images: &Vec<Image>, input_params: &ExtremaParameters, filter_kernel: &dyn Kernel, gradient_direction: GradientDirection) -> Float {
 
-    let x_input = input_params.x; 
+    let x_input = input_params.x_image(); 
     let x_input_signed = input_params.x as isize; 
-    let y_input = input_params.y; 
+    let y_input = input_params.y_image(); 
     let y_input_signed = input_params.y as isize; 
-    let sigma_level_input = input_params.sigma_level;
-    let sigma_level_input_signed = input_params.sigma_level as isize;
+    let sigma_level_input = input_params.closest_sigma_level(source_octave.sigmas[0],source_octave.s());
+    let sigma_level_input_signed = input_params.closest_sigma_level(source_octave.sigmas[0],source_octave.s()) as isize;
 
     let kernel = filter_kernel.kernel();
     let step = filter_kernel.step();
@@ -82,7 +82,7 @@ pub fn gradient_convolution_at_sample(source_octave: &Octave,source_images: &Vec
     let kernel_half_width = filter_kernel.half_width();
     let kernel_half_width_signed = kernel_half_width as isize;
 
-    let buffer = &source_images[input_params.sigma_level].buffer;
+    let buffer = &source_images[input_params.closest_sigma_level(source_octave.sigmas[0],source_octave.s())].buffer;
     let width = buffer.ncols();
     let height = buffer.nrows();
 

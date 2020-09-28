@@ -102,12 +102,12 @@ pub fn generate_keypoints_from_extrema(octave: &Octave,octave_level: usize, keyp
 
     let x = keypoint.x;
     let y = keypoint.y;
-    let sigma = octave.sigmas[keypoint.sigma_level];
+    let sigma = octave.sigmas[keypoint.closest_sigma_level(octave.sigmas[0],octave.s())];
     let new_sigma = 1.5*sigma;
     let w = (runtime_params.orientation_histogram_window_factor as Float * new_sigma).trunc();
     //let w = (runtime_params.orientation_histogram_window_factor as Float * sigma).trunc() as isize;
-    let x_grad = &octave.x_gradient[keypoint.sigma_level]; //TODO: check 
-    let y_grad = &octave.y_gradient[keypoint.sigma_level]; //TODO: check 
+    let x_grad = &octave.x_gradient[keypoint.closest_sigma_level(octave.sigmas[0],octave.s())]; //TODO: check 
+    let y_grad = &octave.y_gradient[keypoint.closest_sigma_level(octave.sigmas[0],octave.s())]; //TODO: check 
     let mut histogram = OrientationHistogram::new(36);
     let inter_pixel_distance = Octave::inter_pixel_distance(octave_level);
 
@@ -120,9 +120,9 @@ pub fn generate_keypoints_from_extrema(octave: &Octave,octave_level: usize, keyp
     let w_max_y =  (y as Float +w)/inter_pixel_distance;
     
     if w_min_x < 0.0 || 
-    w_max_x >= octave.images[keypoint.sigma_level].buffer.ncols() as Float || 
+    w_max_x >= octave.images[keypoint.closest_sigma_level(octave.sigmas[0],octave.s())].buffer.ncols() as Float || 
     w_min_y <0.0 || 
-    w_max_y >= octave.images[keypoint.sigma_level].buffer.nrows() as Float{
+    w_max_y >= octave.images[keypoint.closest_sigma_level(octave.sigmas[0],octave.s())].buffer.nrows() as Float{
         return Vec::new()
     }
     
@@ -156,11 +156,11 @@ pub fn generate_keypoints_from_extrema(octave: &Octave,octave_level: usize, keyp
 
     //TODO: maybe smooth here
     histogram.smooth();
-    post_process(&mut histogram,keypoint, octave_level)
+    post_process(&mut histogram,keypoint,octave, octave_level)
 }
 
 
-fn post_process(histogram: &mut OrientationHistogram, extrema: &ExtremaParameters,octave_level: usize) -> Vec<KeyPoint> {
+fn post_process(histogram: &mut OrientationHistogram, extrema: &ExtremaParameters,octave: &Octave, octave_level: usize) -> Vec<KeyPoint> {
 
     let max_val = histogram.bins[histogram.max_bin];
     let threshold = max_val*0.8;
@@ -173,7 +173,7 @@ fn post_process(histogram: &mut OrientationHistogram, extrema: &ExtremaParameter
 
     //histogram.smooth();
     //TODO: maybe split up the return of histogram and keypoint so that it can be debugged
-    interpolated_peaks_indices.iter().map(|&peak_idx| {KeyPoint{x: extrema.x, y: extrema.y, octave_level: octave_level, sigma_level: extrema.sigma_level, orientation: index_to_radian(histogram,peak_idx)}}).collect::<Vec<KeyPoint>>()
+    interpolated_peaks_indices.iter().map(|&peak_idx| {KeyPoint{x: extrema.x_image(), y: extrema.y_image() as usize, octave_level: octave_level, sigma_level: extrema.closest_sigma_level(octave.sigmas[0],octave.s()), orientation: index_to_radian(histogram,peak_idx)}}).collect::<Vec<KeyPoint>>()
 
 }
 

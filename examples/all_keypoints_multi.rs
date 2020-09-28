@@ -35,9 +35,9 @@ fn main() {
             orientation_histogram_window_factor: 1, //TODO: investigate
             edge_r: 10.0,
             contrast_r: 0.03,
-            sigma_initial: 0.8,
-            octave_count: 8, //TODO: investigate
-            sigma_count: 3
+            sigma_initial: 1.2,
+            octave_count: 4, //TODO: investigate
+            sigma_count: 4
         };
     
         //TODO: experiment with blur half width and pyramid params
