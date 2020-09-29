@@ -30,16 +30,17 @@ fn main() {
         let mut display = Image::from_gray_image(&gray_image, false);
         
         
+        //TODO: move inital blur params here
         let runtime_params = RuntimeParams {
-            blur_half_factor: 4.0,
+            blur_half_factor: 4.0, //TODO: lowering <= 4 this causes algorithm to become unstable
             orientation_histogram_window_factor: 1, //TODO: investigate
             edge_r: 10.0,
             contrast_r: 0.03,
-            sigma_initial: 1.2,
-            octave_count: 4, //TODO: investigate
-            sigma_count: 4
+            sigma_initial: 1.6,
+            octave_count: 8,
+            sigma_count: 3
         };
-    
+
         //TODO: experiment with blur half width and pyramid params
         let pyramid = Pyramid::build_pyramid(&gray_image,&runtime_params);
     

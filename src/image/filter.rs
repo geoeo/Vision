@@ -72,8 +72,8 @@ pub fn gradient_convolution_at_sample(source_octave: &Octave,source_images: &Vec
     let x_input_signed = input_params.x as isize; 
     let y_input = input_params.y_image(); 
     let y_input_signed = input_params.y as isize; 
-    let sigma_level_input = input_params.closest_sigma_level(source_octave.sigmas[0],source_octave.s());
-    let sigma_level_input_signed = input_params.closest_sigma_level(source_octave.sigmas[0],source_octave.s()) as isize;
+    let sigma_level_input = input_params.closest_sigma_level(source_octave.s());
+    let sigma_level_input_signed = sigma_level_input as isize;
 
     let kernel = filter_kernel.kernel();
     let step = filter_kernel.step();
@@ -82,7 +82,7 @@ pub fn gradient_convolution_at_sample(source_octave: &Octave,source_images: &Vec
     let kernel_half_width = filter_kernel.half_width();
     let kernel_half_width_signed = kernel_half_width as isize;
 
-    let buffer = &source_images[input_params.closest_sigma_level(source_octave.sigmas[0],source_octave.s())].buffer;
+    let buffer = &source_images[sigma_level_input].buffer;
     let width = buffer.ncols();
     let height = buffer.nrows();
 

@@ -102,12 +102,13 @@ pub fn generate_keypoints_from_extrema(octave: &Octave,octave_level: usize, keyp
 
     let x = keypoint.x;
     let y = keypoint.y;
-    let sigma = octave.sigmas[keypoint.closest_sigma_level(octave.sigmas[0],octave.s())];
+    let sigma_level = keypoint.closest_sigma_level(octave.s());
+    let sigma = octave.sigmas[sigma_level];
     let new_sigma = 1.5*sigma;
     let w = (runtime_params.orientation_histogram_window_factor as Float * new_sigma).trunc();
     //let w = (runtime_params.orientation_histogram_window_factor as Float * sigma).trunc() as isize;
-    let x_grad = &octave.x_gradient[keypoint.closest_sigma_level(octave.sigmas[0],octave.s())]; //TODO: check 
-    let y_grad = &octave.y_gradient[keypoint.closest_sigma_level(octave.sigmas[0],octave.s())]; //TODO: check 
+    let x_grad = &octave.x_gradient[sigma_level]; //TODO: check 
+    let y_grad = &octave.y_gradient[sigma_level]; //TODO: check 
     let mut histogram = OrientationHistogram::new(36);
     let inter_pixel_distance = Octave::inter_pixel_distance(octave_level);
 
@@ -120,9 +121,9 @@ pub fn generate_keypoints_from_extrema(octave: &Octave,octave_level: usize, keyp
     let w_max_y =  (y as Float +w)/inter_pixel_distance;
     
     if w_min_x < 0.0 || 
-    w_max_x >= octave.images[keypoint.closest_sigma_level(octave.sigmas[0],octave.s())].buffer.ncols() as Float || 
+    w_max_x >= octave.images[sigma_level].buffer.ncols() as Float || 
     w_min_y <0.0 || 
-    w_max_y >= octave.images[keypoint.closest_sigma_level(octave.sigmas[0],octave.s())].buffer.nrows() as Float{
+    w_max_y >= octave.images[sigma_level].buffer.nrows() as Float{
         return Vec::new()
     }
     
@@ -173,7 +174,7 @@ fn post_process(histogram: &mut OrientationHistogram, extrema: &ExtremaParameter
 
     //histogram.smooth();
     //TODO: maybe split up the return of histogram and keypoint so that it can be debugged
-    interpolated_peaks_indices.iter().map(|&peak_idx| {KeyPoint{x: extrema.x_image(), y: extrema.y_image() as usize, octave_level: octave_level, sigma_level: extrema.closest_sigma_level(octave.sigmas[0],octave.s()), orientation: index_to_radian(histogram,peak_idx)}}).collect::<Vec<KeyPoint>>()
+    interpolated_peaks_indices.iter().map(|&peak_idx| {KeyPoint{x: extrema.x_image(), y: extrema.y_image() as usize, octave_level: octave_level, sigma_level: extrema.closest_sigma_level(octave.s()), orientation: index_to_radian(histogram,peak_idx)}}).collect::<Vec<KeyPoint>>()
 
 }
 

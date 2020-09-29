@@ -33,8 +33,8 @@ fn main() {
         orientation_histogram_window_factor: 1, //TODO: investigate
         edge_r: 10.0,
         contrast_r: 0.03,
-        sigma_initial: 0.8,
-        octave_count: 6,
+        sigma_initial: 1.6,
+        octave_count: 8,
         sigma_count: 3
     };
 
