@@ -72,5 +72,14 @@ impl Octave {
     pub fn s(&self) -> usize {
         self.sigmas.len() - 3
     }
+
+    pub fn within_range(&self, x: usize, y: usize, sigma_level: usize, kernel_half_width: usize) -> bool {
+        let height = self.images[0].buffer.nrows();
+        let width = self.images[0].buffer.ncols();
+        let sigma_size = self.difference_of_gaussians.len();
+        y >= kernel_half_width && y < height-kernel_half_width && 
+        x >= kernel_half_width &&  x < width-kernel_half_width &&
+        sigma_level >=kernel_half_width && sigma_level < sigma_size-kernel_half_width
+    }
 }
 

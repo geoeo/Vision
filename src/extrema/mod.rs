@@ -95,32 +95,39 @@ pub fn contrast_filter(source_octave: &Octave,octave_level: usize, input_params:
 
         let b = Matrix3x1::new(dx,dy,ds);
         let perturb = interpolate(source_octave,input_params,&first_order_kernel,&second_order_kernel);
-        let width = source_octave.dog_x_gradient[0].buffer.ncols();
-        let height = source_octave.dog_x_gradient[0].buffer.nrows();
         let kernel_half_width = first_order_kernel.half_width();
     
-
         let s = source_octave.s();
         let sigma_range = (1.0/s as Float).exp2();
         let mut perturb_final = perturb;
         let mut extrema_final =  ExtremaParameters{x:input_params.x ,y:input_params.y,sigma_level:input_params.sigma_level};
         let max_it = 1; // TODO: put this in runtime params  
         let mut counter = 0;
+        let cutoff = 0.5;
     
-        //TODO: handle expectiosn in linear resolution
-        while (perturb_final[(0,0)].abs() > 0.5 || perturb_final[(1,0)].abs() > 0.5 || perturb_final[(2,0)].abs() > sigma_range/2.0) && counter < max_it  {
+        while (perturb_final[(0,0)].abs() > cutoff || perturb_final[(1,0)].abs() > cutoff || perturb_final[(2,0)].abs() > sigma_range/2.0) && counter < max_it  {
 
             perturb_final = interpolate(source_octave,&extrema_final, &first_order_kernel,&second_order_kernel);
             
-            extrema_final.x += perturb_final[(0,0)];
-            extrema_final.y += perturb_final[(1,0)];
-            extrema_final.sigma_level += perturb_final[(2,0)];
+            if perturb_final[(0,0)].abs() > cutoff {
+                extrema_final.x += perturb_final[(0,0)];
+            }
+
+            if perturb_final[(1,0)].abs() > cutoff {
+                extrema_final.y += perturb_final[(1,0)];
+            }
+            
+            if  perturb_final[(2,0)].abs() > sigma_range/2.0 {
+                extrema_final.sigma_level += perturb_final[(2,0)];
+            }
+
+            // extrema_final.x += perturb_final[(0,0)];
+            // extrema_final.y += perturb_final[(1,0)];
+            // extrema_final.sigma_level += perturb_final[(2,0)];
 
             let closest_sigma_level = extrema_final.closest_sigma_level(source_octave.s());
 
-            if extrema_final.y_image() >= kernel_half_width && extrema_final.y_image() < height-kernel_half_width && 
-            extrema_final.x_image() >= kernel_half_width &&  extrema_final.x_image() < width-kernel_half_width &&
-            closest_sigma_level >=kernel_half_width && closest_sigma_level < source_octave.difference_of_gaussians.len()-kernel_half_width {
+            if source_octave.within_range(extrema_final.x_image(), extrema_final.y_image(), closest_sigma_level, kernel_half_width) {
                 counter = counter +1;
             } else {
                 counter = max_it;
@@ -130,11 +137,7 @@ pub fn contrast_filter(source_octave: &Octave,octave_level: usize, input_params:
     
     
         let closest_sigma_level = extrema_final.closest_sigma_level(source_octave.s());
-
-// We have to interpolate in the next step. so we check filter size here
-        if extrema_final.y_image() >= kernel_half_width && extrema_final.y_image() < height-kernel_half_width && 
-        extrema_final.x_image() >= kernel_half_width &&  extrema_final.x_image() < width-kernel_half_width &&
-        closest_sigma_level >=kernel_half_width && closest_sigma_level < source_octave.difference_of_gaussians.len()-kernel_half_width {
+        if source_octave.within_range(extrema_final.x_image(), extrema_final.y_image(), closest_sigma_level, kernel_half_width)  {
                 let dog_sample = source_octave.difference_of_gaussians[closest_sigma_level].buffer.index((extrema_final.y_image(),extrema_final.x_image()));
                 let dog_x_pertub = dog_sample + 0.5*b.dot(&perturb_final);
                 (dog_x_pertub.abs(), extrema_final)
