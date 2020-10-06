@@ -80,9 +80,49 @@ impl Image {
                 let new_y = y/2;
                 let new_x = x/2;
                 if new_y < new_height && new_x < new_width {
+
                     new_buffer[(new_y,new_x)] = image.buffer[(y,x)];
                 }
 
+            }
+        }
+
+        if normalize {
+            new_buffer.normalize_mut();
+        }
+
+        Image{
+            buffer: new_buffer,
+            original_encoding: image.original_encoding
+        }
+
+    }
+
+    pub fn upsample_double(image: &Image, normalize: bool) -> Image {
+        let width = image.buffer.ncols();
+        let height = image.buffer.ncols();
+
+        let new_width = width*2;
+        let new_height = height*2;
+
+        let old_buffer = &image.buffer;
+        let mut new_buffer = DMatrix::<Float>::from_element(new_height,new_width,0.0);
+
+        for x in 0..new_width-2 {
+            for y in 0..new_height-2 {
+                let x_prime = x as Float / 2.0;
+                let y_prime = y as Float / 2.0;
+                let x_prime_trunc = x_prime.trunc();
+                let y_prime_trunc = y_prime.trunc();
+
+                let new_val = (x_prime - x_prime_trunc)*(y_prime - y_prime_trunc)*old_buffer[(y_prime_trunc as usize + 1, x_prime_trunc as usize + 1)] + 
+                              (1.0 + x_prime_trunc - x_prime)*(y_prime - y_prime_trunc)*old_buffer[(y_prime_trunc as usize + 1, x_prime_trunc as usize)] +
+                              (x_prime - x_prime_trunc)*(1.0 + y_prime_trunc - y_prime)*old_buffer[(y_prime_trunc as usize, x_prime_trunc as usize + 1)] + 
+                              (1.0 + x_prime_trunc - x_prime)*(1.0 + y_prime_trunc - y_prime)*old_buffer[(y_prime_trunc as usize, x_prime_trunc as usize)];
+
+                              
+                              
+                new_buffer[(y,x)] = new_val;
             }
         }
 

@@ -105,7 +105,7 @@ pub fn generate_keypoints_from_extrema(octave: &Octave,octave_level: usize, keyp
     let sigma_level = keypoint.closest_sigma_level(octave.s());
     let sigma = octave.sigmas[sigma_level];
     let new_sigma = 1.5*sigma;
-    let w = (runtime_params.orientation_histogram_window_factor as Float * new_sigma).trunc();
+    let w = (runtime_params.orientation_histogram_window_factor * new_sigma).trunc();
     //let w = (runtime_params.orientation_histogram_window_factor as Float * sigma).trunc() as isize;
     let x_grad = &octave.x_gradient[sigma_level]; //TODO: check 
     let y_grad = &octave.y_gradient[sigma_level]; //TODO: check 
@@ -119,6 +119,11 @@ pub fn generate_keypoints_from_extrema(octave: &Octave,octave_level: usize, keyp
     let w_max_x =  (x as Float +w)/inter_pixel_distance;
     let w_min_y =  (y as Float -w)/inter_pixel_distance;
     let w_max_y =  (y as Float +w)/inter_pixel_distance;
+
+    // let w_min_x =  (x as Float -w);
+    // let w_max_x =  (x as Float +w);
+    // let w_min_y =  (y as Float -w);
+    // let w_max_y =  (y as Float +w);
     
     if w_min_x < 0.0 || 
     w_max_x >= octave.images[sigma_level].buffer.ncols() as Float || 
@@ -134,8 +139,8 @@ pub fn generate_keypoints_from_extrema(octave: &Octave,octave_level: usize, keyp
         for y_sample in y_range.clone() {
             let x_corrected = inter_pixel_distance * x_sample as Float;
             let y_corrected = inter_pixel_distance * y_sample as Float;
-            let gauss_weight = gauss_2d(x as Float, y as Float, x_corrected,y_corrected, new_sigma); //TODO: maybe precompute this
-            //let gauss_weight = gauss_2d(x as Float, y as Float,  x_sample as Float, y_sample as Float, new_sigma); //TODO: maybe precompute this
+            //let gauss_weight = gauss_2d(x as Float, y as Float, x_corrected,y_corrected, new_sigma); //TODO: maybe precompute this
+            let gauss_weight = gauss_2d(x as Float, y as Float,  x_sample as Float, y_sample as Float, new_sigma); //TODO: maybe precompute this
             let grad_orientation = gradient_and_orientation(x_grad, y_grad, x_sample, y_sample);
             histogram.add_measurement(grad_orientation, gauss_weight);
         }
@@ -164,7 +169,8 @@ pub fn generate_keypoints_from_extrema(octave: &Octave,octave_level: usize, keyp
 fn post_process(histogram: &mut OrientationHistogram, extrema: &ExtremaParameters,octave: &Octave, octave_level: usize) -> Vec<KeyPoint> {
 
     let max_val = histogram.bins[histogram.max_bin];
-    let threshold = max_val*0.8;
+    //let threshold = max_val*0.8; //TODO: make this runtime param
+    let threshold = max_val*0.0; //TODO: make this runtime param
     let peaks_indices = histogram.bins.clone().into_iter().enumerate().filter(|x| x.1 >= threshold).map(|t| t.0).collect::<Vec<usize>>();
 
     let peak_neighbours_indices = peaks_indices.into_iter().filter(|&x| filter_adjacent(histogram,x as isize)).map(|x| get_adjacent_circular_by_index(histogram, x as isize)).collect::<Vec<(usize,usize,usize)>>();

@@ -23,7 +23,7 @@ pub fn detect_extrema(source_octave: &Octave, sigma_level: usize, x_step: usize,
     let next_buffer = &source_octave.difference_of_gaussians[sigma_level+1].buffer;
     //let sigma = source_octave.sigmas[sigma_level];
 
-    let offset = 1;
+    let offset = 5;
 
     for x in (offset..image_buffer.ncols()-offset).step_by(x_step) {
         for y in (offset..image_buffer.nrows()-offset).step_by(y_step)  {
@@ -31,10 +31,12 @@ pub fn detect_extrema(source_octave: &Octave, sigma_level: usize, x_step: usize,
             let sample_value = image_buffer[(y,x)];
 
             //TODO: @Investigate parallel
-            let is_extrema = 
-                is_sample_extrema_in_neighbourhood(sample_value,x,y,image_buffer,true) && 
-                is_sample_extrema_in_neighbourhood(sample_value,x,y,prev_buffer,false) && 
-                is_sample_extrema_in_neighbourhood(sample_value,x,y,next_buffer,false);
+            let (is_smallest_curr, is_largest_curr) =  is_sample_extrema_in_neighbourhood(sample_value,x,y,image_buffer,true);
+            let (is_smallest_prev, is_largest_prev) =  is_sample_extrema_in_neighbourhood(sample_value,x,y,prev_buffer,false);
+            let (is_smallest_next, is_largest_next) = is_sample_extrema_in_neighbourhood(sample_value,x,y,next_buffer,false);
+
+            //let is_extrema = (is_smallest_curr&&is_smallest_prev&&is_smallest_next) || (is_largest_curr&&is_largest_prev&&is_largest_next);
+            let is_extrema = (is_smallest_curr||is_largest_curr) && (is_smallest_prev ||is_largest_prev) && (is_smallest_next || is_largest_next); // This is wrong ?
 
             if is_extrema {
                 extrema_vec.push(ExtremaParameters{x: x as Float,y: y as Float,sigma_level: sigma_level as Float});
@@ -45,7 +47,7 @@ pub fn detect_extrema(source_octave: &Octave, sigma_level: usize, x_step: usize,
     extrema_vec
 }
 
-fn is_sample_extrema_in_neighbourhood(sample: Float, x_sample: usize, y_sample: usize, neighbourhood_buffer: &DMatrix<Float>, skip_center: bool) -> bool {
+fn is_sample_extrema_in_neighbourhood(sample: Float, x_sample: usize, y_sample: usize, neighbourhood_buffer: &DMatrix<Float>, skip_center: bool) -> (bool,bool) {
 
     let mut is_smallest = true;
     let mut is_largest = true;
@@ -68,11 +70,13 @@ fn is_sample_extrema_in_neighbourhood(sample: Float, x_sample: usize, y_sample: 
         }
     }
 
-    is_smallest || is_largest
+    (is_smallest,is_largest)
 }
 
 pub fn extrema_refinement(extrema: &Vec<ExtremaParameters>, source_octave: &Octave,octave_level: usize, runtime_params: &RuntimeParams) -> Vec<ExtremaParameters> {
-    extrema.iter().cloned().map(|x| contrast_filter(source_octave,octave_level, &x)).filter(|x| x.0 >= runtime_params.contrast_r).map(|x| x.1).filter(|x| edge_response_filter(source_octave, &x, runtime_params.edge_r)).collect()
+    //extrema.iter().cloned().map(|x| contrast_filter(source_octave,octave_level, &x)).filter(|x| x.0 >= runtime_params.contrast_r).map(|x| x.1).filter(|x| edge_response_filter(source_octave, &x, runtime_params.edge_r)).collect()
+    extrema.iter().cloned().filter(|x| edge_response_filter(source_octave, &x, runtime_params.edge_r)).collect()
+    //extrema.clone()
 }
 
 //TODO: maybe return new extrema instead due to potential change of coordiantes in interpolation
@@ -137,7 +141,8 @@ pub fn contrast_filter(source_octave: &Octave,octave_level: usize, input_params:
     
     
         let closest_sigma_level = extrema_final.closest_sigma_level(source_octave.s());
-        if source_octave.within_range(extrema_final.x_image(), extrema_final.y_image(), closest_sigma_level, kernel_half_width)  {
+        if source_octave.within_range(extrema_final.x_image(), extrema_final.y_image(), closest_sigma_level, kernel_half_width) &&
+        (perturb_final[(0,0)].abs() <= cutoff && perturb_final[(1,0)].abs() <= cutoff && perturb_final[(2,0)].abs() <= sigma_range/2.0)  {
                 let dog_sample = source_octave.difference_of_gaussians[closest_sigma_level].buffer.index((extrema_final.y_image(),extrema_final.x_image()));
                 let dog_x_pertub = dog_sample + 0.5*b.dot(&perturb_final);
                 (dog_x_pertub.abs(), extrema_final)

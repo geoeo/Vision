@@ -32,6 +32,7 @@ fn main() {
         edge_r: 10.0,
         contrast_r: 0.03,
         sigma_initial: 1.0,
+        sigma_in: 0.5,
         octave_count: 4,
         sigma_count: 4
     };

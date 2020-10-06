@@ -159,7 +159,7 @@ pub fn gradient_convolution_at_sample(source_octave: &Octave,source_images: &Vec
 
 pub fn gaussian_2_d_convolution(image: &Image, filter_kernel: &GaussKernel1D, normalize: bool) -> Image {
     let vec = vec![image];
-    let blur_hor = filter_1d_convolution(&vec,0,GradientDirection::HORIZINTAL, filter_kernel, normalize);
+    let blur_hor = filter_1d_convolution(&vec,0,GradientDirection::HORIZINTAL, filter_kernel, false);
     let vec_2 = vec![&blur_hor];
     filter_1d_convolution(&vec_2,0,GradientDirection::VERTICAL, filter_kernel, normalize)
 }
