@@ -169,8 +169,7 @@ pub fn generate_keypoints_from_extrema(octave: &Octave,octave_level: usize, keyp
 fn post_process(histogram: &mut OrientationHistogram, extrema: &ExtremaParameters,octave: &Octave, octave_level: usize) -> Vec<KeyPoint> {
 
     let max_val = histogram.bins[histogram.max_bin];
-    //let threshold = max_val*0.8; //TODO: make this runtime param
-    let threshold = max_val*0.0; //TODO: make this runtime param
+    let threshold = max_val*0.8; //TODO: make this runtime param
     let peaks_indices = histogram.bins.clone().into_iter().enumerate().filter(|x| x.1 >= threshold).map(|t| t.0).collect::<Vec<usize>>();
 
     let peak_neighbours_indices = peaks_indices.into_iter().filter(|&x| filter_adjacent(histogram,x as isize)).map(|x| get_adjacent_circular_by_index(histogram, x as isize)).collect::<Vec<(usize,usize,usize)>>();

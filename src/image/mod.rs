@@ -61,6 +61,12 @@ impl Image {
         return Image::matrix_to_image(&self.buffer,  self.original_encoding);
     }
 
+    pub fn normalize(image: &Image) -> Image {
+
+
+        Image{ buffer: image.buffer.normalize(), original_encoding:  image.original_encoding}
+    }
+
 
 
     pub fn downsample_half(image: &Image, normalize: bool) -> Image {
