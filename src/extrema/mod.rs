@@ -103,8 +103,6 @@ pub fn contrast_filter(source_octave: &Octave,octave_level: usize, input_params:
 
     //TODO: this seems buggy
     while (perturb_final[(0,0)].abs() > cutoff || perturb_final[(1,0)].abs() > cutoff || perturb_final[(2,0)].abs() > sigma_range/2.0) && counter < max_it  {
-
-        perturb_final = interpolate(source_octave,&extrema_final, &first_order_kernel,&second_order_kernel);
         
         if perturb_final[(0,0)].abs() > cutoff {
             extrema_final.x += perturb_final[(0,0)];
@@ -125,7 +123,9 @@ pub fn contrast_filter(source_octave: &Octave,octave_level: usize, input_params:
         let closest_sigma_level = extrema_final.closest_sigma_level(source_octave.s());
 
         if source_octave.within_range(extrema_final.x_image(), extrema_final.y_image(), closest_sigma_level, kernel_half_width) {
+            perturb_final = interpolate(source_octave,&extrema_final, &first_order_kernel,&second_order_kernel);
             counter = counter +1;
+
         } else {
             counter = max_it;
         }
