@@ -17,10 +17,11 @@ fn main() {
 
     let runtime_params = RuntimeParams {
         blur_half_factor: 6.0,
-        orientation_histogram_window_factor: 1, //TODO: investigate
+        orientation_histogram_window_factor: 1.0, //TODO: investigate
         edge_r: 10.0,
         contrast_r: 0.03,
         sigma_initial: 1.0,
+        sigma_in: 0.5,
         octave_count: 4,
         sigma_count: 4
     };

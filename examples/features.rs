@@ -28,10 +28,11 @@ fn main() {
 
     let runtime_params = RuntimeParams {
         blur_half_factor: 6.0,
-        orientation_histogram_window_factor: 1, //TODO: investigate
+        orientation_histogram_window_factor: 1.0, //TODO: investigate
         edge_r: 10.0,
         contrast_r: 0.03,
         sigma_initial: 1.0,
+        sigma_in: 0.5,
         octave_count: 4,
         sigma_count: 4
     };
@@ -53,8 +54,8 @@ fn main() {
 
 
 
-    let features = extrema::detect_extrema(octave,sigma_level,first_order_derivative_filter.half_width(),x_step, y_step);
-    let refined_features = extrema::extrema_refinement(&features, octave, &first_order_derivative_filter, &runtime_params);
+    let features = extrema::detect_extrema(octave,sigma_level,x_step, y_step);
+    let refined_features = extrema::extrema_refinement(&features, octave, octave_level, &runtime_params);
     let keypoints = refined_features.iter().map(|x| generate_keypoints_from_extrema(octave,octave_level, x, &runtime_params)).flatten().collect::<Vec<KeyPoint>>();
     let descriptors = keypoints.iter().filter(|x| is_rotated_keypoint_within_image(octave, x)).map(|x| LocalImageDescriptor::new(octave,x)).collect::<Vec<LocalImageDescriptor>>();
     let feature_vectors = descriptors.iter().map(|x| FeatureVector::new(x,octave_level)).collect::<Vec<FeatureVector>>();
@@ -81,8 +82,8 @@ fn main() {
     }
 
     for feature in features {
-        let x = feature.x;
-        let y = feature.y;
+        let x = feature.x.trunc() as usize;
+        let y = feature.y.trunc() as usize;
 
         assert!(x < display.buffer.ncols());
         assert!(y < display.buffer.nrows());
@@ -91,8 +92,8 @@ fn main() {
     }
 
     for feature in refined_features {
-        let x = feature.x;
-        let y = feature.y;
+        let x = feature.x.trunc() as usize;
+        let y = feature.y.trunc() as usize;
 
         assert!(x < display.buffer.ncols());
         assert!(y < display.buffer.nrows());

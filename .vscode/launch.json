@@ -6,6 +6,7 @@
     "configurations": [
 
 
+
         {
             "name": "Blur Launch",
             "type": "lldb",
@@ -71,6 +72,18 @@
             "type": "lldb",
             "request": "launch",
             "program": "${workspaceRoot}/target/debug/examples/all_keypoints",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "env": {"RUST_BACKTRACE":"1"}
+        },
+        {
+            "name": "Keypoints Multi Launch",
+            "type": "lldb",
+            "request": "launch",
+            "program": "${workspaceRoot}/target/debug/examples/all_keypoints_multi",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",

@@ -5,21 +5,22 @@ use crate::Float;
 use super::kernel::Kernel;
 
 
-pub struct LaplaceKernel {
+pub struct LaplaceOffCenterKernel {
     kernel: DMatrix<Float>
 }
 
-impl LaplaceKernel {
+//TODO: this is unused
+impl LaplaceOffCenterKernel {
 
 
-    pub fn new() -> LaplaceKernel {
-        LaplaceKernel {
-            kernel: DMatrix::from_vec(1,3,vec![1.0,-2.0,1.0])
+    pub fn new() -> LaplaceOffCenterKernel {
+        LaplaceOffCenterKernel {
+            kernel: DMatrix::from_vec(1,3,vec![-1.0,0.0,1.0])
         }
     }
 }
 
-impl Kernel for LaplaceKernel {
+impl Kernel for LaplaceOffCenterKernel {
     fn kernel(&self) -> &DMatrix<Float> {
         &self.kernel
     }
@@ -28,6 +29,6 @@ impl Kernel for LaplaceKernel {
     }
 
     fn normalizing_constant(&self) -> Float{
-        1.0
+        2.0
     }
 }
