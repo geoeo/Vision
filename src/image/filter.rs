@@ -77,8 +77,6 @@ pub fn gradient_convolution_at_sample(source_octave: &Octave,source_images: &Vec
 
     let kernel = filter_kernel.kernel();
     let step = filter_kernel.step();
-    // let repeat = filter_kernel.half_repeat() as isize;
-    // let repeat_range = -repeat..repeat+1;
     let kernel_half_width = filter_kernel.half_width();
     let kernel_half_width_signed = kernel_half_width as isize;
 
@@ -90,11 +88,9 @@ pub fn gradient_convolution_at_sample(source_octave: &Octave,source_images: &Vec
     match gradient_direction {
         GradientDirection::HORIZINTAL => {
             assert!(x_input_signed -kernel_half_width_signed >= 0 && x_input + kernel_half_width <= width);
-            //assert!(x_input_signed -repeat >= 0 && x_input + (repeat as usize) < width);
          },
         GradientDirection::VERTICAL => { 
             assert!(y_input_signed -kernel_half_width_signed >= 0 && y_input + kernel_half_width <= height);
-            //assert!(y_input_signed -repeat >= 0 && y_input + (repeat as usize) < height);
          },
         GradientDirection::SIGMA => { 
             assert!(sigma_level_input_signed -kernel_half_width_signed >= 0 && sigma_level_input + kernel_half_width < source_octave.difference_of_gaussians.len());
