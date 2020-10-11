@@ -77,8 +77,8 @@ pub fn gradient_convolution_at_sample(source_octave: &Octave,source_images: &Vec
 
     let kernel = filter_kernel.kernel();
     let step = filter_kernel.step();
-    let repeat = filter_kernel.half_repeat() as isize;
-    let repeat_range = -repeat..repeat+1;
+    // let repeat = filter_kernel.half_repeat() as isize;
+    // let repeat_range = -repeat..repeat+1;
     let kernel_half_width = filter_kernel.half_width();
     let kernel_half_width_signed = kernel_half_width as isize;
 
@@ -90,11 +90,11 @@ pub fn gradient_convolution_at_sample(source_octave: &Octave,source_images: &Vec
     match gradient_direction {
         GradientDirection::HORIZINTAL => {
             assert!(x_input_signed -kernel_half_width_signed >= 0 && x_input + kernel_half_width <= width);
-            assert!(x_input_signed -repeat >= 0 && x_input + (repeat as usize) < width);
+            //assert!(x_input_signed -repeat >= 0 && x_input + (repeat as usize) < width);
          },
         GradientDirection::VERTICAL => { 
             assert!(y_input_signed -kernel_half_width_signed >= 0 && y_input + kernel_half_width <= height);
-            assert!(y_input_signed -repeat >= 0 && y_input + (repeat as usize) < height);
+            //assert!(y_input_signed -repeat >= 0 && y_input + (repeat as usize) < height);
          },
         GradientDirection::SIGMA => { 
             assert!(sigma_level_input_signed -kernel_half_width_signed >= 0 && sigma_level_input + kernel_half_width < source_octave.difference_of_gaussians.len());
@@ -102,6 +102,7 @@ pub fn gradient_convolution_at_sample(source_octave: &Octave,source_images: &Vec
 
     }
 
+    //TODO: kernel repeats
     let mut convolved_value = 0.0;
     for kenel_idx in (-kernel_half_width_signed..kernel_half_width_signed+1).step_by(step){
         let kenel_value = kernel[(kenel_idx + kernel_half_width_signed) as usize];
@@ -109,41 +110,28 @@ pub fn gradient_convolution_at_sample(source_octave: &Octave,source_images: &Vec
             let weighted_sample = match gradient_direction {
                 GradientDirection::HORIZINTAL => {
                     let mut acc = 0.0;
-                    for repeat_idx in repeat_range.clone() {
-                        let sample_idx = x_input_signed +kenel_idx;
-                        let y_repeat_idx =  y_input_signed + repeat_idx;
+                    let sample_idx = x_input_signed +kenel_idx;
 
-                        let sample_value = buffer.index((y_repeat_idx as usize,sample_idx as usize));
-                        acc += kenel_value*sample_value;
-                    }
-                    let range_size = repeat_range.end - repeat_range.start;
-                    acc/ (range_size as Float * filter_kernel.normalizing_constant())
+                    let sample_value = buffer.index((y_input ,sample_idx as usize));
+                    acc += kenel_value*sample_value;
+                    
+                    acc/ filter_kernel.normalizing_constant()
                 },
                 GradientDirection::VERTICAL => {
                     let mut acc = 0.0;
-                    for repeat_idx in repeat_range.clone() {
-                        let sample_idx = y_input_signed+kenel_idx;
-                        let x_repeat_idx = x_input_signed + repeat_idx;
-                        let sample_value = buffer.index((sample_idx as usize, x_repeat_idx as usize));
-                        acc += kenel_value*sample_value;
-                    }
-                    let range_size = repeat_range.end - repeat_range.start;
-                    acc/ (range_size as Float * filter_kernel.normalizing_constant())
+                    let sample_idx = y_input_signed+kenel_idx;
+                    let sample_value = buffer.index((sample_idx as usize, x_input));
+                    acc += kenel_value*sample_value;
+                    acc/ filter_kernel.normalizing_constant()
                 },
                 GradientDirection::SIGMA => { 
                     let mut acc = 0.0;
-                    //for repeat_idx in repeat_range.clone() {
-                    let sigma_range = 0..1;
-                    for repeat_idx in sigma_range {
-                        let sample_idx = sigma_level_input_signed + kenel_idx;
-                        let x_repeat_idx = x_input_signed + repeat_idx;
-                        let sample_buffer =  &source_images[sample_idx as usize].buffer;
-                        let sample_value = sample_buffer.index((y_input,x_repeat_idx as usize));
-                        acc += kenel_value*sample_value;
-                    }
-                    let range_size = repeat_range.end - repeat_range.start;
-                    acc/ (range_size as Float * filter_kernel.normalizing_constant())
-                    //sample_value*kenel_value
+                    let sample_idx = sigma_level_input_signed + kenel_idx;
+                    let sample_buffer =  &source_images[sample_idx as usize].buffer;
+                    let sample_value = sample_buffer.index((y_input,x_input));
+                    acc += kenel_value*sample_value;
+
+                    acc/ filter_kernel.normalizing_constant()
                 }
                 
             };

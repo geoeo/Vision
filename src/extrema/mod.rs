@@ -94,31 +94,75 @@ pub fn contrast_filter(source_octave: &Octave,octave_level: usize, input_params:
     let kernel_half_width = first_order_kernel.half_width();
 
     let s = source_octave.s();
-    let sigma_range = (1.0/s as Float).exp2();
+    let sigma_range = (1.0/(s as Float)).exp2();
     let mut perturb_final = interpolate(source_octave,input_params,&first_order_kernel,&second_order_kernel);
     let mut extrema_final =  ExtremaParameters{x:input_params.x ,y:input_params.y,sigma_level:input_params.sigma_level};
-    let max_it = 0; // TODO: put this in runtime params  
+    let max_it = 5; // TODO: put this in runtime params  
     let mut counter = 0;
-    let cutoff = 0.5;
+    let cutoff = 0.6;
+
+    //println!{"Pertrub: {}", perturb_final};
+
+    perturb_final[(0,0)] = match  perturb_final[(0,0)] {
+        v if v >= cutoff => 0.5,
+        v if v <= -cutoff => -0.5,
+        v => v
+    };
+
+    perturb_final[(1,0)] = match  perturb_final[(1,0)] {
+        v if v >= cutoff => 0.5,
+        v if v <= -cutoff => -0.5,
+        v => v
+    };
+
+    perturb_final[(2,0)] = match  perturb_final[(2,0)] {
+        v if v >= sigma_range/2.0 => sigma_range/2.0,
+        v if v <= -sigma_range/2.0 => -sigma_range/2.0,
+        v => v
+    };
+
+
+    extrema_final.x += perturb_final[(0,0)];
+    extrema_final.y += perturb_final[(1,0)];
+    extrema_final.sigma_level += perturb_final[(2,0)];
+
 
     //TODO: this seems buggy
     while (perturb_final[(0,0)].abs() > cutoff || perturb_final[(1,0)].abs() > cutoff || perturb_final[(2,0)].abs() > sigma_range/2.0) && counter < max_it  {
         
-        if perturb_final[(0,0)].abs() > cutoff {
-            extrema_final.x += perturb_final[(0,0)];
-        }
+        // if perturb_final[(0,0)].abs() > cutoff {
+        //     extrema_final.x += perturb_final[(0,0)];
+        // }
 
-        if perturb_final[(1,0)].abs() > cutoff {
-            extrema_final.y += perturb_final[(1,0)];
-        }
+        // if perturb_final[(1,0)].abs() > cutoff {
+        //     extrema_final.y += perturb_final[(1,0)];
+        // }
         
-        if  perturb_final[(2,0)].abs() > sigma_range/2.0 {
-            extrema_final.sigma_level += perturb_final[(2,0)];
-        }
+        // if  perturb_final[(2,0)].abs() > sigma_range/2.0 {
+        //     extrema_final.sigma_level += perturb_final[(2,0)];
+        // }
 
-        // extrema_final.x += perturb_final[(0,0)];
-        // extrema_final.y += perturb_final[(1,0)];
-        // extrema_final.sigma_level += perturb_final[(2,0)];
+        perturb_final[(0,0)] = match  perturb_final[(0,0)] {
+            v if v >= cutoff => 0.5,
+            v if v <= -cutoff => -0.5,
+            v => v
+        };
+
+        perturb_final[(1,0)] = match  perturb_final[(1,0)] {
+            v if v >= cutoff => 0.5,
+            v if v <= -cutoff => -0.5,
+            v => v
+        };
+
+        perturb_final[(2,0)] = match  perturb_final[(2,0)] {
+            v if v >= sigma_range/2.0 =>sigma_range/2.0,
+            v if v <= -sigma_range/2.0 => -sigma_range/2.0,
+            v => v
+        };
+    
+        extrema_final.x += perturb_final[(0,0)];
+        extrema_final.y += perturb_final[(1,0)];
+        extrema_final.sigma_level += perturb_final[(2,0)];
 
         let closest_sigma_level = extrema_final.closest_sigma_level(source_octave.s());
 
