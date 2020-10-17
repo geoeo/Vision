@@ -1,14 +1,14 @@
 extern crate nalgebra as na;
 
 use na::{Matrix2,Matrix3x1, Matrix3};
-use crate::pyramid::octave::Octave;
+use crate::pyramid::sift_octave::SiftOctave;
 use crate::{Float, GradientDirection};
 use crate::image::{kernel::Kernel,filter::gradient_convolution_at_sample,prewitt_kernel::PrewittKernel,laplace_kernel::LaplaceKernel,laplace_off_center_kernel::LaplaceOffCenterKernel};
 use crate::extrema::extrema_parameters::ExtremaParameters;
 
 
 //TODO: @Investigate: maybe precomputing the gradient images is more efficient
-pub fn new(source_octave: &Octave, input_params: &ExtremaParameters) -> Matrix2<Float> {
+pub fn new(source_octave: &SiftOctave, input_params: &ExtremaParameters) -> Matrix2<Float> {
 
     let second_order_kernel = LaplaceKernel::new();
     let first_order_kernel = PrewittKernel::new();
@@ -35,7 +35,7 @@ pub fn accept_hessian(hessian: &Matrix2<Float>, r: Float) -> bool {
 
 //TODO: maybe return new extrema instead due to potential change of coordiantes in interpolation
 //TODO: needs to be more stable
-pub fn subpixel_refinement(source_octave: &Octave, octave_level: usize, input_params: &ExtremaParameters) -> (Float,ExtremaParameters) {
+pub fn subpixel_refinement(source_octave: &SiftOctave, octave_level: usize, input_params: &ExtremaParameters) -> (Float,ExtremaParameters) {
 
     let sigma_level = input_params.closest_sigma_level(source_octave.s());
 
@@ -150,7 +150,7 @@ pub fn subpixel_refinement(source_octave: &Octave, octave_level: usize, input_pa
 
 }
 
-fn interpolate(source_octave: &Octave, input_params: &ExtremaParameters, first_order_kernel: &dyn Kernel, second_order_kernel: &dyn Kernel) -> Matrix3x1<Float> {
+fn interpolate(source_octave: &SiftOctave, input_params: &ExtremaParameters, first_order_kernel: &dyn Kernel, second_order_kernel: &dyn Kernel) -> Matrix3x1<Float> {
 
     let sigma_level = input_params.closest_sigma_level(source_octave.s());
     let dx = source_octave.dog_x_gradient[sigma_level].buffer[(input_params.y_image(),input_params.x_image())];

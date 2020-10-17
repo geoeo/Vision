@@ -3,7 +3,7 @@ extern crate sift;
 
 use std::path::Path;
 
-use sift::pyramid::{octave::Octave,Pyramid, runtime_params::RuntimeParams};
+use sift::pyramid::{build_sift_pyramid, runtime_params::RuntimeParams};
 use sift::image::Image;
 use sift::{reconstruct_original_coordiantes,feature_vectors_from_pyramid};
 use sift::visualize::draw_square;
@@ -44,7 +44,7 @@ fn main() {
     };
 
     
-    let pyramid = Pyramid::<Octave>::build_pyramid(&gray_image, &runtime_params);
+    let pyramid = build_sift_pyramid(&gray_image, &runtime_params);
 
     let all_features = feature_vectors_from_pyramid(&pyramid, &runtime_params);
 

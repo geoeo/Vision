@@ -1,5 +1,5 @@
 
-use self::pyramid::{octave::Octave,Pyramid,runtime_params::RuntimeParams};
+use self::pyramid::{sift_octave::SiftOctave,Pyramid,runtime_params::RuntimeParams};
 use self::descriptor::{
     feature_vector::FeatureVector,
     orientation_histogram::generate_keypoints_from_extrema,
@@ -37,7 +37,7 @@ pub enum GradientDirection {
     SIGMA
 }
 
-pub fn feature_vectors_from_pyramid(pyramid: &Pyramid<Octave>, runtime_params:&RuntimeParams) -> Vec<FeatureVector> {
+pub fn feature_vectors_from_pyramid(pyramid: &Pyramid<SiftOctave>, runtime_params:&RuntimeParams) -> Vec<FeatureVector> {
 
     let mut all_vectors = Vec::<Vec<FeatureVector>>::new();
 
@@ -52,7 +52,7 @@ pub fn feature_vectors_from_pyramid(pyramid: &Pyramid<Octave>, runtime_params:&R
 
 }
 
-pub fn keypoints_from_pyramid(pyramid: &Pyramid<Octave>, runtime_params:&RuntimeParams) -> Vec<KeyPoint> {
+pub fn keypoints_from_pyramid(pyramid: &Pyramid<SiftOctave>, runtime_params:&RuntimeParams) -> Vec<KeyPoint> {
 
     let mut all_vectors = Vec::<Vec<KeyPoint>>::new();
 
@@ -65,7 +65,7 @@ pub fn keypoints_from_pyramid(pyramid: &Pyramid<Octave>, runtime_params:&Runtime
 }
 
 //TODO: unify these methods
-pub fn feature_vectors_from_octave(pyramid: &Pyramid<Octave>, octave_level: usize, sigma_level: usize, runtime_params:&RuntimeParams) -> Vec<FeatureVector> {
+pub fn feature_vectors_from_octave(pyramid: &Pyramid<SiftOctave>, octave_level: usize, sigma_level: usize, runtime_params:&RuntimeParams) -> Vec<FeatureVector> {
     let x_step = 1;
     let y_step = 1;
 
@@ -78,7 +78,7 @@ pub fn feature_vectors_from_octave(pyramid: &Pyramid<Octave>, octave_level: usiz
     descriptors.iter().map(|x| FeatureVector::new(x,octave_level)).collect::<Vec<FeatureVector>>()
 }
 
-pub fn keypoints_from_octave(pyramid: &Pyramid<Octave>, octave_level: usize, runtime_params: &RuntimeParams) -> Vec<KeyPoint> {
+pub fn keypoints_from_octave(pyramid: &Pyramid<SiftOctave>, octave_level: usize, runtime_params: &RuntimeParams) -> Vec<KeyPoint> {
     let mut all_vectors = Vec::<Vec<KeyPoint>>::new();
 
     for dog_level in 1..pyramid.s+1 {
@@ -88,7 +88,7 @@ pub fn keypoints_from_octave(pyramid: &Pyramid<Octave>, octave_level: usize, run
     all_vectors.into_iter().flatten().collect()
 }
 
-pub fn keypoints_from_sigma(pyramid: &Pyramid<Octave>, octave_level: usize, dog_level: usize, runtime_params: &RuntimeParams) -> Vec<KeyPoint> {
+pub fn keypoints_from_sigma(pyramid: &Pyramid<SiftOctave>, octave_level: usize, dog_level: usize, runtime_params: &RuntimeParams) -> Vec<KeyPoint> {
     let x_step = 1;
     let y_step = 1;
 

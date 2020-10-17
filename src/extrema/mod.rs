@@ -3,7 +3,7 @@ extern crate nalgebra as na;
 use na::{Matrix3x1,Matrix3,DMatrix};
 
 use crate::{Float,float, GradientDirection, round};
-use crate::pyramid::{octave::Octave, runtime_params::RuntimeParams};
+use crate::pyramid::{sift_octave::SiftOctave, runtime_params::RuntimeParams};
 use extrema_parameters::ExtremaParameters;
 
 
@@ -11,7 +11,7 @@ mod processing;
 pub mod extrema_parameters;
 
 
-pub fn detect_extrema(source_octave: &Octave, sigma_level: usize, x_step: usize, y_step: usize) -> Vec<ExtremaParameters> {
+pub fn detect_extrema(source_octave: &SiftOctave, sigma_level: usize, x_step: usize, y_step: usize) -> Vec<ExtremaParameters> {
 
     let mut extrema_vec: Vec<ExtremaParameters> = Vec::new();
 
@@ -73,7 +73,7 @@ fn is_sample_extrema_in_neighbourhood(sample: Float, x_sample: usize, y_sample: 
     (is_smallest,is_largest)
 }
 
-pub fn extrema_refinement(extrema: &Vec<ExtremaParameters>, source_octave: &Octave,octave_level: usize, runtime_params: &RuntimeParams) -> Vec<ExtremaParameters> {
+pub fn extrema_refinement(extrema: &Vec<ExtremaParameters>, source_octave: &SiftOctave,octave_level: usize, runtime_params: &RuntimeParams) -> Vec<ExtremaParameters> {
     extrema.iter().cloned().map(|x| processing::subpixel_refinement(source_octave,octave_level, &x)).filter(|x| x.0 >= runtime_params.contrast_r).map(|x| x.1).filter(|x| edge_response_filter(source_octave, &x, runtime_params.edge_r)).collect()
     //extrema.iter().cloned().filter(|x| edge_response_filter(source_octave, &x, runtime_params.edge_r)).collect()
     //extrema.clone()
@@ -81,7 +81,7 @@ pub fn extrema_refinement(extrema: &Vec<ExtremaParameters>, source_octave: &Octa
 
 
 
-pub fn edge_response_filter(source_octave: &Octave, input_params: &ExtremaParameters, r: Float) -> bool {
+pub fn edge_response_filter(source_octave: &SiftOctave, input_params: &ExtremaParameters, r: Float) -> bool {
     let hessian = processing::new(source_octave,input_params);
     processing::accept_hessian(&hessian, r)
 }

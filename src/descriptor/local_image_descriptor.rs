@@ -3,7 +3,7 @@ extern crate nalgebra as na;
 use na::{Dim,MatrixN,Vector2,base::dimension::{U16,U4,U2,U1}, Matrix2x4};
 use crate::{Float,float};
 use crate::image::Image;
-use crate::pyramid::octave::Octave;
+use crate::pyramid::sift_octave::SiftOctave;
 use crate::descriptor::{ORIENTATION_BINS,DESCRIPTOR_BINS,rotation_matrix_2d_from_orientation,gauss_2d,gradient_and_orientation,orientation_histogram::OrientationHistogram,keypoint::KeyPoint};
 
 const SUBMATRIX_LENGTH: usize = 4;
@@ -19,7 +19,7 @@ pub struct LocalImageDescriptor {
 
 //TODO: fix this
 impl LocalImageDescriptor {
-    pub fn new(octave: &Octave,  keypoint: &KeyPoint) -> LocalImageDescriptor {
+    pub fn new(octave: &SiftOctave,  keypoint: &KeyPoint) -> LocalImageDescriptor {
         let weighted_gradient_orientation_samples = generate_normalized_weight_orientation_arrays(&octave, keypoint);
 
         let weighted_sample_gradients = &weighted_gradient_orientation_samples.0;
@@ -64,7 +64,7 @@ impl LocalImageDescriptor {
     }
 }
 
-pub fn is_rotated_keypoint_within_image(octave: &Octave, keypoint: &KeyPoint) -> bool {
+pub fn is_rotated_keypoint_within_image(octave: &SiftOctave, keypoint: &KeyPoint) -> bool {
     let total_desciptor_side_length = 8.0; //TODO but this into input parameters or make this constant
     let image = &octave.images[keypoint.sigma_level];
     let keypoint_sigma = &octave.sigmas[keypoint.sigma_level];
@@ -95,7 +95,7 @@ pub fn is_rotated_keypoint_within_image(octave: &Octave, keypoint: &KeyPoint) ->
 }
 
 //TODO: Fix this
-fn generate_normalized_weight_orientation_arrays(octave: &Octave, keypoint: &KeyPoint) -> (MatrixN<Float, U16>,MatrixN<Float, U16>) {
+fn generate_normalized_weight_orientation_arrays(octave: &SiftOctave, keypoint: &KeyPoint) -> (MatrixN<Float, U16>,MatrixN<Float, U16>) {
 
     let total_desciptor_side_length = 8 as isize;
     let submatrix_length = (total_desciptor_side_length/2) as isize;
@@ -103,7 +103,7 @@ fn generate_normalized_weight_orientation_arrays(octave: &Octave, keypoint: &Key
     let lambda_descriptor = 6.0; //TODO: get this from runtime parms i.e. blur_half_factor
     let x_gradient = &octave.x_gradient[keypoint.sigma_level];
     let y_gradient = &octave.y_gradient[keypoint.sigma_level];
-    let inter_pixel_distance = Octave::inter_pixel_distance(keypoint.octave_level);
+    let inter_pixel_distance = SiftOctave::inter_pixel_distance(keypoint.octave_level);
 
     let x_center = keypoint.x as Float;
     let y_center = keypoint.y as Float;

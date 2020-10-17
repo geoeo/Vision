@@ -5,7 +5,7 @@ use crate::{Float,GradientDirection};
 use crate::pyramid::runtime_params::RuntimeParams;
 
 #[derive(Debug,Clone)]
-pub struct Octave {
+pub struct SiftOctave {
     pub images: Vec<Image>,
     pub x_gradient: Vec<Image>,
     pub y_gradient: Vec<Image>,
@@ -16,9 +16,9 @@ pub struct Octave {
     pub sigmas: Vec<Float>
 }
 
-impl Octave {
+impl SiftOctave {
 
-    pub fn build_octave(base_image: &Image, s: usize, sigma_initial: Float, runtime_params: &RuntimeParams) -> Octave {
+    pub fn build_octave(base_image: &Image, s: usize, sigma_initial: Float, runtime_params: &RuntimeParams) -> SiftOctave {
 
         let image_count = s + 3;
         let range = 0..image_count;
@@ -30,8 +30,8 @@ impl Octave {
 
         //let sigma_0 = (sigma_initial.powi(2) - runtime_params.sigma_in.powi(2)).sqrt()/Octave::inter_pixel_distance(0);
         let sigma_0 = sigma_initial;
-        let sigmas: Vec<Float> = range.clone().map(|x| sigma_0*Octave::generate_k(x as Float, s as Float)).collect();
-        let kernels: Vec<GaussKernel1D> = sigmas.iter().map(|&sigma| GaussKernel1D::new(mean, sigma,step,Octave::generate_blur_half_width(blur_width,sigma))).collect();
+        let sigmas: Vec<Float> = range.clone().map(|x| sigma_0*SiftOctave::generate_k(x as Float, s as Float)).collect();
+        let kernels: Vec<GaussKernel1D> = sigmas.iter().map(|&sigma| GaussKernel1D::new(mean, sigma,step,SiftOctave::generate_blur_half_width(blur_width,sigma))).collect();
         let images: Vec<Image> = kernels.iter().map(|kernel| filter::gaussian_2_d_convolution(base_image, kernel, false)).collect();
         let images_borrows: Vec<&Image> = images.iter().map(|x| x).collect();
         let x_gradient = range.clone().map(|x| filter::filter_1d_convolution(&images_borrows,x, GradientDirection::HORIZINTAL, &prewitt_kernel, false)).collect();
@@ -51,7 +51,7 @@ impl Octave {
         let dog_x_gradient = dog_range.clone().map(|sigma_idx| filter::filter_1d_convolution(&difference_of_gaussians_borrows,sigma_idx, GradientDirection::HORIZINTAL, &prewitt_kernel, false)).collect();
         let dog_y_gradient = dog_range.clone().map(|sigma_idx| filter::filter_1d_convolution(&difference_of_gaussians_borrows,sigma_idx, GradientDirection::VERTICAL, &prewitt_kernel,false )).collect();
         let dog_s_gradient = dog_range.clone().map(|sigma_idx| filter::filter_1d_convolution(&difference_of_gaussians_borrows,sigma_idx, GradientDirection::SIGMA, &prewitt_kernel, false)).collect();
-        Octave {images,x_gradient,y_gradient,dog_x_gradient,dog_y_gradient,dog_s_gradient,difference_of_gaussians,sigmas}
+        SiftOctave {images,x_gradient,y_gradient,dog_x_gradient,dog_y_gradient,dog_s_gradient,difference_of_gaussians,sigmas}
     }
 
     fn generate_k(n: Float, s: Float) -> Float {

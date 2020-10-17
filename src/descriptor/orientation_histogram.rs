@@ -1,7 +1,7 @@
 extern crate nalgebra as na;
 
 use crate::{float,Float};
-use crate::pyramid::{octave::Octave,runtime_params::RuntimeParams};
+use crate::pyramid::{sift_octave::SiftOctave,runtime_params::RuntimeParams};
 use crate::descriptor::{lagrange_interpolation_quadratic,quadatric_interpolation, gauss_2d, gradient_and_orientation, keypoint::KeyPoint};
 //use crate::ORIENTATION_HISTOGRAM_WINDOW_SIZE;
 use crate::extrema::extrema_parameters::ExtremaParameters;
@@ -97,7 +97,7 @@ pub fn radian_to_index(histogram: &OrientationHistogram, orientation: Float) -> 
     (orientation/histogram.bin_range).trunc() as usize
 }
 
-pub fn generate_keypoints_from_extrema(octave: &Octave,octave_level: usize, keypoint: &ExtremaParameters, runtime_params: &RuntimeParams) -> Vec<KeyPoint> {
+pub fn generate_keypoints_from_extrema(octave: &SiftOctave,octave_level: usize, keypoint: &ExtremaParameters, runtime_params: &RuntimeParams) -> Vec<KeyPoint> {
 
 
     let x = keypoint.x;
@@ -110,7 +110,7 @@ pub fn generate_keypoints_from_extrema(octave: &Octave,octave_level: usize, keyp
     let x_grad = &octave.x_gradient[sigma_level]; //TODO: check 
     let y_grad = &octave.y_gradient[sigma_level]; //TODO: check 
     let mut histogram = OrientationHistogram::new(36);
-    let inter_pixel_distance = Octave::inter_pixel_distance(octave_level);
+    let inter_pixel_distance = SiftOctave::inter_pixel_distance(octave_level);
 
     //TODO: think of a better solution to image border
     //TODO: make image dimensions more easily accesible
@@ -166,7 +166,7 @@ pub fn generate_keypoints_from_extrema(octave: &Octave,octave_level: usize, keyp
 }
 
 
-fn post_process(histogram: &mut OrientationHistogram, extrema: &ExtremaParameters,octave: &Octave, octave_level: usize) -> Vec<KeyPoint> {
+fn post_process(histogram: &mut OrientationHistogram, extrema: &ExtremaParameters,octave: &SiftOctave, octave_level: usize) -> Vec<KeyPoint> {
 
     let max_val = histogram.bins[histogram.max_bin];
     let threshold = max_val*0.8; //TODO: make this runtime param
