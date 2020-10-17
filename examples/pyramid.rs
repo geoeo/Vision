@@ -3,7 +3,7 @@ extern crate sift;
 
 use std::path::Path;
 
-use sift::pyramid::{Pyramid, runtime_params::RuntimeParams};
+use sift::pyramid::{octave::Octave,Pyramid, runtime_params::RuntimeParams};
 
 fn main() {
     let image_name = "circles";
@@ -26,7 +26,7 @@ fn main() {
         sigma_count: 4
     };
     
-    let pyramid = Pyramid::build_pyramid(&gray_image, &runtime_params);
+    let pyramid = Pyramid::<Octave>::build_pyramid(&gray_image, &runtime_params);
 
     let first_octave = &pyramid.octaves[0];
     let ocatve_images = &first_octave.difference_of_gaussians;

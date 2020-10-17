@@ -3,7 +3,7 @@ extern crate sift;
 
 use std::path::Path;
 
-use sift::pyramid::{Pyramid, runtime_params::RuntimeParams};
+use sift::pyramid::{octave::Octave,Pyramid, runtime_params::RuntimeParams};
 use sift::image::Image;
 use sift::{keypoints_from_pyramid,keypoints_from_octave};
 use sift::visualize::visualize_keypoint;
@@ -43,7 +43,7 @@ fn main() {
         };
 
         //TODO: experiment with blur half width and pyramid params
-        let pyramid = Pyramid::build_pyramid(&gray_image,&runtime_params);
+        let pyramid =  Pyramid::<Octave>::build_pyramid(&gray_image,&runtime_params);
     
         let all_keypoints = keypoints_from_pyramid(&pyramid, &runtime_params);
         //let all_keypoints = keypoints_from_octave(&pyramid,2, &runtime_params);

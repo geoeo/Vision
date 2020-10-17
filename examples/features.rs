@@ -3,7 +3,7 @@ extern crate sift;
 
 use std::path::Path;
 
-use sift::pyramid::{Pyramid, runtime_params::RuntimeParams};
+use sift::pyramid::{octave::Octave, Pyramid, runtime_params::RuntimeParams};
 use sift::extrema;
 use sift::image::Image;
 use sift::image::{kernel::Kernel,prewitt_kernel::PrewittKernel};
@@ -38,7 +38,7 @@ fn main() {
     };
 
     
-    let pyramid = Pyramid::build_pyramid(&gray_image, &runtime_params);
+    let pyramid = Pyramid::<Octave>::build_pyramid(&gray_image, &runtime_params);
     let octave_level = 1;
     let sigma_level = 1;
     let octave = &pyramid.octaves[octave_level];
