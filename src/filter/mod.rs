@@ -1,7 +1,7 @@
 use crate::image::{Image};
 use crate::pyramid::sift_octave::SiftOctave;
 use crate::{Float, GradientDirection};
-use crate::extrema::extrema_parameters::ExtremaParameters;
+use crate::feature::sift_feature::SiftFeature;
 use self::{kernel::Kernel,gauss_kernel::GaussKernel1D};
 
 pub mod gauss_kernel;
@@ -74,7 +74,7 @@ pub fn filter_1d_convolution(source_images: &Vec<&Image>, sigma_level: usize, fi
 }
 
 //TODO: rewrite this
-pub fn gradient_convolution_at_sample(source_octave: &SiftOctave,source_images: &Vec<Image>, input_params: &ExtremaParameters, filter_kernel: &dyn Kernel, gradient_direction: GradientDirection) -> Float {
+pub fn gradient_convolution_at_sample(source_octave: &SiftOctave,source_images: &Vec<Image>, input_params: &SiftFeature, filter_kernel: &dyn Kernel, gradient_direction: GradientDirection) -> Float {
 
     let x_input = input_params.x_image(); 
     let x_input_signed = input_params.x as isize; 

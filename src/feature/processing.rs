@@ -4,11 +4,11 @@ use na::{Matrix2,Matrix3x1, Matrix3};
 use crate::pyramid::sift_octave::SiftOctave;
 use crate::{Float, GradientDirection};
 use crate::filter::{kernel::Kernel,gradient_convolution_at_sample,prewitt_kernel::PrewittKernel,laplace_kernel::LaplaceKernel,laplace_off_center_kernel::LaplaceOffCenterKernel};
-use crate::extrema::extrema_parameters::ExtremaParameters;
+use crate::feature::sift_feature::SiftFeature;
 
 
 //TODO: @Investigate: maybe precomputing the gradient images is more efficient
-pub fn new(source_octave: &SiftOctave, input_params: &ExtremaParameters) -> Matrix2<Float> {
+pub fn new(source_octave: &SiftOctave, input_params: &SiftFeature) -> Matrix2<Float> {
 
     let second_order_kernel = LaplaceKernel::new();
     let first_order_kernel = PrewittKernel::new();
@@ -43,7 +43,7 @@ pub fn accept_edge(hessian: &Matrix2<Float>, r: Float) -> bool {
 
 //TODO: maybe return new extrema instead due to potential change of coordiantes in interpolation
 //TODO: needs to be more stable
-pub fn subpixel_refinement(source_octave: &SiftOctave, octave_level: usize, input_params: &ExtremaParameters) -> (Float,ExtremaParameters) {
+pub fn subpixel_refinement(source_octave: &SiftOctave, octave_level: usize, input_params: &SiftFeature) -> (Float,SiftFeature) {
 
     let sigma_level = input_params.closest_sigma_level(source_octave.s());
 
@@ -57,7 +57,7 @@ pub fn subpixel_refinement(source_octave: &SiftOctave, octave_level: usize, inpu
     let s = source_octave.s();
     let sigma_range = (1.0/(s as Float)).exp2();
     let mut perturb_final = interpolate(source_octave,input_params,&first_order_kernel,&second_order_kernel);
-    let mut extrema_final =  ExtremaParameters{x:input_params.x ,y:input_params.y,sigma_level:input_params.sigma_level};
+    let mut extrema_final =  SiftFeature{x:input_params.x ,y:input_params.y,sigma_level:input_params.sigma_level};
     let max_it = 5; // TODO: put this in runtime params  
     let mut counter = 0;
     let cutoff = 0.6;
@@ -157,7 +157,7 @@ pub fn subpixel_refinement(source_octave: &SiftOctave, octave_level: usize, inpu
 
 }
 
-fn interpolate(source_octave: &SiftOctave, input_params: &ExtremaParameters, first_order_kernel: &dyn Kernel, second_order_kernel: &dyn Kernel) -> Matrix3x1<Float> {
+fn interpolate(source_octave: &SiftOctave, input_params: &SiftFeature, first_order_kernel: &dyn Kernel, second_order_kernel: &dyn Kernel) -> Matrix3x1<Float> {
 
     let sigma_level = input_params.closest_sigma_level(source_octave.s());
     let dx = source_octave.dog_x_gradient[sigma_level].buffer[(input_params.y_image(),input_params.x_image())];

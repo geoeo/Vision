@@ -4,7 +4,7 @@ use crate::{float,Float};
 use crate::pyramid::{sift_octave::SiftOctave,runtime_params::RuntimeParams};
 use crate::descriptor::{lagrange_interpolation_quadratic,quadatric_interpolation, gauss_2d, gradient_and_orientation, keypoint::KeyPoint};
 //use crate::ORIENTATION_HISTOGRAM_WINDOW_SIZE;
-use crate::extrema::extrema_parameters::ExtremaParameters;
+use crate::feature::sift_feature::SiftFeature;
 
 
 #[derive(Debug,Clone)]
@@ -97,7 +97,7 @@ pub fn radian_to_index(histogram: &OrientationHistogram, orientation: Float) -> 
     (orientation/histogram.bin_range).trunc() as usize
 }
 
-pub fn generate_keypoints_from_extrema(octave: &SiftOctave,octave_level: usize, keypoint: &ExtremaParameters, runtime_params: &RuntimeParams) -> Vec<KeyPoint> {
+pub fn generate_keypoints_from_extrema(octave: &SiftOctave,octave_level: usize, keypoint: &SiftFeature, runtime_params: &RuntimeParams) -> Vec<KeyPoint> {
 
 
     let x = keypoint.x;
@@ -166,7 +166,7 @@ pub fn generate_keypoints_from_extrema(octave: &SiftOctave,octave_level: usize, 
 }
 
 
-fn post_process(histogram: &mut OrientationHistogram, extrema: &ExtremaParameters,octave: &SiftOctave, octave_level: usize) -> Vec<KeyPoint> {
+fn post_process(histogram: &mut OrientationHistogram, extrema: &SiftFeature,octave: &SiftOctave, octave_level: usize) -> Vec<KeyPoint> {
 
     let max_val = histogram.bins[histogram.max_bin];
     let threshold = max_val*0.8; //TODO: make this runtime param

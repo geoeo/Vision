@@ -4,16 +4,16 @@ use na::{Matrix3x1,Matrix3,DMatrix};
 
 use crate::{Float,float, GradientDirection, round};
 use crate::pyramid::{sift_octave::SiftOctave, runtime_params::RuntimeParams};
-use extrema_parameters::ExtremaParameters;
+use sift_feature::SiftFeature;
 
 
 mod processing;
-pub mod extrema_parameters;
+pub mod sift_feature;
 
 
-pub fn detect_extrema(source_octave: &SiftOctave, sigma_level: usize, x_step: usize, y_step: usize) -> Vec<ExtremaParameters> {
+pub fn detect_sift_feature(source_octave: &SiftOctave, sigma_level: usize, x_step: usize, y_step: usize) -> Vec<SiftFeature> {
 
-    let mut extrema_vec: Vec<ExtremaParameters> = Vec::new();
+    let mut extrema_vec: Vec<SiftFeature> = Vec::new();
 
     assert!(sigma_level+1 < source_octave.difference_of_gaussians.len());
     assert!(sigma_level > 0);
@@ -39,7 +39,7 @@ pub fn detect_extrema(source_octave: &SiftOctave, sigma_level: usize, x_step: us
             let is_extrema = (is_smallest_curr||is_largest_curr) && (is_smallest_prev ||is_largest_prev) && (is_smallest_next || is_largest_next); // This is wrong ?
 
             if is_extrema {
-                extrema_vec.push(ExtremaParameters{x: x as Float,y: y as Float,sigma_level: sigma_level as Float});
+                extrema_vec.push(SiftFeature{x: x as Float,y: y as Float,sigma_level: sigma_level as Float});
             }
         }
     }
@@ -73,19 +73,19 @@ fn is_sample_extrema_in_neighbourhood(sample: Float, x_sample: usize, y_sample: 
     (is_smallest,is_largest)
 }
 
-pub fn extrema_refinement(extrema: &Vec<ExtremaParameters>, source_octave: &SiftOctave,octave_level: usize, runtime_params: &RuntimeParams) -> Vec<ExtremaParameters> {
+pub fn extrema_refinement(extrema: &Vec<SiftFeature>, source_octave: &SiftOctave,octave_level: usize, runtime_params: &RuntimeParams) -> Vec<SiftFeature> {
     extrema.iter().cloned().map(|x| processing::subpixel_refinement(source_octave,octave_level, &x)).filter(|x| x.0 >= runtime_params.contrast_r).map(|x| x.1).filter(|x| reject_edge_response_filter(source_octave, &x, runtime_params.edge_r)).collect()
     //extrema.iter().cloned().filter(|x| accept_edge_response_filter(source_octave, &x, runtime_params.edge_r)).collect()
     //extrema.clone()
 }
 
 
-pub fn reject_edge_response_filter(source_octave: &SiftOctave, input_params: &ExtremaParameters, r: Float) -> bool {
+pub fn reject_edge_response_filter(source_octave: &SiftOctave, input_params: &SiftFeature, r: Float) -> bool {
     let hessian = processing::new(source_octave,input_params);
     processing::reject_edge(&hessian, r)
 }
 
-pub fn accept_edge_response_filter(source_octave: &SiftOctave, input_params: &ExtremaParameters, r: Float) -> bool {
+pub fn accept_edge_response_filter(source_octave: &SiftOctave, input_params: &SiftFeature, r: Float) -> bool {
     let hessian = processing::new(source_octave,input_params);
     processing::accept_edge(&hessian, r)
 }

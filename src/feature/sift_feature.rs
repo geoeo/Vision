@@ -3,21 +3,21 @@ use std::fmt;
 use crate::Float;
 
 #[derive(Debug,Clone)]
-pub struct ExtremaParameters {
+pub struct SiftFeature {
     pub x: Float,
     pub y: Float,
     pub sigma_level: Float
     //pub sigma: Float
 } 
 
-impl fmt::Display for ExtremaParameters {
+impl fmt::Display for SiftFeature {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "x: {}, y: {}, s: {}", self.x, self.y, self.sigma_level)
     }
 }
 
 //TODO: check these
-impl ExtremaParameters {
+impl SiftFeature {
     pub fn x_image(&self) -> usize {
         self.x.trunc() as usize
     }
