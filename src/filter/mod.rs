@@ -1,7 +1,15 @@
-use crate::image::{Image,gauss_kernel::GaussKernel1D, kernel::Kernel};
+use crate::image::{Image};
 use crate::pyramid::sift_octave::SiftOctave;
 use crate::{Float, GradientDirection};
 use crate::extrema::extrema_parameters::ExtremaParameters;
+use self::{kernel::Kernel,gauss_kernel::GaussKernel1D};
+
+pub mod gauss_kernel;
+pub mod prewitt_kernel;
+pub mod laplace_kernel;
+pub mod laplace_off_center_kernel;
+pub mod kernel;
+
 
 pub fn filter_1d_convolution(source_images: &Vec<&Image>, sigma_level: usize, filter_direction: GradientDirection, filter_kernel: &dyn Kernel, normalize: bool) -> Image {
     let kernel = &filter_kernel.kernel();

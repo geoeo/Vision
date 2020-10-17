@@ -2,7 +2,8 @@ extern crate image as image_rs;
 
 use image_rs::GrayImage;
 use sift_octave::SiftOctave;
-use crate::image::{Image, filter, gauss_kernel::GaussKernel1D};
+use crate::image::Image;
+use crate::filter::{gauss_kernel::GaussKernel1D,gaussian_2_d_convolution};
 use crate::pyramid::runtime_params::RuntimeParams;
 
 pub mod sift_octave;
@@ -24,7 +25,7 @@ pub fn build_sift_pyramid(base_gray_image: &GrayImage, runtime_params: &RuntimeP
     //TODO: check this
     let blur_width = SiftOctave::generate_blur_half_width(runtime_params.blur_half_factor, runtime_params.sigma_in);
     let kernel = GaussKernel1D::new(0.0, runtime_params.sigma_in,1,blur_width);
-    let initial_blur =  filter::gaussian_2_d_convolution(&upsample, &kernel, false);
+    let initial_blur =  gaussian_2_d_convolution(&upsample, &kernel, false);
     
     let mut octave_image = initial_blur;
     let mut sigma = runtime_params.sigma_initial;

@@ -74,17 +74,20 @@ fn is_sample_extrema_in_neighbourhood(sample: Float, x_sample: usize, y_sample: 
 }
 
 pub fn extrema_refinement(extrema: &Vec<ExtremaParameters>, source_octave: &SiftOctave,octave_level: usize, runtime_params: &RuntimeParams) -> Vec<ExtremaParameters> {
-    extrema.iter().cloned().map(|x| processing::subpixel_refinement(source_octave,octave_level, &x)).filter(|x| x.0 >= runtime_params.contrast_r).map(|x| x.1).filter(|x| edge_response_filter(source_octave, &x, runtime_params.edge_r)).collect()
-    //extrema.iter().cloned().filter(|x| edge_response_filter(source_octave, &x, runtime_params.edge_r)).collect()
+    extrema.iter().cloned().map(|x| processing::subpixel_refinement(source_octave,octave_level, &x)).filter(|x| x.0 >= runtime_params.contrast_r).map(|x| x.1).filter(|x| reject_edge_response_filter(source_octave, &x, runtime_params.edge_r)).collect()
+    //extrema.iter().cloned().filter(|x| accept_edge_response_filter(source_octave, &x, runtime_params.edge_r)).collect()
     //extrema.clone()
 }
 
 
-
-pub fn edge_response_filter(source_octave: &SiftOctave, input_params: &ExtremaParameters, r: Float) -> bool {
+pub fn reject_edge_response_filter(source_octave: &SiftOctave, input_params: &ExtremaParameters, r: Float) -> bool {
     let hessian = processing::new(source_octave,input_params);
-    processing::accept_hessian(&hessian, r)
+    processing::reject_edge(&hessian, r)
 }
 
+pub fn accept_edge_response_filter(source_octave: &SiftOctave, input_params: &ExtremaParameters, r: Float) -> bool {
+    let hessian = processing::new(source_octave,input_params);
+    processing::accept_edge(&hessian, r)
+}
 
 

@@ -6,8 +6,8 @@ use self::descriptor::{
     local_image_descriptor::{is_rotated_keypoint_within_image,LocalImageDescriptor},
     keypoint::KeyPoint
 };
-use self::image::{kernel::Kernel,prewitt_kernel::PrewittKernel};
 
+pub mod filter;
 pub mod image;
 pub mod pyramid;
 pub mod extrema;

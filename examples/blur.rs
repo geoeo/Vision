@@ -3,7 +3,8 @@ extern crate sift;
 
 use std::path::Path;
 
-use sift::image::{Image,filter, gauss_kernel::GaussKernel1D};
+use sift::image::Image;
+use sift::filter::{gauss_kernel::GaussKernel1D,filter_1d_convolution,gaussian_2_d_convolution};
 use sift::GradientDirection;
 
 fn main() {
@@ -21,16 +22,16 @@ fn main() {
 
     let filter_kernel = GaussKernel1D::new(0.0, 5.5,1,3.0);
     
-    let blur_hor = filter::filter_1d_convolution(&vec,0,GradientDirection::HORIZINTAL, &filter_kernel, false);
+    let blur_hor = filter_1d_convolution(&vec,0,GradientDirection::HORIZINTAL, &filter_kernel, false);
 
     let blur_hor_image = blur_hor.to_image();
     blur_hor_image.save(blur_hor_file_out_path).unwrap();
 
-    let blur_vert = filter::filter_1d_convolution(&vec,0,GradientDirection::VERTICAL, &filter_kernel, false);
+    let blur_vert = filter_1d_convolution(&vec,0,GradientDirection::VERTICAL, &filter_kernel, false);
     let blur_vert_image = blur_vert.to_image();
     blur_vert_image.save(blur_vert_file_out_path).unwrap();
 
-    let blur_2d = filter::gaussian_2_d_convolution(&frame, &filter_kernel, false);
+    let blur_2d = gaussian_2_d_convolution(&frame, &filter_kernel, false);
     let blur_2d_image = blur_2d.to_image();
     blur_2d_image.save(blur_2d_file_out_path).unwrap();
 }

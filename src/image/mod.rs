@@ -10,12 +10,6 @@ use self::image_encoding::ImageEncoding;
 
 
 pub mod image_encoding;
-pub mod filter;
-pub mod gauss_kernel;
-pub mod prewitt_kernel;
-pub mod laplace_kernel;
-pub mod laplace_off_center_kernel;
-pub mod kernel;
 
 #[derive(Debug,Clone)]
 pub struct Image {

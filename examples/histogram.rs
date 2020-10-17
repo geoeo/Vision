@@ -5,8 +5,7 @@ use std::path::Path;
 
 use sift::pyramid::{build_sift_pyramid, runtime_params::RuntimeParams};
 use sift::extrema;
-use sift::image::Image;
-use sift::image::{kernel::Kernel,prewitt_kernel::PrewittKernel};
+use sift::filter::{kernel::Kernel,prewitt_kernel::PrewittKernel};
 use sift::descriptor::orientation_histogram::generate_keypoints_from_extrema;
 use sift::descriptor::local_image_descriptor::{is_rotated_keypoint_within_image,LocalImageDescriptor};
 use sift::descriptor::feature_vector::FeatureVector;

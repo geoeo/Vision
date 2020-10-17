@@ -3,7 +3,7 @@ extern crate nalgebra as na;
 use na::{Matrix2,Matrix3x1, Matrix3};
 use crate::pyramid::sift_octave::SiftOctave;
 use crate::{Float, GradientDirection};
-use crate::image::{kernel::Kernel,filter::gradient_convolution_at_sample,prewitt_kernel::PrewittKernel,laplace_kernel::LaplaceKernel,laplace_off_center_kernel::LaplaceOffCenterKernel};
+use crate::filter::{kernel::Kernel,gradient_convolution_at_sample,prewitt_kernel::PrewittKernel,laplace_kernel::LaplaceKernel,laplace_off_center_kernel::LaplaceOffCenterKernel};
 use crate::extrema::extrema_parameters::ExtremaParameters;
 
 
@@ -16,7 +16,6 @@ pub fn new(source_octave: &SiftOctave, input_params: &ExtremaParameters) -> Matr
 
     let dxx = gradient_convolution_at_sample(source_octave,&source_octave.difference_of_gaussians,input_params,&second_order_kernel,GradientDirection::HORIZINTAL);
     let dyy = gradient_convolution_at_sample(source_octave,&source_octave.difference_of_gaussians,input_params,&second_order_kernel,GradientDirection::VERTICAL);
-
     let dxy = gradient_convolution_at_sample(source_octave,&source_octave.dog_x_gradient,input_params,&first_order_kernel,GradientDirection::VERTICAL);
 
     Matrix2::new(dxx,dxy,
@@ -24,13 +23,22 @@ pub fn new(source_octave: &SiftOctave, input_params: &ExtremaParameters) -> Matr
 
 }
 
-pub fn accept_hessian(hessian: &Matrix2<Float>, r: Float) -> bool {
+pub fn reject_edge(hessian: &Matrix2<Float>, r: Float) -> bool {
     let trace = hessian.trace();
     let determinant = hessian.determinant();
     let hessian_factor = trace.powi(2)/determinant;
     let r_factor = (r+1.0).powi(2)/r;
 
     hessian_factor < r_factor as Float && determinant > 0.0
+}
+
+pub fn accept_edge(hessian: &Matrix2<Float>, r: Float) -> bool {
+    let trace = hessian.trace();
+    let determinant = hessian.determinant();
+    let hessian_factor = trace.powi(2)/determinant;
+    let r_factor = (r+1.0).powi(2)/r;
+
+    hessian_factor >= r_factor as Float && determinant > 0.0
 }
 
 //TODO: maybe return new extrema instead due to potential change of coordiantes in interpolation
@@ -42,7 +50,6 @@ pub fn subpixel_refinement(source_octave: &SiftOctave, octave_level: usize, inpu
     let first_order_kernel = PrewittKernel::new();
     let second_order_kernel = LaplaceKernel::new();
     let second_order_off_center_kernel = LaplaceOffCenterKernel::new();
-
 
 
     let kernel_half_width = first_order_kernel.half_width();

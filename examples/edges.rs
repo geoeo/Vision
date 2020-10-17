@@ -3,7 +3,8 @@ extern crate sift;
 
 use std::path::Path;
 
-use sift::image::{Image,filter, prewitt_kernel::PrewittKernel};
+use sift::image::Image;
+use sift::filter::{prewitt_kernel::PrewittKernel,filter_1d_convolution};
 use sift::GradientDirection;
 
 fn main() {
@@ -20,12 +21,12 @@ fn main() {
 
     let filter_kernel = PrewittKernel::new();
     
-    let blur_hor = filter::filter_1d_convolution(&vec,0,GradientDirection::HORIZINTAL, &filter_kernel, false);
+    let blur_hor = filter_1d_convolution(&vec,0,GradientDirection::HORIZINTAL, &filter_kernel, false);
 
     let blur_hor_image = blur_hor.to_image();
     blur_hor_image.save(blur_hor_file_out_path).unwrap();
 
-    let blur_vert = filter::filter_1d_convolution(&vec,0,GradientDirection::VERTICAL, &filter_kernel, false);
+    let blur_vert = filter_1d_convolution(&vec,0,GradientDirection::VERTICAL, &filter_kernel, false);
     let blur_vert_image = blur_vert.to_image();
     blur_vert_image.save(blur_vert_file_out_path).unwrap();
 
