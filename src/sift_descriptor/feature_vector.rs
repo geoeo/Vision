@@ -1,6 +1,6 @@
 
 use crate::Float;
-use crate::descriptor::{ORIENTATION_BINS,DESCRIPTOR_BINS,local_image_descriptor::LocalImageDescriptor};
+use crate::sift_descriptor::{ORIENTATION_BINS,DESCRIPTOR_BINS,local_image_descriptor::LocalImageDescriptor};
 
 #[derive(Debug,Clone)]
 pub struct FeatureVector {

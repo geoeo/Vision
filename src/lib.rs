@@ -1,6 +1,6 @@
 
 use self::pyramid::{sift_octave::SiftOctave,Pyramid,runtime_params::RuntimeParams};
-use self::descriptor::{
+use self::sift_descriptor::{
     feature_vector::FeatureVector,
     orientation_histogram::generate_keypoints_from_extrema,
     local_image_descriptor::{is_rotated_keypoint_within_image,LocalImageDescriptor},
@@ -11,7 +11,7 @@ pub mod filter;
 pub mod image;
 pub mod pyramid;
 pub mod feature;
-pub mod descriptor;
+pub mod sift_descriptor;
 pub mod visualize;
 
 macro_rules! define_float {

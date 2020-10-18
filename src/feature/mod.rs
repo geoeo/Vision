@@ -7,7 +7,7 @@ use crate::pyramid::{sift_octave::SiftOctave, runtime_params::RuntimeParams};
 use sift_feature::SiftFeature;
 
 
-mod processing;
+pub mod processing;
 pub mod sift_feature;
 
 
