@@ -13,6 +13,7 @@ pub mod pyramid;
 pub mod feature;
 pub mod sift_descriptor;
 pub mod visualize;
+pub mod vo;
 
 macro_rules! define_float {
     ($f:tt) => {
