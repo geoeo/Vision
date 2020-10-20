@@ -4,11 +4,11 @@ use na::{Matrix2,Matrix1x2,Matrix3x1, Matrix3};
 use crate::pyramid::sift_octave::SiftOctave;
 use crate::{float,Float, GradientDirection};
 use crate::filter::{kernel::Kernel,gradient_convolution_at_sample,prewitt_kernel::PrewittKernel,laplace_kernel::LaplaceKernel,laplace_off_center_kernel::LaplaceOffCenterKernel};
-use crate::feature::sift_feature::SiftFeature;
+use crate::sift_feature::SiftFeature;
 
 
 //TODO: @Investigate: maybe precomputing the gradient images is more efficient
-pub fn new(source_octave: &SiftOctave, input_params: &SiftFeature) -> Matrix2<Float> {
+pub fn hessian(source_octave: &SiftOctave, input_params: &SiftFeature) -> Matrix2<Float> {
 
     let second_order_kernel = LaplaceKernel::new();
     let first_order_kernel = PrewittKernel::new();
@@ -272,4 +272,16 @@ pub fn gauss_2d(x_center: Float, y_center: Float, x: Float, y: Float, sigma: Flo
     let denom = 2.0*float::consts::PI*sigma_sqr;
 
     exp/denom
+}
+
+
+
+pub fn reject_edge_response_filter(source_octave: &SiftOctave, input_params: &SiftFeature, r: Float) -> bool {
+    let hessian = hessian(source_octave,input_params);
+    reject_edge(&hessian, r)
+}
+
+pub fn accept_edge_response_filter(source_octave: &SiftOctave, input_params: &SiftFeature, r: Float) -> bool {
+    let hessian = hessian(source_octave,input_params);
+    accept_edge(&hessian, r)
 }

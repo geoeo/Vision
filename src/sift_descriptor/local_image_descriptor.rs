@@ -2,10 +2,9 @@ extern crate nalgebra as na;
 
 use na::{Dim,MatrixN,Vector2,base::dimension::{U16,U4,U2,U1}, Matrix2x4};
 use crate::{Float,float};
-use crate::image::Image;
 use crate::pyramid::sift_octave::SiftOctave;
 use crate::sift_descriptor::{ORIENTATION_BINS,DESCRIPTOR_BINS,rotation_matrix_2d_from_orientation,gradient_and_orientation,orientation_histogram::OrientationHistogram,keypoint::KeyPoint};
-use crate::feature::processing::gauss_2d;
+use crate::sift_feature::processing::gauss_2d;
 
 const SUBMATRIX_LENGTH: usize = 4;
 const SAMPLE_LENGTH: Float = 16.0;

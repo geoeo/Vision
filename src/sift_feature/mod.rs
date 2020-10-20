@@ -4,11 +4,45 @@ use na::{Matrix3x1,Matrix3,DMatrix};
 
 use crate::{Float,float, GradientDirection, round};
 use crate::pyramid::{sift_octave::SiftOctave, runtime_params::RuntimeParams};
-use sift_feature::SiftFeature;
+use std::fmt;
 
 
 pub mod processing;
-pub mod sift_feature;
+
+#[derive(Debug,Clone)]
+pub struct SiftFeature {
+    pub x: Float,
+    pub y: Float,
+    pub sigma_level: Float
+    //pub sigma: Float
+} 
+
+impl fmt::Display for SiftFeature {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "x: {}, y: {}, s: {}", self.x, self.y, self.sigma_level)
+    }
+}
+
+//TODO: check these
+impl SiftFeature {
+    pub fn x_image(&self) -> usize {
+        self.x.trunc() as usize
+    }
+
+    pub fn y_image(&self) -> usize {
+        self.y.trunc() as usize
+    }
+
+    pub fn closest_sigma_level(&self, s: usize) -> usize {
+        // let sigma_range_half = (1.0/s as Float).exp2()/2.0;
+        // let truncated_level =  self.sigma_level.trunc() as usize;
+        // match self.sigma_level {
+        //     level if level.fract() > sigma_range_half => truncated_level  + 1,
+        //     _ => truncated_level
+        // }
+        self.sigma_level.trunc() as usize
+    }
+}
 
 
 pub fn detect_sift_feature(source_octave: &SiftOctave, sigma_level: usize, x_step: usize, y_step: usize) -> Vec<SiftFeature> {
@@ -73,21 +107,13 @@ fn is_sample_extrema_in_neighbourhood(sample: Float, x_sample: usize, y_sample: 
     (is_smallest,is_largest)
 }
 
-pub fn extrema_refinement(extrema: &Vec<SiftFeature>, source_octave: &SiftOctave,octave_level: usize, runtime_params: &RuntimeParams) -> Vec<SiftFeature> {
-    extrema.iter().cloned().map(|x| processing::subpixel_refinement(source_octave,octave_level, &x)).filter(|x| x.0 >= runtime_params.contrast_r).map(|x| x.1).filter(|x| reject_edge_response_filter(source_octave, &x, runtime_params.edge_r)).collect()
+pub fn sift_feature_refinement(extrema: &Vec<SiftFeature>, source_octave: &SiftOctave,octave_level: usize, runtime_params: &RuntimeParams) -> Vec<SiftFeature> {
+    extrema.iter().cloned().map(|x| processing::subpixel_refinement(source_octave,octave_level, &x)).filter(|x| x.0 >= runtime_params.contrast_r).map(|x| x.1).filter(|x| processing::reject_edge_response_filter(source_octave, &x, runtime_params.edge_r)).collect()
     //extrema.iter().cloned().filter(|x| accept_edge_response_filter(source_octave, &x, runtime_params.edge_r)).collect()
     //extrema.clone()
 }
 
 
-pub fn reject_edge_response_filter(source_octave: &SiftOctave, input_params: &SiftFeature, r: Float) -> bool {
-    let hessian = processing::new(source_octave,input_params);
-    processing::reject_edge(&hessian, r)
-}
 
-pub fn accept_edge_response_filter(source_octave: &SiftOctave, input_params: &SiftFeature, r: Float) -> bool {
-    let hessian = processing::new(source_octave,input_params);
-    processing::accept_edge(&hessian, r)
-}
 
 
