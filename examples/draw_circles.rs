@@ -4,7 +4,8 @@ extern crate sift;
 use std::path::Path;
 
 use sift::image::Image;
-use sift::visualize::{draw_circle,draw_circle_bresenham};
+use sift::visualize::{draw_circle,draw_points};
+use sift::features::circle::circle_bresenham;
 
 fn main() {
     let image_name = "lenna";
@@ -19,7 +20,8 @@ fn main() {
 
     let mut frame = Image::from_gray_image(&image, false);
     draw_circle(&mut frame, 100, 50, 3.0);
-    draw_circle_bresenham(&mut frame, 35, 35, 50);
+    let circle = circle_bresenham(35, 35, 5);
+    draw_points(&mut frame, &circle.points(), 64.0);
     let new_image = frame.to_image();
 
     new_image.save(converted_file_out_path).unwrap();

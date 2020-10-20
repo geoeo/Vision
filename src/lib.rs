@@ -1,5 +1,6 @@
 
 use self::pyramid::{sift_octave::SiftOctave,Pyramid,runtime_params::RuntimeParams};
+use self::features::sift_feature;
 use self::sift_descriptor::{
     feature_vector::FeatureVector,
     orientation_histogram::generate_keypoints_from_extrema,
@@ -10,7 +11,7 @@ use self::sift_descriptor::{
 pub mod filter;
 pub mod image;
 pub mod pyramid;
-pub mod sift_feature;
+pub mod features;
 pub mod sift_descriptor;
 pub mod visualize;
 pub mod vo;

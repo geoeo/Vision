@@ -4,7 +4,7 @@ extern crate sift;
 use std::path::Path;
 
 use sift::pyramid::{build_sift_pyramid, runtime_params::RuntimeParams};
-use sift::sift_feature;
+use sift::features::sift_feature;
 use sift::image::Image;
 use sift::filter::{kernel::Kernel,prewitt_kernel::PrewittKernel};
 use sift::sift_descriptor::{orientation_histogram::generate_keypoints_from_extrema,local_image_descriptor::{is_rotated_keypoint_within_image,LocalImageDescriptor},feature_vector::FeatureVector,keypoint::KeyPoint};

@@ -1,7 +1,7 @@
 extern crate image as image_rs;
 
-use crate::image::Image;
-use crate::image::image_encoding::ImageEncoding;
+use crate::features::point::Point;
+use crate::image::{Image,image_encoding::ImageEncoding};
 use crate::sift_descriptor::{orientation_histogram::OrientationHistogram,feature_vector::FeatureVector,keypoint::KeyPoint};
 use crate::{Float,float,reconstruct_original_coordiantes};
 
@@ -135,53 +135,12 @@ pub fn draw_circle(image: &mut Image, x_center: usize, y_center: usize, radius: 
     }
 }
 
-// https://www.geeksforgeeks.org/bresenhams-circle-drawing-algorithm/?ref=rp
-pub fn draw_circle_bresenham(image: &mut Image, x_center: usize, y_center: usize, radius: usize) -> () {
-
-    let mut x: isize = 0;
-    let mut y: isize = radius as isize;
-    let mut d = 3 -2*radius as isize;
-    let x_center_signed = x_center as isize;
-    let y_center_signed = y_center as isize;
-    
-    put_pixel_in_bresenham_octant(image,x_center_signed,y_center_signed,x,y);
-    while y >= x {
-        x+=1; 
-        if d > 0 {
-            y-=1;
-            d = d + 4*(x as isize-y as isize) +10;
-        } else {
-            d = d+4*(x as isize)+6;
+pub fn draw_points(image: &mut Image, points: &Vec<Point>, intensity: Float) -> () {
+    for point in points {
+        if point.x < image.buffer.ncols() && point.y < image.buffer.nrows()  {
+            image.buffer[(point.y,point.x)] = intensity;
         }
-        put_pixel_in_bresenham_octant(image,x_center_signed,y_center_signed,x,y);
-
     }
 }
 
-fn put_pixel_in_bresenham_octant(image: &mut Image, x_center: isize, y_center: isize, x: isize, y: isize) -> () {
 
-    let start = -1;
-    let end : isize = 2;
-    for x_sign in (start..end).step_by(2) {
-        for y_sign in (start..end).step_by(2) {
-            let x_signed = x_sign*x;
-            let y_signed = y_sign*y;
-
-            let pos_1_x = (x_center + x_signed) as usize;
-            let pos_1_y = (y_center + y_signed) as usize;
-            let pos_2_x = (x_center + y_signed) as usize;
-            let pos_2_y = (y_center + x_signed) as usize;
-
-
-            if pos_1_x < image.buffer.ncols() && pos_1_y < image.buffer.nrows(){
-                image.buffer[(pos_1_y,pos_1_x)] = 64.0;
-            }
-            if pos_2_x < image.buffer.ncols() && pos_2_y < image.buffer.nrows(){
-                image.buffer[(pos_2_y,pos_2_x)] = 64.0;
-            }
-
-        }
-    }
-
-
-}

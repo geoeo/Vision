@@ -3,9 +3,8 @@ extern crate nalgebra as na;
 use crate::{float,Float};
 use crate::pyramid::{sift_octave::SiftOctave,runtime_params::RuntimeParams};
 use crate::sift_descriptor::{gradient_and_orientation, keypoint::KeyPoint};
-use crate::sift_feature::processing::{lagrange_interpolation_quadratic,quadatric_interpolation, gauss_2d};
+use crate::features::sift_feature::{SiftFeature,processing::{lagrange_interpolation_quadratic,quadatric_interpolation, gauss_2d}};
 //use crate::ORIENTATION_HISTOGRAM_WINDOW_SIZE;
-use crate::sift_feature::SiftFeature;
 
 
 #[derive(Debug,Clone)]
