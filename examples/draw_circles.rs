@@ -5,7 +5,7 @@ use std::path::Path;
 
 use sift::image::Image;
 use sift::visualize::{draw_circle,draw_points};
-use sift::features::circle::circle_bresenham;
+use sift::features::geometry::circle::circle_bresenham;
 
 fn main() {
     let image_name = "lenna";

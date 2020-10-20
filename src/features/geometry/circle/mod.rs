@@ -1,4 +1,4 @@
-use crate::features::point::Point;
+use crate::features::geometry::point::Point;
 
 #[derive(Debug,Clone)]
 pub struct Offset {

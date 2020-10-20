@@ -1,6 +1,6 @@
 extern crate image as image_rs;
 
-use crate::features::point::Point;
+use crate::features::geometry::point::Point;
 use crate::image::{Image,image_encoding::ImageEncoding};
 use crate::sift_descriptor::{orientation_histogram::OrientationHistogram,feature_vector::FeatureVector,keypoint::KeyPoint};
 use crate::{Float,float,reconstruct_original_coordiantes};
