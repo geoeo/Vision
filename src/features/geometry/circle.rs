@@ -1,10 +1,6 @@
-use crate::features::geometry::point::Point;
 
-#[derive(Debug,Clone)]
-pub struct Offset {
-    pub x: isize,
-    pub y: isize
-}
+use crate::features::geometry::{offset::Offset,point::Point};
+
 
 #[derive(Debug,Clone)]
 pub struct Circle {
