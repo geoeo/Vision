@@ -1,27 +1,13 @@
 
-use crate::features::geometry::{offset::Offset,point::Point};
-
+use crate::Float;
+use crate::features::geometry::{Geometry,offset::Offset};
 
 #[derive(Debug,Clone)]
 pub struct Circle {
-    pub x_center: usize,
-    pub y_center: usize,
-    pub offsets: Vec<Offset>
+    pub geometry: Geometry,
+    pub radius: usize
 }
 
-impl Circle {
-    pub fn points(&self) -> Vec<Point> {
-        let mut points = Vec::<Point>::new();
-
-        for offset in &self.offsets {
-            let x = (self.x_center as isize + offset.x) as usize;
-            let y = (self.y_center as isize + offset.y) as usize;
-            points.push(Point{x,y});
-        }
-
-        points
-    }
-}
 
 // https://www.geeksforgeeks.org/bresenhams-circle-drawing-algorithm/?ref=rp
 pub fn circle_bresenham(x_center: usize, y_center: usize, radius: usize) -> Circle {
@@ -30,9 +16,9 @@ pub fn circle_bresenham(x_center: usize, y_center: usize, radius: usize) -> Circ
     let mut y: isize = radius as isize;
     let mut d = 3 -2*radius as isize;
 
-    let mut circle = Circle{x_center,y_center,offsets: Vec::<Offset>::new()};
+    let mut circle_geometry = Geometry{x_center,y_center,offsets: Vec::<Offset>::new()};
     
-    circle.offsets.extend(bresenham_octant(x,y));
+    circle_geometry.offsets.extend(bresenham_octant(x,y));
     while y >= x {
         x+=1; 
         if d > 0 {
@@ -41,11 +27,11 @@ pub fn circle_bresenham(x_center: usize, y_center: usize, radius: usize) -> Circ
         } else {
             d = d + 4*(x as isize)+6;
         }
-        circle.offsets.extend(bresenham_octant(x,y));
+        circle_geometry.offsets.extend(bresenham_octant(x,y));
 
     }
 
-    circle
+    Circle {geometry: circle_geometry, radius }
 }
 
 fn bresenham_octant( x: isize, y: isize) -> Vec<Offset> {

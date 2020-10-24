@@ -25,10 +25,6 @@ macro_rules! define_float {
 }
 
 pub const RELATIVE_MATCH_THRESHOLD: Float = 0.6;
-//pub const BLUR_HALF_WIDTH: usize = 9; // TODO: make this a input param to pyramid / Scale this with octave level
-//pub const ORIENTATION_HISTOGRAM_WINDOW_SIZE: usize = 9; // TODO: make this a input param to pyramid
-//pub const EDGE_R: Float = 2.5; // TODO: make this a input param to pyramid
-//pub const CONTRAST_R: Float = 0.1; // TODO: make this a input param to pyramid
 
 define_float!(f64);
 

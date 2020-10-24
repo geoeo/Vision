@@ -21,7 +21,7 @@ fn main() {
     let mut frame = Image::from_gray_image(&image, false);
     draw_circle(&mut frame, 100, 50, 3.0);
     let circle = circle_bresenham(35, 35, 5);
-    draw_points(&mut frame, &circle.points(), 64.0);
+    draw_points(&mut frame, &circle.geometry.get_points(), 64.0);
     let new_image = frame.to_image();
 
     new_image.save(converted_file_out_path).unwrap();
