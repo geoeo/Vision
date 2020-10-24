@@ -28,7 +28,7 @@ fn main() {
     //let fast_descriptor = FastDescriptor::from_circle(&circle);
     //FastDescriptor::print_continuous_offsets(&fast_descriptor);
 
-    let valid_descriptors = FastDescriptor::compute_valid_descriptors(&frame,3,0.2,12,10,10);
+    let valid_descriptors = FastDescriptor::compute_valid_descriptors(&frame,3,0.2,12,(10,10));
     for (valid_descriptor,i) in valid_descriptors {
         let slice = valid_descriptor.get_wrapping_slice(i, 12);
         let points = Geometry::points(valid_descriptor.x_center, valid_descriptor.y_center, &slice);

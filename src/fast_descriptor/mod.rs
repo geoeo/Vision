@@ -89,31 +89,10 @@ impl FastDescriptor {
 
     }
 
-    pub fn compute_valid_descriptors(image: &Image, radius: usize,  threshold_factor: Float, n: usize, x_grid: usize, y_grid: usize) -> Vec<(FastDescriptor,usize)> {
-
+    pub fn compute_valid_descriptors(image: &Image, radius: usize,  threshold_factor: Float, n: usize, grid_size: (usize,usize)) -> Vec<(FastDescriptor,usize)> {
+        let x_grid = grid_size.0;
+        let y_grid = grid_size.1;
         let mut result = Vec::<(FastDescriptor,usize)>::new();
-        // for r in (0..image.buffer.nrows()).step_by(1) {
-        //     for c in (0..image.buffer.ncols()).step_by(1) {    
-        //         let descriptor = FastDescriptor::new(c, r, radius);
-        //         let (start_option,score) = FastDescriptor::accept(image, &descriptor, threshold_factor, n);
-
-        //         if start_option.is_some() && score > grid_max_score {
-        //             grid_points.push((descriptor,start_option.unwrap()));
-        //             result.push((descriptor,start_option.unwrap()));
-        //         }
-
-        //         // Will be wrong -  fix predicate % iteration
-        //         if c%x_grid == 0 && r&y_grid == 0 && c != 0 && r != 0 {
-
-
-        //             result.extend(grid_points.clone());
-        //             grid_points.clear();
-        //             let mut grid_max_score = float::MIN;
-        //         }
-    
-        //     }
-        // }
-
         for r in (0..image.buffer.nrows()).step_by(y_grid) {
             for c in (0..image.buffer.ncols()).step_by(x_grid) {
 
@@ -136,8 +115,6 @@ impl FastDescriptor {
                     result.push(grid_max_option.unwrap());
                 }
 
-
-    
             }
         }
 
