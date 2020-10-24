@@ -39,21 +39,21 @@ fn bresenham_octant(x: isize, y: isize) -> Vec<Offset> {
     let start = -1;
     let x_end : isize = if x == 0 {0} else {2};
     let y_end: isize = 2;
-    let mut points = Vec::<Offset>::new();
+    let mut offsets = Vec::<Offset>::new();
 
     for x_sign in (start..x_end).step_by(2) {
         for y_sign in (start..y_end).step_by(2) {
             let x_signed = x_sign*x;
             let y_signed = y_sign*y;
 
-            points.push(Offset{x: x_signed,y: y_signed });
+            offsets.push(Offset{x: x_signed,y: y_signed });
             if x != y {
-                points.push(Offset{x: y_signed,y: x_signed });
+                offsets.push(Offset{x: y_signed,y: x_signed });
             }
         }
     }
     
 
 
-    points
+    offsets
 }

@@ -1,6 +1,6 @@
 extern crate image as image_rs;
 
-use crate::features::geometry::point::Point;
+use crate::features::geometry::{point::Point,circle::circle_bresenham};
 use crate::image::{Image,image_encoding::ImageEncoding};
 use crate::matching::sift_descriptor::{orientation_histogram::OrientationHistogram,feature_vector::FeatureVector,keypoint::KeyPoint};
 use crate::{Float,float,reconstruct_original_coordiantes};
@@ -133,6 +133,11 @@ pub fn draw_circle(image: &mut Image, x_center: usize, y_center: usize, radius: 
         }
 
     }
+}
+
+pub fn draw_circle_bresenham(image: &mut Image, x_center: usize, y_center: usize, radius: usize) -> () {
+    let circle = circle_bresenham(x_center,y_center,radius);
+    draw_points(image, &circle.geometry.get_points(), 64.0);
 }
 
 pub fn draw_points(image: &mut Image, points: &Vec<Point>, intensity: Float) -> () {
