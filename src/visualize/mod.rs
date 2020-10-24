@@ -2,7 +2,7 @@ extern crate image as image_rs;
 
 use crate::features::geometry::point::Point;
 use crate::image::{Image,image_encoding::ImageEncoding};
-use crate::sift_descriptor::{orientation_histogram::OrientationHistogram,feature_vector::FeatureVector,keypoint::KeyPoint};
+use crate::matching::sift_descriptor::{orientation_histogram::OrientationHistogram,feature_vector::FeatureVector,keypoint::KeyPoint};
 use crate::{Float,float,reconstruct_original_coordiantes};
 
 pub fn display_histogram(histogram: &OrientationHistogram, width_scaling:usize, height: usize) -> Image {
