@@ -13,7 +13,6 @@ pub mod image;
 pub mod pyramid;
 pub mod features;
 pub mod sift_descriptor;
-pub mod fast_descriptor;
 pub mod visualize;
 pub mod vo;
 

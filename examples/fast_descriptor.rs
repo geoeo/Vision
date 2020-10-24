@@ -6,7 +6,7 @@ use std::path::Path;
 use sift::image::Image;
 use sift::visualize::{draw_circle,draw_points};
 use sift::features::geometry::{Geometry,circle::circle_bresenham, point::Point};
-use sift::fast_descriptor::FastDescriptor;
+use sift::features::fast_feature::FastFeature;
 
 fn main() {
     let image_name = "lenna";
@@ -28,10 +28,10 @@ fn main() {
     //let fast_descriptor = FastDescriptor::from_circle(&circle);
     //FastDescriptor::print_continuous_offsets(&fast_descriptor);
 
-    let valid_descriptors = FastDescriptor::compute_valid_descriptors(&frame,3,0.2,12,(10,10));
-    for (valid_descriptor,i) in valid_descriptors {
-        let slice = valid_descriptor.get_wrapping_slice(i, 12);
-        let points = Geometry::points(valid_descriptor.x_center, valid_descriptor.y_center, &slice);
+    let valid_features = FastFeature::compute_valid_features(&frame,3,0.2,12,(10,10));
+    for (valid_feature,i) in valid_features {
+        let slice = valid_feature.get_wrapping_slice(i, 12);
+        let points = Geometry::points(valid_feature.x_center, valid_feature.y_center, &slice);
         draw_points(&mut frame, &points, 64.0);
     }
 

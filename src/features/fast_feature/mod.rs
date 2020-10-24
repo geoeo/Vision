@@ -3,7 +3,7 @@ use crate::image::Image;
 use crate::{float,Float};
 
 #[derive(Debug,Clone)]
-pub struct FastDescriptor {
+pub struct FastFeature {
     pub x_center: usize,
     pub y_center: usize,
     pub radius: usize,
@@ -12,13 +12,13 @@ pub struct FastDescriptor {
 
 }
 
-impl FastDescriptor {
+impl FastFeature {
 
-    pub fn new(x_center: usize, y_center: usize, radius: usize) -> FastDescriptor {
-        FastDescriptor::from_circle(&circle_bresenham(x_center,y_center,radius))
+    pub fn new(x_center: usize, y_center: usize, radius: usize) -> FastFeature {
+        FastFeature::from_circle(&circle_bresenham(x_center,y_center,radius))
     }
 
-    pub fn from_circle(circle: &Circle) -> FastDescriptor {
+    pub fn from_circle(circle: &Circle) -> FastFeature {
         let circle_geometry = &circle.geometry;
         let starting_offsets = [circle_geometry.offsets[0],circle_geometry.offsets[1],circle_geometry.offsets[2],circle_geometry.offsets[3]];
         let mut positive_y_offset = Vec::<Offset>::with_capacity(circle_geometry.offsets.len()/2);
@@ -38,38 +38,38 @@ impl FastDescriptor {
         let mut continuous_offsets = [positive_y_offset,negative_y_offset].concat();
         continuous_offsets.dedup();
 
-        FastDescriptor {x_center:circle_geometry.x_center, y_center: circle_geometry.y_center,radius: circle.radius, starting_offsets,continuous_offsets}
+        FastFeature {x_center:circle_geometry.x_center, y_center: circle_geometry.y_center,radius: circle.radius, starting_offsets,continuous_offsets}
     }
 
-    pub fn accept(image: &Image, descriptor: &FastDescriptor, threshold_factor: Float, n: usize) -> (Option<usize>,Float) {
+    pub fn accept(image: &Image, feature: &FastFeature, threshold_factor: Float, n: usize) -> (Option<usize>,Float) {
 
-        if (descriptor.x_center as isize - descriptor.radius as isize) < 0 || descriptor.x_center + descriptor.radius >= image.buffer.ncols() ||
-           (descriptor.y_center as isize - descriptor.radius as isize) < 0 || descriptor.y_center + descriptor.radius >= image.buffer.nrows() {
+        if (feature.x_center as isize - feature.radius as isize) < 0 || feature.x_center + feature.radius >= image.buffer.ncols() ||
+           (feature.y_center as isize - feature.radius as isize) < 0 || feature.y_center + feature.radius >= image.buffer.nrows() {
                return (None,float::MIN);
            }
 
-        let sample_intensity = image.buffer[(descriptor.y_center,descriptor.x_center)];
+        let sample_intensity = image.buffer[(feature.y_center,feature.x_center)];
         let t = sample_intensity*threshold_factor;
         let cutoff_max = sample_intensity + t;
         let cutoff_min = sample_intensity - t;
 
         let number_of_accepted_starting_offsets: usize
-            = descriptor.starting_offsets.iter()
-            .map(|x| FastDescriptor::sample(image, descriptor.y_center as isize, descriptor.x_center as isize, x))
-            .map(|x| FastDescriptor::outside_range(x, cutoff_min, cutoff_max))
+            = feature.starting_offsets.iter()
+            .map(|x| FastFeature::sample(image, feature.y_center as isize, feature.x_center as isize, x))
+            .map(|x| FastFeature::outside_range(x, cutoff_min, cutoff_max))
             .map(|x| x as usize)
             .sum();
 
-        let perimiter_samples: Vec<Float> = descriptor.continuous_offsets.iter().map(|x| FastDescriptor::sample(image, descriptor.y_center as isize, descriptor.x_center as isize, x)).collect();
-        let flagged_scores: Vec<(bool,Float)> = perimiter_samples.iter().map(|&x| (FastDescriptor::outside_range(x, cutoff_min, cutoff_max),FastDescriptor::score(sample_intensity, x, t))).collect();
+        let perimiter_samples: Vec<Float> = feature.continuous_offsets.iter().map(|x| FastFeature::sample(image, feature.y_center as isize, feature.x_center as isize, x)).collect();
+        let flagged_scores: Vec<(bool,Float)> = perimiter_samples.iter().map(|&x| (FastFeature::outside_range(x, cutoff_min, cutoff_max),FastFeature::score(sample_intensity, x, t))).collect();
 
         match number_of_accepted_starting_offsets {
             count if count >= 3 => {
 
                 let mut max_score = float::MIN;
                 let mut max_score_index: Option<usize> = None;
-                for i in 0..descriptor.continuous_offsets.len() {
-                    let index_slice = descriptor.get_wrapping_index(i, n);
+                for i in 0..feature.continuous_offsets.len() {
+                    let index_slice = feature.get_wrapping_index(i, n);
                     let (all_passing,total_score) = index_slice.iter()
                     .map(|&x| flagged_scores[x])
                     .fold((true,0.0),|(b_acc,s_acc),x| (b_acc && x.0,s_acc + x.1));
@@ -89,23 +89,23 @@ impl FastDescriptor {
 
     }
 
-    pub fn compute_valid_descriptors(image: &Image, radius: usize,  threshold_factor: Float, n: usize, grid_size: (usize,usize)) -> Vec<(FastDescriptor,usize)> {
+    pub fn compute_valid_features(image: &Image, radius: usize,  threshold_factor: Float, n: usize, grid_size: (usize,usize)) -> Vec<(FastFeature,usize)> {
         let x_grid = grid_size.0;
         let y_grid = grid_size.1;
-        let mut result = Vec::<(FastDescriptor,usize)>::new();
+        let mut result = Vec::<(FastFeature,usize)>::new();
         for r in (0..image.buffer.nrows()).step_by(y_grid) {
             for c in (0..image.buffer.ncols()).step_by(x_grid) {
 
-                let mut grid_max_option: Option<(FastDescriptor,usize)> = None;
+                let mut grid_max_option: Option<(FastFeature,usize)> = None;
                 let mut grid_max_score = float::MIN;
                 
                 for r_grid in r..r+y_grid {
                     for c_grid in c..c+x_grid {
-                        let descriptor = FastDescriptor::new(c_grid, r_grid, radius);
-                        let (start_option,score) = FastDescriptor::accept(image, &descriptor, threshold_factor, n);
+                        let feature = FastFeature::new(c_grid, r_grid, radius);
+                        let (start_option,score) = FastFeature::accept(image, &feature, threshold_factor, n);
                         if start_option.is_some() && score > grid_max_score {
                             grid_max_score = score;
-                            grid_max_option = Some((descriptor,start_option.unwrap()));
+                            grid_max_option = Some((feature,start_option.unwrap()));
                         }
 
                     }
@@ -127,7 +127,7 @@ impl FastDescriptor {
     }
 
     fn outside_range(perimiter_sample: Float, cutoff_min: Float, cutoff_max: Float) -> bool {
-        FastDescriptor::is_bright(perimiter_sample, cutoff_max) || FastDescriptor::is_dark(perimiter_sample, cutoff_min)
+        FastFeature::is_bright(perimiter_sample, cutoff_max) || FastFeature::is_dark(perimiter_sample, cutoff_min)
     }
 
     fn score(sample :Float, perimiter_sample: Float, t: Float) -> Float {
@@ -170,8 +170,8 @@ impl FastDescriptor {
 
     }
 
-    pub fn print_continuous_offsets(descriptor: &FastDescriptor) -> () {
-        for offset in &descriptor.continuous_offsets {
+    pub fn print_continuous_offsets(feature: &FastFeature) -> () {
+        for offset in &feature.continuous_offsets {
             println!("{:?}",offset);
         } 
     }
