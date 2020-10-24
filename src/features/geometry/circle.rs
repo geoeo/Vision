@@ -34,7 +34,7 @@ pub fn circle_bresenham(x_center: usize, y_center: usize, radius: usize) -> Circ
     Circle {geometry: circle_geometry, radius }
 }
 
-fn bresenham_octant( x: isize, y: isize) -> Vec<Offset> {
+fn bresenham_octant(x: isize, y: isize) -> Vec<Offset> {
 
     let start = -1;
     let x_end : isize = if x == 0 {0} else {2};
