@@ -1,8 +1,8 @@
 extern crate nalgebra as na;
 
-use na::{Matrix3x1,Matrix3,DMatrix};
+use na::DMatrix;
 
-use crate::{Float,float, GradientDirection, round};
+use crate::Float;
 use crate::pyramid::{sift_octave::SiftOctave, runtime_params::RuntimeParams};
 use std::fmt;
 

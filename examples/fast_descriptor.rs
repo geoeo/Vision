@@ -20,13 +20,6 @@ fn main() {
     let image = image_rs::open(&Path::new(&image_path)).unwrap().to_luma();
     let mut frame = Image::from_gray_image(&image, false);
 
-    let circle = circle_bresenham(35, 35, 3);
-    // for offset in &circle.geometry.offsets {
-    //     println!("{:?}",offset);
-    // }
-
-    //let fast_descriptor = FastDescriptor::from_circle(&circle);
-    //FastDescriptor::print_continuous_offsets(&fast_descriptor);
 
     let valid_features = FastFeature::compute_valid_features(&frame,3,0.2,12,(10,10));
     for (valid_feature,i) in valid_features {
@@ -36,6 +29,10 @@ fn main() {
     }
 
 
+    
+    // let feature = FastFeature::new(20, 20, 5);
+    // let full_circle = feature.get_full_circle();
+    // draw_points(&mut frame, &full_circle.geometry.get_points(), 64.0);
 
 
     let new_image = frame.to_image();

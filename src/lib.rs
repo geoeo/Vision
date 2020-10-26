@@ -15,6 +15,7 @@ pub mod features;
 pub mod matching;
 pub mod visualize;
 pub mod vo;
+pub mod numerics;
 
 macro_rules! define_float {
     ($f:tt) => {
@@ -125,7 +126,3 @@ pub fn generate_match_pairs(feature_list_a: &Vec<FeatureVector>, feature_list_b:
     feature_list_a.iter().enumerate().map(|a| (a.0,match_feature(a.1,feature_list_b))).filter(|&x| x.1 != None).map(|x| (x.0,x.1.unwrap())).collect::<Vec<(usize,usize)>>()
 }
 
-pub fn round(number: Float, dp: i32) -> Float {
-    let n = (10.0 as Float).powi(dp);
-    (number * n).round()/n
-}

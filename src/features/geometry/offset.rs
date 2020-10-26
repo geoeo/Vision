@@ -15,7 +15,7 @@ impl PartialEq for Offset {
 impl Ord for Offset {
     fn cmp(&self, other: &Self) -> Ordering {
         let x_cmp = self.x.cmp(&other.x);
-        let y_cmp = self.x.cmp(&other.y);
+        let y_cmp = self.y.cmp(&other.y);
         
         match (x_cmp,y_cmp) {
             (Ordering::Less,_) => Ordering::Less,

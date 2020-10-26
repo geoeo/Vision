@@ -2,8 +2,9 @@ extern crate nalgebra as na;
 
 use crate::{float,Float};
 use crate::pyramid::{sift_octave::SiftOctave,runtime_params::RuntimeParams};
-use crate::matching::sift_descriptor::{gradient_and_orientation, keypoint::KeyPoint};
-use crate::features::sift_feature::{SiftFeature,processing::{lagrange_interpolation_quadratic,quadatric_interpolation, gauss_2d}};
+use crate::matching::sift_descriptor::keypoint::KeyPoint;
+use crate::features::sift_feature::SiftFeature;
+use crate::numerics::{lagrange_interpolation_quadratic,quadatric_interpolation, gauss_2d,gradient_and_orientation};
 
 
 #[derive(Debug,Clone)]

@@ -8,6 +8,12 @@ pub struct Circle {
     pub radius: usize
 }
 
+impl Circle {
+    pub fn new(x_center: usize, y_center: usize, radius: usize, offsets: Vec<Offset>) -> Circle {
+        Circle { geometry: Geometry{x_center,y_center,offsets: offsets}, radius}
+    }
+}
+
 
 // https://www.geeksforgeeks.org/bresenhams-circle-drawing-algorithm/?ref=rp
 pub fn circle_bresenham(x_center: usize, y_center: usize, radius: usize) -> Circle {

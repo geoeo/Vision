@@ -23,11 +23,15 @@ impl FastFeature {
         let starting_offsets = [circle_geometry.offsets[0],circle_geometry.offsets[1],circle_geometry.offsets[2],circle_geometry.offsets[3]];
         let mut positive_y_offset = Vec::<Offset>::with_capacity(circle_geometry.offsets.len()/2);
         let mut negative_y_offset = Vec::<Offset>::with_capacity(circle_geometry.offsets.len()/2);
+        let mut pos_zero = Vec::<Offset>::with_capacity(1);
+        let mut neg_zero = Vec::<Offset>::with_capacity(1);
         
         for offset in &circle_geometry.offsets {
             match offset {
-                val if val.y > 0 || val.y == 0 && val.x > 0 => positive_y_offset.push(*val),
-                val => negative_y_offset.push(*val)
+                val if val.y > 0 => positive_y_offset.push(*val),
+                val if val.y < 0 => negative_y_offset.push(*val),
+                val if val.y == 0 && val.x > 0 => pos_zero.push(*val),
+                val => neg_zero.push(*val)
             };
 
             positive_y_offset.sort_unstable_by(|a,b| b.cmp(a));
@@ -35,7 +39,9 @@ impl FastFeature {
 
         }
 
-        let mut continuous_offsets = [positive_y_offset,negative_y_offset].concat();
+
+
+        let mut continuous_offsets = [pos_zero,positive_y_offset,neg_zero,negative_y_offset].concat();
         continuous_offsets.dedup();
 
         FastFeature {x_center:circle_geometry.x_center, y_center: circle_geometry.y_center,radius: circle.radius, starting_offsets,continuous_offsets}
@@ -168,6 +174,39 @@ impl FastFeature {
             [(start..len).collect::<Vec<usize>>(),(0..left_over).collect()].concat()
         }
 
+    }
+
+    pub fn get_full_circle(&self) -> Circle {
+        let continuous_offset_half = self.continuous_offsets.len()/2;
+
+        let mut offsets = Vec::<Offset>::new();
+        let mut pos_offsets = Vec::<Offset>::new();
+        let mut neg_offsets = Vec::<Offset>::new();
+
+        offsets.push(self.continuous_offsets[0]);
+        offsets.push(self.continuous_offsets[continuous_offset_half]);
+
+        for i in 1..continuous_offset_half {
+            let pos_y_idx = i;
+            let neg_y_idy = continuous_offset_half + i;
+
+            let pos_y_offset = self.continuous_offsets[pos_y_idx];
+            let neg_y_offset = self.continuous_offsets[neg_y_idy];
+
+            pos_offsets.push(pos_y_offset);
+            neg_offsets.push(neg_y_offset);
+        }
+        neg_offsets.reverse();
+        let offset_pairs_iter = pos_offsets.iter().zip(neg_offsets.iter());
+
+        for (p,n) in offset_pairs_iter {
+            for y in n.y..p.y+1{
+                offsets.push(Offset{x:p.x,y});
+            }
+
+        }
+
+        Circle::new(self.x_center, self.y_center, self.radius, offsets)
     }
 
     pub fn print_continuous_offsets(feature: &FastFeature) -> () {
