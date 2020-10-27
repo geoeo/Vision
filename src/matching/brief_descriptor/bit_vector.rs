@@ -62,7 +62,7 @@ impl BitVector {
 
         for i in 0..self.data.len() {
             let mut xor_v = xor_vec[i];
-            for j in 0..BitVector::bits_per_element() {
+            for _ in 0..BitVector::bits_per_element() {
                 let bit_v = xor_v & 1;
                 if bit_v == 1 {
                     distance = distance + 1;
