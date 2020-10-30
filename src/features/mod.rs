@@ -2,6 +2,7 @@ pub mod geometry;
 pub mod sift_feature;
 pub mod fast_feature;
 pub mod octave_feature;
+pub mod harris_corner;
 
 pub trait Feature {
     fn get_x_image(&self) -> usize;

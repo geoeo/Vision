@@ -4,7 +4,7 @@ use na::DMatrix;
 
 use crate::Float;
 use crate::pyramid::{sift_octave::SiftOctave, runtime_params::RuntimeParams};
-use crate::features::Feature;
+use crate::features::{Feature,harris_corner};
 use std::fmt;
 
 
@@ -119,7 +119,7 @@ fn is_sample_extrema_in_neighbourhood(sample: Float, x_sample: usize, y_sample: 
 }
 
 pub fn sift_feature_refinement(extrema: &Vec<SiftFeature>, source_octave: &SiftOctave,octave_level: usize, runtime_params: &RuntimeParams) -> Vec<SiftFeature> {
-    extrema.iter().cloned().map(|x| processing::subpixel_refinement(source_octave,octave_level, &x)).filter(|x| x.0 >= runtime_params.contrast_r).map(|x| x.1).filter(|x| processing::reject_edge_response_filter(source_octave, &x, runtime_params.edge_r)).collect()
+    extrema.iter().cloned().map(|x| processing::subpixel_refinement(source_octave,octave_level, &x)).filter(|x| x.0 >= runtime_params.contrast_r).map(|x| x.1).filter(|x| harris_corner::reject_edge_response_filter(&source_octave.difference_of_gaussians,&source_octave.dog_x_gradient, x, runtime_params.edge_r)).collect()
     //extrema.iter().cloned().filter(|x| accept_edge_response_filter(source_octave, &x, runtime_params.edge_r)).collect()
     //extrema.clone()
 }

@@ -1,45 +1,11 @@
 extern crate nalgebra as na;
 
-use na::{Matrix2,Matrix3x1, Matrix3};
+use na::{Matrix3x1, Matrix3};
 use crate::pyramid::sift_octave::SiftOctave;
 use crate::{Float, GradientDirection};
-use crate::filter::{kernel::Kernel,gradient_convolution_at_sample_3_d,prewitt_kernel::PrewittKernel,laplace_kernel::LaplaceKernel,laplace_off_center_kernel::LaplaceOffCenterKernel};
+use crate::filter::{kernel::Kernel,gradient_convolution_at_sample,prewitt_kernel::PrewittKernel,laplace_kernel::LaplaceKernel,laplace_off_center_kernel::LaplaceOffCenterKernel};
 use crate::features::{Feature,sift_feature::SiftFeature};
 
-
-//TODO: @Investigate: maybe precomputing the gradient images is more efficient
-pub fn harris_corner_matrix(source_octave: &SiftOctave, input_params: &dyn Feature) -> Matrix2<Float> {
-
-    let second_order_kernel = LaplaceKernel::new();
-    let first_order_kernel = PrewittKernel::new();
-
-
-    let dxx = gradient_convolution_at_sample_3_d(&source_octave.difference_of_gaussians.iter().map(|x| x).collect(),input_params,&second_order_kernel,GradientDirection::HORIZINTAL);
-    let dyy = gradient_convolution_at_sample_3_d(&source_octave.difference_of_gaussians.iter().map(|x| x).collect(),input_params,&second_order_kernel,GradientDirection::VERTICAL);
-    let dxy = gradient_convolution_at_sample_3_d(&source_octave.dog_x_gradient.iter().map(|x| x).collect(),input_params,&first_order_kernel,GradientDirection::VERTICAL);
-
-    Matrix2::new(dxx,dxy,
-        dxy,dyy)
-
-}
-
-pub fn reject_edge(hessian: &Matrix2<Float>, r: Float) -> bool {
-    let trace = hessian.trace();
-    let determinant = hessian.determinant();
-    let hessian_factor = trace.powi(2)/determinant;
-    let r_factor = (r+1.0).powi(2)/r;
-
-    hessian_factor < r_factor as Float && determinant > 0.0
-}
-
-pub fn accept_edge(hessian: &Matrix2<Float>, r: Float) -> bool {
-    let trace = hessian.trace();
-    let determinant = hessian.determinant();
-    let hessian_factor = trace.powi(2)/determinant;
-    let r_factor = (r+1.0).powi(2)/r;
-
-    hessian_factor >= r_factor as Float && determinant > 0.0
-}
 
 //TODO: maybe return new extrema instead due to potential change of coordiantes in interpolation
 //TODO: needs to be more stable
@@ -164,18 +130,18 @@ fn interpolate(source_octave: &SiftOctave, input_params: &dyn Feature, first_ord
     let dy = source_octave.dog_y_gradient[sigma_level].buffer[(input_params.get_y_image(),input_params.get_x_image())];
     let ds = source_octave.dog_s_gradient[sigma_level].buffer[(input_params.get_y_image(),input_params.get_x_image())];
 
-    let dxx = gradient_convolution_at_sample_3_d(&source_octave.difference_of_gaussians.iter().map(|x| x).collect(),input_params,second_order_kernel,GradientDirection::HORIZINTAL);
-    let dyy = gradient_convolution_at_sample_3_d(&source_octave.difference_of_gaussians.iter().map(|x| x).collect(),input_params,second_order_kernel,GradientDirection::VERTICAL);
-    let dss = gradient_convolution_at_sample_3_d(&source_octave.difference_of_gaussians.iter().map(|x| x).collect(),input_params,second_order_kernel,GradientDirection::SIGMA);
+    let dxx = gradient_convolution_at_sample(&source_octave.difference_of_gaussians,input_params,second_order_kernel,GradientDirection::HORIZINTAL);
+    let dyy = gradient_convolution_at_sample(&source_octave.difference_of_gaussians,input_params,second_order_kernel,GradientDirection::VERTICAL);
+    let dss = gradient_convolution_at_sample(&source_octave.difference_of_gaussians,input_params,second_order_kernel,GradientDirection::SIGMA);
 
-    let dxy = gradient_convolution_at_sample_3_d(&source_octave.dog_x_gradient.iter().map(|x| x).collect(),input_params,first_order_kernel,GradientDirection::VERTICAL);
-    let dxs = gradient_convolution_at_sample_3_d(&source_octave.dog_x_gradient.iter().map(|x| x).collect(),input_params,first_order_kernel,GradientDirection::SIGMA);
+    let dxy = gradient_convolution_at_sample(&source_octave.dog_x_gradient,input_params,first_order_kernel,GradientDirection::VERTICAL);
+    let dxs = gradient_convolution_at_sample(&source_octave.dog_x_gradient,input_params,first_order_kernel,GradientDirection::SIGMA);
 
-    let dyx = gradient_convolution_at_sample_3_d(&source_octave.dog_y_gradient.iter().map(|x| x).collect(),input_params,first_order_kernel,GradientDirection::HORIZINTAL);
-    let dys = gradient_convolution_at_sample_3_d(&source_octave.dog_y_gradient.iter().map(|x| x).collect(),input_params,first_order_kernel,GradientDirection::SIGMA);
+    let dyx = gradient_convolution_at_sample(&source_octave.dog_y_gradient,input_params,first_order_kernel,GradientDirection::HORIZINTAL);
+    let dys = gradient_convolution_at_sample(&source_octave.dog_y_gradient,input_params,first_order_kernel,GradientDirection::SIGMA);
 
-    let dsx = gradient_convolution_at_sample_3_d(&source_octave.dog_s_gradient.iter().map(|x| x).collect(),input_params,first_order_kernel,GradientDirection::HORIZINTAL);
-    let dsy = gradient_convolution_at_sample_3_d(&source_octave.dog_s_gradient.iter().map(|x| x).collect(),input_params,first_order_kernel,GradientDirection::VERTICAL);
+    let dsx = gradient_convolution_at_sample(&source_octave.dog_s_gradient,input_params,first_order_kernel,GradientDirection::HORIZINTAL);
+    let dsy = gradient_convolution_at_sample(&source_octave.dog_s_gradient,input_params,first_order_kernel,GradientDirection::VERTICAL);
 
     let a = Matrix3::new(dxx,dxy,dxs,
                          dyx,dyy,dys,
@@ -189,13 +155,3 @@ fn interpolate(source_octave: &SiftOctave, input_params: &dyn Feature, first_ord
     }
 }
 
-
-pub fn reject_edge_response_filter(source_octave: &SiftOctave, input_params: &SiftFeature, r: Float) -> bool {
-    let hessian = harris_corner_matrix(source_octave,input_params);
-    reject_edge(&hessian, r)
-}
-
-pub fn accept_edge_response_filter(source_octave: &SiftOctave, input_params: &SiftFeature, r: Float) -> bool {
-    let hessian = harris_corner_matrix(source_octave,input_params);
-    accept_edge(&hessian, r)
-}

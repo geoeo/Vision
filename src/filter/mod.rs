@@ -72,21 +72,8 @@ pub fn filter_1d_convolution(source_images: &Vec<&Image>, sigma_level: usize, fi
     target
 }
 
-//TODO: rewrite both 
-pub fn gradient_convolution_at_sample_2_d(source_image: &Image,input_params: &SiftFeature, filter_kernel: &dyn Kernel, gradient_direction: GradientDirection) -> Float {
 
-    if gradient_direction == GradientDirection::SIGMA {
-        panic!("sigma not implemented for this call. Please use Vec<image> alternative");
-    }
-
-    gradient_convolution_at_sample_3_d(&vec!(source_image), input_params, filter_kernel, gradient_direction)
-
-
-}
-
-
-
-pub fn gradient_convolution_at_sample_3_d(source_images: &Vec<&Image>,input_params: &dyn Feature, filter_kernel: &dyn Kernel, gradient_direction: GradientDirection) -> Float {
+pub fn gradient_convolution_at_sample(source_images: &Vec<Image>,input_params: &dyn Feature, filter_kernel: &dyn Kernel, gradient_direction: GradientDirection) -> Float {
 
     let x_input = input_params.get_x_image(); 
     let x_input_signed = x_input as isize; 
