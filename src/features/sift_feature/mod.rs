@@ -4,6 +4,7 @@ use na::DMatrix;
 
 use crate::Float;
 use crate::pyramid::{sift_octave::SiftOctave, runtime_params::RuntimeParams};
+use crate::features::Feature;
 use std::fmt;
 
 
@@ -17,6 +18,20 @@ pub struct SiftFeature {
     //pub sigma: Float
 } 
 
+impl Feature for SiftFeature {
+    fn get_x_image(&self) -> usize {
+        self.x.trunc() as usize
+    }
+
+    fn get_y_image(&self) -> usize {
+        self.y.trunc() as usize
+    }
+
+    fn get_closest_sigma_level(&self) -> usize {
+        self.sigma_level.trunc() as usize
+    }
+}
+
 impl fmt::Display for SiftFeature {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "x: {}, y: {}, s: {}", self.x, self.y, self.sigma_level)
@@ -25,23 +40,19 @@ impl fmt::Display for SiftFeature {
 
 //TODO: check these
 impl SiftFeature {
-    pub fn x_image(&self) -> usize {
-        self.x.trunc() as usize
+
+    pub fn get_x(&self) -> Float{
+        self.x
     }
 
-    pub fn y_image(&self) -> usize {
-        self.y.trunc() as usize
+    pub fn get_y(&self) -> Float{
+        self.y
     }
 
-    pub fn closest_sigma_level(&self, s: usize) -> usize {
-        // let sigma_range_half = (1.0/s as Float).exp2()/2.0;
-        // let truncated_level =  self.sigma_level.trunc() as usize;
-        // match self.sigma_level {
-        //     level if level.fract() > sigma_range_half => truncated_level  + 1,
-        //     _ => truncated_level
-        // }
-        self.sigma_level.trunc() as usize
+    pub fn get_sigma_level(&self) -> Float{
+        self.sigma_level
     }
+
 }
 
 

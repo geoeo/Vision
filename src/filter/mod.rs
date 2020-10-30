@@ -1,7 +1,6 @@
-use crate::image::{Image};
-use crate::pyramid::sift_octave::SiftOctave;
+use crate::image::Image;
 use crate::{Float, GradientDirection};
-use crate::sift_feature::SiftFeature;
+use crate::features::{Feature,sift_feature::SiftFeature};
 use self::{kernel::Kernel,gauss_kernel::GaussKernel1D};
 
 pub mod gauss_kernel;
@@ -63,7 +62,7 @@ pub fn filter_1d_convolution(source_images: &Vec<&Image>, sigma_level: usize, fi
                     let kenel_value = kernel[(0,(kenel_idx + kernel_half_width_signed) as usize)];
                     acc +=sample_value*kenel_value;
                 }
-                target.buffer[(y,x)] = acc/filter_kernel.normalizing_constant(); //TODO: this is not correct for all filters
+                target.buffer[(y,x)] = acc/filter_kernel.normalizing_constant(); 
         }
     }
 
@@ -73,14 +72,27 @@ pub fn filter_1d_convolution(source_images: &Vec<&Image>, sigma_level: usize, fi
     target
 }
 
-//TODO: rewrite this
-pub fn gradient_convolution_at_sample(source_octave: &SiftOctave,source_images: &Vec<Image>, input_params: &SiftFeature, filter_kernel: &dyn Kernel, gradient_direction: GradientDirection) -> Float {
+//TODO: rewrite both 
+pub fn gradient_convolution_at_sample_2_d(source_image: &Image,input_params: &SiftFeature, filter_kernel: &dyn Kernel, gradient_direction: GradientDirection) -> Float {
 
-    let x_input = input_params.x_image(); 
-    let x_input_signed = input_params.x as isize; 
-    let y_input = input_params.y_image(); 
-    let y_input_signed = input_params.y as isize; 
-    let sigma_level_input = input_params.closest_sigma_level(source_octave.s());
+    if gradient_direction == GradientDirection::SIGMA {
+        panic!("sigma not implemented for this call. Please use Vec<image> alternative");
+    }
+
+    gradient_convolution_at_sample_3_d(&vec!(source_image), input_params, filter_kernel, gradient_direction)
+
+
+}
+
+
+
+pub fn gradient_convolution_at_sample_3_d(source_images: &Vec<&Image>,input_params: &dyn Feature, filter_kernel: &dyn Kernel, gradient_direction: GradientDirection) -> Float {
+
+    let x_input = input_params.get_x_image(); 
+    let x_input_signed = x_input as isize; 
+    let y_input = input_params.get_y_image(); 
+    let y_input_signed = y_input as isize; 
+    let sigma_level_input = input_params.get_closest_sigma_level();
     let sigma_level_input_signed = sigma_level_input as isize;
 
     let kernel = filter_kernel.kernel();
@@ -101,7 +113,7 @@ pub fn gradient_convolution_at_sample(source_octave: &SiftOctave,source_images: 
             assert!(y_input_signed -kernel_half_width_signed >= 0 && y_input + kernel_half_width <= height);
          },
         GradientDirection::SIGMA => { 
-            assert!(sigma_level_input_signed -kernel_half_width_signed >= 0 && sigma_level_input + kernel_half_width < source_octave.difference_of_gaussians.len());
+            assert!(sigma_level_input_signed -kernel_half_width_signed >= 0 && sigma_level_input + kernel_half_width < source_images.len());
         }
 
     }

@@ -29,7 +29,7 @@ pub const RELATIVE_MATCH_THRESHOLD: Float = 0.6;
 define_float!(f64);
 
 #[repr(u8)]
-#[derive(Debug,Copy,Clone)]
+#[derive(Debug,Copy,Clone,PartialEq)]
 pub enum GradientDirection {
     HORIZINTAL,
     VERTICAL,

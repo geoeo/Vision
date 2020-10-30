@@ -1,4 +1,4 @@
-use crate::features::geometry::{circle::{Circle,circle_bresenham},offset::Offset};
+use crate::features::{Feature, geometry::{circle::{Circle,circle_bresenham},offset::Offset}};
 use crate::image::Image;
 use crate::{float,Float};
 
@@ -10,6 +10,20 @@ pub struct FastFeature {
     pub starting_offsets: [Offset;4],
     pub continuous_offsets: Vec<Offset>
 
+}
+
+impl Feature for FastFeature {
+    fn get_x_image(&self) -> usize {
+        self.x_center
+    }
+
+    fn get_y_image(&self) -> usize {
+        self.y_center
+    }
+
+    fn get_closest_sigma_level(&self) -> usize {
+        0
+    }
 }
 
 impl FastFeature {

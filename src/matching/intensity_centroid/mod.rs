@@ -1,10 +1,6 @@
-use crate::{float,Float};
+use crate::Float;
 use crate::features::geometry::point::Point;
 use crate::image::Image;
-
-
-
-
 
 fn moment((p,q): (u32,u32), image: &Image, points: &Vec<Point>) -> Float {
     assert!(p <= 1 && q <= 1);
@@ -15,7 +11,6 @@ fn moment((p,q): (u32,u32), image: &Image, points: &Vec<Point>) -> Float {
     }
 
     moment
-
 }
 
 pub fn orientation(image: &Image, points: &Vec<Point>) -> Float {
@@ -35,4 +30,3 @@ pub fn centroid(image: &Image, points: &Vec<Point>) -> Point {
 
     Point { x: x.trunc() as usize, y: y.trunc() as usize}
 }
-
