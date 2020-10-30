@@ -22,7 +22,7 @@ impl BitVector {
         8*BitVector::bytes_per_element() // size of u64
     }
 
-    pub fn add_value(&mut self,new_val: u64) -> () {
+    pub fn add_value(&mut self, new_val: u64) -> () {
         assert!(new_val == 0 || new_val == 1);
         assert!(self.entries < self.data.len()-1);
 
@@ -44,10 +44,10 @@ impl BitVector {
                 _ => 1
             };
 
-            self.data[i] &= moved_bit;
+            self.data[i] |= moved_bit;
         }
 
-        self.data[0] &= new_val;
+        self.data[0] |= new_val;
         self.entries = self.entries+1;
     }
 
