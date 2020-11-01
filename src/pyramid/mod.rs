@@ -5,12 +5,3 @@ pub mod orb;
 pub struct Pyramid<T> {
     pub octaves: Vec<T>
 }
-
-
-
-
-
-
-
-
-

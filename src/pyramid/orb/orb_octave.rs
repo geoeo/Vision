@@ -13,11 +13,11 @@ pub struct OrbOctave {
 
 //TODO: Params
 impl OrbOctave {
-    pub fn build_octave(base_image: &Image, runtime_parameters: &OrbRuntimeParameters) -> OrbOctave {
+    pub fn build_octave(base_image: &Image,sigma: Float, runtime_parameters: &OrbRuntimeParameters) -> OrbOctave {
 
         let mean = 0.0;
         let step = 1;
-        let sigma = runtime_parameters.sigma;
+
         let blur_radius = runtime_parameters.blur_radius;
 
         let sigmas = vec!(sigma);

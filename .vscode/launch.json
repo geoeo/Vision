@@ -7,6 +7,7 @@
 
 
 
+
         {
             "name": "Blur Launch",
             "type": "lldb",
@@ -20,10 +21,22 @@
             "env": {"RUST_BACKTRACE":"1"}
         },
         {
-            "name": "Pyramid Launch",
+            "name": "Sift Pyramid Launch",
             "type": "lldb",
             "request": "launch",
-            "program": "${workspaceRoot}/target/debug/examples/pyramid",
+            "program": "${workspaceRoot}/target/debug/examples/sift_pyramid",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "env": {"RUST_BACKTRACE":"1"}
+        },
+        {
+            "name": "Orb Pyramid Launch",
+            "type": "lldb",
+            "request": "launch",
+            "program": "${workspaceRoot}/target/debug/examples/orb_pyramid",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
