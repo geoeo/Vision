@@ -6,7 +6,6 @@ use std::path::Path;
 use sift::pyramid::sift::{build_sift_pyramid, sift_runtime_params::SiftRuntimeParams};
 use sift::features::sift_feature;
 use sift::image::Image;
-use sift::filter::{prewitt_kernel::PrewittKernel};
 use sift::matching::sift_descriptor::{orientation_histogram::generate_keypoints_from_extrema,local_image_descriptor::{is_rotated_keypoint_within_image,LocalImageDescriptor},feature_vector::FeatureVector,keypoint::KeyPoint};
 use sift::visualize::{draw_square,visualize_keypoint};
 
@@ -47,7 +46,6 @@ fn main() {
 
     let x_step = 1;
     let y_step = 1;
-    let first_order_derivative_filter = PrewittKernel::new();
 
 
 

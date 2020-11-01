@@ -5,8 +5,7 @@ use std::path::Path;
 
 use sift::pyramid::sift::{build_sift_pyramid, sift_runtime_params::SiftRuntimeParams};
 use sift::features::sift_feature;
-use sift::filter::{prewitt_kernel::PrewittKernel};
-use sift::matching::sift_descriptor::{orientation_histogram::generate_keypoints_from_extrema,local_image_descriptor::{is_rotated_keypoint_within_image,LocalImageDescriptor},feature_vector::FeatureVector,keypoint::KeyPoint};
+use sift::matching::sift_descriptor::{orientation_histogram::generate_keypoints_from_extrema,local_image_descriptor::{is_rotated_keypoint_within_image,LocalImageDescriptor},keypoint::KeyPoint};
 use sift::visualize::display_histogram;
 
 fn main() {
@@ -39,13 +38,13 @@ fn main() {
 
     let x_step = 1;
     let y_step = 1;
-    let first_order_derivative_filter = PrewittKernel::new();
+
 
     let features = sift_feature::detect_sift_feature(octave,sigma_level,x_step, y_step);
     let refined_features = sift_feature::sift_feature_refinement(&features, octave,octave_level, &runtime_params);
     let keypoints = refined_features.iter().map(|x| generate_keypoints_from_extrema(octave,octave_level, x, &runtime_params)).flatten().collect::<Vec<KeyPoint>>();
     let descriptors : Vec<LocalImageDescriptor> = keypoints.iter().filter(|x| is_rotated_keypoint_within_image(octave, x)).map(|x| LocalImageDescriptor::new(octave,x)).collect::<Vec<LocalImageDescriptor>>();
-    let feature_vectors = descriptors.iter().map(|x| FeatureVector::new(x,octave_level)).collect::<Vec<FeatureVector>>();
+
 
     let new_image = display_histogram(&descriptors[0].descriptor_vector[1], 20, 400);
 

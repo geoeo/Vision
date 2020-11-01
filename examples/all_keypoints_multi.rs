@@ -3,7 +3,7 @@ extern crate sift;
 
 use std::path::Path;
 
-use sift::pyramid::sift::{build_sift_pyramid, sift_runtime_params::SiftRuntimeParams,keypoints_from_pyramid,keypoints_from_octave};
+use sift::pyramid::sift::{build_sift_pyramid, sift_runtime_params::SiftRuntimeParams,keypoints_from_pyramid};
 use sift::image::Image;
 use sift::visualize::visualize_keypoint;
 
