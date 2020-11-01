@@ -29,6 +29,3 @@ pub fn harris_response_for_feature(images: &Vec<Image>, feature: &dyn Feature,  
     let harris_matrix = harris_matrix(images,feature);
     harris_response(&harris_matrix, k)
 }
-
-
-

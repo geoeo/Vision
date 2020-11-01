@@ -1,5 +1,5 @@
 
-use self::pyramid::{sift_octave::SiftOctave,Pyramid,runtime_params::RuntimeParams};
+use self::pyramid::{sift_octave::SiftOctave,Pyramid,sift_runtime_params::SiftRuntimeParams};
 use self::features::sift_feature;
 use self::matching::sift_descriptor::{
     feature_vector::FeatureVector,
@@ -36,13 +36,13 @@ pub enum GradientDirection {
     SIGMA
 }
 
-pub fn feature_vectors_from_pyramid(pyramid: &Pyramid<SiftOctave>, runtime_params:&RuntimeParams) -> Vec<FeatureVector> {
+pub fn feature_vectors_from_pyramid(pyramid: &Pyramid<SiftOctave>, runtime_params:&SiftRuntimeParams) -> Vec<FeatureVector> {
 
     let mut all_vectors = Vec::<Vec<FeatureVector>>::new();
 
     for octave_level in 0..pyramid.octaves.len() {
         let octave = &pyramid.octaves[octave_level];
-        for sigma_level in 1..pyramid.s+1 {
+        for sigma_level in 1..pyramid.sigma_count+1 {
             all_vectors.push(feature_vectors_from_octave(pyramid,octave_level,sigma_level,runtime_params));
         }
     }
@@ -51,7 +51,7 @@ pub fn feature_vectors_from_pyramid(pyramid: &Pyramid<SiftOctave>, runtime_param
 
 }
 
-pub fn keypoints_from_pyramid(pyramid: &Pyramid<SiftOctave>, runtime_params:&RuntimeParams) -> Vec<KeyPoint> {
+pub fn keypoints_from_pyramid(pyramid: &Pyramid<SiftOctave>, runtime_params:&SiftRuntimeParams) -> Vec<KeyPoint> {
 
     let mut all_vectors = Vec::<Vec<KeyPoint>>::new();
 
@@ -64,7 +64,7 @@ pub fn keypoints_from_pyramid(pyramid: &Pyramid<SiftOctave>, runtime_params:&Run
 }
 
 //TODO: unify these methods
-pub fn feature_vectors_from_octave(pyramid: &Pyramid<SiftOctave>, octave_level: usize, sigma_level: usize, runtime_params:&RuntimeParams) -> Vec<FeatureVector> {
+pub fn feature_vectors_from_octave(pyramid: &Pyramid<SiftOctave>, octave_level: usize, sigma_level: usize, runtime_params:&SiftRuntimeParams) -> Vec<FeatureVector> {
     let x_step = 1;
     let y_step = 1;
 
@@ -77,17 +77,17 @@ pub fn feature_vectors_from_octave(pyramid: &Pyramid<SiftOctave>, octave_level: 
     descriptors.iter().map(|x| FeatureVector::new(x,octave_level)).collect::<Vec<FeatureVector>>()
 }
 
-pub fn keypoints_from_octave(pyramid: &Pyramid<SiftOctave>, octave_level: usize, runtime_params: &RuntimeParams) -> Vec<KeyPoint> {
+pub fn keypoints_from_octave(pyramid: &Pyramid<SiftOctave>, octave_level: usize, runtime_params: &SiftRuntimeParams) -> Vec<KeyPoint> {
     let mut all_vectors = Vec::<Vec<KeyPoint>>::new();
 
-    for dog_level in 1..pyramid.s+1 {
+    for dog_level in 1..pyramid.sigma_count+1 {
         all_vectors.push(keypoints_from_sigma(pyramid, octave_level,dog_level, runtime_params));
     }
 
     all_vectors.into_iter().flatten().collect()
 }
 
-pub fn keypoints_from_sigma(pyramid: &Pyramid<SiftOctave>, octave_level: usize, dog_level: usize, runtime_params: &RuntimeParams) -> Vec<KeyPoint> {
+pub fn keypoints_from_sigma(pyramid: &Pyramid<SiftOctave>, octave_level: usize, dog_level: usize, runtime_params: &SiftRuntimeParams) -> Vec<KeyPoint> {
     let x_step = 1;
     let y_step = 1;
 

@@ -3,7 +3,7 @@ extern crate sift;
 
 use std::path::Path;
 
-use sift::pyramid::{build_sift_pyramid, runtime_params::RuntimeParams};
+use sift::pyramid::{build_sift_pyramid, sift_runtime_params::SiftRuntimeParams};
 use sift::image::Image;
 use sift::{keypoints_from_pyramid,keypoints_from_octave};
 use sift::visualize::visualize_keypoint;
@@ -29,7 +29,7 @@ fn main() {
     let mut display = Image::upsample_double(&display_normal, false); //TODO: get upsampled
     
     //TODO: move inital blur params here
-    let runtime_params = RuntimeParams {
+    let runtime_params = SiftRuntimeParams {
         blur_half_factor: 4.0, //TODO: lowering <= 4 this causes algorithm to become unstable
         orientation_histogram_window_factor: 1.0, //TODO: investigate
         edge_r: 10.0,

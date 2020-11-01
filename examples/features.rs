@@ -3,7 +3,7 @@ extern crate sift;
 
 use std::path::Path;
 
-use sift::pyramid::{build_sift_pyramid, runtime_params::RuntimeParams};
+use sift::pyramid::{build_sift_pyramid, sift_runtime_params::SiftRuntimeParams};
 use sift::features::sift_feature;
 use sift::image::Image;
 use sift::filter::{kernel::Kernel,prewitt_kernel::PrewittKernel};
@@ -23,7 +23,7 @@ fn main() {
 
     let gray_image = image_rs::open(&Path::new(&image_path)).unwrap().to_luma();
 
-    let runtime_params = RuntimeParams {
+    let runtime_params = SiftRuntimeParams {
         blur_half_factor: 6.0,
         orientation_histogram_window_factor: 1.0, //TODO: investigate
         edge_r: 10.0,

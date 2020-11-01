@@ -3,7 +3,7 @@ extern crate sift;
 
 use std::path::Path;
 
-use sift::pyramid::{build_sift_pyramid, runtime_params::RuntimeParams};
+use sift::pyramid::{build_sift_pyramid, sift_runtime_params::SiftRuntimeParams};
 use sift::image::Image;
 use sift::{feature_vectors_from_octave,reconstruct_original_coordiantes,feature_vectors_from_pyramid, generate_match_pairs};
 use sift::visualize::display_matches;
@@ -19,7 +19,7 @@ fn main() {
     let image_path_2 = format!("{}{}.{}",image_folder,image_name_2, image_format);
     let converted_file_out_path = format!("{}{}_matches.{}",image_out_folder,image_name,image_format);
 
-    let runtime_params = RuntimeParams {
+    let runtime_params = SiftRuntimeParams {
         blur_half_factor: 6.0,
         orientation_histogram_window_factor: 1.0, //TODO: investigate
         edge_r: 10.0,

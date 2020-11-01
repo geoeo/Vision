@@ -3,7 +3,7 @@ extern crate image as image_rs;
 use crate::image::{Image,image_encoding::ImageEncoding};
 use crate::filter::{gauss_kernel::GaussKernel1D, prewitt_kernel::PrewittKernel,laplace_off_center_kernel::LaplaceOffCenterKernel,gaussian_2_d_convolution,filter_1d_convolution};
 use crate::{Float,GradientDirection};
-use crate::pyramid::runtime_params::RuntimeParams;
+use crate::pyramid::sift_runtime_params::SiftRuntimeParams;
 
 #[derive(Debug,Clone)]
 pub struct SiftOctave {
@@ -19,7 +19,7 @@ pub struct SiftOctave {
 
 impl SiftOctave {
 
-    pub fn build_octave(base_image: &Image, s: usize, sigma_initial: Float, runtime_params: &RuntimeParams) -> SiftOctave {
+    pub fn build_octave(base_image: &Image, s: usize, sigma_initial: Float, runtime_params: &SiftRuntimeParams) -> SiftOctave {
 
         let image_count = s + 3;
         let range = 0..image_count;

@@ -1,7 +1,7 @@
 extern crate nalgebra as na;
 
 use crate::{float,Float};
-use crate::pyramid::{sift_octave::SiftOctave,runtime_params::RuntimeParams};
+use crate::pyramid::{sift_octave::SiftOctave,sift_runtime_params::SiftRuntimeParams};
 use crate::matching::sift_descriptor::keypoint::KeyPoint;
 use crate::features::{Feature,sift_feature::SiftFeature};
 use crate::numerics::{lagrange_interpolation_quadratic,quadatric_interpolation, gauss_2d,gradient_and_orientation};
@@ -97,7 +97,7 @@ pub fn radian_to_index(histogram: &OrientationHistogram, orientation: Float) -> 
     (orientation/histogram.bin_range).trunc() as usize
 }
 
-pub fn generate_keypoints_from_extrema(octave: &SiftOctave,octave_level: usize, keypoint: &SiftFeature, runtime_params: &RuntimeParams) -> Vec<KeyPoint> {
+pub fn generate_keypoints_from_extrema(octave: &SiftOctave,octave_level: usize, keypoint: &SiftFeature, runtime_params: &SiftRuntimeParams) -> Vec<KeyPoint> {
 
 
     let x = keypoint.x;

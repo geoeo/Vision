@@ -3,7 +3,7 @@ extern crate sift;
 
 use std::path::Path;
 
-use sift::pyramid::{build_sift_pyramid, runtime_params::RuntimeParams};
+use sift::pyramid::{build_sift_pyramid, sift_runtime_params::SiftRuntimeParams};
 use sift::image::Image;
 use sift::{reconstruct_original_coordiantes,feature_vectors_from_pyramid};
 use sift::visualize::draw_square;
@@ -32,7 +32,7 @@ fn main() {
     //     sigma_count: 4
     // };
 
-    let runtime_params = RuntimeParams {
+    let runtime_params = SiftRuntimeParams {
         blur_half_factor: 6.0,
         orientation_histogram_window_factor: 1.0, //TODO: investigate
         edge_r: 10.0,
