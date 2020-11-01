@@ -3,19 +3,18 @@ extern crate nalgebra as na;
 use na::{Matrix3x1, Matrix3};
 use crate::pyramid::sift::sift_octave::SiftOctave;
 use crate::{Float, GradientDirection};
-use crate::filter::{kernel::Kernel,gradient_convolution_at_sample,prewitt_kernel::PrewittKernel,laplace_kernel::LaplaceKernel,laplace_off_center_kernel::LaplaceOffCenterKernel};
+use crate::filter::{kernel::Kernel,gradient_convolution_at_sample,prewitt_kernel::PrewittKernel,laplace_kernel::LaplaceKernel};
 use crate::features::{Feature,sift_feature::SiftFeature};
 
 
 //TODO: maybe return new extrema instead due to potential change of coordiantes in interpolation
 //TODO: needs to be more stable
-pub fn subpixel_refinement(source_octave: &SiftOctave, octave_level: usize, feature:  &SiftFeature) -> (Float,SiftFeature) {
+pub fn subpixel_refinement(source_octave: &SiftOctave, feature:  &SiftFeature) -> (Float,SiftFeature) {
 
     let sigma_level = feature.get_closest_sigma_level();
 
     let first_order_kernel = PrewittKernel::new();
     let second_order_kernel = LaplaceKernel::new();
-    let second_order_off_center_kernel = LaplaceOffCenterKernel::new();
 
 
     let kernel_half_width = first_order_kernel.half_width();

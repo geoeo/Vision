@@ -4,7 +4,7 @@ use crate::{float,Float};
 use crate::pyramid::sift::{sift_runtime_params::SiftRuntimeParams,sift_octave::SiftOctave};
 use crate::matching::sift_descriptor::keypoint::KeyPoint;
 use crate::features::{Feature,sift_feature::SiftFeature};
-use crate::numerics::{lagrange_interpolation_quadratic,quadatric_interpolation, gauss_2d,gradient_and_orientation};
+use crate::numerics::{lagrange_interpolation_quadratic, gauss_2d,gradient_and_orientation};
 
 
 #[derive(Debug,Clone)]
@@ -162,11 +162,11 @@ pub fn generate_keypoints_from_extrema(octave: &SiftOctave,octave_level: usize, 
 
     //TODO: maybe smooth here
     histogram.smooth();
-    post_process(&mut histogram,keypoint,octave, octave_level)
+    post_process(&mut histogram,keypoint, octave_level)
 }
 
 
-fn post_process(histogram: &mut OrientationHistogram, extrema: &SiftFeature,octave: &SiftOctave, octave_level: usize) -> Vec<KeyPoint> {
+fn post_process(histogram: &mut OrientationHistogram, extrema: &SiftFeature, octave_level: usize) -> Vec<KeyPoint> {
 
     let max_val = histogram.bins[histogram.max_bin];
     let threshold = max_val*0.8; //TODO: make this runtime param

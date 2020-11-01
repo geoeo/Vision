@@ -118,8 +118,8 @@ fn is_sample_extrema_in_neighbourhood(sample: Float, x_sample: usize, y_sample: 
     (is_smallest,is_largest)
 }
 
-pub fn sift_feature_refinement(extrema: &Vec<SiftFeature>, source_octave: &SiftOctave,octave_level: usize, runtime_params: &SiftRuntimeParams) -> Vec<SiftFeature> {
-    extrema.iter().cloned().map(|x| processing::subpixel_refinement(source_octave,octave_level, &x)).filter(|x| x.0 >= runtime_params.contrast_r).map(|x| x.1).filter(|x| hessian_response::reject_edge_response_filter(&source_octave.difference_of_gaussians,&source_octave.dog_x_gradient, x, runtime_params.edge_r)).collect()
+pub fn sift_feature_refinement(extrema: &Vec<SiftFeature>, source_octave: &SiftOctave, runtime_params: &SiftRuntimeParams) -> Vec<SiftFeature> {
+    extrema.iter().cloned().map(|x| processing::subpixel_refinement(source_octave, &x)).filter(|x| x.0 >= runtime_params.contrast_r).map(|x| x.1).filter(|x| hessian_response::reject_edge_response_filter(&source_octave.difference_of_gaussians,&source_octave.dog_x_gradient, x, runtime_params.edge_r)).collect()
     //extrema.iter().cloned().filter(|x| accept_edge_response_filter(source_octave, &x, runtime_params.edge_r)).collect()
     //extrema.clone()
 }

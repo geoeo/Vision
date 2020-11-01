@@ -1,6 +1,6 @@
 use crate::image::Image;
 use crate::{Float, GradientDirection};
-use crate::features::{Feature,sift_feature::SiftFeature};
+use crate::features::Feature;
 use self::{kernel::Kernel,gauss_kernel::GaussKernel1D};
 
 pub mod gauss_kernel;

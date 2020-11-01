@@ -1,5 +1,3 @@
-
-use crate::Float;
 use crate::features::geometry::{Geometry,offset::Offset};
 
 #[derive(Debug,Clone)]

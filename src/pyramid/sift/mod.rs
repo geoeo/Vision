@@ -59,7 +59,6 @@ pub fn feature_vectors_from_pyramid(pyramid: &Pyramid<SiftOctave>, runtime_param
     let mut all_vectors = Vec::<Vec<FeatureVector>>::new();
 
     for octave_level in 0..pyramid.octaves.len() {
-        let octave = &pyramid.octaves[octave_level];
         for sigma_level in 1..pyramid.octaves[0].s()+1 {
             all_vectors.push(feature_vectors_from_octave(pyramid,octave_level,sigma_level,runtime_params));
         }
@@ -88,7 +87,7 @@ pub fn feature_vectors_from_octave(pyramid: &Pyramid<SiftOctave>, octave_level: 
     let octave = &pyramid.octaves[octave_level];
 
     let features = sift_feature::detect_sift_feature(octave,sigma_level,x_step, y_step);
-    let refined_features = sift_feature::sift_feature_refinement(&features, octave,octave_level, runtime_params);
+    let refined_features = sift_feature::sift_feature_refinement(&features, octave, runtime_params);
     let keypoints = refined_features.iter().map(|x| generate_keypoints_from_extrema(octave,octave_level, x, runtime_params)).flatten().collect::<Vec<KeyPoint>>();
     let descriptors = keypoints.iter().filter(|x| is_rotated_keypoint_within_image(octave, x)).map(|x| LocalImageDescriptor::new(octave,x)).collect::<Vec<LocalImageDescriptor>>();
     descriptors.iter().map(|x| FeatureVector::new(x,octave_level)).collect::<Vec<FeatureVector>>()
@@ -111,7 +110,7 @@ pub fn keypoints_from_sigma(pyramid: &Pyramid<SiftOctave>, octave_level: usize, 
     let octave = &pyramid.octaves[octave_level];
 
     let features = sift_feature::detect_sift_feature(octave,dog_level,x_step, y_step);
-    let refined_features = sift_feature::sift_feature_refinement(&features, octave,octave_level, runtime_params);
+    let refined_features = sift_feature::sift_feature_refinement(&features, octave, runtime_params);
     refined_features.iter().map(|x| generate_keypoints_from_extrema(octave,octave_level, x, runtime_params)).flatten().filter(|x| is_rotated_keypoint_within_image(octave, x)).collect::<Vec<KeyPoint>>()
 }
 

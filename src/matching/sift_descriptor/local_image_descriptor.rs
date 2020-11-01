@@ -98,9 +98,9 @@ pub fn is_rotated_keypoint_within_image(octave: &SiftOctave, keypoint: &KeyPoint
 fn generate_normalized_weight_orientation_arrays(octave: &SiftOctave, keypoint: &KeyPoint) -> (MatrixN<Float, U16>,MatrixN<Float, U16>) {
 
     let total_desciptor_side_length = 8 as isize;
-    let submatrix_length = (total_desciptor_side_length/2) as isize;
+    //let submatrix_length = (total_desciptor_side_length/2) as isize;
     let sigma = 1.5*octave.sigmas[keypoint.sigma_level];
-    let lambda_descriptor = 6.0; //TODO: get this from runtime parms i.e. blur_half_factor
+    //let lambda_descriptor = 6.0; //TODO: get this from runtime parms i.e. blur_half_factor
     let x_gradient = &octave.x_gradient[keypoint.sigma_level];
     let y_gradient = &octave.y_gradient[keypoint.sigma_level];
     let inter_pixel_distance = SiftOctave::inter_pixel_distance(keypoint.octave_level);
