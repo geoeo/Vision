@@ -22,6 +22,7 @@ fn main() {
 
 
     let valid_features = FastFeature::compute_valid_features(&frame,3,0.2,12,(10,10));
+    println!("amount of FAST features:{:?}",valid_features.len());
     for (valid_feature,i) in valid_features {
         let slice = valid_feature.get_wrapping_slice(i, 12);
         let points = Geometry::points(valid_feature.x_center, valid_feature.y_center, &slice);

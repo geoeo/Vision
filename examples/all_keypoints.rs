@@ -32,8 +32,8 @@ fn main() {
     let runtime_params = RuntimeParams {
         blur_half_factor: 4.0, //TODO: lowering <= 4 this causes algorithm to become unstable
         orientation_histogram_window_factor: 1.0, //TODO: investigate
-        edge_r: 5.0,
-        contrast_r: 0.07, //0.03
+        edge_r: 10.0,
+        contrast_r: 0.03, //0.03
         sigma_initial: 1.6,
         sigma_in: 0.5,
         octave_count: 8,

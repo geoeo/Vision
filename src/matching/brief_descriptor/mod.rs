@@ -31,14 +31,11 @@ impl BriefDescriptor {
 
 
         for _ in 0..n {
-
             let (a,b) = BriefDescriptor::generate_sample_pair(image, &mut sampling_thread,&normal_distribution);
 
             bit_vector.add_value(BriefDescriptor::bit_value(image,&a, &b));
             samples_a.push(a);
             samples_b.push(b);
-
-
         }
 
         BriefDescriptor{samples_a,samples_b,bit_vector}

@@ -28,11 +28,11 @@ impl Feature for FastFeature {
 
 impl FastFeature {
 
-    pub fn new(x_center: usize, y_center: usize, radius: usize) -> FastFeature {
+    fn new(x_center: usize, y_center: usize, radius: usize) -> FastFeature {
         FastFeature::from_circle(&circle_bresenham(x_center,y_center,radius))
     }
 
-    pub fn from_circle(circle: &Circle) -> FastFeature {
+    fn from_circle(circle: &Circle) -> FastFeature {
         let circle_geometry = &circle.geometry;
         let starting_offsets = [circle_geometry.offsets[0],circle_geometry.offsets[1],circle_geometry.offsets[2],circle_geometry.offsets[3]];
         let mut positive_y_offset = Vec::<Offset>::with_capacity(circle_geometry.offsets.len()/2);
@@ -61,7 +61,7 @@ impl FastFeature {
         FastFeature {x_center:circle_geometry.x_center, y_center: circle_geometry.y_center,radius: circle.radius, starting_offsets,continuous_offsets}
     }
 
-    pub fn accept(image: &Image, feature: &FastFeature, threshold_factor: Float, n: usize) -> (Option<usize>,Float) {
+    fn accept(image: &Image, feature: &FastFeature, threshold_factor: Float, n: usize) -> (Option<usize>,Float) {
 
         if (feature.x_center as isize - feature.radius as isize) < 0 || feature.x_center + feature.radius >= image.buffer.ncols() ||
            (feature.y_center as isize - feature.radius as isize) < 0 || feature.y_center + feature.radius >= image.buffer.nrows() {
