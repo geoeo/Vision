@@ -18,13 +18,13 @@ impl GaussKernel1D {
         factor*exponent
     }
 
-    pub fn new(mean: Float, std: Float, step: usize , half_width: Float ) -> GaussKernel1D {
-        let half_width_usize = half_width.trunc() as usize;
+    pub fn new(mean: Float, std: Float, step: usize , radius: Float ) -> GaussKernel1D {
+        let half_width_usize = radius.trunc() as usize;
         assert_eq!(half_width_usize%step,0);
 
         let cols = 2*half_width_usize+1;
         let start = -(half_width_usize as isize);
-        let end_exclusive = (half_width as isize) + 1;
+        let end_exclusive = (radius as isize) + 1;
         let range = (start..end_exclusive).step_by(step);
         GaussKernel1D {
             kernel: DMatrix::from_vec(1,cols,range.map(|x| GaussKernel1D::sample(mean,std,x as Float)).collect()),

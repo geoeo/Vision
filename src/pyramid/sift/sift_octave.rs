@@ -24,7 +24,7 @@ impl SiftOctave {
         let image_count = s + 3;
         let range = 0..image_count;
         let mean = 0.0;
-        let blur_width = runtime_params.blur_half_factor;
+        let blur_radius = runtime_params.blur_half_factor;
         let step = 1;
 
         let prewitt_kernel = PrewittKernel::new();
@@ -32,7 +32,7 @@ impl SiftOctave {
         //let sigma_0 = (sigma_initial.powi(2) - runtime_params.sigma_in.powi(2)).sqrt()/Octave::inter_pixel_distance(0);
         let sigma_0 = sigma_initial;
         let sigmas: Vec<Float> = range.clone().map(|x| sigma_0*SiftOctave::generate_k(x as Float, s as Float)).collect();
-        let kernels: Vec<GaussKernel1D> = sigmas.iter().map(|&sigma| GaussKernel1D::new(mean, sigma,step,SiftOctave::generate_blur_half_width(blur_width,sigma))).collect();
+        let kernels: Vec<GaussKernel1D> = sigmas.iter().map(|&sigma| GaussKernel1D::new(mean, sigma,step,SiftOctave::generate_blur_radius(blur_radius,sigma))).collect();
         let images: Vec<Image> = kernels.iter().map(|kernel| gaussian_2_d_convolution(base_image, kernel, false)).collect();
         let images_borrows: Vec<&Image> = images.iter().map(|x| x).collect();
         let x_gradient = range.clone().map(|x| filter_1d_convolution(&images_borrows,x, GradientDirection::HORIZINTAL, &prewitt_kernel, false)).collect();
@@ -62,7 +62,7 @@ impl SiftOctave {
     }
 
     //TODO: check this
-    pub fn generate_blur_half_width(blur_half_factor: Float, sigma: Float) -> Float {
+    pub fn generate_blur_radius(blur_half_factor: Float, sigma: Float) -> Float {
         (blur_half_factor*sigma).ceil()
         //blur_half_factor
     }

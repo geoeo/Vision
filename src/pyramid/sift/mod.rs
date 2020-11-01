@@ -28,7 +28,7 @@ pub fn build_sift_pyramid(base_gray_image: &GrayImage, runtime_params: &SiftRunt
     let upsample = Image::upsample_double(&base_image, false);
 
     //TODO: check this
-    let blur_width = SiftOctave::generate_blur_half_width(runtime_params.blur_half_factor, runtime_params.sigma_in);
+    let blur_width = SiftOctave::generate_blur_radius(runtime_params.blur_half_factor, runtime_params.sigma_in);
     let kernel = GaussKernel1D::new(0.0, runtime_params.sigma_in,1,blur_width);
     let initial_blur =  gaussian_2_d_convolution(&upsample, &kernel, false);
     
