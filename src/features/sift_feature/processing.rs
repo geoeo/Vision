@@ -1,7 +1,7 @@
 extern crate nalgebra as na;
 
 use na::{Matrix3x1, Matrix3};
-use crate::pyramid::sift_octave::SiftOctave;
+use crate::pyramid::sift::sift_octave::SiftOctave;
 use crate::{Float, GradientDirection};
 use crate::filter::{kernel::Kernel,gradient_convolution_at_sample,prewitt_kernel::PrewittKernel,laplace_kernel::LaplaceKernel,laplace_off_center_kernel::LaplaceOffCenterKernel};
 use crate::features::{Feature,sift_feature::SiftFeature};
@@ -9,9 +9,9 @@ use crate::features::{Feature,sift_feature::SiftFeature};
 
 //TODO: maybe return new extrema instead due to potential change of coordiantes in interpolation
 //TODO: needs to be more stable
-pub fn subpixel_refinement(source_octave: &SiftOctave, octave_level: usize, input_params:  &SiftFeature) -> (Float,SiftFeature) {
+pub fn subpixel_refinement(source_octave: &SiftOctave, octave_level: usize, feature:  &SiftFeature) -> (Float,SiftFeature) {
 
-    let sigma_level = input_params.get_closest_sigma_level();
+    let sigma_level = feature.get_closest_sigma_level();
 
     let first_order_kernel = PrewittKernel::new();
     let second_order_kernel = LaplaceKernel::new();
@@ -22,8 +22,8 @@ pub fn subpixel_refinement(source_octave: &SiftOctave, octave_level: usize, inpu
 
     let s = source_octave.s();
     let sigma_range = (1.0/(s as Float)).exp2();
-    let mut perturb_final = interpolate(source_octave,input_params,&first_order_kernel,&second_order_kernel);
-    let mut extrema_final =  SiftFeature{x:input_params.x ,y:input_params.y,sigma_level:input_params.sigma_level};
+    let mut perturb_final = interpolate(source_octave,feature,&first_order_kernel,&second_order_kernel);
+    let mut extrema_final =  SiftFeature{x:feature.x ,y:feature.y,sigma_level:feature.sigma_level};
     let max_it = 5; // TODO: put this in runtime params  
     let mut counter = 0;
     let cutoff = 0.6;
@@ -123,25 +123,25 @@ pub fn subpixel_refinement(source_octave: &SiftOctave, octave_level: usize, inpu
 
 }
 
-fn interpolate(source_octave: &SiftOctave, input_params: &dyn Feature, first_order_kernel: &dyn Kernel, second_order_kernel: &dyn Kernel) -> Matrix3x1<Float> {
+fn interpolate(source_octave: &SiftOctave, feature: &dyn Feature, first_order_kernel: &dyn Kernel, second_order_kernel: &dyn Kernel) -> Matrix3x1<Float> {
 
-    let sigma_level = input_params.get_closest_sigma_level();
-    let dx = source_octave.dog_x_gradient[sigma_level].buffer[(input_params.get_y_image(),input_params.get_x_image())];
-    let dy = source_octave.dog_y_gradient[sigma_level].buffer[(input_params.get_y_image(),input_params.get_x_image())];
-    let ds = source_octave.dog_s_gradient[sigma_level].buffer[(input_params.get_y_image(),input_params.get_x_image())];
+    let sigma_level = feature.get_closest_sigma_level();
+    let dx = source_octave.dog_x_gradient[sigma_level].buffer[(feature.get_y_image(),feature.get_x_image())];
+    let dy = source_octave.dog_y_gradient[sigma_level].buffer[(feature.get_y_image(),feature.get_x_image())];
+    let ds = source_octave.dog_s_gradient[sigma_level].buffer[(feature.get_y_image(),feature.get_x_image())];
 
-    let dxx = gradient_convolution_at_sample(&source_octave.difference_of_gaussians,input_params,second_order_kernel,GradientDirection::HORIZINTAL);
-    let dyy = gradient_convolution_at_sample(&source_octave.difference_of_gaussians,input_params,second_order_kernel,GradientDirection::VERTICAL);
-    let dss = gradient_convolution_at_sample(&source_octave.difference_of_gaussians,input_params,second_order_kernel,GradientDirection::SIGMA);
+    let dxx = gradient_convolution_at_sample(&source_octave.difference_of_gaussians,feature,second_order_kernel,GradientDirection::HORIZINTAL);
+    let dyy = gradient_convolution_at_sample(&source_octave.difference_of_gaussians,feature,second_order_kernel,GradientDirection::VERTICAL);
+    let dss = gradient_convolution_at_sample(&source_octave.difference_of_gaussians,feature,second_order_kernel,GradientDirection::SIGMA);
 
-    let dxy = gradient_convolution_at_sample(&source_octave.dog_x_gradient,input_params,first_order_kernel,GradientDirection::VERTICAL);
-    let dxs = gradient_convolution_at_sample(&source_octave.dog_x_gradient,input_params,first_order_kernel,GradientDirection::SIGMA);
+    let dxy = gradient_convolution_at_sample(&source_octave.dog_x_gradient,feature,first_order_kernel,GradientDirection::VERTICAL);
+    let dxs = gradient_convolution_at_sample(&source_octave.dog_x_gradient,feature,first_order_kernel,GradientDirection::SIGMA);
 
-    let dyx = gradient_convolution_at_sample(&source_octave.dog_y_gradient,input_params,first_order_kernel,GradientDirection::HORIZINTAL);
-    let dys = gradient_convolution_at_sample(&source_octave.dog_y_gradient,input_params,first_order_kernel,GradientDirection::SIGMA);
+    let dyx = gradient_convolution_at_sample(&source_octave.dog_y_gradient,feature,first_order_kernel,GradientDirection::HORIZINTAL);
+    let dys = gradient_convolution_at_sample(&source_octave.dog_y_gradient,feature,first_order_kernel,GradientDirection::SIGMA);
 
-    let dsx = gradient_convolution_at_sample(&source_octave.dog_s_gradient,input_params,first_order_kernel,GradientDirection::HORIZINTAL);
-    let dsy = gradient_convolution_at_sample(&source_octave.dog_s_gradient,input_params,first_order_kernel,GradientDirection::VERTICAL);
+    let dsx = gradient_convolution_at_sample(&source_octave.dog_s_gradient,feature,first_order_kernel,GradientDirection::HORIZINTAL);
+    let dsy = gradient_convolution_at_sample(&source_octave.dog_s_gradient,feature,first_order_kernel,GradientDirection::VERTICAL);
 
     let a = Matrix3::new(dxx,dxy,dxs,
                          dyx,dyy,dys,

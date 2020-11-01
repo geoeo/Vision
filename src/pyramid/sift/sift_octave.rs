@@ -3,7 +3,7 @@ extern crate image as image_rs;
 use crate::image::{Image,image_encoding::ImageEncoding};
 use crate::filter::{gauss_kernel::GaussKernel1D, prewitt_kernel::PrewittKernel,laplace_off_center_kernel::LaplaceOffCenterKernel,gaussian_2_d_convolution,filter_1d_convolution};
 use crate::{Float,GradientDirection};
-use crate::pyramid::sift_runtime_params::SiftRuntimeParams;
+use crate::pyramid::sift::sift_runtime_params::SiftRuntimeParams;
 
 #[derive(Debug,Clone)]
 pub struct SiftOctave {

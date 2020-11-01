@@ -4,8 +4,8 @@ extern crate sift;
 use std::path::Path;
 
 use sift::image::Image;
-use sift::visualize::{draw_circle,draw_points};
-use sift::features::geometry::{Geometry,circle::circle_bresenham, point::Point};
+use sift::visualize::draw_points;
+use sift::features::geometry::Geometry;
 use sift::features::fast_feature::FastFeature;
 
 fn main() {

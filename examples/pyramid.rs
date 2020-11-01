@@ -3,7 +3,7 @@ extern crate sift;
 
 use std::path::Path;
 
-use sift::pyramid::{build_sift_pyramid, sift_runtime_params::SiftRuntimeParams};
+use sift::pyramid::sift::{build_sift_pyramid, sift_runtime_params::SiftRuntimeParams};
 
 fn main() {
     let image_name = "circles";

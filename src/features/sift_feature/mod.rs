@@ -3,7 +3,7 @@ extern crate nalgebra as na;
 use na::DMatrix;
 
 use crate::Float;
-use crate::pyramid::{sift_octave::SiftOctave, sift_runtime_params::SiftRuntimeParams};
+use crate::pyramid::sift::{sift_runtime_params::SiftRuntimeParams,sift_octave::SiftOctave};
 use crate::features::{Feature,hessian_response};
 use std::fmt;
 

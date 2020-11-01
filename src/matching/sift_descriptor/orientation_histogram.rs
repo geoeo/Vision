@@ -1,7 +1,7 @@
 extern crate nalgebra as na;
 
 use crate::{float,Float};
-use crate::pyramid::{sift_octave::SiftOctave,sift_runtime_params::SiftRuntimeParams};
+use crate::pyramid::sift::{sift_runtime_params::SiftRuntimeParams,sift_octave::SiftOctave};
 use crate::matching::sift_descriptor::keypoint::KeyPoint;
 use crate::features::{Feature,sift_feature::SiftFeature};
 use crate::numerics::{lagrange_interpolation_quadratic,quadatric_interpolation, gauss_2d,gradient_and_orientation};

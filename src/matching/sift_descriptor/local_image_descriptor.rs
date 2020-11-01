@@ -3,7 +3,7 @@ extern crate nalgebra as na;
 use na::{MatrixN,Vector2,base::dimension::{U16,U4,U2,U1}, Matrix2x4};
 use crate::{Float,float};
 use crate::numerics::{rotation_matrix_2d_from_orientation,gradient_and_orientation,gauss_2d};
-use crate::pyramid::sift_octave::SiftOctave;
+use crate::pyramid::sift::sift_octave::SiftOctave;
 use crate::matching::sift_descriptor::{ORIENTATION_BINS,DESCRIPTOR_BINS,orientation_histogram::OrientationHistogram,keypoint::KeyPoint};
 
 const SUBMATRIX_LENGTH: usize = 4;

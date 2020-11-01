@@ -3,9 +3,9 @@ extern crate sift;
 
 use std::path::Path;
 
-use sift::pyramid::{build_sift_pyramid, sift_runtime_params::SiftRuntimeParams};
+use sift::pyramid::sift::{build_sift_pyramid, sift_runtime_params::SiftRuntimeParams,feature_vectors_from_pyramid};
 use sift::image::Image;
-use sift::{reconstruct_original_coordiantes,feature_vectors_from_pyramid};
+use sift::reconstruct_original_coordiantes;
 use sift::visualize::draw_square;
 
 fn main() {
