@@ -137,8 +137,8 @@ pub fn generate_keypoints_from_extrema(octave: &SiftOctave,octave_level: usize, 
 
     for x_sample in x_range {
         for y_sample in y_range.clone() {
-            let x_corrected = inter_pixel_distance * x_sample as Float;
-            let y_corrected = inter_pixel_distance * y_sample as Float;
+            // let x_corrected = inter_pixel_distance * x_sample as Float;
+            // let y_corrected = inter_pixel_distance * y_sample as Float;
             //let gauss_weight = gauss_2d(x as Float, y as Float, x_corrected,y_corrected, new_sigma); //TODO: maybe precompute this
             let gauss_weight = gauss_2d(x as Float, y as Float,  x_sample as Float, y_sample as Float, new_sigma); //TODO: maybe precompute this
             let grad_orientation = gradient_and_orientation(x_grad, y_grad, x_sample, y_sample);

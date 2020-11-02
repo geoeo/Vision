@@ -1,11 +1,10 @@
-use crate::features::{Feature, geometry::{circle::{Circle,circle_bresenham},offset::Offset}};
+use crate::features::{Feature, geometry::{point::Point,circle::{Circle,circle_bresenham},offset::Offset}};
 use crate::image::Image;
 use crate::{float,Float};
 
 #[derive(Debug,Clone)]
 pub struct FastFeature {
-    pub x_center: usize,
-    pub y_center: usize,
+    pub location: Point,
     pub radius: usize,
     pub starting_offsets: [Offset;4],
     pub continuous_offsets: Vec<Offset>
@@ -14,11 +13,11 @@ pub struct FastFeature {
 
 impl Feature for FastFeature {
     fn get_x_image(&self) -> usize {
-        self.x_center
+        self.location.x
     }
 
     fn get_y_image(&self) -> usize {
-        self.y_center
+        self.location.y
     }
 
     fn get_closest_sigma_level(&self) -> usize {
@@ -58,29 +57,29 @@ impl FastFeature {
         let mut continuous_offsets = [pos_zero,positive_y_offset,neg_zero,negative_y_offset].concat();
         continuous_offsets.dedup();
 
-        FastFeature {x_center:circle_geometry.x_center, y_center: circle_geometry.y_center,radius: circle.radius, starting_offsets,continuous_offsets}
+        FastFeature {location: circle_geometry.center,radius: circle.radius, starting_offsets,continuous_offsets}
     }
 
-    fn accept(image: &Image, feature: &FastFeature, threshold_factor: Float, n: usize) -> (Option<usize>,Float) {
+    fn accept(image: &Image, feature: &FastFeature, threshold_factor: Float, consecutive_pixels: usize) -> (Option<usize>,Float) {
 
-        if (feature.x_center as isize - feature.radius as isize) < 0 || feature.x_center + feature.radius >= image.buffer.ncols() ||
-           (feature.y_center as isize - feature.radius as isize) < 0 || feature.y_center + feature.radius >= image.buffer.nrows() {
+        if (feature.location.x as isize - feature.radius as isize) < 0 || feature.location.x + feature.radius >= image.buffer.ncols() ||
+           (feature.location.y as isize - feature.radius as isize) < 0 || feature.location.y + feature.radius >= image.buffer.nrows() {
                return (None,float::MIN);
            }
 
-        let sample_intensity = image.buffer[(feature.y_center,feature.x_center)];
+        let sample_intensity = image.buffer[(feature.location.y,feature.location.x)];
         let t = sample_intensity*threshold_factor;
         let cutoff_max = sample_intensity + t;
         let cutoff_min = sample_intensity - t;
 
         let number_of_accepted_starting_offsets: usize
             = feature.starting_offsets.iter()
-            .map(|x| FastFeature::sample(image, feature.y_center as isize, feature.x_center as isize, x))
+            .map(|x| FastFeature::sample(image, feature.location.y as isize, feature.location.x as isize, x))
             .map(|x| FastFeature::outside_range(x, cutoff_min, cutoff_max))
             .map(|x| x as usize)
             .sum();
 
-        let perimiter_samples: Vec<Float> = feature.continuous_offsets.iter().map(|x| FastFeature::sample(image, feature.y_center as isize, feature.x_center as isize, x)).collect();
+        let perimiter_samples: Vec<Float> = feature.continuous_offsets.iter().map(|x| FastFeature::sample(image, feature.location.y as isize, feature.location.x as isize, x)).collect();
         let flagged_scores: Vec<(bool,Float)> = perimiter_samples.iter().map(|&x| (FastFeature::outside_range(x, cutoff_min, cutoff_max),FastFeature::score(sample_intensity, x, t))).collect();
 
         match number_of_accepted_starting_offsets {
@@ -89,7 +88,7 @@ impl FastFeature {
                 let mut max_score = float::MIN;
                 let mut max_score_index: Option<usize> = None;
                 for i in 0..feature.continuous_offsets.len() {
-                    let index_slice = feature.get_wrapping_index(i, n);
+                    let index_slice = feature.get_wrapping_index(i, consecutive_pixels);
                     let (all_passing,total_score) = index_slice.iter()
                     .map(|&x| flagged_scores[x])
                     .fold((true,0.0),|(b_acc,s_acc),x| (b_acc && x.0,s_acc + x.1));
@@ -109,30 +108,36 @@ impl FastFeature {
 
     }
 
-    pub fn compute_valid_features(image: &Image, radius: usize,  threshold_factor: Float, n: usize, grid_size: (usize,usize)) -> Vec<(FastFeature,usize)> {
+    pub fn compute_valid_feature(image: &Image, radius: usize,  threshold_factor: Float, consecutive_pixels: usize, x_grid_start: usize, y_grid_start: usize, x_grid_size: usize, y_grid_size: usize) -> Option<(FastFeature,usize)> {
+        let mut grid_max_option: Option<(FastFeature,usize)> = None;
+        let mut grid_max_score = float::MIN;
+        
+        for r_grid in y_grid_start..y_grid_start+y_grid_size {
+            for c_grid in x_grid_start..x_grid_start+x_grid_size {
+                let feature = FastFeature::new(c_grid, r_grid, radius);
+                let (start_option,score) = FastFeature::accept(image, &feature, threshold_factor, consecutive_pixels);
+                if start_option.is_some() && score > grid_max_score {
+                    grid_max_score = score;
+                    grid_max_option = Some((feature,start_option.unwrap()));
+                }
+
+            }
+        }
+
+        grid_max_option
+
+    }
+
+    pub fn compute_valid_features(image: &Image, radius: usize,  threshold_factor: Float, consecutive_pixels: usize, grid_size: (usize,usize)) -> Vec<(FastFeature,usize)> {
         let x_grid = grid_size.0;
         let y_grid = grid_size.1;
         let mut result = Vec::<(FastFeature,usize)>::new();
         for r in (0..image.buffer.nrows()).step_by(y_grid) {
             for c in (0..image.buffer.ncols()).step_by(x_grid) {
 
-                let mut grid_max_option: Option<(FastFeature,usize)> = None;
-                let mut grid_max_score = float::MIN;
-                
-                for r_grid in r..r+y_grid {
-                    for c_grid in c..c+x_grid {
-                        let feature = FastFeature::new(c_grid, r_grid, radius);
-                        let (start_option,score) = FastFeature::accept(image, &feature, threshold_factor, n);
-                        if start_option.is_some() && score > grid_max_score {
-                            grid_max_score = score;
-                            grid_max_option = Some((feature,start_option.unwrap()));
-                        }
-
-                    }
-                }
-
-                if grid_max_option.is_some() {
-                    result.push(grid_max_option.unwrap());
+                match FastFeature::compute_valid_feature(image,radius,threshold_factor,consecutive_pixels,c,r,x_grid,y_grid) {
+                    Some(v) => result.push(v),
+                    None => {}
                 }
 
             }
@@ -220,7 +225,7 @@ impl FastFeature {
 
         }
 
-        Circle::new(self.x_center, self.y_center, self.radius, offsets)
+        Circle::new(self.location.x,self.location.y, self.radius, offsets)
     }
 
     pub fn print_continuous_offsets(feature: &FastFeature) -> () {

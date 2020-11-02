@@ -50,7 +50,7 @@ fn main() {
 
 
     let features = sift_feature::detect_sift_feature(octave,sigma_level,x_step, y_step);
-    let refined_features = sift_feature::sift_feature_refinement(&features, octave, octave_level, &runtime_params);
+    let refined_features = sift_feature::sift_feature_refinement(&features, octave, &runtime_params);
     let keypoints = refined_features.iter().map(|x| generate_keypoints_from_extrema(octave,octave_level, x, &runtime_params)).flatten().collect::<Vec<KeyPoint>>();
     let descriptors = keypoints.iter().filter(|x| is_rotated_keypoint_within_image(octave, x)).map(|x| LocalImageDescriptor::new(octave,x)).collect::<Vec<LocalImageDescriptor>>();
     let feature_vectors = descriptors.iter().map(|x| FeatureVector::new(x,octave_level)).collect::<Vec<FeatureVector>>();

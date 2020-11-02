@@ -7,8 +7,9 @@ pub mod offset;
 
 #[derive(Debug,Clone)]
 pub struct Geometry {
-    pub x_center: usize,
-    pub y_center: usize,
+    // pub x_center: usize,
+    // pub y_center: usize,
+    pub center: Point,
     pub offsets: Vec<Offset>
 }
 
@@ -17,8 +18,8 @@ impl Geometry {
         let mut points = Vec::<Point>::new();
 
         for offset in &self.offsets {
-            let x = (self.x_center as isize + offset.x) as usize;
-            let y = (self.y_center as isize + offset.y) as usize;
+            let x = (self.center.x as isize + offset.x) as usize;
+            let y = (self.center.y as isize + offset.y) as usize;
             points.push(Point{x,y});
         }
 

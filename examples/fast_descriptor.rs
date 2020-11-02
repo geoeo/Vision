@@ -24,7 +24,7 @@ fn main() {
     println!("amount of FAST features:{:?}",valid_features.len());
     for (valid_feature,i) in valid_features {
         let slice = valid_feature.get_wrapping_slice(i, 12);
-        let points = Geometry::points(valid_feature.x_center, valid_feature.y_center, &slice);
+        let points = Geometry::points(valid_feature.location.x, valid_feature.location.y, &slice);
         draw_points(&mut frame, &points, 64.0);
     }
 
