@@ -140,7 +140,7 @@ pub fn draw_circle_bresenham(image: &mut Image, x_center: usize, y_center: usize
     draw_points(image, &circle.geometry.get_points(), 64.0);
 }
 
-pub fn draw_points(image: &mut Image, points: &Vec<Point>, intensity: Float) -> () {
+pub fn draw_points(image: &mut Image, points: &Vec<Point<usize>>, intensity: Float) -> () {
     for point in points {
         if point.x < image.buffer.ncols() && point.y < image.buffer.nrows()  {
             image.buffer[(point.y,point.x)] = intensity;

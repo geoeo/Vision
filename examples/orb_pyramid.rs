@@ -2,7 +2,6 @@ extern crate image as image_rs;
 extern crate sift;
 
 use std::path::Path;
-
 use sift::pyramid::orb::{build_orb_pyramid, orb_runtime_parameters::OrbRuntimeParameters};
 
 fn main() {
@@ -18,7 +17,12 @@ fn main() {
     let runtime_params = OrbRuntimeParameters {
         sigma: 0.8,
         blur_radius: 5.0,
-        octave_count: 5
+        octave_count: 5,
+        harris_k: 0.04,
+        fast_circle_radius: 3,
+        fast_threshold_factor: 0.2,
+        fast_consecutive_pixels: 12,
+        fast_grid_size: (10,10),
     };
     
     let pyramid = build_orb_pyramid(&gray_image, &runtime_params);

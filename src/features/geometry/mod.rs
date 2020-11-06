@@ -9,13 +9,13 @@ pub mod offset;
 pub struct Geometry {
     // pub x_center: usize,
     // pub y_center: usize,
-    pub center: Point,
+    pub center: Point<usize>,
     pub offsets: Vec<Offset>
 }
 
 impl Geometry {
-    pub fn get_points(&self) -> Vec<Point> {
-        let mut points = Vec::<Point>::new();
+    pub fn get_points(&self) -> Vec<Point<usize>> {
+        let mut points = Vec::<Point<usize>>::new();
 
         for offset in &self.offsets {
             let x = (self.center.x as isize + offset.x) as usize;
@@ -26,8 +26,8 @@ impl Geometry {
         points
     }
 
-    pub fn points(x_center: usize, y_center: usize, offsets: &Vec<Offset>) -> Vec<Point> {
-        let mut points = Vec::<Point>::new();
+    pub fn points(x_center: usize, y_center: usize, offsets: &Vec<Offset>) -> Vec<Point<usize>> {
+        let mut points = Vec::<Point<usize>>::new();
 
         for offset in offsets {
             let x = (x_center as isize + offset.x) as usize;

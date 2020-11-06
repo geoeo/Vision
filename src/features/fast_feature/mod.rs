@@ -4,7 +4,7 @@ use crate::{float,Float};
 
 #[derive(Debug,Clone)]
 pub struct FastFeature {
-    pub location: Point,
+    pub location: Point<usize>,
     pub radius: usize,
     pub starting_offsets: [Offset;4],
     pub continuous_offsets: Vec<Offset>

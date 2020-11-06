@@ -106,7 +106,7 @@ impl Image {
         let new_height = height*2;
 
         let old_buffer = &image.buffer;
-        let mut new_buffer = DMatrix::<Float>::from_element(new_height,new_width,0.0);
+        let mut new_buffer = DMatrix::<Float>::zeros(new_height,new_width);
 
         for x in 0..new_width-2 {
             for y in 0..new_height-2 {

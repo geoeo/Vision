@@ -2,7 +2,7 @@ use crate::Float;
 use crate::features::geometry::point::Point;
 use crate::image::Image;
 
-fn moment((p,q): (u32,u32), image: &Image, points: &Vec<Point>) -> Float {
+fn moment((p,q): (u32,u32), image: &Image, points: &Vec<Point<usize>>) -> Float {
     assert!(p <= 1 && q <= 1);
     let mut moment = 0.0;
     for point in points {
@@ -13,14 +13,14 @@ fn moment((p,q): (u32,u32), image: &Image, points: &Vec<Point>) -> Float {
     moment
 }
 
-pub fn orientation(image: &Image, points: &Vec<Point>) -> Float {
+pub fn orientation(image: &Image, points: &Vec<Point<usize>>) -> Float {
     let m_0_1 = moment((0,1), image, points);
     let m_1_0 = moment((1,0), image, points);
 
     m_0_1.atan2(m_1_0)
 }
 
-pub fn centroid(image: &Image, points: &Vec<Point>) -> Point {
+pub fn centroid(image: &Image, points: &Vec<Point<usize>>) -> Point<usize> {
     let m_0_1 = moment((0,1), image, points);
     let m_1_0 = moment((1,0), image, points);
     let m_0_0 = moment((0,0), image, points);
