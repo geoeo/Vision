@@ -5,7 +5,7 @@ use std::path::Path;
 
 use sift::pyramid::sift::{build_sift_pyramid, sift_runtime_params::SiftRuntimeParams,keypoints_from_pyramid};
 use sift::image::Image;
-use sift::visualize::visualize_keypoint;
+use sift::visualize::visualize_pyramid_feature_with_orientation;
 
 fn main() {
     
@@ -58,7 +58,7 @@ fn main() {
         println!("Keypoints from Image: {} out of {}, ({}%)",number_of_features, size, percentage);
     
         for keypoint in all_keypoints {
-            visualize_keypoint(&mut display, &keypoint);
+            visualize_pyramid_feature_with_orientation(&mut display, &keypoint, keypoint.octave_level);
         }
     
     

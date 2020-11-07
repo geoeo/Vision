@@ -19,6 +19,7 @@ fn main() {
     let converted_file_out_path = format!("{}{}_matches.{}",image_out_folder,image_name,image_format);
 
     let runtime_params = SiftRuntimeParams {
+        min_image_dimensions: (25,25),
         blur_half_factor: 6.0,
         orientation_histogram_window_factor: 1.0, //TODO: investigate
         edge_r: 10.0,

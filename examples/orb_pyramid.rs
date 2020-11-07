@@ -3,22 +3,25 @@ extern crate sift;
 
 use std::path::Path;
 use sift::pyramid::orb::{build_orb_pyramid,generate_features_for_pyramid,generate_descriptors_for_pyramid,  orb_runtime_parameters::OrbRuntimeParameters};
+use sift::visualize::visualize_pyramid_feature_with_orientation;
+use sift::image::Image;
 
 fn main() {
-    let image_name = "circles";
+    let image_name = "lenna";
     let image_format = "png";
     let image_folder = "images/";
     let image_out_folder = "output/";
     let image_path = format!("{}{}.{}",image_folder,image_name, image_format);
-
+    let converted_file_out_path = format!("{}{}_features_with_descriptors.{}",image_out_folder,image_name,image_format);
 
     let gray_image = image_rs::open(&Path::new(&image_path)).unwrap().to_luma();
+    let mut display = Image::from_gray_image(&gray_image, false); 
 
     let runtime_params = OrbRuntimeParameters {
         min_image_dimensions: (50,50),
         sigma: 0.8,
         blur_radius: 5.0,
-        octave_count: 4,
+        octave_count: 3,
         harris_k: 0.04,
         fast_circle_radius: 3,
         fast_threshold_factor: 0.2,
@@ -41,5 +44,16 @@ fn main() {
     //     let file_path = format!("{}{}.{}",image_out_folder,name,image_format);
     //     gray_image.save(file_path).unwrap();
     // }
+
+    for octave_index in 0..feautre_descriptors.octaves.len() {
+        let octave = &feautre_descriptors.octaves[octave_index];
+        for (feature,_) in octave {
+            visualize_pyramid_feature_with_orientation(&mut display, feature, octave_index);
+        }
+    }
+
+    let new_image = display.to_image();
+
+    new_image.save(converted_file_out_path).unwrap();
 
 }

@@ -59,6 +59,10 @@ pub fn generate_descriptors_for_pyramid(octave_pyramid: &Pyramid<OrbOctave>, fea
                             .map(|(idx,option)| (feature_octave[idx],option.unwrap()))
                             .collect::<Vec<(OrbFeature,BriefDescriptor)>>();
 
+        if data_vector.len() == 0 {
+            println!("Warning: 0 features with descriptors for octave idx: {}",i);
+        }
+
         feature_descriptor_pyramid.octaves.push(data_vector);
     }
 

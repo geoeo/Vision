@@ -1,8 +1,8 @@
 extern crate image as image_rs;
 
-use crate::features::geometry::{point::Point,circle::circle_bresenham};
+use crate::features::{Feature, Oriented, geometry::{point::Point,circle::circle_bresenham}};
 use crate::image::{Image,image_encoding::ImageEncoding};
-use crate::matching::sift_descriptor::{orientation_histogram::OrientationHistogram,feature_vector::FeatureVector,keypoint::KeyPoint};
+use crate::matching::sift_descriptor::{orientation_histogram::OrientationHistogram,feature_vector::FeatureVector};
 use crate::{Float,float,reconstruct_original_coordiantes};
 
 pub fn display_histogram(histogram: &OrientationHistogram, width_scaling:usize, height: usize) -> Image {
@@ -96,12 +96,12 @@ pub fn draw_line(image: &mut Image, x_start: usize, y_start: usize, length: Floa
     
 }
 
-pub fn visualize_keypoint(image: &mut Image, keypoint: &KeyPoint) -> () {
-    let radius = (keypoint.octave_level+1) as Float *10.0; 
+pub fn visualize_pyramid_feature_with_orientation<T>(image: &mut Image, keypoint: &T, octave_index: usize) -> () where T: Feature + Oriented {
+    let radius = (octave_index+1) as Float *10.0; 
     assert!(radius > 0.0);
-    let (x_orig,y_orig) = reconstruct_original_coordiantes(keypoint.x,keypoint.y,keypoint.octave_level as u32);
+    let (x_orig,y_orig) = reconstruct_original_coordiantes(keypoint.get_x_image(),keypoint.get_y_image(),octave_index as u32);
     draw_circle(image,x_orig,y_orig, radius);
-    draw_line(image, x_orig, y_orig, radius, keypoint.orientation);
+    draw_line(image, x_orig, y_orig, radius, keypoint.get_orientation());
 }
 
 

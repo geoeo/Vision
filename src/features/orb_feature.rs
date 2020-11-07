@@ -1,4 +1,4 @@
-use crate::features::{Feature,fast_feature::FastFeature,intensity_centroid,geometry::point::Point,harris_corner::harris_response_for_feature};
+use crate::features::{Feature,Oriented,fast_feature::FastFeature,intensity_centroid,geometry::point::Point,harris_corner::harris_response_for_feature};
 use crate::image::Image;
 use crate::Float;
 
@@ -19,6 +19,12 @@ impl Feature for OrbFeature {
 
     fn get_closest_sigma_level(&self) -> usize {
         0
+    }
+}
+
+impl Oriented for OrbFeature {
+    fn get_orientation(&self) -> Float {
+        self.orientation
     }
 }
 

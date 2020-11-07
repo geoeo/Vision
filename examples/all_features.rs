@@ -33,6 +33,7 @@ fn main() {
     // };
 
     let runtime_params = SiftRuntimeParams {
+        min_image_dimensions: (25,25),
         blur_half_factor: 6.0,
         orientation_histogram_window_factor: 1.0, //TODO: investigate
         edge_r: 10.0,
