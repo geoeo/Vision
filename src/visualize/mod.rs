@@ -38,7 +38,7 @@ pub fn display_histogram(histogram: &OrientationHistogram, width_scaling:usize, 
 
 }
 
-//TODO: maybe account for original x,y // Remove this in favor of version 2
+//TODO: maybe account for original x,y // Do this like octave but for the whole pyramid
 pub fn display_matches(image_a: &Image, image_b: &Image, features_a: &Vec<FeatureVector>,features_b: &Vec<FeatureVector> , match_indices: &Vec<(usize,usize)>) -> Image {
 
     assert_eq!(image_a.buffer.nrows(),image_b.buffer.nrows());
@@ -78,7 +78,7 @@ pub fn display_matches(image_a: &Image, image_b: &Image, features_a: &Vec<Featur
 
 }
 
-pub fn display_matches_version_2<T>(image_a: &Image, image_b: &Image, matches: &Vec<(T,T)>, radius:Float) -> Image where T: Feature + Oriented {
+pub fn display_matches_for_octave<T>(image_a: &Image, image_b: &Image, matches: &Vec<(T,T)>, radius:Float) -> Image where T: Feature + Oriented {
 
     assert_eq!(image_a.buffer.nrows(),image_b.buffer.nrows());
     assert_eq!(image_a.buffer.ncols(),image_b.buffer.ncols());

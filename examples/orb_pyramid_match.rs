@@ -3,7 +3,7 @@ extern crate sift;
 
 use std::path::Path;
 use sift::pyramid::orb::{build_orb_pyramid,generate_feature_pyramid,generate_feature_descriptor_pyramid,  orb_runtime_parameters::OrbRuntimeParameters, generate_match_pyramid};
-use sift::visualize::{visualize_pyramid_feature_with_orientation,display_matches_version_2};
+use sift::visualize::{visualize_pyramid_feature_with_orientation,display_matches_for_octave};
 use sift::matching::brief_descriptor::BriefDescriptor;
 use sift::image::Image;
 use sift::Float;
@@ -55,7 +55,7 @@ fn main() {
 
         let matches = &match_pyramid.octaves[i];
         let radius = (pyramid.octaves.len()-i) as Float *10.0; 
-        let match_dispay = display_matches_version_2(display_a, display_b, matches,radius);
+        let match_dispay = display_matches_for_octave(display_a, display_b, matches,radius);
         let gray_image  = match_dispay.to_image();
 
         let name = format!("orb_match_{}",i);
