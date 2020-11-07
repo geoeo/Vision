@@ -2,6 +2,7 @@ use crate::features::{Feature,fast_feature::FastFeature,intensity_centroid,geome
 use crate::image::Image;
 use crate::Float;
 
+#[derive(Debug,Clone,Copy)]
 pub struct OrbFeature {
     pub location: Point<usize>,
     pub orientation: Float

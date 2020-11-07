@@ -6,6 +6,7 @@ use crate::image::Image;
 use crate::pyramid::Pyramid;
 use self::{orb_octave::OrbOctave, orb_runtime_parameters::OrbRuntimeParameters};
 use crate::features::orb_feature::OrbFeature;
+use crate::matching::brief_descriptor::BriefDescriptor;
 
 
 pub mod orb_octave;
@@ -38,9 +39,31 @@ pub fn generate_features_for_octave(octave: &OrbOctave, runtime_parameters: &Orb
     OrbFeature::new(&octave.images, runtime_parameters.fast_circle_radius, runtime_parameters.fast_threshold_factor, runtime_parameters.fast_consecutive_pixels, runtime_parameters.fast_grid_size, runtime_parameters.harris_k)
 }
 
-//TODO: this should also produce descriptors
 pub fn generate_features_for_pyramid(pyramid: &Pyramid<OrbOctave>, runtime_parameters: &OrbRuntimeParameters) -> Pyramid<Vec<OrbFeature>> {
     Pyramid{octaves: pyramid.octaves.iter().map(|x| generate_features_for_octave(x,runtime_parameters)).collect::<Vec<Vec<OrbFeature>>>()}
 }
+
+pub fn generate_descriptors_for_pyramid(octave_pyramid: &Pyramid<OrbOctave>, feature_pyramid: &Pyramid<Vec<OrbFeature>>, runtime_parameters: &OrbRuntimeParameters) -> Pyramid<Vec<(OrbFeature,BriefDescriptor)>> {
+    assert_eq!(octave_pyramid.octaves.len(),feature_pyramid.octaves.len());
+    let octave_len = octave_pyramid.octaves.len();
+    let mut feature_descriptor_pyramid = Pyramid::<Vec<(OrbFeature,BriefDescriptor)>>::empty(octave_len);
+
+    for i in 0..octave_len {
+        let image = &octave_pyramid.octaves[i].images[0];
+        let feature_octave = &feature_pyramid.octaves[i];
+        let data_vector 
+            = feature_octave.iter()
+                            .enumerate()
+                            .map(|x| (x.0,BriefDescriptor::new(image, x.1, runtime_parameters.brief_n, runtime_parameters.brief_s)))
+                            .filter(|x| x.1.is_some())
+                            .map(|(idx,option)| (feature_octave[idx],option.unwrap()))
+                            .collect::<Vec<(OrbFeature,BriefDescriptor)>>();
+
+        feature_descriptor_pyramid.octaves.push(data_vector);
+    }
+
+    feature_descriptor_pyramid
+}
+
 
 

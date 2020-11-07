@@ -57,7 +57,6 @@ impl BriefDescriptor {
 
             }   
 
-            //TODO: check rotation
             let samples_a_rotated = rotation_matrix*samples_a;
             let samples_b_rotated = rotation_matrix*samples_b;
             let slice = image.buffer.slice((top_left_r as usize,top_left_c as usize),(bottom_right_r,bottom_right_c));
