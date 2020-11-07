@@ -1,12 +1,12 @@
 extern crate image as image_rs;
-extern crate sift;
+extern crate vision;
 
 use std::path::Path;
 
-use sift::pyramid::sift::{build_sift_pyramid, sift_runtime_params::SiftRuntimeParams};
-use sift::features::sift_feature;
-use sift::matching::sift_descriptor::{orientation_histogram::generate_keypoints_from_extrema,local_image_descriptor::{is_rotated_keypoint_within_image,LocalImageDescriptor},keypoint::KeyPoint};
-use sift::visualize::display_histogram;
+use vision::pyramid::sift::{build_sift_pyramid, sift_runtime_params::SiftRuntimeParams};
+use vision::features::sift_feature;
+use vision::matching::sift_descriptor::{orientation_histogram::generate_keypoints_from_extrema,local_image_descriptor::{is_rotated_keypoint_within_image,LocalImageDescriptor},keypoint::KeyPoint};
+use vision::visualize::display_histogram;
 
 fn main() {
     let image_name = "circles";

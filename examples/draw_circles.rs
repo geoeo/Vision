@@ -1,11 +1,11 @@
 extern crate image as image_rs;
-extern crate sift;
+extern crate vision;
 
 use std::path::Path;
 
-use sift::image::Image;
-use sift::visualize::{draw_circle,draw_points};
-use sift::features::geometry::circle::circle_bresenham;
+use vision::image::Image;
+use vision::visualize::{draw_circle,draw_points};
+use vision::features::geometry::circle::circle_bresenham;
 
 fn main() {
     let image_name = "lenna";

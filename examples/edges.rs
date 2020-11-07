@@ -1,11 +1,11 @@
 extern crate image as image_rs;
-extern crate sift;
+extern crate vision;
 
 use std::path::Path;
 
-use sift::image::Image;
-use sift::filter::{prewitt_kernel::PrewittKernel,filter_1d_convolution};
-use sift::GradientDirection;
+use vision::image::Image;
+use vision::filter::{prewitt_kernel::PrewittKernel,filter_1d_convolution};
+use vision::GradientDirection;
 
 fn main() {
     let image_name = "lenna";

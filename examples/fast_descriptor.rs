@@ -1,12 +1,12 @@
 extern crate image as image_rs;
-extern crate sift;
+extern crate vision;
 
 use std::path::Path;
 
-use sift::image::Image;
-use sift::visualize::draw_points;
-use sift::features::geometry::Geometry;
-use sift::features::fast_feature::FastFeature;
+use vision::image::Image;
+use vision::visualize::draw_points;
+use vision::features::geometry::Geometry;
+use vision::features::fast_feature::FastFeature;
 
 fn main() {
     let image_name = "lenna";

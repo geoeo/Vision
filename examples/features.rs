@@ -1,13 +1,13 @@
 extern crate image as image_rs;
-extern crate sift;
+extern crate vision;
 
 use std::path::Path;
 
-use sift::pyramid::sift::{build_sift_pyramid, sift_runtime_params::SiftRuntimeParams};
-use sift::features::sift_feature;
-use sift::image::Image;
-use sift::matching::sift_descriptor::{orientation_histogram::generate_keypoints_from_extrema,local_image_descriptor::{is_rotated_keypoint_within_image,LocalImageDescriptor},feature_vector::FeatureVector,keypoint::KeyPoint};
-use sift::visualize::{draw_square,visualize_pyramid_feature_with_orientation};
+use vision::pyramid::sift::{build_sift_pyramid, sift_runtime_params::SiftRuntimeParams};
+use vision::features::sift_feature;
+use vision::image::Image;
+use vision::matching::sift_descriptor::{orientation_histogram::generate_keypoints_from_extrema,local_image_descriptor::{is_rotated_keypoint_within_image,LocalImageDescriptor},feature_vector::FeatureVector,keypoint::KeyPoint};
+use vision::visualize::{draw_square,visualize_pyramid_feature_with_orientation};
 
 fn main() {
     let image_name = "lenna_90";

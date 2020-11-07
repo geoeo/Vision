@@ -1,5 +1,5 @@
 [package]
-name = "sift"
+name = "vision"
 version = "0.1.0"
 authors = ["Marc Haubenstock <marc.haubenstock@outlook.com>"]
 edition = '2018'

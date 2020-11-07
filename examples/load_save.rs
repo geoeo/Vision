@@ -1,9 +1,9 @@
 extern crate image as image_rs;
-extern crate sift;
+extern crate vision;
 
 use std::path::Path;
 
-use sift::image::Image;
+use vision::image::Image;
 
 fn main() {
     let image_name = "lenna";

@@ -1,10 +1,10 @@
 extern crate image as image_rs;
-extern crate sift;
+extern crate vision;
 
 use std::path::Path;
-use sift::pyramid::orb::{build_orb_pyramid,generate_feature_pyramid,generate_feature_descriptor_pyramid,  orb_runtime_parameters::OrbRuntimeParameters};
-use sift::visualize::visualize_pyramid_feature_with_orientation;
-use sift::image::Image;
+use vision::pyramid::orb::{build_orb_pyramid,generate_feature_pyramid,generate_feature_descriptor_pyramid,  orb_runtime_parameters::OrbRuntimeParameters};
+use vision::visualize::visualize_pyramid_feature_with_orientation;
+use vision::image::Image;
 
 fn main() {
     let image_name = "lenna_90";

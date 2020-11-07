@@ -1,11 +1,11 @@
 extern crate image as image_rs;
-extern crate sift;
+extern crate vision;
 
 use std::path::Path;
 
-use sift::pyramid::sift::{build_sift_pyramid,feature_vectors_from_pyramid, generate_match_pairs, sift_runtime_params::SiftRuntimeParams};
-use sift::image::Image;
-use sift::visualize::display_matches;
+use vision::pyramid::sift::{build_sift_pyramid,feature_vectors_from_pyramid, generate_match_pairs, sift_runtime_params::SiftRuntimeParams};
+use vision::image::Image;
+use vision::visualize::display_matches;
 
 fn main() {
     

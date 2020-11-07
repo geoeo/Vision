@@ -1,11 +1,11 @@
 extern crate image as image_rs;
-extern crate sift;
+extern crate vision;
 
 use std::path::Path;
 
-use sift::pyramid::sift::{build_sift_pyramid, sift_runtime_params::SiftRuntimeParams,keypoints_from_pyramid};
-use sift::image::Image;
-use sift::visualize::visualize_pyramid_feature_with_orientation;
+use vision::pyramid::sift::{build_sift_pyramid, sift_runtime_params::SiftRuntimeParams,keypoints_from_pyramid};
+use vision::image::Image;
+use vision::visualize::visualize_pyramid_feature_with_orientation;
 
 fn main() {
     
