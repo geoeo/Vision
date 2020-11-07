@@ -6,6 +6,7 @@ use sift::pyramid::orb::{build_orb_pyramid,generate_feature_pyramid,generate_fea
 use sift::visualize::{visualize_pyramid_feature_with_orientation,display_matches_version_2};
 use sift::matching::brief_descriptor::BriefDescriptor;
 use sift::image::Image;
+use sift::Float;
 
 fn main() {
     let image_name = "lenna";
@@ -27,6 +28,7 @@ fn main() {
         min_image_dimensions: (50,50),
         sigma: 0.25,
         blur_radius: 5.0,
+        max_features_per_octave: 10,
         octave_count: 3,
         harris_k: 0.04,
         fast_circle_radius: 3,
@@ -52,7 +54,8 @@ fn main() {
         let display_b = &pyramid_2.octaves[i].images[0];
 
         let matches = &match_pyramid.octaves[i];
-        let match_dispay = display_matches_version_2(display_a, display_b, matches);
+        let radius = (pyramid.octaves.len()-i) as Float *10.0; 
+        let match_dispay = display_matches_version_2(display_a, display_b, matches,radius);
         let gray_image  = match_dispay.to_image();
 
         let name = format!("orb_match_{}",i);

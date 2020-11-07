@@ -51,12 +51,14 @@ pub fn generate_feature_descriptor_pyramid(octave_pyramid: &Pyramid<OrbOctave>, 
     for i in 0..octave_len {
         let image = &octave_pyramid.octaves[i].images[0];
         let feature_octave = &feature_pyramid.octaves[i];
+        let n = std::cmp::min(runtime_parameters.max_features_per_octave,feature_octave.len());
         let data_vector 
             = feature_octave.iter()
                             .enumerate()
                             .map(|x| (x.0,BriefDescriptor::new(image, x.1, runtime_parameters.brief_n, runtime_parameters.brief_s)))
                             .filter(|x| x.1.is_some())
                             .map(|(idx,option)| (feature_octave[idx],option.unwrap().0))
+                            .take(n)
                             .collect::<Vec<(OrbFeature,BriefDescriptor)>>();
 
         if data_vector.len() == 0 {

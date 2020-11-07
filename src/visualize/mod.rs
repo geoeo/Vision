@@ -78,7 +78,7 @@ pub fn display_matches(image_a: &Image, image_b: &Image, features_a: &Vec<Featur
 
 }
 
-pub fn display_matches_version_2<T>(image_a: &Image, image_b: &Image, matches: &Vec<(T,T)>) -> Image where T: Feature {
+pub fn display_matches_version_2<T>(image_a: &Image, image_b: &Image, matches: &Vec<(T,T)>, radius:Float) -> Image where T: Feature + Oriented {
 
     assert_eq!(image_a.buffer.nrows(),image_b.buffer.nrows());
     assert_eq!(image_a.buffer.ncols(),image_b.buffer.ncols());
@@ -104,8 +104,8 @@ pub fn display_matches_version_2<T>(image_a: &Image, image_b: &Image, matches: &
         let target_b_x = image_a.buffer.ncols() + feature_b.get_x_image();
         let target_b_y = feature_b.get_y_image();
 
-        draw_square(&mut target_image,target_a_x,target_a_y, 1);
-        draw_square(&mut target_image,target_b_x,target_b_y, 1);
+        draw_circle_with_orientation(&mut target_image, target_a_x, target_a_y,  feature_a.get_orientation(), radius);
+        draw_circle_with_orientation(&mut target_image, target_b_x, target_b_y,  feature_b.get_orientation(), radius);
 
         //TODO: Draw line
         
@@ -115,6 +115,7 @@ pub fn display_matches_version_2<T>(image_a: &Image, image_b: &Image, matches: &
 
 }
 
+//TODO: implement bresenham
 pub fn draw_line(image: &mut Image, x_start: usize, y_start: usize, length: Float, angle: Float) -> () {
 
     let dir_x = length*angle.cos();
@@ -134,11 +135,15 @@ pub fn draw_line(image: &mut Image, x_start: usize, y_start: usize, length: Floa
 }
 
 pub fn visualize_pyramid_feature_with_orientation<T>(image: &mut Image, keypoint: &T, octave_index: usize) -> () where T: Feature + Oriented {
-    let radius = (octave_index+1) as Float *10.0; 
-    assert!(radius > 0.0);
     let (x_orig,y_orig) = reconstruct_original_coordiantes(keypoint.get_x_image(),keypoint.get_y_image(),octave_index as u32);
-    draw_circle(image,x_orig,y_orig, radius);
-    draw_line(image, x_orig, y_orig, radius, keypoint.get_orientation());
+    let radius = (octave_index+1) as Float *10.0; 
+    draw_circle_with_orientation(image, x_orig, y_orig,  keypoint.get_orientation(), radius);
+}
+
+pub fn draw_circle_with_orientation(image: &mut Image, x: usize, y: usize, orientation : Float, radius: Float) -> () {
+    assert!(radius > 0.0);
+    draw_circle(image,x,y, radius);
+    draw_line(image, x, y, radius, orientation);
 }
 
 
@@ -148,13 +153,13 @@ pub fn draw_square(image: &mut Image, x_center: usize, y_center: usize, side_len
         println!("Image width,height = {},{}. Max square width,height: {},{}", image.buffer.ncols(), image.buffer.nrows(),x_center+side_length,y_center+side_length);
     } else {
         for i in x_center-side_length..x_center+side_length+1 {
-            image.buffer[(y_center + side_length,i)] = 128.0;
-            image.buffer[(y_center - side_length,i)] = 128.0;
+            image.buffer[(y_center + side_length,i)] = 64.0;
+            image.buffer[(y_center - side_length,i)] = 64.0;
         }
 
         for j in y_center-side_length+1..y_center+side_length {
-            image.buffer[(j,x_center +side_length)] = 128.0;
-            image.buffer[(j,x_center -side_length)] = 128.0;
+            image.buffer[(j,x_center +side_length)] = 64.0;
+            image.buffer[(j,x_center -side_length)] = 64.0;
         }
     }
 }
