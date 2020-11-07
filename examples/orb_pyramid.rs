@@ -2,7 +2,7 @@ extern crate image as image_rs;
 extern crate sift;
 
 use std::path::Path;
-use sift::pyramid::orb::{build_orb_pyramid, orb_runtime_parameters::OrbRuntimeParameters};
+use sift::pyramid::orb::{build_orb_pyramid,generate_features_for_pyramid,generate_descriptors_for_pyramid,  orb_runtime_parameters::OrbRuntimeParameters};
 
 fn main() {
     let image_name = "circles";
@@ -28,15 +28,17 @@ fn main() {
     };
     
     let pyramid = build_orb_pyramid(&gray_image, &runtime_params);
+    let feature_pyramid = generate_features_for_pyramid(&pyramid, &runtime_params);
+    let feautre_descriptors = generate_descriptors_for_pyramid(&pyramid,&feature_pyramid,&runtime_params);
 
-    for i in 0..pyramid.octaves.len() {
-        let octave = &pyramid.octaves[i];
-        let image = &octave.images[0];
-        let gray_image  = image.to_image();
+    // for i in 0..pyramid.octaves.len() {
+    //     let octave = &pyramid.octaves[i];
+    //     let image = &octave.images[0];
+    //     let gray_image  = image.to_image();
 
-        let name = format!("orb_image_{}",i);
-        let file_path = format!("{}{}.{}",image_out_folder,name,image_format);
-        gray_image.save(file_path).unwrap();
-    }
+    //     let name = format!("orb_image_{}",i);
+    //     let file_path = format!("{}{}.{}",image_out_folder,name,image_format);
+    //     gray_image.save(file_path).unwrap();
+    // }
 
 }

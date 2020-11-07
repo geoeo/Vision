@@ -4,7 +4,8 @@ extern crate nalgebra as na;
 
 use rand::prelude::ThreadRng;
 use rand_distr::{Normal,Distribution};
-use na::{DMatrixSlice,DMatrix};
+use na::DMatrix;
+
 use crate::image::Image;
 use crate::features::{geometry::point::Point, orb_feature::OrbFeature};
 use crate::Float;
@@ -25,12 +26,12 @@ pub struct BriefDescriptor {
 impl BriefDescriptor {
 
     pub fn new(image: &Image, orb_feature: &OrbFeature, n: usize, brief_s: usize) -> Option<BriefDescriptor> {
-        let mut samples_a_vec = Vec::<Point<usize>>::with_capacity(n);
-        let mut samples_b_vec = Vec::<Point<usize>>::with_capacity(n);
+        let mut samples_a = Vec::<Point<usize>>::with_capacity(n);
+        let mut samples_b = Vec::<Point<usize>>::with_capacity(n);
 
         let rotation_matrix = rotation_matrix_2d_from_orientation(orb_feature.orientation);
-        let mut samples_a = DMatrix::<Float>::zeros(2,n);
-        let mut samples_b = DMatrix::<Float>::zeros(2,n);
+        let mut samples_delta_a = DMatrix::<Float>::zeros(2,n);
+        let mut samples_delta_b = DMatrix::<Float>::zeros(2,n);
 
         let mut bit_vector = BitVector::new(n);
 
@@ -49,48 +50,52 @@ impl BriefDescriptor {
         } else {
 
             for i in 0..n {
-                let (a,b) = BriefDescriptor::generate_sample_pair(&orb_feature.location, &mut sampling_thread,&normal_distribution);
-                samples_a[(0,i)] = a.x;
-                samples_a[(1,i)] = a.y;
-                samples_b[(0,i)] = b.x;
-                samples_b[(1,i)] = b.y;
+                let (delta_a,delta_b) = BriefDescriptor::generate_sample_pair(&mut sampling_thread,&normal_distribution);
+                samples_delta_a[(0,i)] = delta_a.x;
+                samples_delta_a[(1,i)] = delta_a.y;
+                samples_delta_b[(0,i)] = delta_b.x;
+                samples_delta_b[(1,i)] = delta_b.y;
 
             }   
 
-            let samples_a_rotated = rotation_matrix*samples_a;
-            let samples_b_rotated = rotation_matrix*samples_b;
-            let slice = image.buffer.slice((top_left_r as usize,top_left_c as usize),(bottom_right_r,bottom_right_c));
+            let samples_a_rotated = rotation_matrix*samples_delta_a;
+            let samples_b_rotated = rotation_matrix*samples_delta_b;
 
             for i in 0..n{
-                let a = Point::<usize>{x: samples_a_rotated[(0,i)].trunc() as usize,y: samples_a_rotated[(1,i)].trunc() as usize };
-                let b = Point::<usize>{x: samples_b_rotated[(0,i)].trunc() as usize,y: samples_b_rotated[(1,i)].trunc() as usize };
-                bit_vector.add_value(BriefDescriptor::bit_value(&slice,&a, &b));
-                samples_a_vec.push(a);
-                samples_b_vec.push(b);
+                // Rotation may make samples go out of bounds
+                let a_float = Point::<Float>{x: orb_feature.location.x as Float + samples_a_rotated[(0,i)],y: orb_feature.location.y as Float + samples_a_rotated[(1,i)] };
+                let b_float = Point::<Float>{x: orb_feature.location.x as Float + samples_b_rotated[(0,i)],y: orb_feature.location.y as Float + samples_b_rotated[(1,i)] };
+
+                let a = BriefDescriptor::clamp_to_image(&image.buffer,&a_float);
+                let b = BriefDescriptor::clamp_to_image(&image.buffer,&b_float);
+
+                bit_vector.add_value(BriefDescriptor::bit_value(&image.buffer,&a, &b));
+                samples_a.push(a);
+                samples_b.push(b);
             }
     
-            Some(BriefDescriptor{samples_a: samples_a_vec,samples_b: samples_b_vec,bit_vector})
+            Some(BriefDescriptor{samples_a: samples_a,samples_b: samples_b,bit_vector})
         }
 
 
 
     }
 
-    fn generate_sample_pair(center: &Point<usize>, sampling_thread: &mut ThreadRng,normal_dist: &Normal<Float>) -> (Point<Float>,Point<Float>) {
+    fn generate_sample_pair(sampling_thread: &mut ThreadRng,normal_dist: &Normal<Float>) -> (Point<Float>,Point<Float>) {
 
 
-        let a_x = center.x as Float + normal_dist.sample(sampling_thread);
-        let a_y = center.y as Float + normal_dist.sample(sampling_thread);
+        let a_x = normal_dist.sample(sampling_thread);
+        let a_y = normal_dist.sample(sampling_thread);
 
-        let b_x = center.x as Float + normal_dist.sample(sampling_thread);
-        let b_y = center.y as Float + normal_dist.sample(sampling_thread);
+        let b_x = normal_dist.sample(sampling_thread);
+        let b_y = normal_dist.sample(sampling_thread);
 
 
         (Point{x: a_x, y: a_y},Point{x: b_x, y: b_y})
 
     }
 
-    fn bit_value(image_buffer: &DMatrixSlice<Float>, a: &Point<usize>, b: &Point<usize>) -> u64 {
+    fn bit_value(image_buffer: &DMatrix<Float>, a: &Point<usize>, b: &Point<usize>) -> u64 {
         let intensity_a = image_buffer[(a.y,a.x)];
         let intensity_b = image_buffer[(b.y,b.x)];
 
@@ -98,6 +103,22 @@ impl BriefDescriptor {
             true => 1,
             _ => 0
         }
+    }
+
+    fn clamp_to_image(image_buffer: &DMatrix<Float>, p: &Point<Float>) -> Point<usize> {
+        let y = match p.y.trunc() {
+            r if r < 0.0 => 0,
+            r if r as usize >= image_buffer.nrows() => image_buffer.nrows()-1,
+            r => r as usize
+        };
+        let x = match p.x.trunc() {
+            c if c < 0.0 => 0,
+            c if c as usize >= image_buffer.ncols() => image_buffer.ncols()-1,
+            c => c as usize
+        };
+
+        Point::<usize> {x,y}
+        
     }
 }
 

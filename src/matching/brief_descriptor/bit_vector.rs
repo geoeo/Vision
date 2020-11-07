@@ -2,7 +2,8 @@
 #[derive(Debug,Clone)]
 pub struct BitVector{
     data: Vec<u64>,
-    entries: usize
+    entries: usize,
+    bits: usize
 }
 
 impl BitVector {
@@ -11,7 +12,7 @@ impl BitVector {
         assert!(n == 256 || n == 512 || n == 128);
         let size = n/8;
 
-        BitVector{data:  vec![0; size], entries: 0 }
+        BitVector{data:  vec![0; size], entries: 0, bits: n }
     }
 
     pub fn bytes_per_element() -> u64 {
@@ -24,7 +25,7 @@ impl BitVector {
 
     pub fn add_value(&mut self, new_val: u64) -> () {
         assert!(new_val == 0 || new_val == 1);
-        assert!(self.entries < self.data.len()-1);
+        assert!(self.entries <= self.bits-1);
 
         let last_bit_flag = (BitVector::bits_per_element()-1).pow(2);
         let mut last_bits = Vec::<u64>::with_capacity(self.data.len());
