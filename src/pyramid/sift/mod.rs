@@ -40,7 +40,7 @@ pub fn build_sift_pyramid(base_gray_image: &GrayImage, runtime_params: &SiftRunt
     for i in 0..runtime_params.octave_count {
 
         if i > 0 {
-            octave_image = Image::downsample_half(&octaves[i-1].images[runtime_params.sigma_count], false);
+            octave_image = Image::downsample_half(&octaves[i-1].images[runtime_params.sigma_count], false, runtime_params.min_image_dimensions);
             sigma = octaves[i-1].sigmas[sigma_count];
         }
 

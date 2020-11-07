@@ -15,9 +15,10 @@ fn main() {
     let gray_image = image_rs::open(&Path::new(&image_path)).unwrap().to_luma();
 
     let runtime_params = OrbRuntimeParameters {
+        min_image_dimensions: (50,50),
         sigma: 0.8,
         blur_radius: 5.0,
-        octave_count: 5,
+        octave_count: 4,
         harris_k: 0.04,
         fast_circle_radius: 3,
         fast_threshold_factor: 0.2,

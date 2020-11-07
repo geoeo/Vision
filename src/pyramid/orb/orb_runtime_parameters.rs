@@ -4,6 +4,7 @@ pub struct OrbRuntimeParameters {
     pub sigma: Float,
     pub blur_radius: Float,
     pub octave_count: usize,
+    pub min_image_dimensions: (usize,usize),
     pub harris_k: Float,
     pub fast_circle_radius: usize,
     pub fast_threshold_factor: Float,
