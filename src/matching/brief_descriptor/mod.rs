@@ -17,15 +17,31 @@ pub mod bit_vector;
 
 #[derive(Debug,Clone)]
 pub struct BriefDescriptor {
-    samples_a: Vec<Point<usize>>,
-    samples_b: Vec<Point<usize>>,
     bit_vector: BitVector
-
 }
 
 impl BriefDescriptor {
 
-    pub fn new(image: &Image, orb_feature: &OrbFeature, n: usize, brief_s: usize) -> Option<BriefDescriptor> {
+    pub fn match_descriptors(descriptors_a: &Vec<&BriefDescriptor>, descriptors_b: &Vec<&BriefDescriptor>) -> Vec<usize> {
+        descriptors_a.iter().map(|x| BriefDescriptor::best_match_against(x, descriptors_b)).collect::<Vec<usize>>()
+    }
+
+    pub fn best_match_against(descriptor: &BriefDescriptor, other_descriptors: &Vec<&BriefDescriptor>) -> usize {
+        let (min_idx,_) 
+            = other_descriptors.iter().enumerate()
+                               .map(|(idx,x)| (idx,descriptor.bit_vector.hamming_distance(&x.bit_vector)))
+                               .fold((std::usize::MAX,std::u64::MAX),|(min_idx,min_value),(idx,value)| -> (usize,u64) {
+                                   if value < min_value {
+                                       (idx,value)
+                                   } else {
+                                       (min_idx,min_value)
+                                   }
+                               });
+
+        min_idx               
+    }
+
+    pub fn new(image: &Image, orb_feature: &OrbFeature, n: usize, brief_s: usize) -> Option<(BriefDescriptor,Vec<Point<usize>>,Vec<Point<usize>>)> {
         let mut samples_a = Vec::<Point<usize>>::with_capacity(n);
         let mut samples_b = Vec::<Point<usize>>::with_capacity(n);
 
@@ -74,7 +90,7 @@ impl BriefDescriptor {
                 samples_b.push(b);
             }
     
-            Some(BriefDescriptor{samples_a: samples_a,samples_b: samples_b,bit_vector})
+            Some((BriefDescriptor{bit_vector},samples_a,samples_b))
         }
 
 

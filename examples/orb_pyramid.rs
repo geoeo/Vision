@@ -2,12 +2,12 @@ extern crate image as image_rs;
 extern crate sift;
 
 use std::path::Path;
-use sift::pyramid::orb::{build_orb_pyramid,generate_features_for_pyramid,generate_descriptors_for_pyramid,  orb_runtime_parameters::OrbRuntimeParameters};
+use sift::pyramid::orb::{build_orb_pyramid,generate_feature_pyramid,generate_feature_descriptor_pyramid,  orb_runtime_parameters::OrbRuntimeParameters};
 use sift::visualize::visualize_pyramid_feature_with_orientation;
 use sift::image::Image;
 
 fn main() {
-    let image_name = "lenna";
+    let image_name = "lenna_90";
     let image_format = "png";
     let image_folder = "images/";
     let image_out_folder = "output/";
@@ -19,7 +19,7 @@ fn main() {
 
     let runtime_params = OrbRuntimeParameters {
         min_image_dimensions: (50,50),
-        sigma: 0.8,
+        sigma: 0.5,
         blur_radius: 5.0,
         octave_count: 3,
         harris_k: 0.04,
@@ -32,8 +32,8 @@ fn main() {
     };
     
     let pyramid = build_orb_pyramid(&gray_image, &runtime_params);
-    let feature_pyramid = generate_features_for_pyramid(&pyramid, &runtime_params);
-    let feautre_descriptors = generate_descriptors_for_pyramid(&pyramid,&feature_pyramid,&runtime_params);
+    let feature_pyramid = generate_feature_pyramid(&pyramid, &runtime_params);
+    let feautre_descriptors = generate_feature_descriptor_pyramid(&pyramid,&feature_pyramid,&runtime_params);
 
     // for i in 0..pyramid.octaves.len() {
     //     let octave = &pyramid.octaves[i];

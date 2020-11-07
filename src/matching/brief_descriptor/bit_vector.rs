@@ -20,7 +20,7 @@ impl BitVector {
     }
 
     pub fn bits_per_element() -> u64 {
-        8*BitVector::bytes_per_element() // size of u64
+        8*BitVector::bytes_per_element()
     }
 
     pub fn add_value(&mut self, new_val: u64) -> () {
