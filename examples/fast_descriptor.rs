@@ -5,7 +5,7 @@ use std::path::Path;
 
 use vision::image::Image;
 use vision::visualize::draw_points;
-use vision::features::geometry::Geometry;
+use vision::features::geometry::shape::Shape;
 use vision::features::fast_feature::FastFeature;
 
 fn main() {
@@ -24,7 +24,7 @@ fn main() {
     println!("amount of FAST features:{:?}",valid_features.len());
     for (valid_feature,i) in valid_features {
         let slice = valid_feature.get_wrapping_slice(i, 12);
-        let points = Geometry::points(valid_feature.location.x, valid_feature.location.y, &slice);
+        let points = Shape::points(valid_feature.location.x, valid_feature.location.y, &slice);
         draw_points(&mut frame, &points, 64.0);
     }
 

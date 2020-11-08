@@ -1,4 +1,4 @@
-use crate::features::{Feature, geometry::{point::Point,circle::{Circle,circle_bresenham},offset::Offset}};
+use crate::features::{Feature, geometry::{point::Point,shape::circle::{Circle,circle_bresenham},Offset}};
 use crate::image::Image;
 use crate::{float,Float};
 
@@ -32,7 +32,7 @@ impl FastFeature {
     }
 
     fn from_circle(circle: &Circle) -> FastFeature {
-        let circle_geometry = &circle.geometry;
+        let circle_geometry = &circle.shape;
         let starting_offsets = [circle_geometry.offsets[0],circle_geometry.offsets[1],circle_geometry.offsets[2],circle_geometry.offsets[3]];
         let mut positive_y_offset = Vec::<Offset>::with_capacity(circle_geometry.offsets.len()/2);
         let mut negative_y_offset = Vec::<Offset>::with_capacity(circle_geometry.offsets.len()/2);

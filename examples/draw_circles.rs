@@ -5,7 +5,7 @@ use std::path::Path;
 
 use vision::image::Image;
 use vision::visualize::{draw_circle,draw_points};
-use vision::features::geometry::circle::circle_bresenham;
+use vision::features::geometry::shape::circle::circle_bresenham;
 
 fn main() {
     let image_name = "lenna";
@@ -21,7 +21,7 @@ fn main() {
     let mut frame = Image::from_gray_image(&image, false);
     draw_circle(&mut frame, 100, 50, 3.0);
     let circle = circle_bresenham(35, 35, 5);
-    draw_points(&mut frame, &circle.geometry.get_points(), 64.0);
+    draw_points(&mut frame, &circle.shape.get_points(), 64.0);
     let new_image = frame.to_image();
 
     new_image.save(converted_file_out_path).unwrap();

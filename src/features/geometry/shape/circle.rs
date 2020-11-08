@@ -1,14 +1,14 @@
-use crate::features::geometry::{Geometry,offset::Offset,point::Point};
+use crate::features::geometry::{shape::Shape, Offset,point::Point};
 
 #[derive(Debug,Clone)]
 pub struct Circle {
-    pub geometry: Geometry,
+    pub shape: Shape,
     pub radius: usize
 }
 
 impl Circle {
     pub fn new(x_center: usize, y_center: usize, radius: usize, offsets: Vec<Offset>) -> Circle {
-        Circle { geometry: Geometry{center: Point{x:x_center,y:y_center},offsets: offsets}, radius}
+        Circle { shape: Shape{center: Point{x:x_center,y:y_center},offsets: offsets}, radius}
     }
 }
 
@@ -20,7 +20,7 @@ pub fn circle_bresenham(x_center: usize, y_center: usize, radius: usize) -> Circ
     let mut y: isize = radius as isize;
     let mut d = 3 -2*radius as isize;
 
-    let mut circle_geometry = Geometry{center: Point{x:x_center,y:y_center},offsets: Vec::<Offset>::new()};
+    let mut circle_geometry = Shape{center: Point{x:x_center,y:y_center},offsets: Vec::<Offset>::new()};
     
     circle_geometry.offsets.extend(bresenham_octant(x,y));
     while y >= x {
@@ -35,7 +35,7 @@ pub fn circle_bresenham(x_center: usize, y_center: usize, radius: usize) -> Circ
 
     }
 
-    Circle {geometry: circle_geometry, radius }
+    Circle {shape: circle_geometry, radius }
 }
 
 fn bresenham_octant(x: isize, y: isize) -> Vec<Offset> {
