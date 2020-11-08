@@ -5,7 +5,6 @@ use std::path::Path;
 
 use vision::pyramid::sift::{build_sift_pyramid,feature_vectors_from_pyramid, generate_match_pairs, sift_runtime_params::SiftRuntimeParams};
 use vision::image::Image;
-use vision::visualize::display_matches;
 
 fn main() {
     
@@ -46,10 +45,11 @@ fn main() {
 
     println!("number of matched pairs: {}", match_pairs.len());
 
-    let match_dispay = display_matches(&display, &display_2, &all_features, &all_features_2, &match_pairs);
+    //TODO: move to new mathcing functions
+    //let match_dispay = display_matches(&display, &display_2, &all_features, &all_features_2, &match_pairs);
 
-    let new_image = match_dispay.to_image();
-    new_image.save(converted_file_out_path).unwrap();
+    //let new_image = match_dispay.to_image();
+    //new_image.save(converted_file_out_path).unwrap();
 
 
 

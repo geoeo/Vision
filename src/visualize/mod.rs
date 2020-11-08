@@ -1,6 +1,6 @@
 extern crate image as image_rs;
 
-use crate::features::{Feature, Oriented, geometry::{point::Point,shape::circle::circle_bresenham,line::line_bresenham}};
+use crate::features::{Feature, Oriented,orb_feature::OrbFeature, geometry::{point::Point,shape::circle::circle_bresenham,line::line_bresenham}};
 use crate::image::{Image,image_encoding::ImageEncoding};
 use crate::matching::sift_descriptor::{orientation_histogram::OrientationHistogram,feature_vector::FeatureVector};
 use crate::{Float,float,reconstruct_original_coordiantes};
@@ -38,41 +38,32 @@ pub fn display_histogram(histogram: &OrientationHistogram, width_scaling:usize, 
 
 }
 
-//TODO: maybe account for original x,y // Do this like octave but for the whole pyramid
-pub fn display_matches(image_a: &Image, image_b: &Image, features_a: &Vec<FeatureVector>,features_b: &Vec<FeatureVector> , match_indices: &Vec<(usize,usize)>) -> Image {
+//TODO: Remove OrbFeature dependency or make OrbFeature a more basic feature
+pub fn display_matches_for_pyramid<T>(image_a_original: &Image, image_b_original: &Image, matches: &Vec<(T,T)>, octave_index: usize) -> Image where T: Feature + Oriented {
 
-    assert_eq!(image_a.buffer.nrows(),image_b.buffer.nrows());
-    assert_eq!(image_a.buffer.ncols(),image_b.buffer.ncols());
+    assert_eq!(image_a_original.buffer.nrows(),image_b_original.buffer.nrows());
+    assert_eq!(image_a_original.buffer.ncols(),image_b_original.buffer.ncols());
 
-    let height = image_a.buffer.nrows();
-    let width = image_a.buffer.ncols() + image_b.buffer.ncols();
+    let height = image_a_original.buffer.nrows();
+    let width = image_a_original.buffer.ncols() + image_b_original.buffer.ncols();
 
-    let mut target_image = Image::empty(width, height, image_a.original_encoding);
+    let mut target_image = Image::empty(width, height, image_b_original.original_encoding);
 
-    for x in 0..image_a.buffer.ncols() {
-        for y in 0..image_a.buffer.nrows() {
-            target_image.buffer[(y,x)] = image_a.buffer[(y,x)];
-            target_image.buffer[(y,x+image_a.buffer.ncols())] = image_b.buffer[(y,x)];
+    for x in 0..image_a_original.buffer.ncols() {
+        for y in 0..image_a_original.buffer.nrows() {
+            target_image.buffer[(y,x)] = image_a_original.buffer[(y,x)];
+            target_image.buffer[(y,x+image_a_original.buffer.ncols())] = image_b_original.buffer[(y,x)];
         }
     }
 
+    let matches_in_orignal_frame = matches.iter().map(|(a,b)| -> (OrbFeature,OrbFeature) {
+        let (a_x_orig,a_y_orig) = reconstruct_original_coordiantes(a.get_x_image(),a.get_y_image(),octave_index as u32);
+        let (b_x_orig,b_y_orig) = reconstruct_original_coordiantes(b.get_x_image(),b.get_y_image(),octave_index as u32);
+        (OrbFeature{location: Point::new(a_x_orig, a_y_orig), orientation: a.get_orientation()},OrbFeature{location: Point::new(image_a_original.buffer.ncols() + b_x_orig, b_y_orig), orientation: b.get_orientation()} )
+    }).collect::<Vec<(OrbFeature,OrbFeature)>>();
+    let radius = (octave_index+1) as Float *10.0; 
 
-    for (a_index,b_index) in match_indices {
-        let feature_a = &features_a[a_index.clone()];
-        let feature_b = &features_b[b_index.clone()];
-
-        let target_a_x = feature_a.x;
-        let target_a_y = feature_a.y;
-
-        let target_b_x = image_a.buffer.ncols() + feature_b.x;
-        let target_b_y = feature_b.y;
-
-        draw_square(&mut target_image,target_a_x,target_a_y, 1);
-        draw_square(&mut target_image,target_b_x,target_b_y, 1);
-
-        //TODO: Draw line
-        
-    }
+    draw_matches(&mut target_image, &matches_in_orignal_frame, radius);
 
     target_image
 
@@ -95,29 +86,48 @@ pub fn display_matches_for_octave<T>(image_a: &Image, image_b: &Image, matches: 
         }
     }
 
+    let matches_in_frame = matches.iter().map(|(a,b)| -> (OrbFeature,OrbFeature) {
+        (OrbFeature{location: Point::new(a.get_x_image(), a.get_y_image()), orientation: a.get_orientation()},OrbFeature{location: Point::new(image_a.buffer.ncols() + b.get_x_image(), b.get_y_image()), orientation: b.get_orientation()} )
+    }).collect::<Vec<(OrbFeature,OrbFeature)>>();
 
-    for (feature_a,feature_b) in matches {
+    draw_matches(&mut target_image, &matches_in_frame, radius);
 
-        let target_a_x = feature_a.get_x_image();
-        let target_a_y = feature_a.get_y_image();
 
-        let target_b_x = image_a.buffer.ncols() + feature_b.get_x_image();
-        let target_b_y = feature_b.get_y_image();
+    // for (feature_a,feature_b) in matches {
 
-        draw_circle_with_orientation(&mut target_image, target_a_x, target_a_y,  feature_a.get_orientation(), radius);
-        draw_circle_with_orientation(&mut target_image, target_b_x, target_b_y,  feature_b.get_orientation(), radius);
+    //     let target_a_x = feature_a.get_x_image();
+    //     let target_a_y = feature_a.get_y_image();
 
-        let line = line_bresenham(&Point::new(target_a_x, target_a_y), &Point::new(target_b_x, target_b_y));
+    //     let target_b_x = image_a.buffer.ncols() + feature_b.get_x_image();
+    //     let target_b_y = feature_b.get_y_image();
 
-        draw_points(&mut target_image, &line.points, 64.0);
+
+
+    //     draw_circle_with_orientation(&mut target_image, target_a_x, target_a_y,  feature_a.get_orientation(), radius);
+    //     draw_circle_with_orientation(&mut target_image, target_b_x, target_b_y,  feature_b.get_orientation(), radius);
+
+    //     let line = line_bresenham(&Point::new(target_a_x, target_a_y), &Point::new(target_b_x, target_b_y));
+    //     draw_points(&mut target_image, &line.points, 64.0);
         
-    }
+    // }
 
     target_image
 
 }
 
-//TODO: implement bresenham
+fn draw_matches<T>(image: &mut Image,  matches: &Vec<(T,T)>, radius:Float)-> ()  where T: Feature + Oriented {
+
+    for (feature_a,feature_b) in matches {
+
+        draw_circle_with_orientation(image, feature_a.get_x_image(), feature_a.get_y_image(),  feature_a.get_orientation(), radius);
+        draw_circle_with_orientation(image, feature_b.get_x_image(), feature_b.get_y_image(),  feature_b.get_orientation(), radius);
+
+        let line = line_bresenham(&Point::new(feature_a.get_x_image(), feature_a.get_y_image()), &Point::new(feature_b.get_x_image(), feature_b.get_y_image()));
+        draw_points(image, &line.points, 64.0);
+    }
+
+}
+
 pub fn draw_line(image: &mut Image, x_start: usize, y_start: usize, length: Float, angle: Float) -> () {
 
     let dir_x = length*angle.cos();
