@@ -40,3 +40,9 @@ impl<T> PartialOrd for Point<T>  where T: PartialOrd + PartialEq {
         Some(self.cmp(other))
     }
 }
+
+impl<T> Point<T> where T: PartialOrd + PartialEq {
+    pub fn new(x: T, y:T) -> Point<T> {
+        Point{x,y}
+    }
+}
