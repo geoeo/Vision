@@ -7,7 +7,7 @@ use vision::visualize::visualize_pyramid_feature_with_orientation;
 use vision::image::Image;
 
 fn main() {
-    let image_name = "lenna_90";
+    let image_name = "lenna";
     let image_format = "png";
     let image_folder = "images/";
     let image_out_folder = "output/";
@@ -16,6 +16,7 @@ fn main() {
 
     let gray_image = image_rs::open(&Path::new(&image_path)).unwrap().to_luma();
     let mut display = Image::from_gray_image(&gray_image, false); 
+    let display_max = display.buffer.max();
 
     let runtime_params = OrbRuntimeParameters {
         min_image_dimensions: (50,50),
@@ -49,7 +50,7 @@ fn main() {
     for octave_index in 0..feautre_descriptors.octaves.len() {
         let octave = &feautre_descriptors.octaves[octave_index];
         for (feature,_) in octave {
-            visualize_pyramid_feature_with_orientation(&mut display, feature, octave_index);
+            visualize_pyramid_feature_with_orientation(&mut display, feature, octave_index, display_max/2.0);
         }
     }
 

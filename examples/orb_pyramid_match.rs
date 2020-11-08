@@ -9,8 +9,9 @@ use vision::image::Image;
 use vision::Float;
 
 fn main() {
-    let image_name = "lenna";
-    let image_name_2 = "lenna_90";
+    //TODO: problem with jpg
+    let image_name = "squares";
+    let image_name_2 = "squares_90";
     let image_format = "png";
     let image_folder = "images/";
     let image_out_folder = "output/";
@@ -26,11 +27,11 @@ fn main() {
 
     let runtime_params = OrbRuntimeParameters {
         min_image_dimensions: (50,50),
-        sigma: 0.25,
+        sigma: 0.1,
         blur_radius: 5.0,
         max_features_per_octave: 10,
         octave_count: 3,
-        harris_k: 0.04,
+        harris_k: 0.06,
         fast_circle_radius: 3,
         fast_threshold_factor: 0.2,
         fast_consecutive_pixels: 12,
@@ -55,7 +56,7 @@ fn main() {
 
         let matches = &match_pyramid.octaves[i];
         let radius = (pyramid.octaves.len()-i) as Float *10.0; 
-        let match_dispay = display_matches_for_octave(display_a, display_b, matches,radius);
+        let match_dispay = display_matches_for_octave(display_a, display_b, matches,radius, true, display_a.buffer.max()/2.0); //TODO: fix this. values are getting really large
         let gray_image  = match_dispay.to_image();
 
         let name = format!("orb_match_{}",i);

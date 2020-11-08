@@ -25,14 +25,13 @@ fn main() {
     for (valid_feature,i) in valid_features {
         let slice = valid_feature.get_wrapping_slice(i, 12);
         let points = Shape::points(valid_feature.location.x, valid_feature.location.y, &slice);
+        let full_circle = valid_feature.get_full_circle();
         draw_points(&mut frame, &points, 64.0);
+        //draw_points(&mut frame, &full_circle.shape.get_points(), 64.0);
     }
 
 
-    
-    // let feature = FastFeature::new(20, 20, 5);
-    // let full_circle = feature.get_full_circle();
-    // draw_points(&mut frame, &full_circle.geometry.get_points(), 64.0);
+
 
 
     let new_image = frame.to_image();

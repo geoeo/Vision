@@ -20,7 +20,7 @@ pub struct Image {
 impl Image {
 
     pub fn empty(width: usize, height: usize, image_encoding: ImageEncoding) -> Image {
-        let buffer =  DMatrix::<Float>::from_element(height,width,0.0);
+        let buffer =  DMatrix::<Float>::from_element(height,width,255.0);
         Image{ buffer, original_encoding: image_encoding}
     }
 

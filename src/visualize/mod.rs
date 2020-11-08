@@ -39,7 +39,7 @@ pub fn display_histogram(histogram: &OrientationHistogram, width_scaling:usize, 
 }
 
 //TODO: Remove OrbFeature dependency or make OrbFeature a more basic feature
-pub fn display_matches_for_pyramid<T>(image_a_original: &Image, image_b_original: &Image, matches: &Vec<(T,T)>, octave_index: usize) -> Image where T: Feature + Oriented {
+pub fn display_matches_for_pyramid<T>(image_a_original: &Image, image_b_original: &Image, matches: &Vec<(T,T)>, octave_index: usize, draw_lines: bool, intensity: Float) -> Image where T: Feature + Oriented {
 
     assert_eq!(image_a_original.buffer.nrows(),image_b_original.buffer.nrows());
     assert_eq!(image_a_original.buffer.ncols(),image_b_original.buffer.ncols());
@@ -63,13 +63,13 @@ pub fn display_matches_for_pyramid<T>(image_a_original: &Image, image_b_original
     }).collect::<Vec<(OrbFeature,OrbFeature)>>();
     let radius = (octave_index+1) as Float *10.0; 
 
-    draw_matches(&mut target_image, &matches_in_orignal_frame, radius);
+    draw_matches(&mut target_image, &matches_in_orignal_frame, radius,draw_lines, intensity);
 
     target_image
 
 }
 
-pub fn display_matches_for_octave<T>(image_a: &Image, image_b: &Image, matches: &Vec<(T,T)>, radius:Float) -> Image where T: Feature + Oriented {
+pub fn display_matches_for_octave<T>(image_a: &Image, image_b: &Image, matches: &Vec<(T,T)>, radius:Float, draw_lines: bool, intensity: Float) -> Image where T: Feature + Oriented {
 
     assert_eq!(image_a.buffer.nrows(),image_b.buffer.nrows());
     assert_eq!(image_a.buffer.ncols(),image_b.buffer.ncols());
@@ -82,7 +82,7 @@ pub fn display_matches_for_octave<T>(image_a: &Image, image_b: &Image, matches: 
     for x in 0..image_a.buffer.ncols() {
         for y in 0..image_a.buffer.nrows() {
             target_image.buffer[(y,x)] = image_a.buffer[(y,x)];
-            target_image.buffer[(y,x+image_a.buffer.ncols())] = image_b.buffer[(y,x)];
+            target_image.buffer[(y,x+image_a.buffer.ncols())] =  image_b.buffer[(y,x)];
         }
     }
 
@@ -90,45 +90,29 @@ pub fn display_matches_for_octave<T>(image_a: &Image, image_b: &Image, matches: 
         (OrbFeature{location: Point::new(a.get_x_image(), a.get_y_image()), orientation: a.get_orientation()},OrbFeature{location: Point::new(image_a.buffer.ncols() + b.get_x_image(), b.get_y_image()), orientation: b.get_orientation()} )
     }).collect::<Vec<(OrbFeature,OrbFeature)>>();
 
-    draw_matches(&mut target_image, &matches_in_frame, radius);
-
-
-    // for (feature_a,feature_b) in matches {
-
-    //     let target_a_x = feature_a.get_x_image();
-    //     let target_a_y = feature_a.get_y_image();
-
-    //     let target_b_x = image_a.buffer.ncols() + feature_b.get_x_image();
-    //     let target_b_y = feature_b.get_y_image();
-
-
-
-    //     draw_circle_with_orientation(&mut target_image, target_a_x, target_a_y,  feature_a.get_orientation(), radius);
-    //     draw_circle_with_orientation(&mut target_image, target_b_x, target_b_y,  feature_b.get_orientation(), radius);
-
-    //     let line = line_bresenham(&Point::new(target_a_x, target_a_y), &Point::new(target_b_x, target_b_y));
-    //     draw_points(&mut target_image, &line.points, 64.0);
-        
-    // }
+    draw_matches(&mut target_image, &matches_in_frame, radius, draw_lines, intensity);
 
     target_image
 
 }
 
-fn draw_matches<T>(image: &mut Image,  matches: &Vec<(T,T)>, radius:Float)-> ()  where T: Feature + Oriented {
+fn draw_matches<T>(image: &mut Image,  matches: &Vec<(T,T)>, radius:Float, draw_lines: bool, intensity: Float)-> ()  where T: Feature + Oriented {
 
     for (feature_a,feature_b) in matches {
 
-        draw_circle_with_orientation(image, feature_a.get_x_image(), feature_a.get_y_image(),  feature_a.get_orientation(), radius);
-        draw_circle_with_orientation(image, feature_b.get_x_image(), feature_b.get_y_image(),  feature_b.get_orientation(), radius);
+        draw_circle_with_orientation(image, feature_a.get_x_image(), feature_a.get_y_image(),  feature_a.get_orientation(), radius, intensity);
+        draw_circle_with_orientation(image, feature_b.get_x_image(), feature_b.get_y_image(),  feature_b.get_orientation(), radius, intensity);
 
-        let line = line_bresenham(&Point::new(feature_a.get_x_image(), feature_a.get_y_image()), &Point::new(feature_b.get_x_image(), feature_b.get_y_image()));
-        draw_points(image, &line.points, 64.0);
+        if draw_lines {
+            let line = line_bresenham(&Point::new(feature_a.get_x_image(), feature_a.get_y_image()), &Point::new(feature_b.get_x_image(), feature_b.get_y_image()));
+            draw_points(image, &line.points,intensity);
+        }
+
     }
 
 }
 
-pub fn draw_line(image: &mut Image, x_start: usize, y_start: usize, length: Float, angle: Float) -> () {
+pub fn draw_line(image: &mut Image, x_start: usize, y_start: usize, length: Float, angle: Float, intensity: Float) -> () {
 
     let dir_x = length*angle.cos();
     let dir_y = length*angle.sin();
@@ -140,22 +124,22 @@ pub fn draw_line(image: &mut Image, x_start: usize, y_start: usize, length: Floa
         let y_pos = (y_start as Float + 0.5 - t*dir_y).trunc() as usize;
 
         if x_pos < image.buffer.ncols() && y_pos < image.buffer.nrows()  {
-            image.buffer[(y_pos,x_pos)] = 64.0;
+            image.buffer[(y_pos,x_pos)] = intensity;
         }
     }
     
 }
 
-pub fn visualize_pyramid_feature_with_orientation<T>(image: &mut Image, keypoint: &T, octave_index: usize) -> () where T: Feature + Oriented {
+pub fn visualize_pyramid_feature_with_orientation<T>(image: &mut Image, keypoint: &T, octave_index: usize, intensity: Float) -> () where T: Feature + Oriented {
     let (x_orig,y_orig) = reconstruct_original_coordiantes(keypoint.get_x_image(),keypoint.get_y_image(),octave_index as u32);
     let radius = (octave_index+1) as Float *10.0; 
-    draw_circle_with_orientation(image, x_orig, y_orig,  keypoint.get_orientation(), radius);
+    draw_circle_with_orientation(image, x_orig, y_orig,  keypoint.get_orientation(), radius, intensity);
 }
 
-pub fn draw_circle_with_orientation(image: &mut Image, x: usize, y: usize, orientation : Float, radius: Float) -> () {
+pub fn draw_circle_with_orientation(image: &mut Image, x: usize, y: usize, orientation : Float, radius: Float, intensity: Float) -> () {
     assert!(radius > 0.0);
-    draw_circle(image,x,y, radius);
-    draw_line(image, x, y, radius, orientation);
+    draw_circle(image,x,y, radius, intensity);
+    draw_line(image, x, y, radius, orientation,intensity);
 }
 
 
@@ -165,25 +149,25 @@ pub fn draw_square(image: &mut Image, x_center: usize, y_center: usize, side_len
         println!("Image width,height = {},{}. Max square width,height: {},{}", image.buffer.ncols(), image.buffer.nrows(),x_center+side_length,y_center+side_length);
     } else {
         for i in x_center-side_length..x_center+side_length+1 {
-            image.buffer[(y_center + side_length,i)] = 64.0;
-            image.buffer[(y_center - side_length,i)] = 64.0;
+            image.buffer[(y_center + side_length,i)] = 128.0;
+            image.buffer[(y_center - side_length,i)] = 128.0;
         }
 
         for j in y_center-side_length+1..y_center+side_length {
-            image.buffer[(j,x_center +side_length)] = 64.0;
-            image.buffer[(j,x_center -side_length)] = 64.0;
+            image.buffer[(j,x_center +side_length)] = 128.0;
+            image.buffer[(j,x_center -side_length)] = 128.0;
         }
     }
 }
 
-pub fn draw_circle(image: &mut Image, x_center: usize, y_center: usize, radius: Float) -> () {
+pub fn draw_circle(image: &mut Image, x_center: usize, y_center: usize, radius: Float, intensity: Float) -> () {
     for t in (0..360).step_by(1) {
         let rad = (t as Float)*float::consts::PI/180.0;
         let x_pos = (x_center as Float + 0.5 + radius*rad.cos()).trunc() as usize;
         let y_pos = (y_center as Float + 0.5 + radius*rad.sin()).trunc() as usize;
 
         if x_pos < image.buffer.ncols() && y_pos < image.buffer.nrows()  {
-            image.buffer[(y_pos,x_pos)] = 64.0;
+            image.buffer[(y_pos,x_pos)] = intensity;
         }
 
     }

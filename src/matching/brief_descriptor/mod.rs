@@ -66,6 +66,7 @@ impl BriefDescriptor {
             None
         } else {
 
+            //TODO: this is wrong. Precompute sample pairs and rotate them by 2Pi/30 increments making a histogram
             for i in 0..n {
                 let (delta_a,delta_b) = BriefDescriptor::generate_sample_pair(&mut sampling_thread,&normal_distribution);
                 samples_delta_a[(0,i)] = delta_a.x;
