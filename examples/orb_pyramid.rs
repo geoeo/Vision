@@ -21,7 +21,7 @@ fn main() {
         min_image_dimensions: (50,50),
         sigma: 0.5,
         blur_radius: 5.0,
-        max_features_per_octave: 10,
+        max_features_per_octave: std::usize::MAX,
         octave_count: 3,
         harris_k: 0.04,
         fast_circle_radius: 3,
