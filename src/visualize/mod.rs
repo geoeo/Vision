@@ -1,6 +1,6 @@
 extern crate image as image_rs;
 
-use crate::features::{Feature, Oriented, geometry::{point::Point,shape::circle::circle_bresenham}};
+use crate::features::{Feature, Oriented, geometry::{point::Point,shape::circle::circle_bresenham,line::line_bresenham}};
 use crate::image::{Image,image_encoding::ImageEncoding};
 use crate::matching::sift_descriptor::{orientation_histogram::OrientationHistogram,feature_vector::FeatureVector};
 use crate::{Float,float,reconstruct_original_coordiantes};
@@ -107,7 +107,9 @@ pub fn display_matches_for_octave<T>(image_a: &Image, image_b: &Image, matches: 
         draw_circle_with_orientation(&mut target_image, target_a_x, target_a_y,  feature_a.get_orientation(), radius);
         draw_circle_with_orientation(&mut target_image, target_b_x, target_b_y,  feature_b.get_orientation(), radius);
 
-        //TODO: Draw line
+        let line = line_bresenham(&Point::new(target_a_x, target_a_y), &Point::new(target_b_x, target_b_y));
+
+        draw_points(&mut target_image, &line.points, 64.0);
         
     }
 

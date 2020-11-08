@@ -20,8 +20,7 @@ pub fn line_bresenham(point_a: &Point<usize>, point_b: &Point<usize>) -> Line<us
     let sy = if y0 < y1 {1} else {-1};
     let mut err = dx + dy;
     loop {
-        assert!(x0 >= 0);
-        assert!(y0 >= 0);
+        assert!(x0 >= 0 && y0 >= 0);
         points.push(Point{x: x0 as usize, y: y0 as usize});
         if x0 == x1 && y0 == y1 {
             break;
