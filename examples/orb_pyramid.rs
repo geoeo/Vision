@@ -30,7 +30,8 @@ fn main() {
         fast_consecutive_pixels: 12,
         fast_grid_size: (10,10),
         brief_n: 256,
-        brief_s: 31
+        brief_s: 31,
+        brief_matching_min_threshold: 256/4
     };
     
     let pyramid = build_orb_pyramid(&gray_image, &runtime_params);

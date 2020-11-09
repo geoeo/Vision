@@ -10,8 +10,8 @@ use vision::Float;
 
 fn main() {
     //TODO: problem with jpg
-    let image_name = "squares";
-    let image_name_2 = "squares_90";
+    let image_name = "beaver";
+    let image_name_2 = "beaver_2";
     let image_format = "png";
     let image_folder = "images/";
     let image_out_folder = "output/";
@@ -27,9 +27,9 @@ fn main() {
 
     let runtime_params = OrbRuntimeParameters {
         min_image_dimensions: (50,50),
-        sigma: 0.1,
+        sigma: 0.25,
         blur_radius: 5.0,
-        max_features_per_octave: 10,
+        max_features_per_octave: 50,
         octave_count: 3,
         harris_k: 0.06,
         fast_circle_radius: 3,
@@ -37,7 +37,8 @@ fn main() {
         fast_consecutive_pixels: 12,
         fast_grid_size: (10,10),
         brief_n: 256,
-        brief_s: 31
+        brief_s: 31,
+        brief_matching_min_threshold: 256/4
     };
     
     let pyramid = build_orb_pyramid(&gray_image, &runtime_params);
@@ -48,7 +49,7 @@ fn main() {
     let feature_pyramid_2 = generate_feature_pyramid(&pyramid_2, &runtime_params);
     let feature_descriptor_pyramid_b = generate_feature_descriptor_pyramid(&pyramid_2,&feature_pyramid_2,&runtime_params);
 
-    let match_pyramid = generate_match_pyramid(&feature_descriptor_pyramid_a,&feature_descriptor_pyramid_b);
+    let match_pyramid = generate_match_pyramid(&feature_descriptor_pyramid_a,&feature_descriptor_pyramid_b, &runtime_params);
 
     for i in 0..pyramid.octaves.len() {
         let display_a = &pyramid.octaves[i].images[0];

@@ -8,7 +8,7 @@ use na::DMatrix;
 
 use crate::image::Image;
 use crate::features::{geometry::point::Point, orb_feature::OrbFeature};
-use crate::Float;
+use crate::{Float,float};
 use crate::numerics::rotation_matrix_2d_from_orientation;
 use self::bit_vector::BitVector;
 
@@ -22,39 +22,75 @@ pub struct BriefDescriptor {
 
 impl BriefDescriptor {
 
-    pub fn match_descriptors(descriptors_a: &Vec<&BriefDescriptor>, descriptors_b: &Vec<&BriefDescriptor>) -> Vec<usize> {
-        descriptors_a.iter().map(|x| BriefDescriptor::best_match_against(x, descriptors_b)).collect::<Vec<usize>>()
+    pub fn generate_sample_lookup_tables(n: usize, brief_s: usize) -> Vec<Vec<(Point<Float>,Point<Float>)>> {
+        let std_dev = (brief_s as Float)/5.0;
+        let mut sampling_thread = rand::thread_rng();
+        let normal_distribution = Normal::new(0.0,std_dev).unwrap();
+
+        let mut samples_delta_a = DMatrix::<Float>::zeros(2,n);
+        let mut samples_delta_b = DMatrix::<Float>::zeros(2,n);
+
+        let mut lookup_tables = Vec::<Vec<(Point<Float>,Point<Float>)>>::with_capacity(30);
+
+        let table_inc = 2.0*float::consts::PI/30.0;
+
+        for _ in 0..lookup_tables.capacity() {
+            lookup_tables.push(Vec::<(Point<Float>,Point<Float>)>::with_capacity(n));
+        }
+
+        for i in 0..n {
+            let (delta_a,delta_b) = BriefDescriptor::generate_sample_pair(&mut sampling_thread,&normal_distribution);
+            samples_delta_a[(0,i)] = delta_a.x;
+            samples_delta_a[(1,i)] = delta_a.y;
+            samples_delta_b[(0,i)] = delta_b.x;
+            samples_delta_b[(1,i)] = delta_b.y;
+        }
+
+        for j in 0..lookup_tables.len(){
+            let angle = table_inc*j as Float;
+            let rotation_matrix = rotation_matrix_2d_from_orientation(angle);
+
+            let rotated_delta_a = rotation_matrix*&samples_delta_a;
+            let rotated_delta_b = rotation_matrix*&samples_delta_b;
+
+            for i in 0..n {
+                lookup_tables[j].push((Point::new(rotated_delta_a[(0,i)], rotated_delta_a[(1,i)]),Point::new(rotated_delta_b[(0,i)], rotated_delta_b[(1,i)])));
+            }
+        }
+
+
+        lookup_tables
+
+    }
+
+    pub fn match_descriptors(descriptors_a: &Vec<&BriefDescriptor>, descriptors_b: &Vec<&BriefDescriptor>, matching_min_threshold: u64) -> Vec<Option<usize>> {
+        descriptors_a.iter().map(|x| BriefDescriptor::best_match_against(x, descriptors_b,matching_min_threshold)).collect::<Vec<Option<usize>>>()
     }
 
     //TODO: if min distance is above a thrshold then return None
-    pub fn best_match_against(descriptor: &BriefDescriptor, other_descriptors: &Vec<&BriefDescriptor>) -> usize {
+    pub fn best_match_against(descriptor: &BriefDescriptor, other_descriptors: &Vec<&BriefDescriptor>, matching_min_threshold: u64) -> Option<usize> {
         let (min_idx,_) 
             = other_descriptors.iter().enumerate()
                                .map(|(idx,x)| (idx,descriptor.bit_vector.hamming_distance(&x.bit_vector)))
                                .fold((std::usize::MAX,std::u64::MAX),|(min_idx,min_value),(idx,value)| -> (usize,u64) {
-                                   if value < min_value {
+                                   if value < min_value && value < matching_min_threshold { 
                                        (idx,value)
                                    } else {
                                        (min_idx,min_value)
                                    }
                                });
 
-        min_idx               
+        match min_idx  {
+            std::usize::MAX => None,
+            v => Some(v)
+        }             
     }
 
-    pub fn new(image: &Image, orb_feature: &OrbFeature, n: usize, brief_s: usize) -> Option<(BriefDescriptor,Vec<Point<usize>>,Vec<Point<usize>>)> {
+    pub fn new(image: &Image, orb_feature: &OrbFeature, n: usize, brief_s: usize, sample_lookup_tables: &Vec<Vec<(Point<Float>,Point<Float>)>>) -> Option<BriefDescriptor> {
         let mut samples_a = Vec::<Point<usize>>::with_capacity(n);
         let mut samples_b = Vec::<Point<usize>>::with_capacity(n);
-
-        let rotation_matrix = rotation_matrix_2d_from_orientation(orb_feature.orientation);
-        let mut samples_delta_a = DMatrix::<Float>::zeros(2,n);
-        let mut samples_delta_b = DMatrix::<Float>::zeros(2,n);
-
         let mut bit_vector = BitVector::new(n);
 
-        let std_dev = (brief_s as Float)/5.0;
-        let mut sampling_thread = rand::thread_rng();
-        let normal_distribution = Normal::new(0.0,std_dev).unwrap();
 
         let patch_radius = (brief_s-1)/2;
         let top_left_r = orb_feature.location.y as isize-patch_radius as isize;
@@ -66,23 +102,17 @@ impl BriefDescriptor {
             None
         } else {
 
-            //TODO: this is wrong. Precompute sample pairs and rotate them by 2Pi/30 increments making a histogram
-            for i in 0..n {
-                let (delta_a,delta_b) = BriefDescriptor::generate_sample_pair(&mut sampling_thread,&normal_distribution);
-                samples_delta_a[(0,i)] = delta_a.x;
-                samples_delta_a[(1,i)] = delta_a.y;
-                samples_delta_b[(0,i)] = delta_b.x;
-                samples_delta_b[(1,i)] = delta_b.y;
+            let sample_pair_idx = (orb_feature.orientation / (2.0*float::consts::PI/sample_lookup_tables.len() as Float)).round() as usize;
+            let samples_pattern = &sample_lookup_tables[sample_pair_idx];
+            
 
-            }   
-
-            let samples_a_rotated = rotation_matrix*samples_delta_a;
-            let samples_b_rotated = rotation_matrix*samples_delta_b;
 
             for i in 0..n{
+
+                let (sample_a,sample_b) = samples_pattern[i];
                 // Rotation may make samples go out of bounds
-                let a_float = Point::<Float>{x: orb_feature.location.x as Float + samples_a_rotated[(0,i)],y: orb_feature.location.y as Float + samples_a_rotated[(1,i)] };
-                let b_float = Point::<Float>{x: orb_feature.location.x as Float + samples_b_rotated[(0,i)],y: orb_feature.location.y as Float + samples_b_rotated[(1,i)] };
+                let a_float = Point::<Float>{x: orb_feature.location.x as Float + sample_a.x, y: orb_feature.location.y as Float + sample_a.y};
+                let b_float = Point::<Float>{x: orb_feature.location.x as Float + sample_b.x, y: orb_feature.location.y as Float + sample_b.y};
 
                 let a = BriefDescriptor::clamp_to_image(&image.buffer,&a_float);
                 let b = BriefDescriptor::clamp_to_image(&image.buffer,&b_float);
@@ -92,7 +122,7 @@ impl BriefDescriptor {
                 samples_b.push(b);
             }
     
-            Some((BriefDescriptor{bit_vector},samples_a,samples_b))
+            Some(BriefDescriptor{bit_vector})
         }
 
 

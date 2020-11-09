@@ -1,4 +1,4 @@
-use crate::Float;
+use crate::{Float,float};
 use crate::features::geometry::point::Point;
 use crate::image::Image;
 
@@ -17,7 +17,11 @@ pub fn orientation(image: &Image, points: &Vec<Point<usize>>) -> Float {
     let m_0_1 = moment((0,1), image, points);
     let m_1_0 = moment((1,0), image, points);
 
-    m_0_1.atan2(m_1_0)
+    let mut orientation = m_0_1.atan2(m_1_0);
+    if orientation < 0.0 {
+        orientation += 2.0*float::consts::PI;
+    }
+    orientation
 }
 
 pub fn centroid(image: &Image, points: &Vec<Point<usize>>) -> Point<usize> {
