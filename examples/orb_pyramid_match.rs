@@ -3,7 +3,7 @@ extern crate vision;
 
 use std::path::Path;
 use vision::pyramid::orb::{build_orb_pyramid,generate_feature_pyramid,generate_feature_descriptor_pyramid,  orb_runtime_parameters::OrbRuntimeParameters, generate_match_pyramid};
-use vision::visualize::{visualize_pyramid_feature_with_orientation,display_matches_for_octave};
+use vision::visualize::{visualize_pyramid_feature_with_orientation,display_matches_for_octave, display_matches_for_pyramid};
 use vision::matching::brief_descriptor::BriefDescriptor;
 use vision::image::Image;
 use vision::Float;
@@ -17,13 +17,13 @@ fn main() {
     let image_out_folder = "output/";
     let image_path = format!("{}{}.{}",image_folder,image_name, image_format);
     let image_path_2 = format!("{}{}.{}",image_folder,image_name_2, image_format);
-    let converted_file_out_path = format!("{}{}_features_with_descriptors.{}",image_out_folder,image_name,image_format);
+    let converted_file_out_path = format!("{}{}_orb_matches_all.{}",image_out_folder,image_name,image_format);
 
     let gray_image = image_rs::open(&Path::new(&image_path)).unwrap().to_luma();
     let gray_image_2 = image_rs::open(&Path::new(&image_path_2)).unwrap().to_luma();
 
-    //let mut display = Image::from_gray_image(&gray_image, false); 
-    //let mut display_2 = Image::from_gray_image(&gray_image_2, false); 
+    let display = Image::from_gray_image(&gray_image, false); 
+    let display_2 = Image::from_gray_image(&gray_image_2, false); 
 
     let runtime_params = OrbRuntimeParameters {
         min_image_dimensions: (50,50),
@@ -68,7 +68,11 @@ fn main() {
     }
 
 
-    //let new_image = display.to_image();
-    //new_image.save(converted_file_out_path).unwrap();
+    let pyramid_match_display = display_matches_for_pyramid(&display, &display_2, &match_pyramid.octaves, true, display.buffer.max()/2.0);
+
+
+
+    let new_image = pyramid_match_display.to_image();
+    new_image.save(converted_file_out_path).unwrap();
 
 }

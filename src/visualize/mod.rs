@@ -39,7 +39,7 @@ pub fn display_histogram(histogram: &OrientationHistogram, width_scaling:usize, 
 }
 
 //TODO: Remove OrbFeature dependency or make OrbFeature a more basic feature
-pub fn display_matches_for_pyramid<T>(image_a_original: &Image, image_b_original: &Image, matches: &Vec<(T,T)>, octave_index: usize, draw_lines: bool, intensity: Float) -> Image where T: Feature + Oriented {
+pub fn display_matches_for_pyramid<T>(image_a_original: &Image, image_b_original: &Image, match_pyramid: &Vec<Vec<(T,T)>>, draw_lines: bool, intensity: Float) -> Image where T: Feature + Oriented {
 
     assert_eq!(image_a_original.buffer.nrows(),image_b_original.buffer.nrows());
     assert_eq!(image_a_original.buffer.ncols(),image_b_original.buffer.ncols());
@@ -56,14 +56,18 @@ pub fn display_matches_for_pyramid<T>(image_a_original: &Image, image_b_original
         }
     }
 
-    let matches_in_orignal_frame = matches.iter().map(|(a,b)| -> (OrbFeature,OrbFeature) {
-        let (a_x_orig,a_y_orig) = reconstruct_original_coordiantes(a.get_x_image(),a.get_y_image(),octave_index as u32);
-        let (b_x_orig,b_y_orig) = reconstruct_original_coordiantes(b.get_x_image(),b.get_y_image(),octave_index as u32);
-        (OrbFeature{location: Point::new(a_x_orig, a_y_orig), orientation: a.get_orientation()},OrbFeature{location: Point::new(image_a_original.buffer.ncols() + b_x_orig, b_y_orig), orientation: b.get_orientation()} )
-    }).collect::<Vec<(OrbFeature,OrbFeature)>>();
-    let radius = (octave_index+1) as Float *10.0; 
+    for octave_index in 0..match_pyramid.len() {
+        let matches = &match_pyramid[octave_index];
+        let matches_in_orignal_frame = matches.iter().map(|(a,b)| -> (OrbFeature,OrbFeature) {
+            let (a_x_orig,a_y_orig) = reconstruct_original_coordiantes(a.get_x_image(),a.get_y_image(),octave_index as u32);
+            let (b_x_orig,b_y_orig) = reconstruct_original_coordiantes(b.get_x_image(),b.get_y_image(),octave_index as u32);
+            (OrbFeature{location: Point::new(a_x_orig, a_y_orig), orientation: a.get_orientation()},OrbFeature{location: Point::new(image_a_original.buffer.ncols() + b_x_orig, b_y_orig), orientation: b.get_orientation()} )
+        }).collect::<Vec<(OrbFeature,OrbFeature)>>();
+        let radius = (octave_index+1) as Float *10.0; 
+    
+        draw_matches(&mut target_image, &matches_in_orignal_frame, radius,draw_lines, intensity);
+    }
 
-    draw_matches(&mut target_image, &matches_in_orignal_frame, radius,draw_lines, intensity);
 
     target_image
 
