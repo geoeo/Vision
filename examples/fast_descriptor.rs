@@ -9,7 +9,7 @@ use vision::features::geometry::shape::Shape;
 use vision::features::fast_feature::FastFeature;
 
 fn main() {
-    let image_name = "lenna";
+    let image_name = "lenna_15";
     let image_format = "png";
     let image_path = format!("images/{}.{}",image_name, image_format);
     let converted_file_out_path = format!("output/{}_fast.{}",image_name,image_format);

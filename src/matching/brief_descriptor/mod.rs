@@ -102,7 +102,7 @@ impl BriefDescriptor {
             None
         } else {
 
-            let sample_pair_idx = (orb_feature.orientation / (2.0*float::consts::PI/sample_lookup_tables.len() as Float)).round() as usize;
+            let sample_pair_idx = (orb_feature.orientation / (2.0*float::consts::PI/sample_lookup_tables.len() as Float)).trunc() as usize;
             let samples_pattern = &sample_lookup_tables[sample_pair_idx];
             
 

@@ -10,8 +10,8 @@ use vision::Float;
 
 fn main() {
     //TODO: problem with jpg
-    let image_name = "beaver";
-    let image_name_2 = "beaver_2";
+    let image_name = "lenna";
+    let image_name_2 = "lenna_15";
     let image_format = "png";
     let image_folder = "images/";
     let image_out_folder = "output/";
@@ -27,11 +27,11 @@ fn main() {
 
     let runtime_params = OrbRuntimeParameters {
         min_image_dimensions: (50,50),
-        sigma: 0.25,
-        blur_radius: 5.0,
-        max_features_per_octave: 50,
+        sigma: 2.0,
+        blur_radius: 4.0,
+        max_features_per_octave: 100,
         octave_count: 3,
-        harris_k: 0.06,
+        harris_k: 0.04,
         fast_circle_radius: 3,
         fast_threshold_factor: 0.2,
         fast_consecutive_pixels: 12,
