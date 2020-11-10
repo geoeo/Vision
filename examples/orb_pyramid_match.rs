@@ -11,7 +11,7 @@ use vision::Float;
 fn main() {
     //TODO: problem with jpg
     let image_name = "lenna";
-    let image_name_2 = "lenna_15";
+    let image_name_2 = "lenna_90";
     let image_format = "png";
     let image_folder = "images/";
     let image_out_folder = "output/";
@@ -38,16 +38,18 @@ fn main() {
         fast_grid_size: (10,10),
         brief_n: 256,
         brief_s: 31,
-        brief_matching_min_threshold: 256/4
+        brief_matching_min_threshold: 256
     };
     
+    let sample_lookup_table = BriefDescriptor::generate_sample_lookup_tables(runtime_params.brief_n, runtime_params.brief_s);
+
     let pyramid = build_orb_pyramid(&gray_image, &runtime_params);
     let feature_pyramid = generate_feature_pyramid(&pyramid, &runtime_params);
-    let feature_descriptor_pyramid_a = generate_feature_descriptor_pyramid(&pyramid,&feature_pyramid,&runtime_params);
+    let feature_descriptor_pyramid_a = generate_feature_descriptor_pyramid(&pyramid,&feature_pyramid,&sample_lookup_table,&runtime_params);
 
     let pyramid_2 = build_orb_pyramid(&gray_image_2, &runtime_params);
     let feature_pyramid_2 = generate_feature_pyramid(&pyramid_2, &runtime_params);
-    let feature_descriptor_pyramid_b = generate_feature_descriptor_pyramid(&pyramid_2,&feature_pyramid_2,&runtime_params);
+    let feature_descriptor_pyramid_b = generate_feature_descriptor_pyramid(&pyramid_2,&feature_pyramid_2,&sample_lookup_table,&runtime_params);
 
     let match_pyramid = generate_match_pyramid(&feature_descriptor_pyramid_a,&feature_descriptor_pyramid_b, &runtime_params);
 

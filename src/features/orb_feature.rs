@@ -1,4 +1,4 @@
-use crate::features::{Feature,Oriented,fast_feature::FastFeature,intensity_centroid,geometry::point::Point,harris_corner::harris_response_for_feature, orientation};
+use crate::features::{Feature,Oriented,fast_feature::FastFeature,geometry::point::Point,harris_corner::harris_response_for_feature, orientation};
 use crate::image::Image;
 use crate::Float;
 
@@ -35,7 +35,6 @@ impl OrbFeature {
 
         let image = &images[0];
         let fast_features = FastFeature::compute_valid_features(image, radius, threshold_factor, consecutive_pixels, fast_grid_size);
-        //let orientations = fast_features.iter().map(|x| intensity_centroid::orientation(image, &x.0.get_full_circle().shape.get_points())).collect::<Vec<Float>>();
         let orientations = fast_features.iter().map(|x| orientation(images, &x.0)).collect::<Vec<Float>>();
         
         let mut indexed_harris_corner_responses = fast_features.iter().map(|x| harris_response_for_feature(images,&x.0,harris_k)).enumerate().collect::<Vec<(usize,Float)>>();

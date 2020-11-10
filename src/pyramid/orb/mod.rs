@@ -5,8 +5,9 @@ use image_rs::GrayImage;
 use crate::image::Image;
 use crate::pyramid::Pyramid;
 use self::{orb_octave::OrbOctave, orb_runtime_parameters::OrbRuntimeParameters};
-use crate::features::orb_feature::OrbFeature;
+use crate::features::{geometry::point::Point,orb_feature::OrbFeature};
 use crate::matching::brief_descriptor::BriefDescriptor;
+use crate::Float;
 
 
 pub mod orb_octave;
@@ -43,11 +44,11 @@ pub fn generate_feature_pyramid(pyramid: &Pyramid<OrbOctave>, runtime_parameters
     Pyramid{octaves: pyramid.octaves.iter().map(|x| generate_features_for_octave(x,runtime_parameters)).collect::<Vec<Vec<OrbFeature>>>()}
 }
 
-pub fn generate_feature_descriptor_pyramid(octave_pyramid: &Pyramid<OrbOctave>, feature_pyramid: &Pyramid<Vec<OrbFeature>>, runtime_parameters: &OrbRuntimeParameters) -> Pyramid<Vec<(OrbFeature,BriefDescriptor)>> {
+pub fn generate_feature_descriptor_pyramid(octave_pyramid: &Pyramid<OrbOctave>, feature_pyramid: &Pyramid<Vec<OrbFeature>>, sample_lookup_table: &Vec<Vec<(Point<Float>,Point<Float>)>>, runtime_parameters: &OrbRuntimeParameters) -> Pyramid<Vec<(OrbFeature,BriefDescriptor)>> {
     assert_eq!(octave_pyramid.octaves.len(),feature_pyramid.octaves.len());
     let octave_len = octave_pyramid.octaves.len();
     let mut feature_descriptor_pyramid = Pyramid::<Vec<(OrbFeature,BriefDescriptor)>>::empty(octave_len);
-    let sample_lookup_table = BriefDescriptor::generate_sample_lookup_tables(runtime_parameters.brief_n, runtime_parameters.brief_s);
+
 
     for i in 0..octave_len {
         let image = &octave_pyramid.octaves[i].images[0];
