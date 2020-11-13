@@ -36,12 +36,17 @@ pub fn build_orb_pyramid(base_gray_image: &GrayImage, runtime_parameters: &OrbRu
     Pyramid {octaves}
 }
 
-pub fn generate_features_for_octave(octave: &OrbOctave, runtime_parameters: &OrbRuntimeParameters) -> Vec<OrbFeature> {
-    OrbFeature::new(&octave.images, runtime_parameters.fast_circle_radius, runtime_parameters.fast_threshold_factor, runtime_parameters.fast_consecutive_pixels, runtime_parameters.fast_grid_size, runtime_parameters.harris_k)
+pub fn generate_features_for_octave(octave: &OrbOctave, octave_idx: usize, runtime_parameters: &OrbRuntimeParameters) -> Vec<OrbFeature> {
+    let orig_offset = runtime_parameters.fast_offsets;
+    let scale = 2usize.pow(octave_idx as u32) as Float;
+    let x_offset_scaled = (orig_offset.0 as Float / scale).trunc() as usize;
+    let y_offset_scaled = (orig_offset.1 as Float / scale).trunc() as usize;
+
+    OrbFeature::new(&octave.images, runtime_parameters.fast_circle_radius, runtime_parameters.fast_threshold_factor, runtime_parameters.fast_consecutive_pixels, runtime_parameters.fast_grid_size,(x_offset_scaled,y_offset_scaled), runtime_parameters.harris_k)
 }
 
 pub fn generate_feature_pyramid(pyramid: &Pyramid<OrbOctave>, runtime_parameters: &OrbRuntimeParameters) -> Pyramid<Vec<OrbFeature>> {
-    Pyramid{octaves: pyramid.octaves.iter().map(|x| generate_features_for_octave(x,runtime_parameters)).collect::<Vec<Vec<OrbFeature>>>()}
+    Pyramid{octaves: pyramid.octaves.iter().enumerate().map(|(idx,x)| generate_features_for_octave(x,idx,runtime_parameters)).collect::<Vec<Vec<OrbFeature>>>()}
 }
 
 pub fn generate_feature_descriptor_pyramid(octave_pyramid: &Pyramid<OrbOctave>, feature_pyramid: &Pyramid<Vec<OrbFeature>>, sample_lookup_table: &Vec<Vec<(Point<Float>,Point<Float>)>>, runtime_parameters: &OrbRuntimeParameters) -> Pyramid<Vec<(OrbFeature,BriefDescriptor)>> {

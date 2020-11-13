@@ -30,11 +30,11 @@ impl Oriented for OrbFeature {
 
 impl OrbFeature {
 
-    pub fn new(images: &Vec<Image>, radius: usize, threshold_factor: Float, consecutive_pixels: usize, fast_grid_size: (usize,usize), harris_k: Float ) -> Vec<OrbFeature> {
+    pub fn new(images: &Vec<Image>, radius: usize, threshold_factor: Float, consecutive_pixels: usize, fast_grid_size: (usize,usize), fast_offsets: (usize,usize), harris_k: Float ) -> Vec<OrbFeature> {
         assert!(images.len() == 1);
 
         let image = &images[0];
-        let fast_features = FastFeature::compute_valid_features(image, radius, threshold_factor, consecutive_pixels, fast_grid_size);
+        let fast_features = FastFeature::compute_valid_features(image, radius, threshold_factor, consecutive_pixels, fast_grid_size, fast_offsets);
         let orientations = fast_features.iter().map(|x| orientation(images, &x.0)).collect::<Vec<Float>>();
         
         let mut indexed_harris_corner_responses = fast_features.iter().map(|x| harris_response_for_feature(images,&x.0,harris_k)).enumerate().collect::<Vec<(usize,Float)>>();

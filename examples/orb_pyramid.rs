@@ -30,6 +30,7 @@ fn main() {
         fast_threshold_factor: 0.2,
         fast_consecutive_pixels: 12,
         fast_grid_size: (10,10),
+        fast_offsets: (20,20),
         brief_n: 256,
         brief_s: 31,
         brief_matching_min_threshold: 256/4

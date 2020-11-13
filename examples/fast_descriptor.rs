@@ -20,7 +20,7 @@ fn main() {
     let mut frame = Image::from_gray_image(&image, false);
 
 
-    let valid_features = FastFeature::compute_valid_features(&frame,3,0.2,12,(10,10));
+    let valid_features = FastFeature::compute_valid_features(&frame,3,0.2,12,(10,10),(0,0));
     println!("amount of FAST features:{:?}",valid_features.len());
     for (valid_feature,i) in valid_features {
         let slice = valid_feature.get_wrapping_slice(i, 12);

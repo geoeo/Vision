@@ -128,12 +128,16 @@ impl FastFeature {
 
     }
 
-    pub fn compute_valid_features(image: &Image, radius: usize,  threshold_factor: Float, consecutive_pixels: usize, grid_size: (usize,usize)) -> Vec<(FastFeature,usize)> {
+    pub fn compute_valid_features(image: &Image, radius: usize,  threshold_factor: Float, consecutive_pixels: usize, grid_size: (usize,usize), offsets: (usize,usize)) -> Vec<(FastFeature,usize)> {
         let x_grid = grid_size.0;
         let y_grid = grid_size.1;
+        let x_offset = offsets.0;
+        let y_offset = offsets.1;
+        
+
         let mut result = Vec::<(FastFeature,usize)>::new();
-        for r in (0..image.buffer.nrows()).step_by(y_grid) {
-            for c in (0..image.buffer.ncols()).step_by(x_grid) {
+        for r in (y_offset..image.buffer.nrows() - y_offset).step_by(y_grid) {
+            for c in (x_offset..image.buffer.ncols() - x_offset).step_by(x_grid) {
 
                 match FastFeature::compute_valid_feature(image,radius,threshold_factor,consecutive_pixels,c,r,x_grid,y_grid) {
                     Some(v) => result.push(v),

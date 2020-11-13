@@ -11,6 +11,7 @@ pub struct OrbRuntimeParameters {
     pub fast_threshold_factor: Float,
     pub fast_consecutive_pixels: usize,
     pub fast_grid_size: (usize,usize),
+    pub fast_offsets: (usize,usize),
     pub brief_n: usize,
     pub brief_s: usize,
     pub brief_matching_min_threshold: u64
