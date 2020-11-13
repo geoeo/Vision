@@ -5,6 +5,7 @@ use std::path::Path;
 use vision::pyramid::orb::{build_orb_pyramid,generate_feature_pyramid,generate_feature_descriptor_pyramid,  orb_runtime_parameters::OrbRuntimeParameters, generate_match_pyramid};
 use vision::visualize::{visualize_pyramid_feature_with_orientation,display_matches_for_octave, display_matches_for_pyramid};
 use vision::matching::brief_descriptor::BriefDescriptor;
+use vision::features::Oriented;
 use vision::image::Image;
 use vision::Float;
 
@@ -38,7 +39,7 @@ fn main() {
         fast_grid_size: (10,10),
         brief_n: 256,
         brief_s: 31,
-        brief_matching_min_threshold: 256
+        brief_matching_min_threshold: 256/2
     };
     
     let sample_lookup_table = BriefDescriptor::generate_sample_lookup_tables(runtime_params.brief_n, runtime_params.brief_s);
@@ -52,6 +53,15 @@ fn main() {
     let feature_descriptor_pyramid_b = generate_feature_descriptor_pyramid(&pyramid_2,&feature_pyramid_2,&sample_lookup_table,&runtime_params);
 
     let match_pyramid = generate_match_pyramid(&feature_descriptor_pyramid_a,&feature_descriptor_pyramid_b, &runtime_params);
+
+    for i in 0..pyramid.octaves.len() {
+        let avg_orientation_a = &feature_pyramid.octaves[i].iter().fold(0.0,|acc,x| acc + x.get_orientation())/feature_pyramid.octaves[i].len() as Float;
+        let avg_orientation_b = &feature_pyramid_2.octaves[i].iter().fold(0.0,|acc,x| acc + x.get_orientation())/feature_pyramid_2.octaves[i].len() as Float;
+
+        println!("octave: {}, avg orientation for a: {}, avg orientation for b: {}",i,avg_orientation_a,avg_orientation_b);
+        println!("octave: {}, difference in orientation: {}",i,(avg_orientation_a-avg_orientation_b).abs());
+
+    }
 
     for i in 0..pyramid.octaves.len() {
         let display_a = &pyramid.octaves[i].images[0];

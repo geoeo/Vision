@@ -67,7 +67,6 @@ impl BriefDescriptor {
         descriptors_a.iter().map(|x| BriefDescriptor::best_match_against(x, descriptors_b,matching_min_threshold)).collect::<Vec<Option<usize>>>()
     }
 
-    //TODO: if min distance is above a thrshold then return None
     pub fn best_match_against(descriptor: &BriefDescriptor, other_descriptors: &Vec<&BriefDescriptor>, matching_min_threshold: u64) -> Option<usize> {
         let (min_idx,_) 
             = other_descriptors.iter().enumerate()

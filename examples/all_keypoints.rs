@@ -56,7 +56,7 @@ fn main() {
     println!("Keypoints from Image: {} out of {}, ({}%)",number_of_features, size, percentage);
 
     for keypoint in all_keypoints {
-        visualize_pyramid_feature_with_orientation(&mut display, &keypoint, keypoint.octave_level);
+        visualize_pyramid_feature_with_orientation(&mut display, &keypoint, keypoint.octave_level, 64.0);
     }
 
 

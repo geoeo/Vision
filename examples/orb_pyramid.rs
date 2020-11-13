@@ -4,6 +4,7 @@ extern crate vision;
 use std::path::Path;
 use vision::pyramid::orb::{build_orb_pyramid,generate_feature_pyramid,generate_feature_descriptor_pyramid,  orb_runtime_parameters::OrbRuntimeParameters};
 use vision::visualize::visualize_pyramid_feature_with_orientation;
+use vision::matching::brief_descriptor::BriefDescriptor;
 use vision::image::Image;
 
 fn main() {
@@ -34,9 +35,11 @@ fn main() {
         brief_matching_min_threshold: 256/4
     };
     
+    let sample_lookup_table = BriefDescriptor::generate_sample_lookup_tables(runtime_params.brief_n, runtime_params.brief_s);
+
     let pyramid = build_orb_pyramid(&gray_image, &runtime_params);
     let feature_pyramid = generate_feature_pyramid(&pyramid, &runtime_params);
-    let feautre_descriptors = generate_feature_descriptor_pyramid(&pyramid,&feature_pyramid,&runtime_params);
+    let feautre_descriptors = generate_feature_descriptor_pyramid(&pyramid,&feature_pyramid,&sample_lookup_table,&runtime_params);
 
     // for i in 0..pyramid.octaves.len() {
     //     let octave = &pyramid.octaves[i];

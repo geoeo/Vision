@@ -1,5 +1,6 @@
 extern crate image as image_rs;
 
+use rand::distributions::{Distribution, Uniform};
 use crate::features::{Feature, Oriented,orb_feature::OrbFeature, geometry::{point::Point,shape::circle::circle_bresenham,line::line_bresenham}};
 use crate::image::{Image,image_encoding::ImageEncoding};
 use crate::matching::sift_descriptor::{orientation_histogram::OrientationHistogram};
@@ -102,14 +103,23 @@ pub fn display_matches_for_octave<T>(image_a: &Image, image_b: &Image, matches: 
 
 fn draw_matches<T>(image: &mut Image,  matches: &Vec<(T,T)>, radius:Float, draw_lines: bool, intensity: Float)-> ()  where T: Feature + Oriented {
 
+    let intensity_min = intensity/2.0;
+    let intensity_max = intensity_min + intensity;
+
+    let range = Uniform::from(intensity_min..intensity_max);
+    let mut rng = rand::thread_rng();
+
+
+
     for (feature_a,feature_b) in matches {
 
-        draw_circle_with_orientation(image, feature_a.get_x_image(), feature_a.get_y_image(),  feature_a.get_orientation(), radius, intensity);
-        draw_circle_with_orientation(image, feature_b.get_x_image(), feature_b.get_y_image(),  feature_b.get_orientation(), radius, intensity);
+        let intenstiy_sample = range.sample(&mut rng);
+        draw_circle_with_orientation(image, feature_a.get_x_image(), feature_a.get_y_image(),  feature_a.get_orientation(), radius, intenstiy_sample);
+        draw_circle_with_orientation(image, feature_b.get_x_image(), feature_b.get_y_image(),  feature_b.get_orientation(), radius, intenstiy_sample);
 
         if draw_lines {
             let line = line_bresenham(&Point::new(feature_a.get_x_image(), feature_a.get_y_image()), &Point::new(feature_b.get_x_image(), feature_b.get_y_image()));
-            draw_points(image, &line.points,intensity);
+            draw_points(image, &line.points,intenstiy_sample);
         }
 
     }

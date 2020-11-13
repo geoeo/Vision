@@ -74,7 +74,7 @@ fn main() {
 
 
     for keypoint in keypoints {
-        visualize_pyramid_feature_with_orientation(&mut orientation_display, &keypoint,keypoint.octave_level);
+        visualize_pyramid_feature_with_orientation(&mut orientation_display, &keypoint,keypoint.octave_level, 64.0);
     }
 
     for feature in features {
