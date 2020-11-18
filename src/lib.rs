@@ -7,6 +7,7 @@ pub mod visualize;
 pub mod vo;
 pub mod numerics;
 pub mod camera;
+pub mod io;
 
 macro_rules! define_float {
     ($f:tt) => {
