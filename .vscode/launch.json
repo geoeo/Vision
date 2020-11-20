@@ -139,6 +139,18 @@
             "environment": [],
             "externalConsole": false,
             "env": {"RUST_BACKTRACE":"1"}
+        },
+        {
+            "name": "Load TUM",
+            "type": "lldb",
+            "request": "launch",
+            "program": "${workspaceRoot}/target/debug/examples/load_tum",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "env": {"RUST_BACKTRACE":"1"}
         }
     ]
 }

@@ -10,7 +10,7 @@ use vision::image::Image;
 use vision::Float;
 
 fn main() {
-    //TODO: problem with jpg
+
     let image_name = "lenna";
     let image_name_2 = "lenna_90";
     let image_format = "png";
