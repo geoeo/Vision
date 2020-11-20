@@ -5,8 +5,6 @@ use std::path::Path;
 use vision::io::tum_loader;
 
 fn main() {
-    
-    //TODO: correct file path
     let image_name = "img0001_0";
     let image_format = "depth";
     let image_folder = "C:/Users/Marc/Workspace/Datasets/ETH/urban_pinhole/rpg_urban_pinhole_depthmaps/data/depth/";
