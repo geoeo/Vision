@@ -21,6 +21,7 @@ fn main() {
 
 
     let gray_image = image_rs::open(&Path::new(&image_path)).unwrap().to_luma();
+    let image = Image::from_gray_image(&gray_image, false);
 
     let runtime_params = SiftRuntimeParams {
         min_image_dimensions: (25,25),
@@ -35,7 +36,7 @@ fn main() {
     };
 
     
-    let pyramid = build_sift_pyramid(&gray_image, &runtime_params);
+    let pyramid = build_sift_pyramid(image, &runtime_params);
     let octave_level = 1;
     let sigma_level = 1;
     let octave = &pyramid.octaves[octave_level];

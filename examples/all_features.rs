@@ -20,6 +20,7 @@ fn main() {
 
 
     let gray_image = image_rs::open(&Path::new(&image_path)).unwrap().to_luma();
+    let image = Image::from_gray_image(&gray_image, false);
     let mut display = Image::from_gray_image(&gray_image, false);
 
     // let runtime_params = RuntimeParams {
@@ -45,7 +46,7 @@ fn main() {
     };
 
     
-    let pyramid = build_sift_pyramid(&gray_image, &runtime_params);
+    let pyramid = build_sift_pyramid(image, &runtime_params);
 
     let all_features = feature_vectors_from_pyramid(&pyramid, &runtime_params);
 

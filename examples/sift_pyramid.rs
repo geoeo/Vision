@@ -3,6 +3,7 @@ extern crate vision;
 
 use std::path::Path;
 
+use vision::image::Image;
 use vision::pyramid::sift::{build_sift_pyramid, sift_runtime_params::SiftRuntimeParams};
 
 
@@ -15,6 +16,8 @@ fn main() {
 
 
     let gray_image = image_rs::open(&Path::new(&image_path)).unwrap().to_luma();
+    let image = Image::from_gray_image(&gray_image, false);
+    
 
     let runtime_params = SiftRuntimeParams {
         min_image_dimensions: (25,25),
@@ -27,8 +30,9 @@ fn main() {
         octave_count: 4,
         sigma_count: 4
     };
+
     
-    let pyramid = build_sift_pyramid(&gray_image, &runtime_params);
+    let pyramid = build_sift_pyramid(image, &runtime_params);
 
     let first_octave = &pyramid.octaves[0];
     let ocatve_images = &first_octave.difference_of_gaussians;

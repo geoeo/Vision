@@ -16,6 +16,8 @@ fn main() {
     let converted_file_out_path = format!("{}{}_features_with_descriptors.{}",image_out_folder,image_name,image_format);
 
     let gray_image = image_rs::open(&Path::new(&image_path)).unwrap().to_luma();
+    let image = Image::from_gray_image(&gray_image, false);
+
     let mut display = Image::from_gray_image(&gray_image, false); 
     let display_max = display.buffer.max();
 
@@ -38,7 +40,7 @@ fn main() {
     
     let sample_lookup_table = BriefDescriptor::generate_sample_lookup_tables(runtime_params.brief_n, runtime_params.brief_s);
 
-    let pyramid = build_orb_pyramid(&gray_image, &runtime_params);
+    let pyramid = build_orb_pyramid(image, &runtime_params);
     let feature_pyramid = generate_feature_pyramid(&pyramid, &runtime_params);
     let feautre_descriptors = generate_feature_descriptor_pyramid(&pyramid,&feature_pyramid,&sample_lookup_table,&runtime_params);
 

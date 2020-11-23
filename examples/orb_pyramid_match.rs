@@ -23,6 +23,9 @@ fn main() {
     let gray_image = image_rs::open(&Path::new(&image_path)).unwrap().to_luma();
     let gray_image_2 = image_rs::open(&Path::new(&image_path_2)).unwrap().to_luma();
 
+    let image = Image::from_gray_image(&gray_image, false);
+    let image_2 = Image::from_gray_image(&gray_image_2, false);
+
     let display = Image::from_gray_image(&gray_image, false); 
     let display_2 = Image::from_gray_image(&gray_image_2, false); 
 
@@ -45,11 +48,11 @@ fn main() {
     
     let sample_lookup_table = BriefDescriptor::generate_sample_lookup_tables(runtime_params.brief_n, runtime_params.brief_s);
 
-    let pyramid = build_orb_pyramid(&gray_image, &runtime_params);
+    let pyramid = build_orb_pyramid(image, &runtime_params);
     let feature_pyramid = generate_feature_pyramid(&pyramid, &runtime_params);
     let feature_descriptor_pyramid_a = generate_feature_descriptor_pyramid(&pyramid,&feature_pyramid,&sample_lookup_table,&runtime_params);
 
-    let pyramid_2 = build_orb_pyramid(&gray_image_2, &runtime_params);
+    let pyramid_2 = build_orb_pyramid(image_2, &runtime_params);
     let feature_pyramid_2 = generate_feature_pyramid(&pyramid_2, &runtime_params);
     let feature_descriptor_pyramid_b = generate_feature_descriptor_pyramid(&pyramid_2,&feature_pyramid_2,&sample_lookup_table,&runtime_params);
 

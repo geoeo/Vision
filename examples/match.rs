@@ -34,9 +34,12 @@ fn main() {
     let gray_image_2 = image_rs::open(&Path::new(&image_path_2)).unwrap().to_luma();
     let display = Image::from_gray_image(&gray_image, false);
     let display_2 = Image::from_gray_image(&gray_image_2, false);
+
+    let image = Image::from_gray_image(&gray_image, false);
+    let image_2 = Image::from_gray_image(&gray_image_2, false);
     
-    let pyramid = build_sift_pyramid(&gray_image, &runtime_params);
-    let pyramid_2 = build_sift_pyramid(&gray_image_2, &runtime_params);
+    let pyramid = build_sift_pyramid(image, &runtime_params);
+    let pyramid_2 = build_sift_pyramid(image_2, &runtime_params);
 
     let all_features = feature_vectors_from_pyramid(&pyramid, &runtime_params);
     let all_features_2 = feature_vectors_from_pyramid(&pyramid_2, &runtime_params);

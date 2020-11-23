@@ -1,7 +1,3 @@
-extern crate image as image_rs;
-
-use image_rs::GrayImage;
-
 use crate::Float;
 use crate::image::Image;
 use crate::filter::{gauss_kernel::GaussKernel1D,gaussian_2_d_convolution};
@@ -21,11 +17,10 @@ pub mod sift_octave;
 type SiftPyramid = Pyramid<SiftOctave>;
 pub const RELATIVE_MATCH_THRESHOLD: Float = 0.6;
 
-pub fn build_sift_pyramid(base_gray_image: &GrayImage, runtime_params: &SiftRuntimeParams) -> SiftPyramid {
+pub fn build_sift_pyramid(base_gray_image: Image, runtime_params: &SiftRuntimeParams) -> SiftPyramid {
     let mut octaves: Vec<SiftOctave> = Vec::with_capacity(runtime_params.octave_count);
 
-    let base_image = Image::from_gray_image(base_gray_image, false);
-    let upsample = Image::upsample_double(&base_image, false);
+    let upsample = Image::upsample_double(&base_gray_image, false);
 
     //TODO: check this
     let blur_width = SiftOctave::generate_blur_radius(runtime_params.blur_half_factor, runtime_params.sigma_in);
