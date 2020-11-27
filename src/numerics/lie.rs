@@ -1,16 +1,20 @@
 extern crate nalgebra as na;
 
-use na::{Vector3,Matrix3,Matrix3x6};
+use na::{Vector3,Vector6,Matrix3,Matrix3x6, Matrix4,U3,U1,U4,MatrixSlice3};
 use crate::Float;
 
-pub fn skew_symmetric(vec: &Vector3<Float>) -> Matrix3<Float> {
-    Matrix3::<Float>::new(0.0, -vec[2], vec[1],
-                          vec[2], 0.0, -vec[0],
-                          -vec[1], vec[0], 0.0)
+pub fn skew_symmetric(w: &Vector3<Float>) -> Matrix3<Float> {
+    Matrix3::<Float>::new(0.0, -w[2], w[1],
+                          w[2], 0.0, -w[0],
+                          -w[1], w[0], 0.0)
 }
 
-pub fn jacobian_with_respect_to_rotation(position: &Vector3<Float>) -> Matrix3x6<Float> {
-    let skew_symmetrix = skew_symmetric(&position);
+pub fn vector_from_skew_symmetric(w_x: &Matrix3<Float>) -> Vector3<Float> {
+    Vector3::<Float>::new(w_x[(2,1)],w_x[(0,2)],w_x[(1,0)])
+}
+
+pub fn jacobian_with_respect_to_rotation(rotated_position: &Vector3<Float>) -> Matrix3x6<Float> {
+    let skew_symmetrix = skew_symmetric(&rotated_position);
     let mut jacobian = Matrix3x6::<Float>::new(1.0, 0.0, 0.0, 0.0, 0.0, 0.0,
                                                0.0, 1.0, 0.0, 0.0, 0.0, 0.0,
                                                0.0, 0.0, 1.0, 0.0, 0.0, 0.0);
@@ -22,3 +26,66 @@ pub fn jacobian_with_respect_to_rotation(position: &Vector3<Float>) -> Matrix3x6
     jacobian
 
 } 
+
+//TODO: taylor expansion, check if this is correct
+#[allow(non_snake_case)]
+pub fn exp(u: &Vector3<Float>, w: &Vector3<Float>) -> Matrix4<Float> {
+    let omega = (w.transpose()*w)[0].sqrt();
+    let omega_sqr = omega.powi(2);
+    let A = omega.sin()/omega;
+    let B = (1.0 - omega.cos())/omega_sqr;
+    let C = (1.0 - A)/omega_sqr;
+
+    let w_x = skew_symmetric(w);
+    let w_x_sqr = w_x*w_x;
+    let I = Matrix3::<Float>::identity();
+    let R = I + A*w_x + B*w_x_sqr;
+    let V = I + B*w_x + C*w_x_sqr;
+    let t = V*u;
+
+    let mut res = Matrix4::<Float>::zeros();
+    let mut R_slice = res.fixed_slice_mut::<U3,U3>(0,0);
+    R_slice.copy_from(&R);
+
+    let mut t_slice = res.fixed_slice_mut::<U3,U1>(0,3);
+    t_slice.copy_from(&t);
+    res[(3,3)] = 1.0;
+
+    res
+
+}
+
+// TODO: taylor expansion, check this
+#[allow(non_snake_case)]
+pub fn ln_R(R: &MatrixSlice3<Float,U1,U4>) -> Matrix3<Float> {
+    let omega = ((R.trace() -1.0)/2.0).acos();
+    let factor = omega/(2.0*omega.sin());
+    factor*(R-R.transpose())
+}
+
+#[allow(non_snake_case)]
+pub fn ln(se3: &Matrix4<Float>) -> Vector6<Float> {
+    let w_x = ln_R(&se3.fixed_slice::<U3,U3>(0,0));
+    let w_x_sqr = w_x*w_x;
+    let w = vector_from_skew_symmetric(&w_x);
+    let omega = (w.transpose()*w)[0].sqrt();
+    let omega_sqr = omega.powi(2);
+    let A = omega.sin()/omega;
+    let B = (1.0 - omega.cos())/omega_sqr;
+    let factor = (1.0-A/(2.0*B))/omega_sqr;
+
+    let I = Matrix3::<Float>::identity();
+    let V_inv = I-0.5*w_x +factor*w_x_sqr;
+    let u = V_inv*se3.fixed_slice::<U3,U1>(0,3);
+
+    let mut res = Vector6::<Float>::zeros();
+    let mut u_slice = res.fixed_slice_mut::<U3,U1>(0,0);
+    u_slice.copy_from(&u);
+    let mut w_slice = res.fixed_slice_mut::<U3,U1>(3,0);
+    w_slice.copy_from(&w);
+
+    res
+}
+
+
+
