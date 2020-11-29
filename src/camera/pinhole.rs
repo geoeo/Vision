@@ -48,7 +48,7 @@ impl Camera for Pinhole {
         self.inverse_projection
     }
 
-    fn get_jacobian_with_respect_to_position(&self, position: &Vector3<Float>) -> Matrix2x3<Float> {
+    fn get_jacobian_with_respect_to_position<T>(&self, position: &Vector<Float,U3,T>) -> Matrix2x3<Float> where T: Storage<Float,U3,U1> {
         let x = position[0];
         let y = position[1];
         let z = position[2];
@@ -65,7 +65,7 @@ impl Camera for Pinhole {
         Point::<Float>::new(projected_coordiantes[0],projected_coordiantes[1])
     }
 
-    fn unproject(&self, point: &Point<Float>, depth: Float) -> Vector3<Float> {
+    fn backproject(&self, point: &Point<Float>, depth: Float) -> Vector3<Float> {
         let homogeneous = Vector3::<Float>::new(point.x, point.y,1.0);
         depth*self.inverse_projection*homogeneous
     }

@@ -13,8 +13,8 @@ pub fn vector_from_skew_symmetric(w_x: &Matrix3<Float>) -> Vector3<Float> {
     Vector3::<Float>::new(w_x[(2,1)],w_x[(0,2)],w_x[(1,0)])
 }
 
-pub fn jacobian_with_respect_to_rotation(rotated_position: &Vector3<Float>) -> Matrix3x6<Float> {
-    let skew_symmetrix = skew_symmetric(&rotated_position);
+pub fn jacobian_with_respect_to_transformation<T>(transformed_position: &Vector<Float,U3,T>) -> Matrix3x6<Float> where T: Storage<Float,U3,U1> {
+    let skew_symmetrix = skew_symmetric(&transformed_position);
     let mut jacobian = Matrix3x6::<Float>::new(1.0, 0.0, 0.0, 0.0, 0.0, 0.0,
                                                0.0, 1.0, 0.0, 0.0, 0.0, 0.0,
                                                0.0, 0.0, 1.0, 0.0, 0.0, 0.0);

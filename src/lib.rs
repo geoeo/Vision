@@ -27,9 +27,9 @@ pub enum GradientDirection {
 }
 
 
-//TODO: maybe move this to image
-pub fn reconstruct_original_coordiantes(x: usize, y: usize, octave_level: u32) -> (usize,usize) {
-    let factor = 2usize.pow(octave_level);
+//TODO: maybe move this to pyramid
+pub fn reconstruct_original_coordiantes(x: usize, y: usize, octave_index: u32) -> (usize,usize) {
+    let factor = 2usize.pow(octave_index);
     (x*factor,y*factor)
 }
 
