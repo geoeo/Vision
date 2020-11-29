@@ -114,10 +114,8 @@ pub fn gradient_convolution_at_sample(source_images: &Vec<Image>,input_params: &
                 GradientDirection::HORIZINTAL => {
                     let mut acc = 0.0;
                     let sample_idx = x_input_signed +kenel_idx;
-
                     let sample_value = buffer.index((y_input ,sample_idx as usize));
                     acc += kenel_value*sample_value;
-                    
                     acc/ filter_kernel.normalizing_constant()
                 },
                 GradientDirection::VERTICAL => {

@@ -1,6 +1,6 @@
 extern crate nalgebra as na;
 
-use na::{Matrix2x3,Matrix3, Vector3};
+use na::{U1,U3, Matrix2x3,Matrix3, Vector, Vector3, base::storage::Storage};
 use crate::Float;
 use crate::features::geometry::point::Point;
 use crate::camera::Camera;
@@ -58,7 +58,7 @@ impl Camera for Pinhole {
 
     }
 
-    fn project(&self, position: &Vector3<Float>) -> Point<Float> {
+    fn project<T>(&self, position: &Vector<Float,U3,T>) -> Point<Float> where T: Storage<Float,U3,U1> {
         let z = position[2];
         let homogeneous = position/z;
         let projected_coordiantes = self.projection*homogeneous;

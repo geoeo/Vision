@@ -9,6 +9,7 @@ edition = '2018'
 [dependencies]
 image = "*"
 nalgebra = "*"
+#nalgebra-lapack = {version ="*", default-features=false}
 rand = "*"
 rand_distr = "*"
 optimization_engine = "*"

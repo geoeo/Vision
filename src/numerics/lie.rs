@@ -1,9 +1,9 @@
 extern crate nalgebra as na;
 
-use na::{Vector3,Vector6,Matrix3,Matrix3x6, Matrix4,U3,U1,U4,MatrixSlice3};
+use na::{Vector,Vector3,Vector6,Matrix3,Matrix3x6,Matrix, Matrix4,U3,U1,base::storage::Storage};
 use crate::Float;
 
-pub fn skew_symmetric(w: &Vector3<Float>) -> Matrix3<Float> {
+pub fn skew_symmetric<T>(w: &Vector<Float,U3,T>) -> Matrix3<Float> where T: Storage<Float,U3,U1>  {
     Matrix3::<Float>::new(0.0, -w[2], w[1],
                           w[2], 0.0, -w[0],
                           -w[1], w[0], 0.0)
@@ -29,7 +29,7 @@ pub fn jacobian_with_respect_to_rotation(rotated_position: &Vector3<Float>) -> M
 
 //TODO: taylor expansion, check if this is correct
 #[allow(non_snake_case)]
-pub fn exp(u: &Vector3<Float>, w: &Vector3<Float>) -> Matrix4<Float> {
+pub fn exp<T>(u: &Vector<Float,U3,T>, w: &Vector<Float,U3,T>) -> Matrix4<Float> where T: Storage<Float,U3,U1> {
     let omega = (w.transpose()*w)[0].sqrt();
     let omega_sqr = omega.powi(2);
     let A = omega.sin()/omega;
@@ -57,7 +57,7 @@ pub fn exp(u: &Vector3<Float>, w: &Vector3<Float>) -> Matrix4<Float> {
 
 // TODO: taylor expansion, check this
 #[allow(non_snake_case)]
-pub fn ln_R(R: &MatrixSlice3<Float,U1,U4>) -> Matrix3<Float> {
+pub fn ln_R<T>(R: &Matrix<Float,U3,U3,T>) -> Matrix3<Float> where T: Storage<Float,U3,U3> {
     let omega = ((R.trace() -1.0)/2.0).acos();
     let factor = omega/(2.0*omega.sin());
     factor*(R-R.transpose())
