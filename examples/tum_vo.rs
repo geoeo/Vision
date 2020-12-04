@@ -5,6 +5,7 @@ use std::path::Path;
 use vision::io::tum_loader;
 use vision::pyramid::rgbd::{build_rgbd_pyramid,rgbd_runtime_parameters::RGBDRuntimeParameters};
 use vision::vo::{dense_direct,dense_direct::{dense_direct_runtime_parameters::DenseDirectRuntimeParameters}};
+use vision::camera::pinhole::Pinhole;
 
 fn main() {
     let image_name = "img0001_0";
@@ -34,7 +35,9 @@ fn main() {
     let gray_2_display = tum_loader::load_image_as_gray(&Path::new(&color_2_image_path));
 
     let pinhole_camera = tum_loader::load_intrinsics_as_pinhole(&Path::new(&intrinsics_path));
+    //let pinhole_camera = Pinhole::new(1.0, 1.0, 0.0, 0.0);
 
+    println!("{:?}",pinhole_camera.projection);
 
     let pyramid_parameters = RGBDRuntimeParameters{
         sigma: 0.8,
@@ -48,10 +51,10 @@ fn main() {
 
     let vo_parameters = DenseDirectRuntimeParameters{
         max_iterations: 200,
-        eps: 0.1
+        eps: 1e-8
     };
 
-    //dense_direct::run(&image_pyramid_1, &image_pyramid_2,&pinhole_camera , &vo_parameters);
+    dense_direct::run(&image_pyramid_1, &image_pyramid_2,&pinhole_camera , &vo_parameters);
 
 
 

@@ -11,6 +11,10 @@ pub struct RGBDPyramid<T> {
 }
 pub fn build_rgbd_pyramid(base_gray_image: Image, depth_image: Image, runtime_parameters: &RGBDRuntimeParameters) -> RGBDPyramid<RGBDOctave> {
 
+    let gray_image_shape = base_gray_image.buffer.shape();
+    let depth_image_shape = depth_image.buffer.shape();
+    assert_eq!(gray_image_shape,depth_image_shape);
+
     let mut octaves: Vec<RGBDOctave> = Vec::with_capacity(runtime_parameters.octave_count);
 
     let mut octave_image = base_gray_image;

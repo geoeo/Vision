@@ -20,7 +20,7 @@ pub fn jacobian_with_respect_to_transformation<T>(transformed_position: &Vector<
                                                0.0, 0.0, 1.0, 0.0, 0.0, 0.0);
     
     for i in 3..6 {
-        jacobian.set_column(i, &skew_symmetrix.column(i));
+        jacobian.set_column(i, &skew_symmetrix.column(i-3));
     }
 
     jacobian

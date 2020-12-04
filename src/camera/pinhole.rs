@@ -16,7 +16,7 @@ impl Pinhole {
                                               0.0, fy, cy,
                                               0.0, 0.0, 1.0);
        let inverse_projection = Matrix3::<Float>::new(1.0/fx,0.0, -cx/fx,
-                                                      1.0/fy,0.0, -cy/fy,
+                                                      0.0,1.0/fy, -cy/fy,
                                                       0.0, 0.0, 1.0);
 
       Pinhole{projection,inverse_projection}
@@ -67,7 +67,7 @@ impl Camera for Pinhole {
 
     fn backproject(&self, point: &Point<Float>, depth: Float) -> Vector3<Float> {
         let homogeneous = Vector3::<Float>::new(point.x, point.y,1.0);
-        depth*self.inverse_projection*homogeneous
+        depth*(self.inverse_projection*homogeneous)
     }
 }
 

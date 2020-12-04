@@ -8,7 +8,7 @@ edition = '2018'
 
 [dependencies]
 image = "*"
-nalgebra = "*"
+nalgebra = {version="*"}
 #nalgebra-lapack = {version ="*", default-features=false}
 rand = "*"
 rand_distr = "*"
