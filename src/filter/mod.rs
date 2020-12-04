@@ -20,7 +20,7 @@ pub fn filter_1d_convolution(source_images: &Vec<&Image>, sigma_level: usize, fi
     let buffer = &source.buffer;
     let width = buffer.ncols();
     let height = buffer.nrows();
-    let mut target =  Image::empty(height, width, source.original_encoding);
+    let mut target =  Image::empty(width, height, source.original_encoding);
 
     for y in 0..height {
         for x in 0..width {
@@ -62,6 +62,7 @@ pub fn filter_1d_convolution(source_images: &Vec<&Image>, sigma_level: usize, fi
                     let kenel_value = kernel[(0,(kenel_idx + kernel_half_width_signed) as usize)];
                     acc +=sample_value*kenel_value;
                 }
+
                 target.buffer[(y,x)] = acc/filter_kernel.normalizing_constant(); 
         }
     }

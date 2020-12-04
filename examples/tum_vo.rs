@@ -3,6 +3,8 @@ extern crate vision;
 
 use std::path::Path;
 use vision::io::tum_loader;
+use vision::pyramid::rgbd::{build_rgbd_pyramid,rgbd_runtime_parameters::RGBDRuntimeParameters};
+use vision::vo::{dense_direct,dense_direct::{dense_direct_runtime_parameters::DenseDirectRuntimeParameters}};
 
 fn main() {
     let image_name = "img0001_0";
@@ -34,10 +36,25 @@ fn main() {
     let pinhole_camera = tum_loader::load_intrinsics_as_pinhole(&Path::new(&intrinsics_path));
 
 
+    let pyramid_parameters = RGBDRuntimeParameters{
+        sigma: 0.8,
+        blur_radius: 3.0,
+        octave_count: 1,
+        min_image_dimensions: (50,50)
+    };
 
-    let converted_file_out_path = format!("{}{}_out.png",image_out_folder,image_name);
-    let new_image = gray_2_display.to_image();
-    new_image.save(converted_file_out_path).unwrap();
+    let image_pyramid_1 = build_rgbd_pyramid(gray_display,depth_display,&pyramid_parameters);
+    let image_pyramid_2 = build_rgbd_pyramid(gray_2_display,depth_2_display,&pyramid_parameters);
+
+    let vo_parameters = DenseDirectRuntimeParameters{
+        max_iterations: 200,
+        eps: 0.1
+    };
+
+    //dense_direct::run(&image_pyramid_1, &image_pyramid_2,&pinhole_camera , &vo_parameters);
+
+
+
 
 
 }

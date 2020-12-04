@@ -32,12 +32,12 @@ pub fn load_depth_image(file_path: &Path) -> Image {
     Image::from_matrix(&matrix, ImageEncoding::F64, false)
 }
 
-pub fn load_image(file_path: &Path) -> Image {
+pub fn load_image_as_gray(file_path: &Path) -> Image {
     let gray_image = image_rs::open(&Path::new(&file_path)).expect("load_image failed").to_luma();
     Image::from_gray_image(&gray_image, false)
 }
 
-pub fn load_intrinsics(file_path: &Path) -> Pinhole {
+pub fn load_intrinsics_as_pinhole(file_path: &Path) -> Pinhole {
     let file = File::open(file_path).expect("load_intrinsics failed");
     let mut reader = BufReader::new(file);
     let mut contents = String::new();
