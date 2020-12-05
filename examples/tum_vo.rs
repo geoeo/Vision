@@ -40,7 +40,8 @@ fn main() {
     println!("{:?}",pinhole_camera.projection);
 
     let pyramid_parameters = RGBDRuntimeParameters{
-        sigma: 0.8,
+        sigma: 0.1,
+        use_blur: false,
         blur_radius: 3.0,
         octave_count: 1,
         min_image_dimensions: (50,50)

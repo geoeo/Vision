@@ -19,11 +19,11 @@ impl GaussKernel1D {
     }
 
     pub fn new(mean: Float, std: Float, step: usize , radius: Float ) -> GaussKernel1D {
-        let half_width_usize = radius.trunc() as usize;
-        assert_eq!(half_width_usize%step,0);
+        let radius_usize = radius.trunc() as usize;
+        assert_eq!(radius_usize%step,0);
 
-        let cols = 2*half_width_usize+1;
-        let start = -(half_width_usize as isize);
+        let cols = 2*radius_usize+1;
+        let start = -(radius_usize as isize);
         let end_exclusive = (radius as isize) + 1;
         let range = (start..end_exclusive).step_by(step);
         GaussKernel1D {

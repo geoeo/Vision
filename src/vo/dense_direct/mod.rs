@@ -143,6 +143,7 @@ fn compute_residuals(target_image_buffer: &DMatrix<Float>,source_image_buffer: &
         if source_point.y < rows && target_point_y < rows && 
            source_point.x < cols && target_point_x < cols {
 
+            //TODO: check this -> seems to be NAN!
             let source_sample = source_image_buffer[(source_point.y,source_point.x)];
             let target_sample = target_image_buffer[(target_point_y,target_point_x)];
             residual_target[i] = target_sample - source_sample;
@@ -163,6 +164,7 @@ fn compute_full_jacobian(image_gradients: &Matrix<Float,Dynamic,U2, VecStorage<F
     for i in 0..number_of_elements {
         let jacobian_i = image_gradients.row(i)*const_jacobians.fixed_slice::<U2,U6>(i*2,0);
         target.fixed_slice_mut::<U1,U6>(i,0).copy_from(&jacobian_i);
+
     }
 
 }
