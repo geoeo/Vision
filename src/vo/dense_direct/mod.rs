@@ -15,7 +15,6 @@ pub mod dense_direct_runtime_parameters;
 pub fn run(source_rgdb_pyramid: &RGBDPyramid<RGBDOctave>,target_rgdb_pyramid: &RGBDPyramid<RGBDOctave>, pinhole_camera: &Pinhole, runtime_parameters: &DenseDirectRuntimeParameters) -> Matrix4<Float> {
 
     let depth_image = &source_rgdb_pyramid.depth_image;
-    //assert!(depth_image.buffer.max() < 0.0);
     let mut lie_result = Vector6::<Float>::zeros();
     let mut mat_result = Matrix4::<Float>::identity();
     
@@ -122,12 +121,9 @@ fn backproject_points(source_image_buffer: &DMatrix<Float>,depth_image_buffer: &
 
     for i in 0..number_of_points {
         let image_point =  linear_to_image_index(i, cols);
-        let r = match runtime_parameters.invert_y {
-            true => rows - 1 -  image_point.y,
-            false => image_point.y
-        };
+        let r = image_point.y ;
         let c = image_point.x;
-        let reconstruced_coordiantes = reconstruct_original_coordiantes(c, r, octave_index as u32);
+        let reconstruced_coordiantes = reconstruct_original_coordiantes(c, rows - 1 - r, octave_index as u32);
         let depth_sample = depth_image_buffer[(reconstruced_coordiantes.1,reconstruced_coordiantes.0)];
         let backprojected_point = pinhole_camera.backproject(&Point::<Float>::new(c as Float,r as Float), depth_sample);
         backproject_points.set_column(image_to_linear_index(r,cols,c),&Vector4::<Float>::new(backprojected_point[0],backprojected_point[1],backprojected_point[2],1.0));
@@ -157,7 +153,7 @@ fn compute_residuals(target_image_buffer: &DMatrix<Float>,source_image_buffer: &
     for i in 0..number_of_points {
         let source_point = linear_to_image_index(i,image_width);
         let target_point = pinhole_camera.project(&transformed_points.fixed_slice::<U3,U1>(0,i));
-        let target_point_y = target_point.y.trunc() as usize;
+        let mut target_point_y = target_point.y.trunc() as usize;
         let target_point_x = target_point.x.trunc() as usize;
 
         image_gradient_points.push(Point::<usize>::new(target_point_x,target_point_y));
@@ -165,16 +161,12 @@ fn compute_residuals(target_image_buffer: &DMatrix<Float>,source_image_buffer: &
            source_point.x < cols && target_point_x < cols {
 
             let source_sample = source_image_buffer[(source_point.y,source_point.x)];
-            let r = match runtime_parameters.invert_y {
-                true => rows - 1 -  target_point_y,
-                false => target_point_y
-            };
-            let target_sample = target_image_buffer[(r,target_point_x)];
+            let target_sample = target_image_buffer[(target_point_y,target_point_x)];
             residual_target[i] = target_sample - source_sample;
-            //residual_target[i] =  source_sample - target_sample;
            }
         else {
-            residual_target[i] = 0.0;
+            //residual_target[i] = 0.0;
+            residual_target[i] = float::MAX;
         }
 
     }

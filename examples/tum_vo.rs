@@ -27,14 +27,16 @@ fn main() {
 
     let intrinsics_path = format!("{}{}.{}",intrinsics_folder,intrinsics_name, intrinsics_format);
 
-    let negate_values = true;
-    let invert_focal_lengths = true;
-    let invert_y = true;
-    let invert_grad = true;
-    let depth_display = tum_loader::load_depth_image(&Path::new(&depth_image_path),negate_values, invert_y);
+    let negate_values = false;
+    let invert_focal_lengths = false;
+    let invert_y = false;
+    let invert_grad = false;
+
+    //TODO: euclidean depth
+    let depth_display = tum_loader::load_depth_image(&Path::new(&depth_image_path),negate_values, false);
     let gray_display = tum_loader::load_image_as_gray(&Path::new(&color_image_path), false, invert_y);
 
-    let depth_2_display = tum_loader::load_depth_image(&Path::new(&depth_2_image_path), negate_values, invert_y);
+    let depth_2_display = tum_loader::load_depth_image(&Path::new(&depth_2_image_path), negate_values, false);
     let gray_2_display = tum_loader::load_image_as_gray(&Path::new(&color_2_image_path), false, invert_y);
 
     let pinhole_camera = tum_loader::load_intrinsics_as_pinhole(&Path::new(&intrinsics_path), invert_focal_lengths);
@@ -44,9 +46,9 @@ fn main() {
 
     let pyramid_parameters = RGBDRuntimeParameters{
         sigma: 0.1,
-        use_blur: false,
-        blur_radius: 3.0,
-        octave_count: 1,
+        use_blur: true,
+        blur_radius: 2.0,
+        octave_count: 2,
         min_image_dimensions: (50,50)
     };
 
@@ -54,9 +56,9 @@ fn main() {
     let image_pyramid_2 = build_rgbd_pyramid(gray_2_display,depth_2_display,&pyramid_parameters);
 
     let vo_parameters = DenseDirectRuntimeParameters{
-        max_iterations: 200,
+        max_iterations: 300,
         eps: 1e-10,
-        initial_step_size: 0.001,
+        initial_step_size: 0.00001,
         invert_y,
         invert_grad
     };

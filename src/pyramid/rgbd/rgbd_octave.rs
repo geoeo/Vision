@@ -28,7 +28,7 @@ impl RGBDOctave {
         let kernels: Vec<GaussKernel1D> = sigmas.iter().map(|&sigma| GaussKernel1D::new(mean, sigma,step,blur_radius)).collect();
         let gray_images: Vec<Image> = match runtime_parameters.use_blur {
             false => vec!(Image::normalize(base_gray_image)),
-            _ => kernels.iter().map(|kernel| gaussian_2_d_convolution(base_gray_image, kernel, false)).collect()
+            _ => kernels.iter().map(|kernel| gaussian_2_d_convolution(base_gray_image, kernel, true)).collect()
         };
         let images_borrows: Vec<&Image> = gray_images.iter().map(|x| x).collect();
         let x_gradients: Vec<Image> = (0..sigmas.len()).map(|x| filter_1d_convolution(&images_borrows,x, GradientDirection::HORIZINTAL, &prewitt_kernel, false)).collect();
