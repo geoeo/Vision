@@ -45,13 +45,13 @@ fn estimate(source_octave: &RGBDOctave, source_depth_image_original: &Image, tar
     let mut full_jacobian_weighted = Matrix::<Float,Dynamic,U6, VecStorage<Float,Dynamic,U6>>::zeros(number_of_pixels); 
     let mut image_gradients =  Matrix::<Float,Dynamic,U2, VecStorage<Float,Dynamic,U2>>::zeros(number_of_pixels);
     let mut image_gradient_points = Vec::<Point<usize>>::with_capacity(number_of_pixels);
-    let backprojected_points = backproject_points(&source_image.buffer, &source_depth_image_original.buffer, &pinhole_camera, octave_index);
+    let backprojected_points = backproject_points(&source_image.buffer, &source_depth_image_original.buffer, &pinhole_camera, octave_index, runtime_parameters);
     let constant_jacobians = precompute_jacobians(&backprojected_points,&pinhole_camera);
 
     let mut est_transform = initial_guess_mat.clone();
     let mut est_lie = initial_guess_lie.clone();
 
-    compute_residuals(&target_image.buffer, &source_image.buffer, &backprojected_points,&est_transform, &pinhole_camera, &mut residuals,&mut image_gradient_points);
+    compute_residuals(&target_image.buffer, &source_image.buffer, &backprojected_points,&est_transform, &pinhole_camera,&runtime_parameters, &mut residuals,&mut image_gradient_points);
     weight_residuals(&mut residuals, &weights_vec);
 
     let mut iteration_count = 0;
@@ -63,7 +63,7 @@ fn estimate(source_octave: &RGBDOctave, source_depth_image_original: &Image, tar
         //TODO: put this in a log
         println!("it: {}, avg_cost: {}",iteration_count,avg_cost);
 
-        compute_image_gradients(&x_gradient_image.buffer,&y_gradient_image.buffer,&image_gradient_points,&mut image_gradients);
+        compute_image_gradients(&x_gradient_image.buffer,&y_gradient_image.buffer,&image_gradient_points,&runtime_parameters,&mut image_gradients);
         compute_full_jacobian(&image_gradients,&constant_jacobians,&mut full_jacobian);
         weight_jacobian(&mut full_jacobian_weighted,&full_jacobian, &weights_vec);
         weight_residuals(&mut residuals, &weights_vec); // We want the residual weighted by the square of the GN step
@@ -73,7 +73,7 @@ fn estimate(source_octave: &RGBDOctave, source_depth_image_original: &Image, tar
 
 
         image_gradient_points.clear();
-        compute_residuals(&target_image.buffer, &source_image.buffer, &backprojected_points,&est_transform, &pinhole_camera, &mut residuals,&mut image_gradient_points);
+        compute_residuals(&target_image.buffer, &source_image.buffer, &backprojected_points,&est_transform, &pinhole_camera,& runtime_parameters,  &mut residuals,&mut image_gradient_points);
         weight_residuals(&mut residuals, &weights_vec);
 
         avg_cost = cost(&residuals)/number_of_pixels_float;
@@ -95,13 +95,17 @@ fn linear_to_image_index(idx: usize, cols: usize) -> Point<usize> {
 }
 
 
-fn compute_image_gradients(x_gradients: &DMatrix<Float>, y_gradients: &DMatrix<Float>,image_gradient_points: &Vec<Point<usize>> , target: &mut Matrix<Float,Dynamic,U2, VecStorage<Float,Dynamic,U2>>) -> () {
+fn compute_image_gradients(x_gradients: &DMatrix<Float>, y_gradients: &DMatrix<Float>,image_gradient_points: &Vec<Point<usize>>, runtime_parameters: &DenseDirectRuntimeParameters, target: &mut Matrix<Float,Dynamic,U2, VecStorage<Float,Dynamic,U2>>) -> () {
     for (idx,point) in image_gradient_points.iter().enumerate() {
         let r = point.y;
         let c = point.x;
+        let factor = match runtime_parameters.invert_grad {
+            true => -1.0,
+            false => 1.0
+        };
         if r < x_gradients.nrows() && c < x_gradients.ncols() {
-            let x_grad = x_gradients[(r,c)];
-            let y_grad = y_gradients[(r,c)];
+            let x_grad = factor*x_gradients[(r,c)];
+            let y_grad = factor*y_gradients[(r,c)];
             target.set_row(idx,&RowVector2::new(x_grad,y_grad));
         } else {
             target.set_row(idx,&RowVector2::new(0.0,0.0));
@@ -111,14 +115,17 @@ fn compute_image_gradients(x_gradients: &DMatrix<Float>, y_gradients: &DMatrix<F
 
 }
 
-fn backproject_points(source_image_buffer: &DMatrix<Float>,depth_image_buffer: &DMatrix<Float>,  pinhole_camera: &Pinhole, octave_index: usize) -> Matrix<Float,U4,Dynamic,VecStorage<Float,U4,Dynamic>> {
+fn backproject_points(source_image_buffer: &DMatrix<Float>,depth_image_buffer: &DMatrix<Float>,  pinhole_camera: &Pinhole, octave_index: usize,  runtime_parameters: &DenseDirectRuntimeParameters) -> Matrix<Float,U4,Dynamic,VecStorage<Float,U4,Dynamic>> {
     let (rows,cols) = source_image_buffer.shape();
     let mut backproject_points =  Matrix::<Float,U4,Dynamic,VecStorage<Float,U4,Dynamic>>::zeros(rows*cols);
     let number_of_points = rows*cols;
 
     for i in 0..number_of_points {
         let image_point =  linear_to_image_index(i, cols);
-        let r = image_point.y;
+        let r = match runtime_parameters.invert_y {
+            true => rows - 1 -  image_point.y,
+            false => image_point.y
+        };
         let c = image_point.x;
         let reconstruced_coordiantes = reconstruct_original_coordiantes(c, r, octave_index as u32);
         let depth_sample = depth_image_buffer[(reconstruced_coordiantes.1,reconstruced_coordiantes.0)];
@@ -141,7 +148,7 @@ fn precompute_jacobians(backprojected_points: &Matrix<Float,U4,Dynamic,VecStorag
     precomputed_jacobians
 }
 
-fn compute_residuals(target_image_buffer: &DMatrix<Float>,source_image_buffer: &DMatrix<Float>,backprojected_points: &Matrix<Float,U4,Dynamic,VecStorage<Float,U4,Dynamic>>, est_transform: &Matrix4<Float>, pinhole_camera: &Pinhole, residual_target: &mut DVector<Float>,image_gradient_points: &mut Vec<Point<usize>>) -> () {
+fn compute_residuals(target_image_buffer: &DMatrix<Float>,source_image_buffer: &DMatrix<Float>,backprojected_points: &Matrix<Float,U4,Dynamic,VecStorage<Float,U4,Dynamic>>, est_transform: &Matrix4<Float>, pinhole_camera: &Pinhole, runtime_parameters: &DenseDirectRuntimeParameters, residual_target: &mut DVector<Float>,image_gradient_points: &mut Vec<Point<usize>>) -> () {
     let transformed_points = est_transform*backprojected_points;
     let number_of_points = transformed_points.ncols();
     let image_width = target_image_buffer.ncols();
@@ -158,8 +165,13 @@ fn compute_residuals(target_image_buffer: &DMatrix<Float>,source_image_buffer: &
            source_point.x < cols && target_point_x < cols {
 
             let source_sample = source_image_buffer[(source_point.y,source_point.x)];
-            let target_sample = target_image_buffer[(target_point_y,target_point_x)];
+            let r = match runtime_parameters.invert_y {
+                true => rows - 1 -  target_point_y,
+                false => target_point_y
+            };
+            let target_sample = target_image_buffer[(r,target_point_x)];
             residual_target[i] = target_sample - source_sample;
+            //residual_target[i] =  source_sample - target_sample;
            }
         else {
             residual_target[i] = 0.0;

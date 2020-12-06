@@ -11,7 +11,7 @@ use crate::io::parse_to_float;
 use crate::image::{Image,image_encoding::ImageEncoding};
 use crate::camera::pinhole::Pinhole;
 
-pub fn load_depth_image(file_path: &Path, negate_values: bool) -> Image {
+pub fn load_depth_image(file_path: &Path, negate_values: bool, invert_y: bool) -> Image {
     let file = File::open(file_path).expect("load_depth_map failed");
     let mut reader = BufReader::new(file);
     let mut contents = String::new();
@@ -26,7 +26,11 @@ pub fn load_depth_image(file_path: &Path, negate_values: bool) -> Image {
 
     for (idx,row) in values.chunks(cols).enumerate() {
         let vector = RowDVector::<Float>::from_row_slice(row);
-        matrix.set_row(idx,&vector);
+        let row_idx = match invert_y {
+            true => rows-1-idx,
+            false => idx
+        };
+        matrix.set_row(row_idx,&vector);
     }
 
     Image::from_matrix(&matrix, ImageEncoding::F64, false)

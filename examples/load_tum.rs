@@ -25,10 +25,10 @@ fn main() {
     let intrinsics_path = format!("{}{}.{}",intrinsics_folder,intrinsics_name, intrinsics_format);
 
 
-    let depth_display = tum_loader::load_depth_image(&Path::new(&depth_image_path), false);
+    let depth_display = tum_loader::load_depth_image(&Path::new(&depth_image_path), false, false);
     let gray_display = tum_loader::load_image_as_gray(&Path::new(&color_image_path), false, true);
 
-    let depth_2_display = tum_loader::load_depth_image(&Path::new(&depth_2_image_path), false);
+    let depth_2_display = tum_loader::load_depth_image(&Path::new(&depth_2_image_path), false,false);
     let gray_2_display = tum_loader::load_image_as_gray(&Path::new(&color_2_image_path), false, true);
 
     let pinhole_camera = tum_loader::load_intrinsics_as_pinhole(&Path::new(&intrinsics_path), false);
@@ -36,7 +36,7 @@ fn main() {
 
 
     let converted_file_out_path = format!("{}{}_out.png",image_out_folder,image_name);
-    let new_image = gray_2_display.to_image();
+    let new_image = depth_2_display.to_image();
     new_image.save(converted_file_out_path).unwrap();
 
 
