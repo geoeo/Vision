@@ -11,12 +11,18 @@ pub struct Pinhole {
 }
 
 impl Pinhole {
-    pub fn new(fx: Float, fy: Float, cx: Float, cy: Float) -> Pinhole {
-       let projection = Matrix3::<Float>::new(fx, 0.0, cx,
-                                              0.0, fy, cy,
+    pub fn new(fx: Float, fy: Float, cx: Float, cy: Float, invert_focal_length: bool) -> Pinhole {
+       let factor = match invert_focal_length {
+           true => -1.0,
+           false => 1.0
+       };
+       let fx_scaled = factor*fx;
+       let fy_scaled = factor*fy;
+       let projection = Matrix3::<Float>::new(fx_scaled, 0.0, cx,
+                                              0.0, fy_scaled, cy,
                                               0.0, 0.0, 1.0);
-       let inverse_projection = Matrix3::<Float>::new(1.0/fx,0.0, -cx/fx,
-                                                      0.0,1.0/fy, -cy/fy,
+       let inverse_projection = Matrix3::<Float>::new(1.0/fx_scaled,0.0, -cx/fx_scaled,
+                                                      0.0,1.0/fy_scaled, -cy/fy_scaled,
                                                       0.0, 0.0, 1.0);
 
       Pinhole{projection,inverse_projection}

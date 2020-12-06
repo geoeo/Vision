@@ -15,6 +15,7 @@ pub mod dense_direct_runtime_parameters;
 pub fn run(source_rgdb_pyramid: &RGBDPyramid<RGBDOctave>,target_rgdb_pyramid: &RGBDPyramid<RGBDOctave>, pinhole_camera: &Pinhole, runtime_parameters: &DenseDirectRuntimeParameters) -> Matrix4<Float> {
 
     let depth_image = &source_rgdb_pyramid.depth_image;
+    //assert!(depth_image.buffer.max() < 0.0);
     let mut lie_result = Vector6::<Float>::zeros();
     let mut mat_result = Matrix4::<Float>::identity();
     
@@ -23,6 +24,8 @@ pub fn run(source_rgdb_pyramid: &RGBDPyramid<RGBDOctave>,target_rgdb_pyramid: &R
         lie_result = result.0;
         mat_result = result.1;
     }
+
+    println!("est_transform: {}",mat_result);
 
     mat_result
 }
@@ -57,6 +60,7 @@ fn estimate(source_octave: &RGBDOctave, source_depth_image_original: &Image, tar
     let step_size = runtime_parameters.initial_step_size;
 
     while avg_cost >= runtime_parameters.eps && iteration_count < runtime_parameters.max_iterations {
+        //TODO: put this in a log
         println!("it: {}, avg_cost: {}",iteration_count,avg_cost);
 
         compute_image_gradients(&x_gradient_image.buffer,&y_gradient_image.buffer,&image_gradient_points,&mut image_gradients);
@@ -64,11 +68,9 @@ fn estimate(source_octave: &RGBDOctave, source_depth_image_original: &Image, tar
         weight_jacobian(&mut full_jacobian_weighted,&full_jacobian, &weights_vec);
         weight_residuals(&mut residuals, &weights_vec); // We want the residual weighted by the square of the GN step
         let delta = gauss_newton_step(&residuals, &full_jacobian, &full_jacobian_weighted);
-
         est_lie += delta*step_size;
         est_transform = lie::exp(&est_lie.fixed_slice::<U3, U1>(0, 0),&est_lie.fixed_slice::<U3, U1>(3, 0)); // check this
-        println!("delta: {}",delta);
-        println!("est_transform: {}",est_transform);
+
 
         image_gradient_points.clear();
         compute_residuals(&target_image.buffer, &source_image.buffer, &backprojected_points,&est_transform, &pinhole_camera, &mut residuals,&mut image_gradient_points);
@@ -76,7 +78,7 @@ fn estimate(source_octave: &RGBDOctave, source_depth_image_original: &Image, tar
 
         avg_cost = cost(&residuals)/number_of_pixels_float;
         iteration_count += 1;
-        println!("----------");
+
     }
 
     (est_lie,est_transform)

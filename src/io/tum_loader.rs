@@ -37,7 +37,7 @@ pub fn load_image_as_gray(file_path: &Path, normalize: bool, invert_y: bool) -> 
     Image::from_gray_image(&gray_image, normalize, invert_y)
 }
 
-pub fn load_intrinsics_as_pinhole(file_path: &Path) -> Pinhole {
+pub fn load_intrinsics_as_pinhole(file_path: &Path, invert_focal_lengths: bool) -> Pinhole {
     let file = File::open(file_path).expect("load_intrinsics failed");
     let mut reader = BufReader::new(file);
     let mut contents = String::new();
@@ -50,6 +50,6 @@ pub fn load_intrinsics_as_pinhole(file_path: &Path) -> Pinhole {
     let cx = values[3].1;
     let cy = values[8].1;
 
-    Pinhole::new(fx, fy, cx, cy)
+    Pinhole::new(fx, fy, cx, cy, invert_focal_lengths)
 
 }

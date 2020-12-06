@@ -13,8 +13,8 @@ pub mod kernel;
 pub fn filter_1d_convolution(source_images: &Vec<&Image>, sigma_level: usize, filter_direction: GradientDirection, filter_kernel: &dyn Kernel, normalize: bool) -> Image {
     let kernel = &filter_kernel.kernel();
     let step = filter_kernel.step();
-    let kernel_half_width = filter_kernel.half_width();
-    let kernel_half_width_signed = kernel_half_width as isize;
+    let kernel_radius = filter_kernel.radius();
+    let kernel_radius_signed = kernel_radius as isize;
     
     let source = &source_images[sigma_level];
     let buffer = &source.buffer;
@@ -25,7 +25,7 @@ pub fn filter_1d_convolution(source_images: &Vec<&Image>, sigma_level: usize, fi
     for y in 0..height {
         for x in 0..width {
                 let mut acc = 0.0;
-                for kenel_idx in (-kernel_half_width_signed..kernel_half_width_signed+1).step_by(step){
+                for kenel_idx in (-kernel_radius_signed..kernel_radius_signed+1).step_by(step){
 
                     let sample_value = match filter_direction {
                         GradientDirection::HORIZINTAL => {
@@ -59,7 +59,7 @@ pub fn filter_1d_convolution(source_images: &Vec<&Image>, sigma_level: usize, fi
                     };
 
                 
-                    let kenel_value = kernel[(0,(kenel_idx + kernel_half_width_signed) as usize)];
+                    let kenel_value = kernel[(0,(kenel_idx + kernel_radius_signed) as usize)];
                     acc +=sample_value*kenel_value;
                 }
 
@@ -85,8 +85,8 @@ pub fn gradient_convolution_at_sample(source_images: &Vec<Image>,input_params: &
 
     let kernel = filter_kernel.kernel();
     let step = filter_kernel.step();
-    let kernel_half_width = filter_kernel.half_width();
-    let kernel_half_width_signed = kernel_half_width as isize;
+    let kernel_radius = filter_kernel.radius();
+    let kernel_radius_signed = kernel_radius as isize;
 
     let buffer = &source_images[sigma_level_input].buffer;
     let width = buffer.ncols();
@@ -95,21 +95,21 @@ pub fn gradient_convolution_at_sample(source_images: &Vec<Image>,input_params: &
 
     match gradient_direction {
         GradientDirection::HORIZINTAL => {
-            assert!(x_input_signed -kernel_half_width_signed >= 0 && x_input + kernel_half_width <= width);
+            assert!(x_input_signed -kernel_radius_signed >= 0 && x_input + kernel_radius <= width);
          },
         GradientDirection::VERTICAL => { 
-            assert!(y_input_signed -kernel_half_width_signed >= 0 && y_input + kernel_half_width <= height);
+            assert!(y_input_signed -kernel_radius_signed >= 0 && y_input + kernel_radius <= height);
          },
         GradientDirection::SIGMA => { 
-            assert!(sigma_level_input_signed -kernel_half_width_signed >= 0 && sigma_level_input + kernel_half_width < source_images.len());
+            assert!(sigma_level_input_signed -kernel_radius_signed >= 0 && sigma_level_input + kernel_radius < source_images.len());
         }
 
     }
 
     //TODO: kernel repeats
     let mut convolved_value = 0.0;
-    for kenel_idx in (-kernel_half_width_signed..kernel_half_width_signed+1).step_by(step){
-        let kenel_value = kernel[(kenel_idx + kernel_half_width_signed) as usize];
+    for kenel_idx in (-kernel_radius_signed..kernel_radius_signed+1).step_by(step){
+        let kenel_value = kernel[(kenel_idx + kernel_radius_signed) as usize];
 
             let weighted_sample = match gradient_direction {
                 GradientDirection::HORIZINTAL => {

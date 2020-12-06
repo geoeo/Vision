@@ -17,7 +17,7 @@ pub fn subpixel_refinement(source_octave: &SiftOctave, feature:  &SiftFeature) -
     let second_order_kernel = LaplaceKernel::new();
 
 
-    let kernel_half_width = first_order_kernel.half_width();
+    let kernel_half_width = first_order_kernel.radius();
 
     let s = source_octave.s();
     let sigma_range = (1.0/(s as Float)).exp2();

@@ -31,7 +31,7 @@ fn main() {
     let depth_2_display = tum_loader::load_depth_image(&Path::new(&depth_2_image_path), false);
     let gray_2_display = tum_loader::load_image_as_gray(&Path::new(&color_2_image_path), false, true);
 
-    let pinhole_camera = tum_loader::load_intrinsics_as_pinhole(&Path::new(&intrinsics_path));
+    let pinhole_camera = tum_loader::load_intrinsics_as_pinhole(&Path::new(&intrinsics_path), false);
 
 
 

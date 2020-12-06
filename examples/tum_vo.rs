@@ -27,7 +27,8 @@ fn main() {
 
     let intrinsics_path = format!("{}{}.{}",intrinsics_folder,intrinsics_name, intrinsics_format);
 
-    let negate_values = true;
+    let negate_values = false;
+    let invert_focal_lengths = false;
     let invert_y = true;
     let depth_display = tum_loader::load_depth_image(&Path::new(&depth_image_path),negate_values);
     let gray_display = tum_loader::load_image_as_gray(&Path::new(&color_image_path), false, invert_y);
@@ -35,7 +36,7 @@ fn main() {
     let depth_2_display = tum_loader::load_depth_image(&Path::new(&depth_2_image_path), negate_values);
     let gray_2_display = tum_loader::load_image_as_gray(&Path::new(&color_2_image_path), false, invert_y);
 
-    let pinhole_camera = tum_loader::load_intrinsics_as_pinhole(&Path::new(&intrinsics_path));
+    let pinhole_camera = tum_loader::load_intrinsics_as_pinhole(&Path::new(&intrinsics_path), invert_focal_lengths);
     //let pinhole_camera = Pinhole::new(1.0, 1.0, 0.0, 0.0);
 
     println!("{:?}",pinhole_camera.projection);
@@ -53,7 +54,7 @@ fn main() {
 
     let vo_parameters = DenseDirectRuntimeParameters{
         max_iterations: 200,
-        eps: 1e-8,
+        eps: 1e-10,
         initial_step_size: 0.001
     };
 

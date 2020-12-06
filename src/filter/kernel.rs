@@ -9,7 +9,7 @@ pub trait Kernel{
     // Size at which the filter is traversed
     fn step(&self) -> usize;
     // Half of the width of the kernel save the center element
-    fn half_width(&self) -> usize {
+    fn radius(&self) -> usize {
         (self.kernel().ncols()-1)/2
     }
     // Half the number of extra repeats of the kernel -> TODO: Make this dervied from Matrix height

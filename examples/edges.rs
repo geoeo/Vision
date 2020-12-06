@@ -8,7 +8,7 @@ use vision::filter::{prewitt_kernel::PrewittKernel,filter_1d_convolution};
 use vision::GradientDirection;
 
 fn main() {
-    let image_name = "lenna";
+    let image_name = "squares";
     let image_format = "png";
     let image_path = format!("images/{}.{}",image_name, image_format);
     let blur_hor_file_out_path = format!("output/{}_hor_edge.{}",image_name,image_format);
