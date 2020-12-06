@@ -20,8 +20,8 @@ fn main() {
 
 
     let gray_image = image_rs::open(&Path::new(&image_path)).unwrap().to_luma();
-    let image = Image::from_gray_image(&gray_image, false);
-    let mut display = Image::from_gray_image(&gray_image, false);
+    let image = Image::from_gray_image(&gray_image, false, false);
+    let mut display = Image::from_gray_image(&gray_image, false, false);
 
     // let runtime_params = RuntimeParams {
     //     blur_half_width: 9,

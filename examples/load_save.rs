@@ -16,7 +16,7 @@ fn main() {
     image.save(gray_image_path).unwrap();
 
 
-    let frame = Image::from_gray_image(&image, true);
+    let frame = Image::from_gray_image(&image, true, false);
     let new_image = frame.to_image();
 
     new_image.save(converted_file_out_path).unwrap();

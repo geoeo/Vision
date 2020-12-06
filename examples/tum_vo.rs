@@ -9,7 +9,7 @@ use vision::camera::pinhole::Pinhole;
 
 fn main() {
     let image_name = "img0001_0";
-    let image_2_name = "img0002_0";
+    let image_2_name = "img0005_0";
     let intrinsics_name = "intrinsics";
     let depth_image_format = "depth";
     let color_image_format = "png";
@@ -27,12 +27,13 @@ fn main() {
 
     let intrinsics_path = format!("{}{}.{}",intrinsics_folder,intrinsics_name, intrinsics_format);
 
+    let negate_values = true;
+    let invert_y = true;
+    let depth_display = tum_loader::load_depth_image(&Path::new(&depth_image_path),negate_values);
+    let gray_display = tum_loader::load_image_as_gray(&Path::new(&color_image_path), false, invert_y);
 
-    let depth_display = tum_loader::load_depth_image(&Path::new(&depth_image_path));
-    let gray_display = tum_loader::load_image_as_gray(&Path::new(&color_image_path));
-
-    let depth_2_display = tum_loader::load_depth_image(&Path::new(&depth_2_image_path));
-    let gray_2_display = tum_loader::load_image_as_gray(&Path::new(&color_2_image_path));
+    let depth_2_display = tum_loader::load_depth_image(&Path::new(&depth_2_image_path), negate_values);
+    let gray_2_display = tum_loader::load_image_as_gray(&Path::new(&color_2_image_path), false, invert_y);
 
     let pinhole_camera = tum_loader::load_intrinsics_as_pinhole(&Path::new(&intrinsics_path));
     //let pinhole_camera = Pinhole::new(1.0, 1.0, 0.0, 0.0);
@@ -52,7 +53,8 @@ fn main() {
 
     let vo_parameters = DenseDirectRuntimeParameters{
         max_iterations: 200,
-        eps: 1e-8
+        eps: 1e-8,
+        initial_step_size: 0.001
     };
 
     dense_direct::run(&image_pyramid_1, &image_pyramid_2,&pinhole_camera , &vo_parameters);

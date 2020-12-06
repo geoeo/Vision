@@ -37,8 +37,8 @@ impl Image {
         Image{ buffer: buffer, original_encoding}
     }
 
-    pub fn from_gray_image(image: &GrayImage, normalize: bool) -> Image {
-        let mut buffer = Image::image_to_matrix(image);
+    pub fn from_gray_image(image: &GrayImage, normalize: bool, invert_y : bool) -> Image {
+        let mut buffer = Image::image_to_matrix(image, invert_y);
 
         if normalize {
             let max = buffer.amax();
@@ -137,7 +137,7 @@ impl Image {
 
     }
 
-    fn image_to_matrix(gray_image: &GrayImage) -> DMatrix<Float> {
+    fn image_to_matrix(gray_image: &GrayImage, invert_y: bool) -> DMatrix<Float> {
         debug_assert!(gray_image.sample_layout().is_normal(NormalForm::RowMajorPacked));
     
         let (width, height) = gray_image.dimensions();
@@ -145,7 +145,10 @@ impl Image {
         let mut vec_column_major: Vec<Float> = Vec::with_capacity(size);
         for x in 0..width {
             for y in 0..height {
-                let pixel = gray_image.get_pixel(x, y);
+                let pixel = match invert_y {
+                    true =>  gray_image.get_pixel(x, height - 1 - y),
+                    false => gray_image.get_pixel(x, y)
+                };
                 let pixel_value = pixel.channels()[0];
                 vec_column_major.push(pixel_value as Float);
             }

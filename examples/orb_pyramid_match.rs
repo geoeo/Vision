@@ -23,11 +23,11 @@ fn main() {
     let gray_image = image_rs::open(&Path::new(&image_path)).unwrap().to_luma();
     let gray_image_2 = image_rs::open(&Path::new(&image_path_2)).unwrap().to_luma();
 
-    let image = Image::from_gray_image(&gray_image, false);
-    let image_2 = Image::from_gray_image(&gray_image_2, false);
+    let image = Image::from_gray_image(&gray_image, false, false);
+    let image_2 = Image::from_gray_image(&gray_image_2, false, false);
 
-    let display = Image::from_gray_image(&gray_image, false); 
-    let display_2 = Image::from_gray_image(&gray_image_2, false); 
+    let display = Image::from_gray_image(&gray_image, false, false); 
+    let display_2 = Image::from_gray_image(&gray_image_2, false, false); 
 
     let runtime_params = OrbRuntimeParameters {
         min_image_dimensions: (50,50),

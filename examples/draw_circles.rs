@@ -18,7 +18,7 @@ fn main() {
     image.save(gray_image_path).unwrap();
 
 
-    let mut frame = Image::from_gray_image(&image, false);
+    let mut frame = Image::from_gray_image(&image, false, false);
     draw_circle(&mut frame, 100, 50, 3.0, 64.0);
     let circle = circle_bresenham(35, 35, 5);
     draw_points(&mut frame, &circle.shape.get_points(), 64.0);

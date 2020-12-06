@@ -17,7 +17,7 @@ fn main() {
     println!("Processing Image: {}", image_name);
 
     let image = image_rs::open(&Path::new(&image_path)).unwrap().to_luma();
-    let mut frame = Image::from_gray_image(&image, false);
+    let mut frame = Image::from_gray_image(&image, false, false);
 
 
     let valid_features = FastFeature::compute_valid_features(&frame,3,0.2,12,(10,10),(0,0));

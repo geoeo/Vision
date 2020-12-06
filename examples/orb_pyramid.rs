@@ -16,9 +16,9 @@ fn main() {
     let converted_file_out_path = format!("{}{}_features_with_descriptors.{}",image_out_folder,image_name,image_format);
 
     let gray_image = image_rs::open(&Path::new(&image_path)).unwrap().to_luma();
-    let image = Image::from_gray_image(&gray_image, false);
+    let image = Image::from_gray_image(&gray_image, false, false);
 
-    let mut display = Image::from_gray_image(&gray_image, false); 
+    let mut display = Image::from_gray_image(&gray_image, false, false); 
     let display_max = display.buffer.max();
 
     let runtime_params = OrbRuntimeParameters {

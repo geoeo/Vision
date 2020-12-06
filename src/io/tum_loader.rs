@@ -11,7 +11,7 @@ use crate::io::parse_to_float;
 use crate::image::{Image,image_encoding::ImageEncoding};
 use crate::camera::pinhole::Pinhole;
 
-pub fn load_depth_image(file_path: &Path) -> Image {
+pub fn load_depth_image(file_path: &Path, negate_values: bool) -> Image {
     let file = File::open(file_path).expect("load_depth_map failed");
     let mut reader = BufReader::new(file);
     let mut contents = String::new();
@@ -21,7 +21,7 @@ pub fn load_depth_image(file_path: &Path) -> Image {
     let cols = 640;
     let mut matrix = DMatrix::<Float>::zeros(rows,cols);
 
-    let values = contents.trim().split(" ").map(|x| parse_to_float(x)).collect::<Vec<Float>>();
+    let values = contents.trim().split(" ").map(|x| parse_to_float(x,negate_values)).collect::<Vec<Float>>();
     assert_eq!(values.len(),rows*cols);
 
     for (idx,row) in values.chunks(cols).enumerate() {
@@ -32,9 +32,9 @@ pub fn load_depth_image(file_path: &Path) -> Image {
     Image::from_matrix(&matrix, ImageEncoding::F64, false)
 }
 
-pub fn load_image_as_gray(file_path: &Path) -> Image {
+pub fn load_image_as_gray(file_path: &Path, normalize: bool, invert_y: bool) -> Image {
     let gray_image = image_rs::open(&Path::new(&file_path)).expect("load_image failed").to_luma();
-    Image::from_gray_image(&gray_image, false)
+    Image::from_gray_image(&gray_image, normalize, invert_y)
 }
 
 pub fn load_intrinsics_as_pinhole(file_path: &Path) -> Pinhole {

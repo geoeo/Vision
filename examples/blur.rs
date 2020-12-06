@@ -17,7 +17,7 @@ fn main() {
 
 
     let image = image_rs::open(&Path::new(&image_path)).unwrap().to_luma();
-    let frame = Image::from_gray_image(&image, false);
+    let frame = Image::from_gray_image(&image, false, false);
     let vec = vec![&frame];
 
     let filter_kernel = GaussKernel1D::new(0.0, 5.5,1,3.0);

@@ -24,8 +24,8 @@ fn main() {
 
 
     let gray_image = image_rs::open(&Path::new(&image_path)).unwrap().to_luma();
-    let image = Image::from_gray_image(&gray_image, false);
-    let display_normal = Image::from_gray_image(&gray_image, false); 
+    let image = Image::from_gray_image(&gray_image, false, false);
+    let display_normal = Image::from_gray_image(&gray_image, false, false); 
     let mut display = Image::upsample_double(&display_normal, false); 
     
     //TODO: move inital blur params here
