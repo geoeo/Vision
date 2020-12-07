@@ -41,7 +41,7 @@ fn estimate(source_octave: &RGBDOctave, source_depth_image_original: &Image, tar
     let y_gradient_image = &target_octave.y_gradients[0];
     let (rows,cols) = source_image.buffer.shape();
     let number_of_pixels = rows*cols;
-    let number_of_pixels_float = number_of_pixels as Float;
+    //let number_of_pixels_float = number_of_pixels as Float;
 
     let weights_vec = DVector::<Float>::from_element(number_of_pixels,1.0);
     let identity_6 = Matrix6::<Float>::identity();
@@ -58,16 +58,20 @@ fn estimate(source_octave: &RGBDOctave, source_depth_image_original: &Image, tar
     let mut est_transform = initial_guess_mat.clone();
     let mut est_lie = initial_guess_lie.clone();
 
-
+    //TODO: use mask to filter out of bounds pixels
     compute_residuals(&target_image.buffer, &source_image.buffer, &backprojected_points,&est_transform, &pinhole_camera, &mut residuals,&mut image_gradient_points);
     weight_residuals(&mut residuals, &weights_vec);
     let mut cost = compute_cost(&residuals);
-    let mut avg_cost = cost/number_of_pixels_float;
+    let mut avg_cost = cost/image_gradient_points.len() as Float;
 
     let mut max_norm_delta = float::MAX;
-    let mut delta_thresh = runtime_parameters.delta_eps*(est_lie.norm() + runtime_parameters.delta_eps);
+    let mut delta_thresh = float::MIN;
     let mut nu = 2.0;
     let mut mu: Option<Float> = None;
+    let step = match runtime_parameters.lm {
+        true => 1.0,
+        false => runtime_parameters.step_size
+    };
 
     compute_image_gradients(&x_gradient_image.buffer,&y_gradient_image.buffer,&image_gradient_points,&runtime_parameters,&mut image_gradients);
     compute_full_jacobian(&image_gradients,&constant_jacobians,&mut full_jacobian);
@@ -75,13 +79,13 @@ fn estimate(source_octave: &RGBDOctave, source_depth_image_original: &Image, tar
     weight_residuals(&mut residuals, &weights_vec); // We want the residual weighted by the square of the GN step
 
     let mut iteration_count = 0;
-    while (est_lie.norm()  >= delta_thresh || max_norm_delta > runtime_parameters.max_norm_eps)  && iteration_count < runtime_parameters.max_iterations  {
+    while ((!runtime_parameters.lm && (avg_cost > runtime_parameters.eps)) || (runtime_parameters.lm && (est_lie.norm() >= delta_thresh && max_norm_delta > runtime_parameters.max_norm_eps)))  && iteration_count < runtime_parameters.max_iterations  {
         if runtime_parameters.debug{
             println!("it: {}, avg_cost: {}",iteration_count,avg_cost);
         }
 
         let (delta,gain_ratio_denom, mu_val) = gauss_newton_step(&residuals, &full_jacobian, &full_jacobian_weighted, &identity_6, mu, runtime_parameters.tau);
-        let new_est_lie = est_lie+ delta;
+        let new_est_lie = est_lie+ step*delta;
 
         let new_est_transform = lie::exp(&new_est_lie.fixed_slice::<U3, U1>(0, 0),&new_est_lie.fixed_slice::<U3, U1>(3, 0));
         mu = Some(mu_val);
@@ -94,13 +98,15 @@ fn estimate(source_octave: &RGBDOctave, source_depth_image_original: &Image, tar
 
         let new_cost = compute_cost(&new_residuals);
         let gain_ratio = (cost-new_cost)/gain_ratio_denom;
-        if gain_ratio >= 0.0 {
+        if gain_ratio >= 0.0  || !runtime_parameters.lm {
             est_lie = new_est_lie.clone();
             est_transform = new_est_transform.clone();
             cost = new_cost;
-            avg_cost = cost/number_of_pixels_float;
+            avg_cost = cost/new_image_gradient_points.len() as Float;
             max_norm_delta = delta.max().abs();
             delta_thresh = runtime_parameters.delta_eps*(est_lie.norm() + runtime_parameters.delta_eps);
+
+            //println!("{},{}",max_norm_delta,delta_thresh);
 
             image_gradient_points = new_image_gradient_points.clone();
             residuals = new_residuals.clone();
@@ -201,10 +207,10 @@ fn compute_residuals(target_image_buffer: &DMatrix<Float>,source_image_buffer: &
         let target_point_y = target_point.y.trunc() as usize;
         let target_point_x = target_point.x.trunc() as usize;
 
-        image_gradient_points.push(Point::<usize>::new(target_point_x,target_point_y));
+
         if source_point.y < rows && target_point_y < rows && 
            source_point.x < cols && target_point_x < cols {
-
+            image_gradient_points.push(Point::<usize>::new(target_point_x,target_point_y));
             let source_sample = source_image_buffer[(source_point.y,source_point.x)];
             let target_sample = target_image_buffer[(target_point_y,target_point_x)];
             residual_target[i] = target_sample - source_sample;

@@ -5,7 +5,6 @@ use std::path::Path;
 use vision::io::tum_loader;
 use vision::pyramid::rgbd::{build_rgbd_pyramid,rgbd_runtime_parameters::RGBDRuntimeParameters};
 use vision::vo::{dense_direct,dense_direct::{dense_direct_runtime_parameters::DenseDirectRuntimeParameters}};
-use vision::camera::pinhole::Pinhole;
 
 fn main() {
     let image_name = "img0001_0";
@@ -14,9 +13,11 @@ fn main() {
     let depth_image_format = "depth";
     let color_image_format = "png";
     let intrinsics_format = "txt";
-    let depth_image_folder = "C:/Users/Marc/Workspace/Datasets/ETH/urban_pinhole/rpg_urban_pinhole_depthmaps/data/depth/";
-    let color_image_folder = "C:/Users/Marc/Workspace/Datasets/ETH/urban_pinhole/rpg_urban_pinhole_data/data/img/";
-    let intrinsics_folder = "C:/Users/Marc/Workspace/Datasets/ETH/urban_pinhole/rpg_urban_pinhole_info/info/";
+    //let root_path = "C:/Users/Marc/Workspace/Datasets/ETH/urban_pinhole";
+    let root_path = "C:/Users/Marc/Workspace/Datasets/ETH/vfr_pinhole";
+    let depth_image_folder = format!("{}/{}",root_path,"data/depth/");
+    let color_image_folder = format!("{}/{}",root_path,"data/img/");
+    let intrinsics_folder =  format!("{}/{}",root_path,"info/");
     let image_out_folder = "output/";
 
     let color_image_path = format!("{}{}.{}",color_image_folder,image_name, color_image_format);
@@ -27,10 +28,11 @@ fn main() {
 
     let intrinsics_path = format!("{}{}.{}",intrinsics_folder,intrinsics_name, intrinsics_format);
 
-    let negate_values = false;
-    let invert_focal_lengths = false;
+    let negate_values = true;
+    let invert_focal_lengths = true;
     let invert_y = false;
-    let invert_grad = false;
+    let invert_grad = true;
+    let debug = true;
 
     //TODO: euclidean depth
     let depth_display = tum_loader::load_depth_image(&Path::new(&depth_image_path),negate_values, true);
@@ -40,12 +42,11 @@ fn main() {
     let gray_2_display = tum_loader::load_image_as_gray(&Path::new(&color_2_image_path), false, invert_y);
 
     let pinhole_camera = tum_loader::load_intrinsics_as_pinhole(&Path::new(&intrinsics_path), invert_focal_lengths);
-    //let pinhole_camera = Pinhole::new(1.0, 1.0, 0.0, 0.0);
 
     println!("{:?}",pinhole_camera.projection);
 
     let pyramid_parameters = RGBDRuntimeParameters{
-        sigma: 0.8,
+        sigma: 0.1,
         use_blur: false,
         blur_radius: 3.0,
         octave_count: 1,
@@ -56,15 +57,16 @@ fn main() {
     let image_pyramid_2 = build_rgbd_pyramid(gray_2_display,depth_2_display,&pyramid_parameters);
 
     let vo_parameters = DenseDirectRuntimeParameters{
-        max_iterations: 300,
-        eps: 1e-16,
-        max_norm_eps: 1e-8,
-        delta_eps: 1e-8,
-        tau: 1e-3,
-        initial_step_size: 0.00001,
+        max_iterations: 200,
+        eps: 1e-8,
+        step_size: 0.1,
+        max_norm_eps: 1e-32,
+        delta_eps: 1e-32,
+        tau: 1e-6,
         invert_y,
         invert_grad,
-        debug: false
+        debug,
+        lm: true
     };
 
     dense_direct::run(&image_pyramid_1, &image_pyramid_2,&pinhole_camera , &vo_parameters);

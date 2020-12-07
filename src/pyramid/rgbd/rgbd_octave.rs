@@ -34,6 +34,8 @@ impl RGBDOctave {
         let x_gradients: Vec<Image> = (0..sigmas.len()).map(|x| filter_1d_convolution(&images_borrows,x, GradientDirection::HORIZINTAL, &prewitt_kernel, false)).collect();
         let y_gradients: Vec<Image> = (0..sigmas.len()).map(|x| filter_1d_convolution(&images_borrows,x, GradientDirection::VERTICAL, &prewitt_kernel, false)).collect();
 
+
+
         RGBDOctave{gray_images,x_gradients,y_gradients,sigmas}
 
     }
