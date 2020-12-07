@@ -80,7 +80,6 @@ impl Image {
                 let new_y = y/2;
                 let new_x = x/2;
                 if new_y < new_height && new_x < new_width {
-
                     new_buffer[(new_y,new_x)] = image.buffer[(y,x)];
                 }
 

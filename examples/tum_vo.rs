@@ -33,10 +33,10 @@ fn main() {
     let invert_grad = false;
 
     //TODO: euclidean depth
-    let depth_display = tum_loader::load_depth_image(&Path::new(&depth_image_path),negate_values, false);
+    let depth_display = tum_loader::load_depth_image(&Path::new(&depth_image_path),negate_values, true);
     let gray_display = tum_loader::load_image_as_gray(&Path::new(&color_image_path), false, invert_y);
 
-    let depth_2_display = tum_loader::load_depth_image(&Path::new(&depth_2_image_path), negate_values, false);
+    let depth_2_display = tum_loader::load_depth_image(&Path::new(&depth_2_image_path), negate_values, true);
     let gray_2_display = tum_loader::load_image_as_gray(&Path::new(&color_2_image_path), false, invert_y);
 
     let pinhole_camera = tum_loader::load_intrinsics_as_pinhole(&Path::new(&intrinsics_path), invert_focal_lengths);
@@ -45,10 +45,10 @@ fn main() {
     println!("{:?}",pinhole_camera.projection);
 
     let pyramid_parameters = RGBDRuntimeParameters{
-        sigma: 0.1,
-        use_blur: true,
-        blur_radius: 2.0,
-        octave_count: 2,
+        sigma: 0.8,
+        use_blur: false,
+        blur_radius: 3.0,
+        octave_count: 1,
         min_image_dimensions: (50,50)
     };
 
@@ -57,10 +57,14 @@ fn main() {
 
     let vo_parameters = DenseDirectRuntimeParameters{
         max_iterations: 300,
-        eps: 1e-10,
+        eps: 1e-16,
+        max_norm_eps: 1e-8,
+        delta_eps: 1e-8,
+        tau: 1e-3,
         initial_step_size: 0.00001,
         invert_y,
-        invert_grad
+        invert_grad,
+        debug: false
     };
 
     dense_direct::run(&image_pyramid_1, &image_pyramid_2,&pinhole_camera , &vo_parameters);
