@@ -31,8 +31,20 @@ impl RGBDOctave {
             _ => kernels.iter().map(|kernel| gaussian_2_d_convolution(base_gray_image, kernel, true)).collect()
         };
         let images_borrows: Vec<&Image> = gray_images.iter().map(|x| x).collect();
-        let x_gradients: Vec<Image> = (0..sigmas.len()).map(|x| filter_1d_convolution(&images_borrows,x, GradientDirection::HORIZINTAL, &prewitt_kernel, false)).collect();
-        let y_gradients: Vec<Image> = (0..sigmas.len()).map(|x| filter_1d_convolution(&images_borrows,x, GradientDirection::VERTICAL, &prewitt_kernel, false)).collect();
+
+        let mut x_gradients: Vec<Image> = (0..sigmas.len()).map(|x| filter_1d_convolution(&images_borrows,x, GradientDirection::HORIZINTAL, &prewitt_kernel, false)).collect();
+        let mut y_gradients: Vec<Image> = (0..sigmas.len()).map(|x| filter_1d_convolution(&images_borrows,x, GradientDirection::VERTICAL, &prewitt_kernel, false)).collect();
+
+        match runtime_parameters.invert_grad_x {
+            true => x_gradients.iter_mut().for_each(|image| image.buffer *=-1.0),
+            false => ()
+        };
+
+        match runtime_parameters.invert_grad_y {
+            true => y_gradients.iter_mut().for_each(|image| image.buffer *= -1.0),
+            false => ()
+        };
+
 
 
 

@@ -6,5 +6,7 @@ pub struct RGBDRuntimeParameters {
     pub blur_radius: Float,
     pub octave_count: usize,
     pub use_blur: bool,
-    pub min_image_dimensions: (usize,usize)
+    pub min_image_dimensions: (usize,usize),
+    pub invert_grad_x: bool,
+    pub invert_grad_y: bool
 }
