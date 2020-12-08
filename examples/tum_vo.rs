@@ -5,13 +5,13 @@ use std::path::Path;
 use vision::io::tum_loader;
 use vision::pyramid::rgbd::{build_rgbd_pyramid,rgbd_runtime_parameters::RGBDRuntimeParameters};
 use vision::vo::{dense_direct,dense_direct::{dense_direct_runtime_parameters::DenseDirectRuntimeParameters}};
-
+use vision::numerics;
 fn main() {
     //let root_path = "C:/Users/Marc/Workspace/Datasets/ETH/urban_pinhole";
     let root_path = "C:/Users/Marc/Workspace/Datasets/ETH/vfr_pinhole";
     
-    let image_idx = 99;
-    let image_2_idx = 100;
+    let image_idx = 0;
+    let image_2_idx = 1;
     let intrinsics = "intrinsics";
     let ts_names = "images";
     let ground_truths = "groundtruth";
@@ -91,10 +91,9 @@ fn main() {
 
     dense_direct::run(&image_pyramid_1, &image_pyramid_2,&pinhole_camera , &vo_parameters);
 
-    println!("Groundtruth Pos {}: T: {:?}, Q: {:?}",image_idx, ground_truth_1.0,ground_truth_1.1);
-    println!("Groundtruth Pos {}: T: {:?}, Q: {:?}",image_2_idx, ground_truth_2.0,ground_truth_2.1);
+    let se3_1 = numerics::pose::se3(&ground_truth_1.0, &ground_truth_1.1);
+    let se3_2 = numerics::pose::se3(&ground_truth_2.0, &ground_truth_2.1);
+    let se3_diff = numerics::pose::pose_difference(&se3_1, &se3_2);
 
-
-
-
+    println!("Groundtruth Pose Delta from {} to {}: {}",image_idx,image_2_idx, se3_diff);
 }

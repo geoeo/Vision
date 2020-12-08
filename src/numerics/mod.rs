@@ -5,6 +5,7 @@ use crate::image::Image;
 use crate::{Float,float};
 
 pub mod lie;
+pub mod pose;
 
 pub fn round(number: Float, dp: i32) -> Float {
     let n = (10.0 as Float).powi(dp);
