@@ -5,6 +5,7 @@ use crate::Float;
 use crate::features::geometry::point::Point;
 use crate::camera::Camera;
 
+#[derive(Copy,Clone)]
 pub struct Pinhole {
     pub projection: Matrix3<Float>,
     pub inverse_projection: Matrix3<Float>

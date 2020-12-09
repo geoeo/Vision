@@ -8,5 +8,7 @@ pub struct RGBDRuntimeParameters {
     pub use_blur: bool,
     pub min_image_dimensions: (usize,usize),
     pub invert_grad_x: bool,
-    pub invert_grad_y: bool
+    pub blur_grad_x: bool,
+    pub invert_grad_y: bool,
+    pub blur_grad_y: bool
 }

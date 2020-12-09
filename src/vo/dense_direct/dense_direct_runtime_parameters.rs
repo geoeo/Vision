@@ -10,5 +10,6 @@ pub struct DenseDirectRuntimeParameters{
     pub tau: Float,
     pub step_size: Float,
     pub debug: bool,
+    pub show_octave_result: bool,
     pub lm: bool
 }

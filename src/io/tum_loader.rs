@@ -11,6 +11,89 @@ use crate::io::parse_to_float;
 use crate::image::{Image,image_encoding::ImageEncoding};
 use crate::camera::pinhole::Pinhole;
 
+pub struct TUMParameters {
+    pub starting_index: usize,
+    pub step: usize,
+    pub count: usize,
+    pub negate_values: bool,
+    pub invert_focal_lengths: bool,
+    pub invert_y: bool
+}
+
+#[derive(Clone)]
+pub struct TUMData {
+
+    pub source_gray_images: Vec<Image>,
+    pub source_depth_images: Vec<Image>,
+    pub source_gt_poses: Vec<(Vector3<Float>,Quaternion<Float>)>,
+    pub target_gray_images: Vec<Image>,
+    pub target_depth_images: Vec<Image>,
+    pub target_gt_poses: Vec<(Vector3<Float>,Quaternion<Float>)>,
+    pub pinhole_camera: Pinhole
+
+}
+
+
+pub fn load(root_path: &str, parameters: &TUMParameters) -> TUMData {
+    let intrinsics = "intrinsics";
+    let ts_names = "images";
+    let ground_truths = "groundtruth";
+
+    let depth_image_format = "depth";
+    let color_image_format = "png";
+    let text_format = "txt";
+
+
+    let depth_image_folder = format!("{}/{}",root_path,"data/depth/");
+    let color_image_folder = format!("{}/{}",root_path,"data/img/");
+    let info_folder = format!("{}/{}",root_path,"info/");
+    let ts_name_path = format!("{}{}.{}",info_folder,ts_names, text_format);
+    let ground_truths_path = format!("{}{}.{}",info_folder,ground_truths, text_format);
+
+    let ts_names = load_timestamps_and_names(&Path::new(&ts_name_path));
+    let ground_truths = load_ground_truths(&Path::new(&ground_truths_path));
+    let intrinsics_path = format!("{}{}.{}",info_folder,intrinsics, text_format);
+
+
+    let source_indices = (parameters.starting_index..parameters.starting_index+parameters.count).step_by(parameters.step);
+    let target_indices = source_indices.clone().map(|x| x + 1); //TODO: check out of range
+
+    let pinhole_camera = load_intrinsics_as_pinhole(&Path::new(&intrinsics_path), parameters.invert_focal_lengths);
+
+
+
+    TUMData {
+        source_gray_images: source_indices.clone().map(|s| {
+            let source = &ts_names[s].1;
+            let color_source_image_path = format!("{}{}.{}",color_image_folder,source, color_image_format);
+            load_image_as_gray(&Path::new(&color_source_image_path), false, parameters.invert_y)
+        }).collect::<Vec<Image>>(),
+        source_depth_images: source_indices.clone().map(|s| {
+            let source = &ts_names[s].1;
+            let depth_source_image_path = format!("{}{}.{}",depth_image_folder,source, depth_image_format);
+            load_depth_image(&Path::new(&depth_source_image_path),parameters.negate_values, true)
+        }).collect::<Vec<Image>>(),
+        target_gray_images: target_indices.clone().map(|t| {
+            let target = &ts_names[t].1;
+            let color_target_image_path = format!("{}{}.{}",color_image_folder,target, color_image_format);
+            load_image_as_gray(&Path::new(&color_target_image_path), false, parameters.invert_y)
+        }).collect::<Vec<Image>>(),
+        target_depth_images:  target_indices.clone().map(|t| {
+            let target = &ts_names[t].1;
+            let depth_target_image_path = format!("{}{}.{}",depth_image_folder,target, depth_image_format);
+            load_depth_image(&Path::new(&depth_target_image_path), parameters.negate_values, true)
+        }).collect::<Vec<Image>>(),
+        source_gt_poses: source_indices.clone().map(|s| {
+            ground_truths[s]
+        }).collect::<Vec<(Vector3<Float>,Quaternion<Float>)>>(),
+        target_gt_poses: target_indices.clone().map(|t| {
+            ground_truths[t]
+        }).collect::<Vec<(Vector3<Float>,Quaternion<Float>)>>(),
+        pinhole_camera
+
+    }
+}
+
 pub fn load_timestamps_and_names(file_path: &Path)-> Vec<(Float,String)> {
     let file = File::open(file_path).expect("load_timestamps_and_names failed");
     let reader = BufReader::new(file);
