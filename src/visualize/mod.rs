@@ -6,6 +6,8 @@ use crate::image::{Image,image_encoding::ImageEncoding};
 use crate::matching::sift_descriptor::{orientation_histogram::OrientationHistogram};
 use crate::{Float,float,reconstruct_original_coordiantes};
 
+pub mod plot;
+
 pub fn display_histogram(histogram: &OrientationHistogram, width_scaling:usize, height: usize) -> Image {
 
     let bin_len = histogram.bins.len();

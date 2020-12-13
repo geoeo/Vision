@@ -43,7 +43,8 @@ fn estimate(source_octave: &RGBDOctave, source_depth_image_original: &Image, tar
     let y_gradient_image = &target_octave.y_gradients[0];
     let (rows,cols) = source_image.buffer.shape();
     let number_of_pixels = rows*cols;
-    //let number_of_pixels_float = number_of_pixels as Float;
+    let number_of_pixels_float = number_of_pixels as Float;
+    let mut percentage_of_valid_pixels = 100.0;
 
     let weights_vec = DVector::<Float>::from_element(number_of_pixels,1.0);
     let identity_6 = Matrix6::<Float>::identity();
@@ -88,7 +89,7 @@ fn estimate(source_octave: &RGBDOctave, source_depth_image_original: &Image, tar
     let mut iteration_count = 0;
     while ((!runtime_parameters.lm && (avg_cost > runtime_parameters.eps)) || (runtime_parameters.lm && (delta_norm >= delta_thresh && max_norm_delta > runtime_parameters.max_norm_eps)))  && iteration_count < runtime_parameters.max_iterations  {
         if runtime_parameters.debug{
-            println!("it: {}, avg_cost: {}",iteration_count,avg_cost);
+            println!("it: {}, avg_cost: {}, valid pixels: {}%",iteration_count,avg_cost,percentage_of_valid_pixels);
         }
 
         let (delta,g,gain_ratio_denom, mu_val) = gauss_newton_step(&residuals, &full_jacobian, &full_jacobian_weighted, &identity_6, mu, runtime_parameters.tau);
@@ -102,14 +103,14 @@ fn estimate(source_octave: &RGBDOctave, source_depth_image_original: &Image, tar
         compute_residuals(&target_image.buffer, &source_image.buffer, &backprojected_points,&new_est_transform, &pinhole_camera,  &mut new_residuals,&mut new_image_gradient_points);
         weight_residuals(&mut new_residuals, &weights_vec);
 
-
+        percentage_of_valid_pixels = (new_image_gradient_points.len() as Float/number_of_pixels_float) *100.0;
         let new_cost = compute_cost(&new_residuals);
         let cost_diff = cost-new_cost;
         let gain_ratio = cost_diff/gain_ratio_denom;
         if runtime_parameters.debug {
             //println!("{},{}",cost,new_cost);
         }
-        if gain_ratio > 0.0  || !runtime_parameters.lm {
+        if gain_ratio >= 0.0  || !runtime_parameters.lm {
             if runtime_parameters.debug{
                 //println!("gain");
             }
@@ -117,6 +118,7 @@ fn estimate(source_octave: &RGBDOctave, source_depth_image_original: &Image, tar
             est_transform = new_est_transform.clone();
             cost = new_cost;
             avg_cost = cost/new_image_gradient_points.len() as Float;
+
             max_norm_delta = g.max();
             delta_norm = delta.norm();
             delta_thresh = runtime_parameters.delta_eps*(est_lie.norm() + runtime_parameters.delta_eps);

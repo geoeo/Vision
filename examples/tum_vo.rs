@@ -2,7 +2,6 @@ extern crate image as image_rs;
 extern crate vision;
 extern crate nalgebra as na;
 
-use std::path::Path;
 use na::Matrix4;
 use vision::io::tum_loader;
 use vision::pyramid::rgbd::{RGBDPyramid,rgbd_octave::RGBDOctave, build_rgbd_pyramid,rgbd_runtime_parameters::RGBDRuntimeParameters};
@@ -19,7 +18,7 @@ fn main() {
 
 
     let tum_parameters = tum_loader::TUMParameters {
-        starting_index: 99,
+        starting_index: 195,
         step :1,
         count :1,
         negate_values :true,
@@ -28,7 +27,7 @@ fn main() {
     };
 
     let pyramid_parameters = RGBDRuntimeParameters{
-    sigma: 0.1,
+    sigma: 0.01,
     use_blur: true,
     blur_radius: 1.0,
     octave_count: 1,
@@ -57,20 +56,24 @@ fn main() {
         max_iterations: 1000,
         eps: 1e-8,
         step_size: 0.01,
-        max_norm_eps: 1e-12,
-        delta_eps: 1e-12,
-        tau: 1e-5,
+        max_norm_eps: 5e-12,
+        delta_eps: 5e-12,
+        tau: 1e-6,
         lm: false,
         debug: true,
         show_octave_result: true
     };
 
-    let se3_est = source_pyramids.iter().zip(target_pyramids.iter()).map(|(s,t)|  dense_direct::run(s, t,&cam , &vo_parameters)).collect::<Vec<Matrix4<Float>>>();
-    let se3_gt_targetory = tum_data.source_gt_poses.iter().zip(tum_data.target_gt_poses.iter()).map(|(s,t)| {
+    let mut se3_est = vec!(Matrix4::<Float>::identity());
+    let mut se3_gt_targetory = vec!(Matrix4::<Float>::identity());
+
+    se3_est.extend(source_pyramids.iter().zip(target_pyramids.iter()).map(|(s,t)|  dense_direct::run(s, t,&cam , &vo_parameters)).collect::<Vec<Matrix4<Float>>>());
+    se3_gt_targetory.extend(tum_data.source_gt_poses.iter().zip(tum_data.target_gt_poses.iter()).map(|(s,t)| {
         let se3_s = numerics::pose::se3(&s.0, &s.1);
         let se3_t = numerics::pose::se3(&t.0, &t.1);
         numerics::pose::pose_difference(&se3_s, &se3_t)
-    }).collect::<Vec<Matrix4<Float>>>();
+    }).collect::<Vec<Matrix4<Float>>>());
+
 
     for i in 0..se3_est.len() {
         println!("est_transform: {}",se3_est[i]);

@@ -43,7 +43,6 @@ pub fn load(root_path: &str, parameters: &TUMParameters) -> TUMData {
     let color_image_format = "png";
     let text_format = "txt";
 
-
     let depth_image_folder = format!("{}/{}",root_path,"data/depth/");
     let color_image_folder = format!("{}/{}",root_path,"data/img/");
     let info_folder = format!("{}/{}",root_path,"info/");
@@ -56,11 +55,11 @@ pub fn load(root_path: &str, parameters: &TUMParameters) -> TUMData {
 
 
     let source_indices = (parameters.starting_index..parameters.starting_index+parameters.count).step_by(parameters.step);
-    let target_indices = source_indices.clone().map(|x| x + 1); //TODO: check out of range
+    let target_indices = source_indices.clone().map(|x| x + parameters.step); //TODO: check out of range
+
+    assert_eq!(ground_truths.len(),ts_names.len());
 
     let pinhole_camera = load_intrinsics_as_pinhole(&Path::new(&intrinsics_path), parameters.invert_focal_lengths);
-
-
 
     TUMData {
         source_gray_images: source_indices.clone().map(|s| {

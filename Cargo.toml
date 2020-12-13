@@ -13,3 +13,4 @@ nalgebra = {version="*"}
 rand = "*"
 rand_distr = "*"
 optimization_engine = "*"
+plotters = { version = "*", default_features = true}
