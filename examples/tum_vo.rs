@@ -2,12 +2,13 @@ extern crate image as image_rs;
 extern crate vision;
 extern crate nalgebra as na;
 
-use na::Matrix4;
+use na::{Vector4,Matrix4};
 use vision::io::tum_loader;
 use vision::pyramid::rgbd::{RGBDPyramid,rgbd_octave::RGBDOctave, build_rgbd_pyramid,rgbd_runtime_parameters::RGBDRuntimeParameters};
 use vision::vo::{dense_direct,dense_direct::{dense_direct_runtime_parameters::DenseDirectRuntimeParameters}};
 use vision::numerics;
 use vision::Float;
+use vision::visualize::plot;
 
 
 fn main() {
@@ -18,9 +19,9 @@ fn main() {
 
 
     let tum_parameters = tum_loader::TUMParameters {
-        starting_index: 195,
+        starting_index: 0,
         step :1,
-        count :1,
+        count :5,
         negate_values :true,
         invert_focal_lengths :true,
         invert_y :true
@@ -53,9 +54,9 @@ fn main() {
 
 
     let vo_parameters = DenseDirectRuntimeParameters{
-        max_iterations: 1000,
+        max_iterations: 1,
         eps: 1e-8,
-        step_size: 0.01,
+        step_size: 0.1,
         max_norm_eps: 5e-12,
         delta_eps: 5e-12,
         tau: 1e-6,
@@ -79,6 +80,17 @@ fn main() {
         println!("est_transform: {}",se3_est[i]);
         println!("Groundtruth Pose Delta {}",se3_gt_targetory[i]);
     }
+
+    let est_points = numerics::pose::apply_pose_deltas_to_point(&Vector4::<Float>::new(0.0,0.0,0.0,1.0), &se3_est);
+    let est_gt_points = numerics::pose::apply_pose_deltas_to_point(&Vector4::<Float>::new(0.0,0.0,0.0,1.0), &se3_gt_targetory);
+
+    for i in 0..est_points.len() {
+        println!("Point trajectory: {}",est_points[i]);
+        println!("Gt Trajectory {}",est_gt_points[i]);
+    }
+
+    plot::draw_line_graph(&est_points.iter().map(|point| point[0]).collect::<Vec<Float>>(), out_folder, "est_x.png");
+    plot::draw_line_graph(&est_gt_points.iter().map(|point| point[0]).collect::<Vec<Float>>(), out_folder, "gt_x.png");
 
 
 }
