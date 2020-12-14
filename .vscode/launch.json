@@ -142,10 +142,10 @@
             "env": {"RUST_BACKTRACE":"1"}
         },
         {
-            "name": "Load TUM",
+            "name": "Load ETH",
             "type": "lldb",
             "request": "launch",
-            "program": "${workspaceRoot}/target/debug/examples/load_tum",
+            "program": "${workspaceRoot}/target/debug/examples/load_eth",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
@@ -154,10 +154,10 @@
             "env": {"RUST_BACKTRACE":"1"}
         },
         {
-            "name": "TUM vo",
+            "name": "ETH vo",
             "type": "lldb",
             "request": "launch",
-            "program": "${workspaceRoot}/target/debug/examples/tum_vo",
+            "program": "${workspaceRoot}/target/debug/examples/eth_vo",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",

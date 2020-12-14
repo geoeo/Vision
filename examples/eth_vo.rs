@@ -3,7 +3,7 @@ extern crate vision;
 extern crate nalgebra as na;
 
 use na::{Vector4,Matrix4};
-use vision::io::tum_loader;
+use vision::io::{loading_parameters::LoadingParameters,eth_loader};
 use vision::pyramid::rgbd::{RGBDPyramid,rgbd_octave::RGBDOctave, build_rgbd_pyramid,rgbd_runtime_parameters::RGBDRuntimeParameters};
 use vision::vo::{dense_direct,dense_direct::{dense_direct_runtime_parameters::DenseDirectRuntimeParameters}};
 use vision::numerics;
@@ -18,7 +18,7 @@ fn main() {
 
 
 
-    let tum_parameters = tum_loader::TUMParameters {
+    let loading_parameters = LoadingParameters {
         starting_index: 0,
         step :1,
         count :5,
@@ -31,7 +31,7 @@ fn main() {
     sigma: 0.01,
     use_blur: true,
     blur_radius: 1.0,
-    octave_count: 1,
+    octave_count: 2,
     min_image_dimensions: (50,50),
     invert_grad_x : true,
     blur_grad_x : false,
@@ -39,7 +39,7 @@ fn main() {
     blur_grad_y: false
 };
     
-    let tum_data = tum_loader::load(root_path, &tum_parameters);
+    let tum_data = eth_loader::load(root_path, &loading_parameters);
     let source_gray_images = tum_data.source_gray_images;
     let source_depth_images = tum_data.source_depth_images;
     let target_gray_images = tum_data.target_gray_images;
@@ -54,12 +54,12 @@ fn main() {
 
 
     let vo_parameters = DenseDirectRuntimeParameters{
-        max_iterations: 1,
+        max_iterations: 300,
         eps: 1e-8,
-        step_size: 0.1,
-        max_norm_eps: 5e-12,
-        delta_eps: 5e-12,
-        tau: 1e-6,
+        step_size: 0.05, //TODO make these paramters per octave level
+        max_norm_eps: 5e-20,
+        delta_eps: 5e-20,
+        tau: 1e-8,
         lm: false,
         debug: true,
         show_octave_result: true

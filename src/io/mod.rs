@@ -1,4 +1,7 @@
+pub mod eth_loader;
 pub mod tum_loader;
+pub mod loading_parameters;
+pub mod loaded_data;
 
 use crate::Float;
 
