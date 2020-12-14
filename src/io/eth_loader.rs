@@ -137,7 +137,7 @@ pub fn load_depth_image(file_path: &Path, negate_values: bool, invert_y: bool) -
 }
 
 pub fn load_image_as_gray(file_path: &Path, normalize: bool, invert_y: bool) -> Image {
-    let gray_image = image_rs::open(&Path::new(&file_path)).expect("load_image failed").to_luma();
+    let gray_image = image_rs::open(&Path::new(&file_path)).expect("load_image failed").to_luma8();
     Image::from_gray_image(&gray_image, normalize, invert_y)
 }
 

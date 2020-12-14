@@ -1,7 +1,7 @@
 extern crate image as image_rs;
 extern crate nalgebra as na;
 
-use image_rs::{GrayImage, DynamicImage,Pixel, Luma};
+use image_rs::{GrayImage,ImageBuffer, DynamicImage,Pixel, Luma};
 use image_rs::flat::NormalForm;
 use na::{DMatrix};
 
@@ -37,9 +37,9 @@ impl Image {
         Image{ buffer: buffer, original_encoding}
     }
 
-    pub fn from_gray_image(image: &GrayImage, normalize: bool, invert_y : bool) -> Image {
-        let mut buffer = Image::image_to_matrix(image, invert_y);
-
+    pub fn from_gray_image(image: &GrayImage , normalize: bool, invert_y : bool) -> Image {
+        let mut buffer = Image::image8_to_matrix(image, invert_y);
+        
         if normalize {
             let max = buffer.amax();
             for elem in buffer.iter_mut() {
@@ -50,14 +50,26 @@ impl Image {
         Image{ buffer: buffer,original_encoding:  ImageEncoding::U8}
     }
 
+    pub fn from_depth_image(image: &ImageBuffer<Luma<u16>, Vec<u16>> ,  negate_values: bool, invert_y : bool) -> Image {
+        let mut buffer = Image::image16_to_matrix(image, invert_y);
+        
+        if negate_values {
+            buffer *= -1.0;
+        }
+
+        Image{ buffer: buffer,original_encoding:  ImageEncoding::U16}
+    }
+
 
     pub fn to_image(&self) -> GrayImage {
         return Image::matrix_to_image(&self.buffer,  self.original_encoding);
     }
 
+    // pub fn to_image16(&self) -> GrayImage {
+    //     return Image::matrix_to_image16(&self.buffer,  self.original_encoding);
+    // }
+
     pub fn normalize(image: &Image) -> Image {
-
-
         Image{ buffer: image.buffer.normalize(), original_encoding:  image.original_encoding}
     }
 
@@ -136,7 +148,26 @@ impl Image {
 
     }
 
-    fn image_to_matrix(gray_image: &GrayImage, invert_y: bool) -> DMatrix<Float> {
+    fn image8_to_matrix(gray_image: &GrayImage, invert_y: bool) -> DMatrix<Float> {
+        debug_assert!(gray_image.sample_layout().is_normal(NormalForm::RowMajorPacked));
+    
+        let (width, height) = gray_image.dimensions();
+        let size = (width * height) as usize;
+        let mut vec_column_major: Vec<Float> = Vec::with_capacity(size);
+        for x in 0..width {
+            for y in 0..height {
+                let pixel = match invert_y {
+                    true =>  gray_image.get_pixel(x, height - 1 - y),
+                    false => gray_image.get_pixel(x, y)
+                };
+                let pixel_value = pixel.channels()[0];
+                vec_column_major.push(pixel_value as Float);
+            }
+        }
+        DMatrix::<Float>::from_vec(height as usize, width as usize, vec_column_major)
+    }
+
+    fn image16_to_matrix(gray_image: &ImageBuffer<Luma<u16>, Vec<u16>>, invert_y: bool) -> DMatrix<Float> {
         debug_assert!(gray_image.sample_layout().is_normal(NormalForm::RowMajorPacked));
     
         let (width, height) = gray_image.dimensions();
@@ -159,7 +190,7 @@ impl Image {
     fn matrix_to_image(matrix: &DMatrix<Float>,  encoding: ImageEncoding) -> GrayImage {
         let (rows, cols) = matrix.shape();
     
-        let mut gray_image = DynamicImage::new_luma8(cols as u32, rows as u32).to_luma();
+        let mut gray_image = DynamicImage::new_luma8(cols as u32, rows as u32).to_luma8();
         let max = matrix.max();
         let min = matrix.min();
         for c in 0..cols {
@@ -171,6 +202,24 @@ impl Image {
         }
         gray_image
     }
+
+    //TODO: normalize flag
+    // fn matrix_to_image16(matrix: &DMatrix<Float>,  encoding: ImageEncoding) -> ImageBuffer<Luma<u16>, Vec<u16>> {
+    //     let (rows, cols) = matrix.shape();
+    
+    //     let mut gray_image = DynamicImage::new_luma16(cols as u32, rows as u32).to_luma16();
+    //     let max = matrix.max();
+    //     let min = matrix.min();
+    //     for c in 0..cols {
+    //         for r in 0..rows {
+    //             let val = *matrix.index((r, c));
+    //             let pixel_value =  encoding.normalize_to_gray(max,min,val);
+    //             gray_image.put_pixel(c as u32, r as u32, Luma([pixel_value]));
+    //         }
+    //     }
+    //     gray_image
+    // }
+
 
 
 

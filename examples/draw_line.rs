@@ -15,7 +15,7 @@ fn main() {
     let gray_image_path = format!("output/{}_gray_scale.{}",image_name,image_format);
     let converted_file_out_path = format!("output/{}_line.{}",image_name,image_format);
 
-    let image = image_rs::open(&Path::new(&image_path)).unwrap().to_luma();
+    let image = image_rs::open(&Path::new(&image_path)).unwrap().to_luma8();
     image.save(gray_image_path).unwrap();
 
 

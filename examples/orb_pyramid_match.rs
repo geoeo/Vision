@@ -20,8 +20,8 @@ fn main() {
     let image_path_2 = format!("{}{}.{}",image_folder,image_name_2, image_format);
     let converted_file_out_path = format!("{}{}_orb_matches_all.{}",image_out_folder,image_name,image_format);
 
-    let gray_image = image_rs::open(&Path::new(&image_path)).unwrap().to_luma();
-    let gray_image_2 = image_rs::open(&Path::new(&image_path_2)).unwrap().to_luma();
+    let gray_image = image_rs::open(&Path::new(&image_path)).unwrap().to_luma8();
+    let gray_image_2 = image_rs::open(&Path::new(&image_path_2)).unwrap().to_luma8();
 
     let image = Image::from_gray_image(&gray_image, false, false);
     let image_2 = Image::from_gray_image(&gray_image_2, false, false);

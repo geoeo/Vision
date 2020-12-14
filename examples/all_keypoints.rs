@@ -23,7 +23,7 @@ fn main() {
     println!("Processing Image: {}", image_name);
 
 
-    let gray_image = image_rs::open(&Path::new(&image_path)).unwrap().to_luma();
+    let gray_image = image_rs::open(&Path::new(&image_path)).unwrap().to_luma8();
     let image = Image::from_gray_image(&gray_image, false, false);
     let display_normal = Image::from_gray_image(&gray_image, false, false); 
     let mut display = Image::upsample_double(&display_normal, false); 
