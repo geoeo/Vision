@@ -19,9 +19,9 @@ fn main() {
 
 
     let loading_parameters = LoadingParameters {
-        starting_index: 0,
+        starting_index: 3,
         step :1,
-        count :5,
+        count :20,
         negate_values :true,
         invert_focal_lengths :true,
         invert_y :true
@@ -29,14 +29,16 @@ fn main() {
 
     let pyramid_parameters = RGBDRuntimeParameters{
     sigma: 0.01,
-    use_blur: true,
+    use_blur: false,
     blur_radius: 1.0,
-    octave_count: 2,
+    octave_count: 1,
     min_image_dimensions: (50,50),
     invert_grad_x : true,
     blur_grad_x : false,
     invert_grad_y : true,
-    blur_grad_y: false
+    blur_grad_y: false,
+    normalize_gray: false,
+    normalize_gradients: false
 };
     
     let tum_data = eth_loader::load(root_path, &loading_parameters);
@@ -54,12 +56,12 @@ fn main() {
 
 
     let vo_parameters = DenseDirectRuntimeParameters{
-        max_iterations: 300,
-        eps: 1e-8,
-        step_size: 0.05, //TODO make these paramters per octave level
+        max_iterations: 20,
+        eps: 1e-7,
+        step_size: 1.0, //TODO make these paramters per octave level
         max_norm_eps: 5e-20,
         delta_eps: 5e-20,
-        tau: 1e-8,
+        tau: 1e-0,
         lm: false,
         debug: true,
         show_octave_result: true

@@ -14,8 +14,6 @@ use crate::camera::pinhole::Pinhole;
 
 
 
-
-
 pub fn load(root_path: &str, parameters: &LoadingParameters) -> LoadedData {
     let intrinsics = "intrinsics";
     let ts_names = "images";
@@ -75,7 +73,7 @@ pub fn load(root_path: &str, parameters: &LoadingParameters) -> LoadedData {
     }
 }
 
-pub fn load_timestamps_and_names(file_path: &Path)-> Vec<(Float,String)> {
+fn load_timestamps_and_names(file_path: &Path)-> Vec<(Float,String)> {
     let file = File::open(file_path).expect("load_timestamps_and_names failed");
     let reader = BufReader::new(file);
     let lines = reader.lines();
@@ -110,6 +108,8 @@ pub fn load_ground_truths(file_path: &Path) -> Vec<(Vector3<Float>,Quaternion<Fl
 
     ground_truths
 }
+
+
 
 pub fn load_depth_image(file_path: &Path, negate_values: bool, invert_y: bool) -> Image {
     let file = File::open(file_path).expect("load_depth_map failed");

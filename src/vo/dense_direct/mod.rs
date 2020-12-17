@@ -87,9 +87,9 @@ fn estimate(source_octave: &RGBDOctave, source_depth_image_original: &Image, tar
     weight_residuals(&mut residuals, &weights_vec); // We want the residual weighted by the square of the GN step
 
     let mut iteration_count = 0;
-    while ((!runtime_parameters.lm && (avg_cost > runtime_parameters.eps)) || (runtime_parameters.lm && (delta_norm >= delta_thresh && max_norm_delta > runtime_parameters.max_norm_eps)))  && iteration_count < runtime_parameters.max_iterations  {
+    while ((!runtime_parameters.lm && (avg_cost.sqrt() > runtime_parameters.eps)) || (runtime_parameters.lm && (delta_norm >= delta_thresh && max_norm_delta > runtime_parameters.max_norm_eps)))  && iteration_count < runtime_parameters.max_iterations  {
         if runtime_parameters.debug{
-            println!("it: {}, avg_cost: {}, valid pixels: {}%",iteration_count,avg_cost,percentage_of_valid_pixels);
+            println!("it: {}, avg_rmse: {}, valid pixels: {}%",iteration_count,avg_cost.sqrt(),percentage_of_valid_pixels);
         }
 
         let (delta,g,gain_ratio_denom, mu_val) = gauss_newton_step(&residuals, &full_jacobian, &full_jacobian_weighted, &identity_6, mu, runtime_parameters.tau);

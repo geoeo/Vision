@@ -10,5 +10,7 @@ pub struct RGBDRuntimeParameters {
     pub invert_grad_x: bool,
     pub blur_grad_x: bool,
     pub invert_grad_y: bool,
-    pub blur_grad_y: bool
+    pub blur_grad_y: bool,
+    pub normalize_gray: bool,
+    pub normalize_gradients: bool
 }
