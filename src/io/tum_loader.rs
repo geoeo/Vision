@@ -21,8 +21,71 @@ pub enum Dataset {
 
 
 
-pub fn load(root_path: &str, parameters: &LoadingParameters) -> LoadedData {
-    panic!("not yet implemented")
+pub fn load(root_path: &str, parameters: &LoadingParameters, dataset: &Dataset) -> LoadedData {
+    let rgb_ts_names = "rgb";
+    let depth_ts_names = "depth";
+    let ground_truths = "groundtruth";
+
+    let depth_image_format = "png";
+    let color_image_format = "png";
+    let text_format = "txt";
+
+    let depth_image_folder = format!("{}/{}",root_path,"depth/");
+    let color_image_folder = format!("{}/{}",root_path,"rgb/");
+    let rgb_ts_name_path = format!("{}{}.{}",root_path,rgb_ts_names, text_format);
+    let depth_ts_name_path = format!("{}{}.{}",root_path,depth_ts_names, text_format);
+    let ground_truths_path = format!("{}{}.{}",root_path,ground_truths, text_format);
+
+    let rgb_ts = load_timestamps(&Path::new(&rgb_ts_name_path));
+    let depth_ts = load_timestamps(&Path::new(&depth_ts_name_path));
+    let (gt_timestamps,ground_truths) = load_timestamps_ground_truths(&Path::new(&ground_truths_path));
+
+    let pinhole_camera = load_intrinsics_as_pinhole(dataset, parameters.invert_focal_lengths);
+
+    let source_rgb_indices = (parameters.starting_index..parameters.starting_index+parameters.count).step_by(parameters.step);
+    let target_rgb_indices = source_rgb_indices.clone().map(|x| x + parameters.step); //TODO: check out of range
+
+    let source_rgb_ts = source_rgb_indices.map(|x| rgb_ts[x]).collect::<Vec<Float>>();
+    let target_rgb_ts = target_rgb_indices.map(|x| rgb_ts[x]).collect::<Vec<Float>>();
+
+    let closest_depth_ts_index = closest_ts_index(source_rgb_ts[0], &depth_ts);
+    let source_depth_indices = (closest_depth_ts_index..closest_depth_ts_index+parameters.count).step_by(parameters.step);
+    let target_depth_indices = source_depth_indices.clone().map(|x| x + parameters.step); //TODO: check out of range
+
+    let source_depth_ts = source_depth_indices.map(|x| depth_ts[x]).collect::<Vec<Float>>();
+    let target_depth_ts = target_depth_indices.map(|x| depth_ts[x]).collect::<Vec<Float>>();
+
+    let closest_gt_ts_index = closest_ts_index(source_rgb_ts[0], &gt_timestamps);
+    let source_gt_indices = (closest_gt_ts_index..closest_gt_ts_index+parameters.count).step_by(parameters.step);
+    let target_gt_indices = source_gt_indices.clone().map(|x| x + parameters.step); //TODO: check out of range
+
+
+
+    LoadedData {
+        source_gray_images: source_rgb_ts.iter().map(|s| {
+            let color_source_image_path = format!("{}{}.{}",color_image_folder,s, color_image_format);
+            load_image_as_gray(&Path::new(&color_source_image_path), false, parameters.invert_y)
+        }).collect::<Vec<Image>>(),
+        source_depth_images: source_depth_ts.iter().map(|s| {
+            let depth_source_image_path = format!("{}{}.{}",depth_image_folder,s, depth_image_format);
+            load_depth_image(&Path::new(&depth_source_image_path),parameters.negate_values, true)
+        }).collect::<Vec<Image>>(),
+        target_gray_images: target_rgb_ts.iter().map(|t| {
+            let color_target_image_path = format!("{}{}.{}",color_image_folder,t, color_image_format);
+            load_image_as_gray(&Path::new(&color_target_image_path), false, parameters.invert_y)
+        }).collect::<Vec<Image>>(),
+        target_depth_images:  target_depth_ts.iter().map(|t| {
+            let depth_target_image_path = format!("{}{}.{}",depth_image_folder,t, depth_image_format);
+            load_depth_image(&Path::new(&depth_target_image_path), parameters.negate_values, true)
+        }).collect::<Vec<Image>>(),
+        source_gt_poses: source_gt_indices.map(|s| {
+            ground_truths[s]
+        }).collect::<Vec<(Vector3<Float>,Quaternion<Float>)>>(),
+        target_gt_poses: target_gt_indices.map(|t| {
+            ground_truths[t]
+        }).collect::<Vec<(Vector3<Float>,Quaternion<Float>)>>(),
+        pinhole_camera
+    }
 }
 
 fn closest_ts_index(ts: Float, list: &Vec<Float>) -> usize {
@@ -62,11 +125,12 @@ fn load_timestamps(file_path: &Path)-> Vec<Float> {
 
 
 
-pub fn load_ground_truths(file_path: &Path) -> Vec<(Vector3<Float>,Quaternion<Float>)> {
+pub fn load_timestamps_ground_truths(file_path: &Path) -> (Vec<Float>,Vec<(Vector3<Float>,Quaternion<Float>)>) {
     let file = File::open(file_path).expect("load_ground_truths failed");
     let reader = BufReader::new(file);
     let lines = reader.lines();
     let mut ground_truths = Vec::<(Vector3<Float>,Quaternion<Float>)>::new();
+    let mut timestamps = Vec::<Float>::new();
 
     for line in lines {
         let contents = line.unwrap();
@@ -74,6 +138,7 @@ pub fn load_ground_truths(file_path: &Path) -> Vec<(Vector3<Float>,Quaternion<Fl
             continue;
         }
         let values = contents.trim().split(" ").map(|x| parse_to_float(x,false)).collect::<Vec<Float>>();
+        let ts = values[0];
         let tx = values[1];
         let ty = values[2];
         let tz = values[3];
@@ -86,12 +151,13 @@ pub fn load_ground_truths(file_path: &Path) -> Vec<(Vector3<Float>,Quaternion<Fl
         let translation = Vector3::<Float>::new(tx,ty,tz);
         let quaternion = Quaternion::<Float>::new(qw,qx,qy,qz);
 
+        timestamps.push(ts);
         ground_truths.push((translation,quaternion));
 
 
     }
 
-    ground_truths
+    (timestamps,ground_truths)
 }
 
 pub fn load_depth_image(file_path: &Path, negate_values: bool, invert_y: bool) -> Image {
