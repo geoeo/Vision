@@ -30,11 +30,11 @@ pub fn load(root_path: &str, parameters: &LoadingParameters, dataset: &Dataset) 
     let color_image_format = "png";
     let text_format = "txt";
 
-    let depth_image_folder = format!("{}/{}",root_path,"depth/");
-    let color_image_folder = format!("{}/{}",root_path,"rgb/");
-    let rgb_ts_name_path = format!("{}{}.{}",root_path,rgb_ts_names, text_format);
-    let depth_ts_name_path = format!("{}{}.{}",root_path,depth_ts_names, text_format);
-    let ground_truths_path = format!("{}{}.{}",root_path,ground_truths, text_format);
+    let depth_image_folder = format!("{}/{}",root_path,"depth");
+    let color_image_folder = format!("{}/{}",root_path,"rgb");
+    let rgb_ts_name_path = format!("{}/{}.{}",root_path,rgb_ts_names, text_format);
+    let depth_ts_name_path = format!("{}/{}.{}",root_path,depth_ts_names, text_format);
+    let ground_truths_path = format!("{}/{}.{}",root_path,ground_truths, text_format);
 
     let rgb_ts = load_timestamps(&Path::new(&rgb_ts_name_path));
     let depth_ts = load_timestamps(&Path::new(&depth_ts_name_path));
@@ -63,19 +63,19 @@ pub fn load(root_path: &str, parameters: &LoadingParameters, dataset: &Dataset) 
 
     LoadedData {
         source_gray_images: source_rgb_ts.iter().map(|s| {
-            let color_source_image_path = format!("{}{}.{}",color_image_folder,s, color_image_format);
+            let color_source_image_path = format!("{}/{:.6}.{}",color_image_folder,s, color_image_format);
             load_image_as_gray(&Path::new(&color_source_image_path), false, parameters.invert_y)
         }).collect::<Vec<Image>>(),
         source_depth_images: source_depth_ts.iter().map(|s| {
-            let depth_source_image_path = format!("{}{}.{}",depth_image_folder,s, depth_image_format);
+            let depth_source_image_path = format!("{}/{:.6}.{}",depth_image_folder,s, depth_image_format);
             load_depth_image(&Path::new(&depth_source_image_path),parameters.negate_values, true)
         }).collect::<Vec<Image>>(),
         target_gray_images: target_rgb_ts.iter().map(|t| {
-            let color_target_image_path = format!("{}{}.{}",color_image_folder,t, color_image_format);
+            let color_target_image_path = format!("{}/{:.6}.{}",color_image_folder,t, color_image_format);
             load_image_as_gray(&Path::new(&color_target_image_path), false, parameters.invert_y)
         }).collect::<Vec<Image>>(),
         target_depth_images:  target_depth_ts.iter().map(|t| {
-            let depth_target_image_path = format!("{}{}.{}",depth_image_folder,t, depth_image_format);
+            let depth_target_image_path = format!("{}/{:.6}.{}",depth_image_folder,t, depth_image_format);
             load_depth_image(&Path::new(&depth_target_image_path), parameters.negate_values, true)
         }).collect::<Vec<Image>>(),
         source_gt_poses: source_gt_indices.map(|s| {
@@ -114,8 +114,11 @@ fn load_timestamps(file_path: &Path)-> Vec<Float> {
 
     for line in lines {
         let contents = line.unwrap();
+        if contents.starts_with('#') {
+            continue;
+        }
         let values = contents.trim().split(" ").collect::<Vec<&str>>();
-        let ts =  parse_to_float(values[0],false);
+        let ts = parse_to_float(values[0],false);
         timestamps.push(ts);
     }
 
