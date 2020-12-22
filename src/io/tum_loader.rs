@@ -59,8 +59,6 @@ pub fn load(root_path: &str, parameters: &LoadingParameters, dataset: &Dataset) 
     let source_gt_indices = (closest_gt_ts_index..closest_gt_ts_index+parameters.count).step_by(parameters.step);
     let target_gt_indices = source_gt_indices.clone().map(|x| x + parameters.step); //TODO: check out of range
 
-
-
     LoadedData {
         source_gray_images: source_rgb_ts.iter().map(|s| {
             let color_source_image_path = format!("{}/{:.6}.{}",color_image_folder,s, color_image_format);
@@ -165,7 +163,20 @@ pub fn load_timestamps_ground_truths(file_path: &Path) -> (Vec<Float>,Vec<(Vecto
 
 pub fn load_depth_image(file_path: &Path, negate_values: bool, invert_y: bool) -> Image {
     let depth_image = image_rs::open(&Path::new(&file_path)).expect("load_image failed").to_luma16();
-    Image::from_depth_image(&depth_image,negate_values,invert_y)
+    let mut image = Image::from_depth_image(&depth_image,negate_values,invert_y);
+    image.buffer /= 5000.0;
+    let extrema = match invert_y {
+        true => image.buffer.min(),
+        false => image.buffer.max()
+    };
+    for r in 0..image.buffer.nrows(){
+        for c in 0..image.buffer.ncols(){
+            if image.buffer[(r,c)] == 0.0 {
+                image.buffer[(r,c)] = extrema;
+            }
+        }
+    }
+    image
 }
 
 pub fn load_image_as_gray(file_path: &Path, normalize: bool, invert_y: bool) -> Image {

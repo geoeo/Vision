@@ -86,6 +86,7 @@ fn estimate(source_octave: &RGBDOctave, source_depth_image_original: &Image, tar
     weight_jacobian(&mut full_jacobian_weighted,&full_jacobian, &weights_vec);
     weight_residuals(&mut residuals, &weights_vec); // We want the residual weighted by the square of the GN step
 
+
     let mut iteration_count = 0;
     while ((!runtime_parameters.lm && (avg_cost.sqrt() > runtime_parameters.eps)) || (runtime_parameters.lm && (delta_norm >= delta_thresh && max_norm_delta > runtime_parameters.max_norm_eps)))  && iteration_count < runtime_parameters.max_iterations  {
         if runtime_parameters.debug{
@@ -202,6 +203,9 @@ fn precompute_jacobians(backprojected_points: &Matrix<Float,U4,Dynamic,VecStorag
         let point = backprojected_points.fixed_slice::<U3,U1>(0,i);
         let camera_jacobian = pinhole_camera.get_jacobian_with_respect_to_position(&point);
         let lie_jacobian = lie::jacobian_with_respect_to_transformation(&point);
+
+        
+
         precomputed_jacobians.fixed_slice_mut::<U2,U6>(i*2,0).copy_from(&(camera_jacobian*lie_jacobian));
     }
 

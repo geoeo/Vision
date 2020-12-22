@@ -176,6 +176,18 @@
             "environment": [],
             "externalConsole": false,
             "env": {"RUST_BACKTRACE":"1"}
+        },
+        {
+            "name": "TUM vo",
+            "type": "lldb",
+            "request": "launch",
+            "program": "${workspaceRoot}/target/debug/examples/tum_vo",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "env": {"RUST_BACKTRACE":"1"}
         }
     ]
 }
