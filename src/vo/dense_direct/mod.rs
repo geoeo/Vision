@@ -256,6 +256,16 @@ fn compute_full_jacobian(image_gradients: &Matrix<Float,Dynamic,U2, VecStorage<F
 
 
 //TODO: part of solver
+
+fn compute_t_dist_weight(residual: Float, variance: Float, t_dist_nu: Float) -> Float{
+    (t_dist_nu + 1.0) / (t_dist_nu + residual.powi(2)/variance)
+}
+
+fn estimate_t_dist_variance(n: Float, residual: Float, t_dist_nu: Float) -> Float {
+    panic!("not yet implemented")
+}
+
+
 fn weight_residuals( residual_target: &mut DVector<Float>, weights_vec: &DVector<Float>) -> () {
     residual_target.component_mul_assign(weights_vec);
 }

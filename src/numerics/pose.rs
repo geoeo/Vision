@@ -42,3 +42,13 @@ pub fn apply_pose_deltas_to_point(point: &Vector4<Float>, pose_deltas: &Vec<Matr
         Some(pose_delta*acc.clone())
     }).collect::<Vec<Vector4<Float>>>()
 }
+
+// Error according to A Benchmark for the Evaluation of RGB-D SLAM Systems
+pub fn error(q_1: &Matrix4<Float>,q_2: &Matrix4<Float>,p_1: &Matrix4<Float>,p_2: &Matrix4<Float>) -> Matrix4<Float> {
+    invert_se3(&(invert_se3(q_1)*q_2))*(invert_se3(p_1)*p_2)
+}
+
+pub fn rsme(data: &Vec<Matrix4<Float>>) -> Float {
+    let norm_sum = data.iter().fold(0.0, |acc, x| acc + x.fixed_slice::<U3,U1>(0,3).norm_squared());
+    (norm_sum/(data.len() as Float)).sqrt()
+}

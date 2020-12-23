@@ -113,12 +113,12 @@ pub fn gauss_2d(x_center: Float, y_center: Float, x: Float, y: Float, sigma: Flo
     let sigma_sqr_recip = 1.0/sigma_sqr;
     let covariance = Matrix2::new(sigma_sqr_recip, 0.0,0.0, sigma_sqr_recip);
 
-
     let exponent = -0.5*offset*(covariance*offset_transpose);
     let exp = exponent.index((0,0)).exp();
-
 
     let denom = 2.0*float::consts::PI*sigma_sqr;
 
     exp/denom
 }
+
+
