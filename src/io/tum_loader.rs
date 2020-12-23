@@ -1,14 +1,14 @@
 extern crate nalgebra as na;
 extern crate image as image_rs;
 
-use na::{RowDVector,DMatrix, Vector3, Quaternion};
+use na::{Vector3, Quaternion};
 use std::path::Path;
 use std::fs::File;
-use std::io::{BufReader,Read,BufRead};
+use std::io::{BufReader,BufRead};
 
 use crate::{Float,float};
 use crate::io::{loading_parameters::LoadingParameters,loaded_data::LoadedData, parse_to_float};
-use crate::image::{Image,image_encoding::ImageEncoding};
+use crate::image::{Image};
 use crate::camera::pinhole::Pinhole;
 
 #[repr(u8)]
@@ -17,8 +17,6 @@ pub enum Dataset {
     FR2,
     FR3,
 }
-
-
 
 
 pub fn load(root_path: &str, parameters: &LoadingParameters, dataset: &Dataset) -> LoadedData {

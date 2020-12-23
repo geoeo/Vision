@@ -2,7 +2,7 @@ extern crate image as image_rs;
 extern crate vision;
 extern crate nalgebra as na;
 
-use na::{Vector4,Matrix4};
+use na::{Vector4,Matrix4, Vector3};
 use vision::io::{loading_parameters::LoadingParameters,tum_loader};
 use vision::pyramid::rgbd::{RGBDPyramid,rgbd_octave::RGBDOctave, build_rgbd_pyramid,rgbd_runtime_parameters::RGBDRuntimeParameters};
 use vision::vo::{dense_direct,dense_direct::{dense_direct_runtime_parameters::DenseDirectRuntimeParameters}};
@@ -20,7 +20,7 @@ fn main() {
     let loading_parameters = LoadingParameters {
         starting_index: 0,
         step :1,
-        count :40,
+        count :300,
         negate_values :true,
         invert_focal_lengths :true,
         invert_y :true
@@ -38,7 +38,7 @@ fn main() {
     invert_grad_y : true,
     blur_grad_x : false,
     blur_grad_y: false,
-    normalize_gray: false,
+    normalize_gray: true,
     normalize_gradients: false
 };
     
@@ -52,7 +52,6 @@ fn main() {
     println!("{:?}",tum_data.pinhole_camera.projection);
 
 
-
     let source_pyramids = source_gray_images.into_iter().zip(source_depth_images.into_iter()).map(|(g,d)| build_rgbd_pyramid(g,d,&pyramid_parameters)).collect::<Vec<RGBDPyramid<RGBDOctave>>>();
     let target_pyramids = target_gray_images.into_iter().zip(target_depth_images.into_iter()).map(|(g,d)| build_rgbd_pyramid(g,d,&pyramid_parameters)).collect::<Vec<RGBDPyramid<RGBDOctave>>>();
 
@@ -61,8 +60,8 @@ fn main() {
         max_iterations: 100,
         eps: 1e-7,
         step_size: 1.0, //TODO make these paramters per octave level
-        max_norm_eps: 5e-7,
-        delta_eps: 5e-7,
+        max_norm_eps: 5e-8,
+        delta_eps: 5e-8,
         tau: 1e-3,
         lm: true,
         debug: true,
@@ -92,8 +91,9 @@ fn main() {
         println!("Gt Trajectory {}",est_gt_points[i]);
     }
 
-    plot::draw_line_graph(&est_points.iter().map(|point| point[0]).collect::<Vec<Float>>(), out_folder, "est_x.png");
-    plot::draw_line_graph(&est_gt_points.iter().map(|point| point[0]).collect::<Vec<Float>>(), out_folder, "gt_x.png");
+    //plot::draw_line_graph_est_gt(&est_points.iter().map(|point| point[0]).collect::<Vec<Float>>(),&est_gt_points.iter().map(|point| point[0]).collect::<Vec<Float>>(), out_folder, "x-translation.png");
+    plot::draw_line_graph_translation_est_gt(&est_points.iter().map(|x| Vector3::<Float>::new(x[0],x[1], x[2])).collect::<Vec<Vector3<Float>>>(),&est_gt_points.iter().map(|x| Vector3::<Float>::new(x[0],x[1], x[2])).collect::<Vec<Vector3<Float>>>(), out_folder, "translation.png");
+
 
 
 }
