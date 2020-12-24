@@ -46,16 +46,14 @@ pub fn load(root_path: &str, parameters: &LoadingParameters, dataset: &Dataset) 
     let source_rgb_ts = source_rgb_indices.map(|x| rgb_ts[x]).collect::<Vec<Float>>();
     let target_rgb_ts = target_rgb_indices.map(|x| rgb_ts[x]).collect::<Vec<Float>>();
 
-    let closest_depth_ts_index = closest_ts_index(source_rgb_ts[0], &depth_ts);
-    let source_depth_indices = (closest_depth_ts_index..closest_depth_ts_index+parameters.count).step_by(parameters.step);
-    let target_depth_indices = source_depth_indices.clone().map(|x| x + parameters.step); //TODO: check out of range
+    let source_depth_indices = source_rgb_ts.iter().map(|&x| closest_ts_index(x, &depth_ts)).collect::<Vec<usize>>();
+    let target_depth_indices = target_rgb_ts.iter().map(|&x| closest_ts_index(x, &depth_ts)).collect::<Vec<usize>>(); //TODO: check out of range
 
-    let source_depth_ts = source_depth_indices.map(|x| depth_ts[x]).collect::<Vec<Float>>();
-    let target_depth_ts = target_depth_indices.map(|x| depth_ts[x]).collect::<Vec<Float>>();
+    let source_depth_ts = source_depth_indices.iter().map(|&x| depth_ts[x]).collect::<Vec<Float>>();
+    let target_depth_ts = target_depth_indices.iter().map(|&x| depth_ts[x]).collect::<Vec<Float>>();
 
-    let closest_gt_ts_index = closest_ts_index(source_rgb_ts[0], &gt_timestamps);
-    let source_gt_indices = (closest_gt_ts_index..closest_gt_ts_index+parameters.count).step_by(parameters.step);
-    let target_gt_indices = source_gt_indices.clone().map(|x| x + parameters.step); //TODO: check out of range
+    let source_gt_indices = source_rgb_ts.iter().map(|&x| closest_ts_index(x, &gt_timestamps)).collect::<Vec<usize>>();
+    let target_gt_indices = target_rgb_ts.iter().map(|&x| closest_ts_index(x, &gt_timestamps)).collect::<Vec<usize>>(); //TODO: check out of range
 
     LoadedData {
         source_gray_images: source_rgb_ts.iter().map(|s| {
@@ -74,10 +72,10 @@ pub fn load(root_path: &str, parameters: &LoadingParameters, dataset: &Dataset) 
             let depth_target_image_path = format!("{}/{:.6}.{}",depth_image_folder,t, depth_image_format);
             load_depth_image(&Path::new(&depth_target_image_path), parameters.negate_values, true)
         }).collect::<Vec<Image>>(),
-        source_gt_poses: source_gt_indices.map(|s| {
+        source_gt_poses: source_gt_indices.iter().map(|&s| {
             ground_truths[s]
         }).collect::<Vec<(Vector3<Float>,Quaternion<Float>)>>(),
-        target_gt_poses: target_gt_indices.map(|t| {
+        target_gt_poses: target_gt_indices.iter().map(|&t| {
             ground_truths[t]
         }).collect::<Vec<(Vector3<Float>,Quaternion<Float>)>>(),
         pinhole_camera

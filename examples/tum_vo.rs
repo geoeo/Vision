@@ -13,31 +13,31 @@ use vision::visualize::plot;
 
 fn main() {
     let root_path = "C:/Users/Marc/Workspace/Datasets/TUM/rgbd_dataset_freiburg2_desk";
+    let dataset = tum_loader::Dataset::FR2;
     let out_folder = "output/";
-
 
 
     let loading_parameters = LoadingParameters {
         starting_index: 0,
         step :1,
-        count :300,
+        count :240,
         negate_values :true,
         invert_focal_lengths :true,
         invert_y :true
     };
 
-    let dataset = tum_loader::Dataset::FR2;
+
 
     let pyramid_parameters = RGBDRuntimeParameters{
-    sigma: 0.01,
+    sigma: 2.0,
     use_blur: true,
     blur_radius: 1.0,
     octave_count: 2,
     min_image_dimensions: (50,50),
     invert_grad_x : true,
     invert_grad_y : true,
-    blur_grad_x : false,
-    blur_grad_y: false,
+    blur_grad_x : true,
+    blur_grad_y: true,
     normalize_gray: true,
     normalize_gradients: false
 };
@@ -57,11 +57,11 @@ fn main() {
 
 
     let vo_parameters = DenseDirectRuntimeParameters{
-        max_iterations: 100,
+        max_iterations: 500,
         eps: 1e-7,
         step_size: 1.0, //TODO make these paramters per octave level
-        max_norm_eps: 5e-8,
-        delta_eps: 5e-8,
+        max_norm_eps: 5e-15,
+        delta_eps: 5e-15,
         tau: 1e-3,
         lm: true,
         debug: true,
@@ -78,18 +78,20 @@ fn main() {
         numerics::pose::pose_difference(&se3_s, &se3_t)
     }).collect::<Vec<Matrix4<Float>>>());
 
-    for i in 0..se3_est.len() {
-        println!("est_transform: {}",se3_est[i]);
-        println!("Groundtruth Pose Delta {}",se3_gt_targetory[i]);
-    }
+    let est_points = numerics::pose::apply_pose_deltas_to_point(Vector4::<Float>::new(0.0,0.0,0.0,1.0), &se3_est);
+    let est_gt_points = numerics::pose::apply_pose_deltas_to_point(Vector4::<Float>::new(0.0,0.0,0.0,1.0), &se3_gt_targetory);
 
-    let est_points = numerics::pose::apply_pose_deltas_to_point(&Vector4::<Float>::new(0.0,0.0,0.0,1.0), &se3_est);
-    let est_gt_points = numerics::pose::apply_pose_deltas_to_point(&Vector4::<Float>::new(0.0,0.0,0.0,1.0), &se3_gt_targetory);
+    // for i in 0..se3_est.len() {
+    //     println!("est_transform: {}",se3_est[i]);
+    //     println!("Groundtruth Pose Delta {}",se3_gt_targetory[i]);
+    // }
 
-    for i in 0..est_points.len() {
-        println!("Point trajectory: {}",est_points[i]);
-        println!("Gt Trajectory {}",est_gt_points[i]);
-    }
+
+
+    // for i in 0..est_points.len() {
+    //     println!("Point trajectory: {}",est_points[i]);
+    //     println!("Gt Trajectory {}",est_gt_points[i]);
+    // }
 
     //plot::draw_line_graph_est_gt(&est_points.iter().map(|point| point[0]).collect::<Vec<Float>>(),&est_gt_points.iter().map(|point| point[0]).collect::<Vec<Float>>(), out_folder, "x-translation.png");
     plot::draw_line_graph_translation_est_gt(&est_points.iter().map(|x| Vector3::<Float>::new(x[0],x[1], x[2])).collect::<Vec<Vector3<Float>>>(),&est_gt_points.iter().map(|x| Vector3::<Float>::new(x[0],x[1], x[2])).collect::<Vec<Vector3<Float>>>(), out_folder, "translation.png");

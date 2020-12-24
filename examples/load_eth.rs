@@ -35,9 +35,12 @@ fn main() {
 
 
 
-    let converted_file_out_path = format!("{}{}_out.png",image_out_folder,image_name);
-    let new_image = depth_2_display.to_image();
-    new_image.save(converted_file_out_path).unwrap();
+
+
+
+    // let converted_file_out_path = format!("{}{}_out.png",image_out_folder,image_name);
+    // let new_image = depth_2_display.to_image();
+    // new_image.save(converted_file_out_path).unwrap();
 
 
 }

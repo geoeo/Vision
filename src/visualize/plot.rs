@@ -15,7 +15,7 @@ fn get_min_max(data_vectors: Vec<&Vec<Float>>) -> (Float,Float) {
         assert_eq!(data_vectors[i].len(),data_vectors[i+1].len());
     }
 
-    for j in 0..data_vectors.len()-1 {
+    for j in 0..data_vectors.len() {
         let data = data_vectors[j];
         for i in 0..data.len() {
             let v = data[i];
@@ -29,6 +29,10 @@ fn get_min_max(data_vectors: Vec<&Vec<Float>>) -> (Float,Float) {
             }
         }
 
+    }
+
+    if(max-min) < 1e-5 {
+        max = min + 1e-5;
     }
 
     (min,max)
@@ -119,6 +123,7 @@ pub fn draw_line_graph_translation_est_gt(translation_est: &Vec<Vector3<Float>>,
     root.fill(&WHITE)?;
 
     let drawing_areas = root.split_evenly((3,1));
+
 
     for i in 0..drawing_areas.len() {
 

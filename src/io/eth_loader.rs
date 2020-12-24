@@ -123,9 +123,10 @@ pub fn load_depth_image(file_path: &Path, negate_values: bool, invert_y: bool) -
     let mut matrix = DMatrix::<Float>::zeros(rows,cols);
 
     let values = contents.trim().split(" ").map(|x| parse_to_float(x,negate_values)).collect::<Vec<Float>>();
-    assert_eq!(values.len(),rows*cols);
+    let values_scaled = values.iter().map(|&x| x/1.0).collect::<Vec<Float>>();
+    assert_eq!(values_scaled.len(),rows*cols);
 
-    for (idx,row) in values.chunks(cols).enumerate() {
+    for (idx,row) in values_scaled.chunks(cols).enumerate() {
         let vector = RowDVector::<Float>::from_row_slice(row);
         let row_idx = match invert_y {
             true => rows-1-idx,

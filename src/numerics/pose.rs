@@ -37,9 +37,10 @@ pub fn pose_difference(a: &Matrix4<Float>, b:&Matrix4<Float>) -> Matrix4<Float> 
     b*invert_se3(a)
 }
 
-pub fn apply_pose_deltas_to_point(point: &Vector4<Float>, pose_deltas: &Vec<Matrix4<Float>>) -> Vec<Vector4<Float>> {
+pub fn apply_pose_deltas_to_point(point: Vector4<Float>, pose_deltas: &Vec<Matrix4<Float>>) -> Vec<Vector4<Float>> {
     pose_deltas.iter().scan(point, |acc, &pose_delta| {
-        Some(pose_delta*acc.clone())
+        *acc = pose_delta*(*acc);
+        Some(*acc)
     }).collect::<Vec<Vector4<Float>>>()
 }
 
