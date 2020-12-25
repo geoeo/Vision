@@ -13,10 +13,10 @@ use crate::{Float,float,reconstruct_original_coordiantes};
 pub mod dense_direct_runtime_parameters;
 
 pub fn run_trajectory(source_rgdb_pyramids: &Vec<RGBDPyramid<RGBDOctave>>,target_rgdb_pyramids: &Vec<RGBDPyramid<RGBDOctave>>, pinhole_camera: &Pinhole, runtime_parameters: &DenseDirectRuntimeParameters) -> Vec<Matrix4<Float>> {
-    source_rgdb_pyramids.iter().zip(target_rgdb_pyramids.iter()).map(|(source,target)| run(&source,&target, pinhole_camera,runtime_parameters)).collect::<Vec<Matrix4<Float>>>()
+    source_rgdb_pyramids.iter().zip(target_rgdb_pyramids.iter()).enumerate().map(|(i,(source,target))| run(i+1,&source,&target, pinhole_camera,runtime_parameters)).collect::<Vec<Matrix4<Float>>>()
 }
 
-pub fn run(source_rgdb_pyramid: &RGBDPyramid<RGBDOctave>,target_rgdb_pyramid: &RGBDPyramid<RGBDOctave>, pinhole_camera: &Pinhole, runtime_parameters: &DenseDirectRuntimeParameters) -> Matrix4<Float> {
+pub fn run(iteration: usize, source_rgdb_pyramid: &RGBDPyramid<RGBDOctave>,target_rgdb_pyramid: &RGBDPyramid<RGBDOctave>, pinhole_camera: &Pinhole, runtime_parameters: &DenseDirectRuntimeParameters) -> Matrix4<Float> {
 
     let depth_image = &source_rgdb_pyramid.depth_image;
     let mut lie_result = Vector6::<Float>::zeros();
@@ -28,7 +28,7 @@ pub fn run(source_rgdb_pyramid: &RGBDPyramid<RGBDOctave>,target_rgdb_pyramid: &R
         mat_result = result.1;
 
         if runtime_parameters.show_octave_result {
-            println!("est_transform: {}",mat_result);
+            println!("{}, est_transform: {}",iteration,mat_result);
         }
 
     }

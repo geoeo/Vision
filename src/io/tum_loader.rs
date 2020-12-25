@@ -36,7 +36,7 @@ pub fn load(root_path: &str, parameters: &LoadingParameters, dataset: &Dataset) 
 
     let rgb_ts = load_timestamps(&Path::new(&rgb_ts_name_path));
     let depth_ts = load_timestamps(&Path::new(&depth_ts_name_path));
-    let (gt_timestamps,ground_truths) = load_timestamps_ground_truths(&Path::new(&ground_truths_path), &parameters.gt_alignment);
+    let (gt_timestamps,ground_truths) = load_timestamps_ground_truths(&Path::new(&ground_truths_path), &parameters.gt_alignment_rot);
 
     let pinhole_camera = load_intrinsics_as_pinhole(dataset, parameters.invert_focal_lengths);
 
@@ -122,7 +122,7 @@ fn load_timestamps(file_path: &Path)-> Vec<Float> {
 
 
 
-pub fn load_timestamps_ground_truths(file_path: &Path, gt_alignment: &UnitQuaternion<Float>) -> (Vec<Float>,Vec<(Vector3<Float>,Quaternion<Float>)>) {
+pub fn load_timestamps_ground_truths(file_path: &Path, gt_alignment_rot: &UnitQuaternion<Float>) -> (Vec<Float>,Vec<(Vector3<Float>,Quaternion<Float>)>) {
     let file = File::open(file_path).expect("load_ground_truths failed");
     let reader = BufReader::new(file);
     let lines = reader.lines();
@@ -145,11 +145,11 @@ pub fn load_timestamps_ground_truths(file_path: &Path, gt_alignment: &UnitQuater
         let qz =  values[6];
         let qw =  values[7];
 
-        let translation = Vector3::<Float>::new(tx,ty,tz);
-        let quaternion = Quaternion::<Float>::new(qw,qx,qy,qz);
+        let translation = gt_alignment_rot*Vector3::<Float>::new(tx,ty,tz);
+        let quaternion = gt_alignment_rot.quaternion()*Quaternion::<Float>::new(qw,qx,qy,qz);
 
         timestamps.push(ts);
-        ground_truths.push((gt_alignment*translation,gt_alignment.quaternion()*quaternion));
+        ground_truths.push((translation,quaternion));
 
 
     }

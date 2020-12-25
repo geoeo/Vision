@@ -24,16 +24,16 @@ fn main() {
         negate_values :true,
         invert_focal_lengths :true,
         invert_y :true,
-        gt_alignment: UnitQuaternion::<Float>::from_axis_angle(&Vector3::y_axis(),float::consts::PI)
+        gt_alignment_rot:UnitQuaternion::<Float>::from_axis_angle(&Vector3::x_axis(),float::consts::FRAC_PI_2)* UnitQuaternion::<Float>::from_axis_angle(&Vector3::y_axis(),float::consts::PI)
     };
 
 
 
     let pyramid_parameters = RGBDRuntimeParameters{
-    sigma: 0.1,
+    sigma: 1.0,
     use_blur: true,
     blur_radius: 1.0,
-    octave_count: 3,
+    octave_count: 2,
     min_image_dimensions: (50,50),
     invert_grad_x : true,
     invert_grad_y : true,
@@ -61,11 +61,11 @@ fn main() {
         max_iterations: 500,
         eps: 1e-7,
         step_size: 1.0, //TODO make these paramters per octave level
-        max_norm_eps: 1e-25,
-        delta_eps: 1e-25,
+        max_norm_eps: 1e-20,
+        delta_eps: 1e-20,
         tau: 1e-3,
         lm: true,
-        debug: true,
+        debug: false,
         show_octave_result: true
     };
 
@@ -73,8 +73,7 @@ fn main() {
     let mut se3_gt_targetory = vec!(Matrix4::<Float>::identity());
 
 
-
-    se3_est.extend(source_pyramids.iter().zip(target_pyramids.iter()).map(|(s,t)|  dense_direct::run(s, t,&cam , &vo_parameters)).collect::<Vec<Matrix4<Float>>>());
+    se3_est.extend(dense_direct::run_trajectory(&source_pyramids, &target_pyramids, &cam, &vo_parameters));
     se3_gt_targetory.extend(tum_data.source_gt_poses.iter().zip(tum_data.target_gt_poses.iter()).map(|(s,t)| {
         let se3_s = numerics::pose::se3(&s.0, &s.1);
         let se3_t = numerics::pose::se3(&t.0, &t.1);
@@ -98,7 +97,8 @@ fn main() {
     // }
 
     //plot::draw_line_graph_est_gt(&est_points.iter().map(|point| point[0]).collect::<Vec<Float>>(),&est_gt_points.iter().map(|point| point[0]).collect::<Vec<Float>>(), out_folder, "x-translation.png");
-    plot::draw_line_graph_translation_est_gt(&est_points.iter().map(|x| Vector3::<Float>::new(x[0],x[1], x[2])).collect::<Vec<Vector3<Float>>>(),&est_gt_points.iter().map(|x| Vector3::<Float>::new(x[0],x[1], x[2])).collect::<Vec<Vector3<Float>>>(), out_folder, "translation.png");
+    let out_file_name = format!("tum_translation_{}_{}_{}_.png",vo_parameters,pyramid_parameters,loading_parameters);
+    plot::draw_line_graph_translation_est_gt(&est_points.iter().map(|x| Vector3::<Float>::new(x[0],x[1], x[2])).collect::<Vec<Vector3<Float>>>(),&est_gt_points.iter().map(|x| Vector3::<Float>::new(x[0],x[1], x[2])).collect::<Vec<Vector3<Float>>>(), out_folder, &out_file_name);
 
 
 

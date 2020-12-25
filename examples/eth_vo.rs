@@ -25,7 +25,7 @@ fn main() {
         negate_values :true,
         invert_focal_lengths :true,
         invert_y :true,
-        gt_alignment: UnitQuaternion::<Float>::identity()
+        gt_alignment_rot: UnitQuaternion::<Float>::identity()
     };
 
     let pyramid_parameters = RGBDRuntimeParameters{
@@ -71,7 +71,8 @@ fn main() {
     let mut se3_est = vec!(Matrix4::<Float>::identity());
     let mut se3_gt_targetory = vec!(Matrix4::<Float>::identity());
 
-    se3_est.extend(source_pyramids.iter().zip(target_pyramids.iter()).map(|(s,t)|  dense_direct::run(s, t,&cam , &vo_parameters)).collect::<Vec<Matrix4<Float>>>());
+
+    se3_est.extend(dense_direct::run_trajectory(&source_pyramids, &target_pyramids, &cam, &vo_parameters));
     se3_gt_targetory.extend(eth_data.source_gt_poses.iter().zip(eth_data.target_gt_poses.iter()).map(|(s,t)| {
         let se3_s = numerics::pose::se3(&s.0, &s.1);
         let se3_t = numerics::pose::se3(&t.0, &t.1);

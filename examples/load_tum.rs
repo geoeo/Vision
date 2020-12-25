@@ -2,7 +2,7 @@ extern crate image as image_rs;
 extern crate vision;
 extern crate nalgebra as na;
 
-use na::UnitQuaternion;
+use na::{Vector3,UnitQuaternion};
 use vision::io::{tum_loader,loading_parameters::LoadingParameters};
 use vision::Float;
 
@@ -31,7 +31,7 @@ fn main() {
         negate_values :true,
         invert_focal_lengths :true,
         invert_y :false,
-        gt_alignment: UnitQuaternion::<Float>::identity()
+        gt_alignment_rot: UnitQuaternion::<Float>::identity()
     };
 
     let dataset = tum_loader::Dataset::FR1;
