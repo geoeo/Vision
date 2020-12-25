@@ -2,7 +2,7 @@ extern crate image as image_rs;
 extern crate vision;
 extern crate nalgebra as na;
 
-use na::{Vector4,Matrix4, Vector3};
+use na::{Vector4,Matrix4, Vector3, UnitQuaternion};
 use vision::io::{loading_parameters::LoadingParameters,eth_loader};
 use vision::pyramid::rgbd::{RGBDPyramid,rgbd_octave::RGBDOctave, build_rgbd_pyramid,rgbd_runtime_parameters::RGBDRuntimeParameters};
 use vision::vo::{dense_direct,dense_direct::{dense_direct_runtime_parameters::DenseDirectRuntimeParameters}};
@@ -24,7 +24,8 @@ fn main() {
         count :20,
         negate_values :true,
         invert_focal_lengths :true,
-        invert_y :true
+        invert_y :true,
+        gt_alignment: UnitQuaternion::<Float>::identity()
     };
 
     let pyramid_parameters = RGBDRuntimeParameters{

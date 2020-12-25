@@ -1,7 +1,7 @@
 extern crate nalgebra as na;
 extern crate image as image_rs;
 
-use na::{Vector3, Quaternion};
+use na::{Vector3, Quaternion, Matrix4, UnitQuaternion};
 use std::path::Path;
 use std::fs::File;
 use std::io::{BufReader,BufRead};
@@ -36,7 +36,7 @@ pub fn load(root_path: &str, parameters: &LoadingParameters, dataset: &Dataset) 
 
     let rgb_ts = load_timestamps(&Path::new(&rgb_ts_name_path));
     let depth_ts = load_timestamps(&Path::new(&depth_ts_name_path));
-    let (gt_timestamps,ground_truths) = load_timestamps_ground_truths(&Path::new(&ground_truths_path));
+    let (gt_timestamps,ground_truths) = load_timestamps_ground_truths(&Path::new(&ground_truths_path), &parameters.gt_alignment);
 
     let pinhole_camera = load_intrinsics_as_pinhole(dataset, parameters.invert_focal_lengths);
 
@@ -122,7 +122,7 @@ fn load_timestamps(file_path: &Path)-> Vec<Float> {
 
 
 
-pub fn load_timestamps_ground_truths(file_path: &Path) -> (Vec<Float>,Vec<(Vector3<Float>,Quaternion<Float>)>) {
+pub fn load_timestamps_ground_truths(file_path: &Path, gt_alignment: &UnitQuaternion<Float>) -> (Vec<Float>,Vec<(Vector3<Float>,Quaternion<Float>)>) {
     let file = File::open(file_path).expect("load_ground_truths failed");
     let reader = BufReader::new(file);
     let lines = reader.lines();
@@ -149,7 +149,7 @@ pub fn load_timestamps_ground_truths(file_path: &Path) -> (Vec<Float>,Vec<(Vecto
         let quaternion = Quaternion::<Float>::new(qw,qx,qy,qz);
 
         timestamps.push(ts);
-        ground_truths.push((translation,quaternion));
+        ground_truths.push((gt_alignment*translation,gt_alignment.quaternion()*quaternion));
 
 
     }

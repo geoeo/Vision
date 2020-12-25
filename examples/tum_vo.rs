@@ -2,12 +2,12 @@ extern crate image as image_rs;
 extern crate vision;
 extern crate nalgebra as na;
 
-use na::{Vector4,Matrix4, Vector3};
+use na::{Vector4,Matrix4, Vector3, UnitQuaternion};
 use vision::io::{loading_parameters::LoadingParameters,tum_loader};
 use vision::pyramid::rgbd::{RGBDPyramid,rgbd_octave::RGBDOctave, build_rgbd_pyramid,rgbd_runtime_parameters::RGBDRuntimeParameters};
 use vision::vo::{dense_direct,dense_direct::{dense_direct_runtime_parameters::DenseDirectRuntimeParameters}};
 use vision::numerics;
-use vision::Float;
+use vision::{Float,float};
 use vision::visualize::plot;
 
 
@@ -20,19 +20,20 @@ fn main() {
     let loading_parameters = LoadingParameters {
         starting_index: 0,
         step :1,
-        count :240,
+        count :300,
         negate_values :true,
         invert_focal_lengths :true,
-        invert_y :true
+        invert_y :true,
+        gt_alignment: UnitQuaternion::<Float>::from_axis_angle(&Vector3::y_axis(),float::consts::PI)
     };
 
 
 
     let pyramid_parameters = RGBDRuntimeParameters{
-    sigma: 2.0,
+    sigma: 0.1,
     use_blur: true,
     blur_radius: 1.0,
-    octave_count: 2,
+    octave_count: 3,
     min_image_dimensions: (50,50),
     invert_grad_x : true,
     invert_grad_y : true,
@@ -60,8 +61,8 @@ fn main() {
         max_iterations: 500,
         eps: 1e-7,
         step_size: 1.0, //TODO make these paramters per octave level
-        max_norm_eps: 5e-15,
-        delta_eps: 5e-15,
+        max_norm_eps: 1e-25,
+        delta_eps: 1e-25,
         tau: 1e-3,
         lm: true,
         debug: true,
@@ -70,6 +71,8 @@ fn main() {
 
     let mut se3_est = vec!(Matrix4::<Float>::identity());
     let mut se3_gt_targetory = vec!(Matrix4::<Float>::identity());
+
+
 
     se3_est.extend(source_pyramids.iter().zip(target_pyramids.iter()).map(|(s,t)|  dense_direct::run(s, t,&cam , &vo_parameters)).collect::<Vec<Matrix4<Float>>>());
     se3_gt_targetory.extend(tum_data.source_gt_poses.iter().zip(tum_data.target_gt_poses.iter()).map(|(s,t)| {
@@ -80,6 +83,7 @@ fn main() {
 
     let est_points = numerics::pose::apply_pose_deltas_to_point(Vector4::<Float>::new(0.0,0.0,0.0,1.0), &se3_est);
     let est_gt_points = numerics::pose::apply_pose_deltas_to_point(Vector4::<Float>::new(0.0,0.0,0.0,1.0), &se3_gt_targetory);
+
 
     // for i in 0..se3_est.len() {
     //     println!("est_transform: {}",se3_est[i]);
