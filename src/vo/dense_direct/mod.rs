@@ -26,9 +26,10 @@ pub fn run(iteration: usize, source_rgdb_pyramid: &RGBDPyramid<RGBDOctave>,targe
         let result = estimate(&source_rgdb_pyramid.octaves[index],depth_image,&target_rgdb_pyramid.octaves[index],index,&lie_result,&mat_result,pinhole_camera,runtime_parameters);
         lie_result = result.0;
         mat_result = result.1;
+        let solver_iterations = result.2;
 
         if runtime_parameters.show_octave_result {
-            println!("{}, est_transform: {}",iteration,mat_result);
+            println!("{}, est_transform: {}, solver iterations: {}",iteration,mat_result, solver_iterations);
         }
 
     }
@@ -36,7 +37,7 @@ pub fn run(iteration: usize, source_rgdb_pyramid: &RGBDPyramid<RGBDOctave>,targe
     mat_result
 }
 
-fn estimate(source_octave: &RGBDOctave, source_depth_image_original: &Image, target_octave: &RGBDOctave, octave_index: usize, initial_guess_lie: &Vector6<Float>,initial_guess_mat: &Matrix4<Float>, pinhole_camera: &Pinhole, runtime_parameters: &DenseDirectRuntimeParameters) -> (Vector6<Float>,Matrix4<Float>) {
+fn estimate(source_octave: &RGBDOctave, source_depth_image_original: &Image, target_octave: &RGBDOctave, octave_index: usize, initial_guess_lie: &Vector6<Float>,initial_guess_mat: &Matrix4<Float>, pinhole_camera: &Pinhole, runtime_parameters: &DenseDirectRuntimeParameters) -> (Vector6<Float>,Matrix4<Float>, usize) {
     let source_image = &source_octave.gray_images[0];
     let target_image = &target_octave.gray_images[0];
     let x_gradient_image = &target_octave.x_gradients[0];
@@ -46,7 +47,7 @@ fn estimate(source_octave: &RGBDOctave, source_depth_image_original: &Image, tar
     let number_of_pixels_float = number_of_pixels as Float;
     let mut percentage_of_valid_pixels = 100.0;
 
-    let weights_vec = DVector::<Float>::from_element(number_of_pixels,1.0);
+    let mut weights_vec = DVector::<Float>::from_element(number_of_pixels,1.0);
     let identity_6 = Matrix6::<Float>::identity();
     let mut residuals = DVector::<Float>::from_element(number_of_pixels,float::MAX);
     let mut new_residuals = DVector::<Float>::from_element(number_of_pixels,float::MAX);
@@ -102,6 +103,11 @@ fn estimate(source_octave: &RGBDOctave, source_depth_image_original: &Image, tar
 
         new_image_gradient_points.clear();
         compute_residuals(&target_image.buffer, &source_image.buffer, &backprojected_points,&new_est_transform, &pinhole_camera,  &mut new_residuals,&mut new_image_gradient_points);
+        
+        
+        if runtime_parameters.weighting {
+            compute_t_dist_weights(&new_residuals,&mut weights_vec,new_image_gradient_points.len() as Float,5.0,20,1e-10);
+        }
         weight_residuals(&mut new_residuals, &weights_vec);
 
         percentage_of_valid_pixels = (new_image_gradient_points.len() as Float/number_of_pixels_float) *100.0;
@@ -131,7 +137,7 @@ fn estimate(source_octave: &RGBDOctave, source_depth_image_original: &Image, tar
 
             compute_image_gradients(&x_gradient_image.buffer,&y_gradient_image.buffer,&image_gradient_points,&mut image_gradients);
             compute_full_jacobian(&image_gradients,&constant_jacobians,&mut full_jacobian);
-            weight_jacobian(&mut full_jacobian_weighted,&full_jacobian, &weights_vec);
+            weight_jacobian(&mut full_jacobian_weighted, &full_jacobian, &weights_vec);
             weight_residuals(&mut residuals, &weights_vec); // We want the residual weighted by the square of the GN step
 
             let v: Float = 1.0/3.0;
@@ -140,16 +146,13 @@ fn estimate(source_octave: &RGBDOctave, source_depth_image_original: &Image, tar
         } else {
             mu = Some(nu*mu.unwrap());
             nu *= 2.0;
-
-
-        
         }
 
         iteration_count += 1;
 
     }
 
-    (est_lie,est_transform)
+    (est_lie,est_transform,iteration_count)
 }
 
 fn image_to_linear_index(r: usize, cols: usize, c: usize) -> usize {
@@ -161,7 +164,6 @@ fn linear_to_image_index(idx: usize, cols: usize) -> Point<usize> {
     let y =  ((idx  as Float) / (cols as Float)).trunc() as usize;
     Point::<usize>::new(x ,y)
 }
-
 
 fn compute_image_gradients(x_gradients: &DMatrix<Float>, y_gradients: &DMatrix<Float>,image_gradient_points: &Vec<Point<usize>>, target: &mut Matrix<Float,Dynamic,U2, VecStorage<Float,Dynamic,U2>>) -> () {
     for (idx,point) in image_gradient_points.iter().enumerate() {
@@ -203,9 +205,6 @@ fn precompute_jacobians(backprojected_points: &Matrix<Float,U4,Dynamic,VecStorag
         let point = backprojected_points.fixed_slice::<U3,U1>(0,i);
         let camera_jacobian = pinhole_camera.get_jacobian_with_respect_to_position(&point);
         let lie_jacobian = lie::jacobian_with_respect_to_transformation(&point);
-
-        
-
         precomputed_jacobians.fixed_slice_mut::<U2,U6>(i*2,0).copy_from(&(camera_jacobian*lie_jacobian));
     }
 
@@ -223,7 +222,6 @@ fn compute_residuals(target_image_buffer: &DMatrix<Float>,source_image_buffer: &
         let target_point = pinhole_camera.project(&transformed_points.fixed_slice::<U3,U1>(0,i));
         let target_point_y = target_point.y.trunc() as usize;
         let target_point_x = target_point.x.trunc() as usize;
-
 
         if source_point.y < rows && target_point_y < rows && 
            source_point.x < cols && target_point_x < cols {
@@ -257,12 +255,42 @@ fn compute_full_jacobian(image_gradients: &Matrix<Float,Dynamic,U2, VecStorage<F
 
 //TODO: part of solver
 
+fn compute_t_dist_weights(residuals: &DVector<Float>, weights_vec: &mut DVector<Float>, n: Float, t_dist_nu: Float, max_it: usize, eps: Float) -> () {
+
+    let variance = estimate_t_dist_variance(n,residuals,t_dist_nu,max_it,eps);
+    for i in 0..residuals.len() {
+        let res = residuals[i];
+        weights_vec[i] = compute_t_dist_weight(res,variance,t_dist_nu);
+    }
+}
+
 fn compute_t_dist_weight(residual: Float, variance: Float, t_dist_nu: Float) -> Float{
     (t_dist_nu + 1.0) / (t_dist_nu + residual.powi(2)/variance)
 }
 
-fn estimate_t_dist_variance(n: Float, residual: Float, t_dist_nu: Float) -> Float {
-    panic!("not yet implemented")
+fn estimate_t_dist_variance(n: Float, residuals: &DVector<Float>, t_dist_nu: Float, max_it: usize, eps: Float) -> Float {
+    let mut it = 0;
+    let mut err = float::MAX;
+    let mut variance = float::MAX; 
+
+    while it < max_it && err > eps {
+        let mut acc = 0.0;
+        for r in residuals {
+            if *r == 0.0 {
+                continue;
+            }
+            let r_sqrd = r.powi(2);
+            acc += r_sqrd*(t_dist_nu +1.0)/(t_dist_nu + r_sqrd/variance);
+        }
+
+        let var_old = variance;
+        variance = acc/n;
+        err = (variance-var_old).abs();
+        it += 1;
+    }
+
+    //println!("{},{}",it,err);
+    variance
 }
 
 
