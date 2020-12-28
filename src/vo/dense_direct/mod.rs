@@ -17,12 +17,18 @@ pub fn run_trajectory(source_rgdb_pyramids: &Vec<RGBDPyramid<RGBDOctave>>,target
 }
 
 pub fn run(iteration: usize, source_rgdb_pyramid: &RGBDPyramid<RGBDOctave>,target_rgdb_pyramid: &RGBDPyramid<RGBDOctave>, pinhole_camera: &Pinhole, runtime_parameters: &DenseDirectRuntimeParameters) -> Matrix4<Float> {
+    let octave_count = source_rgdb_pyramid.octaves.len();
+
+    assert_eq!(octave_count,runtime_parameters.taus.len());
+    assert_eq!(octave_count,runtime_parameters.step_sizes.len());
 
     let depth_image = &source_rgdb_pyramid.depth_image;
     let mut lie_result = Vector6::<Float>::zeros();
     let mut mat_result = Matrix4::<Float>::identity();
     
-    for index in (0..source_rgdb_pyramid.octaves.len()).rev() {
+    
+    for index in (0..octave_count).rev() {
+
         let result = estimate(&source_rgdb_pyramid.octaves[index],depth_image,&target_rgdb_pyramid.octaves[index],index,&lie_result,&mat_result,pinhole_camera,runtime_parameters);
         lie_result = result.0;
         mat_result = result.1;
@@ -79,8 +85,9 @@ fn estimate(source_octave: &RGBDOctave, source_depth_image_original: &Image, tar
     };
     let step = match runtime_parameters.lm {
         true => 1.0,
-        false => runtime_parameters.step_size
+        false => runtime_parameters.step_sizes[octave_index]
     };
+    let tau = runtime_parameters.taus[octave_index];
 
     compute_image_gradients(&x_gradient_image.buffer,&y_gradient_image.buffer,&image_gradient_points,&mut image_gradients);
     compute_full_jacobian(&image_gradients,&constant_jacobians,&mut full_jacobian);
@@ -94,7 +101,7 @@ fn estimate(source_octave: &RGBDOctave, source_depth_image_original: &Image, tar
             println!("it: {}, avg_rmse: {}, valid pixels: {}%",iteration_count,avg_cost.sqrt(),percentage_of_valid_pixels);
         }
 
-        let (delta,g,gain_ratio_denom, mu_val) = gauss_newton_step(&residuals, &full_jacobian, &full_jacobian_weighted, &identity_6, mu, runtime_parameters.tau);
+        let (delta,g,gain_ratio_denom, mu_val) = gauss_newton_step(&residuals, &full_jacobian, &full_jacobian_weighted, &identity_6, mu, tau);
         let new_est_lie = est_lie+ step*delta;
 
         let new_est_transform = lie::exp(&new_est_lie.fixed_slice::<U3, U1>(0, 0),&new_est_lie.fixed_slice::<U3, U1>(3, 0));

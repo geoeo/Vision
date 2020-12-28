@@ -1,7 +1,7 @@
 extern crate nalgebra as na;
 extern crate image as image_rs;
 
-use na::{Vector3, Quaternion, Matrix4, UnitQuaternion};
+use na::{Vector3, Quaternion, UnitQuaternion};
 use std::path::Path;
 use std::fs::File;
 use std::io::{BufReader,BufRead};

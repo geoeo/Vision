@@ -107,7 +107,7 @@ pub fn draw_line_graph_est_gt(data_est: &Vec<Float>,data_gt: &Vec<Float>, output
     Ok(())
 }
 
-pub fn draw_line_graph_translation_est_gt(translation_est: &Vec<Vector3<Float>>,translation_gt: &Vec<Vector3<Float>>, output_folder: &str, file_name: &str) -> Result<(), Box<dyn std::error::Error>> {
+pub fn draw_line_graph_translation_est_gt(translation_est: &Vec<Vector3<Float>>,translation_gt: &Vec<Vector3<Float>>, output_folder: &str, file_name: &str, info: &str) -> Result<(), Box<dyn std::error::Error>> {
     let x_translation_est = translation_est.iter().map(|point| point[0]).collect::<Vec<Float>>();
     let x_translation_gt = translation_gt.iter().map(|point| point[0]).collect::<Vec<Float>>();
     let y_translation_est = translation_est.iter().map(|point| point[1]).collect::<Vec<Float>>();
@@ -121,6 +121,8 @@ pub fn draw_line_graph_translation_est_gt(translation_est: &Vec<Vector3<Float>>,
     let path = format!("{}/{}",output_folder,file_name);
     let root = BitMapBackend::new(&path, (1024, 768)).into_drawing_area();
     root.fill(&WHITE)?;
+    //root.titled(info, ("sans-serif", 8))?;
+
 
     let drawing_areas = root.split_evenly((3,1));
 
@@ -137,6 +139,7 @@ pub fn draw_line_graph_translation_est_gt(translation_est: &Vec<Vector3<Float>>,
         };
 
         let mut chart = ChartBuilder::on(&drawing_areas[i])
+        .margin(30)
         .set_label_area_size(LabelAreaPosition::Left, 60)
         .set_label_area_size(LabelAreaPosition::Bottom, 60)
         .caption(title, ("sans-serif", 40))
