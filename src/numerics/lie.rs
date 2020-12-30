@@ -43,13 +43,12 @@ pub fn exp<T>(u: &Vector<Float,U3,T>, w: &Vector<Float,U3,T>) -> Matrix4<Float> 
     let V = I + B*w_x + C*w_x_sqr;
     let t = V*u;
 
-    let mut res = Matrix4::<Float>::zeros();
+    let mut res = Matrix4::<Float>::identity();
     let mut R_slice = res.fixed_slice_mut::<U3,U3>(0,0);
     R_slice.copy_from(&R);
 
     let mut t_slice = res.fixed_slice_mut::<U3,U1>(0,3);
     t_slice.copy_from(&t);
-    res[(3,3)] = 1.0;
 
     res
 
@@ -68,8 +67,8 @@ pub fn ln(se3: &Matrix4<Float>) -> Vector6<Float> {
     let w_x = ln_R(&se3.fixed_slice::<U3,U3>(0,0));
     let w_x_sqr = w_x*w_x;
     let w = vector_from_skew_symmetric(&w_x);
-    let omega = (w.transpose()*w)[0].sqrt();
-    let omega_sqr = omega.powi(2);
+    let omega_sqr = (w.transpose()*w)[0];
+    let omega = omega_sqr.sqrt();
     let A = omega.sin()/omega;
     let B = (1.0 - omega.cos())/omega_sqr;
     let factor = (1.0-A/(2.0*B))/omega_sqr;

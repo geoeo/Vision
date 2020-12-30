@@ -21,11 +21,11 @@ pub fn run(iteration: usize, source_rgdb_pyramid: &RGBDPyramid<RGBDOctave>,targe
 
     assert_eq!(octave_count,runtime_parameters.taus.len());
     assert_eq!(octave_count,runtime_parameters.step_sizes.len());
+    assert_eq!(octave_count,runtime_parameters.max_iterations.len());
 
     let depth_image = &source_rgdb_pyramid.depth_image;
     let mut lie_result = Vector6::<Float>::zeros();
     let mut mat_result = Matrix4::<Float>::identity();
-    
     
     for index in (0..octave_count).rev() {
 
@@ -88,6 +88,7 @@ fn estimate(source_octave: &RGBDOctave, source_depth_image_original: &Image, tar
         false => runtime_parameters.step_sizes[octave_index]
     };
     let tau = runtime_parameters.taus[octave_index];
+    let max_iterations = runtime_parameters.max_iterations[octave_index];
 
     compute_image_gradients(&x_gradient_image.buffer,&y_gradient_image.buffer,&image_gradient_points,&mut image_gradients);
     compute_full_jacobian(&image_gradients,&constant_jacobians,&mut full_jacobian);
@@ -96,7 +97,7 @@ fn estimate(source_octave: &RGBDOctave, source_depth_image_original: &Image, tar
 
 
     let mut iteration_count = 0;
-    while ((!runtime_parameters.lm && (avg_cost.sqrt() > runtime_parameters.eps)) || (runtime_parameters.lm && (delta_norm >= delta_thresh && max_norm_delta > runtime_parameters.max_norm_eps)))  && iteration_count < runtime_parameters.max_iterations  {
+    while ((!runtime_parameters.lm && (avg_cost.sqrt() > runtime_parameters.eps)) || (runtime_parameters.lm && (delta_norm >= delta_thresh && max_norm_delta > runtime_parameters.max_norm_eps)))  && iteration_count < max_iterations  {
         if runtime_parameters.debug{
             println!("it: {}, avg_rmse: {}, valid pixels: {}%",iteration_count,avg_cost.sqrt(),percentage_of_valid_pixels);
         }
@@ -114,6 +115,8 @@ fn estimate(source_octave: &RGBDOctave, source_depth_image_original: &Image, tar
         
         if runtime_parameters.weighting {
             compute_t_dist_weights(&new_residuals,&mut weights_vec,new_image_gradient_points.len() as Float,5.0,20,1e-10);
+            //compute_cauchy_weights(&new_residuals,&mut weights_vec);
+            //compute_huber_weights(&new_residuals,&mut weights_vec);
         }
         weight_residuals(&mut new_residuals, &weights_vec);
 
@@ -268,6 +271,25 @@ fn compute_t_dist_weights(residuals: &DVector<Float>, weights_vec: &mut DVector<
     for i in 0..residuals.len() {
         let res = residuals[i];
         weights_vec[i] = compute_t_dist_weight(res,variance,t_dist_nu);
+    }
+    
+}
+
+//Not correct weight != loss! http://ceres-solver.org/nnls_modeling.html#theory
+fn compute_cauchy_weights(residuals: &DVector<Float>, weights_vec: &mut DVector<Float>) -> () {
+    for i in 0..residuals.len() {
+        weights_vec[i] = (1.0+residuals[i]).ln();
+    }
+}
+
+fn compute_huber_weights(residuals: &DVector<Float>, weights_vec: &mut DVector<Float>) -> () {
+    for i in 0..residuals.len() {
+        let res = residuals[i];
+        weights_vec[i] = match res {
+            res if res <= 1.0 => res,
+            _ => 2.0*res.sqrt()-1.0
+        }
+
     }
 }
 

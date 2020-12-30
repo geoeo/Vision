@@ -3,7 +3,7 @@ use std::fmt;
 
 #[derive(Debug,Clone)]
 pub struct DenseDirectRuntimeParameters{
-    pub max_iterations: usize,
+    pub max_iterations: Vec<usize>,
     pub eps: Float,
     pub max_norm_eps: Float,
     pub delta_eps: Float,
@@ -19,7 +19,7 @@ impl fmt::Display for DenseDirectRuntimeParameters {
 
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
 
-        let mut display = String::from(format!("max_its_{}_w_{}",self.max_iterations,self.weighting));
+        let mut display = String::from(format!("max_its_{}_w_{}",self.max_iterations[0],self.weighting));
         match self.lm {
             true => {
                 display.push_str(format!("_lm_max_norm_eps_{:+e}_delta_eps_{:+e}",self.max_norm_eps,self.delta_eps).as_str());
