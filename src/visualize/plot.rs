@@ -121,7 +121,7 @@ pub fn draw_line_graph_translation_est_gt(translation_est: &Vec<Vector3<Float>>,
     let path = format!("{}/{}",output_folder,file_name);
     let root = BitMapBackend::new(&path, (1024, 768)).into_drawing_area();
     root.fill(&WHITE)?;
-    //root.titled(info, ("sans-serif", 8))?;
+    root.titled(info, ("sans-serif", 12))?;
 
 
     let drawing_areas = root.split_evenly((3,1));

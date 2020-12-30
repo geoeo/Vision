@@ -12,9 +12,14 @@ use vision::visualize::plot;
 
 
 fn main() {
-    let root_path = "C:/Users/Marc/Workspace/Datasets/TUM/rgbd_dataset_freiburg2_desk";
-    let dataset = tum_loader::Dataset::FR2;
-    let out_folder = "output/";
+    //let dataset_name = "freiburg3_long_office_household";
+    //let dataset_name = "freiburg3_structure_texture_near";
+    let dataset_name = "freiburg2_desk";
+    //let dataset_name = "freiburg2_rpy";
+
+    let root_path = format!("C:/Users/Marc/Workspace/Datasets/TUM/rgbd_dataset_{}",dataset_name);
+    let dataset = tum_loader::Dataset::FR3;
+    let out_folder = "C:/Users/Marc/Workspace/Rust/Vision/output";
 
 
     let loading_parameters = LoadingParameters {
@@ -30,10 +35,10 @@ fn main() {
 
 
     let pyramid_parameters = RGBDRuntimeParameters{
-    sigma: 1.0,
+    sigma: 0.1,
     use_blur: true,
     blur_radius: 1.0,
-    octave_count: 2,
+    octave_count: 4,
     min_image_dimensions: (50,50),
     invert_grad_x : true,
     invert_grad_y : true,
@@ -43,7 +48,7 @@ fn main() {
     normalize_gradients: false
 };
     
-    let tum_data = tum_loader::load(root_path, &loading_parameters,&dataset);
+    let tum_data = tum_loader::load(&root_path, &loading_parameters,&dataset);
     let source_gray_images = tum_data.source_gray_images;
     let source_depth_images = tum_data.source_depth_images;
     let target_gray_images = tum_data.target_gray_images;
@@ -58,13 +63,14 @@ fn main() {
 
 
     let vo_parameters = DenseDirectRuntimeParameters{
-        max_iterations: 500,
+        max_iterations: vec!(500,500,200,200),
         eps: 1e-7,
-        step_size: 1.0, //TODO make these paramters per octave level
-        max_norm_eps: 1e-20,
-        delta_eps: 1e-20,
-        tau: 1e-3,
+        step_sizes: vec!(0.1,0.05,0.01,0.01), 
+        max_norm_eps: 1e-25,
+        delta_eps: 1e-25,
+        taus: vec!(1e-6,1e-6,1e-3,1e-3), 
         lm: true,
+        weighting: true,
         debug: false,
         show_octave_result: true
     };
@@ -82,6 +88,17 @@ fn main() {
 
     let est_points = numerics::pose::apply_pose_deltas_to_point(Vector4::<Float>::new(0.0,0.0,0.0,1.0), &se3_est);
     let est_gt_points = numerics::pose::apply_pose_deltas_to_point(Vector4::<Float>::new(0.0,0.0,0.0,1.0), &se3_gt_targetory);
+    let mut errors = Vec::<Matrix4<Float>>::with_capacity(se3_est.len()-1);
+    for i in 0..se3_est.len()-loading_parameters.step{
+        let p_1 = se3_est[i];
+        let p_2 = se3_est[i+loading_parameters.step];
+        let q_1 = se3_gt_targetory[i];
+        let q_2 = se3_gt_targetory[i+loading_parameters.step];
+
+        errors.push(numerics::pose::error(&q_1,&q_2,&p_1,&p_2));
+    }
+
+    let rmse = numerics::pose::rsme(&errors);
 
 
     // for i in 0..se3_est.len() {
@@ -96,9 +113,10 @@ fn main() {
     //     println!("Gt Trajectory {}",est_gt_points[i]);
     // }
 
-    //plot::draw_line_graph_est_gt(&est_points.iter().map(|point| point[0]).collect::<Vec<Float>>(),&est_gt_points.iter().map(|point| point[0]).collect::<Vec<Float>>(), out_folder, "x-translation.png");
-    let out_file_name = format!("tum_translation_{}_{}_{}_.png",vo_parameters,pyramid_parameters,loading_parameters);
-    plot::draw_line_graph_translation_est_gt(&est_points.iter().map(|x| Vector3::<Float>::new(x[0],x[1], x[2])).collect::<Vec<Vector3<Float>>>(),&est_gt_points.iter().map(|x| Vector3::<Float>::new(x[0],x[1], x[2])).collect::<Vec<Vector3<Float>>>(), out_folder, &out_file_name);
+    let out_file_name = format!("{}_{}_{}_s_{}_o_{}_b_{}.png",dataset_name,loading_parameters.starting_index,vo_parameters,pyramid_parameters.sigma,pyramid_parameters.octave_count, pyramid_parameters.use_blur);
+    //let info = format!("{}_{}_{}",loading_parameters,pyramid_parameters,vo_parameters);
+    let info = format!("rsme: {}",rmse);
+    plot::draw_line_graph_translation_est_gt(&est_points.iter().map(|x| Vector3::<Float>::new(x[0],x[1], x[2])).collect::<Vec<Vector3<Float>>>(),&est_gt_points.iter().map(|x| Vector3::<Float>::new(x[0],x[1], x[2])).collect::<Vec<Vector3<Float>>>(), out_folder, &out_file_name, &info);
 
 
 
