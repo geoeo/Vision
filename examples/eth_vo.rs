@@ -12,16 +12,17 @@ use vision::visualize::plot;
 
 
 fn main() {
-    //let root_path = "C:/Users/Marc/Workspace/Datasets/ETH/urban_pinhole";
-    let root_path = "C:/Users/Marc/Workspace/Datasets/ETH/vfr_pinhole";
+    //let dataset_name = "urban_pinhole";
+    let dataset_name = "vfr_pinhole";
+    let root_path = format!("C:/Users/Marc/Workspace/Datasets/ETH/{}", dataset_name);
     let out_folder = "output/";
 
 
 
     let loading_parameters = LoadingParameters {
-        starting_index: 3,
+        starting_index: 0,
         step :1,
-        count :20,
+        count :10,
         negate_values :true,
         invert_focal_lengths :true,
         invert_y :true,
@@ -29,10 +30,10 @@ fn main() {
     };
 
     let pyramid_parameters = RGBDRuntimeParameters{
-    sigma: 2.0,
-    use_blur: false,
+    sigma: 1.0,
+    use_blur: true,
     blur_radius: 1.0,
-    octave_count: 1,
+    octave_count: 3,
     min_image_dimensions: (50,50),
     invert_grad_x : true,
     invert_grad_y : true,
@@ -42,7 +43,7 @@ fn main() {
     normalize_gradients: false
 };
     
-    let eth_data = eth_loader::load(root_path, &loading_parameters);
+    let eth_data = eth_loader::load(&root_path, &loading_parameters);
     let source_gray_images = eth_data.source_gray_images;
     let source_depth_images = eth_data.source_depth_images;
     let target_gray_images = eth_data.target_gray_images;
@@ -57,14 +58,15 @@ fn main() {
 
 
     let vo_parameters = DenseDirectRuntimeParameters{
-        max_iterations: 0,
-        eps: 1e-7,
-        step_size: 1.0, //TODO make these paramters per octave level
-        max_norm_eps: 5e-20,
-        delta_eps: 5e-20,
-        tau: 1e-3,
-        lm: false,
-        debug: true,
+        max_iterations: vec!(500,500,500),
+        eps: 1e-3,
+        step_sizes: vec!(0.05,0.05,0.05), 
+        max_norm_eps: 1e-65,
+        delta_eps: 1e-65,
+        taus: vec!(1e-6,1e-3,1e-3), 
+        lm: true,
+        weighting: false,
+        debug: false,
         show_octave_result: true
     };
 
@@ -81,6 +83,18 @@ fn main() {
 
     let est_points = numerics::pose::apply_pose_deltas_to_point(Vector4::<Float>::new(0.0,0.0,0.0,1.0), &se3_est);
     let est_gt_points = numerics::pose::apply_pose_deltas_to_point(Vector4::<Float>::new(0.0,0.0,0.0,1.0), &se3_gt_targetory);
+    let mut errors = Vec::<Matrix4<Float>>::with_capacity(se3_est.len()-1);
+    for i in 0..se3_est.len()-loading_parameters.step{
+        let p_1 = se3_est[i];
+        let p_2 = se3_est[i+loading_parameters.step];
+        let q_1 = se3_gt_targetory[i];
+        let q_2 = se3_gt_targetory[i+loading_parameters.step];
+
+        errors.push(numerics::pose::error(&q_1,&q_2,&p_1,&p_2));
+    }
+
+    let rmse = numerics::pose::rsme(&errors);
+
 
 
     // for i in 0..se3_est.len() {
@@ -94,7 +108,11 @@ fn main() {
     //     println!("Gt Trajectory {}",est_gt_points[i]);
     // }
 
-    plot::draw_line_graph_translation_est_gt(&est_points.iter().map(|x| Vector3::<Float>::new(x[0],x[1], x[2])).collect::<Vec<Vector3<Float>>>(),&est_gt_points.iter().map(|x| Vector3::<Float>::new(x[0],x[1], x[2])).collect::<Vec<Vector3<Float>>>(), out_folder, "eth_translation.png");
+    
+    let out_file_name = format!("eth_translation_{}_{}_sigma_{}_octave_{}_blur_{}.png",dataset_name,vo_parameters,pyramid_parameters.sigma,pyramid_parameters.octave_count, pyramid_parameters.use_blur);
+    //let info = format!("{}_{}_{}",loading_parameters,pyramid_parameters,vo_parameters);
+    let info = format!("rsme: {}",rmse);
+    plot::draw_line_graph_translation_est_gt(&est_points.iter().map(|x| Vector3::<Float>::new(x[0],x[1], x[2])).collect::<Vec<Vector3<Float>>>(),&est_gt_points.iter().map(|x| Vector3::<Float>::new(x[0],x[1], x[2])).collect::<Vec<Vector3<Float>>>(), out_folder, &out_file_name,&info);
 
 
 }
