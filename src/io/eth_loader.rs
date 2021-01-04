@@ -8,9 +8,9 @@ use std::io::{BufReader,Read,BufRead};
 
 use crate::Float;
 use crate::io::{loading_parameters::LoadingParameters,loaded_data::LoadedData, parse_to_float};
-use crate::image::{Image,image_encoding::ImageEncoding};
+use crate::image::Image;
 use crate::camera::pinhole::Pinhole;
-
+use crate::io::{load_image_as_gray, load_depth_image_from_csv};
 
 
 
@@ -52,7 +52,7 @@ pub fn load(root_path: &str, parameters: &LoadingParameters) -> LoadedData {
         source_depth_images: source_indices.clone().map(|s| {
             let source = &ts_names[s].1;
             let depth_source_image_path = format!("{}{}.{}",depth_image_folder,source, depth_image_format);
-            load_depth_image(&Path::new(&depth_source_image_path),parameters.negate_values, true)
+            load_depth_image_from_csv(&Path::new(&depth_source_image_path),parameters.negate_values, true, 640, 480, 1.0, false)
         }).collect::<Vec<Image>>(),
         target_gray_images: target_indices.clone().map(|t| {
             let target = &ts_names[t].1;
@@ -62,15 +62,15 @@ pub fn load(root_path: &str, parameters: &LoadingParameters) -> LoadedData {
         target_depth_images:  target_indices.clone().map(|t| {
             let target = &ts_names[t].1;
             let depth_target_image_path = format!("{}{}.{}",depth_image_folder,target, depth_image_format);
-            load_depth_image(&Path::new(&depth_target_image_path), parameters.negate_values, true)
+            load_depth_image_from_csv(&Path::new(&depth_target_image_path), parameters.negate_values, true, 640, 480, 1.0, false)
         }).collect::<Vec<Image>>(),
-        source_gt_poses: source_indices.clone().map(|s| {
-            ground_truths[s]
-        }).collect::<Vec<(Vector3<Float>,Quaternion<Float>)>>(),
         target_gt_poses: target_indices.clone().map(|t| {
             ground_truths[t]
         }).collect::<Vec<(Vector3<Float>,Quaternion<Float>)>>(),
-        pinhole_camera
+        pinhole_camera,
+        source_gt_poses: Some(source_indices.clone().map(|s| {
+            ground_truths[s]
+        }).collect::<Vec<(Vector3<Float>,Quaternion<Float>)>>())
     }
 }
 
@@ -112,36 +112,6 @@ pub fn load_ground_truths(file_path: &Path) -> Vec<(Vector3<Float>,Quaternion<Fl
 
 
 
-pub fn load_depth_image(file_path: &Path, negate_values: bool, invert_y: bool) -> Image {
-    let file = File::open(file_path).expect("load_depth_map failed");
-    let mut reader = BufReader::new(file);
-    let mut contents = String::new();
-    reader.read_to_string(&mut contents).unwrap();
-
-    let rows = 480;
-    let cols = 640;
-    let mut matrix = DMatrix::<Float>::zeros(rows,cols);
-
-    let values = contents.trim().split(" ").map(|x| parse_to_float(x,negate_values)).collect::<Vec<Float>>();
-    let values_scaled = values.iter().map(|&x| x/1.0).collect::<Vec<Float>>();
-    assert_eq!(values_scaled.len(),rows*cols);
-
-    for (idx,row) in values_scaled.chunks(cols).enumerate() {
-        let vector = RowDVector::<Float>::from_row_slice(row);
-        let row_idx = match invert_y {
-            true => rows-1-idx,
-            false => idx
-        };
-        matrix.set_row(row_idx,&vector);
-    }
-
-    Image::from_matrix(&matrix, ImageEncoding::F64, false)
-}
-
-pub fn load_image_as_gray(file_path: &Path, normalize: bool, invert_y: bool) -> Image {
-    let gray_image = image_rs::open(&Path::new(&file_path)).expect("load_image failed").to_luma8();
-    Image::from_gray_image(&gray_image, normalize, invert_y)
-}
 
 pub fn load_intrinsics_as_pinhole(file_path: &Path, invert_focal_lengths: bool) -> Pinhole {
     let file = File::open(file_path).expect("load_intrinsics failed");

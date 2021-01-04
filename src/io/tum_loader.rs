@@ -10,6 +10,7 @@ use crate::{Float,float};
 use crate::io::{loading_parameters::LoadingParameters,loaded_data::LoadedData, parse_to_float};
 use crate::image::{Image};
 use crate::camera::pinhole::Pinhole;
+use crate::io::{load_image_as_gray,load_depth_image};
 
 #[repr(u8)]
 pub enum Dataset {
@@ -62,7 +63,7 @@ pub fn load(root_path: &str, parameters: &LoadingParameters, dataset: &Dataset) 
         }).collect::<Vec<Image>>(),
         source_depth_images: source_depth_ts.iter().map(|s| {
             let depth_source_image_path = format!("{}/{:.6}.{}",depth_image_folder,s, depth_image_format);
-            load_depth_image(&Path::new(&depth_source_image_path),parameters.negate_values, true)
+            load_depth_image(&Path::new(&depth_source_image_path),parameters.negate_values, true,  5000.0)
         }).collect::<Vec<Image>>(),
         target_gray_images: target_rgb_ts.iter().map(|t| {
             let color_target_image_path = format!("{}/{:.6}.{}",color_image_folder,t, color_image_format);
@@ -70,15 +71,15 @@ pub fn load(root_path: &str, parameters: &LoadingParameters, dataset: &Dataset) 
         }).collect::<Vec<Image>>(),
         target_depth_images:  target_depth_ts.iter().map(|t| {
             let depth_target_image_path = format!("{}/{:.6}.{}",depth_image_folder,t, depth_image_format);
-            load_depth_image(&Path::new(&depth_target_image_path), parameters.negate_values, true)
+            load_depth_image(&Path::new(&depth_target_image_path), parameters.negate_values, true, 5000.0)
         }).collect::<Vec<Image>>(),
-        source_gt_poses: source_gt_indices.iter().map(|&s| {
-            ground_truths[s]
-        }).collect::<Vec<(Vector3<Float>,Quaternion<Float>)>>(),
         target_gt_poses: target_gt_indices.iter().map(|&t| {
             ground_truths[t]
         }).collect::<Vec<(Vector3<Float>,Quaternion<Float>)>>(),
-        pinhole_camera
+        pinhole_camera,
+        source_gt_poses: Some(source_gt_indices.iter().map(|&s| {
+            ground_truths[s]
+        }).collect::<Vec<(Vector3<Float>,Quaternion<Float>)>>())
     }
 }
 
@@ -156,30 +157,6 @@ pub fn load_timestamps_ground_truths(file_path: &Path, gt_alignment_rot: &UnitQu
 
     (timestamps,ground_truths)
 }
-
-pub fn load_depth_image(file_path: &Path, negate_values: bool, invert_y: bool) -> Image {
-    let depth_image = image_rs::open(&Path::new(&file_path)).expect("load_image failed").to_luma16();
-    let mut image = Image::from_depth_image(&depth_image,negate_values,invert_y);
-    image.buffer /= 5000.0;
-    let extrema = match invert_y {
-        true => image.buffer.min(),
-        false => image.buffer.max()
-    };
-    for r in 0..image.buffer.nrows(){
-        for c in 0..image.buffer.ncols(){
-            if image.buffer[(r,c)] == 0.0 {
-                image.buffer[(r,c)] = extrema;
-            }
-        }
-    }
-    image
-}
-
-pub fn load_image_as_gray(file_path: &Path, normalize: bool, invert_y: bool) -> Image {
-    let gray_image = image_rs::open(&Path::new(&file_path)).expect("load_image failed").to_luma8();
-    Image::from_gray_image(&gray_image,normalize,invert_y)
-}
-
 
 pub fn load_intrinsics_as_pinhole(dataset: &Dataset, invert_focal_lengths: bool) -> Pinhole {
     match dataset {

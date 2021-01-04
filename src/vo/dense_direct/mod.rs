@@ -115,8 +115,6 @@ fn estimate(source_octave: &RGBDOctave, source_depth_image_original: &Image, tar
         
         if runtime_parameters.weighting {
             compute_t_dist_weights(&new_residuals,&mut weights_vec,new_image_gradient_points.len() as Float,5.0,20,1e-10);
-            //compute_cauchy_weights(&new_residuals,&mut weights_vec);
-            //compute_huber_weights(&new_residuals,&mut weights_vec);
         }
         weight_residuals(&mut new_residuals, &weights_vec);
 
@@ -273,24 +271,6 @@ fn compute_t_dist_weights(residuals: &DVector<Float>, weights_vec: &mut DVector<
         weights_vec[i] = compute_t_dist_weight(res,variance,t_dist_nu);
     }
     
-}
-
-//Not correct weight != loss! http://ceres-solver.org/nnls_modeling.html#theory
-fn compute_cauchy_weights(residuals: &DVector<Float>, weights_vec: &mut DVector<Float>) -> () {
-    for i in 0..residuals.len() {
-        weights_vec[i] = (1.0+residuals[i]).ln();
-    }
-}
-
-fn compute_huber_weights(residuals: &DVector<Float>, weights_vec: &mut DVector<Float>) -> () {
-    for i in 0..residuals.len() {
-        let res = residuals[i];
-        weights_vec[i] = match res {
-            res if res <= 1.0 => res,
-            _ => 2.0*res.sqrt()-1.0
-        }
-
-    }
 }
 
 fn compute_t_dist_weight(residual: Float, variance: Float, t_dist_nu: Float) -> Float{

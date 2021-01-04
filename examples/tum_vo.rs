@@ -80,7 +80,7 @@ fn main() {
 
 
     se3_est.extend(dense_direct::run_trajectory(&source_pyramids, &target_pyramids, &cam, &vo_parameters));
-    se3_gt_targetory.extend(tum_data.source_gt_poses.iter().zip(tum_data.target_gt_poses.iter()).map(|(s,t)| {
+    se3_gt_targetory.extend(tum_data.source_gt_poses.unwrap().iter().zip(tum_data.target_gt_poses.iter()).map(|(s,t)| {
         let se3_s = numerics::pose::se3(&s.0, &s.1);
         let se3_t = numerics::pose::se3(&t.0, &t.1);
         numerics::pose::pose_difference(&se3_s, &se3_t)

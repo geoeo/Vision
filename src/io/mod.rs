@@ -1,9 +1,21 @@
+extern crate nalgebra as na;
+extern crate image as image_rs;
+
+use std::path::Path;
+use std::fs::File;
+use std::io::{BufReader,Read};
+use na::{RowDVector,DMatrix};
+use crate::image::{Image,image_encoding::ImageEncoding};
+
+
+use crate::Float;
+
 pub mod eth_loader;
 pub mod tum_loader;
+pub mod d455_loader;
 pub mod loading_parameters;
 pub mod loaded_data;
 
-use crate::Float;
 
 pub fn parse_to_float(string: &str, negate_value: bool) -> Float {
     let parts = string.split("e").collect::<Vec<&str>>();
@@ -11,6 +23,7 @@ pub fn parse_to_float(string: &str, negate_value: bool) -> Float {
         true => -1.0,
         false => 1.0
     };
+
     match parts.len() {
         1 => factor * parts[0].parse::<Float>().unwrap(),
         2 => {
@@ -20,4 +33,51 @@ pub fn parse_to_float(string: &str, negate_value: bool) -> Float {
         },
         _ => panic!("string malformed for parsing to float: {}", string)
     }
+}
+
+pub fn load_depth_image_from_csv(file_path: &Path, negate_values: bool, invert_y: bool, width: usize, height: usize, scale: Float, normalize: bool) -> Image {
+    let file = File::open(file_path).expect("load_depth_map failed");
+    let mut reader = BufReader::new(file);
+    let mut contents = String::new();
+    reader.read_to_string(&mut contents).unwrap();
+
+    let mut matrix = DMatrix::<Float>::zeros(height,width);
+
+    let values = contents.trim().split(|c| c == ' ' || c == ',' || c=='\n').map(|x| parse_to_float(x.trim(),negate_values)).collect::<Vec<Float>>();
+    let values_scaled = values.iter().map(|&x| x/scale).collect::<Vec<Float>>();
+    assert_eq!(values_scaled.len(),height*width);
+
+    for (idx,row) in values_scaled.chunks(width).enumerate() {
+        let vector = RowDVector::<Float>::from_row_slice(row);
+        let row_idx = match invert_y {
+            true => height-1-idx,
+            false => idx
+        };
+        matrix.set_row(row_idx,&vector);
+    }
+
+    Image::from_matrix(&matrix, ImageEncoding::F64, normalize)
+}
+
+pub fn load_image_as_gray(file_path: &Path, normalize: bool, invert_y: bool) -> Image {
+    let gray_image = image_rs::open(&Path::new(&file_path)).expect("load_image failed").to_luma8();
+    Image::from_gray_image(&gray_image, normalize, invert_y)
+}
+
+pub fn load_depth_image(file_path: &Path, negate_values: bool, invert_y: bool, scale: Float) -> Image {
+    let depth_image = image_rs::open(&Path::new(&file_path)).expect("load_image failed").to_luma16();
+    let mut image = Image::from_depth_image(&depth_image,negate_values,invert_y);
+    image.buffer /= scale;
+    let extrema = match invert_y {
+        true => image.buffer.min(),
+        false => image.buffer.max()
+    };
+    for r in 0..image.buffer.nrows(){
+        for c in 0..image.buffer.ncols(){
+            if image.buffer[(r,c)] == 0.0 {
+                image.buffer[(r,c)] = extrema;
+            }
+        }
+    }
+    image
 }

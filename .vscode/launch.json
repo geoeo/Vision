@@ -4,11 +4,6 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
-
-
-
-
-
         {
             "name": "Blur Launch",
             "type": "lldb",
@@ -182,6 +177,18 @@
             "type": "lldb",
             "request": "launch",
             "program": "${workspaceRoot}/target/debug/examples/tum_vo",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "env": {"RUST_BACKTRACE":"1"}
+        },
+        {
+            "name": "Load D455",
+            "type": "lldb",
+            "request": "launch",
+            "program": "${workspaceRoot}/target/debug/examples/load_d455",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
