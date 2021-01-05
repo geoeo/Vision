@@ -64,10 +64,10 @@ pub fn load(root_path: &str, parameters: &LoadingParameters) -> LoadedData {
             let depth_target_image_path = format!("{}{}.{}",depth_image_folder,target, depth_image_format);
             load_depth_image_from_csv(&Path::new(&depth_target_image_path), parameters.negate_values, true, 640, 480, 1.0, false)
         }).collect::<Vec<Image>>(),
-        target_gt_poses: target_indices.clone().map(|t| {
-            ground_truths[t]
-        }).collect::<Vec<(Vector3<Float>,Quaternion<Float>)>>(),
         pinhole_camera,
+        target_gt_poses: Some(target_indices.clone().map(|t| {
+            ground_truths[t]
+        }).collect::<Vec<(Vector3<Float>,Quaternion<Float>)>>()),
         source_gt_poses: Some(source_indices.clone().map(|s| {
             ground_truths[s]
         }).collect::<Vec<(Vector3<Float>,Quaternion<Float>)>>())

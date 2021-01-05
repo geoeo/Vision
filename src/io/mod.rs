@@ -8,7 +8,7 @@ use na::{RowDVector,DMatrix};
 use crate::image::{Image,image_encoding::ImageEncoding};
 
 
-use crate::Float;
+use crate::{float,Float};
 
 pub mod eth_loader;
 pub mod tum_loader;
@@ -80,4 +80,22 @@ pub fn load_depth_image(file_path: &Path, negate_values: bool, invert_y: bool, s
         }
     }
     image
+}
+
+pub fn closest_ts_index(ts: Float, list: &Vec<Float>) -> usize {
+    let mut min_delta = float::MAX;
+    let mut min_idx = list.len()-1;
+
+    for (idx, target_ts) in list.iter().enumerate() {
+        let delta = (ts-target_ts).abs();
+        
+        if delta < min_delta {
+            min_delta = delta;
+            min_idx = idx;
+        } else {
+            break;
+        }    
+    }
+
+    min_idx
 }

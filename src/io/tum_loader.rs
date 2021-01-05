@@ -7,7 +7,7 @@ use std::fs::File;
 use std::io::{BufReader,BufRead};
 
 use crate::{Float,float};
-use crate::io::{loading_parameters::LoadingParameters,loaded_data::LoadedData, parse_to_float};
+use crate::io::{loading_parameters::LoadingParameters,loaded_data::LoadedData, parse_to_float, closest_ts_index};
 use crate::image::{Image};
 use crate::camera::pinhole::Pinhole;
 use crate::io::{load_image_as_gray,load_depth_image};
@@ -37,7 +37,7 @@ pub fn load(root_path: &str, parameters: &LoadingParameters, dataset: &Dataset) 
 
     let rgb_ts = load_timestamps(&Path::new(&rgb_ts_name_path));
     let depth_ts = load_timestamps(&Path::new(&depth_ts_name_path));
-    let (gt_timestamps,ground_truths) = load_timestamps_ground_truths(&Path::new(&ground_truths_path), &parameters.gt_alignment_rot);
+    let (gt_timestamps,ground_truths) = load_ground_truths_and_timestamps(&Path::new(&ground_truths_path), &parameters.gt_alignment_rot);
 
     let pinhole_camera = load_intrinsics_as_pinhole(dataset, parameters.invert_focal_lengths);
 
@@ -73,33 +73,17 @@ pub fn load(root_path: &str, parameters: &LoadingParameters, dataset: &Dataset) 
             let depth_target_image_path = format!("{}/{:.6}.{}",depth_image_folder,t, depth_image_format);
             load_depth_image(&Path::new(&depth_target_image_path), parameters.negate_values, true, 5000.0)
         }).collect::<Vec<Image>>(),
-        target_gt_poses: target_gt_indices.iter().map(|&t| {
-            ground_truths[t]
-        }).collect::<Vec<(Vector3<Float>,Quaternion<Float>)>>(),
         pinhole_camera,
+        target_gt_poses: Some(target_gt_indices.iter().map(|&t| {
+            ground_truths[t]
+        }).collect::<Vec<(Vector3<Float>,Quaternion<Float>)>>()),
         source_gt_poses: Some(source_gt_indices.iter().map(|&s| {
             ground_truths[s]
         }).collect::<Vec<(Vector3<Float>,Quaternion<Float>)>>())
     }
 }
 
-fn closest_ts_index(ts: Float, list: &Vec<Float>) -> usize {
-    let mut min_delta = float::MAX;
-    let mut min_idx = list.len()-1;
 
-    for (idx, target_ts) in list.iter().enumerate() {
-        let delta = (ts-target_ts).abs();
-        
-        if delta < min_delta {
-            min_delta = delta;
-            min_idx = idx;
-        } else {
-            break;
-        }    
-    }
-
-    min_idx
-}
 
 fn load_timestamps(file_path: &Path)-> Vec<Float> {
     let file = File::open(file_path).expect("load_timestamps failed");
@@ -123,7 +107,7 @@ fn load_timestamps(file_path: &Path)-> Vec<Float> {
 
 
 
-pub fn load_timestamps_ground_truths(file_path: &Path, gt_alignment_rot: &UnitQuaternion<Float>) -> (Vec<Float>,Vec<(Vector3<Float>,Quaternion<Float>)>) {
+pub fn load_ground_truths_and_timestamps(file_path: &Path, gt_alignment_rot: &UnitQuaternion<Float>) -> (Vec<Float>,Vec<(Vector3<Float>,Quaternion<Float>)>) {
     let file = File::open(file_path).expect("load_ground_truths failed");
     let reader = BufReader::new(file);
     let lines = reader.lines();
