@@ -63,7 +63,7 @@ pub fn load(root_path: &str, parameters: &LoadingParameters, dataset: &Dataset) 
         }).collect::<Vec<Image>>(),
         source_depth_images: source_depth_ts.iter().map(|s| {
             let depth_source_image_path = format!("{}/{:.6}.{}",depth_image_folder,s, depth_image_format);
-            load_depth_image(&Path::new(&depth_source_image_path),parameters.negate_values, true,  5000.0)
+            load_depth_image(&Path::new(&depth_source_image_path),parameters.negate_depth_values, true,  5000.0)
         }).collect::<Vec<Image>>(),
         target_gray_images: target_rgb_ts.iter().map(|t| {
             let color_target_image_path = format!("{}/{:.6}.{}",color_image_folder,t, color_image_format);
@@ -71,7 +71,7 @@ pub fn load(root_path: &str, parameters: &LoadingParameters, dataset: &Dataset) 
         }).collect::<Vec<Image>>(),
         target_depth_images:  target_depth_ts.iter().map(|t| {
             let depth_target_image_path = format!("{}/{:.6}.{}",depth_image_folder,t, depth_image_format);
-            load_depth_image(&Path::new(&depth_target_image_path), parameters.negate_values, true, 5000.0)
+            load_depth_image(&Path::new(&depth_target_image_path), parameters.negate_depth_values, true, 5000.0)
         }).collect::<Vec<Image>>(),
         pinhole_camera,
         target_gt_poses: Some(target_gt_indices.iter().map(|&t| {

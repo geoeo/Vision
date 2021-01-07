@@ -18,16 +18,16 @@ fn main() {
     //let dataset_name = "freiburg2_rpy";
 
     let root_path = format!("C:/Users/Marc/Workspace/Datasets/TUM/rgbd_dataset_{}",dataset_name);
-    let dataset = tum_loader::Dataset::FR3;
+    let dataset = tum_loader::Dataset::FR2;
     let out_folder = "C:/Users/Marc/Workspace/Rust/Vision/output";
 
 
     let loading_parameters = LoadingParameters {
         starting_index: 0,
         step :1,
-        count :300,
-        negate_values :true,
-        invert_focal_lengths :true,
+        count :50,
+        negate_depth_values :false,
+        invert_focal_lengths :false,
         invert_y :true,
         gt_alignment_rot:UnitQuaternion::<Float>::from_axis_angle(&Vector3::x_axis(),float::consts::FRAC_PI_2)* UnitQuaternion::<Float>::from_axis_angle(&Vector3::y_axis(),float::consts::PI)
     };
@@ -35,18 +35,18 @@ fn main() {
 
 
     let pyramid_parameters = RGBDRuntimeParameters{
-    sigma: 0.1,
-    use_blur: true,
-    blur_radius: 1.0,
-    octave_count: 4,
-    min_image_dimensions: (50,50),
-    invert_grad_x : true,
-    invert_grad_y : true,
-    blur_grad_x : true,
-    blur_grad_y: true,
-    normalize_gray: true,
-    normalize_gradients: false
-};
+        sigma: 0.1,
+        use_blur: true,
+        blur_radius: 1.0,
+        octave_count: 4,
+        min_image_dimensions: (50,50),
+        invert_grad_x : true,
+        invert_grad_y : true,
+        blur_grad_x : true,
+        blur_grad_y: true,
+        normalize_gray: true,
+        normalize_gradients: false
+    };
     
     let tum_data = tum_loader::load(&root_path, &loading_parameters,&dataset);
     let source_gray_images = tum_data.source_gray_images;
@@ -65,9 +65,9 @@ fn main() {
     let vo_parameters = DenseDirectRuntimeParameters{
         max_iterations: vec!(500,500,200,200),
         eps: 1e-7,
-        step_sizes: vec!(0.1,0.05,0.01,0.01), 
-        max_norm_eps: 1e-25,
-        delta_eps: 1e-25,
+        step_sizes: vec!(1.0,0.5,0.1,0.1), 
+        max_norm_eps: 1e-35,
+        delta_eps: 1e-35,
         taus: vec!(1e-6,1e-6,1e-3,1e-3), 
         lm: true,
         weighting: true,

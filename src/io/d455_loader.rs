@@ -38,22 +38,28 @@ pub fn load(root_path: &str, parameters: &LoadingParameters) -> LoadedData {
     let target_depth_indices = target_rgb_ts.iter().map(|&x| closest_ts_index(x, &depth_ts)).collect::<Vec<usize>>(); //TODO: check out of range
 
 
+
+
     LoadedData {
         source_gray_images: source_rgb_indices.map(|i| {
             let color_source_image_path = format!("{}/{}",color_image_folder,rgb_ts_string[i]);
+            //println!("source color: {}", color_source_image_path);
             load_image_as_gray(&Path::new(&color_source_image_path), false, parameters.invert_y)
         }).collect::<Vec<Image>>(),
         source_depth_images: source_depth_indices.iter().map(|&i| {
             let depth_source_image_path = format!("{}/{}",depth_image_folder,depth_ts_string[i]);
-            load_depth_image_from_csv(&Path::new(&depth_source_image_path), parameters.negate_values, parameters.invert_y,640,480,1.0,false) //TODO: pass into
+            //println!("source depth: {}", depth_source_image_path);
+            load_depth_image_from_csv(&Path::new(&depth_source_image_path), parameters.negate_depth_values, parameters.invert_y,640,480,1.0,false) //TODO: pass into
         }).collect::<Vec<Image>>(),
         target_gray_images: target_rgb_indices.map(|i| {
             let color_target_image_path = format!("{}/{}",color_image_folder,rgb_ts_string[i]);
+            //println!("target color: {}", color_target_image_path);
             load_image_as_gray(&Path::new(&color_target_image_path), false, parameters.invert_y)
         }).collect::<Vec<Image>>(),
         target_depth_images:  target_depth_indices.iter().map(|&i| {
             let depth_target_image_path = format!("{}/{}",depth_image_folder,depth_ts_string[i]);
-            load_depth_image_from_csv(&Path::new(&depth_target_image_path), parameters.negate_values, parameters.invert_y,640,480,1.0,false) //TODO: pass into
+            //println!("target depth: {}", depth_target_image_path);
+            load_depth_image_from_csv(&Path::new(&depth_target_image_path), parameters.negate_depth_values, parameters.invert_y,640,480,1.0,false) //TODO: pass into
         }).collect::<Vec<Image>>(),
         pinhole_camera,
         target_gt_poses: None,
@@ -64,7 +70,6 @@ pub fn load(root_path: &str, parameters: &LoadingParameters) -> LoadedData {
 fn load_timestamps(dir_path: &Path, image_format: &str, negate_value: bool)-> (Vec<Float>,Vec<String>) {
     let mut timestamps = Vec::<Float>::new();
     let mut timestamps_string = Vec::<String>::new();
-
 
     if dir_path.is_dir() {
         for entry_result in std::fs::read_dir(dir_path).unwrap() {

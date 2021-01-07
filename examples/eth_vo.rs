@@ -23,7 +23,7 @@ fn main() {
         starting_index: 0,
         step :1,
         count :10,
-        negate_values :true,
+        negate_depth_values :true,
         invert_focal_lengths :true,
         invert_y :true,
         gt_alignment_rot: UnitQuaternion::<Float>::identity()

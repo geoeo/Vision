@@ -35,8 +35,8 @@ fn main() {
 
 
 
-    let converted_file_out_path = format!("{}{}_out.png",image_out_folder,color_image_name);
-    let new_image = gray_display.to_image();
+    let converted_file_out_path = format!("{}{}_out.png",image_out_folder,depth_image_name);
+    let new_image = depth_display.to_image();
     new_image.save(converted_file_out_path).unwrap();
 
 
