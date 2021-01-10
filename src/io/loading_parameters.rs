@@ -11,6 +11,7 @@ pub struct LoadingParameters {
     pub negate_depth_values: bool,
     pub invert_focal_lengths: bool,
     pub invert_y: bool,
+    pub set_default_depth: bool,
     pub gt_alignment_rot: UnitQuaternion<Float>
 }
 

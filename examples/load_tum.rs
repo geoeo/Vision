@@ -31,6 +31,7 @@ fn main() {
         negate_depth_values :true,
         invert_focal_lengths :true,
         invert_y :false,
+        set_default_depth: true,
         gt_alignment_rot: UnitQuaternion::<Float>::identity()
     };
 

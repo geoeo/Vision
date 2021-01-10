@@ -25,7 +25,7 @@ fn main() {
     //let intrinsics_path = format!("{}{}.{}",intrinsics_folder,intrinsics_name, intrinsics_format);
 
     let gray_display = load_image_as_gray(&Path::new(&color_image_path), false, false);
-    let depth_display = load_depth_image_from_csv(&Path::new(&depth_image_path), false, false, 640,480, 1.0, false);
+    let depth_display = load_depth_image_from_csv(&Path::new(&depth_image_path), false, false, 640,480, 1.0, false, true);
 
 
     //let depth_2_display = load_depth_image(&Path::new(&depth_2_image_path), false,false, 5000.0);

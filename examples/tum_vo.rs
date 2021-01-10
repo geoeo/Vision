@@ -26,24 +26,25 @@ fn main() {
         starting_index: 0,
         step :1,
         count :50,
-        negate_depth_values :false,
-        invert_focal_lengths :false,
+        negate_depth_values :true,
+        invert_focal_lengths :true,
         invert_y :true,
+        set_default_depth: true,
         gt_alignment_rot:UnitQuaternion::<Float>::from_axis_angle(&Vector3::x_axis(),float::consts::FRAC_PI_2)* UnitQuaternion::<Float>::from_axis_angle(&Vector3::y_axis(),float::consts::PI)
     };
 
 
 
     let pyramid_parameters = RGBDRuntimeParameters{
-        sigma: 0.1,
+        sigma: 1.0,
         use_blur: true,
         blur_radius: 1.0,
         octave_count: 4,
         min_image_dimensions: (50,50),
         invert_grad_x : true,
         invert_grad_y : true,
-        blur_grad_x : true,
-        blur_grad_y: true,
+        blur_grad_x : false,
+        blur_grad_y: false,
         normalize_gray: true,
         normalize_gradients: false
     };
@@ -63,12 +64,12 @@ fn main() {
 
 
     let vo_parameters = DenseDirectRuntimeParameters{
-        max_iterations: vec!(500,500,200,200),
-        eps: 1e-7,
-        step_sizes: vec!(1.0,0.5,0.1,0.1), 
-        max_norm_eps: 1e-35,
-        delta_eps: 1e-35,
-        taus: vec!(1e-6,1e-6,1e-3,1e-3), 
+        max_iterations: vec!(500,500,500,500),
+        eps: 1e-4,
+        step_sizes: vec!(0.01,0.01,0.01,0.01), 
+        max_norm_eps: 1e-65,
+        delta_eps: 1e-65,
+        taus: vec!(1e-6,1e-3,1e-3,1e-0), 
         lm: true,
         weighting: true,
         debug: false,

@@ -43,23 +43,19 @@ pub fn load(root_path: &str, parameters: &LoadingParameters) -> LoadedData {
     LoadedData {
         source_gray_images: source_rgb_indices.map(|i| {
             let color_source_image_path = format!("{}/{}",color_image_folder,rgb_ts_string[i]);
-            //println!("source color: {}", color_source_image_path);
             load_image_as_gray(&Path::new(&color_source_image_path), false, parameters.invert_y)
         }).collect::<Vec<Image>>(),
         source_depth_images: source_depth_indices.iter().map(|&i| {
             let depth_source_image_path = format!("{}/{}",depth_image_folder,depth_ts_string[i]);
-            //println!("source depth: {}", depth_source_image_path);
-            load_depth_image_from_csv(&Path::new(&depth_source_image_path), parameters.negate_depth_values, parameters.invert_y,640,480,1.0,false) //TODO: pass into
+            load_depth_image_from_csv(&Path::new(&depth_source_image_path), parameters.negate_depth_values, parameters.invert_y,640,480,1.0,false,parameters.set_default_depth) //TODO: pass into
         }).collect::<Vec<Image>>(),
         target_gray_images: target_rgb_indices.map(|i| {
             let color_target_image_path = format!("{}/{}",color_image_folder,rgb_ts_string[i]);
-            //println!("target color: {}", color_target_image_path);
             load_image_as_gray(&Path::new(&color_target_image_path), false, parameters.invert_y)
         }).collect::<Vec<Image>>(),
         target_depth_images:  target_depth_indices.iter().map(|&i| {
             let depth_target_image_path = format!("{}/{}",depth_image_folder,depth_ts_string[i]);
-            //println!("target depth: {}", depth_target_image_path);
-            load_depth_image_from_csv(&Path::new(&depth_target_image_path), parameters.negate_depth_values, parameters.invert_y,640,480,1.0,false) //TODO: pass into
+            load_depth_image_from_csv(&Path::new(&depth_target_image_path), parameters.negate_depth_values, parameters.invert_y,640,480,1.0,false,parameters.set_default_depth) //TODO: pass into
         }).collect::<Vec<Image>>(),
         pinhole_camera,
         target_gt_poses: None,

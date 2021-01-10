@@ -26,6 +26,7 @@ fn main() {
         negate_depth_values :true,
         invert_focal_lengths :true,
         invert_y :true,
+        set_default_depth: true,
         gt_alignment_rot:UnitQuaternion::identity()
     };
 
@@ -40,7 +41,7 @@ fn main() {
     println!("{:?}",loaded_data.pinhole_camera.projection);
 
     let pyramid_parameters = RGBDRuntimeParameters{
-        sigma: 0.01,
+        sigma: 0.1,
         use_blur: true,
         blur_radius: 1.0,
         octave_count: 4,

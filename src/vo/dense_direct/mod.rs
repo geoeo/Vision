@@ -40,6 +40,15 @@ pub fn run(iteration: usize, source_rgdb_pyramid: &RGBDPyramid<RGBDOctave>,targe
 
     }
 
+    let mut lie_final = lie_result;
+    //lie_final[2] *= -1.0;
+
+    mat_result = lie::exp(&lie_final.fixed_slice::<U3, U1>(0, 0),&lie_final.fixed_slice::<U3, U1>(3, 0));
+
+    if runtime_parameters.show_octave_result {
+        println!("final: est_transform: {}",mat_result);
+    }
+
     mat_result
 }
 
@@ -62,7 +71,7 @@ fn estimate(source_octave: &RGBDOctave, source_depth_image_original: &Image, tar
     let mut image_gradients =  Matrix::<Float,Dynamic,U2, VecStorage<Float,Dynamic,U2>>::zeros(number_of_pixels);
     let mut image_gradient_points = Vec::<Point<usize>>::with_capacity(number_of_pixels);
     let mut new_image_gradient_points = Vec::<Point<usize>>::with_capacity(number_of_pixels);
-    let (backprojected_points, backprojected_points_flags) = backproject_points(&source_image.buffer, &source_depth_image_original.buffer, &pinhole_camera, octave_index);
+    let (backprojected_points,backprojected_points_flags) = backproject_points(&source_image.buffer, &source_depth_image_original.buffer, &pinhole_camera, octave_index);
     let constant_jacobians = precompute_jacobians(&backprojected_points,&backprojected_points_flags,&pinhole_camera);
 
     let mut est_transform = initial_guess_mat.clone();
@@ -90,7 +99,7 @@ fn estimate(source_octave: &RGBDOctave, source_depth_image_original: &Image, tar
     let tau = runtime_parameters.taus[octave_index];
     let max_iterations = runtime_parameters.max_iterations[octave_index];
 
-    compute_image_gradients(&x_gradient_image.buffer,&y_gradient_image.buffer,&image_gradient_points,&backprojected_points_flags,&mut image_gradients);
+    compute_image_gradients(&x_gradient_image.buffer,&y_gradient_image.buffer,&image_gradient_points,&mut image_gradients);
     compute_full_jacobian(&image_gradients,&constant_jacobians,&mut full_jacobian);
     weight_jacobian(&mut full_jacobian_weighted,&full_jacobian, &weights_vec);
     weight_residuals(&mut residuals, &weights_vec); // We want the residual weighted by the square of the GN step
@@ -145,7 +154,7 @@ fn estimate(source_octave: &RGBDOctave, source_depth_image_original: &Image, tar
             image_gradient_points = new_image_gradient_points.clone();
             residuals = new_residuals.clone();
 
-            compute_image_gradients(&x_gradient_image.buffer,&y_gradient_image.buffer,&image_gradient_points,&backprojected_points_flags,&mut image_gradients);
+            compute_image_gradients(&x_gradient_image.buffer,&y_gradient_image.buffer,&image_gradient_points,&mut image_gradients);
             compute_full_jacobian(&image_gradients,&constant_jacobians,&mut full_jacobian);
             weight_jacobian(&mut full_jacobian_weighted, &full_jacobian, &weights_vec);
             weight_residuals(&mut residuals, &weights_vec); // We want the residual weighted by the square of the GN step
@@ -175,27 +184,26 @@ fn linear_to_image_index(idx: usize, cols: usize) -> Point<usize> {
     Point::<usize>::new(x ,y)
 }
 
-fn compute_image_gradients(x_gradients: &DMatrix<Float>, y_gradients: &DMatrix<Float>,image_gradient_points: &Vec<Point<usize>>,backprojected_points_flags: &Matrix<Float,U1,Dynamic,VecStorage<Float,U1,Dynamic>>, target: &mut Matrix<Float,Dynamic,U2, VecStorage<Float,Dynamic,U2>>) -> () {
-    for (_,point) in image_gradient_points.iter().enumerate() {
+fn compute_image_gradients(x_gradients: &DMatrix<Float>, y_gradients: &DMatrix<Float>,image_gradient_points: &Vec<Point<usize>>, target: &mut Matrix<Float,Dynamic,U2, VecStorage<Float,Dynamic,U2>>) -> () {
+    for (idx,point) in image_gradient_points.iter().enumerate() {
         let r = point.y;
         let c = point.x;
-        let linear_idx = image_to_linear_index(r,x_gradients.ncols(),c);
-        if r < x_gradients.nrows() && c < x_gradients.ncols() && backprojected_points_flags[(0,linear_idx)] != 0.0 {
+        if r < x_gradients.nrows() && c < x_gradients.ncols() {
             let x_grad = x_gradients[(r,c)];
             let y_grad = y_gradients[(r,c)];
-            target.set_row(linear_idx,&RowVector2::new(x_grad,y_grad));
+            target.set_row(idx,&RowVector2::new(x_grad,y_grad));
         } else {
-            target.set_row(linear_idx,&RowVector2::new(0.0,0.0));
+            target.set_row(idx,&RowVector2::new(0.0,0.0));
         }
 
     }
 
 }
 
-fn backproject_points(source_image_buffer: &DMatrix<Float>,depth_image_buffer: &DMatrix<Float>,  pinhole_camera: &Pinhole, octave_index: usize) -> (Matrix<Float,U4,Dynamic,VecStorage<Float,U4,Dynamic>>,Matrix<Float,U1,Dynamic,VecStorage<Float,U1,Dynamic>>) {
+fn backproject_points(source_image_buffer: &DMatrix<Float>,depth_image_buffer: &DMatrix<Float>,  pinhole_camera: &Pinhole, octave_index: usize) -> (Matrix<Float,U4,Dynamic,VecStorage<Float,U4,Dynamic>>, Vec<bool>) {
     let (rows,cols) = source_image_buffer.shape();
     let mut backproject_points =  Matrix::<Float,U4,Dynamic,VecStorage<Float,U4,Dynamic>>::zeros(rows*cols);
-    let mut backproject_points_flags = Matrix::<Float,U1,Dynamic,VecStorage<Float,U1,Dynamic>>::zeros(rows*cols);
+    let mut backproject_points_flags =  vec![false;rows*cols];
     let number_of_points = rows*cols;
 
     for i in 0..number_of_points {
@@ -209,32 +217,34 @@ fn backproject_points(source_image_buffer: &DMatrix<Float>,depth_image_buffer: &
         if depth_sample != 0.0 {
             let backprojected_point = pinhole_camera.backproject(&Point::<Float>::new(c as Float,r as Float), depth_sample);
             backproject_points.set_column(image_to_linear_index(r,cols,c),&Vector4::<Float>::new(backprojected_point[0],backprojected_point[1],backprojected_point[2],1.0));
-            backproject_points_flags.set_column(image_to_linear_index(r,cols,c),&Vector1::<Float>::new(1.0));
+            backproject_points_flags[image_to_linear_index(r,cols,c)] = true;
+        } else {
+            backproject_points.set_column(image_to_linear_index(r,cols,c),&Vector4::<Float>::new(0.0,0.0,0.0,1.0));
         }
-
     }
     (backproject_points,backproject_points_flags)
 }
 
-fn precompute_jacobians(backprojected_points: &Matrix<Float,U4,Dynamic,VecStorage<Float,U4,Dynamic>>,backprojected_points_flags: &Matrix<Float,U1,Dynamic,VecStorage<Float,U1,Dynamic>>, pinhole_camera: &Pinhole) -> Matrix<Float,Dynamic,U6, VecStorage<Float,Dynamic,U6>> {
+fn precompute_jacobians(backprojected_points: &Matrix<Float,U4,Dynamic,VecStorage<Float,U4,Dynamic>>,backprojected_points_flags: &Vec<bool>, pinhole_camera: &Pinhole) -> Matrix<Float,Dynamic,U6, VecStorage<Float,Dynamic,U6>> {
     let number_of_points = backprojected_points.ncols();
     let mut precomputed_jacobians = Matrix::<Float,Dynamic,U6, VecStorage<Float,Dynamic,U6>>::zeros(2*number_of_points);
 
     for i in 0..number_of_points {
-        if backprojected_points_flags[(0,i)] != 0.0 {
-
+        if backprojected_points_flags[i] {
             let point = backprojected_points.fixed_slice::<U3,U1>(0,i);
             let camera_jacobian = pinhole_camera.get_jacobian_with_respect_to_position(&point);
             let lie_jacobian = lie::jacobian_with_respect_to_transformation(&point);
             precomputed_jacobians.fixed_slice_mut::<U2,U6>(i*2,0).copy_from(&(camera_jacobian*lie_jacobian));
         }
 
+        
+
     }
 
     precomputed_jacobians
 }
 
-fn compute_residuals(target_image_buffer: &DMatrix<Float>,source_image_buffer: &DMatrix<Float>,backprojected_points: &Matrix<Float,U4,Dynamic,VecStorage<Float,U4,Dynamic>>,backprojected_points_flags:&Matrix<Float,U1,Dynamic,VecStorage<Float,U1,Dynamic>> , est_transform: &Matrix4<Float>, pinhole_camera: &Pinhole, residual_target: &mut DVector<Float>,image_gradient_points: &mut Vec<Point<usize>>) -> () {
+fn compute_residuals(target_image_buffer: &DMatrix<Float>,source_image_buffer: &DMatrix<Float>,backprojected_points: &Matrix<Float,U4,Dynamic,VecStorage<Float,U4,Dynamic>>,backprojected_points_flags: &Vec<bool>, est_transform: &Matrix4<Float>, pinhole_camera: &Pinhole, residual_target: &mut DVector<Float>,image_gradient_points: &mut Vec<Point<usize>>) -> () {
     let transformed_points = est_transform*backprojected_points;
     let number_of_points = transformed_points.ncols();
     let image_width = target_image_buffer.ncols();
@@ -245,10 +255,12 @@ fn compute_residuals(target_image_buffer: &DMatrix<Float>,source_image_buffer: &
         let target_point = pinhole_camera.project(&transformed_points.fixed_slice::<U3,U1>(0,i));
         let target_point_y = target_point.y.trunc() as usize;
         let target_point_x = target_point.x.trunc() as usize;
+        let target_linear_idx = image_to_linear_index(target_point_y, image_width, target_point_x);
 
         if source_point.y < rows && target_point_y < rows && 
-           source_point.x < cols && target_point_x < cols &&
-           backprojected_points_flags[(0,i)] != 0.0{
+           source_point.x < cols && target_point_x < cols && 
+           backprojected_points_flags[i] &&
+           backprojected_points_flags[target_linear_idx]{
             image_gradient_points.push(Point::<usize>::new(target_point_x,target_point_y));
             let source_sample = source_image_buffer[(source_point.y,source_point.x)];
             let target_sample = target_image_buffer[(target_point_y,target_point_x)];
