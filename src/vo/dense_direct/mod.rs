@@ -1,12 +1,12 @@
 extern crate nalgebra as na;
 
-use na::{U1,U2,U3,U4,U6,RowVector2,Vector1,Vector4,Vector6,DVector,Matrix4,Matrix,Matrix6,DMatrix,Dynamic,VecStorage};
+use na::{U1,U2,U3,U4,U6,RowVector2,Vector4,Vector6,DVector,Matrix4,Matrix,Matrix6,DMatrix,Dynamic,VecStorage};
 
 use crate::pyramid::rgbd::{RGBDPyramid,rgbd_octave::RGBDOctave};
 use crate::camera::{Camera,pinhole::Pinhole};
 use crate::vo::dense_direct::dense_direct_runtime_parameters::DenseDirectRuntimeParameters;
 use crate::image::Image;
-use crate::numerics::lie;
+use crate::numerics::{quadratic_roots,lie,loss::LossFunction};
 use crate::features::geometry::point::Point;
 use crate::{Float,float,reconstruct_original_coordiantes};
 
@@ -39,11 +39,6 @@ pub fn run(iteration: usize, source_rgdb_pyramid: &RGBDPyramid<RGBDOctave>,targe
         }
 
     }
-
-    let mut lie_final = lie_result;
-    //lie_final[2] *= -1.0;
-
-    mat_result = lie::exp(&lie_final.fixed_slice::<U3, U1>(0, 0),&lie_final.fixed_slice::<U3, U1>(3, 0));
 
     if runtime_parameters.show_octave_result {
         println!("final: est_transform: {}",mat_result);
@@ -121,7 +116,7 @@ fn estimate(source_octave: &RGBDOctave, source_depth_image_original: &Image, tar
 
 
         new_image_gradient_points.clear();
-        compute_residuals(&target_image.buffer, &source_image.buffer, &backprojected_points,&backprojected_points_flags,&new_est_transform, &pinhole_camera,  &mut new_residuals,&mut new_image_gradient_points);
+        compute_residuals(&target_image.buffer, &source_image.buffer, &backprojected_points,&backprojected_points_flags,&new_est_transform, &pinhole_camera , &mut new_residuals,&mut new_image_gradient_points);
         
         
         if runtime_parameters.weighting {
@@ -137,9 +132,6 @@ fn estimate(source_octave: &RGBDOctave, source_depth_image_original: &Image, tar
             //println!("{},{}",cost,new_cost);
         }
         if gain_ratio >= 0.0  || !runtime_parameters.lm {
-            if runtime_parameters.debug{
-                //println!("gain");
-            }
             est_lie = new_est_lie.clone();
             est_transform = new_est_transform.clone();
             cost = new_cost;
@@ -148,8 +140,6 @@ fn estimate(source_octave: &RGBDOctave, source_depth_image_original: &Image, tar
             max_norm_delta = g.max();
             delta_norm = delta.norm();
             delta_thresh = runtime_parameters.delta_eps*(est_lie.norm() + runtime_parameters.delta_eps);
-
-            //println!("{},{}",max_norm_delta,delta_thresh);
 
             image_gradient_points = new_image_gradient_points.clone();
             residuals = new_residuals.clone();
@@ -244,7 +234,7 @@ fn precompute_jacobians(backprojected_points: &Matrix<Float,U4,Dynamic,VecStorag
     precomputed_jacobians
 }
 
-fn compute_residuals(target_image_buffer: &DMatrix<Float>,source_image_buffer: &DMatrix<Float>,backprojected_points: &Matrix<Float,U4,Dynamic,VecStorage<Float,U4,Dynamic>>,backprojected_points_flags: &Vec<bool>, est_transform: &Matrix4<Float>, pinhole_camera: &Pinhole, residual_target: &mut DVector<Float>,image_gradient_points: &mut Vec<Point<usize>>) -> () {
+fn compute_residuals(target_image_buffer: &DMatrix<Float>,source_image_buffer: &DMatrix<Float>,backprojected_points: &Matrix<Float,U4,Dynamic,VecStorage<Float,U4,Dynamic>>,backprojected_points_flags: &Vec<bool>, est_transform: &Matrix4<Float>, pinhole_camera: &Pinhole, residual_target: &mut DVector<Float>, image_gradient_points: &mut Vec<Point<usize>>) -> () {
     let transformed_points = est_transform*backprojected_points;
     let number_of_points = transformed_points.ncols();
     let image_width = target_image_buffer.ncols();
@@ -326,7 +316,6 @@ fn estimate_t_dist_variance(n: Float, residuals: &DVector<Float>, t_dist_nu: Flo
         it += 1;
     }
 
-    //println!("{},{}",it,err);
     variance
 }
 
@@ -346,8 +335,6 @@ fn weight_jacobian(jacobian_target: &mut Matrix<Float,Dynamic,U6,VecStorage<Floa
 
 #[allow(non_snake_case)]
 fn gauss_newton_step(residuals_weighted: &DVector<Float>, jacobian: &Matrix<Float,Dynamic,U6,VecStorage<Float,Dynamic,U6>>,jacobian_weighted: &Matrix<Float,Dynamic,U6,VecStorage<Float,Dynamic,U6>>,identity_6: &Matrix6<Float>, mu: Option<Float>, tau: Float) -> (Vector6<Float>,Vector6<Float>,Float,Float) {
-
-
     let A = jacobian.transpose()*jacobian_weighted;
     let mu_val = match mu {
         None => tau*A.diagonal().max(),
@@ -357,9 +344,34 @@ fn gauss_newton_step(residuals_weighted: &DVector<Float>, jacobian: &Matrix<Floa
     let g = jacobian.transpose()*residuals_weighted;
     let decomp = (A+ mu_val*identity_6).lu();
     let h = decomp.solve(&(-g)).expect("Linear resolution failed.");
-    let gain_ratio_denom = 0.5*h.transpose()*(mu_val*h-g);
+    let gain_ratio_denom = h.transpose()*(mu_val*h-g);
     (h,g,gain_ratio_denom[0], mu_val)
 }
+
+#[allow(non_snake_case)]
+fn gauss_newton_step_with_loss(residuals: &DVector<Float>, jacobian: &Matrix<Float,Dynamic,U6,VecStorage<Float,Dynamic,U6>>,identity_6: &Matrix6<Float>, mu: Option<Float>, tau: Float, loss_function: &dyn LossFunction) -> (Vector6<Float>,Vector6<Float>,Float,Float) {
+
+    let (root_1,root_2) = match loss_function.is_valid() {
+        true =>  quadratic_roots(0.5,-1.0,(-loss_function.second_derivative_at_current()/loss_function.first_derivative_at_current())*loss_function.current_cost()),
+        false => loss_function.root_approx()
+    };
+    let selected_root = root_1; //TODO: test with other root!
+    let first_derivative_sqrt = loss_function.first_derivative_at_current().sqrt();
+    let reweighted_jacobian = first_derivative_sqrt*(jacobian-(selected_root/loss_function.current_cost())*(residuals*residuals.transpose())*jacobian);
+    let reweighted_residuals = first_derivative_sqrt/(1.0-selected_root)*residuals;
+    let A = &reweighted_jacobian.transpose()*&reweighted_jacobian;
+    let mu_val = match mu {
+        None => tau*A.diagonal().max(),
+        Some(v) => v
+    };
+
+    let g = reweighted_jacobian.transpose()*reweighted_residuals;
+    let decomp = (A+ mu_val*identity_6).lu();
+    let h = decomp.solve(&(-g)).expect("Linear resolution failed.");
+    let gain_ratio_denom = h.transpose()*(mu_val*h-g);
+    (h,g,gain_ratio_denom[0], mu_val)
+}
+
 
 fn compute_cost(residuals: &DVector<Float>) -> Float {
     (residuals.transpose()*residuals)[0]

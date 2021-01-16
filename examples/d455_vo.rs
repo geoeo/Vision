@@ -20,9 +20,9 @@ fn main() {
 
 
     let loading_parameters = LoadingParameters {
-        starting_index: 20,
+        starting_index: 0,
         step :1,
-        count :10,
+        count :60,
         negate_depth_values :true,
         invert_focal_lengths :true,
         invert_y :true,
@@ -41,15 +41,15 @@ fn main() {
     println!("{:?}",loaded_data.pinhole_camera.projection);
 
     let pyramid_parameters = RGBDRuntimeParameters{
-        sigma: 0.1,
+        sigma: 1.0,
         use_blur: true,
         blur_radius: 1.0,
         octave_count: 4,
         min_image_dimensions: (50,50),
         invert_grad_x : true,
         invert_grad_y : true,
-        blur_grad_x : true,
-        blur_grad_y: true,
+        blur_grad_x : false,
+        blur_grad_y: false,
         normalize_gray: true,
         normalize_gradients: false
     };
@@ -61,9 +61,9 @@ fn main() {
         max_iterations: vec!(500,500,500,500),
         eps: 1e-55,
         step_sizes: vec!(1.0,1.0,1.0,1.0), 
-        max_norm_eps: 1e-55,
-        delta_eps: 1e-55,
-        taus: vec!(10e10,10e10,10e10,10e10), 
+        max_norm_eps: 1e-35,
+        delta_eps: 1e-35,
+        taus: vec!(1e-3,1e-3,1e-3,1e-3), 
         lm: true,
         weighting: false,
         debug: false,
@@ -75,7 +75,7 @@ fn main() {
 
     let est_points = numerics::pose::apply_pose_deltas_to_point(Vector4::<Float>::new(0.0,0.0,0.0,1.0), &se3_est);
 
-    let out_file_name = format!("d455_{}.png",dataset_name);
+    let out_file_name = format!("d455_{}_start_{}_counter_{}_w_{}.png",dataset_name,loading_parameters.starting_index,loading_parameters.count,vo_parameters.weighting );
 
     let info = "";
     plot::draw_line_graph_translation_est(&est_points.iter().map(|x| Vector3::<Float>::new(x[0],x[1], x[2])).collect::<Vec<Vector3<Float>>>(), out_folder, &out_file_name, &info);

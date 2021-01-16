@@ -8,6 +8,22 @@ pub mod lie;
 pub mod pose;
 pub mod loss;
 
+pub fn quadratic_roots(a: Float, b: Float, c: Float) -> (Float,Float) {
+    let det = b.powi(2)-4.0*a*c;
+    match det {
+        det if det > 0.0 => {
+            let det_sqrt = det.sqrt();
+            ((-b - det_sqrt)/2.0*a,(-b + det_sqrt)/2.0*a)
+        },
+        det if det < 0.0 => panic!("determinat less than zero, no real solutions"),
+        _ => {
+            let res = -b/2.0*a;
+            (res,res)
+        }
+
+    }
+}
+
 pub fn round(number: Float, dp: i32) -> Float {
     let n = (10.0 as Float).powi(dp);
     (number * n).round()/n

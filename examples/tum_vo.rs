@@ -25,7 +25,7 @@ fn main() {
     let loading_parameters = LoadingParameters {
         starting_index: 0,
         step :1,
-        count :50,
+        count :75,
         negate_depth_values :true,
         invert_focal_lengths :true,
         invert_y :true,
@@ -36,7 +36,7 @@ fn main() {
 
 
     let pyramid_parameters = RGBDRuntimeParameters{
-        sigma: 1.0,
+        sigma: 5.0,
         use_blur: true,
         blur_radius: 1.0,
         octave_count: 4,
@@ -67,8 +67,8 @@ fn main() {
         max_iterations: vec!(500,500,500,500),
         eps: 1e-4,
         step_sizes: vec!(0.01,0.01,0.01,0.01), 
-        max_norm_eps: 1e-65,
-        delta_eps: 1e-65,
+        max_norm_eps: 1e-85,
+        delta_eps: 1e-85,
         taus: vec!(1e-6,1e-3,1e-3,1e-0), 
         lm: true,
         weighting: true,
