@@ -1,12 +1,13 @@
 extern crate nalgebra as na;
 
 use na::{U1,U2,U3,U4,U6,RowVector2,Vector4,Vector6,DVector,Matrix4,Matrix,Matrix6,DMatrix,Dynamic,VecStorage};
+use std::boxed::Box;
 
 use crate::pyramid::rgbd::{RGBDPyramid,rgbd_octave::RGBDOctave};
 use crate::camera::{Camera,pinhole::Pinhole};
 use crate::vo::dense_direct::dense_direct_runtime_parameters::DenseDirectRuntimeParameters;
 use crate::image::Image;
-use crate::numerics::{quadratic_roots,lie,loss::LossFunction};
+use crate::numerics::{lie,loss::LossFunction};
 use crate::features::geometry::point::Point;
 use crate::{Float,float,reconstruct_original_coordiantes};
 
@@ -66,6 +67,8 @@ fn estimate(source_octave: &RGBDOctave, source_depth_image_original: &Image, tar
     let mut image_gradients =  Matrix::<Float,Dynamic,U2, VecStorage<Float,Dynamic,U2>>::zeros(number_of_pixels);
     let mut image_gradient_points = Vec::<Point<usize>>::with_capacity(number_of_pixels);
     let mut new_image_gradient_points = Vec::<Point<usize>>::with_capacity(number_of_pixels);
+    let mut reweighted_jacobian = Matrix::<Float,Dynamic,U6, VecStorage<Float,Dynamic,U6>>::zeros(number_of_pixels); 
+    let mut reweighted_residual =  DVector::<Float>::zeros(number_of_pixels);
     let (backprojected_points,backprojected_points_flags) = backproject_points(&source_image.buffer, &source_depth_image_original.buffer, &pinhole_camera, octave_index);
     let constant_jacobians = precompute_jacobians(&backprojected_points,&backprojected_points_flags,&pinhole_camera);
 
@@ -108,7 +111,12 @@ fn estimate(source_octave: &RGBDOctave, source_depth_image_original: &Image, tar
             println!("it: {}, avg_rmse: {}, valid pixels: {}%",iteration_count,avg_cost.sqrt(),percentage_of_valid_pixels);
         }
 
-        let (delta,g,gain_ratio_denom, mu_val) = gauss_newton_step(&residuals, &full_jacobian, &full_jacobian_weighted, &identity_6, mu, tau);
+        //TODO: See if I can incorporate weighting into loss functions
+        let (delta,g,gain_ratio_denom, mu_val) = match runtime_parameters.weighting {
+            true => gauss_newton_step(&residuals, &full_jacobian, &full_jacobian_weighted, &identity_6, mu, tau),
+            false => gauss_newton_step_with_loss(&residuals, &full_jacobian, &identity_6, mu, tau, cost, & runtime_parameters.loss_function, &mut reweighted_jacobian,&mut reweighted_residual)
+        };
+
         let new_est_lie = est_lie+ step*delta;
 
         let new_est_transform = lie::exp(&new_est_lie.fixed_slice::<U3, U1>(0, 0),&new_est_lie.fixed_slice::<U3, U1>(3, 0));
@@ -129,7 +137,7 @@ fn estimate(source_octave: &RGBDOctave, source_depth_image_original: &Image, tar
         let cost_diff = cost-new_cost;
         let gain_ratio = cost_diff/gain_ratio_denom;
         if runtime_parameters.debug {
-            //println!("{},{}",cost,new_cost);
+            println!("{},{}",cost,new_cost);
         }
         if gain_ratio >= 0.0  || !runtime_parameters.lm {
             est_lie = new_est_lie.clone();
@@ -348,24 +356,39 @@ fn gauss_newton_step(residuals_weighted: &DVector<Float>, jacobian: &Matrix<Floa
     (h,g,gain_ratio_denom[0], mu_val)
 }
 
+//TODO: potential for optimization. Maybe use less memory/matrices. 
 #[allow(non_snake_case)]
-fn gauss_newton_step_with_loss(residuals: &DVector<Float>, jacobian: &Matrix<Float,Dynamic,U6,VecStorage<Float,Dynamic,U6>>,identity_6: &Matrix6<Float>, mu: Option<Float>, tau: Float, loss_function: &dyn LossFunction) -> (Vector6<Float>,Vector6<Float>,Float,Float) {
+fn gauss_newton_step_with_loss(residuals: &DVector<Float>, 
+    jacobian: &Matrix<Float,Dynamic,U6,VecStorage<Float,Dynamic,U6>>,
+    identity_6: &Matrix6<Float>,
+     mu: Option<Float>, 
+     tau: Float, 
+     current_cost: Float, 
+     loss_function: &Box<dyn LossFunction>,
+      reweighted_jacobian_target: &mut Matrix<Float,Dynamic,U6,VecStorage<Float,Dynamic,U6>>, 
+      reweighted_residuals_target: &mut DVector<Float>) -> (Vector6<Float>,Vector6<Float>,Float,Float) {
 
-    let (root_1,root_2) = match loss_function.is_valid() {
-        true =>  quadratic_roots(0.5,-1.0,(-loss_function.second_derivative_at_current()/loss_function.first_derivative_at_current())*loss_function.current_cost()),
-        false => loss_function.root_approx()
+    let selected_root = loss_function.select_root(current_cost);
+    let (A,g) =  match selected_root {
+
+        root if root != 0.0 => {
+            let first_derivative_sqrt = loss_function.first_derivative_at_current(current_cost).sqrt();
+            let jacobian_factor = selected_root/current_cost;
+            let residual_scale = first_derivative_sqrt/(1.0-selected_root);
+            let res_j = residuals.transpose()*jacobian;
+            for i in 0..jacobian.nrows(){
+                reweighted_jacobian_target.row_mut(i).copy_from(&(first_derivative_sqrt*(jacobian.row(i) - (jacobian_factor*residuals[i]*res_j))));
+                reweighted_residuals_target[i] = residual_scale*residuals[i];
+            }
+            (reweighted_jacobian_target.transpose()*reweighted_jacobian_target as &Matrix<Float,Dynamic,U6,VecStorage<Float,Dynamic,U6>>,reweighted_jacobian_target.transpose()*reweighted_residuals_target as &DVector<Float>)
+        },
+        _ => (jacobian.transpose()*jacobian,jacobian.transpose()*residuals)
     };
-    let selected_root = root_1; //TODO: test with other root!
-    let first_derivative_sqrt = loss_function.first_derivative_at_current().sqrt();
-    let reweighted_jacobian = first_derivative_sqrt*(jacobian-(selected_root/loss_function.current_cost())*(residuals*residuals.transpose())*jacobian);
-    let reweighted_residuals = first_derivative_sqrt/(1.0-selected_root)*residuals;
-    let A = &reweighted_jacobian.transpose()*&reweighted_jacobian;
     let mu_val = match mu {
         None => tau*A.diagonal().max(),
         Some(v) => v
     };
 
-    let g = reweighted_jacobian.transpose()*reweighted_residuals;
     let decomp = (A+ mu_val*identity_6).lu();
     let h = decomp.solve(&(-g)).expect("Linear resolution failed.");
     let gain_ratio_denom = h.transpose()*(mu_val*h-g);

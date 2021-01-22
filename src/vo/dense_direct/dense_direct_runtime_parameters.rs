@@ -1,7 +1,9 @@
 use crate::Float;
-use std::fmt;
+use crate::numerics::loss::LossFunction;
+use std::{fmt,boxed::Box};
 
-#[derive(Debug,Clone)]
+
+#[derive(Debug)]
 pub struct DenseDirectRuntimeParameters{
     pub max_iterations: Vec<usize>,
     pub eps: Float,
@@ -12,7 +14,8 @@ pub struct DenseDirectRuntimeParameters{
     pub debug: bool,
     pub show_octave_result: bool,
     pub lm: bool,
-    pub weighting: bool
+    pub weighting: bool,
+    pub loss_function: Box<dyn LossFunction>
 }
 
 impl fmt::Display for DenseDirectRuntimeParameters {

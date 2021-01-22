@@ -1,14 +1,12 @@
 extern crate nalgebra as na;
 extern crate image as image_rs;
 
-use na::{RowDVector,DMatrix, Vector3, Quaternion};
 use std::path::Path;
-use std::fs::File;
-use std::io::{BufReader,Read,BufRead};
+
 
 use crate::Float;
 use crate::io::{loading_parameters::LoadingParameters,loaded_data::LoadedData, parse_to_float, closest_ts_index};
-use crate::image::{Image,image_encoding::ImageEncoding};
+use crate::image::{Image};
 use crate::camera::pinhole::Pinhole;
 use crate::io::{load_image_as_gray,load_depth_image_from_csv};
 

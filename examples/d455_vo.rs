@@ -2,11 +2,12 @@ extern crate nalgebra as na;
 extern crate vision;
 
 use na::{Vector4,Matrix4, Vector3, UnitQuaternion};
+use std::boxed::Box;
 use vision::io::{loading_parameters::LoadingParameters,d455_loader};
 use vision::pyramid::rgbd::{RGBDPyramid,rgbd_octave::RGBDOctave, build_rgbd_pyramid,rgbd_runtime_parameters::RGBDRuntimeParameters};
 use vision::vo::{dense_direct,dense_direct::{dense_direct_runtime_parameters::DenseDirectRuntimeParameters}};
 use vision::Float;
-use vision::numerics;
+use vision::{numerics,numerics::loss};
 use vision::visualize::plot;
 
 fn main() {
@@ -14,15 +15,13 @@ fn main() {
 
     let dataset_name = "simple_trans";
 
-
     let root_path = format!("C:/Users/Marc/Workspace/Datasets/D455/{}",dataset_name);
     let out_folder = "C:/Users/Marc/Workspace/Rust/Vision/output";
-
 
     let loading_parameters = LoadingParameters {
         starting_index: 0,
         step :1,
-        count :60,
+        count :500,
         negate_depth_values :true,
         invert_focal_lengths :true,
         invert_y :true,
@@ -61,13 +60,14 @@ fn main() {
         max_iterations: vec!(500,500,500,500),
         eps: 1e-55,
         step_sizes: vec!(1.0,1.0,1.0,1.0), 
-        max_norm_eps: 1e-35,
-        delta_eps: 1e-35,
+        max_norm_eps: 1e-15,
+        delta_eps: 1e-15,
         taus: vec!(1e-3,1e-3,1e-3,1e-3), 
         lm: true,
         weighting: false,
-        debug: false,
-        show_octave_result: true
+        debug: true,
+        show_octave_result: true,
+        loss_function: Box::new(loss::CauchyLoss {eps: 1e-16})
     };
 
     let mut se3_est = vec!(Matrix4::<Float>::identity());

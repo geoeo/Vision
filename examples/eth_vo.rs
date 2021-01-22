@@ -3,10 +3,11 @@ extern crate vision;
 extern crate nalgebra as na;
 
 use na::{Vector4,Matrix4, Vector3, UnitQuaternion};
+use std::boxed::Box;
 use vision::io::{loading_parameters::LoadingParameters,eth_loader};
 use vision::pyramid::rgbd::{RGBDPyramid,rgbd_octave::RGBDOctave, build_rgbd_pyramid,rgbd_runtime_parameters::RGBDRuntimeParameters};
 use vision::vo::{dense_direct,dense_direct::{dense_direct_runtime_parameters::DenseDirectRuntimeParameters}};
-use vision::numerics;
+use vision::{numerics,numerics::loss};
 use vision::Float;
 use vision::visualize::plot;
 
@@ -68,7 +69,8 @@ fn main() {
         lm: true,
         weighting: false,
         debug: false,
-        show_octave_result: true
+        show_octave_result: true,
+        loss_function: Box::new(loss::TrivialLoss {eps: 1e-4})
     };
 
     let mut se3_est = vec!(Matrix4::<Float>::identity());
