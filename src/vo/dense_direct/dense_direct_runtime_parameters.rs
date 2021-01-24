@@ -22,7 +22,7 @@ impl fmt::Display for DenseDirectRuntimeParameters {
 
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
 
-        let mut display = String::from(format!("max_its_{}_w_{}",self.max_iterations[0],self.weighting));
+        let mut display = String::from(format!("max_its_{}_w_{}_l_{}",self.max_iterations[0],self.weighting, self.loss_function));
         match self.lm {
             true => {
                 display.push_str(format!("_lm_max_norm_eps_{:+e}_delta_eps_{:+e}",self.max_norm_eps,self.delta_eps).as_str());
@@ -38,7 +38,6 @@ impl fmt::Display for DenseDirectRuntimeParameters {
             }
 
         }
-        //write!(f, "max_its_{}_eps_{:+e}_max_norm_eps_{:+e}_delta_eps_{:+e}_tau_{:+e}_step_size_{}_lm_{}_w_{}", self.max_iterations,self.eps,self.max_norm_eps,self.delta_eps,self.taus,self.step_sizes,self.lm, self.weighting)
         write!(f, "{}", display)
     }
 

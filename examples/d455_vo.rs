@@ -75,7 +75,7 @@ fn main() {
 
     let est_points = numerics::pose::apply_pose_deltas_to_point(Vector4::<Float>::new(0.0,0.0,0.0,1.0), &se3_est);
 
-    let out_file_name = format!("d455_{}_start_{}_counter_{}_w_{}.png",dataset_name,loading_parameters.starting_index,loading_parameters.count,vo_parameters.weighting );
+    let out_file_name = format!("d455_{}_start_{}_counter_{}_{}.png",dataset_name,loading_parameters.starting_index,loading_parameters.count,vo_parameters);
 
     let info = "";
     plot::draw_line_graph_translation_est(&est_points.iter().map(|x| Vector3::<Float>::new(x[0],x[1], x[2])).collect::<Vec<Vector3<Float>>>(), out_folder, &out_file_name, &info);

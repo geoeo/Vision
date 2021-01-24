@@ -99,18 +99,6 @@ fn main() {
     let rmse = numerics::pose::rsme(&errors);
 
 
-
-    // for i in 0..se3_est.len() {
-    //     println!("est_transform: {}",se3_est[i]);
-    //     println!("Groundtruth Pose Delta {}",se3_gt_targetory[i]);
-    // }
-
-
-    // for i in 0..est_points.len() {
-    //     println!("Point trajectory: {}",est_points[i]);
-    //     println!("Gt Trajectory {}",est_gt_points[i]);
-    // }
-
     
     let out_file_name = format!("eth_translation_{}_{}_sigma_{}_octave_{}_blur_{}.png",dataset_name,vo_parameters,pyramid_parameters.sigma,pyramid_parameters.octave_count, pyramid_parameters.use_blur);
     //let info = format!("{}_{}_{}",loading_parameters,pyramid_parameters,vo_parameters);

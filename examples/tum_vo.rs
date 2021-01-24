@@ -27,7 +27,7 @@ fn main() {
     let loading_parameters = LoadingParameters {
         starting_index: 0,
         step :1,
-        count :75,
+        count :300,
         negate_depth_values :true,
         invert_focal_lengths :true,
         invert_y :true,
@@ -38,7 +38,7 @@ fn main() {
 
 
     let pyramid_parameters = RGBDRuntimeParameters{
-        sigma: 5.0,
+        sigma: 1.0,
         use_blur: true,
         blur_radius: 1.0,
         octave_count: 4,
@@ -66,17 +66,18 @@ fn main() {
 
 
     let vo_parameters = DenseDirectRuntimeParameters{
-        max_iterations: vec!(500,500,500,500),
-        eps: 1e-4,
-        step_sizes: vec!(0.01,0.01,0.01,0.01), 
+        max_iterations: vec![800;4],
+        eps: 1e-3,
+        step_sizes: vec![0.01;4], 
         max_norm_eps: 1e-85,
         delta_eps: 1e-85,
         taus: vec!(1e-6,1e-3,1e-3,1e-0), 
         lm: true,
         weighting: true,
         debug: false,
+
         show_octave_result: true,
-        loss_function: Box::new(numerics::loss::TrivialLoss {eps: 1e-4})
+        loss_function: Box::new(numerics::loss::CauchyLoss {eps: 1e-16})
     };
 
     let mut se3_est = vec!(Matrix4::<Float>::identity());
@@ -104,20 +105,7 @@ fn main() {
 
     let rmse = numerics::pose::rsme(&errors);
 
-
-    // for i in 0..se3_est.len() {
-    //     println!("est_transform: {}",se3_est[i]);
-    //     println!("Groundtruth Pose Delta {}",se3_gt_targetory[i]);
-    // }
-
-
-
-    // for i in 0..est_points.len() {
-    //     println!("Point trajectory: {}",est_points[i]);
-    //     println!("Gt Trajectory {}",est_gt_points[i]);
-    // }
-
-    let out_file_name = format!("{}_{}_{}_s_{}_o_{}_b_{}.png",dataset_name,loading_parameters.starting_index,vo_parameters,pyramid_parameters.sigma,pyramid_parameters.octave_count, pyramid_parameters.use_blur);
+    let out_file_name = format!("{}_{}_{}_s_{}_o_{}_b_{}_neg_d_{}.png",dataset_name,loading_parameters.starting_index,vo_parameters,pyramid_parameters.sigma,pyramid_parameters.octave_count, pyramid_parameters.use_blur, loading_parameters.negate_depth_values);
     //let info = format!("{}_{}_{}",loading_parameters,pyramid_parameters,vo_parameters);
     let info = format!("rsme: {}",rmse);
     plot::draw_line_graph_translation_est_gt(&est_points.iter().map(|x| Vector3::<Float>::new(x[0],x[1], x[2])).collect::<Vec<Vector3<Float>>>(),&est_gt_points.iter().map(|x| Vector3::<Float>::new(x[0],x[1], x[2])).collect::<Vec<Vector3<Float>>>(), out_folder, &out_file_name, &info);

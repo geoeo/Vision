@@ -48,6 +48,7 @@ pub fn run(iteration: usize, source_rgdb_pyramid: &RGBDPyramid<RGBDOctave>,targe
     mat_result
 }
 
+//TODO: buffer all debug strings and print at the end
 fn estimate(source_octave: &RGBDOctave, source_depth_image_original: &Image, target_octave: &RGBDOctave, octave_index: usize, initial_guess_lie: &Vector6<Float>,initial_guess_mat: &Matrix4<Float>, pinhole_camera: &Pinhole, runtime_parameters: &DenseDirectRuntimeParameters) -> (Vector6<Float>,Matrix4<Float>, usize) {
     let source_image = &source_octave.gray_images[0];
     let target_image = &target_octave.gray_images[0];
@@ -67,15 +68,14 @@ fn estimate(source_octave: &RGBDOctave, source_depth_image_original: &Image, tar
     let mut image_gradients =  Matrix::<Float,Dynamic,U2, VecStorage<Float,Dynamic,U2>>::zeros(number_of_pixels);
     let mut image_gradient_points = Vec::<Point<usize>>::with_capacity(number_of_pixels);
     let mut new_image_gradient_points = Vec::<Point<usize>>::with_capacity(number_of_pixels);
-    let mut reweighted_jacobian = Matrix::<Float,Dynamic,U6, VecStorage<Float,Dynamic,U6>>::zeros(number_of_pixels); 
-    let mut reweighted_residual =  DVector::<Float>::zeros(number_of_pixels);
+    let mut rescaled_jacobian_target = Matrix::<Float,Dynamic,U6, VecStorage<Float,Dynamic,U6>>::zeros(number_of_pixels); 
+    let mut rescaled_residual_target =  DVector::<Float>::zeros(number_of_pixels);
     let (backprojected_points,backprojected_points_flags) = backproject_points(&source_image.buffer, &source_depth_image_original.buffer, &pinhole_camera, octave_index);
     let constant_jacobians = precompute_jacobians(&backprojected_points,&backprojected_points_flags,&pinhole_camera);
 
     let mut est_transform = initial_guess_mat.clone();
     let mut est_lie = initial_guess_lie.clone();
 
-    //TODO: use mask to filter out of bounds pixels
     compute_residuals(&target_image.buffer, &source_image.buffer, &backprojected_points,&backprojected_points_flags,&est_transform, &pinhole_camera, &mut residuals,&mut image_gradient_points);
     weight_residuals(&mut residuals, &weights_vec);
     let mut cost = compute_cost(&residuals);
@@ -100,10 +100,7 @@ fn estimate(source_octave: &RGBDOctave, source_depth_image_original: &Image, tar
     compute_image_gradients(&x_gradient_image.buffer,&y_gradient_image.buffer,&image_gradient_points,&mut image_gradients);
     compute_full_jacobian(&image_gradients,&constant_jacobians,&mut full_jacobian);
     weight_jacobian(&mut full_jacobian_weighted,&full_jacobian, &weights_vec);
-    weight_residuals(&mut residuals, &weights_vec); // We want the residual weighted by the square of the GN step
     
-
-
 
     let mut iteration_count = 0;
     while ((!runtime_parameters.lm && (avg_cost.sqrt() > runtime_parameters.eps)) || (runtime_parameters.lm && (delta_norm >= delta_thresh && max_norm_delta > runtime_parameters.max_norm_eps)))  && iteration_count < max_iterations  {
@@ -111,11 +108,8 @@ fn estimate(source_octave: &RGBDOctave, source_depth_image_original: &Image, tar
             println!("it: {}, avg_rmse: {}, valid pixels: {}%",iteration_count,avg_cost.sqrt(),percentage_of_valid_pixels);
         }
 
-        //TODO: See if I can incorporate weighting into loss functions
-        let (delta,g,gain_ratio_denom, mu_val) = match runtime_parameters.weighting {
-            true => gauss_newton_step(&residuals, &full_jacobian, &full_jacobian_weighted, &identity_6, mu, tau),
-            false => gauss_newton_step_with_loss(&residuals, &full_jacobian, &identity_6, mu, tau, cost, & runtime_parameters.loss_function, &mut reweighted_jacobian,&mut reweighted_residual)
-        };
+        let (delta,g,gain_ratio_denom, mu_val) 
+            = gauss_newton_step_with_loss(&residuals, &full_jacobian_weighted, &identity_6, mu, tau, cost, & runtime_parameters.loss_function, &mut rescaled_jacobian_target,&mut rescaled_residual_target);
 
         let new_est_lie = est_lie+ step*delta;
 
@@ -155,12 +149,12 @@ fn estimate(source_octave: &RGBDOctave, source_depth_image_original: &Image, tar
             compute_image_gradients(&x_gradient_image.buffer,&y_gradient_image.buffer,&image_gradient_points,&mut image_gradients);
             compute_full_jacobian(&image_gradients,&constant_jacobians,&mut full_jacobian);
             weight_jacobian(&mut full_jacobian_weighted, &full_jacobian, &weights_vec);
-            weight_residuals(&mut residuals, &weights_vec); // We want the residual weighted by the square of the GN step
 
             let v: Float = 1.0/3.0;
             mu = Some(mu.unwrap() * v.max(1.0-(2.0*gain_ratio-1.0).powi(3)));
             nu = 2.0;
         } else {
+
             mu = Some(nu*mu.unwrap());
             nu *= 2.0;
         }
@@ -335,15 +329,15 @@ fn weight_residuals( residual_target: &mut DVector<Float>, weights_vec: &DVector
 fn weight_jacobian(jacobian_target: &mut Matrix<Float,Dynamic,U6,VecStorage<Float,Dynamic,U6>>,jacobian: &Matrix<Float,Dynamic,U6,VecStorage<Float,Dynamic,U6>>, weights_vec: &DVector<Float>) -> () {
     let size = weights_vec.len();
     for i in 0..size{
-        let weighted_row = jacobian.row(i)*weights_vec[i].powi(2);
+        let weighted_row = jacobian.row(i)*weights_vec[i];
         jacobian_target.row_mut(i).copy_from(&weighted_row);
     }
 }
 
 
 #[allow(non_snake_case)]
-fn gauss_newton_step(residuals_weighted: &DVector<Float>, jacobian: &Matrix<Float,Dynamic,U6,VecStorage<Float,Dynamic,U6>>,jacobian_weighted: &Matrix<Float,Dynamic,U6,VecStorage<Float,Dynamic,U6>>,identity_6: &Matrix6<Float>, mu: Option<Float>, tau: Float) -> (Vector6<Float>,Vector6<Float>,Float,Float) {
-    let A = jacobian.transpose()*jacobian_weighted;
+fn gauss_newton_step(residuals_weighted: &DVector<Float>, jacobian: &Matrix<Float,Dynamic,U6,VecStorage<Float,Dynamic,U6>>,identity_6: &Matrix6<Float>, mu: Option<Float>, tau: Float) -> (Vector6<Float>,Vector6<Float>,Float,Float) {
+    let A = jacobian.transpose()*jacobian;
     let mu_val = match mu {
         None => tau*A.diagonal().max(),
         Some(v) => v
@@ -365,8 +359,8 @@ fn gauss_newton_step_with_loss(residuals: &DVector<Float>,
      tau: Float, 
      current_cost: Float, 
      loss_function: &Box<dyn LossFunction>,
-      reweighted_jacobian_target: &mut Matrix<Float,Dynamic,U6,VecStorage<Float,Dynamic,U6>>, 
-      reweighted_residuals_target: &mut DVector<Float>) -> (Vector6<Float>,Vector6<Float>,Float,Float) {
+      rescaled_jacobian_target: &mut Matrix<Float,Dynamic,U6,VecStorage<Float,Dynamic,U6>>, 
+      rescaled_residuals_target: &mut DVector<Float>) -> (Vector6<Float>,Vector6<Float>,Float,Float) {
 
     let selected_root = loss_function.select_root(current_cost);
     let (A,g) =  match selected_root {
@@ -377,10 +371,10 @@ fn gauss_newton_step_with_loss(residuals: &DVector<Float>,
             let residual_scale = first_derivative_sqrt/(1.0-selected_root);
             let res_j = residuals.transpose()*jacobian;
             for i in 0..jacobian.nrows(){
-                reweighted_jacobian_target.row_mut(i).copy_from(&(first_derivative_sqrt*(jacobian.row(i) - (jacobian_factor*residuals[i]*res_j))));
-                reweighted_residuals_target[i] = residual_scale*residuals[i];
+                rescaled_jacobian_target.row_mut(i).copy_from(&(first_derivative_sqrt*(jacobian.row(i) - (jacobian_factor*residuals[i]*res_j))));
+                rescaled_residuals_target[i] = residual_scale*residuals[i];
             }
-            (reweighted_jacobian_target.transpose()*reweighted_jacobian_target as &Matrix<Float,Dynamic,U6,VecStorage<Float,Dynamic,U6>>,reweighted_jacobian_target.transpose()*reweighted_residuals_target as &DVector<Float>)
+            (rescaled_jacobian_target.transpose()*rescaled_jacobian_target as &Matrix<Float,Dynamic,U6,VecStorage<Float,Dynamic,U6>>,rescaled_jacobian_target.transpose()*rescaled_residuals_target as &DVector<Float>)
         },
         _ => (jacobian.transpose()*jacobian,jacobian.transpose()*residuals)
     };

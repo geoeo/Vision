@@ -1,6 +1,6 @@
 extern crate nalgebra as na;
 
-use core::fmt::Debug;
+use std::fmt::{Display,Debug,Formatter,Result};
 use crate::Float;
 use crate::numerics;
 
@@ -21,7 +21,7 @@ pub trait LossFunction {
             true => numerics::quadratic_roots(0.5,-1.0,(-self.second_derivative_at_current(current_cost)/self.first_derivative_at_current(current_cost))*current_cost),
             false => self.root_approx()
         };
-        root_1 //TODO: test with other root!
+        root_1.max(root_2) //TODO: test with other root, make this customisable
     }
     fn name(&self) -> &str;
 }
@@ -30,6 +30,18 @@ impl Debug for dyn LossFunction {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(f, "{}", self.name())
     }
+}
+
+impl Display for dyn LossFunction {
+
+    fn fmt(&self, f: &mut Formatter) -> Result {
+
+        let display = String::from(format!("{}",self.name()));
+
+        write!(f, "{}", display)
+
+    }
+
 }
 
 
@@ -51,7 +63,7 @@ impl LossFunction for CauchyLoss {
     }
 
     fn name(&self) -> &str {
-        "CauchyLoss"
+        "Cauchy"
     }
 
 }
@@ -88,11 +100,34 @@ impl LossFunction for TrivialLoss {
     }
 
     fn name(&self) -> &str {
-        "TrivialLoss"
+        "Trivial"
     }
 
 
 }
 
+pub struct SoftOneLoss {
+    pub eps: Float
+}
+
+
+impl LossFunction for SoftOneLoss {
+    fn eps(&self) -> Float {
+        self.eps
+    }
+
+    fn first_derivative_at_current(&self,current_cost: Float) -> Float {
+        1.0/(1.0+current_cost).sqrt()
+    }
+
+    fn second_derivative_at_current(&self, current_cost: Float) -> Float {
+        -1.0/(2.0*(1.0+current_cost).powf(3.0/2.0))
+    }
+
+    fn name(&self) -> &str {
+        "SoftOneLoss"
+    }
+
+}
 
 
