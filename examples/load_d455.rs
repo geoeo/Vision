@@ -24,20 +24,19 @@ fn main() {
 
     //let intrinsics_path = format!("{}{}.{}",intrinsics_folder,intrinsics_name, intrinsics_format);
 
-    let gray_display = load_image_as_gray(&Path::new(&color_image_path), false, false);
-    let depth_display = load_depth_image_from_csv(&Path::new(&depth_image_path), false, false, 640,480, 1.0, false, true);
-
+    //let gray_display = load_image_as_gray(&Path::new(&color_image_path), false, false);
+    //let depth_display = load_depth_image_from_csv(&Path::new(&depth_image_path), false, false, 640,480, 1.0, false, true);
 
     //let depth_2_display = load_depth_image(&Path::new(&depth_2_image_path), false,false, 5000.0);
     //let gray_2_display = load_image_as_gray(&Path::new(&color_2_image_path), false, true);
 
     //let pinhole_camera = eth_loader::load_intrinsics_as_pinhole(&Path::new(&intrinsics_path), false);
 
+    //let converted_file_out_path = format!("{}{}_out.png",image_out_folder,depth_image_name);
+    //let new_image = depth_display.to_image();
+    //new_image.save(converted_file_out_path).unwrap();
 
-
-    let converted_file_out_path = format!("{}{}_out.png",image_out_folder,depth_image_name);
-    let new_image = depth_display.to_image();
-    new_image.save(converted_file_out_path).unwrap();
+    let imu_data = d455_loader::load_imu("C:/Users/Marc/Workspace/Datasets/D455/simple_trans_imu");
 
 
 }

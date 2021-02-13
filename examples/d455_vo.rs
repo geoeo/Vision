@@ -13,7 +13,7 @@ use vision::visualize::plot;
 fn main() {
 
 
-    let dataset_name = "simple_trans";
+    let dataset_name = "forward_back";
 
     let root_path = format!("C:/Users/Marc/Workspace/Datasets/D455/{}",dataset_name);
     let out_folder = "C:/Users/Marc/Workspace/Rust/Vision/output";
@@ -21,7 +21,7 @@ fn main() {
     let loading_parameters = LoadingParameters {
         starting_index: 0,
         step :1,
-        count :500,
+        count :1,
         negate_depth_values :true,
         invert_focal_lengths :true,
         invert_y :true,
@@ -60,12 +60,12 @@ fn main() {
         max_iterations: vec!(500,500,500,500),
         eps: 1e-55,
         step_sizes: vec!(1.0,1.0,1.0,1.0), 
-        max_norm_eps: 1e-15,
-        delta_eps: 1e-15,
+        max_norm_eps: 1e-55,
+        delta_eps: 1e-55,
         taus: vec!(1e-3,1e-3,1e-3,1e-3), 
         lm: true,
         weighting: false,
-        debug: true,
+        debug: false,
         show_octave_result: true,
         loss_function: Box::new(loss::CauchyLoss {eps: 1e-16})
     };

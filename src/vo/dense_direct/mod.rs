@@ -259,7 +259,7 @@ fn compute_residuals(target_image_buffer: &DMatrix<Float>,source_image_buffer: &
             residual_target[i] = target_sample - source_sample;
            }
         else {
-            residual_target[i] = 0.0;
+            residual_target[i] = 0.0; 
         }
 
     }

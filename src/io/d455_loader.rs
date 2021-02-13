@@ -8,6 +8,7 @@ use crate::Float;
 use crate::io::{loading_parameters::LoadingParameters,loaded_data::LoadedData, parse_to_float, closest_ts_index};
 use crate::image::{Image};
 use crate::camera::pinhole::Pinhole;
+use crate::imu::Imu;
 use crate::io::{load_image_as_gray,load_depth_image_from_csv};
 
 
@@ -20,11 +21,9 @@ pub fn load(root_path: &str, parameters: &LoadingParameters) -> LoadedData {
     let depth_image_folder = format!("{}/{}",root_path,"depth");
     let color_image_folder = format!("{}/{}",root_path,"rgb");
 
-
     let pinhole_camera = Pinhole::new(381.963043212891, 381.700378417969, 320.757202148438, 245.415313720703, parameters.invert_focal_lengths);
-    let (rgb_ts,rgb_ts_string) = load_timestamps(Path::new(&color_image_folder),&color_image_format,false);
-    let (depth_ts,depth_ts_string) = load_timestamps(Path::new(&depth_image_folder),&depth_image_format,false);
-
+    let (rgb_ts,rgb_ts_string) = load_timestamps(Path::new(&color_image_folder),&color_image_format,false, true);
+    let (depth_ts,depth_ts_string) = load_timestamps(Path::new(&depth_image_folder),&depth_image_format,false, true);
 
     let source_rgb_indices = (parameters.starting_index..parameters.starting_index+parameters.count).step_by(parameters.step);
     let target_rgb_indices = source_rgb_indices.clone().map(|x| x + parameters.step); //TODO: check out of range
@@ -34,9 +33,6 @@ pub fn load(root_path: &str, parameters: &LoadingParameters) -> LoadedData {
 
     let source_depth_indices = source_rgb_ts.iter().map(|&x| closest_ts_index(x, &depth_ts)).collect::<Vec<usize>>();
     let target_depth_indices = target_rgb_ts.iter().map(|&x| closest_ts_index(x, &depth_ts)).collect::<Vec<usize>>(); //TODO: check out of range
-
-
-
 
     LoadedData {
         source_gray_images: source_rgb_indices.map(|i| {
@@ -61,7 +57,23 @@ pub fn load(root_path: &str, parameters: &LoadingParameters) -> LoadedData {
     }
 }
 
-fn load_timestamps(dir_path: &Path, image_format: &str, negate_value: bool)-> (Vec<Float>,Vec<String>) {
+pub fn load_imu(root_path: &str) -> Vec<Imu> {
+
+    let text_format = "txt";
+
+    let linear_acc_folder = format!("{}/{}",root_path,"linear_acc");
+    let rotational_vel_folder = format!("{}/{}",root_path,"angular_vel");
+
+    let (linear_acc_ts,linear_acc_ts_string) = load_timestamps(Path::new(&linear_acc_folder), &text_format, false, true);
+    let (rotational_vel_ts,rotational_vel_ts_string) = load_timestamps(Path::new(&rotational_vel_folder), &text_format, false, true);
+
+
+    panic!("Not implemented")
+}
+
+// TODO: This can be put outside of loader, / is not neccesary sorted
+fn load_timestamps(dir_path: &Path, file_format: &str, negate_value: bool, sort_result: bool)-> (Vec<Float>,Vec<String>) {
+    let mut ts_string = Vec::<(Float,String)>::new();
     let mut timestamps = Vec::<Float>::new();
     let mut timestamps_string = Vec::<String>::new();
 
@@ -72,7 +84,7 @@ fn load_timestamps(dir_path: &Path, image_format: &str, negate_value: bool)-> (V
                 let full_file_name = entry.file_name().into_string().unwrap();
                 let split = full_file_name.split('.').collect::<Vec<&str>>();
                 let file_type = split[split.len()-1];
-                if file_type.eq(image_format) {
+                if file_type.eq(file_format) {
                     let mut ts_parts = Vec::<&str>::with_capacity(split.len()-1);
                     for i in 0..split.len()-1{
                         ts_parts.push(split[i]);
@@ -83,13 +95,23 @@ fn load_timestamps(dir_path: &Path, image_format: &str, negate_value: bool)-> (V
                     ts_parts[0] = prefix_split[prefix_split.len()-1];
                     let ts_str = ts_parts.join(".");
 
-                    timestamps.push(parse_to_float(ts_str.as_str(), negate_value));
-                    timestamps_string.push(full_file_name);
+                    //timestamps.push(parse_to_float(ts_str.as_str(), negate_value));
+                    //timestamps_string.push(full_file_name);
+                    ts_string.push((parse_to_float(ts_str.as_str(), negate_value),full_file_name));
                 }
 
             }
         }
 
+    }
+
+    if sort_result {
+        ts_string.sort_unstable_by(|(a,_),(b,_)| a.partial_cmp(b).unwrap());
+    }
+
+    for (v,s) in ts_string {
+        timestamps.push(v);
+        timestamps_string.push(s);
     }
 
     assert_ne!(timestamps.len(),0);

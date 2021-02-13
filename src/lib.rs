@@ -8,6 +8,7 @@ pub mod vo;
 pub mod numerics;
 pub mod camera;
 pub mod io;
+pub mod imu;
 
 macro_rules! define_float {
     ($f:tt) => {
