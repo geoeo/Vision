@@ -112,7 +112,6 @@ pub fn load_ground_truths(file_path: &Path) -> Vec<(Vector3<Float>,Quaternion<Fl
 
 
 
-
 pub fn load_intrinsics_as_pinhole(file_path: &Path, invert_focal_lengths: bool) -> Pinhole {
     let file = File::open(file_path).expect("load_intrinsics failed");
     let mut reader = BufReader::new(file);
