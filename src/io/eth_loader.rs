@@ -7,14 +7,14 @@ use std::fs::File;
 use std::io::{BufReader,Read,BufRead};
 
 use crate::Float;
-use crate::io::{loading_parameters::LoadingParameters,loaded_data::LoadedData, parse_to_float};
+use crate::io::{loading_parameters::LoadingParameters,loaded_camera_data::LoadedCameraData, parse_to_float};
 use crate::image::Image;
 use crate::camera::pinhole::Pinhole;
 use crate::io::{load_image_as_gray, load_depth_image_from_csv};
 
 
 
-pub fn load(root_path: &str, parameters: &LoadingParameters) -> LoadedData {
+pub fn load(root_path: &str, parameters: &LoadingParameters) -> LoadedCameraData {
     let intrinsics = "intrinsics";
     let ts_names = "images";
     let ground_truths = "groundtruth";
@@ -43,7 +43,9 @@ pub fn load(root_path: &str, parameters: &LoadingParameters) -> LoadedData {
 
     let pinhole_camera = load_intrinsics_as_pinhole(&Path::new(&intrinsics_path), parameters.invert_focal_lengths);
 
-    LoadedData {
+    LoadedCameraData {
+        source_timestamps: source_indices.clone().map(|s| ts_names[s].0).collect::<Vec<Float>>(),
+        target_timestamps: target_indices.clone().map(|t| ts_names[t].0).collect::<Vec<Float>>(),
         source_gray_images: source_indices.clone().map(|s| {
             let source = &ts_names[s].1;
             let color_source_image_path = format!("{}{}.{}",color_image_folder,source, color_image_format);

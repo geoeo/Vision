@@ -5,7 +5,7 @@ extern crate nalgebra as na;
 use na::{Vector4,Matrix4, Vector3, UnitQuaternion};
 use std::boxed::Box;
 use vision::io::{loading_parameters::LoadingParameters,tum_loader};
-use vision::pyramid::rgbd::{RGBDPyramid,rgbd_octave::RGBDOctave, build_rgbd_pyramid,rgbd_runtime_parameters::RGBDRuntimeParameters};
+use vision::pyramid::gd::{GDPyramid,gd_octave::GDOctave, build_rgbd_pyramid,gd_runtime_parameters::GDRuntimeParameters};
 use vision::vo::{dense_direct,dense_direct::{dense_direct_runtime_parameters::DenseDirectRuntimeParameters}};
 use vision::numerics;
 use vision::{Float,float};
@@ -37,7 +37,7 @@ fn main() {
 
 
 
-    let pyramid_parameters = RGBDRuntimeParameters{
+    let pyramid_parameters = GDRuntimeParameters{
         sigma: 1.0,
         use_blur: true,
         blur_radius: 1.0,
@@ -61,8 +61,8 @@ fn main() {
     println!("{:?}",tum_data.pinhole_camera.projection);
 
 
-    let source_pyramids = source_gray_images.into_iter().zip(source_depth_images.into_iter()).map(|(g,d)| build_rgbd_pyramid(g,d,&pyramid_parameters)).collect::<Vec<RGBDPyramid<RGBDOctave>>>();
-    let target_pyramids = target_gray_images.into_iter().zip(target_depth_images.into_iter()).map(|(g,d)| build_rgbd_pyramid(g,d,&pyramid_parameters)).collect::<Vec<RGBDPyramid<RGBDOctave>>>();
+    let source_pyramids = source_gray_images.into_iter().zip(source_depth_images.into_iter()).map(|(g,d)| build_rgbd_pyramid(g,d,&pyramid_parameters)).collect::<Vec<GDPyramid<GDOctave>>>();
+    let target_pyramids = target_gray_images.into_iter().zip(target_depth_images.into_iter()).map(|(g,d)| build_rgbd_pyramid(g,d,&pyramid_parameters)).collect::<Vec<GDPyramid<GDOctave>>>();
 
 
     let vo_parameters = DenseDirectRuntimeParameters{

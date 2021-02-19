@@ -7,7 +7,7 @@ use std::io::{BufReader,Read,BufRead};
 
 
 use crate::Float;
-use crate::io::{loading_parameters::LoadingParameters,loaded_data::LoadedData, parse_to_float, closest_ts_index};
+use crate::io::{loading_parameters::LoadingParameters,loaded_imu_data::LoadedImuData,loaded_camera_data::LoadedCameraData, parse_to_float, closest_ts_index};
 use crate::image::{Image};
 use crate::camera::pinhole::Pinhole;
 use crate::imu::Imu;
@@ -15,7 +15,7 @@ use crate::io::{load_image_as_gray,load_depth_image_from_csv};
 
 
 
-pub fn load(root_path: &str, parameters: &LoadingParameters) -> LoadedData {
+pub fn load(root_path: &str, parameters: &LoadingParameters) -> LoadedCameraData {
     let depth_image_format = "csv";
     let color_image_format = "png";
     let text_format = "txt";
@@ -36,7 +36,9 @@ pub fn load(root_path: &str, parameters: &LoadingParameters) -> LoadedData {
     let source_depth_indices = source_rgb_ts.iter().map(|&x| closest_ts_index(x, &depth_ts)).collect::<Vec<usize>>();
     let target_depth_indices = target_rgb_ts.iter().map(|&x| closest_ts_index(x, &depth_ts)).collect::<Vec<usize>>(); //TODO: check out of range
 
-    LoadedData {
+    LoadedCameraData {
+        source_timestamps: source_rgb_ts,
+        target_timestamps: target_rgb_ts,
         source_gray_images: source_rgb_indices.map(|i| {
             let color_source_image_path = format!("{}/{}",color_image_folder,rgb_ts_string[i]);
             load_image_as_gray(&Path::new(&color_source_image_path), false, parameters.invert_y)
@@ -59,7 +61,7 @@ pub fn load(root_path: &str, parameters: &LoadingParameters) -> LoadedData {
     }
 }
 
-pub fn load_imu(root_path: &str) -> Vec<Imu> {
+pub fn load_imu(root_path: &str) -> LoadedImuData {
 
     let text_format = "txt";
     let delimeters = &[' ','[',']'][..];
@@ -81,7 +83,9 @@ pub fn load_imu(root_path: &str) -> Vec<Imu> {
 
     assert_eq!(closest_rotational_vec.len(),linear_acc_vec.len());
 
-    linear_acc_vec.iter().zip(closest_rotational_vec.iter()).map(|(l_a,r_v)| Imu::new(l_a,r_v)).collect::<Vec<Imu>>()
+    LoadedImuData {
+        imu_data: linear_acc_vec.iter().zip(closest_rotational_vec.iter()).map(|(l_a,r_v)| Imu::new(l_a,r_v)).collect::<Vec<Imu>>(),
+        imu_ts: linear_acc_ts}
 }
 
 // TODO: This can be put outside of loader

@@ -2,21 +2,21 @@ extern crate image as image_rs;
 
 use crate::image::Image;
 use crate::filter::{prewitt_kernel::PrewittKernel,gauss_kernel::GaussKernel1D,gaussian_2_d_convolution,filter_1d_convolution};
-use crate::pyramid::rgbd::rgbd_runtime_parameters::RGBDRuntimeParameters;
+use crate::pyramid::gd::gd_runtime_parameters::GDRuntimeParameters;
 use crate::{Float,GradientDirection};
 
 
 #[derive(Debug,Clone)]
-pub struct RGBDOctave {
+pub struct GDOctave {
     pub gray_images: Vec<Image>,
     pub x_gradients: Vec<Image>,
     pub y_gradients: Vec<Image>,
     pub sigmas: Vec<Float>
 }
 
-impl RGBDOctave {
+impl GDOctave {
 
-    pub fn build_octave(base_gray_image: &Image, sigma: Float, runtime_parameters: &RGBDRuntimeParameters) -> RGBDOctave {
+    pub fn build_octave(base_gray_image: &Image, sigma: Float, runtime_parameters: &GDRuntimeParameters) -> GDOctave {
 
         let mean = 0.0;
         let step = 1;
@@ -64,7 +64,7 @@ impl RGBDOctave {
 
 
 
-        RGBDOctave{gray_images,x_gradients,y_gradients,sigmas}
+        GDOctave{gray_images,x_gradients,y_gradients,sigmas}
 
     }
 

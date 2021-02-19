@@ -3,7 +3,7 @@ extern crate nalgebra as na;
 use na::{U1,U2,U3,U4,U6,RowVector2,Vector4,Vector6,DVector,Matrix4,Matrix,Matrix6,DMatrix,Dynamic,VecStorage};
 use std::boxed::Box;
 
-use crate::pyramid::rgbd::{RGBDPyramid,rgbd_octave::RGBDOctave};
+use crate::pyramid::gd::{GDPyramid,gd_octave::GDOctave};
 use crate::camera::{Camera,pinhole::Pinhole};
 use crate::vo::dense_direct::dense_direct_runtime_parameters::DenseDirectRuntimeParameters;
 use crate::image::Image;
@@ -13,11 +13,11 @@ use crate::{Float,float,reconstruct_original_coordiantes};
 
 pub mod dense_direct_runtime_parameters;
 
-pub fn run_trajectory(source_rgdb_pyramids: &Vec<RGBDPyramid<RGBDOctave>>,target_rgdb_pyramids: &Vec<RGBDPyramid<RGBDOctave>>, pinhole_camera: &Pinhole, runtime_parameters: &DenseDirectRuntimeParameters) -> Vec<Matrix4<Float>> {
+pub fn run_trajectory(source_rgdb_pyramids: &Vec<GDPyramid<GDOctave>>,target_rgdb_pyramids: &Vec<GDPyramid<GDOctave>>, pinhole_camera: &Pinhole, runtime_parameters: &DenseDirectRuntimeParameters) -> Vec<Matrix4<Float>> {
     source_rgdb_pyramids.iter().zip(target_rgdb_pyramids.iter()).enumerate().map(|(i,(source,target))| run(i+1,&source,&target, pinhole_camera,runtime_parameters)).collect::<Vec<Matrix4<Float>>>()
 }
 
-pub fn run(iteration: usize, source_rgdb_pyramid: &RGBDPyramid<RGBDOctave>,target_rgdb_pyramid: &RGBDPyramid<RGBDOctave>, pinhole_camera: &Pinhole, runtime_parameters: &DenseDirectRuntimeParameters) -> Matrix4<Float> {
+pub fn run(iteration: usize, source_rgdb_pyramid: &GDPyramid<GDOctave>,target_rgdb_pyramid: &GDPyramid<GDOctave>, pinhole_camera: &Pinhole, runtime_parameters: &DenseDirectRuntimeParameters) -> Matrix4<Float> {
     let octave_count = source_rgdb_pyramid.octaves.len();
 
     assert_eq!(octave_count,runtime_parameters.taus.len());
@@ -49,7 +49,7 @@ pub fn run(iteration: usize, source_rgdb_pyramid: &RGBDPyramid<RGBDOctave>,targe
 }
 
 //TODO: buffer all debug strings and print at the end
-fn estimate(source_octave: &RGBDOctave, source_depth_image_original: &Image, target_octave: &RGBDOctave, octave_index: usize, initial_guess_lie: &Vector6<Float>,initial_guess_mat: &Matrix4<Float>, pinhole_camera: &Pinhole, runtime_parameters: &DenseDirectRuntimeParameters) -> (Vector6<Float>,Matrix4<Float>, usize) {
+fn estimate(source_octave: &GDOctave, source_depth_image_original: &Image, target_octave: &GDOctave, octave_index: usize, initial_guess_lie: &Vector6<Float>,initial_guess_mat: &Matrix4<Float>, pinhole_camera: &Pinhole, runtime_parameters: &DenseDirectRuntimeParameters) -> (Vector6<Float>,Matrix4<Float>, usize) {
     let source_image = &source_octave.gray_images[0];
     let target_image = &target_octave.gray_images[0];
     let x_gradient_image = &target_octave.x_gradients[0];

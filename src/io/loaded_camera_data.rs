@@ -8,12 +8,14 @@ use crate::Float;
 
 
 #[derive(Clone)]
-pub struct LoadedData {
+pub struct LoadedCameraData {
+    pub source_timestamps: Vec<Float>,
+    pub target_timestamps: Vec<Float>,
     pub source_gray_images: Vec<Image>,
     pub source_depth_images: Vec<Image>,
     pub target_gray_images: Vec<Image>,
     pub target_depth_images: Vec<Image>,
     pub pinhole_camera: Pinhole,
     pub target_gt_poses: Option<Vec<(Vector3<Float>,Quaternion<Float>)>>,
-    pub source_gt_poses: Option<Vec<(Vector3<Float>,Quaternion<Float>)>> // Move to 
+    pub source_gt_poses: Option<Vec<(Vector3<Float>,Quaternion<Float>)>> 
 }

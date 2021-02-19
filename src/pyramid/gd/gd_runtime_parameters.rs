@@ -2,7 +2,7 @@ use crate::Float;
 use std::fmt;
 
 #[derive(Debug,Clone)]
-pub struct RGBDRuntimeParameters {
+pub struct GDRuntimeParameters {
     pub sigma: Float,
     pub blur_radius: Float,
     pub octave_count: usize,
@@ -16,7 +16,7 @@ pub struct RGBDRuntimeParameters {
     pub normalize_gradients: bool
 }
 
-impl fmt::Display for RGBDRuntimeParameters {
+impl fmt::Display for GDRuntimeParameters {
 
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "sigma_{}_blur_radius_{}_octave_count_{}_use_blur_{}_min_image_dimensions_({},{})_invert_grad_x_{}_blur_grad_x_{}_blur_grad_x_{}_blur_grad_y_{}_normalize_gray_{}_normalize_gradients_{}", 

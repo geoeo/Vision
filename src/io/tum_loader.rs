@@ -7,7 +7,7 @@ use std::fs::File;
 use std::io::{BufReader,BufRead};
 
 use crate::{Float,float};
-use crate::io::{loading_parameters::LoadingParameters,loaded_data::LoadedData, parse_to_float, closest_ts_index};
+use crate::io::{loading_parameters::LoadingParameters,loaded_camera_data::LoadedCameraData, parse_to_float, closest_ts_index};
 use crate::image::{Image};
 use crate::camera::pinhole::Pinhole;
 use crate::io::{load_image_as_gray,load_depth_image};
@@ -20,7 +20,7 @@ pub enum Dataset {
 }
 
 
-pub fn load(root_path: &str, parameters: &LoadingParameters, dataset: &Dataset) -> LoadedData {
+pub fn load(root_path: &str, parameters: &LoadingParameters, dataset: &Dataset) -> LoadedCameraData {
     let rgb_ts_names = "rgb";
     let depth_ts_names = "depth";
     let ground_truths = "groundtruth";
@@ -56,7 +56,9 @@ pub fn load(root_path: &str, parameters: &LoadingParameters, dataset: &Dataset) 
     let source_gt_indices = source_rgb_ts.iter().map(|&x| closest_ts_index(x, &gt_timestamps)).collect::<Vec<usize>>();
     let target_gt_indices = target_rgb_ts.iter().map(|&x| closest_ts_index(x, &gt_timestamps)).collect::<Vec<usize>>(); //TODO: check out of range
 
-    LoadedData {
+    LoadedCameraData {
+        source_timestamps: source_rgb_ts.clone(),
+        target_timestamps: target_rgb_ts.clone(),
         source_gray_images: source_rgb_ts.iter().map(|s| {
             let color_source_image_path = format!("{}/{:.6}.{}",color_image_folder,s, color_image_format);
             load_image_as_gray(&Path::new(&color_source_image_path), false, parameters.invert_y)

@@ -1,21 +1,21 @@
 use crate::image::Image;
-use self::{rgbd_octave::RGBDOctave, rgbd_runtime_parameters::RGBDRuntimeParameters};
+use self::{gd_octave::GDOctave, gd_runtime_parameters::GDRuntimeParameters};
 
-pub mod rgbd_octave;
-pub mod rgbd_runtime_parameters;
+pub mod gd_octave;
+pub mod gd_runtime_parameters;
 
 #[derive(Debug,Clone)]
-pub struct RGBDPyramid<T> {
+pub struct GDPyramid<T> {
     pub octaves: Vec<T>,
     pub depth_image: Image
 }
-pub fn build_rgbd_pyramid(base_gray_image: Image, depth_image: Image, runtime_parameters: &RGBDRuntimeParameters) -> RGBDPyramid<RGBDOctave> {
+pub fn build_rgbd_pyramid(base_gray_image: Image, depth_image: Image, runtime_parameters: &GDRuntimeParameters) -> GDPyramid<GDOctave> {
 
     let gray_image_shape = base_gray_image.buffer.shape();
     let depth_image_shape = depth_image.buffer.shape();
     assert_eq!(gray_image_shape,depth_image_shape);
 
-    let mut octaves: Vec<RGBDOctave> = Vec::with_capacity(runtime_parameters.octave_count);
+    let mut octaves: Vec<GDOctave> = Vec::with_capacity(runtime_parameters.octave_count);
 
     let mut octave_image = base_gray_image;
     let mut sigma = runtime_parameters.sigma;
@@ -27,10 +27,10 @@ pub fn build_rgbd_pyramid(base_gray_image: Image, depth_image: Image, runtime_pa
             sigma *= 2.0;
         }
 
-        let new_octave = RGBDOctave::build_octave(&octave_image, sigma, runtime_parameters);
+        let new_octave = GDOctave::build_octave(&octave_image, sigma, runtime_parameters);
 
         octaves.push(new_octave);
     }
 
-    RGBDPyramid {octaves,depth_image}
+    GDPyramid {octaves,depth_image}
 }
