@@ -6,12 +6,17 @@ use std::fs::File;
 use std::io::{BufReader,Read,BufRead};
 
 
-use crate::Float;
+use crate::{float,Float};
 use crate::io::{loading_parameters::LoadingParameters,loaded_imu_data::LoadedImuData,loaded_camera_data::LoadedCameraData, parse_to_float, closest_ts_index};
 use crate::image::{Image};
 use crate::camera::pinhole::Pinhole;
 use crate::imu::Imu;
 use crate::io::{load_image_as_gray,load_depth_image_from_csv};
+
+const ACCELEROMETER_WHITE_NOISE: Float = 150.0; //μg/sqrt(Hz)
+const ACCELEROMETER_SCALE: Float = 9.81*10e-6;
+const GYRO_WHITE_NOISE: Float = 0.1; // degrees/second
+const GYRO_SCALE: Float = float::consts::PI/180.0;
 
 
 
@@ -84,7 +89,7 @@ pub fn load_imu(root_path: &str) -> LoadedImuData {
     assert_eq!(closest_rotational_vec.len(),linear_acc_vec.len());
 
     LoadedImuData {
-        imu_data: linear_acc_vec.iter().zip(closest_rotational_vec.iter()).map(|(l_a,r_v)| Imu::new(l_a,r_v)).collect::<Vec<Imu>>(),
+        imu_data: linear_acc_vec.iter().zip(closest_rotational_vec.iter()).map(|(l_a,r_v)| Imu::new(l_a,r_v,ACCELEROMETER_WHITE_NOISE,ACCELEROMETER_SCALE,GYRO_WHITE_NOISE,GYRO_SCALE)).collect::<Vec<Imu>>(),
         imu_ts: linear_acc_ts}
 }
 
