@@ -3,7 +3,7 @@ extern crate image as image_rs;
 
 use na::{Vector3, Quaternion};
 use crate::image::Image;
-use crate::camera::pinhole::Pinhole;
+use crate::sensors::camera::pinhole::Pinhole;
 use crate::Float;
 
 

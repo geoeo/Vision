@@ -3,6 +3,9 @@ use nalgebra as na;
 use na::Vector3;
 use crate::Float;
 
+pub mod loaded_imu_data;
+pub mod bmi005;
+
 #[derive(Debug,Copy,Clone)]
 pub struct Imu {
     pub accelerometer: Vector3<Float>,

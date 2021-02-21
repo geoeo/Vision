@@ -3,7 +3,7 @@ extern crate nalgebra as na;
 use na::{U1,U3, Matrix2x3,Matrix3, Vector, Vector3, base::storage::Storage};
 use crate::Float;
 use crate::features::geometry::point::Point;
-use crate::camera::Camera;
+use crate::sensors::camera::Camera; 
 
 #[derive(Copy,Clone)]
 pub struct Pinhole {

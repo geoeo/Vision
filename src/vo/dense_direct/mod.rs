@@ -4,7 +4,7 @@ use na::{U1,U2,U3,U4,U6,RowVector2,Vector4,Vector6,DVector,Matrix4,Matrix,Matrix
 use std::boxed::Box;
 
 use crate::pyramid::gd::{GDPyramid,gd_octave::GDOctave};
-use crate::camera::{Camera,pinhole::Pinhole};
+use crate::sensors::camera::{Camera,pinhole::Pinhole};
 use crate::vo::dense_direct::dense_direct_runtime_parameters::DenseDirectRuntimeParameters;
 use crate::image::Image;
 use crate::numerics::{lie,loss::LossFunction};

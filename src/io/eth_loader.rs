@@ -7,9 +7,9 @@ use std::fs::File;
 use std::io::{BufReader,Read,BufRead};
 
 use crate::Float;
-use crate::io::{loading_parameters::LoadingParameters,loaded_camera_data::LoadedCameraData, parse_to_float};
+use crate::io::{loading_parameters::LoadingParameters, parse_to_float};
 use crate::image::Image;
-use crate::camera::pinhole::Pinhole;
+use crate::sensors::camera::{loaded_camera_data::LoadedCameraData,pinhole::Pinhole};
 use crate::io::{load_image_as_gray, load_depth_image_from_csv};
 
 

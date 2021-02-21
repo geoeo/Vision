@@ -14,8 +14,6 @@ pub mod eth_loader;
 pub mod tum_loader;
 pub mod d455_loader;
 pub mod loading_parameters;
-pub mod loaded_camera_data;
-pub mod loaded_imu_data;
 
 
 pub fn parse_to_float(string: &str, negate_value: bool) -> Float {

@@ -1,5 +1,5 @@
 use crate::Float;
-use crate::imu::Imu;
+use crate::sensors::imu::Imu;
 
 #[derive(Clone)]
 pub struct LoadedImuData {
