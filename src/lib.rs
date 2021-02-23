@@ -4,7 +4,7 @@ pub mod pyramid;
 pub mod features;
 pub mod matching;
 pub mod visualize;
-pub mod vo;
+pub mod odometry;
 pub mod numerics;
 pub mod io;
 pub mod sensors;

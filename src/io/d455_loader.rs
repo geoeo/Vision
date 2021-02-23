@@ -9,13 +9,13 @@ use std::io::{BufReader,Read,BufRead};
 use crate::Float;
 use crate::io::{loading_parameters::LoadingParameters, parse_to_float, closest_ts_index};
 use crate::image::{Image};
-use crate::sensors::camera::{loaded_camera_data::LoadedCameraData,pinhole::Pinhole};
-use crate::sensors::imu::{loaded_imu_data::LoadedImuData,Imu,bmi005};
+use crate::sensors::camera::{camera_data_frame::CameraDataFrame,pinhole::Pinhole};
+use crate::sensors::imu::{imu_data_frame::ImuDataFrame,Imu,bmi005};
 use crate::io::{load_image_as_gray,load_depth_image_from_csv};
 
 
 
-pub fn load(root_path: &str, parameters: &LoadingParameters) -> LoadedCameraData {
+pub fn load(root_path: &str, parameters: &LoadingParameters) -> CameraDataFrame {
     let depth_image_format = "csv";
     let color_image_format = "png";
     let text_format = "txt";
@@ -36,7 +36,7 @@ pub fn load(root_path: &str, parameters: &LoadingParameters) -> LoadedCameraData
     let source_depth_indices = source_rgb_ts.iter().map(|&x| closest_ts_index(x, &depth_ts)).collect::<Vec<usize>>();
     let target_depth_indices = target_rgb_ts.iter().map(|&x| closest_ts_index(x, &depth_ts)).collect::<Vec<usize>>(); //TODO: check out of range
 
-    LoadedCameraData {
+    CameraDataFrame {
         source_timestamps: source_rgb_ts,
         target_timestamps: target_rgb_ts,
         source_gray_images: source_rgb_indices.map(|i| {
@@ -61,7 +61,7 @@ pub fn load(root_path: &str, parameters: &LoadingParameters) -> LoadedCameraData
     }
 }
 
-pub fn load_imu(root_path: &str) -> LoadedImuData {
+pub fn load_imu(root_path: &str) -> ImuDataFrame {
 
     let text_format = "txt";
     let delimeters = &[' ','[',']'][..];
@@ -85,7 +85,7 @@ pub fn load_imu(root_path: &str) -> LoadedImuData {
 
 
 
-    LoadedImuData {
+    ImuDataFrame {
         imu_data: linear_acc_vec.iter().zip(closest_rotational_vec.iter()).map(|(l_a,r_v)| bmi005::new(l_a,r_v)).collect::<Vec<Imu>>(),
         imu_ts: linear_acc_ts}
 }

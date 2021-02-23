@@ -8,7 +8,7 @@ use crate::Float;
 
 
 #[derive(Clone)]
-pub struct LoadedCameraData {
+pub struct CameraDataFrame {
     pub source_timestamps: Vec<Float>,
     pub target_timestamps: Vec<Float>,
     pub source_gray_images: Vec<Image>,

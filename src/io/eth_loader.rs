@@ -9,12 +9,12 @@ use std::io::{BufReader,Read,BufRead};
 use crate::Float;
 use crate::io::{loading_parameters::LoadingParameters, parse_to_float};
 use crate::image::Image;
-use crate::sensors::camera::{loaded_camera_data::LoadedCameraData,pinhole::Pinhole};
+use crate::sensors::camera::{camera_data_frame::CameraDataFrame,pinhole::Pinhole};
 use crate::io::{load_image_as_gray, load_depth_image_from_csv};
 
 
 
-pub fn load(root_path: &str, parameters: &LoadingParameters) -> LoadedCameraData {
+pub fn load(root_path: &str, parameters: &LoadingParameters) -> CameraDataFrame {
     let intrinsics = "intrinsics";
     let ts_names = "images";
     let ground_truths = "groundtruth";
@@ -43,7 +43,7 @@ pub fn load(root_path: &str, parameters: &LoadingParameters) -> LoadedCameraData
 
     let pinhole_camera = load_intrinsics_as_pinhole(&Path::new(&intrinsics_path), parameters.invert_focal_lengths);
 
-    LoadedCameraData {
+    CameraDataFrame {
         source_timestamps: source_indices.clone().map(|s| ts_names[s].0).collect::<Vec<Float>>(),
         target_timestamps: target_indices.clone().map(|t| ts_names[t].0).collect::<Vec<Float>>(),
         source_gray_images: source_indices.clone().map(|s| {

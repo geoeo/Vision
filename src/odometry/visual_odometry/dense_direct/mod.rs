@@ -5,7 +5,7 @@ use std::boxed::Box;
 
 use crate::pyramid::gd::{GDPyramid,gd_octave::GDOctave};
 use crate::sensors::camera::{Camera,pinhole::Pinhole};
-use crate::vo::dense_direct::dense_direct_runtime_parameters::DenseDirectRuntimeParameters;
+use crate::odometry::visual_odometry::dense_direct::dense_direct_runtime_parameters::DenseDirectRuntimeParameters;
 use crate::image::Image;
 use crate::numerics::{lie,loss::LossFunction};
 use crate::features::geometry::point::Point;

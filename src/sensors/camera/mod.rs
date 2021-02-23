@@ -5,7 +5,7 @@ use crate::Float;
 use crate::features::geometry::point::Point;
 
 pub mod pinhole;
-pub mod loaded_camera_data;
+pub mod camera_data_frame;
 
 pub trait Camera {
     fn get_projection(&self) -> Matrix3<Float>;

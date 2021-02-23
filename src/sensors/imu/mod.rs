@@ -3,7 +3,7 @@ use nalgebra as na;
 use na::Vector3;
 use crate::Float;
 
-pub mod loaded_imu_data;
+pub mod imu_data_frame;
 pub mod bmi005;
 
 #[derive(Debug,Copy,Clone)]

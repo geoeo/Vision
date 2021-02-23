@@ -6,7 +6,7 @@ use na::{Vector4,Matrix4, Vector3, UnitQuaternion};
 use std::boxed::Box;
 use vision::io::{loading_parameters::LoadingParameters,eth_loader};
 use vision::pyramid::gd::{GDPyramid,gd_octave::GDOctave, build_rgbd_pyramid,gd_runtime_parameters::GDRuntimeParameters};
-use vision::vo::{dense_direct,dense_direct::{dense_direct_runtime_parameters::DenseDirectRuntimeParameters}};
+use vision::odometry::visual_odometry::{dense_direct,dense_direct::{dense_direct_runtime_parameters::DenseDirectRuntimeParameters}};
 use vision::{numerics,numerics::loss};
 use vision::Float;
 use vision::visualize::plot;
