@@ -6,6 +6,7 @@ use crate::Float;
 pub mod imu_data_frame;
 pub mod bmi005;
 
+//TODO: bias
 #[derive(Debug,Copy,Clone)]
 pub struct Imu {
     pub accelerometer: Vector3<Float>,
