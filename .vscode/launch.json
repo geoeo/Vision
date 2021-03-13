@@ -208,6 +208,18 @@
             "environment": [],
             "externalConsole": false,
             "env": {"RUST_BACKTRACE":"1"}
+        },
+        {
+            "name": "D455 Plot Imu",
+            "type": "lldb",
+            "request": "launch",
+            "program": "${workspaceRoot}/target/debug/examples/d455_plot_imu",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "env": {"RUST_BACKTRACE":"1"}
         }
     ]
 }

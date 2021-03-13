@@ -77,8 +77,8 @@ fn main() {
 
     let out_file_name = format!("d455_{}_start_{}_counter_{}_{}.png",dataset_name,loading_parameters.starting_index,loading_parameters.count,vo_parameters);
 
-    let info = "";
-    plot::draw_line_graph_translation_est(&est_points.iter().map(|x| Vector3::<Float>::new(x[0],x[1], x[2])).collect::<Vec<Vector3<Float>>>(), out_folder, &out_file_name, &info);
+    let title = "";
+    plot::draw_line_graph_vector3(&est_points.iter().map(|x| Vector3::<Float>::new(x[0],x[1], x[2])).collect::<Vec<Vector3<Float>>>(), out_folder, &out_file_name, &title, &"Translation", &"meters");
 
 
 
