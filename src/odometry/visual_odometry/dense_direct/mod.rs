@@ -206,14 +206,13 @@ fn backproject_points(source_image_buffer: &DMatrix<Float>,depth_image_buffer: &
         let depth_sample = depth_image_buffer[(reconstruced_coordiantes.1,reconstruced_coordiantes.0)];
 
 
-        //if depth_sample != 0.0 {
-            // let m = .... get m from normalized image coordiantes
+        if depth_sample != 0.0 {
             let backprojected_point = pinhole_camera.backproject(&Point::<Float>::new(c as Float,r as Float), depth_sample); //TODO: inverse depth
             backproject_points.set_column(image_to_linear_index(r,cols,c),&Vector4::<Float>::new(backprojected_point[0],backprojected_point[1],backprojected_point[2],1.0));
             backproject_points_flags[image_to_linear_index(r,cols,c)] = true;
-        //} else {
-        //    backproject_points.set_column(image_to_linear_index(r,cols,c),&Vector4::<Float>::new(0.0,0.0,0.0,1.0));
-        //}
+        } else {
+            backproject_points.set_column(image_to_linear_index(r,cols,c),&Vector4::<Float>::new(0.0,0.0,0.0,1.0));
+        }
     }
     (backproject_points,backproject_points_flags)
 }
