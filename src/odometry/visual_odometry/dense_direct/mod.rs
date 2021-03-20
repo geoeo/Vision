@@ -206,13 +206,14 @@ fn backproject_points(source_image_buffer: &DMatrix<Float>,depth_image_buffer: &
         let depth_sample = depth_image_buffer[(reconstruced_coordiantes.1,reconstruced_coordiantes.0)];
 
 
-        if depth_sample != 0.0 {
-            let backprojected_point = pinhole_camera.backproject(&Point::<Float>::new(c as Float,r as Float), depth_sample);
+        //if depth_sample != 0.0 {
+            // let m = .... get m from normalized image coordiantes
+            let backprojected_point = pinhole_camera.backproject(&Point::<Float>::new(c as Float,r as Float), depth_sample); //TODO: inverse depth
             backproject_points.set_column(image_to_linear_index(r,cols,c),&Vector4::<Float>::new(backprojected_point[0],backprojected_point[1],backprojected_point[2],1.0));
             backproject_points_flags[image_to_linear_index(r,cols,c)] = true;
-        } else {
-            backproject_points.set_column(image_to_linear_index(r,cols,c),&Vector4::<Float>::new(0.0,0.0,0.0,1.0));
-        }
+        //} else {
+        //    backproject_points.set_column(image_to_linear_index(r,cols,c),&Vector4::<Float>::new(0.0,0.0,0.0,1.0));
+        //}
     }
     (backproject_points,backproject_points_flags)
 }
@@ -225,7 +226,7 @@ fn precompute_jacobians(backprojected_points: &Matrix<Float,U4,Dynamic,VecStorag
         if backprojected_points_flags[i] {
             let point = backprojected_points.fixed_slice::<U3,U1>(0,i);
             let camera_jacobian = pinhole_camera.get_jacobian_with_respect_to_position(&point);
-            let lie_jacobian = lie::jacobian_with_respect_to_transformation(&point);
+            let lie_jacobian = lie::left_jacobian_around_identity(&point);
             precomputed_jacobians.fixed_slice_mut::<U2,U6>(i*2,0).copy_from(&(camera_jacobian*lie_jacobian));
         }
 
@@ -244,7 +245,7 @@ fn compute_residuals(target_image_buffer: &DMatrix<Float>,source_image_buffer: &
     let (rows,cols) = source_image_buffer.shape();
     for i in 0..number_of_points {
         let source_point = linear_to_image_index(i,image_width);
-        let target_point = pinhole_camera.project(&transformed_points.fixed_slice::<U3,U1>(0,i));
+        let target_point = pinhole_camera.project(&transformed_points.fixed_slice::<U3,U1>(0,i)); //TODO: inverse depth
         let target_point_y = target_point.y.trunc() as usize;
         let target_point_x = target_point.x.trunc() as usize;
         let target_linear_idx = image_to_linear_index(target_point_y, image_width, target_point_x);

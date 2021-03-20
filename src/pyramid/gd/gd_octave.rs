@@ -40,6 +40,7 @@ impl GDOctave {
             false => ()
         };
 
+        //TODO: make bluring gradient cleaner/explixit ? 
         match runtime_parameters.blur_grad_x {
             true => {
                 x_gradients = x_gradients.iter().enumerate().map(|(idx,image)|  gaussian_2_d_convolution(image, &kernels[idx], false)).collect::<Vec<Image>>();

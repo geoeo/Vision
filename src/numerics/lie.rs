@@ -13,8 +13,9 @@ pub fn vector_from_skew_symmetric(w_x: &Matrix3<Float>) -> Vector3<Float> {
     Vector3::<Float>::new(w_x[(2,1)],w_x[(0,2)],w_x[(1,0)])
 }
 
-pub fn jacobian_with_respect_to_transformation<T>(transformed_position: &Vector<Float,U3,T>) -> Matrix3x6<Float> where T: Storage<Float,U3,U1> {
-    let skew_symmetrix = skew_symmetric(&transformed_position);
+//TODO: INVESTIGATE THIS. SHould be negative point
+pub fn left_jacobian_around_identity<T>(transformed_position: &Vector<Float,U3,T>) -> Matrix3x6<Float> where T: Storage<Float,U3,U1> {
+    let skew_symmetrix = skew_symmetric(&(-1.0*transformed_position));
     let mut jacobian = Matrix3x6::<Float>::new(1.0, 0.0, 0.0, 0.0, 0.0, 0.0,
                                                0.0, 1.0, 0.0, 0.0, 0.0, 0.0,
                                                0.0, 0.0, 1.0, 0.0, 0.0, 0.0);
@@ -35,6 +36,7 @@ pub fn exp<T>(u: &Vector<Float,U3,T>, w: &Vector<Float,U3,T>) -> Matrix4<Float> 
     let A = omega.sin()/omega;
     let B = (1.0 - omega.cos())/omega_sqr;
     let C = (1.0 - A)/omega_sqr;
+
 
     let w_x = skew_symmetric(w);
     let w_x_sqr = w_x*w_x;
@@ -98,6 +100,42 @@ pub fn ln(se3: &Matrix4<Float>) -> Vector6<Float> {
     w_slice.copy_from(&w);
 
     res
+}
+
+
+#[allow(non_snake_case)]
+pub fn right_jacobian<T>(w: &Vector<Float,U3,T>) -> Matrix3<Float> where T: Storage<Float,U3,U1> {
+    let w_x = skew_symmetric(&w);
+    let w_x_sqr = w_x*w_x;
+    let w_norm = w.norm();
+    let w_norm_sqrd = w_norm.powi(2);
+    let w_norm_cubed = w_norm_sqrd*w_norm;
+    let cos_norm = w_norm.cos();
+    let sin_norm = w_norm.sin();
+
+    let A = (1.0 - cos_norm)/(w_norm_sqrd);
+    let B = (w_norm - sin_norm)/(w_norm_cubed);
+
+    let I = Matrix3::<Float>::identity();
+
+    I - A*w_x + B*w_x_sqr
+}
+
+#[allow(non_snake_case)]
+pub fn right_inverse_jacobian<T>(w: &Vector<Float,U3,T>) -> Matrix3<Float> where T: Storage<Float,U3,U1> {
+    let w_x = skew_symmetric(&w);
+    let w_x_sqr = w_x*w_x;
+    let w_norm = w.norm();
+    let w_norm_sqrd = w_norm.powi(2);
+    let cos_norm = w_norm.cos();
+    let sin_norm = w_norm.sin();
+
+    let A = 1.0/w_norm_sqrd;
+    let B = (1.0+cos_norm)/(2.0*w_norm*sin_norm);
+
+    let I = Matrix3::<Float>::identity();
+
+    I + 0.5*w_x + (A-B)*w_x_sqr
 }
 
 

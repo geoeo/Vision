@@ -3,14 +3,15 @@ use nalgebra as na;
 use na::{Matrix3,Vector3};
 use crate::Float;
 use crate::sensors::{DataFrame,imu::imu_data_frame::ImuDataFrame};
-use crate::odometry::imu_odometry::imu_measurement::{ImuState,ImuCovariance};
+use crate::odometry::imu_odometry::imu_measurement::{ImuState,ImuCovariance, NoiseCovariance};
 use crate::numerics::lie::exp_r;
 
 pub mod imu_measurement;
 
 
+//TODO try left handed composition for preintegration
 #[allow(non_snake_case)]
-pub fn PreIntegration(imu_data: &ImuDataFrame, bias_gyroscope: &Vector3<Float>,bias_accelerometer: &Vector3<Float>) -> ImuState {
+pub fn preIntegration(imu_data: &ImuDataFrame, bias_gyroscope: &Vector3<Float>,bias_accelerometer: &Vector3<Float>) -> ImuState {
 
     let initial_time = imu_data.imu_ts[0];
     let initial_acceleration = imu_data.imu_data[0].accelerometer;
@@ -30,7 +31,12 @@ pub fn PreIntegration(imu_data: &ImuDataFrame, bias_gyroscope: &Vector3<Float>,b
     ImuState {position: delta_position,velocity: delta_velocity, orientation: delta_rotation}
 }
 
-pub fn GravityEstimation(data_frames: &Vec<DataFrame>) -> Vector3::<Float> {
+//TODO: whole data frame might be too much, preintegration could produce exact values needed here
+pub fn propagateStateCovariance(prev_state_covariance: &ImuCovariance, noise_covariance: &NoiseCovariance,delta_t: Float, imu_data: &ImuDataFrame) -> ImuCovariance {
+    panic!("Covariance Propagation Not yet implemented")
+}
+
+pub fn gravityEstimation(data_frames: &Vec<DataFrame>) -> Vector3::<Float> {
 
     panic!("Gravity Estimation Not yet implemented")
 }

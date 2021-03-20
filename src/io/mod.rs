@@ -60,6 +60,8 @@ pub fn load_depth_image_from_csv(file_path: &Path, negate_values: bool, invert_y
         fill_matrix_with_default_depth(&mut matrix,negate_values);
     }
 
+
+
     Image::from_matrix(&matrix, ImageEncoding::F64, normalize)
 }
 
@@ -86,10 +88,14 @@ fn fill_matrix_with_default_depth(target: &mut DMatrix<Float>,negate_values: boo
         false => target.max()
     };
 
+    //TODO: clean this up
     for r in 0..target.nrows(){
         for c in 0..target.ncols(){
             if target[(r,c)] == 0.0 {
-                target[(r,c)] = extrema;
+                //target[(r,c)] = extrema;
+                target[(r,c)] = 0.0;
+            } else {
+                target[(r,c)] = 1.0/target[(r,c)]
             }
         }
     }
