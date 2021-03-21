@@ -13,7 +13,6 @@ pub fn vector_from_skew_symmetric(w_x: &Matrix3<Float>) -> Vector3<Float> {
     Vector3::<Float>::new(w_x[(2,1)],w_x[(0,2)],w_x[(1,0)])
 }
 
-//TODO: INVESTIGATE THIS. SHould be negative point
 pub fn left_jacobian_around_identity<T>(transformed_position: &Vector<Float,U3,T>) -> Matrix3x6<Float> where T: Storage<Float,U3,U1> {
     let skew_symmetrix = skew_symmetric(&(-1.0*transformed_position));
     let mut jacobian = Matrix3x6::<Float>::new(1.0, 0.0, 0.0, 0.0, 0.0, 0.0,

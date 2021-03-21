@@ -14,4 +14,12 @@ impl ImuDataFrame {
             imu_ts: Vec::<Float>::new()
         }
     }
+
+    pub fn sublist<'a>(&'a self, start_index: usize, end_index: usize) -> (&'a [Imu],&'a [Float]) {
+        (&self.imu_data[start_index..end_index], &self.imu_ts[start_index..end_index])
+    }
+
+    pub fn count(&self) -> usize {
+        self.imu_data.len()
+    }
 }

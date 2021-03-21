@@ -48,7 +48,7 @@ pub fn run(iteration: usize, source_rgdb_pyramid: &GDPyramid<GDOctave>,target_rg
     mat_result
 }
 
-//TODO: buffer all debug strings and print at the end
+//TODO: buffer all debug strings and print at the end. Also the numeric matricies could be buffered per octave level
 fn estimate(source_octave: &GDOctave, source_depth_image_original: &Image, target_octave: &GDOctave, octave_index: usize, initial_guess_lie: &Vector6<Float>,initial_guess_mat: &Matrix4<Float>, pinhole_camera: &Pinhole, runtime_parameters: &DenseDirectRuntimeParameters) -> (Vector6<Float>,Matrix4<Float>, usize) {
     let source_image = &source_octave.gray_images[0];
     let target_image = &target_octave.gray_images[0];
