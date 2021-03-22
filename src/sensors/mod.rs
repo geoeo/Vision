@@ -18,10 +18,14 @@ impl DataFrame {
         for i in 0..loaded_camera_data.source_timestamps.len() {
             let target_ts = loaded_camera_data.target_timestamps[i];
 
-            let mut imu = ImuDataFrame::new();
+            let mut imu = ImuDataFrame::from_other(&loaded_imu_data);
+
+            if imu_idx > 0 {
+                imu_idx = imu_idx - 1;
+            }
             while loaded_imu_data.imu_ts[imu_idx] <= target_ts {
-                imu.imu_data.push(loaded_imu_data.imu_data[i]);
-                imu.imu_ts.push(loaded_imu_data.imu_ts[i]);
+                imu.imu_data.push(loaded_imu_data.imu_data[imu_idx]);
+                imu.imu_ts.push(loaded_imu_data.imu_ts[imu_idx]);
                 imu_idx += 1;
             }
             imu_sequences.push(imu);

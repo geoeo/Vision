@@ -84,10 +84,11 @@ pub fn load_imu(root_path: &str) -> ImuDataFrame {
     assert_eq!(closest_rotational_vec.len(),linear_acc_vec.len());
 
 
+    bmi005::new_dataframe_from_data(linear_acc_vec.iter().zip(closest_rotational_vec.iter()).map(|(l_a,r_v)| bmi005::new_measurement(l_a,r_v)).collect::<Vec<Imu>>(), linear_acc_ts)
 
-    ImuDataFrame {
-        imu_data: linear_acc_vec.iter().zip(closest_rotational_vec.iter()).map(|(l_a,r_v)| bmi005::new(l_a,r_v)).collect::<Vec<Imu>>(),
-        imu_ts: linear_acc_ts}
+    //ImuDataFrame {
+    //    imu_data: linear_acc_vec.iter().zip(closest_rotational_vec.iter()).map(|(l_a,r_v)| bmi005::new(l_a,r_v)).collect::<Vec<Imu>>(),
+    //    imu_ts: linear_acc_ts}
 }
 
 // TODO: This can be put outside of loader

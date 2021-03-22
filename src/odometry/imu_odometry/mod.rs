@@ -13,7 +13,7 @@ pub mod imu_measurement;
 pub fn pre_integration(imu_data: &ImuDataFrame, bias_gyroscope: &Vector3<Float>,bias_accelerometer: &Vector3<Float>) -> ImuState {
 
     let initial_time = imu_data.imu_ts[0];
-    let initial_acceleration = imu_data.imu_data[0].accelerometer;
+    let initial_acceleration = imu_data.imu_data[0].accelerometer; //TODO: might be unnecessary
     let delta_times = imu_data.imu_ts[1..].iter().map(|t| t - initial_time).collect::<Vec<Float>>();
 
     let delta_rotations = imu_data.imu_data[1..].iter().zip(delta_times.iter()).map(|(x,&dt)| (x.gyro-bias_gyroscope)*dt).map(|x| exp_r(&x)).collect::<Vec<Matrix3::<Float>>>();
