@@ -26,9 +26,9 @@ fn main() {
 
     //TODO: make all parameters
     let loading_parameters = LoadingParameters {
-        starting_index: 0,
+        starting_index: 30,
         step :1,
-        count :30,
+        count :5,
         negate_depth_values :true,
         invert_focal_lengths :true,
         invert_y :true,

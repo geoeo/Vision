@@ -15,8 +15,22 @@ impl DataFrame {
         let mut imu_sequences = Vec::<ImuDataFrame>::with_capacity(loaded_camera_data.source_timestamps.len());
         let mut accel_imu_idx = 0;
         let mut gyro_imu_idx = 0;
+        let mut accel_imu_idx_signed: isize = 0;
+        let mut gyro_imu_idx_signed: isize = 0;
+
+        while loaded_imu_data.acceleration_ts[accel_imu_idx] <  loaded_camera_data.source_timestamps[0] {
+            accel_imu_idx += 1;
+            accel_imu_idx_signed += 1;
+        }
+
+        
+        while loaded_imu_data.gyro_ts[gyro_imu_idx] <  loaded_camera_data.source_timestamps[0] {
+            gyro_imu_idx += 1;
+            gyro_imu_idx_signed += 1;
+        }
 
         for i in 0..loaded_camera_data.source_timestamps.len() {
+
             let target_ts = loaded_camera_data.target_timestamps[i];
 
             let mut imu = ImuDataFrame::empty_from_other(&loaded_imu_data);
@@ -25,19 +39,29 @@ impl DataFrame {
                 imu.acceleration_data.push(loaded_imu_data.acceleration_data[accel_imu_idx]);
                 imu.acceleration_ts.push(loaded_imu_data.acceleration_ts[accel_imu_idx]);
                 accel_imu_idx += 1;
+                accel_imu_idx_signed += 1;
             }
-            accel_imu_idx = accel_imu_idx - 1;
+            accel_imu_idx -= 1;
+            accel_imu_idx_signed -= 1;
+
 
             while loaded_imu_data.gyro_ts[gyro_imu_idx] <= target_ts {
                 imu.gyro_data.push(loaded_imu_data.gyro_data[gyro_imu_idx]);
                 imu.gyro_ts.push(loaded_imu_data.gyro_ts[gyro_imu_idx]);
                 gyro_imu_idx += 1;
+                gyro_imu_idx_signed += 1;
             }
-            gyro_imu_idx = gyro_imu_idx - 1;
+
+            gyro_imu_idx -= 1;
+            gyro_imu_idx_signed -= 1;
 
 
+            if accel_imu_idx_signed >= 0 && gyro_imu_idx_signed >= 0{
+                imu_sequences.push(imu);
+            } else {
+                panic!("something went wrong with imu camera data association: accel message count : {}, imu message count: {}", imu.acceleration_count(), imu.gyro_count());
+            }
 
-            imu_sequences.push(imu);
         }
 
         DataFrame{

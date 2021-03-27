@@ -16,7 +16,7 @@ fn main() {
     let imu_data_frame = d455_loader::load_imu(&root_path);
 
     let loading_parameters = LoadingParameters {
-        starting_index: 0,
+        starting_index: 30,
         step :1,
         count :1,
         negate_depth_values :true,
@@ -26,18 +26,28 @@ fn main() {
         gt_alignment_rot:UnitQuaternion::identity()
     };
 
-    let data_frame = d455_loader::load_data_frame(&root_path, &loading_parameters);
-
-    let out_file_name_accelerometer = format!("d455_{}_accelerometer.png",dataset_name);
-    let out_file_name_gyro = format!("d455_{}_gyroscope.png",dataset_name);
-    //let info = format!("{}_{}_{}",loading_parameters,pyramid_parameters,vo_parameters);
-
-
     let title_accelerometer = "accelerometer";
-    plot::draw_line_graph_vector3(&imu_data_frame.acceleration_data, &output_folder, &out_file_name_accelerometer,&title_accelerometer, &title_accelerometer, &"g(10 m/s²)");
-    
     let title_gyro = "gyroscore";
-    plot::draw_line_graph_vector3(&imu_data_frame.gyro_data, &output_folder, &out_file_name_gyro,&title_gyro, &title_gyro, &"°/s");
+
+
+    // let out_file_name_accelerometer = format!("d455_{}_accelerometer.png",dataset_name);
+    // let out_file_name_gyro = format!("d455_{}_gyroscope.png",dataset_name);
+
+
+    // plot::draw_line_graph_vector3(&imu_data_frame.acceleration_data, &output_folder, &out_file_name_accelerometer,&title_accelerometer, &title_accelerometer, &"m/s²");
+    
+
+    // plot::draw_line_graph_vector3(&imu_data_frame.gyro_data, &output_folder, &out_file_name_gyro,&title_gyro, &title_gyro, &"rad/s");
+
+
+    
+    let data_frame = d455_loader::load_data_frame(&root_path, &loading_parameters);
+    let cam_frame = 0;
+    let out_file_name_accelerometer_cam_frame = format!("d455_{}_accelerometer_cam_{}.png",dataset_name, cam_frame);
+    let out_file_name_gyro_cam_frame = format!("d455_{}_gyroscope_cam_{}.png",dataset_name,cam_frame);
+
+    plot::draw_line_graph_vector3(&data_frame.imu_data_vec[cam_frame].acceleration_data, &output_folder, &out_file_name_accelerometer_cam_frame,&title_accelerometer, &title_accelerometer, &"m/s²");
+    plot::draw_line_graph_vector3(&data_frame.imu_data_vec[cam_frame].gyro_data, &output_folder, &out_file_name_gyro_cam_frame,&title_gyro, &title_gyro, &"rad/s");
 
 
 }
