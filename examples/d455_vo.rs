@@ -29,7 +29,7 @@ fn main() {
         gt_alignment_rot:UnitQuaternion::identity()
     };
 
-    let loaded_data = d455_loader::load(&root_path, &loading_parameters);
+    let loaded_data = d455_loader::load_camera(&root_path, &loading_parameters);
 
     let source_gray_images = loaded_data.source_gray_images;
     let source_depth_images = loaded_data.source_depth_images;

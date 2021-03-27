@@ -1,39 +1,46 @@
 use nalgebra as na;
 
-use na::Matrix6;
+use na::{Vector3,Matrix6};
 use crate::Float;
-use crate::sensors::imu::Imu;
 
 #[derive(Clone)]
 pub struct ImuDataFrame {
     pub noise_covariance: Matrix6<Float>,
-    pub imu_data: Vec<Imu>,
-    pub imu_ts: Vec<Float>
+    pub gyro_data: Vec<Vector3<Float>>,
+    pub gyro_ts: Vec<Float>,
+    pub acceleration_data: Vec<Vector3<Float>>,
+    pub acceleration_ts: Vec<Float>
 }
 
 impl ImuDataFrame {
-    pub fn new(inital_capacity: usize, accelerometer_noise_density: Float, gyro_noise_density:Float) -> ImuDataFrame {
+    pub fn new(acceleration_inital_capacity: usize, gyro_inital_capacity: usize, accelerometer_noise_density: Float, gyro_noise_density:Float) -> ImuDataFrame {
         ImuDataFrame {
             noise_covariance: ImuDataFrame::generate_noise_covariance(accelerometer_noise_density,gyro_noise_density),
-            imu_data: Vec::<Imu>::with_capacity(inital_capacity),
-            imu_ts: Vec::<Float>::with_capacity(inital_capacity)
+            acceleration_data: Vec::<Vector3<Float>>::with_capacity(acceleration_inital_capacity),
+            acceleration_ts: Vec::<Float>::with_capacity(acceleration_inital_capacity),
+            gyro_data: Vec::<Vector3<Float>>::with_capacity(gyro_inital_capacity),
+            gyro_ts: Vec::<Float>::with_capacity(gyro_inital_capacity)
         }
     }
 
-    pub fn from_other(imu_data_frame: &ImuDataFrame) -> ImuDataFrame {
+    pub fn empty_from_other(imu_data_frame: &ImuDataFrame) -> ImuDataFrame {
         ImuDataFrame {
             noise_covariance: imu_data_frame.noise_covariance,
-            imu_data: Vec::<Imu>::new(),
-            imu_ts: Vec::<Float>::new()
+            acceleration_data: Vec::<Vector3<Float>>::new(),
+            acceleration_ts: Vec::<Float>::new(),
+            gyro_data: Vec::<Vector3<Float>>::new(),
+            gyro_ts: Vec::<Float>::new()
         }
 
     }
 
-    pub fn from_data(imu_data: Vec<Imu>,imu_ts: Vec<Float>, accelerometer_noise_density: Float, gyro_noise_density:Float) -> ImuDataFrame {
+    pub fn from_data(gyro_data: Vec<Vector3<Float>>,gyro_ts: Vec<Float>, acceleration_data: Vec<Vector3<Float>>,acceleration_ts: Vec<Float>, accelerometer_noise_density: Float, gyro_noise_density:Float) -> ImuDataFrame {
         ImuDataFrame {
             noise_covariance: ImuDataFrame::generate_noise_covariance(accelerometer_noise_density,gyro_noise_density),
-            imu_data,
-            imu_ts
+            gyro_data,
+            gyro_ts,
+            acceleration_data,
+            acceleration_ts
         }
     }
 
@@ -49,11 +56,19 @@ impl ImuDataFrame {
         noise_covariance
     }
 
-    pub fn sublist<'a>(&'a self, start_index: usize, end_index: usize) -> (&'a [Imu],&'a [Float]) {
-        (&self.imu_data[start_index..end_index], &self.imu_ts[start_index..end_index])
+    pub fn acceleration_sublist<'a>(&'a self, start_index: usize, end_index: usize) -> (&'a [Vector3<Float>],&'a [Float]) {
+        (&self.acceleration_data[start_index..end_index], &self.acceleration_ts[start_index..end_index])
     }
 
-    pub fn count(&self) -> usize {
-        self.imu_data.len()
+    pub fn gyro_sublist<'a>(&'a self, start_index: usize, end_index: usize) -> (&'a [Vector3<Float>],&'a [Float]) {
+        (&self.gyro_data[start_index..end_index], &self.gyro_ts[start_index..end_index])
+    }
+
+    pub fn acceleration_count(&self) -> usize {
+        self.acceleration_ts.len()
+    }
+
+    pub fn gyro_count(&self) -> usize {
+        self.gyro_ts.len()
     }
 }

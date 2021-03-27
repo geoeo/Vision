@@ -4,9 +4,11 @@ extern crate vision;
 use std::path::Path;
 
 use vision::image::Image;
+#[allow(unused_imports)]
 use vision::visualize::{draw_line,draw_circle, draw_points};
 use vision::float;
 use vision::features::geometry::{line::line_bresenham,point::Point};
+
 
 fn main() {
     let image_name = "lenna";
