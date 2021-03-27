@@ -8,7 +8,7 @@ use std::io::{BufReader,Read,BufRead};
 
 use na::Vector3;
 use crate::Float;
-use crate::io::{loading_parameters::LoadingParameters, parse_to_float, closest_ts_index, get_subrange};
+use crate::io::{loading_parameters::LoadingParameters, parse_to_float, closest_ts_index};
 use crate::image::{Image};
 use crate::sensors::camera::{camera_data_frame::CameraDataFrame,pinhole::Pinhole};
 use crate::sensors::imu::{imu_data_frame::ImuDataFrame,bmi005};
@@ -80,15 +80,6 @@ pub fn load_imu(root_path: &str) -> ImuDataFrame {
     let linear_acc_vec = linear_acc_file_paths.iter().map(|x| load_measurement(Path::new(x),delimeters)).collect::<Vec<Vector3<Float>>>();
     let rotational_vel_vec = rotational_vel_file_paths.iter().map(|x| load_measurement(Path::new(x),delimeters)).collect::<Vec<Vector3<Float>>>();
 
-    //TODO: this is wrong we dont want to miss gyro messages
-    //let closest_rotational_vel_indices = linear_acc_ts.iter().map(|&x| closest_ts_index(x, &rotational_vel_ts)).collect::<Vec<usize>>();
-    //let closest_rotational_vec = closest_rotational_vel_indices.iter().map(|&x| rotational_vel_vec[x].clone()).collect::<Vec<Vec<Float>>>();
-    //assert_eq!(closest_rotational_vec.len(),linear_acc_vec.len());
-
-    //let rotational_vel_indices = get_subrange(*linear_acc_ts.first().unwrap(), *linear_acc_ts.last().unwrap(),&rotational_vel_ts);
-    //let closest_rotational_vec = rotational_vel_indices.iter().map(|&x| rotational_vel_vec[x].clone()).collect::<Vec<Vec<Float>>>();
-
-    //bmi005::new_dataframe_from_data(linear_acc_vec.iter().zip(closest_rotational_vec.iter()).map(|(l_a,r_v)| bmi005::new_measurement(l_a,r_v)).collect::<Vec<Imu>>(), linear_acc_ts)
     bmi005::new_dataframe_from_data(rotational_vel_vec,rotational_vel_ts,linear_acc_vec,linear_acc_ts)
 }
 

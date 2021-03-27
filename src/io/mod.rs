@@ -100,7 +100,7 @@ fn fill_matrix_with_default_depth(target: &mut DMatrix<Float>,negate_values: boo
 
 }
 
-//TODO: can be moved into a more general place for list manipulation
+// //TODO: can be moved into a more general place for list manipulation
 pub fn closest_ts_index(ts: Float, list: &Vec<Float>) -> usize {
     let mut min_delta = float::MAX;
     let mut min_idx = list.len()-1;
@@ -117,13 +117,4 @@ pub fn closest_ts_index(ts: Float, list: &Vec<Float>) -> usize {
     }
 
     min_idx
-}
-
-//TODO: can be moved into a more general place for list manipulation - very slow should be optimized
-pub fn get_subrange(start_val: Float, end_val: Float, list: &Vec<Float>) -> Vec<usize> {
-
-    let start_idx = closest_ts_index(start_val, list);
-    let end_idx = closest_ts_index(end_val, list);
-
-    (start_idx..=end_idx).collect()
 }
