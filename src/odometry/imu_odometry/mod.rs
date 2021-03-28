@@ -1,16 +1,19 @@
 use nalgebra as na;
 
-use na::{U3,U6,U9,Matrix3,MatrixN,MatrixMN,Vector3};
+use na::{U3,U6,U9,Matrix3,Matrix6,MatrixN,MatrixMN,Vector3};
 use crate::Float;
 use crate::sensors::{DataFrame, imu::imu_data_frame::ImuDataFrame};
-use crate::odometry::imu_odometry::imu_measurement::{ImuState,ImuCovariance, NoiseCovariance};
+use crate::odometry::imu_odometry::imu_delta::ImuDelta;
 use crate::numerics::lie::{exp_r,skew_symmetric,right_jacobian};
 
-pub mod imu_measurement;
+pub mod imu_delta;
+
+pub type ImuCovariance = MatrixN<Float,U9>;
+pub type NoiseCovariance = Matrix6<Float>;
 
 
 #[allow(non_snake_case)]
-pub fn pre_integration(imu_data: &ImuDataFrame, bias_gyroscope: &Vector3<Float>,bias_accelerometer: &Vector3<Float>) -> ImuState {
+pub fn pre_integration(imu_data: &ImuDataFrame, bias_gyroscope: &Vector3<Float>,bias_accelerometer: &Vector3<Float>) -> ImuDelta {
 
     let accel_initial_time = imu_data.acceleration_ts[0];
     //let initial_acceleration = imu_data.acceleration_data[0]; //TODO: might be unnecessary
@@ -31,7 +34,7 @@ pub fn pre_integration(imu_data: &ImuDataFrame, bias_gyroscope: &Vector3<Float>,
     let delta_velocity = delta_velocities.iter().fold(empty_vector,|acc,v| acc+v);
     let delta_position = delta_positions.iter().fold(empty_vector,|acc,p| acc+p);
 
-    ImuState {position: delta_position,velocity: delta_velocity, orientation: delta_rotation}
+    ImuDelta {delta_position,delta_velocity, delta_rotation}
 }
 
 //TODO: test this
