@@ -26,8 +26,8 @@ pub fn load_camera(root_path: &str, parameters: &LoadingParameters) -> CameraDat
     let color_image_folder = format!("{}/{}",root_path,"rgb");
 
     let pinhole_camera = Pinhole::new(381.963043212891, 381.700378417969, 320.757202148438, 245.415313720703, parameters.invert_focal_lengths);
-    let (rgb_ts,rgb_ts_string) = load_timestamps(Path::new(&color_image_folder),&color_image_format,false, true);
-    let (depth_ts,depth_ts_string) = load_timestamps(Path::new(&depth_image_folder),&depth_image_format,false, true);
+    let (rgb_ts,rgb_ts_string) = load_timestamps(Path::new(&color_image_folder),&color_image_format,false, true,1e-3);
+    let (depth_ts,depth_ts_string) = load_timestamps(Path::new(&depth_image_folder),&depth_image_format,false, true,1e-3);
 
     let source_rgb_indices = (parameters.starting_index..parameters.starting_index+parameters.count).step_by(parameters.step);
     let target_rgb_indices = source_rgb_indices.clone().map(|x| x + parameters.step); //TODO: check out of range
@@ -71,8 +71,8 @@ pub fn load_imu(root_path: &str) -> ImuDataFrame {
     let linear_acc_folder = format!("{}/{}",root_path,"linear_acc");
     let rotational_vel_folder = format!("{}/{}",root_path,"angular_vel");
 
-    let (linear_acc_ts,linear_acc_ts_string) = load_timestamps(Path::new(&linear_acc_folder), &text_format, false, true);
-    let (rotational_vel_ts,rotational_vel_ts_string) = load_timestamps(Path::new(&rotational_vel_folder), &text_format, false, true);
+    let (linear_acc_ts,linear_acc_ts_string) = load_timestamps(Path::new(&linear_acc_folder), &text_format, false, true, 1e-3);
+    let (rotational_vel_ts,rotational_vel_ts_string) = load_timestamps(Path::new(&rotational_vel_folder), &text_format, false, true,1e-3);
 
     let linear_acc_file_paths = linear_acc_ts_string.iter().map(|x| format!("{}/{}",linear_acc_folder,x)).collect::<Vec<String>>();
     let rotational_vel_file_paths = rotational_vel_ts_string.iter().map(|x| format!("{}/{}",rotational_vel_folder,x)).collect::<Vec<String>>();
@@ -81,6 +81,8 @@ pub fn load_imu(root_path: &str) -> ImuDataFrame {
     let rotational_vel_vec = rotational_vel_file_paths.iter().map(|x| load_measurement(Path::new(x),delimeters)).collect::<Vec<Vector3<Float>>>();
 
     bmi005::new_dataframe_from_data(rotational_vel_vec,rotational_vel_ts,linear_acc_vec,linear_acc_ts)
+
+    //TODO: make sure timestamps are in seconds!
 }
 
 pub fn load_data_frame(root_path: &str, parameters: &LoadingParameters) -> DataFrame {
@@ -91,7 +93,7 @@ pub fn load_data_frame(root_path: &str, parameters: &LoadingParameters) -> DataF
 }
 
 // TODO: This can be put outside of loader
-fn load_timestamps(dir_path: &Path, file_format: &str, negate_value: bool, sort_result: bool)-> (Vec<Float>,Vec<String>) {
+fn load_timestamps(dir_path: &Path, file_format: &str, negate_value: bool, sort_result: bool, ts_scaling: Float)-> (Vec<Float>,Vec<String>) {
     let mut ts_string = Vec::<(Float,String)>::new();
     let mut timestamps = Vec::<Float>::new();
     let mut timestamps_string = Vec::<String>::new();
@@ -114,7 +116,7 @@ fn load_timestamps(dir_path: &Path, file_format: &str, negate_value: bool, sort_
                     ts_parts[0] = prefix_split[prefix_split.len()-1];
                     let ts_str = ts_parts.join(".");
 
-                    ts_string.push((parse_to_float(ts_str.as_str(), negate_value),full_file_name));
+                    ts_string.push((parse_to_float(ts_str.as_str(), negate_value)*ts_scaling,full_file_name));
                 }
 
             }

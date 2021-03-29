@@ -5,6 +5,8 @@ extern crate nalgebra as na;
 use na::{Vector3,UnitQuaternion};
 use std::path::Path;
 use vision::io::{loading_parameters::LoadingParameters,load_depth_image_from_csv,load_image_as_gray,d455_loader};
+use vision::odometry::imu_odometry::pre_integration;
+use vision::Float;
 
 fn main() {
     let color_image_name = "_Color_1609709584112.90991210937500";
@@ -26,9 +28,9 @@ fn main() {
 
     //TODO: make all parameters
     let loading_parameters = LoadingParameters {
-        starting_index: 30,
+        starting_index: 0,
         step :1,
-        count :5,
+        count :600,
         negate_depth_values :true,
         invert_focal_lengths :true,
         invert_y :true,
@@ -82,6 +84,18 @@ fn main() {
         }
         println!("--------------");
     }
+
+    for (i,data) in imu_data.iter().enumerate() {
+        let imu_delta = pre_integration(data,&Vector3::<Float>::zeros(),&Vector3::<Float>::zeros(), &Vector3::<Float>::new(0.0,9.81,0.0));
+        let pose = imu_delta.get_pose();
+        if pose[(0,3)] > pose[(1,3)] {
+            println!("{}",i);
+            println!("{}",pose);
+            println!("--------");
+        }
+
+    }
+
 
 
 

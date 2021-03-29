@@ -12,27 +12,29 @@ pub type ImuCovariance = MatrixN<Float,U9>;
 pub type NoiseCovariance = Matrix6<Float>;
 
 
+//TODO: check gravity in formulae
 #[allow(non_snake_case)]
-pub fn pre_integration(imu_data: &ImuDataFrame, bias_gyroscope: &Vector3<Float>,bias_accelerometer: &Vector3<Float>) -> ImuDelta {
+pub fn pre_integration(imu_data: &ImuDataFrame, bias_gyroscope: &Vector3<Float>,bias_accelerometer: &Vector3<Float>, gravity_body: &Vector3<Float>) -> ImuDelta {
 
     let accel_initial_time = imu_data.acceleration_ts[0];
-    //let initial_acceleration = imu_data.acceleration_data[0]; //TODO: might be unnecessary
     let accel_delta_times = imu_data.acceleration_ts[1..].iter().map(|t| t - accel_initial_time).collect::<Vec<Float>>();
 
     let gyro_initial_time = imu_data.gyro_ts[0];
-    //let initial_gyro = imu_data.gyro_data[0]; //TODO: might be unnecessary
-    let gyro_delta_times = imu_data.gyro_ts[1..].iter().map(|t| t - accel_initial_time).collect::<Vec<Float>>();
+    let gyro_delta_times = imu_data.gyro_ts[1..].iter().map(|t| t - gyro_initial_time).collect::<Vec<Float>>();
 
     let delta_rotations = imu_data.gyro_data[1..].iter().zip(gyro_delta_times.iter()).map(|(x,&dt)| (x-bias_gyroscope)*dt).map(|x| exp_r(&x)).collect::<Vec<Matrix3::<Float>>>();
-    let delta_velocities = imu_data.acceleration_data[1..].iter().zip(delta_rotations.iter()).zip(accel_delta_times.iter()).map(|((x,dR),&dt)| dR*(x - bias_accelerometer)*dt).collect::<Vec<Vector3<Float>>>();
-    let delta_positions = delta_velocities.iter().zip(accel_delta_times.iter()).map(|(dv,&dt)| 1.5*dv*dt).collect::<Vec<Vector3::<Float>>>(); //TODO: Check this
+    let delta_velocities = imu_data.acceleration_data[1..].iter().zip(delta_rotations.iter()).zip(accel_delta_times.iter()).map(|((x,dR),&dt)| dR*(x - bias_accelerometer + gravity_body)*dt).collect::<Vec<Vector3<Float>>>(); 
+    let delta_positions = delta_velocities.iter().zip(accel_delta_times.iter()).map(|(dv,&dt)| 1.5*dv*dt + 0.5*gravity_body*dt.powi(2)).collect::<Vec<Vector3::<Float>>>(); //TODO: Check this
 
     let identity = Matrix3::<Float>::identity();
-    let empty_vector = Vector3::<Float>::identity();
+    let empty_vector = Vector3::<Float>::zeros();
 
     let delta_rotation = delta_rotations.iter().fold(identity,|acc,x| acc*x);
+    //let delta_velocity = delta_velocities.iter().zip(accel_delta_times.iter()).map(|(x,&dt)| x+ gravity_body*dt).fold(empty_vector,|acc,v| acc+v);
     let delta_velocity = delta_velocities.iter().fold(empty_vector,|acc,v| acc+v);
+    //let delta_position = delta_positions.iter().zip(accel_delta_times.iter()).map(|(x,&dt)| x).fold(empty_vector,|acc,p| acc+p);
     let delta_position = delta_positions.iter().fold(empty_vector,|acc,p| acc+p);
+
 
     ImuDelta {delta_position,delta_velocity, delta_rotation}
 }
