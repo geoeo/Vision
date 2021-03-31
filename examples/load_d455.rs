@@ -30,7 +30,7 @@ fn main() {
     let loading_parameters = LoadingParameters {
         starting_index: 0,
         step :1,
-        count :600,
+        count :250,
         negate_depth_values :true,
         invert_focal_lengths :true,
         invert_y :true,
