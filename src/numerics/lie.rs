@@ -71,7 +71,7 @@ pub fn exp_r<T>(w: &Vector<Float,U3,T>) -> Matrix3<Float> where T: Storage<Float
 
 // TODO: taylor expansion, check this
 #[allow(non_snake_case)]
-pub fn ln_R<T>(R: &Matrix<Float,U3,U3,T>) -> Matrix3<Float> where T: Storage<Float,U3,U3> {
+pub fn ln_SO3<T>(R: &Matrix<Float,U3,U3,T>) -> Matrix3<Float> where T: Storage<Float,U3,U3> {
     let omega = ((R.trace() -1.0)/2.0).acos();
     let factor = omega/(2.0*omega.sin());
     factor*(R-R.transpose())
@@ -79,7 +79,7 @@ pub fn ln_R<T>(R: &Matrix<Float,U3,U3,T>) -> Matrix3<Float> where T: Storage<Flo
 
 #[allow(non_snake_case)]
 pub fn ln(se3: &Matrix4<Float>) -> Vector6<Float> {
-    let w_x = ln_R(&se3.fixed_slice::<U3,U3>(0,0));
+    let w_x = ln_SO3(&se3.fixed_slice::<U3,U3>(0,0));
     let w_x_sqr = w_x*w_x;
     let w = vector_from_skew_symmetric(&w_x);
     let omega_sqr = (w.transpose()*w)[0];

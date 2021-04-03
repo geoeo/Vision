@@ -1,18 +1,19 @@
 use nalgebra as na;
 
-use na::{U3,U6,U9,Matrix3,Matrix6,MatrixN,MatrixMN,Vector3};
+use na::{U3,U6,U9,Matrix3,Matrix6,MatrixN,MatrixMN,Vector3,VectorN};
 use crate::Float;
 use crate::sensors::{DataFrame, imu::imu_data_frame::ImuDataFrame};
 use crate::odometry::imu_odometry::imu_delta::ImuDelta;
-use crate::numerics::lie::{exp_r,skew_symmetric,right_jacobian};
+use crate::numerics::lie::{exp_r,skew_symmetric,right_jacobian, right_inverse_jacobian, ln_SO3, vector_from_skew_symmetric};
 
 pub mod imu_delta;
 
 pub type ImuCovariance = MatrixN<Float,U9>;
+pub type ImuResidual = VectorN<Float,U9>;
 pub type NoiseCovariance = Matrix6<Float>;
+pub type ImuJacobian = MatrixN<Float,U9>;
 
 
-//TODO: check gravity in formulae
 #[allow(non_snake_case)]
 pub fn pre_integration(imu_data: &ImuDataFrame, bias_gyroscope: &Vector3<Float>,bias_accelerometer: &Vector3<Float>, gravity_body: &Vector3<Float>) -> ImuDelta {
 
@@ -55,9 +56,8 @@ fn generate_linear_model_matrices(imu_frame: &ImuDataFrame, delta_rotation_i_k: 
     let g_initial_time_k = g_ts_k[0];
     let g_delta_t_k = g_ts_k[1..].iter().map(|t| t - g_initial_time_k).fold(0.0, |acc,x| acc+x);
 
-    //TODO: compensate for body gravity
     let accelerometer_k = imu_frame.acceleration_data[accel_length-1];
-    let accelerometer_skew_symmetric = skew_symmetric(&accelerometer_k);
+    let accelerometer_skew_symmetric = skew_symmetric(&(accelerometer_k + gravity_body));
 
     let gyrpscope_k = imu_frame.gyro_data[gyro_length-1];
     let right_jacobian = right_jacobian(&gyrpscope_k);
@@ -87,6 +87,32 @@ pub fn propagate_state_covariance(imu_covariance_prev: &ImuCovariance, noise_cov
     linear_state_design_matrix*imu_covariance_prev*linear_state_design_matrix.transpose() + linear_noise_design_matrix*noise_covariance*linear_noise_design_matrix.transpose()
 }
 
+pub fn generate_jacobian(lie: &Vector3<Float>, delta_t: Float) -> ImuJacobian {
+
+    let mut jacobian = ImuJacobian::zeros();
+    let identity = Matrix3::<Float>::identity();
+    let right_inverse_jacobian = right_inverse_jacobian(&lie);
+    jacobian.fixed_slice_mut::<U3,U3>(0,0).copy_from(&(-identity*delta_t));
+    jacobian.fixed_slice_mut::<U3,U3>(0,3).copy_from(&identity);
+    jacobian.fixed_slice_mut::<U3,U3>(3,0).copy_from(&identity);
+    jacobian.fixed_slice_mut::<U3,U3>(6,6).copy_from(&(right_inverse_jacobian));
+
+    jacobian
+}
+
+pub fn generate_residual(estimate: &ImuDelta, measurement: &ImuDelta) -> ImuResidual {
+    let mut residual = ImuResidual::zeros();
+
+    residual.fixed_rows_mut::<U3>(0).copy_from(&(estimate.delta_position - measurement.delta_position));
+    residual.fixed_rows_mut::<U3>(3).copy_from(&(estimate.delta_velocity - measurement.delta_velocity));
+    let rotation_residual = measurement.delta_rotation.transpose()*estimate.delta_rotation;
+    let w_x = ln_SO3(&rotation_residual);
+    residual.fixed_rows_mut::<U3>(6).copy_from(&vector_from_skew_symmetric(&w_x));
+
+    residual
+}
+
+//TODO
 pub fn gravityEstimation(data_frames: &Vec<DataFrame>) -> Vector3::<Float> {
 
     panic!("Gravity Estimation Not yet implemented")
