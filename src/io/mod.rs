@@ -4,11 +4,13 @@ extern crate image as image_rs;
 use std::path::Path;
 use std::fs::File;
 use std::io::{BufReader,Read};
-use na::{RowDVector,DMatrix};
+use std::option::Option;
+use na::{U3,RowDVector,DMatrix,Matrix4, Vector4};
 use crate::image::{Image,image_encoding::ImageEncoding};
-
-
+use crate::features::geometry::point::Point;
+use crate::sensors::camera::{Camera,pinhole::Pinhole};
 use crate::{float,Float};
+
 
 pub mod eth_loader;
 pub mod tum_loader;
@@ -34,7 +36,8 @@ pub fn parse_to_float(string: &str, negate_value: bool) -> Float {
     }
 }
 
-pub fn load_depth_image_from_csv(file_path: &Path, negate_values: bool, invert_y: bool, width: usize, height: usize, scale: Float, normalize: bool, set_default_depth: bool) -> Image {
+//TODO: make this a generic camera arg
+pub fn load_depth_image_from_csv(file_path: &Path, negate_values: bool, invert_y: bool, width: usize, height: usize, scale: Float, normalize: bool, set_default_depth: bool, transform_camera_option: &Option<(&Matrix4<Float>,&Pinhole)>) -> Image {
     let file = File::open(file_path).expect("load_depth_map failed");
     let mut reader = BufReader::new(file);
     let mut contents = String::new();
@@ -54,6 +57,32 @@ pub fn load_depth_image_from_csv(file_path: &Path, negate_values: bool, invert_y
             false => idx
         };
         matrix.set_row(row_idx,&vector);
+    }
+
+    //TODO: optimize this
+    if transform_camera_option.is_some() {
+        let mut new_matrix = DMatrix::<Float>::zeros(height,width);
+        let (depth_camera_transfrom,camera) = transform_camera_option.unwrap();
+        for r in 0..height {
+            for c in 0..width {
+                let depth = matrix[(r,c)];
+                if depth != 0.0 {
+                    let backprojected_point = camera.backproject(&Point::<Float>::new(c as Float,r as Float), depth);
+                    let transformed_point = depth_camera_transfrom*Vector4::<Float>::new(backprojected_point[0],backprojected_point[1],backprojected_point[2],1.0);
+                    let new_image_coords = camera.project(&transformed_point.fixed_rows::<U3>(0));
+
+                    if new_image_coords.x >= 0.0 && new_image_coords.x < width as Float && new_image_coords.y >= 0.0 && new_image_coords.y < height  as Float {
+                        let x_usize = new_image_coords.x.round() as usize;
+                        let y_usize = new_image_coords.y.round() as usize;
+
+                        new_matrix[(y_usize,x_usize)] = depth;
+                    }    
+                }  
+            }
+        }
+
+        matrix = new_matrix;
+
     }
 
     if set_default_depth {

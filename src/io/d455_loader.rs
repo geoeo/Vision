@@ -6,7 +6,7 @@ use std::fs::File;
 use std::io::{BufReader,Read,BufRead};
 
 
-use na::Vector3;
+use na::{U3,U1,Vector3,Matrix4};
 use crate::Float;
 use crate::io::{loading_parameters::LoadingParameters, parse_to_float, closest_ts_index};
 use crate::image::{Image};
@@ -21,11 +21,13 @@ pub fn load_camera(root_path: &str, parameters: &LoadingParameters) -> CameraDat
     let depth_image_format = "csv";
     let color_image_format = "png";
     let text_format = "txt";
-
     let depth_image_folder = format!("{}/{}",root_path,"depth");
     let color_image_folder = format!("{}/{}",root_path,"rgb");
 
-    let pinhole_camera = Pinhole::new(381.963043212891, 381.700378417969, 320.757202148438, 245.415313720703, parameters.invert_focal_lengths);
+    //let intensity_camera = Pinhole::new(381.963043212891, 381.700378417969, 320.757202148438, 245.415313720703, parameters.invert_focal_lengths);
+    let intensity_camera = Pinhole::new(389.2685546875, 389.2685546875, 319.049255371094, 241.347015380859, parameters.invert_focal_lengths);
+    let depth_camera = Pinhole::new(389.2685546875, 389.2685546875, 319.049255371094, 241.347015380859, parameters.invert_focal_lengths);
+
     let (rgb_ts,rgb_ts_string) = load_timestamps(Path::new(&color_image_folder),&color_image_format,false, true,1e-3);
     let (depth_ts,depth_ts_string) = load_timestamps(Path::new(&depth_image_folder),&depth_image_format,false, true,1e-3);
 
@@ -38,6 +40,9 @@ pub fn load_camera(root_path: &str, parameters: &LoadingParameters) -> CameraDat
     let source_depth_indices = source_rgb_ts.iter().map(|&x| closest_ts_index(x, &depth_ts)).collect::<Vec<usize>>();
     let target_depth_indices = target_rgb_ts.iter().map(|&x| closest_ts_index(x, &depth_ts)).collect::<Vec<usize>>(); //TODO: check out of range
 
+    let mut depth_camera_transform = Matrix4::<Float>::identity();
+    depth_camera_transform.fixed_slice_mut::<U3,U1>(0,3).copy_from(&Vector3::<Float>::new(-0.059157,0.0,0.000390));
+
     CameraDataFrame {
         source_timestamps: source_rgb_ts,
         target_timestamps: target_rgb_ts,
@@ -47,7 +52,7 @@ pub fn load_camera(root_path: &str, parameters: &LoadingParameters) -> CameraDat
         }).collect::<Vec<Image>>(),
         source_depth_images: source_depth_indices.iter().map(|&i| {
             let depth_source_image_path = format!("{}/{}",depth_image_folder,depth_ts_string[i]);
-            load_depth_image_from_csv(&Path::new(&depth_source_image_path), parameters.negate_depth_values, parameters.invert_y,640,480,1.0,false,parameters.set_default_depth) //TODO: pass into
+            load_depth_image_from_csv(&Path::new(&depth_source_image_path), parameters.negate_depth_values, parameters.invert_y,640,480,1.0,false,parameters.set_default_depth, &Some((&depth_camera_transform,&depth_camera))) //TODO: pass into
         }).collect::<Vec<Image>>(),
         target_gray_images: target_rgb_indices.map(|i| {
             let color_target_image_path = format!("{}/{}",color_image_folder,rgb_ts_string[i]);
@@ -55,14 +60,16 @@ pub fn load_camera(root_path: &str, parameters: &LoadingParameters) -> CameraDat
         }).collect::<Vec<Image>>(),
         target_depth_images:  target_depth_indices.iter().map(|&i| {
             let depth_target_image_path = format!("{}/{}",depth_image_folder,depth_ts_string[i]);
-            load_depth_image_from_csv(&Path::new(&depth_target_image_path), parameters.negate_depth_values, parameters.invert_y,640,480,1.0,false,parameters.set_default_depth) //TODO: pass into
+            load_depth_image_from_csv(&Path::new(&depth_target_image_path), parameters.negate_depth_values, parameters.invert_y,640,480,1.0,false,parameters.set_default_depth, &Some((&depth_camera_transform,&depth_camera))) //TODO: pass into
         }).collect::<Vec<Image>>(),
-        pinhole_camera,
+        intensity_camera,
+        depth_camera,
         target_gt_poses: None,
         source_gt_poses: None
     }
 }
 
+//TODO: make loading paramters for IMU
 pub fn load_imu(root_path: &str) -> ImuDataFrame {
 
     let text_format = "txt";
@@ -81,8 +88,6 @@ pub fn load_imu(root_path: &str) -> ImuDataFrame {
     let rotational_vel_vec = rotational_vel_file_paths.iter().map(|x| load_measurement(Path::new(x),delimeters)).collect::<Vec<Vector3<Float>>>();
 
     bmi005::new_dataframe_from_data(rotational_vel_vec,rotational_vel_ts,linear_acc_vec,linear_acc_ts)
-
-    //TODO: make sure timestamps are in seconds!
 }
 
 pub fn load_data_frame(root_path: &str, parameters: &LoadingParameters) -> DataFrame {

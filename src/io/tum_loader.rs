@@ -39,7 +39,8 @@ pub fn load(root_path: &str, parameters: &LoadingParameters, dataset: &Dataset) 
     let depth_ts = load_timestamps(&Path::new(&depth_ts_name_path));
     let (gt_timestamps,ground_truths) = load_ground_truths_and_timestamps(&Path::new(&ground_truths_path), &parameters.gt_alignment_rot);
 
-    let pinhole_camera = load_intrinsics_as_pinhole(dataset, parameters.invert_focal_lengths);
+    let intensity_camera = load_intrinsics_as_pinhole(dataset, parameters.invert_focal_lengths);
+    let depth_camera = intensity_camera.clone();
 
     let source_rgb_indices = (parameters.starting_index..parameters.starting_index+parameters.count).step_by(parameters.step);
     let target_rgb_indices = source_rgb_indices.clone().map(|x| x + parameters.step); //TODO: check out of range
@@ -75,7 +76,8 @@ pub fn load(root_path: &str, parameters: &LoadingParameters, dataset: &Dataset) 
             let depth_target_image_path = format!("{}/{:.6}.{}",depth_image_folder,t, depth_image_format);
             load_depth_image(&Path::new(&depth_target_image_path), parameters.negate_depth_values, true, 5000.0, parameters.set_default_depth)
         }).collect::<Vec<Image>>(),
-        pinhole_camera,
+        intensity_camera,
+        depth_camera,
         target_gt_poses: Some(target_gt_indices.iter().map(|&t| {
             ground_truths[t]
         }).collect::<Vec<(Vector3<Float>,Quaternion<Float>)>>()),

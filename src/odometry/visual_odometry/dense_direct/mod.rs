@@ -13,11 +13,11 @@ use crate::{Float,float,reconstruct_original_coordiantes};
 
 pub mod dense_direct_runtime_parameters;
 
-pub fn run_trajectory(source_rgdb_pyramids: &Vec<GDPyramid<GDOctave>>,target_rgdb_pyramids: &Vec<GDPyramid<GDOctave>>, pinhole_camera: &Pinhole, runtime_parameters: &DenseDirectRuntimeParameters) -> Vec<Matrix4<Float>> {
-    source_rgdb_pyramids.iter().zip(target_rgdb_pyramids.iter()).enumerate().map(|(i,(source,target))| run(i+1,&source,&target, pinhole_camera,runtime_parameters)).collect::<Vec<Matrix4<Float>>>()
+pub fn run_trajectory(source_rgdb_pyramids: &Vec<GDPyramid<GDOctave>>,target_rgdb_pyramids: &Vec<GDPyramid<GDOctave>>, intensity_camera: &Pinhole, depth_camera: &Pinhole , runtime_parameters: &DenseDirectRuntimeParameters) -> Vec<Matrix4<Float>> {
+    source_rgdb_pyramids.iter().zip(target_rgdb_pyramids.iter()).enumerate().map(|(i,(source,target))| run(i+1,&source,&target, intensity_camera,depth_camera,runtime_parameters)).collect::<Vec<Matrix4<Float>>>()
 }
 
-pub fn run(iteration: usize, source_rgdb_pyramid: &GDPyramid<GDOctave>,target_rgdb_pyramid: &GDPyramid<GDOctave>, pinhole_camera: &Pinhole, runtime_parameters: &DenseDirectRuntimeParameters) -> Matrix4<Float> {
+pub fn run(iteration: usize, source_rgdb_pyramid: &GDPyramid<GDOctave>,target_rgdb_pyramid: &GDPyramid<GDOctave>, intensity_camera: &Pinhole,depth_camera: &Pinhole, runtime_parameters: &DenseDirectRuntimeParameters) -> Matrix4<Float> {
     let octave_count = source_rgdb_pyramid.octaves.len();
 
     assert_eq!(octave_count,runtime_parameters.taus.len());
@@ -30,7 +30,7 @@ pub fn run(iteration: usize, source_rgdb_pyramid: &GDPyramid<GDOctave>,target_rg
     
     for index in (0..octave_count).rev() {
 
-        let result = estimate(&source_rgdb_pyramid.octaves[index],depth_image,&target_rgdb_pyramid.octaves[index],index,&lie_result,&mat_result,pinhole_camera,runtime_parameters);
+        let result = estimate(&source_rgdb_pyramid.octaves[index],depth_image,&target_rgdb_pyramid.octaves[index],index,&lie_result,&mat_result,intensity_camera,depth_camera,runtime_parameters);
         lie_result = result.0;
         mat_result = result.1;
         let solver_iterations = result.2;
@@ -49,7 +49,7 @@ pub fn run(iteration: usize, source_rgdb_pyramid: &GDPyramid<GDOctave>,target_rg
 }
 
 //TODO: buffer all debug strings and print at the end. Also the numeric matricies could be buffered per octave level
-fn estimate(source_octave: &GDOctave, source_depth_image_original: &Image, target_octave: &GDOctave, octave_index: usize, initial_guess_lie: &Vector6<Float>,initial_guess_mat: &Matrix4<Float>, pinhole_camera: &Pinhole, runtime_parameters: &DenseDirectRuntimeParameters) -> (Vector6<Float>,Matrix4<Float>, usize) {
+fn estimate(source_octave: &GDOctave, source_depth_image_original: &Image, target_octave: &GDOctave, octave_index: usize, initial_guess_lie: &Vector6<Float>,initial_guess_mat: &Matrix4<Float>, intensity_camera: &Pinhole, depth_camera: &Pinhole, runtime_parameters: &DenseDirectRuntimeParameters) -> (Vector6<Float>,Matrix4<Float>, usize) {
     let source_image = &source_octave.gray_images[0];
     let target_image = &target_octave.gray_images[0];
     let x_gradient_image = &target_octave.x_gradients[0];
@@ -70,13 +70,13 @@ fn estimate(source_octave: &GDOctave, source_depth_image_original: &Image, targe
     let mut new_image_gradient_points = Vec::<Point<usize>>::with_capacity(number_of_pixels);
     let mut rescaled_jacobian_target = Matrix::<Float,Dynamic,U6, VecStorage<Float,Dynamic,U6>>::zeros(number_of_pixels); 
     let mut rescaled_residual_target =  DVector::<Float>::zeros(number_of_pixels);
-    let (backprojected_points,backprojected_points_flags) = backproject_points(&source_image.buffer, &source_depth_image_original.buffer, &pinhole_camera, octave_index);
-    let constant_jacobians = precompute_jacobians(&backprojected_points,&backprojected_points_flags,&pinhole_camera);
+    let (backprojected_points,backprojected_points_flags) = backproject_points(&source_image.buffer, &source_depth_image_original.buffer, &depth_camera, octave_index);
+    let constant_jacobians = precompute_jacobians(&backprojected_points,&backprojected_points_flags,&intensity_camera);
 
     let mut est_transform = initial_guess_mat.clone();
     let mut est_lie = initial_guess_lie.clone();
 
-    compute_residuals(&target_image.buffer, &source_image.buffer, &backprojected_points,&backprojected_points_flags,&est_transform, &pinhole_camera, &mut residuals,&mut image_gradient_points);
+    compute_residuals(&target_image.buffer, &source_image.buffer, &backprojected_points,&backprojected_points_flags,&est_transform, &intensity_camera, &mut residuals,&mut image_gradient_points);
     weight_residuals(&mut residuals, &weights_vec);
     let mut cost = compute_cost(&residuals);
     let mut avg_cost = cost/image_gradient_points.len() as Float;
@@ -96,6 +96,7 @@ fn estimate(source_octave: &GDOctave, source_depth_image_original: &Image, targe
     };
     let tau = runtime_parameters.taus[octave_index];
     let max_iterations = runtime_parameters.max_iterations[octave_index];
+    
 
     compute_image_gradients(&x_gradient_image.buffer,&y_gradient_image.buffer,&image_gradient_points,&mut image_gradients);
     compute_full_jacobian(&image_gradients,&constant_jacobians,&mut full_jacobian);
@@ -103,22 +104,25 @@ fn estimate(source_octave: &GDOctave, source_depth_image_original: &Image, targe
     
 
     let mut iteration_count = 0;
-    while ((!runtime_parameters.lm && (avg_cost.sqrt() > runtime_parameters.eps)) || (runtime_parameters.lm && (delta_norm >= delta_thresh && max_norm_delta > runtime_parameters.max_norm_eps)))  && iteration_count < max_iterations  {
+    while ((!runtime_parameters.lm && (avg_cost.sqrt() > runtime_parameters.eps[octave_index])) || (runtime_parameters.lm && (delta_norm >= delta_thresh && max_norm_delta > runtime_parameters.max_norm_eps)))  && iteration_count < max_iterations  {
         if runtime_parameters.debug{
             println!("it: {}, avg_rmse: {}, valid pixels: {}%",iteration_count,avg_cost.sqrt(),percentage_of_valid_pixels);
         }
 
         let (delta,g,gain_ratio_denom, mu_val) 
             = gauss_newton_step_with_loss(&residuals, &full_jacobian_weighted, &identity_6, mu, tau, cost, & runtime_parameters.loss_function, &mut rescaled_jacobian_target,&mut rescaled_residual_target);
-
-        let new_est_lie = est_lie+ step*delta;
-
-        let new_est_transform = lie::exp(&new_est_lie.fixed_slice::<U3, U1>(0, 0),&new_est_lie.fixed_slice::<U3, U1>(3, 0));
         mu = Some(mu_val);
 
 
+        //let new_est_lie = est_lie+ step*delta;
+        //let new_est_transform = lie::exp(&new_est_lie.fixed_rows::<U3>(0),&new_est_lie.fixed_rows::<U3>(3));
+
+        let pertb = step*delta;
+        let new_est_transform = lie::exp(&pertb.fixed_slice::<U3, U1>(0, 0),&pertb.fixed_slice::<U3, U1>(3, 0))*est_transform;
+
+
         new_image_gradient_points.clear();
-        compute_residuals(&target_image.buffer, &source_image.buffer, &backprojected_points,&backprojected_points_flags,&new_est_transform, &pinhole_camera , &mut new_residuals,&mut new_image_gradient_points);
+        compute_residuals(&target_image.buffer, &source_image.buffer, &backprojected_points,&backprojected_points_flags,&new_est_transform, &intensity_camera , &mut new_residuals,&mut new_image_gradient_points);
         
         
         if runtime_parameters.weighting {
@@ -134,7 +138,8 @@ fn estimate(source_octave: &GDOctave, source_depth_image_original: &Image, targe
             println!("{},{}",cost,new_cost);
         }
         if gain_ratio >= 0.0  || !runtime_parameters.lm {
-            est_lie = new_est_lie.clone();
+            //est_lie = new_est_lie.clone();
+            est_lie = lie::ln(&new_est_transform);
             est_transform = new_est_transform.clone();
             cost = new_cost;
             avg_cost = cost/new_image_gradient_points.len() as Float;
@@ -245,8 +250,8 @@ fn compute_residuals(target_image_buffer: &DMatrix<Float>,source_image_buffer: &
     for i in 0..number_of_points {
         let source_point = linear_to_image_index(i,image_width);
         let target_point = pinhole_camera.project(&transformed_points.fixed_slice::<U3,U1>(0,i)); //TODO: inverse depth
-        let target_point_y = target_point.y.trunc() as usize;
-        let target_point_x = target_point.x.trunc() as usize;
+        let target_point_y = target_point.y.round() as usize;
+        let target_point_x = target_point.x.round() as usize;
         let target_linear_idx = image_to_linear_index(target_point_y, image_width, target_point_x);
 
         if source_point.y < rows && target_point_y < rows && 

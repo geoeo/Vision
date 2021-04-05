@@ -6,7 +6,7 @@ use std::{fmt,boxed::Box};
 #[derive(Debug)]
 pub struct DenseDirectRuntimeParameters{
     pub max_iterations: Vec<usize>,
-    pub eps: Float,
+    pub eps: Vec<Float>,
     pub max_norm_eps: Float,
     pub delta_eps: Float,
     pub taus: Vec<Float>,
@@ -32,7 +32,7 @@ impl fmt::Display for DenseDirectRuntimeParameters {
             },
             false => {
                 for v in &self.step_sizes {
-                    display.push_str(format!("_eps_{:+e}",self.eps).as_str());
+                    display.push_str(format!("_eps_{:+e}",self.eps[0]).as_str());
                     display.push_str(format!("_s_s_{:+e}",v).as_str());
                 }
             }

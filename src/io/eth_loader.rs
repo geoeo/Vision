@@ -41,7 +41,8 @@ pub fn load(root_path: &str, parameters: &LoadingParameters) -> CameraDataFrame 
 
     assert_eq!(ground_truths.len(),ts_names.len());
 
-    let pinhole_camera = load_intrinsics_as_pinhole(&Path::new(&intrinsics_path), parameters.invert_focal_lengths);
+    let intensity_camera = load_intrinsics_as_pinhole(&Path::new(&intrinsics_path), parameters.invert_focal_lengths);
+    let depth_camera = load_intrinsics_as_pinhole(&Path::new(&intrinsics_path), parameters.invert_focal_lengths);
 
     CameraDataFrame {
         source_timestamps: source_indices.clone().map(|s| ts_names[s].0).collect::<Vec<Float>>(),
@@ -54,7 +55,7 @@ pub fn load(root_path: &str, parameters: &LoadingParameters) -> CameraDataFrame 
         source_depth_images: source_indices.clone().map(|s| {
             let source = &ts_names[s].1;
             let depth_source_image_path = format!("{}{}.{}",depth_image_folder,source, depth_image_format);
-            load_depth_image_from_csv(&Path::new(&depth_source_image_path),parameters.negate_depth_values, true, 640, 480, 1.0, false,parameters.set_default_depth)
+            load_depth_image_from_csv(&Path::new(&depth_source_image_path),parameters.negate_depth_values, true, 640, 480, 1.0, false,parameters.set_default_depth, &None)
         }).collect::<Vec<Image>>(),
         target_gray_images: target_indices.clone().map(|t| {
             let target = &ts_names[t].1;
@@ -64,9 +65,10 @@ pub fn load(root_path: &str, parameters: &LoadingParameters) -> CameraDataFrame 
         target_depth_images:  target_indices.clone().map(|t| {
             let target = &ts_names[t].1;
             let depth_target_image_path = format!("{}{}.{}",depth_image_folder,target, depth_image_format);
-            load_depth_image_from_csv(&Path::new(&depth_target_image_path), parameters.negate_depth_values, true, 640, 480, 1.0, false,parameters.set_default_depth)
+            load_depth_image_from_csv(&Path::new(&depth_target_image_path), parameters.negate_depth_values, true, 640, 480, 1.0, false,parameters.set_default_depth, &None)
         }).collect::<Vec<Image>>(),
-        pinhole_camera,
+        intensity_camera,
+        depth_camera,
         target_gt_poses: Some(target_indices.clone().map(|t| {
             ground_truths[t]
         }).collect::<Vec<(Vector3<Float>,Quaternion<Float>)>>()),

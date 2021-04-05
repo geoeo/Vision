@@ -66,16 +66,18 @@ fn generate_linear_model_matrices(imu_frame: &ImuDataFrame, delta_rotation_i_k: 
     let mut linear_state_design_matrix = MatrixN::<Float,U9>::zeros();
     let mut linear_noise_design_matrix = MatrixMN::<Float,U9,U6>::zeros();
 
-    linear_state_design_matrix.fixed_slice_mut::<U3,U3>(0,0).copy_from(&delta_rotation_k.transpose());
-    linear_state_design_matrix.fixed_slice_mut::<U3,U3>(3,0).copy_from(&(-a_delta_t_i_k*delta_rotation_i_k*accelerometer_skew_symmetric));
-    linear_state_design_matrix.fixed_slice_mut::<U3,U3>(3,3).copy_from(&identity);
-    linear_state_design_matrix.fixed_slice_mut::<U3,U3>(6,0).copy_from(&(-(a_delta_t_i_k_squared/2.0)*delta_rotation_i_k*accelerometer_skew_symmetric));
-    linear_state_design_matrix.fixed_slice_mut::<U3,U3>(6,3).copy_from(&(identity*a_delta_t_i_k));
-    linear_state_design_matrix.fixed_slice_mut::<U3,U3>(6,6).copy_from(&identity);
+    linear_state_design_matrix.fixed_slice_mut::<U3,U3>(0,0).copy_from(&identity);
+    linear_state_design_matrix.fixed_slice_mut::<U3,U3>(0,3).copy_from(&(-(a_delta_t_i_k_squared/2.0)*delta_rotation_i_k*accelerometer_skew_symmetric));
+    linear_state_design_matrix.fixed_slice_mut::<U3,U3>(0,6).copy_from(&(identity*a_delta_t_i_k));
 
-    linear_noise_design_matrix.fixed_slice_mut::<U3,U3>(0,0).copy_from(&(right_jacobian*g_delta_t_k));
-    linear_noise_design_matrix.fixed_slice_mut::<U3,U3>(3,3).copy_from(&(delta_rotation_i_k*a_delta_t_i_k));
-    linear_noise_design_matrix.fixed_slice_mut::<U3,U3>(6,3).copy_from(&((a_delta_t_i_k_squared/2.0)*delta_rotation_i_k));
+    linear_state_design_matrix.fixed_slice_mut::<U3,U3>(3,3).copy_from(&delta_rotation_k.transpose());
+
+    linear_state_design_matrix.fixed_slice_mut::<U3,U3>(6,3).copy_from(&(-a_delta_t_i_k*delta_rotation_i_k*accelerometer_skew_symmetric));
+    linear_state_design_matrix.fixed_slice_mut::<U3,U3>(6,6).copy_from(&identity); 
+
+    linear_noise_design_matrix.fixed_slice_mut::<U3,U3>(0,3).copy_from(&((a_delta_t_i_k_squared/2.0)*delta_rotation_i_k));
+    linear_noise_design_matrix.fixed_slice_mut::<U3,U3>(3,0).copy_from(&(right_jacobian*g_delta_t_k));
+    linear_noise_design_matrix.fixed_slice_mut::<U3,U3>(6,3).copy_from(&(delta_rotation_i_k*a_delta_t_i_k)); 
 
     (linear_state_design_matrix,linear_noise_design_matrix)
 
@@ -92,10 +94,10 @@ pub fn generate_jacobian(lie: &Vector3<Float>, delta_t: Float) -> ImuJacobian {
     let mut jacobian = ImuJacobian::zeros();
     let identity = Matrix3::<Float>::identity();
     let right_inverse_jacobian = right_inverse_jacobian(&lie);
-    jacobian.fixed_slice_mut::<U3,U3>(0,0).copy_from(&(-identity*delta_t));
-    jacobian.fixed_slice_mut::<U3,U3>(0,3).copy_from(&identity);
-    jacobian.fixed_slice_mut::<U3,U3>(3,0).copy_from(&identity);
-    jacobian.fixed_slice_mut::<U3,U3>(6,6).copy_from(&(right_inverse_jacobian));
+    jacobian.fixed_slice_mut::<U3,U3>(0,0).copy_from(&identity);
+    jacobian.fixed_slice_mut::<U3,U3>(0,6).copy_from(&(-identity*delta_t));
+    jacobian.fixed_slice_mut::<U3,U3>(3,3).copy_from(&(right_inverse_jacobian));
+    jacobian.fixed_slice_mut::<U3,U3>(6,6).copy_from(&identity);
 
     jacobian
 }
@@ -104,10 +106,10 @@ pub fn generate_residual(estimate: &ImuDelta, measurement: &ImuDelta) -> ImuResi
     let mut residual = ImuResidual::zeros();
 
     residual.fixed_rows_mut::<U3>(0).copy_from(&(estimate.delta_position - measurement.delta_position));
-    residual.fixed_rows_mut::<U3>(3).copy_from(&(estimate.delta_velocity - measurement.delta_velocity));
     let rotation_residual = measurement.delta_rotation.transpose()*estimate.delta_rotation;
     let w_x = ln_SO3(&rotation_residual);
-    residual.fixed_rows_mut::<U3>(6).copy_from(&vector_from_skew_symmetric(&w_x));
+    residual.fixed_rows_mut::<U3>(3).copy_from(&vector_from_skew_symmetric(&w_x));
+    residual.fixed_rows_mut::<U3>(6).copy_from(&(estimate.delta_velocity - measurement.delta_velocity)); 
 
     residual
 }

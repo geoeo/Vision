@@ -25,7 +25,7 @@ fn main() {
 
 
     let loading_parameters = LoadingParameters {
-        starting_index: 0,
+        starting_index: 300,
         step :1,
         count :30,
         negate_depth_values :false,
@@ -45,8 +45,8 @@ fn main() {
         min_image_dimensions: (50,50),
         invert_grad_x : true,
         invert_grad_y : true,
-        blur_grad_x : true, //TODO: make bluring gradient cleaner
-        blur_grad_y: true,
+        blur_grad_x : false, //TODO: make bluring gradient cleaner
+        blur_grad_y: false,
         normalize_gray: true,
         normalize_gradients: false
     };
@@ -56,9 +56,10 @@ fn main() {
     let source_depth_images = tum_data.source_depth_images;
     let target_gray_images = tum_data.target_gray_images;
     let target_depth_images = tum_data.target_depth_images;
-    let cam = tum_data.pinhole_camera;
+    let intensity_cam = tum_data.intensity_camera;
+    let depth_cam = tum_data.intensity_camera;
 
-    println!("{:?}",tum_data.pinhole_camera.projection);
+    println!("{:?}",tum_data.intensity_camera.projection);
 
 
     let source_pyramids = source_gray_images.into_iter().zip(source_depth_images.into_iter()).map(|(g,d)| build_rgbd_pyramid(g,d,&pyramid_parameters)).collect::<Vec<GDPyramid<GDOctave>>>();
@@ -67,8 +68,8 @@ fn main() {
 
     let vo_parameters = DenseDirectRuntimeParameters{
         max_iterations: vec![800;4],
-        eps: 1e-3,
-        step_sizes: vec![0.01;4], 
+        eps: vec!(1e-3,1e-3,1e-3,1e-6),
+        step_sizes: vec!(1e-8,1e-8,1e-8,1e-3), 
         max_norm_eps: 1e-95,
         delta_eps: 1e-95,
         taus: vec!(1e-6,1e-3,1e-3,1e-0), 
@@ -84,7 +85,7 @@ fn main() {
     let mut se3_gt_targetory = vec!(Matrix4::<Float>::identity());
 
 
-    se3_est.extend(dense_direct::run_trajectory(&source_pyramids, &target_pyramids, &cam, &vo_parameters));
+    se3_est.extend(dense_direct::run_trajectory(&source_pyramids, &target_pyramids, &intensity_cam, &depth_cam, &vo_parameters));
     se3_gt_targetory.extend(tum_data.source_gt_poses.unwrap().iter().zip(tum_data.target_gt_poses.unwrap().iter()).map(|(s,t)| {
         let se3_s = numerics::pose::se3(&s.0, &s.1);
         let se3_t = numerics::pose::se3(&t.0, &t.1);
