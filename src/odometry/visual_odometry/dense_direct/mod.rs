@@ -388,8 +388,8 @@ fn gauss_newton_step_with_loss(residuals: &DVector<Float>,
         Some(v) => v
     };
 
-    let decomp = (A+ mu_val*identity_6).lu();
-    let h = decomp.solve(&(-g)).expect("Linear resolution failed.");
+    let decomp = (A+ mu_val*identity_6).cholesky().expect("Cholesky Failed");
+    let h = decomp.solve(&(-g));
     let gain_ratio_denom = h.transpose()*(mu_val*h-g);
     (h,g,gain_ratio_denom[0], mu_val)
 }
