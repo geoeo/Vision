@@ -11,6 +11,7 @@ pub mod solver;
 
 pub type ImuCovariance = MatrixN<Float,U9>;
 pub type ImuResidual = VectorN<Float,U9>;
+pub type ImuPertrubation = VectorN<Float,U9>;
 pub type NoiseCovariance = Matrix6<Float>;
 pub type ImuJacobian = MatrixN<Float,U9>;
 
