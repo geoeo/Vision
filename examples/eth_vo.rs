@@ -13,8 +13,8 @@ use vision::visualize::plot;
 
 
 fn main() {
-    //let dataset_name = "urban_pinhole";
-    let dataset_name = "vfr_pinhole";
+    let dataset_name = "urban_pinhole";
+    //let dataset_name = "vfr_pinhole";
     let root_path = format!("C:/Users/Marc/Workspace/Datasets/ETH/{}", dataset_name);
     let out_folder = "output/";
 
@@ -27,7 +27,7 @@ fn main() {
         negate_depth_values :false,
         invert_focal_lengths :false,
         invert_y :true,
-        set_default_depth: true,
+        set_default_depth: false,
         gt_alignment_rot: UnitQuaternion::<Float>::identity()
     };
 

@@ -1,12 +1,13 @@
 use nalgebra as na;
 
-use na::{U3,U6,U9,Matrix3,Matrix6,MatrixN,MatrixMN,Vector3,VectorN};
+use na::{U1,U3,U6,U9,Matrix3,Matrix6,MatrixN,MatrixMN,Vector,Vector3,VectorN,base::storage::Storage};
 use crate::Float;
 use crate::sensors::{DataFrame, imu::imu_data_frame::ImuDataFrame};
 use crate::odometry::imu_odometry::imu_delta::ImuDelta;
 use crate::numerics::lie::{exp_r,skew_symmetric,right_jacobian, right_inverse_jacobian, ln_SO3, vector_from_skew_symmetric};
 
 pub mod imu_delta;
+pub mod solver;
 
 pub type ImuCovariance = MatrixN<Float,U9>;
 pub type ImuResidual = VectorN<Float,U9>;
@@ -34,12 +35,15 @@ pub fn pre_integration(imu_data: &ImuDataFrame, bias_gyroscope: &Vector3<Float>,
     let identity = Matrix3::<Float>::identity();
     let empty_vector = Vector3::<Float>::zeros();
 
-    let delta_rotation = delta_rotations.iter().fold(identity,|acc,x| acc*x);
+    let number_of_rotations = delta_rotations.len();
+    let delta_rotation_i_k = delta_rotations[0..number_of_rotations-1].iter().fold(identity,|acc,x| acc*x);
+    let delta_rotation_k = delta_rotations[number_of_rotations-1];
+
     let delta_velocity = delta_velocities.iter().fold(empty_vector,|acc,v| acc+v);
     let delta_position = delta_positions.iter().fold(empty_vector,|acc,p| acc+p);
 
 
-    ImuDelta {delta_position,delta_velocity, delta_rotation}
+    ImuDelta {delta_position,delta_velocity, delta_rotation_i_k,delta_rotation_k}
 }
 
 fn generate_linear_model_matrices(imu_frame: &ImuDataFrame, delta_rotation_i_k: &Matrix3<Float>, delta_rotation_k: &Matrix3<Float>, gravity_body: &Vector3<Float>) -> (MatrixN<Float,U9>,MatrixMN<Float,U9,U6>) {
@@ -83,13 +87,14 @@ fn generate_linear_model_matrices(imu_frame: &ImuDataFrame, delta_rotation_i_k: 
 
 }
 
-pub fn propagate_state_covariance(imu_covariance_prev: &ImuCovariance, noise_covariance: &NoiseCovariance, imu_frame: &ImuDataFrame, delta_rotation_i_k: &Matrix3<Float>, delta_rotation_k: &Matrix3<Float>) -> ImuCovariance {
+pub fn propagate_state_covariance(imu_covariance_prev: &ImuCovariance, noise_covariance: &NoiseCovariance, imu_frame: &ImuDataFrame, delta_rotation_i_k: &Matrix3<Float>, delta_rotation_k: &Matrix3<Float>, gravity_body: &Vector3<Float>) -> ImuCovariance {
 
-    let (linear_state_design_matrix,linear_noise_design_matrix) = generate_linear_model_matrices(imu_frame, delta_rotation_i_k, delta_rotation_k, &Vector3::<Float>::new(0.0,9.81,0.0));
+    //let (linear_state_design_matrix,linear_noise_design_matrix) = generate_linear_model_matrices(imu_frame, delta_rotation_i_k, delta_rotation_k, &Vector3::<Float>::new(0.0,9.81,0.0));
+    let (linear_state_design_matrix,linear_noise_design_matrix) = generate_linear_model_matrices(imu_frame, delta_rotation_i_k, delta_rotation_k, gravity_body);
     linear_state_design_matrix*imu_covariance_prev*linear_state_design_matrix.transpose() + linear_noise_design_matrix*noise_covariance*linear_noise_design_matrix.transpose()
 }
 
-pub fn generate_jacobian(lie: &Vector3<Float>, delta_t: Float) -> ImuJacobian {
+pub fn generate_jacobian<T>(lie: &Vector<Float,U3,T>, delta_t: Float) -> ImuJacobian where T: Storage<Float,U3,U1> {
 
     let mut jacobian = ImuJacobian::zeros();
     let identity = Matrix3::<Float>::identity();
@@ -104,9 +109,8 @@ pub fn generate_jacobian(lie: &Vector3<Float>, delta_t: Float) -> ImuJacobian {
 
 pub fn generate_residual(estimate: &ImuDelta, measurement: &ImuDelta) -> ImuResidual {
     let mut residual = ImuResidual::zeros();
-
     residual.fixed_rows_mut::<U3>(0).copy_from(&(estimate.delta_position - measurement.delta_position));
-    let rotation_residual = measurement.delta_rotation.transpose()*estimate.delta_rotation;
+    let rotation_residual = measurement.delta_rotation().transpose()*estimate.delta_rotation();
     let w_x = ln_SO3(&rotation_residual);
     residual.fixed_rows_mut::<U3>(3).copy_from(&vector_from_skew_symmetric(&w_x));
     residual.fixed_rows_mut::<U3>(6).copy_from(&(estimate.delta_velocity - measurement.delta_velocity)); 

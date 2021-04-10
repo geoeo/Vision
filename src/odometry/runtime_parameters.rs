@@ -4,7 +4,7 @@ use std::{fmt,boxed::Box};
 
 
 #[derive(Debug)]
-pub struct DenseDirectRuntimeParameters{
+pub struct RuntimeParameters{
     pub max_iterations: Vec<usize>,
     pub eps: Vec<Float>,
     pub max_norm_eps: Float,
@@ -18,7 +18,7 @@ pub struct DenseDirectRuntimeParameters{
     pub loss_function: Box<dyn LossFunction>
 }
 
-impl fmt::Display for DenseDirectRuntimeParameters {
+impl fmt::Display for RuntimeParameters {
 
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
 

@@ -6,6 +6,7 @@ use std::boxed::Box;
 use vision::io::{loading_parameters::LoadingParameters,d455_loader};
 use vision::pyramid::gd::{GDPyramid,gd_octave::GDOctave, build_rgbd_pyramid,gd_runtime_parameters::GDRuntimeParameters};
 use vision::odometry::visual_odometry::dense_direct;
+use vision::odometry::imu_odometry::pre_integration;
 use vision::odometry::runtime_parameters::RuntimeParameters;
 use vision::Float;
 use vision::{numerics,numerics::loss};
@@ -20,9 +21,9 @@ fn main() {
     let out_folder = "C:/Users/Marc/Workspace/Rust/Vision/output";
 
     let loading_parameters = LoadingParameters {
-        starting_index: 576,
+        starting_index: 0,
         step :1,
-        count :30,
+        count :668,
         negate_depth_values :false,
         invert_focal_lengths :false,
         invert_y :true,
@@ -74,11 +75,21 @@ fn main() {
     };
 
     let mut se3_est = vec!(Matrix4::<Float>::identity());
-    se3_est.extend(dense_direct::run_trajectory(&source_pyramids, &target_pyramids, &intensity_cam, &depth_cam, &vo_parameters));
+
+    let data_frame = d455_loader::load_data_frame(&root_path, &loading_parameters);
+    let imu_data = &data_frame.imu_data_vec;
+
+
+    for (i,data) in imu_data.iter().enumerate() {
+        let imu_delta = pre_integration(data,&Vector3::<Float>::zeros(),&Vector3::<Float>::zeros(), &Vector3::<Float>::new(0.0,9.81,0.0));
+        let pose = imu_delta.get_pose();
+        se3_est.push(pose);
+    }
+    
 
     let est_points = numerics::pose::apply_pose_deltas_to_point(Vector4::<Float>::new(0.0,0.0,0.0,1.0), &se3_est);
 
-    let out_file_name = format!("d455_{}_start_{}_counter_{}_{}.png",dataset_name,loading_parameters.starting_index,loading_parameters.count,vo_parameters);
+    let out_file_name = format!("d455_imu_{}.png",dataset_name);
 
     let title = "d455";
     plot::draw_line_graph_vector3(&est_points.iter().map(|x| Vector3::<Float>::new(x[0],x[1], x[2])).collect::<Vec<Vector3<Float>>>(), out_folder, &out_file_name, &title, &"Translation", &"meters");

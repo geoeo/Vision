@@ -23,7 +23,7 @@ fn main() {
     let color_image_path = format!("{}{}.{}",color_image_folder,color_image_name, color_image_format);
     let depth_image_path = format!("{}{}.{}",depth_image_folder,depth_image_name, depth_image_format);
 
-    let dataset_name = "simple_trans_imu";
+    let dataset_name = "z_2";
     let root_path = format!("C:/Users/Marc/Workspace/Datasets/D455/{}",dataset_name);
 
     //TODO: make all parameters
@@ -31,8 +31,8 @@ fn main() {
         starting_index: 0,
         step :1,
         count :10,
-        negate_depth_values :true,
-        invert_focal_lengths :true,
+        negate_depth_values :false,
+        invert_focal_lengths :false,
         invert_y :true,
         set_default_depth: true,
         gt_alignment_rot:UnitQuaternion::identity()
@@ -42,8 +42,9 @@ fn main() {
 
     let converted_file_out_path = format!("{}{}_out.png",image_out_folder,"aligned_depth");
 
-    let data_frame = d455_loader::load_data_frame(&root_path, &loading_parameters);
-    let new_image = data_frame.camera_data.source_depth_images[0].to_image();
+    let data_frame = d455_loader::load_camera(&root_path, &loading_parameters);
+    //let data_frame = d455_loader::load_data_frame(&root_path, &loading_parameters);
+    let new_image = data_frame.source_depth_images[0].to_image();
     new_image.save(converted_file_out_path).unwrap();
 
     // let camera_data = &data_frame.camera_data;

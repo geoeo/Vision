@@ -67,14 +67,13 @@ pub fn load_depth_image_from_csv(file_path: &Path, negate_values: bool, invert_y
             for c in 0..width {
                 let depth = matrix[(r,c)];
                 if depth != 0.0 {
-                    let backprojected_point = camera.backproject(&Point::<Float>::new(c as Float,r as Float), depth);
+                    let backprojected_point = camera.backproject(&Point::<Float>::new(c as Float + 0.5,r as Float + 0.5), depth);
                     let transformed_point = depth_camera_transfrom*Vector4::<Float>::new(backprojected_point[0],backprojected_point[1],backprojected_point[2],1.0);
                     let new_image_coords = camera.project(&transformed_point.fixed_rows::<U3>(0));
+                    let x_usize = new_image_coords.x.trunc() as usize;
+                    let y_usize = new_image_coords.y.trunc() as usize;
 
-                    if new_image_coords.x >= 0.0 && new_image_coords.x < width as Float && new_image_coords.y >= 0.0 && new_image_coords.y < height  as Float {
-                        let x_usize = new_image_coords.x.round() as usize;
-                        let y_usize = new_image_coords.y.round() as usize;
-
+                    if x_usize < width && y_usize < height {
                         new_matrix[(y_usize,x_usize)] = depth;
                     }    
                 }  
@@ -117,11 +116,12 @@ fn fill_matrix_with_default_depth(target: &mut DMatrix<Float>,negate_values: boo
         false => target.max()
     };
 
+    //let extrema = (target.min() + target.max())/2.0;
+
     for r in 0..target.nrows(){
         for c in 0..target.ncols(){
             if target[(r,c)] == 0.0 {
                 target[(r,c)] = extrema;
-                //target[(r,c)] = 0.0;
             } 
             //TODO: inverse depth
         }

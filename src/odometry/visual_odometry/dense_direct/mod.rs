@@ -5,19 +5,17 @@ use std::boxed::Box;
 
 use crate::pyramid::gd::{GDPyramid,gd_octave::GDOctave};
 use crate::sensors::camera::{Camera,pinhole::Pinhole};
-use crate::odometry::visual_odometry::dense_direct::dense_direct_runtime_parameters::DenseDirectRuntimeParameters;
+use crate::odometry::runtime_parameters::RuntimeParameters;
 use crate::image::Image;
 use crate::numerics::{lie,loss::LossFunction};
 use crate::features::geometry::point::Point;
 use crate::{Float,float,reconstruct_original_coordiantes};
 
-pub mod dense_direct_runtime_parameters;
-
-pub fn run_trajectory(source_rgdb_pyramids: &Vec<GDPyramid<GDOctave>>,target_rgdb_pyramids: &Vec<GDPyramid<GDOctave>>, intensity_camera: &Pinhole, depth_camera: &Pinhole , runtime_parameters: &DenseDirectRuntimeParameters) -> Vec<Matrix4<Float>> {
+pub fn run_trajectory(source_rgdb_pyramids: &Vec<GDPyramid<GDOctave>>,target_rgdb_pyramids: &Vec<GDPyramid<GDOctave>>, intensity_camera: &Pinhole, depth_camera: &Pinhole , runtime_parameters: &RuntimeParameters) -> Vec<Matrix4<Float>> {
     source_rgdb_pyramids.iter().zip(target_rgdb_pyramids.iter()).enumerate().map(|(i,(source,target))| run(i+1,&source,&target, intensity_camera,depth_camera,runtime_parameters)).collect::<Vec<Matrix4<Float>>>()
 }
 
-pub fn run(iteration: usize, source_rgdb_pyramid: &GDPyramid<GDOctave>,target_rgdb_pyramid: &GDPyramid<GDOctave>, intensity_camera: &Pinhole,depth_camera: &Pinhole, runtime_parameters: &DenseDirectRuntimeParameters) -> Matrix4<Float> {
+pub fn run(iteration: usize, source_rgdb_pyramid: &GDPyramid<GDOctave>,target_rgdb_pyramid: &GDPyramid<GDOctave>, intensity_camera: &Pinhole,depth_camera: &Pinhole, runtime_parameters: &RuntimeParameters) -> Matrix4<Float> {
     let octave_count = source_rgdb_pyramid.octaves.len();
 
     assert_eq!(octave_count,runtime_parameters.taus.len());
@@ -49,7 +47,7 @@ pub fn run(iteration: usize, source_rgdb_pyramid: &GDPyramid<GDOctave>,target_rg
 }
 
 //TODO: buffer all debug strings and print at the end. Also the numeric matricies could be buffered per octave level
-fn estimate(source_octave: &GDOctave, source_depth_image_original: &Image, target_octave: &GDOctave, octave_index: usize, initial_guess_lie: &Vector6<Float>,initial_guess_mat: &Matrix4<Float>, intensity_camera: &Pinhole, depth_camera: &Pinhole, runtime_parameters: &DenseDirectRuntimeParameters) -> (Vector6<Float>,Matrix4<Float>, usize) {
+fn estimate(source_octave: &GDOctave, source_depth_image_original: &Image, target_octave: &GDOctave, octave_index: usize, initial_guess_lie: &Vector6<Float>,initial_guess_mat: &Matrix4<Float>, intensity_camera: &Pinhole, depth_camera: &Pinhole, runtime_parameters: &RuntimeParameters) -> (Vector6<Float>,Matrix4<Float>, usize) {
     let source_image = &source_octave.gray_images[0];
     let target_image = &target_octave.gray_images[0];
     let x_gradient_image = &target_octave.x_gradients[0];
@@ -118,7 +116,7 @@ fn estimate(source_octave: &GDOctave, source_depth_image_original: &Image, targe
         //let new_est_transform = lie::exp(&new_est_lie.fixed_rows::<U3>(0),&new_est_lie.fixed_rows::<U3>(3));
 
         let pertb = step*delta;
-        let new_est_transform = lie::exp(&pertb.fixed_slice::<U3, U1>(0, 0),&pertb.fixed_slice::<U3, U1>(3, 0))*est_transform;
+        let new_est_transform = lie::exp(&pertb.fixed_rows::<U3>(0),&pertb.fixed_rows::<U3>(3))*est_transform;
 
 
         new_image_gradient_points.clear();
@@ -212,7 +210,7 @@ fn backproject_points(source_image_buffer: &DMatrix<Float>,depth_image_buffer: &
 
 
         if depth_sample != 0.0 {
-            let backprojected_point = pinhole_camera.backproject(&Point::<Float>::new(c as Float,r as Float), depth_sample); //TODO: inverse depth
+            let backprojected_point = pinhole_camera.backproject(&Point::<Float>::new(c as Float + 0.5,r as Float + 0.5), depth_sample); //TODO: inverse depth
             backproject_points.set_column(image_to_linear_index(r,cols,c),&Vector4::<Float>::new(backprojected_point[0],backprojected_point[1],backprojected_point[2],1.0));
             backproject_points_flags[image_to_linear_index(r,cols,c)] = true;
         } else {
@@ -250,14 +248,15 @@ fn compute_residuals(target_image_buffer: &DMatrix<Float>,source_image_buffer: &
     for i in 0..number_of_points {
         let source_point = linear_to_image_index(i,image_width);
         let target_point = pinhole_camera.project(&transformed_points.fixed_slice::<U3,U1>(0,i)); //TODO: inverse depth
-        let target_point_y = target_point.y.round() as usize;
-        let target_point_x = target_point.x.round() as usize;
+        let target_point_y = target_point.y.trunc() as usize;
+        let target_point_x = target_point.x.trunc() as usize;
         let target_linear_idx = image_to_linear_index(target_point_y, image_width, target_point_x);
 
+        // We only want to compare pixels where both values are valid i.e. has depth estimate
         if source_point.y < rows && target_point_y < rows && 
            source_point.x < cols && target_point_x < cols && 
            backprojected_points_flags[i] &&
-           backprojected_points_flags[target_linear_idx]{
+           backprojected_points_flags[target_linear_idx]{ 
             image_gradient_points.push(Point::<usize>::new(target_point_x,target_point_y));
             let source_sample = source_image_buffer[(source_point.y,source_point.x)];
             let target_sample = target_image_buffer[(target_point_y,target_point_x)];
@@ -265,6 +264,7 @@ fn compute_residuals(target_image_buffer: &DMatrix<Float>,source_image_buffer: &
            }
         else {
             residual_target[i] = 0.0; 
+            //residual_target[i] = 1.0; 
         }
 
     }
