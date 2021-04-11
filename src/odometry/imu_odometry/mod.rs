@@ -47,19 +47,20 @@ pub fn pre_integration(imu_data: &ImuDataFrame, bias_gyroscope: &Vector3<Float>,
     ImuDelta {delta_position,delta_velocity, delta_rotation_i_k,delta_rotation_k}
 }
 
+//TODO: make timestamp manipulation clearer
 fn generate_linear_model_matrices(imu_frame: &ImuDataFrame, delta_rotation_i_k: &Matrix3<Float>, delta_rotation_k: &Matrix3<Float>, gravity_body: &Vector3<Float>) -> (MatrixN<Float,U9>,MatrixMN<Float,U9,U6>) {
     let accel_length = imu_frame.acceleration_count();
-    let (_,a_ts_i_k) = imu_frame.acceleration_sublist(0,accel_length-1);
+    let (_,a_ts_i_k) = imu_frame.acceleration_sublist(0,accel_length);
 
     let gyro_length = imu_frame.gyro_count();
-    let (_,g_ts_k) = imu_frame.gyro_sublist(gyro_length-2,gyro_length);
+    let (_,g_ts_k) = imu_frame.gyro_sublist(gyro_length-1,gyro_length);
 
     let a_initial_time_i_k = a_ts_i_k[0];
     let a_delta_t_i_k = a_ts_i_k[1..].iter().map(|t| t - a_initial_time_i_k).fold(0.0, |acc,x| acc+x);
     let a_delta_t_i_k_squared = a_delta_t_i_k.powi(2);
 
-    let g_initial_time_k = g_ts_k[0];
-    let g_delta_t_k = g_ts_k[1..].iter().map(|t| t - g_initial_time_k).fold(0.0, |acc,x| acc+x);
+    let g_initial_time_k = imu_frame.gyro_ts[0];
+    let g_delta_t_k = g_ts_k[0..].iter().map(|t| t - g_initial_time_k).fold(0.0, |acc,x| acc+x);
 
     let accelerometer_k = imu_frame.acceleration_data[accel_length-1];
     let accelerometer_skew_symmetric = skew_symmetric(&(accelerometer_k + gravity_body));
@@ -90,8 +91,9 @@ fn generate_linear_model_matrices(imu_frame: &ImuDataFrame, delta_rotation_i_k: 
 
 pub fn propagate_state_covariance(imu_covariance_prev: &ImuCovariance, noise_covariance: &NoiseCovariance, imu_frame: &ImuDataFrame, delta_rotation_i_k: &Matrix3<Float>, delta_rotation_k: &Matrix3<Float>, gravity_body: &Vector3<Float>) -> ImuCovariance {
 
-    //let (linear_state_design_matrix,linear_noise_design_matrix) = generate_linear_model_matrices(imu_frame, delta_rotation_i_k, delta_rotation_k, &Vector3::<Float>::new(0.0,9.81,0.0));
     let (linear_state_design_matrix,linear_noise_design_matrix) = generate_linear_model_matrices(imu_frame, delta_rotation_i_k, delta_rotation_k, gravity_body);
+    println!("{}",linear_state_design_matrix);
+    println!("{}",linear_noise_design_matrix);
     linear_state_design_matrix*imu_covariance_prev*linear_state_design_matrix.transpose() + linear_noise_design_matrix*noise_covariance*linear_noise_design_matrix.transpose()
 }
 

@@ -53,6 +53,9 @@ fn estimate(imu_data_measurement: &ImuDataFrame, preintegrated_measurement: &Imu
 
     let mut residuals = imu_odometry::generate_residual(&estimate, preintegrated_measurement);
     imu_covariance = imu_odometry::propagate_state_covariance(&imu_covariance, noise_covariance, imu_data_measurement, &preintegrated_measurement.delta_rotation_i_k, &preintegrated_measurement.delta_rotation_k, gravity_body);
+
+    println!("{}", imu_covariance);
+
     let mut weights = imu_covariance.cholesky().expect("Cholesky Decomp Failed!").inverse();
     let mut weight_l_upper = weights.cholesky().expect("Cholesky Decomp Failed!").l().transpose();
     let mut jacobian = imu_odometry::generate_jacobian(&est_lie.fixed_rows::<U3>(3), delta_t);
