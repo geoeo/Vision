@@ -285,7 +285,6 @@ fn compute_full_jacobian(image_gradients: &Matrix<Float,Dynamic,U2, VecStorage<F
 }
 
 
-
 //TODO: part of solver
 
 fn compute_t_dist_weights(residuals: &DVector<Float>, weights_vec: &mut DVector<Float>, n: Float, t_dist_nu: Float, max_it: usize, eps: Float) -> () {

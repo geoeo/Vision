@@ -53,10 +53,11 @@ fn estimate(imu_data_measurement: &ImuDataFrame, preintegrated_measurement: &Imu
 
     let mut residuals = imu_odometry::generate_residual(&estimate, preintegrated_measurement);
     imu_covariance = imu_odometry::propagate_state_covariance(&imu_covariance, noise_covariance, imu_data_measurement, &preintegrated_measurement.delta_rotation_i_k, &preintegrated_measurement.delta_rotation_k, gravity_body);
-    let weights = imu_covariance.cholesky().expect("Cholesky Decomp Failed!").inverse();
-    let weight_l_upper = weights.cholesky().expect("Cholesky Decomp Failed!").l().transpose();
-    let jacobian = imu_odometry::generate_jacobian(&est_lie.fixed_rows::<U3>(3), delta_t);
-    let mut jacobian_transpose = jacobian.transpose();
+    let mut weights = imu_covariance.cholesky().expect("Cholesky Decomp Failed!").inverse();
+    let mut weight_l_upper = weights.cholesky().expect("Cholesky Decomp Failed!").l().transpose();
+    let mut jacobian = imu_odometry::generate_jacobian(&est_lie.fixed_rows::<U3>(3), delta_t);
+    let mut rescaled_jacobian_target = ImuJacobian::zeros(); 
+    let mut rescaled_residual_target = ImuResidual::zeros();
 
 
     let mut max_norm_delta = float::MAX;
@@ -93,13 +94,11 @@ fn estimate(imu_data_measurement: &ImuDataFrame, preintegrated_measurement: &Imu
 
 
         let pertb = step*delta;
-        let new_est_transform = lie::exp(&pertb.fixed_slice::<U3, U1>(0, 0),&pertb.fixed_slice::<U3, U1>(3, 0))*est_transform;
-
-
+        let new_estimate = estimate.add_pertb(&pertb);
         let new_residuals = imu_odometry::generate_residual(&new_estimate, preintegrated_measurement);
         
-        
-        weight_residuals(&mut new_residuals, &weights);
+
+        weight_residuals(&mut new_residuals, &weight_l_upper);
 
         let new_cost = compute_cost(&new_residuals);
         let cost_diff = cost-new_cost;
@@ -108,19 +107,19 @@ fn estimate(imu_data_measurement: &ImuDataFrame, preintegrated_measurement: &Imu
             println!("{},{}",cost,new_cost);
         }
         if gain_ratio >= 0.0  || !runtime_parameters.lm {
-            //est_lie = new_est_lie.clone();
-            est_lie = lie::ln(&new_est_transform);
-            est_transform = new_est_transform.clone();
+            est_transform = new_estimate.get_pose();
+            est_lie = lie::ln(&est_transform);
+
             cost = new_cost;
 
             max_norm_delta = g.max();
             delta_norm = delta.norm();
-            delta_thresh = runtime_parameters.delta_eps*(est_lie.norm() + runtime_parameters.delta_eps);
+            delta_thresh = runtime_parameters.delta_eps*(new_estimate.norm() + runtime_parameters.delta_eps);
 
             residuals = new_residuals.clone();
 
-            compute_full_jacobian(&image_gradients,&constant_jacobians,&mut full_jacobian);
-            weight_jacobian(&mut full_jacobian_weighted, &full_jacobian, &weights_vec);
+            jacobian = imu_odometry::generate_jacobian(&est_lie.fixed_rows::<U3>(3), delta_t);
+            weight_jacobian(&mut jacobian, &weight_l_upper);
 
             let v: Float = 1.0/3.0;
             mu = Some(mu.unwrap() * v.max(1.0-(2.0*gain_ratio-1.0).powi(3)));

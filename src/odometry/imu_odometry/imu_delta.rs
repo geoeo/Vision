@@ -1,6 +1,8 @@
 extern crate nalgebra as na;
 
 use na::{Vector3,Matrix3,Matrix4,U1,U3};
+use crate::odometry::imu_odometry::ImuPertrubation;
+use crate::numerics::lie::{exp_r,ln_SO3, vector_from_skew_symmetric};
 use crate::Float;
 
 
@@ -23,6 +25,15 @@ impl ImuDelta {
         }
     }
 
+    pub fn add_pertb(&self, new_pertb: &ImuPertrubation) -> ImuDelta {
+        ImuDelta {
+            delta_position: self.delta_position + new_pertb.fixed_rows::<U3>(0),
+            delta_velocity: self.delta_velocity + new_pertb.fixed_rows::<U3>(6),
+            delta_rotation_i_k: self.delta_rotation(),
+            delta_rotation_k: exp_r(&new_pertb.fixed_rows::<U3>(3))
+        }
+    }
+
     pub fn delta_rotation(&self) -> Matrix3<Float> {
         self.delta_rotation_i_k*self.delta_rotation_k
     }
@@ -32,5 +43,14 @@ impl ImuDelta {
         pose.fixed_slice_mut::<U3,U3>(0,0).copy_from(&self.delta_rotation());
         pose.fixed_slice_mut::<U3,U1>(0,3).copy_from(&self.delta_position);
         pose
+    }
+
+    pub fn norm(&self) -> Float {
+        let lie_r = vector_from_skew_symmetric(&ln_SO3(&self.delta_rotation()));
+        let mut est_vector = ImuPertrubation::zeros();
+        est_vector.fixed_rows_mut::<U3>(0).copy_from(&self.delta_position);
+        est_vector.fixed_rows_mut::<U3>(3).copy_from(&lie_r);
+        est_vector.fixed_rows_mut::<U3>(6).copy_from(&self.delta_velocity);
+        est_vector.norm()
     }
 }
