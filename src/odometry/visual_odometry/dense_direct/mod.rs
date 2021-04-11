@@ -62,7 +62,6 @@ fn estimate(source_octave: &GDOctave, source_depth_image_original: &Image, targe
     let mut residuals = DVector::<Float>::from_element(number_of_pixels,float::MAX);
     let mut new_residuals = DVector::<Float>::from_element(number_of_pixels,float::MAX);
     let mut full_jacobian = Matrix::<Float,Dynamic,U6, VecStorage<Float,Dynamic,U6>>::zeros(number_of_pixels); 
-    let mut full_jacobian_weighted = Matrix::<Float,Dynamic,U6, VecStorage<Float,Dynamic,U6>>::zeros(number_of_pixels); 
     let mut image_gradients =  Matrix::<Float,Dynamic,U2, VecStorage<Float,Dynamic,U2>>::zeros(number_of_pixels);
     let mut image_gradient_points = Vec::<Point<usize>>::with_capacity(number_of_pixels);
     let mut new_image_gradient_points = Vec::<Point<usize>>::with_capacity(number_of_pixels);
@@ -98,7 +97,7 @@ fn estimate(source_octave: &GDOctave, source_depth_image_original: &Image, targe
 
     compute_image_gradients(&x_gradient_image.buffer,&y_gradient_image.buffer,&image_gradient_points,&mut image_gradients);
     compute_full_jacobian(&image_gradients,&constant_jacobians,&mut full_jacobian);
-    weight_jacobian(&mut full_jacobian_weighted,&full_jacobian, &weights_vec);
+    weight_jacobian(&mut full_jacobian, &weights_vec);
     
 
     let mut iteration_count = 0;
@@ -108,16 +107,11 @@ fn estimate(source_octave: &GDOctave, source_depth_image_original: &Image, targe
         }
 
         let (delta,g,gain_ratio_denom, mu_val) 
-            = gauss_newton_step_with_loss(&residuals, &full_jacobian_weighted, &identity_6, mu, tau, cost, & runtime_parameters.loss_function, &mut rescaled_jacobian_target,&mut rescaled_residual_target);
+            = gauss_newton_step_with_loss(&residuals, &full_jacobian, &identity_6, mu, tau, cost, & runtime_parameters.loss_function, &mut rescaled_jacobian_target,&mut rescaled_residual_target);
         mu = Some(mu_val);
 
-
-        //let new_est_lie = est_lie+ step*delta;
-        //let new_est_transform = lie::exp(&new_est_lie.fixed_rows::<U3>(0),&new_est_lie.fixed_rows::<U3>(3));
-
         let pertb = step*delta;
-        let new_est_transform = lie::exp(&pertb.fixed_rows::<U3>(0),&pertb.fixed_rows::<U3>(3))*est_transform;
-
+        let new_est_transform = est_transform*lie::exp(&pertb.fixed_slice::<U3, U1>(0, 0),&pertb.fixed_slice::<U3, U1>(3, 0));
 
         new_image_gradient_points.clear();
         compute_residuals(&target_image.buffer, &source_image.buffer, &backprojected_points,&backprojected_points_flags,&new_est_transform, &intensity_camera , &mut new_residuals,&mut new_image_gradient_points);
@@ -151,7 +145,7 @@ fn estimate(source_octave: &GDOctave, source_depth_image_original: &Image, targe
 
             compute_image_gradients(&x_gradient_image.buffer,&y_gradient_image.buffer,&image_gradient_points,&mut image_gradients);
             compute_full_jacobian(&image_gradients,&constant_jacobians,&mut full_jacobian);
-            weight_jacobian(&mut full_jacobian_weighted, &full_jacobian, &weights_vec);
+            weight_jacobian(&mut full_jacobian, &weights_vec);
 
             let v: Float = 1.0/3.0;
             mu = Some(mu.unwrap() * v.max(1.0-(2.0*gain_ratio-1.0).powi(3)));
@@ -292,7 +286,7 @@ fn compute_t_dist_weights(residuals: &DVector<Float>, weights_vec: &mut DVector<
     let variance = estimate_t_dist_variance(n,residuals,t_dist_nu,max_it,eps);
     for i in 0..residuals.len() {
         let res = residuals[i];
-        weights_vec[i] = compute_t_dist_weight(res,variance,t_dist_nu);
+        weights_vec[i] = compute_t_dist_weight(res,variance,t_dist_nu).sqrt();
     }
     
 }
@@ -330,35 +324,36 @@ fn weight_residuals( residual_target: &mut DVector<Float>, weights_vec: &DVector
     residual_target.component_mul_assign(weights_vec);
 }
 
-fn weight_jacobian(jacobian_target: &mut Matrix<Float,Dynamic,U6,VecStorage<Float,Dynamic,U6>>,jacobian: &Matrix<Float,Dynamic,U6,VecStorage<Float,Dynamic,U6>>, weights_vec: &DVector<Float>) -> () {
+//TODO: optimize
+fn weight_jacobian(jacobian: &mut Matrix<Float,Dynamic,U6,VecStorage<Float,Dynamic,U6>>, weights_vec: &DVector<Float>) -> () {
     let size = weights_vec.len();
     for i in 0..size{
         let weighted_row = jacobian.row(i)*weights_vec[i];
-        jacobian_target.row_mut(i).copy_from(&weighted_row);
+        jacobian.row_mut(i).copy_from(&weighted_row);
     }
 }
 
 
-#[allow(non_snake_case)]
-fn gauss_newton_step(residuals_weighted: &DVector<Float>, jacobian: &Matrix<Float,Dynamic,U6,VecStorage<Float,Dynamic,U6>>,identity_6: &Matrix6<Float>, mu: Option<Float>, tau: Float) -> (Vector6<Float>,Vector6<Float>,Float,Float) {
-    let A = jacobian.transpose()*jacobian;
-    let mu_val = match mu {
-        None => tau*A.diagonal().max(),
-        Some(v) => v
-    };
+// #[allow(non_snake_case)]
+// fn gauss_newton_step(residuals_weighted: &DVector<Float>, jacobian: &Matrix<Float,Dynamic,U6,VecStorage<Float,Dynamic,U6>>,identity_6: &Matrix6<Float>, mu: Option<Float>, tau: Float) -> (Vector6<Float>,Vector6<Float>,Float,Float) {
+//     let A = jacobian.transpose()*jacobian;
+//     let mu_val = match mu {
+//         None => tau*A.diagonal().max(),
+//         Some(v) => v
+//     };
 
-    let g = jacobian.transpose()*residuals_weighted;
-    let decomp = (A+ mu_val*identity_6).lu();
-    let h = decomp.solve(&(-g)).expect("Linear resolution failed.");
-    let gain_ratio_denom = h.transpose()*(mu_val*h-g);
-    (h,g,gain_ratio_denom[0], mu_val)
-}
+//     let g = jacobian.transpose()*residuals_weighted;
+//     let decomp = (A+ mu_val*identity_6).lu();
+//     let h = decomp.solve(&(-g)).expect("Linear resolution failed.");
+//     let gain_ratio_denom = h.transpose()*(mu_val*h-g);
+//     (h,g,gain_ratio_denom[0], mu_val)
+// }
 
 //TODO: potential for optimization. Maybe use less memory/matrices. 
 #[allow(non_snake_case)]
 fn gauss_newton_step_with_loss(residuals: &DVector<Float>, 
     jacobian: &Matrix<Float,Dynamic,U6,VecStorage<Float,Dynamic,U6>>,
-    identity_6: &Matrix6<Float>,
+    identity: &Matrix6<Float>,
      mu: Option<Float>, 
      tau: Float, 
      current_cost: Float, 
@@ -387,8 +382,8 @@ fn gauss_newton_step_with_loss(residuals: &DVector<Float>,
         Some(v) => v
     };
 
-    let decomp = (A+ mu_val*identity_6).lu();
-    let h = decomp.solve(&(-g)).expect("Linear resolution failed.");
+    let decomp = (A+ mu_val*identity).cholesky().expect("Cholesky Failed");
+    let h = decomp.solve(&(-g));
     let gain_ratio_denom = h.transpose()*(mu_val*h-g);
     (h,g,gain_ratio_denom[0], mu_val)
 }
