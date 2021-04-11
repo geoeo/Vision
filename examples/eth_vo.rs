@@ -6,7 +6,8 @@ use na::{Vector4,Matrix4, Vector3, UnitQuaternion};
 use std::boxed::Box;
 use vision::io::{loading_parameters::LoadingParameters,eth_loader};
 use vision::pyramid::gd::{GDPyramid,gd_octave::GDOctave, build_rgbd_pyramid,gd_runtime_parameters::GDRuntimeParameters};
-use vision::odometry::visual_odometry::{dense_direct,dense_direct::{dense_direct_runtime_parameters::DenseDirectRuntimeParameters}};
+use vision::odometry::visual_odometry::dense_direct;
+use vision::odometry::runtime_parameters::RuntimeParameters;
 use vision::{numerics,numerics::loss};
 use vision::Float;
 use vision::visualize::plot;
@@ -60,7 +61,7 @@ fn main() {
     let target_pyramids = target_gray_images.into_iter().zip(target_depth_images.into_iter()).map(|(g,d)| build_rgbd_pyramid(g,d,&pyramid_parameters)).collect::<Vec<GDPyramid<GDOctave>>>();
 
 
-    let vo_parameters = DenseDirectRuntimeParameters{
+    let vo_parameters = RuntimeParameters{
         max_iterations: vec![800;4],
         eps: vec!(1e-3,1e-3,1e-3,1e-6),
         step_sizes: vec!(1e-8,1e-8,1e-8,1e-3), 

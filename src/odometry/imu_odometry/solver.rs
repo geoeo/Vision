@@ -95,7 +95,7 @@ fn estimate(imu_data_measurement: &ImuDataFrame, preintegrated_measurement: &Imu
 
         let pertb = step*delta;
         let new_estimate = estimate.add_pertb(&pertb);
-        let new_residuals = imu_odometry::generate_residual(&new_estimate, preintegrated_measurement);
+        let mut new_residuals = imu_odometry::generate_residual(&new_estimate, preintegrated_measurement);
         
 
         weight_residuals(&mut new_residuals, &weight_l_upper);
@@ -139,28 +139,12 @@ fn estimate(imu_data_measurement: &ImuDataFrame, preintegrated_measurement: &Imu
 
 
 fn weight_residuals(residual: &mut ImuResidual, weights: &MatrixN<Float,U9>) -> () {
-    weights.mul_to(residual,residual);
+    weights.mul_to(&residual.clone(),residual);
 }
 
 fn weight_jacobian(jacobian: &mut ImuJacobian, weights: &MatrixN<Float,U9>) -> () {
-    weights.mul_to(jacobian,jacobian);
+    weights.mul_to(&jacobian.clone(),jacobian);
 }
-
-
-// #[allow(non_snake_case)]
-// fn gauss_newton_step(residuals_weighted: &DVector<Float>, jacobian: &Matrix<Float,Dynamic,U6,VecStorage<Float,Dynamic,U6>>,identity_6: &Matrix6<Float>, mu: Option<Float>, tau: Float) -> (Vector6<Float>,Vector6<Float>,Float,Float) {
-//     let A = jacobian.transpose()*jacobian;
-//     let mu_val = match mu {
-//         None => tau*A.diagonal().max(),
-//         Some(v) => v
-//     };
-
-//     let g = jacobian.transpose()*residuals_weighted;
-//     let decomp = (A+ mu_val*identity_6).lu();
-//     let h = decomp.solve(&(-g)).expect("Linear resolution failed.");
-//     let gain_ratio_denom = h.transpose()*(mu_val*h-g);
-//     (h,g,gain_ratio_denom[0], mu_val)
-// }
 
 //TODO: potential for optimization. Maybe use less memory/matrices. 
 #[allow(non_snake_case)]
