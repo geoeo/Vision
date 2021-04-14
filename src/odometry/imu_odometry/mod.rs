@@ -38,7 +38,7 @@ pub fn pre_integration(imu_data: &ImuDataFrame, bias_gyroscope: &Vector3<Float>,
     let empty_vector = Vector3::<Float>::zeros();
 
     //TODO: check this
-    let mut imu_covariance = ImuCovariance::identity();
+    let mut imu_covariance = ImuCovariance::zeros();
     for gyro_idx in 1..imu_data.gyro_ts.len()-1 {
         println!("{}",gyro_idx);
         let accel_idx = imu_data.find_closest_accel_idx(gyro_idx);
