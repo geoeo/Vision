@@ -4,7 +4,7 @@ use na::{U1,U2,U3,U4,U6,U9,RowVector2,Vector3,Vector4,Vector6,DVector,Matrix4,Ma
 use std::boxed::Box;
 
 use crate::odometry::runtime_parameters::RuntimeParameters;
-use crate::odometry::{imu_odometry, imu_odometry::imu_delta::ImuDelta, imu_odometry::{ImuResidual,ImuJacobian,ImuPertrubation}};
+use crate::odometry::{imu_odometry, imu_odometry::imu_delta::ImuDelta, imu_odometry::{ImuResidual,ImuJacobian,ImuPertrubation, ImuCovariance}};
 use crate::numerics::{lie,loss::LossFunction};
 use crate::sensors::imu::imu_data_frame::ImuDataFrame;
 use crate::{Float,float};
@@ -16,11 +16,11 @@ pub fn run_trajectory(imu_data_measurements: &Vec<ImuDataFrame>, bias_gyroscope:
 
 pub fn run(iteration: usize, imu_data_measurement: &ImuDataFrame,bias_gyroscope: &Vector3<Float>,bias_accelerometer: &Vector3<Float>, gravity_body: &Vector3<Float>, runtime_parameters: &RuntimeParameters) -> Matrix4<Float> {
 
-    let preintegrated_measurement = imu_odometry::pre_integration(imu_data_measurement, bias_gyroscope, bias_accelerometer, gravity_body);
+    let (preintegrated_measurement, imu_covariance) = imu_odometry::pre_integration(imu_data_measurement, bias_gyroscope, bias_accelerometer, gravity_body);
     let mut lie_result = Vector6::<Float>::zeros();
     let mut mat_result = Matrix4::<Float>::identity();
     
-    let result = estimate(imu_data_measurement,&preintegrated_measurement ,&lie_result,&mat_result,gravity_body,runtime_parameters);
+    let result = estimate(imu_data_measurement,&preintegrated_measurement, &imu_covariance ,&lie_result,&mat_result,gravity_body,runtime_parameters);
     lie_result = result.0;
     mat_result = result.1;
     let solver_iterations = result.2;
@@ -39,7 +39,7 @@ pub fn run(iteration: usize, imu_data_measurement: &ImuDataFrame,bias_gyroscope:
 }
 
 //TODO: buffer all debug strings and print at the end. Also the numeric matricies could be buffered per octave level
-fn estimate(imu_data_measurement: &ImuDataFrame, preintegrated_measurement: &ImuDelta,initial_guess_lie: &Vector6<Float>,initial_guess_mat: &Matrix4<Float>,gravity_body: &Vector3<Float>, runtime_parameters: &RuntimeParameters) -> (Vector6<Float>,Matrix4<Float>, usize) {
+fn estimate(imu_data_measurement: &ImuDataFrame, preintegrated_measurement: &ImuDelta,imu_covariance: &ImuCovariance ,initial_guess_lie: &Vector6<Float>,initial_guess_mat: &Matrix4<Float>,gravity_body: &Vector3<Float>, runtime_parameters: &RuntimeParameters) -> (Vector6<Float>,Matrix4<Float>, usize) {
     let mut percentage_of_valid_pixels = 100.0;
 
     let identity_9 = MatrixN::<Float,U9>::identity();
@@ -47,15 +47,18 @@ fn estimate(imu_data_measurement: &ImuDataFrame, preintegrated_measurement: &Imu
     let mut est_transform = initial_guess_mat.clone();
     let mut est_lie = initial_guess_lie.clone();
     let mut estimate = ImuDelta::empty();
-    let mut imu_covariance = imu_odometry::ImuCovariance::zeros();
-    let mut noise_covariance = &imu_data_measurement.noise_covariance;
+    //let mut imu_covariance = imu_odometry::ImuCovariance::zeros();
+    //let mut noise_covariance = &imu_data_measurement.noise_covariance;
     let delta_t = imu_data_measurement.gyro_ts[imu_data_measurement.gyro_ts.len()-1] - imu_data_measurement.gyro_ts[0]; // Gyro has a higher sampling rate
 
     let mut residuals = imu_odometry::generate_residual(&estimate, preintegrated_measurement);
-    imu_covariance = imu_odometry::propagate_state_covariance(&imu_covariance, noise_covariance, imu_data_measurement, &preintegrated_measurement.delta_rotation_i_k, &preintegrated_measurement.delta_rotation_k, gravity_body);
+    //imu_covariance = imu_odometry::propagate_state_covariance(&imu_covariance, noise_covariance, imu_data_measurement, &preintegrated_measurement.delta_rotation_i_k, &preintegrated_measurement.delta_rotation_k, gravity_body);
 
     println!("{}", imu_covariance);
 
+    let mut weights_lu = imu_covariance.lu();
+    let mut weights_qr = imu_covariance.qr();
+    let mut weights_eigen = imu_covariance.symmetric_eigen();
     let mut weights = imu_covariance.cholesky().expect("Cholesky Decomp Failed!").inverse();
     let mut weight_l_upper = weights.cholesky().expect("Cholesky Decomp Failed!").l().transpose();
     let mut jacobian = imu_odometry::generate_jacobian(&est_lie.fixed_rows::<U3>(3), delta_t);

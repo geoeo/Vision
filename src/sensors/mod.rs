@@ -35,15 +35,6 @@ impl DataFrame {
 
             let mut imu = ImuDataFrame::empty_from_other(&loaded_imu_data);
 
-            while loaded_imu_data.acceleration_ts[accel_imu_idx] <= target_ts {
-                imu.acceleration_data.push(loaded_imu_data.acceleration_data[accel_imu_idx]);
-                imu.acceleration_ts.push(loaded_imu_data.acceleration_ts[accel_imu_idx]);
-                accel_imu_idx += 1;
-                accel_imu_idx_signed += 1;
-            }
-            accel_imu_idx -= 1;
-            accel_imu_idx_signed -= 1;
-
 
             while loaded_imu_data.gyro_ts[gyro_imu_idx] <= target_ts {
                 imu.gyro_data.push(loaded_imu_data.gyro_data[gyro_imu_idx]);
@@ -54,6 +45,27 @@ impl DataFrame {
 
             gyro_imu_idx -= 1;
             gyro_imu_idx_signed -= 1;
+
+
+            while loaded_imu_data.acceleration_ts[accel_imu_idx] <= target_ts {
+                
+
+                imu.acceleration_data.push(loaded_imu_data.acceleration_data[accel_imu_idx]);
+                imu.acceleration_ts.push(loaded_imu_data.acceleration_ts[accel_imu_idx]);
+
+
+
+                accel_imu_idx += 1;
+                accel_imu_idx_signed += 1;
+            }
+            accel_imu_idx -= 1;
+            accel_imu_idx_signed -= 1;
+
+
+
+
+
+
 
 
             if accel_imu_idx_signed >= 0 && gyro_imu_idx_signed >= 0{
