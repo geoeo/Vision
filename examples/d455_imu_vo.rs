@@ -20,7 +20,7 @@ fn main() {
     let out_folder = "C:/Users/Marc/Workspace/Rust/Vision/output";
 
     let loading_parameters = LoadingParameters {
-        starting_index: 10,
+        starting_index: 0,
         step :1,
         count :1,
         negate_depth_values :false,

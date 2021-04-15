@@ -72,19 +72,5 @@ impl ImuDataFrame {
         self.gyro_ts.len()
     }
 
-    pub fn find_closest_accel_idx(&self, gyro_idx: usize) -> usize {
-        let mut idx = 0;
-        let gyro_ts = self.gyro_ts[gyro_idx];
-        let mut diff = (self.acceleration_ts[0]-gyro_ts).abs();
-        for i in 1..self.acceleration_ts.len() {
-            let accel_ts = self.acceleration_ts[i];
-            let new_diff = (accel_ts-gyro_ts).abs();
-            if new_diff > diff {
-                break;
-            }
-            diff = new_diff;
-            idx = i;
-        }
-        idx
-    }
+
 }
