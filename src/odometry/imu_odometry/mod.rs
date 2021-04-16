@@ -91,15 +91,6 @@ fn generate_linear_model_matrices(accelerometer_k: &Vector3<Float>,gyrpscope_k: 
 
 }
 
-pub fn propagate_state_covariance(imu_covariance_prev: &ImuCovariance, noise_covariance: &NoiseCovariance, imu_frame: &ImuDataFrame, delta_rotation_i_k: &Matrix3<Float>, delta_rotation_k: &Matrix3<Float>, gravity_body: &Vector3<Float>) -> ImuCovariance {
-
-    panic!("not imeplmented")
-    //let (linear_state_design_matrix,linear_noise_design_matrix) = generate_linear_model_matrices(imu_frame, delta_rotation_i_k, delta_rotation_k, gravity_body);
-    // println!("{}",linear_state_design_matrix);
-    // println!("{}",linear_noise_design_matrix);
-    // println!("{}",noise_covariance);
-    //linear_state_design_matrix*imu_covariance_prev*linear_state_design_matrix.transpose() + linear_noise_design_matrix*noise_covariance*linear_noise_design_matrix.transpose()
-}
 
 pub fn generate_jacobian<T>(lie: &Vector<Float,U3,T>, delta_t: Float) -> ImuJacobian where T: Storage<Float,U3,U1> {
 

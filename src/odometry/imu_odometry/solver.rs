@@ -40,30 +40,24 @@ pub fn run(iteration: usize, imu_data_measurement: &ImuDataFrame,bias_gyroscope:
 
 //TODO: buffer all debug strings and print at the end. Also the numeric matricies could be buffered per octave level
 fn estimate(imu_data_measurement: &ImuDataFrame, preintegrated_measurement: &ImuDelta,imu_covariance: &ImuCovariance ,initial_guess_lie: &Vector6<Float>,initial_guess_mat: &Matrix4<Float>,gravity_body: &Vector3<Float>, runtime_parameters: &RuntimeParameters) -> (Vector6<Float>,Matrix4<Float>, usize) {
-    let mut percentage_of_valid_pixels = 100.0;
-
     let identity_9 = MatrixN::<Float,U9>::identity();
 
     let mut est_transform = initial_guess_mat.clone();
     let mut est_lie = initial_guess_lie.clone();
     let mut estimate = ImuDelta::empty();
-    //let mut imu_covariance = imu_odometry::ImuCovariance::zeros();
-    //let mut noise_covariance = &imu_data_measurement.noise_covariance;
     let delta_t = imu_data_measurement.gyro_ts[imu_data_measurement.gyro_ts.len()-1] - imu_data_measurement.gyro_ts[0]; // Gyro has a higher sampling rate
 
     let mut residuals = imu_odometry::generate_residual(&estimate, preintegrated_measurement);
-    //imu_covariance = imu_odometry::propagate_state_covariance(&imu_covariance, noise_covariance, imu_data_measurement, &preintegrated_measurement.delta_rotation_i_k, &preintegrated_measurement.delta_rotation_k, gravity_body);
 
-    println!("{}", imu_covariance);
+    // println!("{}", imu_covariance);
 
-    let mut weights_lu = imu_covariance.lu();
-    let mut weights_qr = imu_covariance.qr();
-    let mut weights_eigen = imu_covariance.symmetric_eigen();
-    let mut weights = imu_covariance.cholesky().expect("Cholesky Decomp Failed!").inverse();
-    let mut weight_l_upper = weights.cholesky().expect("Cholesky Decomp Failed!").l().transpose();
+    let weights = imu_covariance.cholesky().expect("Cholesky Decomp Failed!").inverse();
+    let weight_l_upper = weights.cholesky().expect("Cholesky Decomp Failed!").l().transpose();
     let mut jacobian = imu_odometry::generate_jacobian(&est_lie.fixed_rows::<U3>(3), delta_t);
     let mut rescaled_jacobian_target = ImuJacobian::zeros(); 
     let mut rescaled_residual_target = ImuResidual::zeros();
+
+    // println!("{}", jacobian);
 
 
     let mut max_norm_delta = float::MAX;
@@ -91,7 +85,7 @@ fn estimate(imu_data_measurement: &ImuDataFrame, preintegrated_measurement: &Imu
     let mut iteration_count = 0;
     while ((!runtime_parameters.lm && (cost.sqrt() > runtime_parameters.eps[0])) || (runtime_parameters.lm && (delta_norm >= delta_thresh && max_norm_delta > runtime_parameters.max_norm_eps)))  && iteration_count < max_iterations  {
         if runtime_parameters.debug{
-            println!("it: {}, avg_rmse: {}, valid pixels: {}%",iteration_count,cost.sqrt(),percentage_of_valid_pixels);
+            println!("it: {}, avg_rmse: {}",iteration_count,cost.sqrt());
         }
 
         let (delta,g,gain_ratio_denom, mu_val) 
@@ -110,17 +104,19 @@ fn estimate(imu_data_measurement: &ImuDataFrame, preintegrated_measurement: &Imu
         let cost_diff = cost-new_cost;
         let gain_ratio = cost_diff/gain_ratio_denom;
         if runtime_parameters.debug {
-            println!("{},{}",cost,new_cost);
+            println!("delta: {}, g: {}",delta,g);
+            println!("cost: {}, new cost: {}",cost,new_cost);
         }
         if gain_ratio >= 0.0  || !runtime_parameters.lm {
-            est_transform = new_estimate.get_pose();
+            estimate = new_estimate;
+            est_transform = estimate.get_pose();
             est_lie = lie::ln(&est_transform);
 
             cost = new_cost;
 
             max_norm_delta = g.max();
             delta_norm = delta.norm();
-            delta_thresh = runtime_parameters.delta_eps*(new_estimate.norm() + runtime_parameters.delta_eps);
+            delta_thresh = runtime_parameters.delta_eps*(estimate.norm() + runtime_parameters.delta_eps);
 
             residuals = new_residuals.clone();
 
@@ -185,8 +181,8 @@ fn gauss_newton_step_with_loss(residuals: &ImuResidual,
         Some(v) => v
     };
 
-    let decomp = (A+ mu_val*identity).cholesky().expect("Solver Cholesky Decomp Failed!");
-    let h = decomp.solve(&(-g));
+    let decomp = (A+ mu_val*identity).qr();
+    let h = decomp.solve(&(-g)).expect("QR Solve Failed");
     let gain_ratio_denom = h.transpose()*(mu_val*h-g);
     (h,g,gain_ratio_denom[0], mu_val)
 }

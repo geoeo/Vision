@@ -22,7 +22,7 @@ fn main() {
     let loading_parameters = LoadingParameters {
         starting_index: 0,
         step :1,
-        count :1,
+        count :20,
         negate_depth_values :false,
         invert_focal_lengths :false,
         invert_y :true,
@@ -64,10 +64,10 @@ fn main() {
         taus: vec!(1e-3,1e-3,1e-0), 
         lm: true,
         weighting: true,
-        debug: true,
+        debug: false,
 
         show_octave_result: true,
-        loss_function: Box::new(numerics::loss::CauchyLoss {eps: 1e-16})
+        loss_function: Box::new(numerics::loss::TrivialLoss {eps: 1e-16})
     };
 
     let mut se3_est = vec!(Matrix4::<Float>::identity());
