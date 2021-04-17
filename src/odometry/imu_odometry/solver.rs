@@ -51,7 +51,13 @@ fn estimate(imu_data_measurement: &ImuDataFrame, preintegrated_measurement: &Imu
 
     // println!("{}", imu_covariance);
 
-    let weights = imu_covariance.cholesky().expect("Cholesky Decomp Failed!").inverse();
+    let weights = match imu_covariance.cholesky() {
+        Some(v) => v.inverse(),
+        None => {
+            println!("Warning Cholesky failed for imu covariance");
+            identity_9
+        }
+    };
     let weight_l_upper = weights.cholesky().expect("Cholesky Decomp Failed!").l().transpose();
     let mut jacobian = imu_odometry::generate_jacobian(&est_lie.fixed_rows::<U3>(3), delta_t);
     let mut rescaled_jacobian_target = ImuJacobian::zeros(); 

@@ -4,7 +4,7 @@ use na::UnitQuaternion;
 use crate::Float;
 use std::fmt;
 
-pub struct LoadingParameters {
+pub struct ImageLoadingParameters {
     pub starting_index: usize,
     pub step: usize,
     pub count: usize,
@@ -15,7 +15,7 @@ pub struct LoadingParameters {
     pub gt_alignment_rot: UnitQuaternion<Float>
 }
 
-impl fmt::Display for LoadingParameters {
+impl fmt::Display for ImageLoadingParameters {
 
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "starting_index_{}_step_{}_count_{}_negate_values_{}_invert_focal_lengths_{}_invert_y_{}", 

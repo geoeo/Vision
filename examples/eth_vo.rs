@@ -4,7 +4,7 @@ extern crate nalgebra as na;
 
 use na::{Vector4,Matrix4, Vector3, UnitQuaternion};
 use std::boxed::Box;
-use vision::io::{loading_parameters::LoadingParameters,eth_loader};
+use vision::io::{image_loading_parameters::ImageLoadingParameters,eth_loader};
 use vision::pyramid::gd::{GDPyramid,gd_octave::GDOctave, build_rgbd_pyramid,gd_runtime_parameters::GDRuntimeParameters};
 use vision::odometry::visual_odometry::dense_direct;
 use vision::odometry::runtime_parameters::RuntimeParameters;
@@ -21,7 +21,7 @@ fn main() {
 
 
 
-    let loading_parameters = LoadingParameters {
+    let loading_parameters = ImageLoadingParameters {
         starting_index: 0,
         step :1,
         count :60,

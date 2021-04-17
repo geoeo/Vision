@@ -15,7 +15,8 @@ use crate::{float,Float};
 pub mod eth_loader;
 pub mod tum_loader;
 pub mod d455_loader;
-pub mod loading_parameters;
+pub mod image_loading_parameters;
+pub mod imu_loading_parameters;
 
 
 pub fn parse_to_float(string: &str, negate_value: bool) -> Float {

@@ -124,18 +124,6 @@ pub fn right_jacobian<T>(w: &Vector<Float,U3,T>) -> Matrix3<Float> where T: Stor
         _ => I
 
     }
-
-    // let w_norm_sqrd = w_norm.powi(2);
-    // let w_norm_cubed = w_norm_sqrd*w_norm;
-    // let cos_norm = w_norm.cos();
-    // let sin_norm = w_norm.sin();
-
-    // let A = (1.0 - cos_norm)/(w_norm_sqrd);
-    // let B = (w_norm - sin_norm)/(w_norm_cubed);
-
-    // let I = Matrix3::<Float>::identity();
-
-    // I - A*w_x + B*w_x_sqr
 }
 
 #[allow(non_snake_case)]
@@ -159,16 +147,6 @@ pub fn right_inverse_jacobian<T>(w: &Vector<Float,U3,T>) -> Matrix3<Float> where
         _ => I
 
     }
-    // let w_norm_sqrd = w_norm.powi(2);
-    // let cos_norm = w_norm.cos();
-    // let sin_norm = w_norm.sin();
-
-    // let A = 1.0/w_norm_sqrd;
-    // let B = (1.0+cos_norm)/(2.0*w_norm*sin_norm);
-
-    // let I = Matrix3::<Float>::identity();
-
-    // I + 0.5*w_x + (A+B)*w_x_sqr
 }
 
 

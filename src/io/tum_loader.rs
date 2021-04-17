@@ -7,7 +7,7 @@ use std::fs::File;
 use std::io::{BufReader,BufRead};
 
 use crate::Float;
-use crate::io::{loading_parameters::LoadingParameters, parse_to_float, closest_ts_index};
+use crate::io::{image_loading_parameters::ImageLoadingParameters, parse_to_float, closest_ts_index};
 use crate::image::Image;
 use crate::sensors::camera::{camera_data_frame::CameraDataFrame,pinhole::Pinhole};
 use crate::io::{load_image_as_gray,load_depth_image};
@@ -20,7 +20,7 @@ pub enum Dataset {
 }
 
 
-pub fn load(root_path: &str, parameters: &LoadingParameters, dataset: &Dataset) -> CameraDataFrame {
+pub fn load(root_path: &str, parameters: &ImageLoadingParameters, dataset: &Dataset) -> CameraDataFrame {
     let rgb_ts_names = "rgb";
     let depth_ts_names = "depth";
     let ground_truths = "groundtruth";

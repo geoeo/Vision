@@ -7,14 +7,14 @@ use std::fs::File;
 use std::io::{BufReader,Read,BufRead};
 
 use crate::Float;
-use crate::io::{loading_parameters::LoadingParameters, parse_to_float};
+use crate::io::{image_loading_parameters::ImageLoadingParameters, parse_to_float};
 use crate::image::Image;
 use crate::sensors::camera::{camera_data_frame::CameraDataFrame,pinhole::Pinhole};
 use crate::io::{load_image_as_gray, load_depth_image_from_csv};
 
 
 
-pub fn load(root_path: &str, parameters: &LoadingParameters) -> CameraDataFrame {
+pub fn load(root_path: &str, parameters: &ImageLoadingParameters) -> CameraDataFrame {
     let intrinsics = "intrinsics";
     let ts_names = "images";
     let ground_truths = "groundtruth";

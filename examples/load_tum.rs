@@ -3,7 +3,7 @@ extern crate vision;
 extern crate nalgebra as na;
 
 use na::{Vector3,UnitQuaternion};
-use vision::io::{tum_loader,loading_parameters::LoadingParameters};
+use vision::io::{tum_loader,image_loading_parameters::ImageLoadingParameters};
 use vision::Float;
 
 fn main() {
@@ -24,7 +24,7 @@ fn main() {
 
 
 
-    let loading_parameters = LoadingParameters {
+    let loading_parameters = ImageLoadingParameters {
         starting_index: 0,
         step :1,
         count :1,

@@ -8,7 +8,7 @@ use std::io::{BufReader,Read,BufRead};
 
 use na::{U3,U1,Vector3,Matrix4};
 use crate::Float;
-use crate::io::{loading_parameters::LoadingParameters, parse_to_float, closest_ts_index};
+use crate::io::{image_loading_parameters::ImageLoadingParameters,imu_loading_parameters::ImuLoadingParameters, parse_to_float, closest_ts_index};
 use crate::image::{Image};
 use crate::sensors::camera::{camera_data_frame::CameraDataFrame,pinhole::Pinhole};
 use crate::sensors::imu::{imu_data_frame::ImuDataFrame,bmi005};
@@ -17,7 +17,7 @@ use crate::io::{load_image_as_gray,load_depth_image_from_csv};
 
 
 
-pub fn load_camera(root_path: &str, parameters: &LoadingParameters) -> CameraDataFrame {
+pub fn load_camera(root_path: &str, parameters: &ImageLoadingParameters) -> CameraDataFrame {
     let depth_image_format = "csv";
     let color_image_format = "png";
     let text_format = "txt";
@@ -70,7 +70,7 @@ pub fn load_camera(root_path: &str, parameters: &LoadingParameters) -> CameraDat
 }
 
 //TODO: make loading paramters for IMU
-pub fn load_imu(root_path: &str) -> ImuDataFrame {
+pub fn load_imu(root_path: &str, imu_loading_parameters: &ImuLoadingParameters) -> ImuDataFrame {
 
     let text_format = "txt";
     let delimeters = &[' ','[',']'][..];
@@ -84,15 +84,15 @@ pub fn load_imu(root_path: &str) -> ImuDataFrame {
     let linear_acc_file_paths = linear_acc_ts_string.iter().map(|x| format!("{}/{}",linear_acc_folder,x)).collect::<Vec<String>>();
     let rotational_vel_file_paths = rotational_vel_ts_string.iter().map(|x| format!("{}/{}",rotational_vel_folder,x)).collect::<Vec<String>>();
 
-    let linear_acc_vec = linear_acc_file_paths.iter().map(|x| load_measurement(Path::new(x),delimeters)).collect::<Vec<Vector3<Float>>>();
-    let rotational_vel_vec = rotational_vel_file_paths.iter().map(|x| load_measurement(Path::new(x),delimeters)).collect::<Vec<Vector3<Float>>>();
+    let linear_acc_vec = linear_acc_file_paths.iter().map(|x| load_measurement(Path::new(x),delimeters, imu_loading_parameters.invert_x)).collect::<Vec<Vector3<Float>>>();
+    let rotational_vel_vec = rotational_vel_file_paths.iter().map(|x| load_measurement(Path::new(x),delimeters, false)).collect::<Vec<Vector3<Float>>>();
 
     bmi005::new_dataframe_from_data(rotational_vel_vec,rotational_vel_ts,linear_acc_vec,linear_acc_ts)
 }
 
-pub fn load_data_frame(root_path: &str, parameters: &LoadingParameters) -> DataFrame {
+pub fn load_data_frame(root_path: &str, parameters: &ImageLoadingParameters, imu_loading_parameters: &ImuLoadingParameters) -> DataFrame {
     let camera_data = load_camera(root_path,parameters);
-    let imu_data = load_imu(root_path);
+    let imu_data = load_imu(root_path,imu_loading_parameters);
 
     DataFrame::new(camera_data, imu_data)
 }
@@ -144,7 +144,7 @@ fn load_timestamps(dir_path: &Path, file_format: &str, negate_value: bool, sort_
     (timestamps,timestamps_string)
 }
 
-fn load_measurement(file_path: &Path, delimeters: &[char]) -> Vector3<Float> {
+fn load_measurement(file_path: &Path, delimeters: &[char], invert_x: bool) -> Vector3<Float> {
     let file = File::open(file_path).expect(format!("Could not open: {}", file_path.display()).as_str());
     let reader = BufReader::new(file);
     let mut lines = reader.lines();
@@ -153,5 +153,5 @@ fn load_measurement(file_path: &Path, delimeters: &[char]) -> Vector3<Float> {
     let values = contents.trim().split(delimeters).filter(|&x| x!="").collect::<Vec<&str>>();
     assert_eq!(values.len(),3);
 
-    Vector3::<Float>::new(parse_to_float(values[0], false),parse_to_float(values[1], false),parse_to_float(values[2], false))
+    Vector3::<Float>::new(parse_to_float(values[0], invert_x),parse_to_float(values[1], false),parse_to_float(values[2], false))
 }

@@ -36,7 +36,7 @@ impl Display for dyn LossFunction {
 
     fn fmt(&self, f: &mut Formatter) -> Result {
 
-        let display = String::from(format!("{}",self.name()));
+        let display = String::from(format!("{}_{:+e}",self.name(),self.eps()));
 
         write!(f, "{}", display)
 

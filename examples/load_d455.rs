@@ -4,7 +4,7 @@ extern crate nalgebra as na;
 
 use na::{Vector3,UnitQuaternion};
 use std::path::Path;
-use vision::io::{loading_parameters::LoadingParameters,load_depth_image_from_csv,load_image_as_gray,d455_loader};
+use vision::io::{image_loading_parameters::ImageLoadingParameters,load_depth_image_from_csv,load_image_as_gray,d455_loader};
 use vision::odometry::imu_odometry::pre_integration;
 use vision::Float;
 
@@ -27,7 +27,7 @@ fn main() {
     let root_path = format!("C:/Users/Marc/Workspace/Datasets/D455/{}",dataset_name);
 
     //TODO: make all parameters
-    let loading_parameters = LoadingParameters {
+    let loading_parameters = ImageLoadingParameters {
         starting_index: 0,
         step :1,
         count :10,
