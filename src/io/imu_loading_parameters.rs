@@ -5,13 +5,14 @@ use crate::Float;
 use std::fmt;
 
 pub struct ImuLoadingParameters {
-    pub invert_x: bool
+    pub accel_invert_x: bool,
+    pub sensor_alignment_rot: UnitQuaternion<Float>
 }
 
 impl fmt::Display for ImuLoadingParameters {
 
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "invert_x_{}", self.invert_x)
+        write!(f, "invert_x_{}", self.accel_invert_x)
     }
 
 }

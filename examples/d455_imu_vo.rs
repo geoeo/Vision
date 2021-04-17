@@ -7,14 +7,14 @@ use vision::io::{image_loading_parameters::ImageLoadingParameters,imu_loading_pa
 use vision::pyramid::gd::{GDPyramid,gd_octave::GDOctave, build_rgbd_pyramid,gd_runtime_parameters::GDRuntimeParameters};
 use vision::odometry::imu_odometry::{pre_integration,solver::run_trajectory};
 use vision::odometry::runtime_parameters::RuntimeParameters;
-use vision::Float;
+use vision::{float,Float};
 use vision::{numerics,numerics::loss};
 use vision::visualize::plot;
 
 fn main() {
 
 
-    let dataset_name = "z_2";
+    let dataset_name = "x";
 
     let root_path = format!("C:/Users/Marc/Workspace/Datasets/D455/{}",dataset_name);
     let out_folder = "C:/Users/Marc/Workspace/Rust/Vision/output";
@@ -22,7 +22,7 @@ fn main() {
     let image_loading_parameters = ImageLoadingParameters {
         starting_index: 10,
         step :1,
-        count :210,
+        count :300,
         negate_depth_values :false,
         invert_focal_lengths :false,
         invert_y :true,
@@ -31,7 +31,8 @@ fn main() {
     };
 
     let imu_loading_parameters = ImuLoadingParameters {
-        invert_x: true
+        accel_invert_x: false,
+        sensor_alignment_rot: UnitQuaternion::from_axis_angle(&Vector3::<Float>::y_axis(),float::consts::PI)
     };
 
 
@@ -41,13 +42,13 @@ fn main() {
         step_sizes: vec!(1e-8), 
         max_norm_eps: 1e-100,
         delta_eps: 1e-100,
-        taus: vec!(1e-3), 
+        taus: vec!(1e-12), 
         lm: true,
         weighting: true,
         debug: false,
 
         show_octave_result: true,
-        loss_function: Box::new(numerics::loss::CauchyLoss {eps: 1e-16})
+        loss_function: Box::new(numerics::loss::SoftOneLoss {eps: 1e-16})
     };
 
     let mut se3_est = vec!(Matrix4::<Float>::identity());

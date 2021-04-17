@@ -6,7 +6,7 @@ extern crate nalgebra as na;
 use na::{Vector3,UnitQuaternion};
 use vision::io::{imu_loading_parameters::ImuLoadingParameters,d455_loader};
 use vision::visualize::plot;
-use vision::Float;
+use vision::{float,Float};
 
 fn main() {
 
@@ -16,7 +16,8 @@ fn main() {
 
 
     let imu_loading_parameters = ImuLoadingParameters {
-        invert_x: true
+        accel_invert_x: true,
+        sensor_alignment_rot: UnitQuaternion::from_axis_angle(&Vector3::<Float>::y_axis(),float::consts::PI)
     };
 
 

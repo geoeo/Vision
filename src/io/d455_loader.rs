@@ -84,8 +84,8 @@ pub fn load_imu(root_path: &str, imu_loading_parameters: &ImuLoadingParameters) 
     let linear_acc_file_paths = linear_acc_ts_string.iter().map(|x| format!("{}/{}",linear_acc_folder,x)).collect::<Vec<String>>();
     let rotational_vel_file_paths = rotational_vel_ts_string.iter().map(|x| format!("{}/{}",rotational_vel_folder,x)).collect::<Vec<String>>();
 
-    let linear_acc_vec = linear_acc_file_paths.iter().map(|x| load_measurement(Path::new(x),delimeters, imu_loading_parameters.invert_x)).collect::<Vec<Vector3<Float>>>();
-    let rotational_vel_vec = rotational_vel_file_paths.iter().map(|x| load_measurement(Path::new(x),delimeters, false)).collect::<Vec<Vector3<Float>>>();
+    let linear_acc_vec = linear_acc_file_paths.iter().map(|x| load_measurement(Path::new(x),delimeters, false,false,false)).collect::<Vec<Vector3<Float>>>();
+    let rotational_vel_vec = rotational_vel_file_paths.iter().map(|x| load_measurement(Path::new(x),delimeters, false,false,false)).collect::<Vec<Vector3<Float>>>();
 
     bmi005::new_dataframe_from_data(rotational_vel_vec,rotational_vel_ts,linear_acc_vec,linear_acc_ts)
 }
@@ -144,7 +144,7 @@ fn load_timestamps(dir_path: &Path, file_format: &str, negate_value: bool, sort_
     (timestamps,timestamps_string)
 }
 
-fn load_measurement(file_path: &Path, delimeters: &[char], invert_x: bool) -> Vector3<Float> {
+fn load_measurement(file_path: &Path, delimeters: &[char], invert_x: bool, invert_y: bool, invert_z: bool) -> Vector3<Float> {
     let file = File::open(file_path).expect(format!("Could not open: {}", file_path.display()).as_str());
     let reader = BufReader::new(file);
     let mut lines = reader.lines();
@@ -153,5 +153,5 @@ fn load_measurement(file_path: &Path, delimeters: &[char], invert_x: bool) -> Ve
     let values = contents.trim().split(delimeters).filter(|&x| x!="").collect::<Vec<&str>>();
     assert_eq!(values.len(),3);
 
-    Vector3::<Float>::new(parse_to_float(values[0], invert_x),parse_to_float(values[1], false),parse_to_float(values[2], false))
+    Vector3::<Float>::new(parse_to_float(values[0], invert_x),parse_to_float(values[1], invert_y),parse_to_float(values[2], invert_z))
 }
