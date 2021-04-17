@@ -10,13 +10,13 @@ use vision::{float,Float};
 
 fn main() {
 
-    let dataset_name = "z_3";
+    let dataset_name = "simple_trans_imu";
     let output_folder = "C:/Users/Marc/Workspace/Rust/Vision/output/";
     let root_path = format!("C:/Users/Marc/Workspace/Datasets/D455/{}",dataset_name);
 
 
     let imu_loading_parameters = ImuLoadingParameters {
-        accel_invert_x: true,
+        convert_to_cam_coords: true,
         sensor_alignment_rot: UnitQuaternion::from_axis_angle(&Vector3::<Float>::y_axis(),float::consts::PI)
     };
 

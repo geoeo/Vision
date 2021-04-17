@@ -14,7 +14,7 @@ use vision::visualize::plot;
 fn main() {
 
 
-    let dataset_name = "x";
+    let dataset_name = "simple_trans_imu";
 
     let root_path = format!("C:/Users/Marc/Workspace/Datasets/D455/{}",dataset_name);
     let out_folder = "C:/Users/Marc/Workspace/Rust/Vision/output";
@@ -22,7 +22,7 @@ fn main() {
     let image_loading_parameters = ImageLoadingParameters {
         starting_index: 10,
         step :1,
-        count :300,
+        count :600,
         negate_depth_values :false,
         invert_focal_lengths :false,
         invert_y :true,
@@ -31,7 +31,7 @@ fn main() {
     };
 
     let imu_loading_parameters = ImuLoadingParameters {
-        accel_invert_x: false,
+        convert_to_cam_coords: true, //TODO: check this
         sensor_alignment_rot: UnitQuaternion::from_axis_angle(&Vector3::<Float>::y_axis(),float::consts::PI)
     };
 
