@@ -48,6 +48,7 @@ fn estimate(imu_data_measurement: &ImuDataFrame, preintegrated_measurement: &Imu
     let delta_t = imu_data_measurement.gyro_ts[imu_data_measurement.gyro_ts.len()-1] - imu_data_measurement.gyro_ts[0]; // Gyro has a higher sampling rate
 
     let mut residuals = imu_odometry::generate_residual(&estimate, preintegrated_measurement);
+    let mut residuals_unweighted = residuals.clone();
 
     // println!("{}", imu_covariance);
 
@@ -95,14 +96,14 @@ fn estimate(imu_data_measurement: &ImuDataFrame, preintegrated_measurement: &Imu
         }
 
         let (delta,g,gain_ratio_denom, mu_val) 
-            = gauss_newton_step_with_loss(&residuals, &jacobian, &identity_9, mu, tau, cost, & runtime_parameters.loss_function, &mut rescaled_jacobian_target,&mut rescaled_residual_target);
+            = gauss_newton_step_with_loss(&residuals, &residuals_unweighted, &jacobian, &identity_9, mu, tau, cost, & runtime_parameters.loss_function, &mut rescaled_jacobian_target,&mut rescaled_residual_target);
         mu = Some(mu_val);
 
 
         let pertb = step*delta;
         let new_estimate = estimate.add_pertb(&pertb);
         let mut new_residuals = imu_odometry::generate_residual(&new_estimate, preintegrated_measurement);
-        
+        let new_residuals_unweighted = new_residuals.clone();
 
         weight_residuals(&mut new_residuals, &weight_l_upper);
 
@@ -125,6 +126,7 @@ fn estimate(imu_data_measurement: &ImuDataFrame, preintegrated_measurement: &Imu
             delta_thresh = runtime_parameters.delta_eps*(estimate.norm() + runtime_parameters.delta_eps);
 
             residuals = new_residuals.clone();
+            residuals_unweighted = new_residuals_unweighted.clone();
 
             jacobian = imu_odometry::generate_jacobian(&est_lie.fixed_rows::<U3>(3), delta_t);
             weight_jacobian(&mut jacobian, &weight_l_upper);
@@ -156,7 +158,9 @@ fn weight_jacobian(jacobian: &mut ImuJacobian, weights: &MatrixN<Float,U9>) -> (
 
 //TODO: potential for optimization. Maybe use less memory/matrices. 
 #[allow(non_snake_case)]
-fn gauss_newton_step_with_loss(residuals: &ImuResidual, 
+fn gauss_newton_step_with_loss(
+    residuals: &ImuResidual, 
+    residuals_unweighted: &ImuResidual, 
     jacobian: &ImuJacobian,
     identity: &MatrixN<Float,U9>,
      mu: Option<Float>, 
@@ -167,20 +171,29 @@ fn gauss_newton_step_with_loss(residuals: &ImuResidual,
       rescaled_residuals_target: &mut ImuResidual) -> (ImuPertrubation,ImuPertrubation,Float,Float) {
 
     let selected_root = loss_function.select_root(current_cost);
-    let (A,g) = match selected_root {
+    let first_deriv_at_cost = loss_function.first_derivative_at_current(current_cost);
+    let second_deriv_at_cost = loss_function.second_derivative_at_current(current_cost);
+    let is_curvature_negative = second_deriv_at_cost*current_cost < -0.5*first_deriv_at_cost;
+    let (A,g) = match selected_root { //TODO: check root selection
 
         root if root != 0.0 => {
-            let first_derivative_sqrt = loss_function.first_derivative_at_current(current_cost).sqrt();
-            let jacobian_factor = selected_root/current_cost;
-            let residual_scale = first_derivative_sqrt/(1.0-selected_root);
-            let res_j = residuals.transpose()*jacobian;
-            for i in 0..jacobian.nrows(){
-                rescaled_jacobian_target.row_mut(i).copy_from(&(first_derivative_sqrt*(jacobian.row(i) - (jacobian_factor*residuals[i]*res_j))));
-                rescaled_residuals_target[i] = residual_scale*residuals[i];
+            match is_curvature_negative {
+                false => {
+                    let first_derivative_sqrt = first_deriv_at_cost.sqrt();
+                    let jacobian_factor = selected_root/current_cost;
+                    let residual_scale = first_derivative_sqrt/(1.0-selected_root);
+                    let res_j = residuals.transpose()*jacobian;
+                    for i in 0..jacobian.nrows(){
+                        rescaled_jacobian_target.row_mut(i).copy_from(&(first_derivative_sqrt*(jacobian.row(i) - (jacobian_factor*residuals[i]*res_j))));
+                        rescaled_residuals_target[i] = residual_scale*residuals[i];
+                    }
+                    (rescaled_jacobian_target.transpose()*(rescaled_jacobian_target as &ImuJacobian),rescaled_jacobian_target.transpose()*(rescaled_residuals_target as &ImuResidual))
+                }
+                _ => (jacobian.transpose()*(first_deriv_at_cost*identity + 2.0*second_deriv_at_cost*residuals_unweighted*residuals_unweighted.transpose())*jacobian,first_deriv_at_cost*jacobian.transpose()*residuals) 
             }
-            (rescaled_jacobian_target.transpose()*(rescaled_jacobian_target as &ImuJacobian),rescaled_jacobian_target.transpose()*(rescaled_residuals_target as &ImuResidual))
+
         },
-        _ => (jacobian.transpose()*jacobian,jacobian.transpose()*residuals)
+        _ => (jacobian.transpose()*jacobian,jacobian.transpose()*residuals) 
     };
     let mu_val = match mu {
         None => tau*A.diagonal().max(),
