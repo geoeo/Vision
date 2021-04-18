@@ -60,6 +60,8 @@ fn estimate(source_octave: &GDOctave, source_depth_image_original: &Image, targe
     let mut weights_vec = DVector::<Float>::from_element(number_of_pixels,1.0);
     let identity_6 = Matrix6::<Float>::identity();
     let mut residuals = DVector::<Float>::from_element(number_of_pixels,float::MAX);
+    let mut residuals_unweighted = DVector::<Float>::from_element(number_of_pixels,float::MAX);
+    let mut new_residuals_unweighted = DVector::<Float>::from_element(number_of_pixels,float::MAX);
     let mut new_residuals = DVector::<Float>::from_element(number_of_pixels,float::MAX);
     let mut full_jacobian = Matrix::<Float,Dynamic,U6, VecStorage<Float,Dynamic,U6>>::zeros(number_of_pixels); 
     let mut image_gradients =  Matrix::<Float,Dynamic,U2, VecStorage<Float,Dynamic,U2>>::zeros(number_of_pixels);
@@ -74,6 +76,7 @@ fn estimate(source_octave: &GDOctave, source_depth_image_original: &Image, targe
     let mut est_lie = initial_guess_lie.clone();
 
     compute_residuals(&target_image.buffer, &source_image.buffer, &backprojected_points,&backprojected_points_flags,&est_transform, &intensity_camera, &mut residuals,&mut image_gradient_points);
+    residuals_unweighted = residuals.clone();
     weight_residuals(&mut residuals, &weights_vec);
     let mut cost = compute_cost(&residuals);
     let mut avg_cost = cost/image_gradient_points.len() as Float;
@@ -107,7 +110,7 @@ fn estimate(source_octave: &GDOctave, source_depth_image_original: &Image, targe
         }
 
         let (delta,g,gain_ratio_denom, mu_val) 
-            = gauss_newton_step_with_loss(&residuals, &full_jacobian, &identity_6, mu, tau, cost, & runtime_parameters.loss_function, &mut rescaled_jacobian_target,&mut rescaled_residual_target);
+            = gauss_newton_step_with_loss(&residuals,&residuals_unweighted, &full_jacobian, &identity_6, mu, tau, cost, & runtime_parameters.loss_function, &mut rescaled_jacobian_target,&mut rescaled_residual_target);
         mu = Some(mu_val);
 
         let pertb = step*delta;
@@ -115,6 +118,7 @@ fn estimate(source_octave: &GDOctave, source_depth_image_original: &Image, targe
 
         new_image_gradient_points.clear();
         compute_residuals(&target_image.buffer, &source_image.buffer, &backprojected_points,&backprojected_points_flags,&new_est_transform, &intensity_camera , &mut new_residuals,&mut new_image_gradient_points);
+        new_residuals_unweighted = new_residuals.clone();
         
         
         if runtime_parameters.weighting {
@@ -142,6 +146,7 @@ fn estimate(source_octave: &GDOctave, source_depth_image_original: &Image, targe
 
             image_gradient_points = new_image_gradient_points.clone();
             residuals = new_residuals.clone();
+            residuals_unweighted = new_residuals_unweighted.clone();
 
             compute_image_gradients(&x_gradient_image.buffer,&y_gradient_image.buffer,&image_gradient_points,&mut image_gradients);
             compute_full_jacobian(&image_gradients,&constant_jacobians,&mut full_jacobian);
@@ -351,7 +356,9 @@ fn weight_jacobian(jacobian: &mut Matrix<Float,Dynamic,U6,VecStorage<Float,Dynam
 
 //TODO: potential for optimization. Maybe use less memory/matrices. 
 #[allow(non_snake_case)]
-fn gauss_newton_step_with_loss(residuals: &DVector<Float>, 
+fn gauss_newton_step_with_loss(
+    residuals: &DVector<Float>, 
+    residuals_unweighted: &DVector<Float>, 
     jacobian: &Matrix<Float,Dynamic,U6,VecStorage<Float,Dynamic,U6>>,
     identity: &Matrix6<Float>,
      mu: Option<Float>, 
@@ -362,18 +369,25 @@ fn gauss_newton_step_with_loss(residuals: &DVector<Float>,
       rescaled_residuals_target: &mut DVector<Float>) -> (Vector6<Float>,Vector6<Float>,Float,Float) {
 
     let selected_root = loss_function.select_root(current_cost);
+    let first_deriv_at_cost = loss_function.first_derivative_at_current(current_cost);
+    let second_deriv_at_cost = loss_function.second_derivative_at_current(current_cost);
+    let is_curvature_negative = second_deriv_at_cost*current_cost < -0.5*first_deriv_at_cost;
     let (A,g) =  match selected_root {
-
         root if root != 0.0 => {
-            let first_derivative_sqrt = loss_function.first_derivative_at_current(current_cost).sqrt();
-            let jacobian_factor = selected_root/current_cost;
-            let residual_scale = first_derivative_sqrt/(1.0-selected_root);
-            let res_j = residuals.transpose()*jacobian;
-            for i in 0..jacobian.nrows(){
-                rescaled_jacobian_target.row_mut(i).copy_from(&(first_derivative_sqrt*(jacobian.row(i) - (jacobian_factor*residuals[i]*res_j))));
-                rescaled_residuals_target[i] = residual_scale*residuals[i];
-            }
-            (rescaled_jacobian_target.transpose()*rescaled_jacobian_target as &Matrix<Float,Dynamic,U6,VecStorage<Float,Dynamic,U6>>,rescaled_jacobian_target.transpose()*rescaled_residuals_target as &DVector<Float>)
+            match is_curvature_negative {
+                false => {
+                    let first_derivative_sqrt = loss_function.first_derivative_at_current(current_cost).sqrt();
+                    let jacobian_factor = selected_root/current_cost;
+                    let residual_scale = first_derivative_sqrt/(1.0-selected_root);
+                    let res_j = residuals.transpose()*jacobian;
+                    for i in 0..jacobian.nrows(){
+                        rescaled_jacobian_target.row_mut(i).copy_from(&(first_derivative_sqrt*(jacobian.row(i) - (jacobian_factor*residuals[i]*res_j))));
+                        rescaled_residuals_target[i] = residual_scale*residuals[i];
+                    }
+                    (rescaled_jacobian_target.transpose()*rescaled_jacobian_target as &Matrix<Float,Dynamic,U6,VecStorage<Float,Dynamic,U6>>,rescaled_jacobian_target.transpose()*rescaled_residuals_target as &DVector<Float>)
+                },
+                _ => (jacobian.transpose()*(first_deriv_at_cost*identity + 2.0*second_deriv_at_cost*residuals_unweighted*residuals_unweighted.transpose())*jacobian,first_deriv_at_cost*jacobian.transpose()*residuals) 
+            }   
         },
         _ => (jacobian.transpose()*jacobian,jacobian.transpose()*residuals)
     };

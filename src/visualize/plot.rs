@@ -229,9 +229,9 @@ pub fn draw_line_graph_two_vector3(translation_est: &Vec<Vector3<Float>>, transl
     let z_translation_est = translation_est.iter().map(|point| point[2]).collect::<Vec<Float>>();
     let data_est_translation = vec!(x_translation_est,y_translation_est,z_translation_est);
 
-    let x_translation_est_2 = translation_est.iter().map(|point| point[0]).collect::<Vec<Float>>();
-    let y_translation_est_2 = translation_est.iter().map(|point| point[1]).collect::<Vec<Float>>();
-    let z_translation_est_2 = translation_est.iter().map(|point| point[2]).collect::<Vec<Float>>();
+    let x_translation_est_2 = translation_est_2.iter().map(|point| point[0]).collect::<Vec<Float>>();
+    let y_translation_est_2 = translation_est_2.iter().map(|point| point[1]).collect::<Vec<Float>>();
+    let z_translation_est_2 = translation_est_2.iter().map(|point| point[2]).collect::<Vec<Float>>();
     let data_est_translation_2 = vec!(x_translation_est_2,y_translation_est_2,z_translation_est_2);
 
 
@@ -245,7 +245,18 @@ pub fn draw_line_graph_two_vector3(translation_est: &Vec<Vector3<Float>>, transl
 
     for i in 0..drawing_areas.len() {
 
-        let (min,max) = get_min_max(vec!(&data_est_translation[i]));
+        let (min_1,max_1) = get_min_max(vec!(&data_est_translation[i]));
+        let (min_2,max_2) = get_min_max(vec!(&data_est_translation_2[i]));
+        
+
+        let min = match (min_1,min_2) {
+            (min_1,min_2) if min_1 > min_2 => min_2,
+            _ => min_1
+        };
+        let max = match (max_1,max_2) {
+            (max_1,max_2) if max_1 > max_2 => max_1,
+            _ => max_2
+        };
 
         let title = match i {
             0 => format!("{} X", subtitle_header),

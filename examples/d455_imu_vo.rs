@@ -17,7 +17,7 @@ use vision::{float, Float};
 use vision::{numerics, numerics::loss};
 
 fn main() {
-    let dataset_name = "simple_trans_imu";
+    let dataset_name = "x";
 
     let root_path = format!("C:/Users/Marc/Workspace/Datasets/D455/{}", dataset_name);
     let out_folder = "C:/Users/Marc/Workspace/Rust/Vision/output";
@@ -25,7 +25,7 @@ fn main() {
     let image_loading_parameters = ImageLoadingParameters {
         starting_index: 10,
         step: 1,
-        count: 600,
+        count: 300,
         negate_depth_values: false,
         invert_focal_lengths: false,
         invert_y: true,
@@ -43,13 +43,13 @@ fn main() {
         step_sizes: vec![1e-8],
         max_norm_eps: 1e-100,
         delta_eps: 1e-100,
-        taus: vec![1e-12],
+        taus: vec![1e-6],
         lm: true,
         weighting: true,
         debug: false,
 
         show_octave_result: true,
-        loss_function: Box::new(numerics::loss::SoftOneLoss { eps: 1e-16 }),
+        loss_function: Box::new(numerics::loss::CauchyLoss { eps: 1e-16 }), //TODO: check loss functions
     };
 
     let mut se3_est = vec![Matrix4::<Float>::identity()];
@@ -110,15 +110,15 @@ fn main() {
 
     let out_preintegration_file_name = format!("d455_imu_preintegration_{}.png", dataset_name);
     let title = "preintegration";
-    // plot::draw_line_graph_vector3(
-    //     &preintegration_points
-    //         .iter()
-    //         .map(|x| Vector3::<Float>::new(x[0], x[1], x[2]))
-    //         .collect::<Vec<Vector3<Float>>>(),
-    //     out_folder,
-    //     &out_preintegration_file_name,
-    //     &title,
-    //     &"Translation",
-    //     &"meters",
-    // );
+    plot::draw_line_graph_vector3(
+        &preintegration_points
+            .iter()
+            .map(|x| Vector3::<Float>::new(x[0], x[1], x[2]))
+            .collect::<Vec<Vector3<Float>>>(),
+        out_folder,
+        &out_preintegration_file_name,
+        &title,
+        &"Translation",
+        &"meters",
+    );
 }

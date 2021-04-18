@@ -28,7 +28,7 @@ fn main() {
     let loading_parameters = ImageLoadingParameters {
         starting_index: 0,
         step :1,
-        count :300,
+        count :150,
         negate_depth_values :false,
         invert_focal_lengths :false,
         invert_y :true,
@@ -79,7 +79,7 @@ fn main() {
         debug: false,
 
         show_octave_result: true,
-        loss_function: Box::new(numerics::loss::TrivialLoss {eps: 1e-16})
+        loss_function: Box::new(numerics::loss::CauchyLoss {eps: 1e-16})
     };
 
     let mut se3_est = vec!(Matrix4::<Float>::identity());
