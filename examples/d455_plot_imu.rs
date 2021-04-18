@@ -16,8 +16,7 @@ fn main() {
 
 
     let imu_loading_parameters = ImuLoadingParameters {
-        convert_to_cam_coords: true,
-        sensor_alignment_rot: UnitQuaternion::from_axis_angle(&Vector3::<Float>::y_axis(),float::consts::PI)
+        convert_to_cam_coords: true
     };
 
 

@@ -176,8 +176,6 @@ pub fn draw_line_graph_vector3(translation_est: &Vec<Vector3<Float>>, output_fol
     let x_translation_est = translation_est.iter().map(|point| point[0]).collect::<Vec<Float>>();
     let y_translation_est = translation_est.iter().map(|point| point[1]).collect::<Vec<Float>>();
     let z_translation_est = translation_est.iter().map(|point| point[2]).collect::<Vec<Float>>();
-
-
     let data_est_translation = vec!(x_translation_est,y_translation_est,z_translation_est);
 
 
@@ -221,10 +219,70 @@ pub fn draw_line_graph_vector3(translation_est: &Vec<Vector3<Float>>, output_fol
             )
         )?;
 
+    }
+    Ok(())
+}
+
+pub fn draw_line_graph_two_vector3(translation_est: &Vec<Vector3<Float>>, translation_est_2: &Vec<Vector3<Float>>, output_folder: &str, file_name: &str, title: &str, subtitle_header: &str, y_desc: &str) -> Result<(), Box<dyn std::error::Error>> {
+    let x_translation_est = translation_est.iter().map(|point| point[0]).collect::<Vec<Float>>();
+    let y_translation_est = translation_est.iter().map(|point| point[1]).collect::<Vec<Float>>();
+    let z_translation_est = translation_est.iter().map(|point| point[2]).collect::<Vec<Float>>();
+    let data_est_translation = vec!(x_translation_est,y_translation_est,z_translation_est);
+
+    let x_translation_est_2 = translation_est.iter().map(|point| point[0]).collect::<Vec<Float>>();
+    let y_translation_est_2 = translation_est.iter().map(|point| point[1]).collect::<Vec<Float>>();
+    let z_translation_est_2 = translation_est.iter().map(|point| point[2]).collect::<Vec<Float>>();
+    let data_est_translation_2 = vec!(x_translation_est_2,y_translation_est_2,z_translation_est_2);
+
+
+    let path = format!("{}/{}",output_folder,file_name);
+    let root = BitMapBackend::new(&path, (1024, 768)).into_drawing_area();
+    root.fill(&WHITE)?;
+    root.titled(title, ("sans-serif", 12))?;
+
+    let drawing_areas = root.split_evenly((3,1));
+
+
+    for i in 0..drawing_areas.len() {
+
+        let (min,max) = get_min_max(vec!(&data_est_translation[i]));
+
+        let title = match i {
+            0 => format!("{} X", subtitle_header),
+            1 => format!("{} Y", subtitle_header), 
+            2 => format!("{} Z", subtitle_header),
+            _ => panic!("unexpected plot index")
+        };
+
+        let mut chart = ChartBuilder::on(&drawing_areas[i])
+        .margin(30)
+        .set_label_area_size(LabelAreaPosition::Left, 60)
+        .set_label_area_size(LabelAreaPosition::Bottom, 60)
+        .caption(title, ("sans-serif", 40))
+        .build_cartesian_2d(0..(data_est_translation[i].len() - 1), min..max)?; 
+
+        chart
+            .configure_mesh()
+            .disable_x_mesh()
+            .disable_y_mesh()
+            .y_desc(y_desc)
+            .draw()?;
+
+        chart.draw_series(
+            LineSeries::new(
+                (0..).zip(data_est_translation[i].iter()).map(|(x, y)| (x, *y)),
+                &RED.mix(0.2),
+            )
+        )?;
+
+        chart.draw_series(
+            LineSeries::new(
+                (0..).zip(data_est_translation_2[i].iter()).map(|(x, y)| (x, *y)),
+                &BLUE.mix(0.2),
+            )
+        )?;
+
 
     }
-
-
-
     Ok(())
 }

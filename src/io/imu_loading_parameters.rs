@@ -5,8 +5,7 @@ use crate::Float;
 use std::fmt;
 
 pub struct ImuLoadingParameters {
-    pub convert_to_cam_coords: bool,
-    pub sensor_alignment_rot: UnitQuaternion<Float>
+    pub convert_to_cam_coords: bool
 }
 
 impl fmt::Display for ImuLoadingParameters {

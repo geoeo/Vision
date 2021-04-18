@@ -85,7 +85,7 @@ pub fn load_imu(root_path: &str, imu_loading_parameters: &ImuLoadingParameters) 
     let rotational_vel_file_paths = rotational_vel_ts_string.iter().map(|x| format!("{}/{}",rotational_vel_folder,x)).collect::<Vec<String>>();
 
     let linear_acc_vec = linear_acc_file_paths.iter().map(|x| load_measurement(Path::new(x),delimeters, imu_loading_parameters.convert_to_cam_coords,false,false)).collect::<Vec<Vector3<Float>>>();
-    let rotational_vel_vec = rotational_vel_file_paths.iter().map(|x| load_measurement(Path::new(x),delimeters, false,imu_loading_parameters.convert_to_cam_coords,imu_loading_parameters.convert_to_cam_coords)).collect::<Vec<Vector3<Float>>>();
+    let rotational_vel_vec = rotational_vel_file_paths.iter().map(|x| load_measurement(Path::new(x),delimeters, false,false,false)).collect::<Vec<Vector3<Float>>>();
 
     bmi005::new_dataframe_from_data(rotational_vel_vec,rotational_vel_ts,linear_acc_vec,linear_acc_ts)
 }
