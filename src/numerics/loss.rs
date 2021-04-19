@@ -15,7 +15,6 @@ pub trait LossFunction {
         (v,v)
     }
     fn cost(&self,current_cost: Float) -> Float;
-    fn norm(&self,current_cost: Float) -> Float;
     fn first_derivative_at_current(&self,current_cost: Float) -> Float;
     fn second_derivative_at_current(&self,current_cost: Float) -> Float;
     fn select_root(&self, current_cost: Float) -> Float{
@@ -57,11 +56,6 @@ impl LossFunction for CauchyLoss {
         (1.0+ cost).ln()
     }
 
-    fn norm(&self,cost: Float) -> Float {
-        1.0/(1.0+cost.powi(2))
-    }
-
-
     fn eps(&self) -> Float {
         self.eps
     }
@@ -87,10 +81,6 @@ pub struct TrivialLoss {
 impl LossFunction for TrivialLoss {
 
     fn cost(&self, _cost: Float) -> Float {
-        1.0
-    }
-
-    fn norm(&self,_cost: Float) -> Float {
         1.0
     }
 
@@ -136,11 +126,6 @@ impl LossFunction for SoftOneLoss {
     fn cost(&self, cost: Float) -> Float {
         2.0*((1.0+cost).powi(2)-1.0)
     }
-
-    fn norm(&self,cost: Float) -> Float {
-        1.0/(1.0+cost.powi(2)/2.0).sqrt()
-    }
-
 
     fn eps(&self) -> Float {
         self.eps

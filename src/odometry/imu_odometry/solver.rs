@@ -208,6 +208,6 @@ fn gauss_newton_step_with_loss(
 
 
 fn compute_cost(residuals: &ImuResidual, loss_function: &Box<dyn LossFunction>) -> Float {
-    0.5*loss_function.cost((residuals.transpose()*residuals)[0])
+    loss_function.cost((residuals.transpose()*residuals)[0])
 }
 

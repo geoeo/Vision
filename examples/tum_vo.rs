@@ -28,7 +28,7 @@ fn main() {
     let loading_parameters = ImageLoadingParameters {
         starting_index: 0,
         step :1,
-        count :150,
+        count :300,
         negate_depth_values :false,
         invert_focal_lengths :false,
         invert_y :true,
@@ -39,7 +39,7 @@ fn main() {
 
 
     let pyramid_parameters = GDRuntimeParameters{
-        sigma: 0.5,
+        sigma: 0.01,
         use_blur: true,
         blur_radius: 1.0,
         octave_count: 4,
@@ -68,12 +68,12 @@ fn main() {
 
 
     let vo_parameters = RuntimeParameters{
-        max_iterations: vec![400;4],
+        max_iterations: vec![800;4],
         eps: vec!(1e-5,9e-4,9e-4,1e-6),
         step_sizes: vec!(1e-0,5e-1,5e-1,1e-3), 
-        max_norm_eps: 1e-3,
-        delta_eps: 1e-3,
-        taus: vec!(1e-3,1e-3,1e-3,1e-3), 
+        max_norm_eps: 1e-10,
+        delta_eps: 1e-10,
+        taus: vec!(1e-6,1e-3,1e-3,1e-0), 
         lm: true,
         weighting: true,
         debug: false,
