@@ -32,7 +32,7 @@ fn main() {
         negate_depth_values :false,
         invert_focal_lengths :false,
         invert_y :true,
-        set_default_depth: false,
+        set_default_depth: true,
         gt_alignment_rot:UnitQuaternion::<Float>::from_axis_angle(&Vector3::x_axis(),float::consts::FRAC_PI_2)* UnitQuaternion::<Float>::from_axis_angle(&Vector3::y_axis(),float::consts::PI)
     };
 
@@ -68,18 +68,18 @@ fn main() {
 
 
     let vo_parameters = RuntimeParameters{
-        max_iterations: vec![800;4],
-        eps: vec!(1e-3,1e-3,1e-3,1e-6),
-        step_sizes: vec!(1e-8,1e-8,1e-8,1e-3), 
-        max_norm_eps: 1e-95,
-        delta_eps: 1e-95,
-        taus: vec!(1e-6,1e-3,1e-3,1e-0), 
+        max_iterations: vec![400;4],
+        eps: vec!(1e-5,9e-4,9e-4,1e-6),
+        step_sizes: vec!(1e-0,5e-1,5e-1,1e-3), 
+        max_norm_eps: 1e-3,
+        delta_eps: 1e-3,
+        taus: vec!(1e-3,1e-3,1e-3,1e-3), 
         lm: true,
         weighting: true,
         debug: false,
 
         show_octave_result: true,
-        loss_function: Box::new(numerics::loss::CauchyLoss {eps: 1e-16})
+        loss_function: Box::new(numerics::loss::SoftOneLoss {eps: 1e-16})
     };
 
     let mut se3_est = vec!(Matrix4::<Float>::identity());

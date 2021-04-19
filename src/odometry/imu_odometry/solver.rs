@@ -88,7 +88,7 @@ fn estimate(imu_data_measurement: &ImuDataFrame, preintegrated_measurement: &Imu
     weight_residuals(&mut residuals, &weight_l_upper);
     weight_jacobian(&mut jacobian, &weight_l_upper);
     
-    let mut cost = compute_cost(&residuals);
+    let mut cost = compute_cost(&residuals,&runtime_parameters.loss_function);
     let mut iteration_count = 0;
     while ((!runtime_parameters.lm && (cost.sqrt() > runtime_parameters.eps[0])) || (runtime_parameters.lm && (delta_norm >= delta_thresh && max_norm_delta > runtime_parameters.max_norm_eps)))  && iteration_count < max_iterations  {
         if runtime_parameters.debug{
@@ -107,7 +107,7 @@ fn estimate(imu_data_measurement: &ImuDataFrame, preintegrated_measurement: &Imu
 
         weight_residuals(&mut new_residuals, &weight_l_upper);
 
-        let new_cost = compute_cost(&new_residuals);
+        let new_cost = compute_cost(&new_residuals, &runtime_parameters.loss_function);
         let cost_diff = cost-new_cost;
         let gain_ratio = cost_diff/gain_ratio_denom;
         if runtime_parameters.debug {
@@ -207,7 +207,7 @@ fn gauss_newton_step_with_loss(
 }
 
 
-fn compute_cost(residuals: &ImuResidual) -> Float {
-    (residuals.transpose()*residuals)[0]
+fn compute_cost(residuals: &ImuResidual, loss_function: &Box<dyn LossFunction>) -> Float {
+    0.5*loss_function.cost((residuals.transpose()*residuals)[0])
 }
 

@@ -78,7 +78,7 @@ fn estimate(source_octave: &GDOctave, source_depth_image_original: &Image, targe
     compute_residuals(&target_image.buffer, &source_image.buffer, &backprojected_points,&backprojected_points_flags,&est_transform, &intensity_camera, &mut residuals,&mut image_gradient_points);
     residuals_unweighted = residuals.clone();
     weight_residuals(&mut residuals, &weights_vec);
-    let mut cost = compute_cost(&residuals);
+    let mut cost = compute_cost(&residuals,&runtime_parameters.loss_function);
     let mut avg_cost = cost/image_gradient_points.len() as Float;
 
     let mut max_norm_delta = float::MAX;
@@ -122,19 +122,19 @@ fn estimate(source_octave: &GDOctave, source_depth_image_original: &Image, targe
         
         
         if runtime_parameters.weighting {
-            compute_t_dist_weights(&new_residuals,&mut weights_vec,new_image_gradient_points.len() as Float,5.0,20,1e-10);
+            //compute_t_dist_weights(&new_residuals,&mut weights_vec,new_image_gradient_points.len() as Float,5.0,20,1e-10);
+            norm(&residuals,&runtime_parameters.loss_function,&mut weights_vec);
         }
         weight_residuals(&mut new_residuals, &weights_vec);
 
         percentage_of_valid_pixels = (new_image_gradient_points.len() as Float/number_of_pixels_float) *100.0;
-        let new_cost = compute_cost(&new_residuals);
+        let new_cost = compute_cost(&new_residuals,&runtime_parameters.loss_function);
         let cost_diff = cost-new_cost;
         let gain_ratio = cost_diff/gain_ratio_denom;
         if runtime_parameters.debug {
             println!("{},{}",cost,new_cost);
         }
         if gain_ratio >= 0.0  || !runtime_parameters.lm {
-            //est_lie = new_est_lie.clone();
             est_lie = lie::ln(&new_est_transform);
             est_transform = new_est_transform.clone();
             cost = new_cost;
@@ -292,9 +292,21 @@ fn compute_t_dist_weights(residuals: &DVector<Float>, weights_vec: &mut DVector<
     for i in 0..residuals.len() {
         let res = residuals[i];
         weights_vec[i] = compute_t_dist_weight(res,variance,t_dist_nu).sqrt();
+        println!("{}",weights_vec[i]);
     }
     
 }
+
+fn norm(residuals: &DVector<Float>,loss_function :&Box<dyn LossFunction>, weights_vec: &mut DVector<Float>) ->() {
+    for i in 0..residuals.len() {
+        weights_vec[i] = loss_function.second_derivative_at_current(residuals[i]);
+        //weights_vec[i] = loss_function.norm(residuals[i]).sqrt();
+        //println!("{}",weights_vec[i]);
+    }
+
+}
+
+
 
 fn compute_t_dist_weight(residual: Float, variance: Float, t_dist_nu: Float) -> Float{
     (t_dist_nu + 1.0) / (t_dist_nu + residual.powi(2)/variance)
@@ -325,7 +337,7 @@ fn estimate_t_dist_variance(n: Float, residuals: &DVector<Float>, t_dist_nu: Flo
 }
 
 
-fn weight_residuals( residual_target: &mut DVector<Float>, weights_vec: &DVector<Float>) -> () {
+fn weight_residuals(residual_target: &mut DVector<Float>, weights_vec: &DVector<Float>) -> () {
     residual_target.component_mul_assign(weights_vec);
 }
 
@@ -396,14 +408,14 @@ fn gauss_newton_step_with_loss(
         Some(v) => v
     };
 
-    let decomp = (A+ mu_val*identity).cholesky().expect("Cholesky Failed");
-    let h = decomp.solve(&(-g));
+    let decomp = (A+ mu_val*identity).qr();
+    let h = decomp.solve(&(-g)).expect("QR Solve Failed");
     let gain_ratio_denom = h.transpose()*(mu_val*h-g);
     (h,g,gain_ratio_denom[0], mu_val)
 }
 
 
-fn compute_cost(residuals: &DVector<Float>) -> Float {
-    (residuals.transpose()*residuals)[0]
+fn compute_cost(residuals: &DVector<Float>, loss_function: &Box<dyn LossFunction>) -> Float {
+    0.5*loss_function.cost((residuals.transpose()*residuals)[0])
 }
 
