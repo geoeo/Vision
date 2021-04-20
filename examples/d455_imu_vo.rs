@@ -23,13 +23,13 @@ fn main() {
     let out_folder = "C:/Users/Marc/Workspace/Rust/Vision/output";
 
     let image_loading_parameters = ImageLoadingParameters {
-        starting_index: 10,
+        starting_index: 0,
         step: 1,
         count: 300,
         negate_depth_values: false,
         invert_focal_lengths: false,
         invert_y: true,
-        set_default_depth: false,
+        set_default_depth: true,
         gt_alignment_rot: UnitQuaternion::identity(),
     };
 
@@ -41,15 +41,15 @@ fn main() {
         max_iterations: vec![800; 1],
         eps: vec![1e-3],
         step_sizes: vec![1e-8],
-        max_norm_eps: 1e-10,
-        delta_eps: 1e-10,
+        max_norm_eps: 1e-30,
+        delta_eps: 1e-30,
         taus: vec![1e-6],
         lm: true,
         weighting: true,
         debug: false,
 
         show_octave_result: true,
-        loss_function: Box::new(numerics::loss::CauchyLoss { eps: 1e-16 }), //TODO: check loss functions
+        loss_function: Box::new(numerics::loss::SoftOneLoss { eps: 1e-16 }), //TODO: check loss functions
     };
 
     let mut se3_est = vec![Matrix4::<Float>::identity()];
@@ -97,10 +97,12 @@ fn main() {
             .iter()
             .map(|x| Vector3::<Float>::new(x[0], x[1], x[2]))
             .collect::<Vec<Vector3<Float>>>(),
+            &"estimated",
         &preintegration_points
             .iter()
             .map(|x| Vector3::<Float>::new(x[0], x[1], x[2]))
             .collect::<Vec<Vector3<Float>>>(),
+            &"preintegration",
         out_folder,
         &out_file_name,
         &title,

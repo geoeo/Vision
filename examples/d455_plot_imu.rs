@@ -10,7 +10,7 @@ use vision::{float,Float};
 
 fn main() {
 
-    let dataset_name = "simple_trans_imu";
+    let dataset_name = "x";
     let output_folder = "C:/Users/Marc/Workspace/Rust/Vision/output/";
     let root_path = format!("C:/Users/Marc/Workspace/Datasets/D455/{}",dataset_name);
 

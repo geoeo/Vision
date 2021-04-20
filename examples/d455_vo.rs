@@ -14,7 +14,7 @@ use vision::visualize::plot;
 fn main() {
 
 
-    let dataset_name = "simple_trans_imu";
+    let dataset_name = "x";
 
     let root_path = format!("C:/Users/Marc/Workspace/Datasets/D455/{}",dataset_name);
     let out_folder = "C:/Users/Marc/Workspace/Rust/Vision/output";
@@ -62,8 +62,8 @@ fn main() {
         max_iterations: vec![800;3],
         eps: vec!(1e-3,1e-3,1e-3),
         step_sizes: vec!(1e-8,1e-8,1e-8), 
-        max_norm_eps: 1e-30,
-        delta_eps: 1e-30,
+        max_norm_eps: 1e-95,
+        delta_eps: 1e-95,
         taus: vec!(1e-3,1e-3,1e-0), 
         lm: true,
         weighting: true,

@@ -223,7 +223,7 @@ pub fn draw_line_graph_vector3(translation_est: &Vec<Vector3<Float>>, output_fol
     Ok(())
 }
 
-pub fn draw_line_graph_two_vector3(translation_est: &Vec<Vector3<Float>>, translation_est_2: &Vec<Vector3<Float>>, output_folder: &str, file_name: &str, title: &str, subtitle_header: &str, y_desc: &str) -> Result<(), Box<dyn std::error::Error>> {
+pub fn draw_line_graph_two_vector3(translation_est: &Vec<Vector3<Float>>,label_1: &str, translation_est_2: &Vec<Vector3<Float>>,label_2: &str, output_folder: &str, file_name: &str, title: &str, subtitle_header: &str, y_desc: &str) -> Result<(), Box<dyn std::error::Error>> {
     let x_translation_est = translation_est.iter().map(|point| point[0]).collect::<Vec<Float>>();
     let y_translation_est = translation_est.iter().map(|point| point[1]).collect::<Vec<Float>>();
     let z_translation_est = translation_est.iter().map(|point| point[2]).collect::<Vec<Float>>();
@@ -284,14 +284,16 @@ pub fn draw_line_graph_two_vector3(translation_est: &Vec<Vector3<Float>>, transl
                 (0..).zip(data_est_translation[i].iter()).map(|(x, y)| (x, *y)),
                 &RED.mix(0.2),
             )
-        )?;
+        )?.label(label_1).legend(|(x, y)| PathElement::new(vec![(x, y), (x + 20, y)], &RED));
 
         chart.draw_series(
             LineSeries::new(
                 (0..).zip(data_est_translation_2[i].iter()).map(|(x, y)| (x, *y)),
                 &BLUE.mix(0.2),
             )
-        )?;
+        )?.label(label_2).legend(|(x, y)| PathElement::new(vec![(x, y), (x + 20, y)], &BLUE));
+
+        chart.configure_series_labels().border_style(&BLACK).draw()?;
 
 
     }
