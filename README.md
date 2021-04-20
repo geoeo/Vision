@@ -13,12 +13,7 @@ Dense VO implementation in Rust. https://ieeexplore.ieee.org/document/6631104
 ## Fast Corner
 ![fast](doc/lenna_fast.png)
 
-## Dense VO
+## Dense VO (LM + SoftOneLoss)
 
-![dense](doc/freiburg_desk_2.png)
-
-## Sift
-Too many false positives.
-
-![sift](doc/circles_sift.png)
+![dense](doc/freiburg2_desk_0_max_its_800_w_true_l_SoftOneLoss_+1e-16_lm_max_norm_eps_+1e-10_delta_eps_+1e-10_t_+1e-6_t_+1e-3_t_+1e-3_t_+1e0_s_0.01_o_4_b_true_br_1_neg_d_false.png)
 

@@ -79,7 +79,7 @@ fn main() {
         debug: false,
 
         show_octave_result: true,
-        loss_function: Box::new(numerics::loss::SoftOneLoss {eps: 1e-16})
+        loss_function: Box::new(numerics::loss::CauchyLoss {eps: 1e-16})
     };
 
     let mut se3_est = vec!(Matrix4::<Float>::identity());

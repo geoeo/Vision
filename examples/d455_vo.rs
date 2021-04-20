@@ -20,13 +20,13 @@ fn main() {
     let out_folder = "C:/Users/Marc/Workspace/Rust/Vision/output";
 
     let loading_parameters = ImageLoadingParameters {
-        starting_index: 576,
+        starting_index: 0,
         step :1,
-        count :30,
+        count :300,
         negate_depth_values :false,
         invert_focal_lengths :false,
         invert_y :true,
-        set_default_depth: false,
+        set_default_depth: true,
         gt_alignment_rot:UnitQuaternion::identity()
     };
 
@@ -42,7 +42,7 @@ fn main() {
     println!("{:?}",loaded_data.intensity_camera.projection);
 
     let pyramid_parameters = GDRuntimeParameters{
-        sigma: 0.5,
+        sigma: 0.01,
         use_blur: true,
         blur_radius: 1.0,
         octave_count: 3,
@@ -62,8 +62,8 @@ fn main() {
         max_iterations: vec![800;3],
         eps: vec!(1e-3,1e-3,1e-3),
         step_sizes: vec!(1e-8,1e-8,1e-8), 
-        max_norm_eps: 1e-95,
-        delta_eps: 1e-95,
+        max_norm_eps: 1e-30,
+        delta_eps: 1e-30,
         taus: vec!(1e-3,1e-3,1e-0), 
         lm: true,
         weighting: true,
