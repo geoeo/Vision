@@ -13,7 +13,7 @@ Imu Preintgration in Rust (Wip) http://rpg.ifi.uzh.ch/docs/TRO16_forster.pdf
 ## Fast Corner
 ![fast](doc/lenna_fast.png)
 
-## Dense VO (LM + SoftOneLoss) - Tum Dataset Freuburg2 Desk
+## Dense VO (LM + SoftOneLoss) - Tum Dataset Freiburg2 Desk
 
 ![dense](doc/freiburg2_desk_0_max_its_800_w_true_l_SoftOneLoss_+1e-16_lm_max_norm_eps_+1e-10_delta_eps_+1e-10_t_+1e-6_t_+1e-3_t_+1e-3_t_+1e0_s_0.01_o_4_b_true_br_1_neg_d_false.png)
 
