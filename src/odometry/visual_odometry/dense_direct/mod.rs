@@ -1,6 +1,6 @@
 extern crate nalgebra as na;
 
-use na::{U2,U4,U6,RowVector2,Vector4,Vector6,DVector,Matrix4,Matrix,SMatrix,DMatrix,Dynamic,VecStorage};
+use na::{U2,U4,U6,RowVector2,Vector4,SVector,DVector,Matrix4,Matrix,SMatrix,DMatrix,Dynamic,VecStorage};
 use std::boxed::Box;
 
 use crate::pyramid::gd::{GDPyramid,gd_octave::GDOctave};
@@ -10,6 +10,10 @@ use crate::image::Image;
 use crate::numerics::{lie,loss::LossFunction};
 use crate::features::geometry::point::Point;
 use crate::{Float,float,reconstruct_original_coordiantes};
+
+type Identity = SMatrix::<Float,6,6>;
+type ResidualDim = U6;
+const RESIDUAL_DIM: usize = 6;
 
 pub fn run_trajectory(source_rgdb_pyramids: &Vec<GDPyramid<GDOctave>>,target_rgdb_pyramids: &Vec<GDPyramid<GDOctave>>, intensity_camera: &Pinhole, depth_camera: &Pinhole , runtime_parameters: &RuntimeParameters) -> Vec<Matrix4<Float>> {
     source_rgdb_pyramids.iter().zip(target_rgdb_pyramids.iter()).enumerate().map(|(i,(source,target))| run(i+1,&source,&target, intensity_camera,depth_camera,runtime_parameters)).collect::<Vec<Matrix4<Float>>>()
@@ -23,7 +27,7 @@ pub fn run(iteration: usize, source_rgdb_pyramid: &GDPyramid<GDOctave>,target_rg
     assert_eq!(octave_count,runtime_parameters.max_iterations.len());
 
     let depth_image = &source_rgdb_pyramid.depth_image;
-    let mut lie_result = Vector6::<Float>::zeros();
+    let mut lie_result = SVector::<Float,RESIDUAL_DIM>::zeros();
     let mut mat_result = Matrix4::<Float>::identity();
     
     for index in (0..octave_count).rev() {
@@ -47,7 +51,7 @@ pub fn run(iteration: usize, source_rgdb_pyramid: &GDPyramid<GDOctave>,target_rg
 }
 
 //TODO: buffer all debug strings and print at the end. Also the numeric matricies could be buffered per octave level
-fn estimate(source_octave: &GDOctave, source_depth_image_original: &Image, target_octave: &GDOctave, octave_index: usize, initial_guess_lie: &Vector6<Float>,initial_guess_mat: &Matrix4<Float>, intensity_camera: &Pinhole, depth_camera: &Pinhole, runtime_parameters: &RuntimeParameters) -> (Vector6<Float>,Matrix4<Float>, usize) {
+fn estimate(source_octave: &GDOctave, source_depth_image_original: &Image, target_octave: &GDOctave, octave_index: usize, initial_guess_lie: &SVector<Float,RESIDUAL_DIM>,initial_guess_mat: &Matrix4<Float>, intensity_camera: &Pinhole, depth_camera: &Pinhole, runtime_parameters: &RuntimeParameters) -> (SVector<Float,RESIDUAL_DIM>,Matrix4<Float>, usize) {
     let source_image = &source_octave.gray_images[0];
     let target_image = &target_octave.gray_images[0];
     let x_gradient_image = &target_octave.x_gradients[0];
@@ -58,16 +62,16 @@ fn estimate(source_octave: &GDOctave, source_depth_image_original: &Image, targe
     let mut percentage_of_valid_pixels = 100.0;
 
     let mut weights_vec = DVector::<Float>::from_element(number_of_pixels,1.0);
-    let identity = SMatrix::<Float,6,6>::identity();
+    let identity = Identity::identity();
     let mut residuals = DVector::<Float>::from_element(number_of_pixels,float::MAX);
     let mut residuals_unweighted = DVector::<Float>::from_element(number_of_pixels,float::MAX);
     let mut new_residuals_unweighted = DVector::<Float>::from_element(number_of_pixels,float::MAX);
     let mut new_residuals = DVector::<Float>::from_element(number_of_pixels,float::MAX);
-    let mut full_jacobian = Matrix::<Float,Dynamic,U6, VecStorage<Float,Dynamic,U6>>::zeros(number_of_pixels); 
+    let mut full_jacobian = Matrix::<Float,Dynamic,ResidualDim, VecStorage<Float,Dynamic,ResidualDim>>::zeros(number_of_pixels); 
     let mut image_gradients =  Matrix::<Float,Dynamic,U2, VecStorage<Float,Dynamic,U2>>::zeros(number_of_pixels);
     let mut image_gradient_points = Vec::<Point<usize>>::with_capacity(number_of_pixels);
     let mut new_image_gradient_points = Vec::<Point<usize>>::with_capacity(number_of_pixels);
-    let mut rescaled_jacobian_target = Matrix::<Float,Dynamic,U6, VecStorage<Float,Dynamic,U6>>::zeros(number_of_pixels); 
+    let mut rescaled_jacobian_target = Matrix::<Float,Dynamic,ResidualDim, VecStorage<Float,Dynamic,ResidualDim>>::zeros(number_of_pixels); 
     let mut rescaled_residual_target =  DVector::<Float>::zeros(number_of_pixels);
     let (backprojected_points,backprojected_points_flags) = backproject_points(&source_image.buffer, &source_depth_image_original.buffer, &depth_camera, octave_index);
     let constant_jacobians = precompute_jacobians(&backprojected_points,&backprojected_points_flags,&intensity_camera);
@@ -219,9 +223,9 @@ fn backproject_points(source_image_buffer: &DMatrix<Float>,depth_image_buffer: &
     (backproject_points,backproject_points_flags)
 }
 
-fn precompute_jacobians(backprojected_points: &Matrix<Float,U4,Dynamic,VecStorage<Float,U4,Dynamic>>,backprojected_points_flags: &Vec<bool>, pinhole_camera: &Pinhole) -> Matrix<Float,Dynamic,U6, VecStorage<Float,Dynamic,U6>> {
+fn precompute_jacobians(backprojected_points: &Matrix<Float,U4,Dynamic,VecStorage<Float,U4,Dynamic>>,backprojected_points_flags: &Vec<bool>, pinhole_camera: &Pinhole) -> Matrix<Float,Dynamic,ResidualDim, VecStorage<Float,Dynamic,ResidualDim>> {
     let number_of_points = backprojected_points.ncols();
-    let mut precomputed_jacobians = Matrix::<Float,Dynamic,U6, VecStorage<Float,Dynamic,U6>>::zeros(2*number_of_points);
+    let mut precomputed_jacobians = Matrix::<Float,Dynamic,ResidualDim, VecStorage<Float,Dynamic,ResidualDim>>::zeros(2*number_of_points);
 
     for i in 0..number_of_points {
         if backprojected_points_flags[i] {
@@ -272,12 +276,12 @@ fn compute_residuals(target_image_buffer: &DMatrix<Float>,source_image_buffer: &
 }
 
 
-fn compute_full_jacobian(image_gradients: &Matrix<Float,Dynamic,U2, VecStorage<Float,Dynamic,U2>>, const_jacobians: &Matrix<Float,Dynamic,U6, VecStorage<Float,Dynamic,U6>>, target: &mut Matrix<Float,Dynamic,U6, VecStorage<Float,Dynamic,U6>>) -> () {
+fn compute_full_jacobian(image_gradients: &Matrix<Float,Dynamic,U2, VecStorage<Float,Dynamic,U2>>, const_jacobians: &Matrix<Float,Dynamic,ResidualDim, VecStorage<Float,Dynamic,ResidualDim>>, target: &mut Matrix<Float,Dynamic,ResidualDim, VecStorage<Float,Dynamic,ResidualDim>>) -> () {
     let number_of_elements = image_gradients.nrows();
 
     for i in 0..number_of_elements {
-        let jacobian_i = image_gradients.row(i)*const_jacobians.fixed_slice::<2,6>(i*2,0);
-        target.fixed_slice_mut::<1,6>(i,0).copy_from(&jacobian_i);
+        let jacobian_i = image_gradients.row(i)*const_jacobians.fixed_slice::<2,RESIDUAL_DIM>(i*2,0);
+        target.fixed_slice_mut::<1,RESIDUAL_DIM>(i,0).copy_from(&jacobian_i);
 
     }
 
@@ -340,7 +344,7 @@ fn weight_residuals(residual_target: &mut DVector<Float>, weights_vec: &DVector<
 }
 
 //TODO: optimize
-fn weight_jacobian(jacobian: &mut Matrix<Float,Dynamic,U6,VecStorage<Float,Dynamic,U6>>, weights_vec: &DVector<Float>) -> () {
+fn weight_jacobian(jacobian: &mut Matrix<Float,Dynamic,ResidualDim,VecStorage<Float,Dynamic,ResidualDim>>, weights_vec: &DVector<Float>) -> () {
     let size = weights_vec.len();
     for i in 0..size{
         let weighted_row = jacobian.row(i)*weights_vec[i];
@@ -353,14 +357,14 @@ fn weight_jacobian(jacobian: &mut Matrix<Float,Dynamic,U6,VecStorage<Float,Dynam
 fn gauss_newton_step_with_loss(
     residuals: &DVector<Float>, 
     residuals_unweighted: &DVector<Float>, 
-    jacobian: &Matrix<Float,Dynamic,U6,VecStorage<Float,Dynamic,U6>>,
-    identity: &SMatrix<Float, 6,6>,
+    jacobian: &Matrix<Float,Dynamic,ResidualDim,VecStorage<Float,Dynamic,ResidualDim>>,
+    identity: &Identity,
      mu: Option<Float>, 
      tau: Float, 
      current_cost: Float, 
      loss_function: &Box<dyn LossFunction>,
-      rescaled_jacobian_target: &mut Matrix<Float,Dynamic,U6,VecStorage<Float,Dynamic,U6>>, 
-      rescaled_residuals_target: &mut DVector<Float>) -> (Vector6<Float>,Vector6<Float>,Float,Float) {
+      rescaled_jacobian_target: &mut Matrix<Float,Dynamic,ResidualDim,VecStorage<Float,Dynamic,ResidualDim>>, 
+      rescaled_residuals_target: &mut DVector<Float>) -> (SVector<Float,RESIDUAL_DIM>,SVector<Float,RESIDUAL_DIM>,Float,Float) {
 
     let selected_root = loss_function.select_root(current_cost);
     let first_deriv_at_cost = loss_function.first_derivative_at_current(current_cost);
@@ -378,7 +382,7 @@ fn gauss_newton_step_with_loss(
                         rescaled_jacobian_target.row_mut(i).copy_from(&(first_derivative_sqrt*(jacobian.row(i) - (jacobian_factor*residuals[i]*res_j))));
                         rescaled_residuals_target[i] = residual_scale*residuals[i];
                     }
-                    (rescaled_jacobian_target.transpose()*rescaled_jacobian_target as &Matrix<Float,Dynamic,U6,VecStorage<Float,Dynamic,U6>>,rescaled_jacobian_target.transpose()*rescaled_residuals_target as &DVector<Float>)
+                    (rescaled_jacobian_target.transpose()*rescaled_jacobian_target as &Matrix<Float,Dynamic,ResidualDim,VecStorage<Float,Dynamic,ResidualDim>>,rescaled_jacobian_target.transpose()*rescaled_residuals_target as &DVector<Float>)
                 },
                 _ => (jacobian.transpose()*(first_deriv_at_cost*identity + 2.0*second_deriv_at_cost*residuals_unweighted*residuals_unweighted.transpose())*jacobian,first_deriv_at_cost*jacobian.transpose()*residuals) 
             }   

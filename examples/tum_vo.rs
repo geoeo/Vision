@@ -28,7 +28,7 @@ fn main() {
     let loading_parameters = ImageLoadingParameters {
         starting_index: 0,
         step :1,
-        count :300,
+        count :10,
         negate_depth_values :false,
         invert_focal_lengths :false,
         invert_y :true,
