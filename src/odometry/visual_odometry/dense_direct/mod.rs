@@ -1,6 +1,6 @@
 extern crate nalgebra as na;
 
-use na::{U2,U4,U6,RowVector2,Vector4,SVector,DVector,Matrix4,Matrix,SMatrix,DMatrix,Dynamic,VecStorage};
+use na::{U2,U4,U6,U9,RowVector2,Vector4,SVector,DVector,Matrix4,Matrix,SMatrix,DMatrix,Dynamic,VecStorage};
 use std::boxed::Box;
 
 use crate::pyramid::gd::{GDPyramid,gd_octave::GDOctave};
@@ -139,7 +139,7 @@ fn estimate(source_octave: &GDOctave, source_depth_image_original: &Image, targe
             println!("{},{}",cost,new_cost);
         }
         if gain_ratio >= 0.0  || !runtime_parameters.lm {
-            est_lie = lie::ln(&new_est_transform);
+            est_lie.fixed_rows_mut::<6>(0).copy_from(&lie::ln(&new_est_transform));
             est_transform = new_est_transform.clone();
             cost = new_cost;
             avg_cost = cost/new_image_gradient_points.len() as Float;
@@ -232,7 +232,7 @@ fn precompute_jacobians(backprojected_points: &Matrix<Float,U4,Dynamic,VecStorag
             let point = backprojected_points.fixed_slice::<3,1>(0,i);
             let camera_jacobian = pinhole_camera.get_jacobian_with_respect_to_position(&point);
             let lie_jacobian = lie::left_jacobian_around_identity(&point);
-            precomputed_jacobians.fixed_slice_mut::<2,RESIDUAL_DIM>(i*2,0).copy_from(&(camera_jacobian*lie_jacobian));
+            precomputed_jacobians.fixed_slice_mut::<2,6>(i*2,0).copy_from(&(camera_jacobian*lie_jacobian));
         }
 
         
