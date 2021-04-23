@@ -37,6 +37,8 @@ impl DataFrame {
             let mut imu = ImuDataFrame::empty_from_other(&loaded_imu_data);
             let mut temp_accel_data = Vec::<Vector3<Float>>::new();
             let mut temp_accel_ts = Vec::<Float>::new();
+            let mut accel_hit = false;
+            let mut gyro_hit = false;
 
             while loaded_imu_data.acceleration_ts[accel_imu_idx] <= target_ts {
                 
@@ -45,8 +47,12 @@ impl DataFrame {
                 temp_accel_ts.push(loaded_imu_data.acceleration_ts[accel_imu_idx]);
 
                 accel_imu_idx += 1;
+                accel_hit = true;
             }
-            accel_imu_idx -= 1;
+            if accel_hit {
+                accel_imu_idx -= 1;
+            }
+
 
             //TODO: use spline interpolation
             while loaded_imu_data.gyro_ts[gyro_imu_idx] <= target_ts {
@@ -59,13 +65,21 @@ impl DataFrame {
 
             
                 gyro_imu_idx += 1;
+                gyro_hit = true
             }
 
-            gyro_imu_idx -= 1;
+            if gyro_hit {
+                gyro_imu_idx -= 1;
+            }
+
 
 
             assert_eq!(imu.acceleration_ts.len(),imu.gyro_ts.len());
             assert_eq!(imu.acceleration_data.len(),imu.gyro_data.len());
+
+            if imu.acceleration_ts.len() == 0 {
+                println!("warning no data!");
+            }
 
 
             imu_sequences.push(imu);

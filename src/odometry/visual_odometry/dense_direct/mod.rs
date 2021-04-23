@@ -118,7 +118,7 @@ fn estimate(source_octave: &GDOctave, source_depth_image_original: &Image, targe
 
         new_image_gradient_points.clear();
         compute_residuals(&target_image.buffer, &source_image.buffer, &backprojected_points,&backprojected_points_flags,&new_est_transform, &intensity_camera , &mut new_residuals,&mut new_image_gradient_points);
-        new_residuals_unweighted = new_residuals.clone();
+        new_residuals_unweighted.copy_from(&new_residuals);
         
         
         if runtime_parameters.weighting {
@@ -145,8 +145,8 @@ fn estimate(source_octave: &GDOctave, source_depth_image_original: &Image, targe
             delta_thresh = runtime_parameters.delta_eps*(est_lie.norm() + runtime_parameters.delta_eps);
 
             image_gradient_points = new_image_gradient_points.clone();
-            residuals = new_residuals.clone();
-            residuals_unweighted = new_residuals_unweighted.clone();
+            residuals.copy_from(&new_residuals);
+            residuals_unweighted.copy_from(&new_residuals_unweighted);
 
             compute_image_gradients(&x_gradient_image.buffer,&y_gradient_image.buffer,&image_gradient_points,&mut image_gradients);
             compute_full_jacobian(&image_gradients,&constant_jacobians,&mut full_jacobian);

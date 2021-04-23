@@ -14,16 +14,16 @@ use vision::pyramid::gd::{
 };
 use vision::visualize::plot;
 use vision::{float, Float};
-use vision::{numerics, numerics::loss};
+use vision::numerics;
 
 fn main() {
-    let dataset_name = "x";
+    let dataset_name = "y";
 
     let root_path = format!("C:/Users/Marc/Workspace/Datasets/D455/{}", dataset_name);
     let out_folder = "C:/Users/Marc/Workspace/Rust/Vision/output";
 
     let image_loading_parameters = ImageLoadingParameters {
-        starting_index: 0,
+        starting_index: 5,
         step: 1,
         count: 300,
         negate_depth_values: false,

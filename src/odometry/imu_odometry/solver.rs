@@ -50,8 +50,6 @@ fn estimate(imu_data_measurement: &ImuDataFrame, preintegrated_measurement: &Imu
     let mut residuals = imu_odometry::generate_residual(&estimate, preintegrated_measurement);
     let mut residuals_unweighted = residuals.clone();
 
-    // println!("{}", imu_covariance);
-
     let weights = match imu_covariance.cholesky() {
         Some(v) => v.inverse(),
         None => {
@@ -63,8 +61,6 @@ fn estimate(imu_data_measurement: &ImuDataFrame, preintegrated_measurement: &Imu
     let mut jacobian = imu_odometry::generate_jacobian(&est_lie.fixed_rows::<U3>(3), delta_t);
     let mut rescaled_jacobian_target = ImuJacobian::zeros(); 
     let mut rescaled_residual_target = ImuResidual::zeros();
-
-    // println!("{}", jacobian);
 
 
     let mut max_norm_delta = float::MAX;
@@ -125,12 +121,11 @@ fn estimate(imu_data_measurement: &ImuDataFrame, preintegrated_measurement: &Imu
             delta_norm = delta.norm();
             delta_thresh = runtime_parameters.delta_eps*(estimate.norm() + runtime_parameters.delta_eps);
 
-            residuals = new_residuals.clone();
-            residuals_unweighted = new_residuals_unweighted.clone();
+            residuals.copy_from(&new_residuals);
+            residuals_unweighted.copy_from(&new_residuals_unweighted);
 
             jacobian = imu_odometry::generate_jacobian(&est_lie.fixed_rows::<U3>(3), delta_t);
             weight_jacobian(&mut jacobian, &weight_l_upper);
-
             let v: Float = 1.0/3.0;
             mu = Some(mu.unwrap() * v.max(1.0-(2.0*gain_ratio-1.0).powi(3)));
             nu = 2.0;
