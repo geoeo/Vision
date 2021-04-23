@@ -8,10 +8,10 @@ pub fn se3(t: &Vector3<Float>, quat: &Quaternion<Float>) -> Matrix4<Float> {
     let unit_quat = UnitQuaternion::<Float>::from_quaternion(*quat); 
     let rot = unit_quat.to_rotation_matrix();
 
-    let mut rot_slice = se3.fixed_slice_mut::<U3,U3>(0,0);
+    let mut rot_slice = se3.fixed_slice_mut::<3,3>(0,0);
     rot_slice.copy_from(&(rot.matrix()));
 
-    let mut trans_slice = se3.fixed_slice_mut::<U3,U1>(0,3);
+    let mut trans_slice = se3.fixed_slice_mut::<3,1>(0,3);
     trans_slice.copy_from(&t);
 
     se3
@@ -20,13 +20,13 @@ pub fn se3(t: &Vector3<Float>, quat: &Quaternion<Float>) -> Matrix4<Float> {
 pub fn invert_se3(pose: &Matrix4<Float>) -> Matrix4<Float> {
     let mut se3 = Matrix4::<Float>::identity();
 
-    let mut rot_slice = se3.fixed_slice_mut::<U3,U3>(0,0);
-    let pose_rot_slice = pose.fixed_slice::<U3,U3>(0,0);
+    let mut rot_slice = se3.fixed_slice_mut::<3,3>(0,0);
+    let pose_rot_slice = pose.fixed_slice::<3,3>(0,0);
     let pose_rot_transposed = pose_rot_slice.transpose();
     rot_slice.copy_from(&pose_rot_transposed);
 
-    let mut trans_slice = se3.fixed_slice_mut::<U3,U1>(0,3);
-    let pose_trans_slice = pose.fixed_slice::<U3,U1>(0,3);
+    let mut trans_slice = se3.fixed_slice_mut::<3,1>(0,3);
+    let pose_trans_slice = pose.fixed_slice::<3,1>(0,3);
     let pose_trans_inverted = -pose_rot_transposed*pose_trans_slice;
     trans_slice.copy_from(&pose_trans_inverted);
 
@@ -50,6 +50,6 @@ pub fn error(q_1: &Matrix4<Float>,q_2: &Matrix4<Float>,p_1: &Matrix4<Float>,p_2:
 }
 
 pub fn rsme(data: &Vec<Matrix4<Float>>) -> Float {
-    let norm_sum = data.iter().fold(0.0, |acc, x| acc + x.fixed_slice::<U3,U1>(0,3).norm_squared());
+    let norm_sum = data.iter().fold(0.0, |acc, x| acc + x.fixed_slice::<3,1>(0,3).norm_squared());
     (norm_sum/(data.len() as Float)).sqrt()
 }

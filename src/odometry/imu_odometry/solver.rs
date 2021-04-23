@@ -1,6 +1,6 @@
 extern crate nalgebra as na;
 
-use na::{U1,U2,U3,U4,U6,U9,RowVector2,Vector3,Vector4,Vector6,DVector,Matrix4,Matrix,Matrix6,MatrixN,DMatrix,Dynamic,VecStorage};
+use na::{Vector3,Vector6,Matrix4,SMatrix};
 use std::boxed::Box;
 
 use crate::odometry::runtime_parameters::RuntimeParameters;
@@ -40,7 +40,7 @@ pub fn run(iteration: usize, imu_data_measurement: &ImuDataFrame,bias_gyroscope:
 
 //TODO: buffer all debug strings and print at the end. Also the numeric matricies could be buffered per octave level
 fn estimate(imu_data_measurement: &ImuDataFrame, preintegrated_measurement: &ImuDelta,imu_covariance: &ImuCovariance ,initial_guess_lie: &Vector6<Float>,initial_guess_mat: &Matrix4<Float>,gravity_body: &Vector3<Float>, runtime_parameters: &RuntimeParameters) -> (Vector6<Float>,Matrix4<Float>, usize) {
-    let identity_9 = MatrixN::<Float,U9>::identity();
+    let identity_9 = SMatrix::<Float,9,9>::identity();
 
     let mut est_transform = initial_guess_mat.clone();
     let mut est_lie = initial_guess_lie.clone();
@@ -58,7 +58,7 @@ fn estimate(imu_data_measurement: &ImuDataFrame, preintegrated_measurement: &Imu
         }
     };
     let weight_l_upper = weights.cholesky().expect("Cholesky Decomp Failed!").l().transpose();
-    let mut jacobian = imu_odometry::generate_jacobian(&est_lie.fixed_rows::<U3>(3), delta_t);
+    let mut jacobian = imu_odometry::generate_jacobian(&est_lie.fixed_rows::<3>(3), delta_t);
     let mut rescaled_jacobian_target = ImuJacobian::zeros(); 
     let mut rescaled_residual_target = ImuResidual::zeros();
 
@@ -124,7 +124,7 @@ fn estimate(imu_data_measurement: &ImuDataFrame, preintegrated_measurement: &Imu
             residuals.copy_from(&new_residuals);
             residuals_unweighted.copy_from(&new_residuals_unweighted);
 
-            jacobian = imu_odometry::generate_jacobian(&est_lie.fixed_rows::<U3>(3), delta_t);
+            jacobian = imu_odometry::generate_jacobian(&est_lie.fixed_rows::<3>(3), delta_t);
             weight_jacobian(&mut jacobian, &weight_l_upper);
             let v: Float = 1.0/3.0;
             mu = Some(mu.unwrap() * v.max(1.0-(2.0*gain_ratio-1.0).powi(3)));
@@ -143,11 +143,11 @@ fn estimate(imu_data_measurement: &ImuDataFrame, preintegrated_measurement: &Imu
 }
 
 
-fn weight_residuals(residual: &mut ImuResidual, weights: &MatrixN<Float,U9>) -> () {
+fn weight_residuals(residual: &mut ImuResidual, weights: &SMatrix<Float,9,9>) -> () {
     weights.mul_to(&residual.clone(),residual);
 }
 
-fn weight_jacobian(jacobian: &mut ImuJacobian, weights: &MatrixN<Float,U9>) -> () {
+fn weight_jacobian(jacobian: &mut ImuJacobian, weights: &SMatrix<Float,9,9>) -> () {
     weights.mul_to(&jacobian.clone(),jacobian);
 }
 
@@ -157,7 +157,7 @@ fn gauss_newton_step_with_loss(
     residuals: &ImuResidual, 
     residuals_unweighted: &ImuResidual, 
     jacobian: &ImuJacobian,
-    identity: &MatrixN<Float,U9>,
+    identity: &SMatrix<Float,9,9>,
      mu: Option<Float>, 
      tau: Float, 
      current_cost: Float, 

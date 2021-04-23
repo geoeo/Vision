@@ -1,6 +1,6 @@
 extern crate nalgebra as na;
 
-use na::{MatrixN,Vector2,base::dimension::{U16,U4,U2,U1}, Matrix2x4};
+use na::{core::SMatrix,Vector2, Matrix2x4};
 use crate::{Float,float};
 use crate::numerics::{rotation_matrix_2d_from_orientation,gradient_and_orientation,gauss_2d};
 use crate::pyramid::sift::sift_octave::SiftOctave;
@@ -33,8 +33,8 @@ impl LocalImageDescriptor {
             let column_submatrix = column_histogram * SUBMATRIX_LENGTH;
             let row_submatrix = row_histogram*SUBMATRIX_LENGTH;
 
-            let weighted_sample_gradient_slice = weighted_sample_gradients.fixed_slice::<U4,U4>(row_submatrix,column_submatrix);
-            let sample_orientations_slice = sample_orientation.fixed_slice::<U4,U4>(row_submatrix,column_submatrix);
+            let weighted_sample_gradient_slice = weighted_sample_gradients.fixed_slice::<4,4>(row_submatrix,column_submatrix);
+            let sample_orientations_slice = sample_orientation.fixed_slice::<4,4>(row_submatrix,column_submatrix);
             for r in 0..weighted_sample_gradient_slice.nrows() {
                 for c in 0..weighted_sample_gradient_slice.ncols() {
                     let weighted_gradient_orientation = (weighted_sample_gradient_slice[(r,c)],sample_orientations_slice[(r,c)]);
@@ -80,7 +80,7 @@ pub fn is_rotated_keypoint_within_image(octave: &SiftOctave, keypoint: &KeyPoint
     let mut valid = true;
 
     for i in 0..4 {
-        let coordiantes = rotated_corners.fixed_slice::<U2,U1>(0,i);
+        let coordiantes = rotated_corners.fixed_slice::<2,1>(0,i);
         //TODO: refactor this into a method
         let x_norm = coordiantes[(0,0)]/(keypoint_sigma);
         let y_norm = coordiantes[(1,0)]/(keypoint_sigma);
@@ -95,7 +95,7 @@ pub fn is_rotated_keypoint_within_image(octave: &SiftOctave, keypoint: &KeyPoint
 }
 
 //TODO: Fix this
-fn generate_normalized_weight_orientation_arrays(octave: &SiftOctave, keypoint: &KeyPoint) -> (MatrixN<Float, U16>,MatrixN<Float, U16>) {
+fn generate_normalized_weight_orientation_arrays(octave: &SiftOctave, keypoint: &KeyPoint) -> (SMatrix<Float, 16,16>,SMatrix<Float, 16,16>) {
 
     let total_desciptor_side_length = 8 as isize;
     //let submatrix_length = (total_desciptor_side_length/2) as isize;
@@ -109,8 +109,8 @@ fn generate_normalized_weight_orientation_arrays(octave: &SiftOctave, keypoint: 
     let y_center = keypoint.y as Float;
     let rot_mat = rotation_matrix_2d_from_orientation(keypoint.orientation);
 
-    let mut sample_weights = MatrixN::<Float,U16>::zeros();
-    let mut sample_orientations = MatrixN::<Float,U16>::zeros();
+    let mut sample_weights = SMatrix::<Float,16,16>::zeros();
+    let mut sample_orientations = SMatrix::<Float,16,16>::zeros();
 
     for x_off in -total_desciptor_side_length..total_desciptor_side_length {
         for y_off in -total_desciptor_side_length..total_desciptor_side_length {

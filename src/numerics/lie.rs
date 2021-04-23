@@ -45,10 +45,10 @@ pub fn exp<T>(u: &Vector<Float,U3,T>, w: &Vector<Float,U3,T>) -> Matrix4<Float> 
     let t = V*u;
 
     let mut res = Matrix4::<Float>::identity();
-    let mut R_slice = res.fixed_slice_mut::<U3,U3>(0,0);
+    let mut R_slice = res.fixed_slice_mut::<3,3>(0,0);
     R_slice.copy_from(&R);
 
-    let mut t_slice = res.fixed_slice_mut::<U3,U1>(0,3);
+    let mut t_slice = res.fixed_slice_mut::<3,1>(0,3);
     t_slice.copy_from(&t);
 
     res
@@ -79,7 +79,7 @@ pub fn ln_SO3<T>(R: &Matrix<Float,U3,U3,T>) -> Matrix3<Float> where T: Storage<F
 
 #[allow(non_snake_case)]
 pub fn ln(se3: &Matrix4<Float>) -> Vector6<Float> {
-    let w_x = ln_SO3(&se3.fixed_slice::<U3,U3>(0,0));
+    let w_x = ln_SO3(&se3.fixed_slice::<3,3>(0,0));
     let w_x_sqr = w_x*w_x;
     let w = vector_from_skew_symmetric(&w_x);
     let omega_sqr = (w.transpose()*w)[0];
@@ -90,12 +90,12 @@ pub fn ln(se3: &Matrix4<Float>) -> Vector6<Float> {
 
     let I = Matrix3::<Float>::identity();
     let V_inv = I-0.5*w_x +factor*w_x_sqr;
-    let u = V_inv*se3.fixed_slice::<U3,U1>(0,3);
+    let u = V_inv*se3.fixed_slice::<3,1>(0,3);
 
     let mut res = Vector6::<Float>::zeros();
-    let mut u_slice = res.fixed_slice_mut::<U3,U1>(0,0);
+    let mut u_slice = res.fixed_slice_mut::<3,1>(0,0);
     u_slice.copy_from(&u);
-    let mut w_slice = res.fixed_slice_mut::<U3,U1>(3,0);
+    let mut w_slice = res.fixed_slice_mut::<3,1>(3,0);
     w_slice.copy_from(&w);
 
     res

@@ -1,6 +1,6 @@
 extern crate nalgebra as na;
 
-use na::{U1,U2,U3,U4,U6,RowVector2,Vector4,Vector6,DVector,Matrix4,Matrix,Matrix6,DMatrix,Dynamic,VecStorage};
+use na::{U2,U4,U6,RowVector2,Vector4,Vector6,DVector,Matrix4,Matrix,SMatrix,DMatrix,Dynamic,VecStorage};
 use std::boxed::Box;
 
 use crate::pyramid::gd::{GDPyramid,gd_octave::GDOctave};
@@ -58,7 +58,7 @@ fn estimate(source_octave: &GDOctave, source_depth_image_original: &Image, targe
     let mut percentage_of_valid_pixels = 100.0;
 
     let mut weights_vec = DVector::<Float>::from_element(number_of_pixels,1.0);
-    let identity_6 = Matrix6::<Float>::identity();
+    let identity = SMatrix::<Float,6,6>::identity();
     let mut residuals = DVector::<Float>::from_element(number_of_pixels,float::MAX);
     let mut residuals_unweighted = DVector::<Float>::from_element(number_of_pixels,float::MAX);
     let mut new_residuals_unweighted = DVector::<Float>::from_element(number_of_pixels,float::MAX);
@@ -76,7 +76,7 @@ fn estimate(source_octave: &GDOctave, source_depth_image_original: &Image, targe
     let mut est_lie = initial_guess_lie.clone();
 
     compute_residuals(&target_image.buffer, &source_image.buffer, &backprojected_points,&backprojected_points_flags,&est_transform, &intensity_camera, &mut residuals,&mut image_gradient_points);
-    residuals_unweighted = residuals.clone();
+    residuals_unweighted.copy_from(&residuals);
     weight_residuals(&mut residuals, &weights_vec);
     let mut cost = compute_cost(&residuals,&runtime_parameters.loss_function);
     let mut avg_cost = cost/image_gradient_points.len() as Float;
@@ -110,11 +110,11 @@ fn estimate(source_octave: &GDOctave, source_depth_image_original: &Image, targe
         }
 
         let (delta,g,gain_ratio_denom, mu_val) 
-            = gauss_newton_step_with_loss(&residuals,&residuals_unweighted, &full_jacobian, &identity_6, mu, tau, cost, & runtime_parameters.loss_function, &mut rescaled_jacobian_target,&mut rescaled_residual_target);
+            = gauss_newton_step_with_loss(&residuals,&residuals_unweighted, &full_jacobian, &identity, mu, tau, cost, & runtime_parameters.loss_function, &mut rescaled_jacobian_target,&mut rescaled_residual_target);
         mu = Some(mu_val);
 
         let pertb = step*delta;
-        let new_est_transform = est_transform*lie::exp(&pertb.fixed_slice::<U3, U1>(0, 0),&pertb.fixed_slice::<U3, U1>(3, 0));
+        let new_est_transform = est_transform*lie::exp(&pertb.fixed_slice::<3, 1>(0, 0),&pertb.fixed_slice::<3, 1>(3, 0));
 
         new_image_gradient_points.clear();
         compute_residuals(&target_image.buffer, &source_image.buffer, &backprojected_points,&backprojected_points_flags,&new_est_transform, &intensity_camera , &mut new_residuals,&mut new_image_gradient_points);
@@ -225,10 +225,10 @@ fn precompute_jacobians(backprojected_points: &Matrix<Float,U4,Dynamic,VecStorag
 
     for i in 0..number_of_points {
         if backprojected_points_flags[i] {
-            let point = backprojected_points.fixed_slice::<U3,U1>(0,i);
+            let point = backprojected_points.fixed_slice::<3,1>(0,i);
             let camera_jacobian = pinhole_camera.get_jacobian_with_respect_to_position(&point);
             let lie_jacobian = lie::left_jacobian_around_identity(&point);
-            precomputed_jacobians.fixed_slice_mut::<U2,U6>(i*2,0).copy_from(&(camera_jacobian*lie_jacobian));
+            precomputed_jacobians.fixed_slice_mut::<2,6>(i*2,0).copy_from(&(camera_jacobian*lie_jacobian));
         }
 
         
@@ -246,7 +246,7 @@ fn compute_residuals(target_image_buffer: &DMatrix<Float>,source_image_buffer: &
     let (rows,cols) = source_image_buffer.shape();
     for i in 0..number_of_points {
         let source_point = linear_to_image_index(i,image_width);
-        let target_point = pinhole_camera.project(&transformed_points.fixed_slice::<U3,U1>(0,i)); //TODO: inverse depth
+        let target_point = pinhole_camera.project(&transformed_points.fixed_slice::<3,1>(0,i)); //TODO: inverse depth
         let target_point_y = target_point.y.trunc() as usize;
         let target_point_x = target_point.x.trunc() as usize;
         let target_linear_idx = image_to_linear_index(target_point_y, image_width, target_point_x);
@@ -276,8 +276,8 @@ fn compute_full_jacobian(image_gradients: &Matrix<Float,Dynamic,U2, VecStorage<F
     let number_of_elements = image_gradients.nrows();
 
     for i in 0..number_of_elements {
-        let jacobian_i = image_gradients.row(i)*const_jacobians.fixed_slice::<U2,U6>(i*2,0);
-        target.fixed_slice_mut::<U1,U6>(i,0).copy_from(&jacobian_i);
+        let jacobian_i = image_gradients.row(i)*const_jacobians.fixed_slice::<2,6>(i*2,0);
+        target.fixed_slice_mut::<1,6>(i,0).copy_from(&jacobian_i);
 
     }
 
@@ -348,29 +348,13 @@ fn weight_jacobian(jacobian: &mut Matrix<Float,Dynamic,U6,VecStorage<Float,Dynam
     }
 }
 
-
-// #[allow(non_snake_case)]
-// fn gauss_newton_step(residuals_weighted: &DVector<Float>, jacobian: &Matrix<Float,Dynamic,U6,VecStorage<Float,Dynamic,U6>>,identity_6: &Matrix6<Float>, mu: Option<Float>, tau: Float) -> (Vector6<Float>,Vector6<Float>,Float,Float) {
-//     let A = jacobian.transpose()*jacobian;
-//     let mu_val = match mu {
-//         None => tau*A.diagonal().max(),
-//         Some(v) => v
-//     };
-
-//     let g = jacobian.transpose()*residuals_weighted;
-//     let decomp = (A+ mu_val*identity_6).lu();
-//     let h = decomp.solve(&(-g)).expect("Linear resolution failed.");
-//     let gain_ratio_denom = h.transpose()*(mu_val*h-g);
-//     (h,g,gain_ratio_denom[0], mu_val)
-// }
-
 //TODO: potential for optimization. Maybe use less memory/matrices. 
 #[allow(non_snake_case)]
 fn gauss_newton_step_with_loss(
     residuals: &DVector<Float>, 
     residuals_unweighted: &DVector<Float>, 
     jacobian: &Matrix<Float,Dynamic,U6,VecStorage<Float,Dynamic,U6>>,
-    identity: &Matrix6<Float>,
+    identity: &SMatrix<Float, 6,6>,
      mu: Option<Float>, 
      tau: Float, 
      current_cost: Float, 

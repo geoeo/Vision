@@ -70,7 +70,7 @@ pub fn load_depth_image_from_csv(file_path: &Path, negate_values: bool, invert_y
                 if depth != 0.0 {
                     let backprojected_point = camera.backproject(&Point::<Float>::new(c as Float + 0.5,r as Float + 0.5), depth);
                     let transformed_point = depth_camera_transfrom*Vector4::<Float>::new(backprojected_point[0],backprojected_point[1],backprojected_point[2],1.0);
-                    let new_image_coords = camera.project(&transformed_point.fixed_rows::<U3>(0));
+                    let new_image_coords = camera.project(&transformed_point.fixed_rows::<3>(0));
                     let x_usize = new_image_coords.x.trunc() as usize;
                     let y_usize = new_image_coords.y.trunc() as usize;
 

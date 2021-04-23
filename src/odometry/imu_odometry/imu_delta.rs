@@ -27,10 +27,10 @@ impl ImuDelta {
 
     pub fn add_pertb(&self, new_pertb: &ImuPertrubation) -> ImuDelta {
         ImuDelta {
-            delta_position: self.delta_position + new_pertb.fixed_rows::<U3>(0),
-            delta_velocity: self.delta_velocity + new_pertb.fixed_rows::<U3>(6),
+            delta_position: self.delta_position + new_pertb.fixed_rows::<3>(0),
+            delta_velocity: self.delta_velocity + new_pertb.fixed_rows::<3>(6),
             delta_rotation_i_k: self.delta_rotation(),
-            delta_rotation_k: exp_r(&new_pertb.fixed_rows::<U3>(3))
+            delta_rotation_k: exp_r(&new_pertb.fixed_rows::<3>(3))
         }
     }
 
@@ -40,17 +40,17 @@ impl ImuDelta {
 
     pub fn get_pose(&self) -> Matrix4<Float> {
         let mut pose = Matrix4::<Float>::identity();
-        pose.fixed_slice_mut::<U3,U3>(0,0).copy_from(&self.delta_rotation());
-        pose.fixed_slice_mut::<U3,U1>(0,3).copy_from(&self.delta_position);
+        pose.fixed_slice_mut::<3,3>(0,0).copy_from(&self.delta_rotation());
+        pose.fixed_slice_mut::<3,1>(0,3).copy_from(&self.delta_position);
         pose
     }
 
     pub fn norm(&self) -> Float {
         let lie_r = vector_from_skew_symmetric(&ln_SO3(&self.delta_rotation()));
         let mut est_vector = ImuPertrubation::zeros();
-        est_vector.fixed_rows_mut::<U3>(0).copy_from(&self.delta_position);
-        est_vector.fixed_rows_mut::<U3>(3).copy_from(&lie_r);
-        est_vector.fixed_rows_mut::<U3>(6).copy_from(&self.delta_velocity);
+        est_vector.fixed_rows_mut::<3>(0).copy_from(&self.delta_position);
+        est_vector.fixed_rows_mut::<3>(3).copy_from(&lie_r);
+        est_vector.fixed_rows_mut::<3>(6).copy_from(&self.delta_velocity);
         est_vector.norm()
     }
 }
