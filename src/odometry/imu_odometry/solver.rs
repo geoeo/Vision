@@ -62,6 +62,9 @@ fn estimate(imu_data_measurement: &ImuDataFrame, preintegrated_measurement: &Imu
     let mut rescaled_jacobian_target = ImuJacobian::zeros(); 
     let mut rescaled_residual_target = ImuResidual::zeros();
 
+    weight_residuals(&mut residuals, &weight_l_upper);
+    weight_jacobian(&mut jacobian, &weight_l_upper);
+
 
     let mut max_norm_delta = float::MAX;
     let mut delta_thresh = float::MIN;
@@ -81,8 +84,7 @@ fn estimate(imu_data_measurement: &ImuDataFrame, preintegrated_measurement: &Imu
     
 
 
-    weight_residuals(&mut residuals, &weight_l_upper);
-    weight_jacobian(&mut jacobian, &weight_l_upper);
+
     
     let mut cost = compute_cost(&residuals,&runtime_parameters.loss_function);
     let mut iteration_count = 0;

@@ -1,6 +1,6 @@
 extern crate nalgebra as na;
 
-use na::{U2,U4,U6,U9,RowVector2,Vector4,SVector,DVector,Matrix4,Matrix,SMatrix,DMatrix,Dynamic,VecStorage};
+use na::{U2,U4,U6,U9,Dim,DimName,RowVector2,Vector4,SVector,DVector,Matrix4,Matrix,SMatrix,DMatrix,Dynamic,VecStorage};
 
 use crate::pyramid::gd::{GDPyramid,gd_octave::GDOctave};
 use crate::sensors::camera::{Camera,pinhole::Pinhole};
@@ -11,9 +11,9 @@ use crate::features::geometry::point::Point;
 use crate::{Float,float,reconstruct_original_coordiantes};
 
 //TODO: make this an argument to solver
-pub type ResidualDim = U6;
-pub const RESIDUAL_DIM: usize = 6;
-pub type Identity = SMatrix::<Float,RESIDUAL_DIM,RESIDUAL_DIM>;
+//pub type ResidualDim = U6;
+//pub const RESIDUAL_DIM: usize = 6;
+//pub type Identity = SMatrix::<Float,RESIDUAL_DIM,RESIDUAL_DIM>;
 
 pub mod solver;
 
@@ -25,6 +25,7 @@ pub fn compute_t_dist_weights(residuals: &DVector<Float>, weights_vec: &mut DVec
         let res = residuals[i];
         weights_vec[i] = compute_t_dist_weight(res,variance,t_dist_nu).sqrt();
     }
+
     
 }
 
@@ -108,9 +109,9 @@ pub fn backproject_points(source_image_buffer: &DMatrix<Float>,depth_image_buffe
     (backproject_points,backproject_points_flags)
 }
 
-pub fn precompute_jacobians(backprojected_points: &Matrix<Float,U4,Dynamic,VecStorage<Float,U4,Dynamic>>,backprojected_points_flags: &Vec<bool>, pinhole_camera: &Pinhole) -> Matrix<Float,Dynamic,ResidualDim, VecStorage<Float,Dynamic,ResidualDim>> {
+pub fn precompute_jacobians<T: Dim + DimName>(backprojected_points: &Matrix<Float,U4,Dynamic,VecStorage<Float,U4,Dynamic>>,backprojected_points_flags: &Vec<bool>, pinhole_camera: &Pinhole) -> Matrix<Float,Dynamic,T, VecStorage<Float,Dynamic,T>> {
     let number_of_points = backprojected_points.ncols();
-    let mut precomputed_jacobians = Matrix::<Float,Dynamic,ResidualDim, VecStorage<Float,Dynamic,ResidualDim>>::zeros(2*number_of_points);
+    let mut precomputed_jacobians = Matrix::<Float,Dynamic,T, VecStorage<Float,Dynamic,T>>::zeros(2*number_of_points);
 
     for i in 0..number_of_points {
         if backprojected_points_flags[i] {
@@ -127,12 +128,12 @@ pub fn precompute_jacobians(backprojected_points: &Matrix<Float,U4,Dynamic,VecSt
     precomputed_jacobians
 }
 
-pub fn compute_full_jacobian(image_gradients: &Matrix<Float,Dynamic,U2, VecStorage<Float,Dynamic,U2>>, const_jacobians: &Matrix<Float,Dynamic,ResidualDim, VecStorage<Float,Dynamic,ResidualDim>>, target: &mut Matrix<Float,Dynamic,ResidualDim, VecStorage<Float,Dynamic,ResidualDim>>) -> () {
+pub fn compute_full_jacobian<T: Dim + DimName, const D: usize>(image_gradients: &Matrix<Float,Dynamic,U2, VecStorage<Float,Dynamic,U2>>, const_jacobians: &Matrix<Float,Dynamic,T, VecStorage<Float,Dynamic,T>>, target: &mut Matrix<Float,Dynamic,T, VecStorage<Float,Dynamic,T>>) -> () {
     let number_of_elements = image_gradients.nrows();
 
     for i in 0..number_of_elements {
-        let jacobian_i = image_gradients.row(i)*const_jacobians.fixed_slice::<2,RESIDUAL_DIM>(i*2,0);
-        target.fixed_slice_mut::<1,RESIDUAL_DIM>(i,0).copy_from(&jacobian_i);
+        let jacobian_i = image_gradients.row(i)*const_jacobians.fixed_slice::<2, D>(i*2,0);
+        target.fixed_slice_mut::<1,D>(i,0).copy_from(&jacobian_i);
 
     }
 
