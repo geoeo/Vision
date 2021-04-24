@@ -15,8 +15,8 @@ fn main() {
     let depth_image_format = "csv";
     let color_image_format = "png";
     let intrinsics_format = "txt";
-    let depth_image_folder = "C:/Users/Marc/Workspace/Datasets/D455/simple_trans/depth/";
-    let color_image_folder = "C:/Users/Marc/Workspace/Datasets/D455/simple_trans/rgb/";
+    let depth_image_folder = "D:/Workspace/Datasets/D455/simple_trans/depth/";
+    let color_image_folder = "D:/Workspace/Datasets/D455/simple_trans/rgb/";
     //let intrinsics_folder = "";
     let image_out_folder = "output/";
 
@@ -24,7 +24,7 @@ fn main() {
     let depth_image_path = format!("{}{}.{}",depth_image_folder,depth_image_name, depth_image_format);
 
     let dataset_name = "z_2";
-    let root_path = format!("C:/Users/Marc/Workspace/Datasets/D455/{}",dataset_name);
+    let root_path = format!("D:/Workspace/Datasets/D455/{}",dataset_name);
 
     //TODO: make all parameters
     let loading_parameters = ImageLoadingParameters {

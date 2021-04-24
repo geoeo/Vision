@@ -19,7 +19,7 @@ fn main() {
 
 
 
-    let root_path = "C:/Users/Marc/Workspace/Datasets/TUM/rgbd_dataset_freiburg1_desk";
+    let root_path = "D:/Workspace/Datasets/TUM/rgbd_dataset_freiburg1_desk";
 
 
 

@@ -20,9 +20,9 @@ fn main() {
     let dataset_name = "freiburg2_desk";
     //let dataset_name = "freiburg2_rpy";
 
-    let root_path = format!("C:/Users/Marc/Workspace/Datasets/TUM/rgbd_dataset_{}",dataset_name);
+    let root_path = format!("D:/Workspace/Datasets/TUM/rgbd_dataset_{}",dataset_name);
     let dataset = tum_loader::Dataset::FR2;
-    let out_folder = "C:/Users/Marc/Workspace/Rust/Vision/output";
+    let out_folder = "D:/Workspace/Rust/Vision/output";
 
 
     let loading_parameters = ImageLoadingParameters {

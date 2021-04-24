@@ -16,7 +16,7 @@ use vision::visualize::plot;
 fn main() {
     let dataset_name = "urban_pinhole";
     //let dataset_name = "vfr_pinhole";
-    let root_path = format!("C:/Users/Marc/Workspace/Datasets/ETH/{}", dataset_name);
+    let root_path = format!("D:/Workspace/Datasets/ETH/{}", dataset_name);
     let out_folder = "output/";
 
 

@@ -11,9 +11,9 @@ fn main() {
     let depth_image_format = "depth";
     let color_image_format = "png";
     let intrinsics_format = "txt";
-    let depth_image_folder = "C:/Users/Marc/Workspace/Datasets/ETH/urban_pinhole/data/depth/";
-    let color_image_folder = "C:/Users/Marc/Workspace/Datasets/ETH/urban_pinhole/data/img/";
-    let intrinsics_folder = "C:/Users/Marc/Workspace/Datasets/ETH/urban_pinhole/info/";
+    let depth_image_folder = "D:/Workspace/Datasets/ETH/urban_pinhole/data/depth/";
+    let color_image_folder = "D:/Workspace/Datasets/ETH/urban_pinhole/data/img/";
+    let intrinsics_folder = "D:/Workspace/Datasets/ETH/urban_pinhole/info/";
     let image_out_folder = "output/";
 
     let color_image_path = format!("{}{}.{}",color_image_folder,image_name, color_image_format);

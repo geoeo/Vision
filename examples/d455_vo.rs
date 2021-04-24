@@ -16,8 +16,8 @@ fn main() {
 
     let dataset_name = "x";
 
-    let root_path = format!("C:/Users/Marc/Workspace/Datasets/D455/{}",dataset_name);
-    let out_folder = "C:/Users/Marc/Workspace/Rust/Vision/output";
+    let root_path = format!("D:/Workspace/Datasets/D455/{}",dataset_name);
+    let out_folder = "D:/Workspace/Rust/Vision/output";
 
     let loading_parameters = ImageLoadingParameters {
         starting_index: 0,
