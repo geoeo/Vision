@@ -28,7 +28,7 @@ fn main() {
     let loading_parameters = ImageLoadingParameters {
         starting_index: 0,
         step :1,
-        count :10,
+        count :150,
         negate_depth_values :false,
         invert_focal_lengths :false,
         invert_y :true,
@@ -86,7 +86,7 @@ fn main() {
     let mut se3_gt_targetory = vec!(Matrix4::<Float>::identity());
 
 
-    se3_est.extend(dense_direct::run_trajectory(&source_pyramids, &target_pyramids, &intensity_cam, &depth_cam, &vo_parameters));
+    se3_est.extend(dense_direct::solver::run_trajectory(&source_pyramids, &target_pyramids, &intensity_cam, &depth_cam, &vo_parameters));
     se3_gt_targetory.extend(tum_data.source_gt_poses.unwrap().iter().zip(tum_data.target_gt_poses.unwrap().iter()).map(|(s,t)| {
         let se3_s = numerics::pose::se3(&s.0, &s.1);
         let se3_t = numerics::pose::se3(&t.0, &t.1);

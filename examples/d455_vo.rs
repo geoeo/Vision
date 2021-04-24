@@ -74,7 +74,7 @@ fn main() {
     };
 
     let mut se3_est = vec!(Matrix4::<Float>::identity());
-    se3_est.extend(dense_direct::run_trajectory(&source_pyramids, &target_pyramids, &intensity_cam, &depth_cam, &vo_parameters));
+    se3_est.extend(dense_direct::solver::run_trajectory(&source_pyramids, &target_pyramids, &intensity_cam, &depth_cam, &vo_parameters));
 
     let est_points = numerics::pose::apply_pose_deltas_to_point(Vector4::<Float>::new(0.0,0.0,0.0,1.0), &se3_est);
 
