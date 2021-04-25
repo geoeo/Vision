@@ -18,7 +18,7 @@ use vision::{float, Float};
 use vision::numerics;
 
 fn main() {
-    let dataset_name = "simple_trans_imu";
+    let dataset_name = "x";
 
     let root_path = format!("D:/Workspace/Datasets/D455/{}", dataset_name);
     let out_folder = "D:/Workspace/Rust/Vision/output";
@@ -26,7 +26,7 @@ fn main() {
     let image_loading_parameters = ImageLoadingParameters {
         starting_index: 5,
         step: 1,
-        count: 300,
+        count: 150,
         negate_depth_values: false,
         invert_focal_lengths: false,
         invert_y: true,
@@ -42,7 +42,7 @@ fn main() {
     let camera_data = loaded_data.camera_data;
 
     let pyramid_parameters = GDRuntimeParameters{
-        sigma: 0.01,
+        sigma: 0.5,
         use_blur: true,
         blur_radius: 1.0,
         octave_count: 3,
@@ -62,15 +62,15 @@ fn main() {
         max_iterations: vec![800; 3],
         eps: vec![1e-3;3],
         step_sizes: vec![1e-8;3],
-        max_norm_eps: 1e-30,
-        delta_eps: 1e-30,
+        max_norm_eps: 1e-10,
+        delta_eps: 1e-10,
         taus: vec!(1e-6,1e-3,1e-3),
         lm: true,
         weighting: true,
         debug: false,
 
         show_octave_result: true,
-        loss_function: Box::new(numerics::loss::SoftOneLoss { eps: 1e-16 }), //TODO: check loss functions
+        loss_function: Box::new(numerics::loss::CauchyLoss { eps: 1e-16 }), //TODO: check loss functions
     };
 
     let mut se3_est = vec![Matrix4::<Float>::identity()];

@@ -1,7 +1,11 @@
 extern crate nalgebra as na;
 
-use na::{DVector, Dynamic, Matrix, Matrix4, SMatrix, SVector, VecStorage, U2, U4, U6, U9};
+use na::{
+    storage::Storage, DMatrix, DVector, Dim, DimName, Dynamic, Matrix, Matrix4, SMatrix, SVector,
+    VecStorage, U2, U4, U6, U9,
+};
 use std::boxed::Box;
+use std::ops::IndexMut;
 
 use crate::features::geometry::point::Point;
 use crate::image::Image;
@@ -122,6 +126,10 @@ fn estimate(
         Matrix::<Float, Dynamic, ResidualDim, VecStorage<Float, Dynamic, ResidualDim>>::zeros(
             number_of_pixels,
         );
+    let mut full_jacobian_scaled =
+        Matrix::<Float, Dynamic, ResidualDim, VecStorage<Float, Dynamic, ResidualDim>>::zeros(
+            number_of_pixels,
+        );
     let mut image_gradients =
         Matrix::<Float, Dynamic, U2, VecStorage<Float, Dynamic, U2>>::zeros(number_of_pixels);
     let mut image_gradient_points = Vec::<Point<usize>>::with_capacity(number_of_pixels);
@@ -214,18 +222,17 @@ fn estimate(
             tau,
             cost,
             &runtime_parameters.loss_function,
+            &mut full_jacobian_scaled,
             &mut rescaled_jacobian_target,
             &mut rescaled_residual_target,
         );
         mu = Some(mu_val);
 
         let pertb = step * delta;
-        let new_est_transform = 
-            lie::exp(
-                &pertb.fixed_slice::<3, 1>(0, 0),
-                &pertb.fixed_slice::<3, 1>(3, 0),
-            )*est_transform;
-
+        let new_est_transform = lie::exp(
+            &pertb.fixed_slice::<3, 1>(0, 0),
+            &pertb.fixed_slice::<3, 1>(3, 0),
+        ) * est_transform;
 
         new_image_gradient_points.clear();
         compute_residuals(
@@ -330,6 +337,26 @@ fn weight_jacobian_sparse(
     }
 }
 
+fn scale_to_diagonal(
+    mat: &mut Matrix<Float, Dynamic, ResidualDim, VecStorage<Float, Dynamic, ResidualDim>>,
+    residual: &DVector<Float>,
+    first_deriv: Float,
+    second_deriv: Float,
+) -> () {
+    for j in 0..RESIDUAL_DIM {
+        for i in 0..residual.nrows() {
+            mat[(i, j)] *= first_deriv + 2.0 * second_deriv * residual[i].powi(2);
+        }
+    }
+
+}
+
+fn add_to_diagonal(mat: &mut DMatrix<Float>, value: Float) -> () {
+    for i in 0..mat.nrows() {
+        mat[(i, i)] += value;
+    }
+}
+
 //TODO: potential for optimization. Maybe use less memory/matrices.
 #[allow(non_snake_case)]
 fn gauss_newton_step_with_loss(
@@ -341,12 +368,16 @@ fn gauss_newton_step_with_loss(
     tau: Float,
     current_cost: Float,
     loss_function: &Box<dyn LossFunction>,
+    jacobian_scaled: &mut Matrix<
+        Float,
+        Dynamic,
+        ResidualDim,
+        VecStorage<Float, Dynamic, ResidualDim>>,
     rescaled_jacobian_target: &mut Matrix<
         Float,
         Dynamic,
         ResidualDim,
-        VecStorage<Float, Dynamic, ResidualDim>,
-    >,
+        VecStorage<Float, Dynamic, ResidualDim>>,
     rescaled_residuals_target: &mut DVector<Float>,
 ) -> (
     SVector<Float, RESIDUAL_DIM>,
@@ -381,21 +412,34 @@ fn gauss_newton_step_with_loss(
                                 Float,
                                 Dynamic,
                                 ResidualDim,
-                                VecStorage<Float, Dynamic, ResidualDim>>,
+                                VecStorage<Float, Dynamic, ResidualDim>,
+                            >,
                     rescaled_jacobian_target.transpose()
                         * rescaled_residuals_target as &DVector<Float>,
                 )
             }
-            _ => (
-                jacobian.transpose()
-                    * (first_deriv_at_cost * identity
-                        + 2.0
-                            * second_deriv_at_cost
-                            * residuals_unweighted
-                            * residuals_unweighted.transpose())
-                    * jacobian,
-                first_deriv_at_cost * jacobian.transpose() * residuals,
-            ),
+            _ => {
+                //TODO: check this part
+                jacobian_scaled.copy_from(&jacobian);
+                scale_to_diagonal(
+                    jacobian_scaled,
+                    &residuals_unweighted,
+                    first_deriv_at_cost,
+                    second_deriv_at_cost,
+                );
+
+                (
+                    jacobian_scaled.transpose()
+                        * jacobian_scaled
+                            as &Matrix<
+                                Float,
+                                Dynamic,
+                                ResidualDim,
+                                VecStorage<Float, Dynamic, ResidualDim>,
+                            >,
+                    first_deriv_at_cost * jacobian.transpose() * residuals,
+                )
+            }
         },
         _ => (
             jacobian.transpose() * jacobian,

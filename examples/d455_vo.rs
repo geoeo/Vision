@@ -42,7 +42,7 @@ fn main() {
     println!("{:?}",loaded_data.intensity_camera.projection);
 
     let pyramid_parameters = GDRuntimeParameters{
-        sigma: 0.01,
+        sigma: 0.5,
         use_blur: true,
         blur_radius: 1.0,
         octave_count: 3,
@@ -62,9 +62,9 @@ fn main() {
         max_iterations: vec![800;3],
         eps: vec!(1e-3,1e-3,1e-3),
         step_sizes: vec!(1e-8,1e-8,1e-8), 
-        max_norm_eps: 1e-95,
-        delta_eps: 1e-95,
-        taus: vec!(1e-3,1e-3,1e-0), 
+        max_norm_eps: 1e-10,
+        delta_eps: 1e-10,
+        taus: vec!(1e-6,1e-3,1e-3), 
         lm: true,
         weighting: true,
         debug: false,
@@ -78,7 +78,7 @@ fn main() {
 
     let est_points = numerics::pose::apply_pose_deltas_to_point(Vector4::<Float>::new(0.0,0.0,0.0,1.0), &se3_est);
 
-    let out_file_name = format!("d455_{}_start_{}_counter_{}_{}.png",dataset_name,loading_parameters.starting_index,loading_parameters.count,vo_parameters);
+    let out_file_name = format!("d455_vo_{}_start_{}_counter_{}_{}.png",dataset_name,loading_parameters.starting_index,loading_parameters.count,vo_parameters);
 
     let title = "d455";
     plot::draw_line_graph_vector3(&est_points.iter().map(|x| Vector3::<Float>::new(x[0],x[1], x[2])).collect::<Vec<Vector3<Float>>>(), out_folder, &out_file_name, &title, &"Translation", &"meters");
