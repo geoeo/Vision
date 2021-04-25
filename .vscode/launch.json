@@ -222,6 +222,18 @@
             "env": {"RUST_BACKTRACE":"1"}
         },
         {
+            "name": "D455 Imu Odometry",
+            "type": "lldb",
+            "request": "launch",
+            "program": "${workspaceRoot}/target/debug/examples/d455_imu_odom",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "env": {"RUST_BACKTRACE":"1"}
+        },
+        {
             "name": "D455 Imu VO",
             "type": "lldb",
             "request": "launch",

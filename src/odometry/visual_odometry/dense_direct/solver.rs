@@ -73,9 +73,8 @@ pub fn run(
             depth_camera,
             runtime_parameters,
         );
-        lie_result = result.0;
-        mat_result = result.1;
-        let solver_iterations = result.2;
+        mat_result = result.0;
+        let solver_iterations = result.1;
 
         if runtime_parameters.show_octave_result {
             println!(
@@ -103,7 +102,7 @@ fn estimate(
     intensity_camera: &Pinhole,
     depth_camera: &Pinhole,
     runtime_parameters: &RuntimeParameters,
-) -> (SVector<Float, RESIDUAL_DIM>, Matrix4<Float>, usize) {
+) -> (Matrix4<Float>, usize) {
     let source_image = &source_octave.gray_images[0];
     let target_image = &target_octave.gray_images[0];
     let x_gradient_image = &target_octave.x_gradients[0];
@@ -145,7 +144,7 @@ fn estimate(
     );
 
     let mut est_transform = initial_guess_mat.clone();
-    let mut est_lie = initial_guess_lie.clone();
+    //let mut est_lie = initial_guess_lie.clone();
 
     compute_residuals(
         &target_image.buffer,
@@ -259,9 +258,7 @@ fn estimate(
             println!("{},{}", cost, new_cost);
         }
         if gain_ratio >= 0.0 || !runtime_parameters.lm {
-            est_lie
-                .fixed_rows_mut::<6>(0)
-                .copy_from(&lie::ln(&new_est_transform));
+            let est_lie = lie::ln(&new_est_transform);
             est_transform = new_est_transform.clone();
             cost = new_cost;
 
@@ -298,7 +295,7 @@ fn estimate(
         iteration_count += 1;
     }
 
-    (est_lie, est_transform, iteration_count)
+    (est_transform, iteration_count)
 }
 
 fn norm(
@@ -384,8 +381,7 @@ fn gauss_newton_step_with_loss(
                                 Float,
                                 Dynamic,
                                 ResidualDim,
-                                VecStorage<Float, Dynamic, ResidualDim>,
-                            >,
+                                VecStorage<Float, Dynamic, ResidualDim>>,
                     rescaled_jacobian_target.transpose()
                         * rescaled_residuals_target as &DVector<Float>,
                 )

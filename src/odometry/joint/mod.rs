@@ -30,8 +30,6 @@ type ResidualDim = U9;
 const RESIDUAL_DIM: usize = 9;
 type Identity = SMatrix<Float, RESIDUAL_DIM, RESIDUAL_DIM>;
 
-//TODO: add imu
-
 pub fn run_trajectory(
     source_rgdb_pyramids: &Vec<GDPyramid<GDOctave>>,
     target_rgdb_pyramids: &Vec<GDPyramid<GDOctave>>,
@@ -105,9 +103,8 @@ pub fn run(
             gravity_body,
             runtime_parameters,
         );
-        lie_result = result.0;
-        mat_result = result.1;
-        let solver_iterations = result.2;
+        mat_result = result.0;
+        let solver_iterations = result.1;
 
         if runtime_parameters.show_octave_result {
             println!(
@@ -139,8 +136,7 @@ fn estimate(
     imu_covariance: &ImuCovariance,
     gravity_body: &Vector3<Float>,
     runtime_parameters: &RuntimeParameters,
-) -> (SVector<Float, RESIDUAL_DIM>, Matrix4<Float>, usize) {
-    panic!("not implemented");
+) -> (Matrix4<Float>, usize) {
     let source_image = &source_octave.gray_images[0];
     let target_image = &target_octave.gray_images[0];
     let x_gradient_image = &target_octave.x_gradients[0];
@@ -182,7 +178,7 @@ fn estimate(
     );
 
     let mut est_transform = initial_guess_mat.clone();
-    let mut est_lie = initial_guess_lie.clone();
+    //let mut est_lie = initial_guess_lie.clone();
 
     compute_residuals(
         &target_image.buffer,
@@ -203,7 +199,7 @@ fn estimate(
 
 
     let mut imu_residuals = imu_odometry::generate_residual(&estimate, preintegrated_measurement);
-    let mut imu_residuals_imu_unweighted = imu_residuals.clone();
+    let mut imu_residuals_unweighted = imu_residuals.clone();
 
     let imu_weights = match imu_covariance.cholesky() {
         Some(v) => v.inverse(),
@@ -213,7 +209,7 @@ fn estimate(
         }
     };
     let imu_weight_l_upper = imu_weights.cholesky().expect("Cholesky Decomp Failed!").l().transpose();
-    let mut imu_jacobian = imu_odometry::generate_jacobian(&est_lie.fixed_rows::<3>(3), delta_t);
+    let mut imu_jacobian = imu_odometry::generate_jacobian(&estimate.rotation_lie(), delta_t);
     let mut imu_rescaled_jacobian_target = ImuJacobian::zeros(); 
     let mut imu_rescaled_residual_target = ImuResidual::zeros();
 
@@ -276,7 +272,10 @@ fn estimate(
         let (delta, g, gain_ratio_denom, mu_val) = gauss_newton_step_with_loss(
             &residuals,
             &residuals_unweighted,
+            &imu_residuals,
+            &imu_residuals_unweighted,
             &full_jacobian,
+            &imu_jacobian,
             &identity,
             mu,
             tau,
@@ -284,18 +283,14 @@ fn estimate(
             &runtime_parameters.loss_function,
             &mut rescaled_jacobian_target,
             &mut rescaled_residual_target,
+            &mut imu_rescaled_jacobian_target,
+            &mut imu_rescaled_residual_target,
         );
         mu = Some(mu_val);
 
         let pertb = step*delta;
         let new_estimate = estimate.add_pertb(&pertb);
-        let new_est_transform = new_estimate.get_pose()*est_transform;
-
-        let mut imu_new_residuals = imu_odometry::generate_residual(&new_estimate, preintegrated_measurement);
-        let imu_new_residuals_unweighted = new_residuals.clone();
-
-
-
+        let new_est_transform = lie::exp(&pertb.fixed_rows::<3>(0), &pertb.fixed_rows::<3>(3))*est_transform;
 
         new_image_gradient_points.clear();
         compute_residuals(
@@ -314,12 +309,15 @@ fn estimate(
             &runtime_parameters.loss_function,
             &mut weights_vec,
         );
-        
         weight_residuals_sparse(&mut new_residuals, &weights_vec);
-
         percentage_of_valid_pixels =
             (new_image_gradient_points.len() as Float / number_of_pixels_float) * 100.0;
 
+
+        let mut imu_new_residuals = imu_odometry::generate_residual(&new_estimate, preintegrated_measurement);
+        let imu_new_residuals_unweighted = imu_new_residuals.clone();
+        weight_residuals(&mut imu_new_residuals, &imu_weight_l_upper);
+    
         let new_cost = compute_cost(&new_residuals,&imu_new_residuals, &runtime_parameters.loss_function);
         let cost_diff = cost - new_cost;
         let gain_ratio = cost_diff / gain_ratio_denom;
@@ -327,20 +325,21 @@ fn estimate(
             println!("{},{}", cost, new_cost);
         }
         if gain_ratio >= 0.0 || !runtime_parameters.lm {
-            est_lie
-                .fixed_rows_mut::<6>(0)
-                .copy_from(&lie::ln(&new_est_transform));
-            est_transform = new_est_transform.clone();
-            cost = new_cost;
+            estimate = new_estimate;
+            est_transform = new_est_transform;
 
+            cost = new_cost;
             max_norm_delta = g.max();
             delta_norm = delta.norm();
             delta_thresh =
-                runtime_parameters.delta_eps * (est_lie.norm() + runtime_parameters.delta_eps);
+                runtime_parameters.delta_eps * (estimate.norm() + runtime_parameters.delta_eps);
 
             image_gradient_points = new_image_gradient_points.clone();
             residuals.copy_from(&new_residuals);
             residuals_unweighted.copy_from(&new_residuals_unweighted);
+
+            imu_residuals.copy_from(&imu_new_residuals);
+            imu_residuals_unweighted.copy_from(&imu_new_residuals_unweighted);
 
             compute_image_gradients(
                 &x_gradient_image.buffer,
@@ -355,6 +354,9 @@ fn estimate(
             );
             weight_jacobian_sparse(&mut full_jacobian, &weights_vec);
 
+            imu_jacobian = imu_odometry::generate_jacobian(&estimate.rotation_lie(), delta_t);
+            weight_jacobian(&mut imu_jacobian, &imu_weight_l_upper);
+
             let v: Float = 1.0 / 3.0;
             mu = Some(mu.unwrap() * v.max(1.0 - (2.0 * gain_ratio - 1.0).powi(3)));
             nu = 2.0;
@@ -366,7 +368,7 @@ fn estimate(
         iteration_count += 1;
     }
 
-    (est_lie, est_transform, iteration_count)
+    (est_transform, iteration_count)
 }
 
 //TODO: potential for optimization. Maybe use less memory/matrices.
@@ -374,7 +376,10 @@ fn estimate(
 fn gauss_newton_step_with_loss(
     residuals: &DVector<Float>,
     residuals_unweighted: &DVector<Float>,
+    imu_residuals: &ImuResidual,
+    imu_residuals_unweighted: &ImuResidual,
     jacobian: &Matrix<Float, Dynamic, ResidualDim, VecStorage<Float, Dynamic, ResidualDim>>,
+    imu_jacobian: &ImuJacobian,
     identity: &Identity,
     mu: Option<Float>,
     tau: Float,
@@ -387,6 +392,8 @@ fn gauss_newton_step_with_loss(
         VecStorage<Float, Dynamic, ResidualDim>,
     >,
     rescaled_residuals_target: &mut DVector<Float>,
+    imu_rescaled_jacobian_target: &mut ImuJacobian,
+    imu_rescaled_residuals_target: &mut ImuResidual,
 ) -> (
     SVector<Float, RESIDUAL_DIM>,
     SVector<Float, RESIDUAL_DIM>,
@@ -406,12 +413,21 @@ fn gauss_newton_step_with_loss(
                 let jacobian_factor = selected_root / current_cost;
                 let residual_scale = first_derivative_sqrt / (1.0 - selected_root);
                 let res_j = residuals.transpose() * jacobian;
+
+                let imu_res_j = imu_residuals.transpose() * imu_jacobian;
                 for i in 0..jacobian.nrows() {
                     rescaled_jacobian_target.row_mut(i).copy_from(
                         &(first_derivative_sqrt
                             * (jacobian.row(i) - (jacobian_factor * residuals[i] * res_j))),
                     );
                     rescaled_residuals_target[i] = residual_scale * residuals[i];
+                }
+                for i in 0..imu_jacobian.nrows() {
+                    imu_rescaled_jacobian_target.row_mut(i).copy_from(
+                        &(first_derivative_sqrt
+                            * (imu_jacobian.row(i) - (jacobian_factor * imu_residuals[i] * imu_res_j))),
+                    );
+                    imu_rescaled_residuals_target[i] = residual_scale * imu_residuals[i];
                 }
                 (
                     rescaled_jacobian_target.transpose()
@@ -420,10 +436,11 @@ fn gauss_newton_step_with_loss(
                                 Float,
                                 Dynamic,
                                 ResidualDim,
-                                VecStorage<Float, Dynamic, ResidualDim>,
-                            >,
+                                VecStorage<Float, Dynamic, ResidualDim>>
+                    + imu_rescaled_jacobian_target.transpose()*imu_rescaled_jacobian_target as &ImuJacobian,
                     rescaled_jacobian_target.transpose()
-                        * rescaled_residuals_target as &DVector<Float>,
+                        * rescaled_residuals_target as &DVector<Float> + 
+                    imu_rescaled_jacobian_target.transpose() * imu_rescaled_residuals_target as &ImuResidual,
                 )
             }
             _ => (
@@ -433,13 +450,20 @@ fn gauss_newton_step_with_loss(
                             * second_deriv_at_cost
                             * residuals_unweighted
                             * residuals_unweighted.transpose())
-                    * jacobian,
-                first_deriv_at_cost * jacobian.transpose() * residuals,
+                    * jacobian + 
+                    imu_jacobian.transpose()
+                    * (first_deriv_at_cost * identity
+                        + 2.0
+                            * second_deriv_at_cost
+                            * imu_residuals_unweighted
+                            * imu_residuals_unweighted.transpose())
+                    * imu_jacobian,
+                first_deriv_at_cost * (jacobian.transpose() * residuals + imu_jacobian.transpose() * imu_residuals),
             ),
         },
         _ => (
-            jacobian.transpose() * jacobian,
-            jacobian.transpose() * residuals,
+            jacobian.transpose() * jacobian + imu_jacobian.transpose()*imu_jacobian,
+            jacobian.transpose() * residuals + imu_jacobian.transpose()*imu_residuals,
         ),
     };
     let mu_val = match mu {

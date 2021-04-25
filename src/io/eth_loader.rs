@@ -1,7 +1,7 @@
 extern crate nalgebra as na;
 extern crate image as image_rs;
 
-use na::{RowDVector,DMatrix, Vector3, Quaternion};
+use na::{RowDVector,DMatrix, Vector3, Quaternion, UnitQuaternion};
 use std::path::Path;
 use std::fs::File;
 use std::io::{BufReader,Read,BufRead};
@@ -30,7 +30,7 @@ pub fn load(root_path: &str, parameters: &ImageLoadingParameters) -> CameraDataF
     let ground_truths_path = format!("{}{}.{}",info_folder,ground_truths, text_format);
 
     let ts_names = load_timestamps_and_names(&Path::new(&ts_name_path));
-    let ground_truths = load_ground_truths(&Path::new(&ground_truths_path));
+    let ground_truths = load_ground_truths(&Path::new(&ground_truths_path), &parameters.gt_alignment_rot);
     let intrinsics_path = format!("{}{}.{}",info_folder,intrinsics, text_format);
 
 
@@ -96,7 +96,7 @@ fn load_timestamps_and_names(file_path: &Path)-> Vec<(Float,String)> {
 
 }
 
-pub fn load_ground_truths(file_path: &Path) -> Vec<(Vector3<Float>,Quaternion<Float>)> {
+pub fn load_ground_truths(file_path: &Path,  gt_alignment_rot: &UnitQuaternion<Float>) -> Vec<(Vector3<Float>,Quaternion<Float>)> {
     let file = File::open(file_path).expect("load_ground_truths failed");
     let reader = BufReader::new(file);
     let lines = reader.lines();
@@ -105,8 +105,8 @@ pub fn load_ground_truths(file_path: &Path) -> Vec<(Vector3<Float>,Quaternion<Fl
     for line in lines {
         let contents = line.unwrap();
         let values = contents.trim().split(" ").map(|x| parse_to_float(x,false)).collect::<Vec<Float>>();
-        let t = Vector3::new(values[1],values[2],values[3]);
-        let quat = Quaternion::new(values[7],values[4],values[5], values[6]);
+        let t = gt_alignment_rot*Vector3::new(values[1],values[2],values[3]);
+        let quat = gt_alignment_rot.quaternion()*Quaternion::<Float>::new(values[7],values[4],values[5], values[6]);
         ground_truths.push((t,quat));
 
     }

@@ -1,6 +1,6 @@
 extern crate nalgebra as na;
 
-use na::{Vector,Vector3,Vector6,Matrix3,Matrix3x6,Matrix, Matrix4,U3,U1,base::storage::Storage};
+use na::{Vector,Vector3,Vector6,Matrix3,Matrix3x6,Matrix,SMatrix, Matrix4,U3,U1,base::storage::Storage};
 use crate::Float;
 
 pub fn skew_symmetric<T>(w: &Vector<Float,U3,T>) -> Matrix3<Float> where T: Storage<Float,U3,U1>  {
@@ -19,6 +19,21 @@ pub fn left_jacobian_around_identity<T>(transformed_position: &Vector<Float,U3,T
                                                0.0, 1.0, 0.0, 0.0, 0.0, 0.0,
                                                0.0, 0.0, 1.0, 0.0, 0.0, 0.0);
     
+    for i in 3..6 {
+        jacobian.set_column(i, &skew_symmetrix.column(i-3));
+    }
+
+    jacobian
+
+}
+
+//TODO: check this
+pub fn right_jacobian_around_identity<T>(position: &Vector<Float,U3,T>, rotation: &Matrix3<Float>) -> Matrix3x6<Float> where T: Storage<Float,U3,U1> {
+    let skew_symmetrix = skew_symmetric(&(-1.0*rotation*position))*rotation;
+    let mut jacobian = Matrix3x6::<Float>::new(1.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                                               0.0, 1.0, 0.0, 0.0, 0.0, 0.0,
+                                               0.0, 0.0, 1.0, 0.0, 0.0, 0.0);
+
     for i in 3..6 {
         jacobian.set_column(i, &skew_symmetrix.column(i-3));
     }
@@ -73,8 +88,13 @@ pub fn exp_r<T>(w: &Vector<Float,U3,T>) -> Matrix3<Float> where T: Storage<Float
 #[allow(non_snake_case)]
 pub fn ln_SO3<T>(R: &Matrix<Float,U3,U3,T>) -> Matrix3<Float> where T: Storage<Float,U3,U3> {
     let omega = ((R.trace() -1.0)/2.0).acos();
-    let factor = omega/(2.0*omega.sin());
-    factor*(R-R.transpose())
+    match omega {
+        omega if omega != 0.0 => {
+            let factor = omega/(2.0*omega.sin());
+            factor*(R-R.transpose())
+        }
+        _ => Matrix3::identity()
+    }
 }
 
 #[allow(non_snake_case)]

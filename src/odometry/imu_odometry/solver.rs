@@ -21,9 +21,8 @@ pub fn run(iteration: usize, imu_data_measurement: &ImuDataFrame,bias_gyroscope:
     let mut mat_result = Matrix4::<Float>::identity();
     
     let result = estimate(imu_data_measurement,&preintegrated_measurement, &imu_covariance ,&lie_result,&mat_result,gravity_body,runtime_parameters);
-    lie_result = result.0;
-    mat_result = result.1;
-    let solver_iterations = result.2;
+    mat_result = result.0;
+    let solver_iterations = result.1;
 
     if runtime_parameters.show_octave_result {
         println!("{}, est_transform: {}, solver iterations: {}",iteration,mat_result, solver_iterations);
@@ -39,11 +38,11 @@ pub fn run(iteration: usize, imu_data_measurement: &ImuDataFrame,bias_gyroscope:
 }
 
 //TODO: buffer all debug strings and print at the end. Also the numeric matricies could be buffered per octave level
-fn estimate(imu_data_measurement: &ImuDataFrame, preintegrated_measurement: &ImuDelta,imu_covariance: &ImuCovariance ,initial_guess_lie: &Vector6<Float>,initial_guess_mat: &Matrix4<Float>,gravity_body: &Vector3<Float>, runtime_parameters: &RuntimeParameters) -> (Vector6<Float>,Matrix4<Float>, usize) {
+fn estimate(imu_data_measurement: &ImuDataFrame, preintegrated_measurement: &ImuDelta,imu_covariance: &ImuCovariance ,initial_guess_lie: &Vector6<Float>,initial_guess_mat: &Matrix4<Float>,gravity_body: &Vector3<Float>, runtime_parameters: &RuntimeParameters) -> (Matrix4<Float>, usize) {
     let identity_9 = SMatrix::<Float,9,9>::identity();
 
     let mut est_transform = initial_guess_mat.clone();
-    let mut est_lie = initial_guess_lie.clone();
+    //let mut est_lie = initial_guess_lie.clone();
     let mut estimate = ImuDelta::empty();
     let delta_t = imu_data_measurement.gyro_ts[imu_data_measurement.gyro_ts.len()-1] - imu_data_measurement.gyro_ts[0]; // Gyro has a higher sampling rate
 
@@ -58,7 +57,7 @@ fn estimate(imu_data_measurement: &ImuDataFrame, preintegrated_measurement: &Imu
         }
     };
     let weight_l_upper = weights.cholesky().expect("Cholesky Decomp Failed!").l().transpose();
-    let mut jacobian = imu_odometry::generate_jacobian(&est_lie.fixed_rows::<3>(3), delta_t);
+    let mut jacobian = imu_odometry::generate_jacobian(&estimate.rotation_lie(), delta_t);
     let mut rescaled_jacobian_target = ImuJacobian::zeros(); 
     let mut rescaled_residual_target = ImuResidual::zeros();
 
@@ -81,10 +80,6 @@ fn estimate(imu_data_measurement: &ImuDataFrame, preintegrated_measurement: &Imu
     };
     let tau = runtime_parameters.taus[0];
     let max_iterations = runtime_parameters.max_iterations[0];
-    
-
-
-
     
     let mut cost = compute_cost(&residuals,&runtime_parameters.loss_function);
     let mut iteration_count = 0;
@@ -115,7 +110,7 @@ fn estimate(imu_data_measurement: &ImuDataFrame, preintegrated_measurement: &Imu
         if gain_ratio >= 0.0  || !runtime_parameters.lm {
             estimate = new_estimate;
             est_transform = estimate.get_pose();
-            est_lie = lie::ln(&est_transform);
+            //est_lie = lie::ln(&est_transform);
 
             cost = new_cost;
 
@@ -126,7 +121,7 @@ fn estimate(imu_data_measurement: &ImuDataFrame, preintegrated_measurement: &Imu
             residuals.copy_from(&new_residuals);
             residuals_unweighted.copy_from(&new_residuals_unweighted);
 
-            jacobian = imu_odometry::generate_jacobian(&est_lie.fixed_rows::<3>(3), delta_t);
+            jacobian = imu_odometry::generate_jacobian(&estimate.rotation_lie(), delta_t);
             weight_jacobian(&mut jacobian, &weight_l_upper);
             let v: Float = 1.0/3.0;
             mu = Some(mu.unwrap() * v.max(1.0-(2.0*gain_ratio-1.0).powi(3)));
@@ -141,7 +136,7 @@ fn estimate(imu_data_measurement: &ImuDataFrame, preintegrated_measurement: &Imu
 
     }
 
-    (est_lie,est_transform,iteration_count)
+    (est_transform,iteration_count)
 }
 
 

@@ -9,7 +9,7 @@ use vision::pyramid::gd::{GDPyramid,gd_octave::GDOctave, build_rgbd_pyramid,gd_r
 use vision::odometry::visual_odometry::dense_direct;
 use vision::odometry::runtime_parameters::RuntimeParameters;
 use vision::{numerics,numerics::loss};
-use vision::Float;
+use vision::{Float,float};
 use vision::visualize::plot;
 
 
@@ -25,15 +25,15 @@ fn main() {
         starting_index: 0,
         step :1,
         count :60,
-        negate_depth_values :false,
-        invert_focal_lengths :false,
+        negate_depth_values :true,
+        invert_focal_lengths :true,
         invert_y :true,
-        set_default_depth: false,
-        gt_alignment_rot: UnitQuaternion::<Float>::identity()
+        set_default_depth: true,
+        gt_alignment_rot: UnitQuaternion::<Float>::from_axis_angle(&Vector3::y_axis(),float::consts::FRAC_PI_2)
     };
 
     let pyramid_parameters = GDRuntimeParameters{
-    sigma: 0.5,
+    sigma: 0.01,
     use_blur: true,
     blur_radius: 1.0,
     octave_count: 4,
@@ -65,8 +65,8 @@ fn main() {
         max_iterations: vec![800;4],
         eps: vec!(1e-3,1e-3,1e-3,1e-6),
         step_sizes: vec!(1e-8,1e-8,1e-8,1e-3), 
-        max_norm_eps: 1e-95,
-        delta_eps: 1e-95,
+        max_norm_eps: 1e-10,
+        delta_eps: 1e-10,
         taus: vec!(1e-6,1e-3,1e-3,1e-0), 
         lm: true,
         weighting: true,

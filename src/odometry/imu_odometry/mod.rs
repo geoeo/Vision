@@ -1,6 +1,6 @@
 use nalgebra as na;
 
-use na::{U1,U3,U6,U9,Matrix3,Matrix6,MatrixN,MatrixMN,Vector,Vector3,VectorN,UnitQuaternion,base::storage::Storage};
+use na::{U1,U3,U6,U9,Matrix3,SMatrix,SVector,Vector,Vector3,UnitQuaternion,base::storage::Storage};
 use crate::{float,Float};
 use crate::sensors::{DataFrame, imu::imu_data_frame::ImuDataFrame};
 use crate::odometry::imu_odometry::imu_delta::ImuDelta;
@@ -9,11 +9,11 @@ use crate::numerics::lie::{exp_r,skew_symmetric,right_jacobian, right_inverse_ja
 pub mod imu_delta;
 pub mod solver;
 
-pub type ImuCovariance = MatrixN<Float,U9>;
-pub type ImuResidual = VectorN<Float,U9>;
-pub type ImuPertrubation = VectorN<Float,U9>;
-pub type NoiseCovariance = Matrix6<Float>;
-pub type ImuJacobian = MatrixN<Float,U9>;
+pub type ImuCovariance = SMatrix<Float,9,9>;
+pub type ImuResidual = SVector<Float,9>;
+pub type ImuPertrubation = SVector<Float,9>;
+pub type NoiseCovariance = SMatrix<Float,6,6>;
+pub type ImuJacobian = SMatrix<Float,9,9>;
 
 
 #[allow(non_snake_case)]
@@ -61,15 +61,15 @@ pub fn pre_integration(imu_data: &ImuDataFrame, bias_gyroscope: &Vector3<Float>,
     (ImuDelta {delta_position,delta_velocity, delta_rotation_i_k,delta_rotation_k}, imu_covariance)
 }
 
-fn generate_linear_model_matrices(accelerometer_k: &Vector3<Float>,gyrpscope_k: &Vector3<Float> ,a_delta_t_i_k: Float, g_delta_t_k: Float , delta_rotation_i_k: &Matrix3<Float>, delta_rotation_k: &Matrix3<Float>, gravity_body: &Vector3<Float>) -> (MatrixN<Float,U9>,MatrixMN<Float,U9,U6>) {
+fn generate_linear_model_matrices(accelerometer_k: &Vector3<Float>,gyrpscope_k: &Vector3<Float> ,a_delta_t_i_k: Float, g_delta_t_k: Float , delta_rotation_i_k: &Matrix3<Float>, delta_rotation_k: &Matrix3<Float>, gravity_body: &Vector3<Float>) -> (SMatrix<Float,9,9>,SMatrix<Float,9,6>) {
     let a_delta_t_i_k_squared = a_delta_t_i_k.powi(2);
     let accelerometer_skew_symmetric = skew_symmetric(&(accelerometer_k + gravity_body));
 
     let right_jacobian = right_jacobian(&gyrpscope_k);
 
     let identity = Matrix3::<Float>::identity();
-    let mut linear_state_design_matrix = MatrixN::<Float,U9>::zeros();
-    let mut linear_noise_design_matrix = MatrixMN::<Float,U9,U6>::zeros();
+    let mut linear_state_design_matrix = SMatrix::<Float,9,9>::zeros();
+    let mut linear_noise_design_matrix = SMatrix::<Float,9,6>::zeros();
 
     linear_state_design_matrix.fixed_slice_mut::<3,3>(0,0).copy_from(&identity);
     linear_state_design_matrix.fixed_slice_mut::<3,3>(0,3).copy_from(&(-(a_delta_t_i_k_squared/2.0)*delta_rotation_i_k*accelerometer_skew_symmetric));
