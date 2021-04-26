@@ -1,6 +1,6 @@
 extern crate nalgebra as na;
 
-use na::{U2,U4,U6,U9,Dim,DimName,RowVector2,Vector4,SVector,DVector,Matrix4,Matrix,SMatrix,DMatrix,Dynamic,VecStorage};
+use na::{U2,U4,U6,U9,Dim,DimName,allocator::Allocator,Const,RowVector2,Vector4,SVector,DVector,Matrix4,Matrix,SMatrix,DMatrix,Dynamic,VecStorage};
 
 use crate::pyramid::gd::{GDPyramid,gd_octave::GDOctave};
 use crate::sensors::camera::{Camera,pinhole::Pinhole};
@@ -9,11 +9,6 @@ use crate::image::Image;
 use crate::numerics::{lie,loss::LossFunction};
 use crate::features::geometry::point::Point;
 use crate::{Float,float,reconstruct_original_coordiantes};
-
-//TODO: make this an argument to solver
-//pub type ResidualDim = U6;
-//pub const RESIDUAL_DIM: usize = 6;
-//pub type Identity = SMatrix::<Float,RESIDUAL_DIM,RESIDUAL_DIM>;
 
 pub mod solver;
 
@@ -128,7 +123,7 @@ pub fn precompute_jacobians<T: Dim + DimName>(backprojected_points: &Matrix<Floa
     precomputed_jacobians
 }
 
-pub fn compute_full_jacobian<T: Dim + DimName, const D: usize>(image_gradients: &Matrix<Float,Dynamic,U2, VecStorage<Float,Dynamic,U2>>, const_jacobians: &Matrix<Float,Dynamic,T, VecStorage<Float,Dynamic,T>>, target: &mut Matrix<Float,Dynamic,T, VecStorage<Float,Dynamic,T>>) -> () {
+pub fn compute_full_jacobian<const D: usize>(image_gradients: &Matrix<Float,Dynamic,U2, VecStorage<Float,Dynamic,U2>>, const_jacobians: &Matrix<Float,Dynamic,Const<D>, VecStorage<Float,Dynamic,Const<D>>>, target: &mut Matrix<Float,Dynamic,Const<D>, VecStorage<Float,Dynamic,Const<D>>>) -> () {
     let number_of_elements = image_gradients.nrows();
 
     for i in 0..number_of_elements {
@@ -170,6 +165,52 @@ pub fn compute_residuals(target_image_buffer: &DMatrix<Float>,source_image_buffe
 
     }
 
+
+}
+
+pub fn norm(
+    residuals: &DVector<Float>,
+    loss_function: &Box<dyn LossFunction>,
+    weights_vec: &mut DVector<Float>,
+) -> () {
+    for i in 0..residuals.len() {
+        let res = residuals[i];
+        weights_vec[i] = (loss_function.second_derivative_at_current(res) * res)
+            .abs()
+            .sqrt();
+    }
+}
+
+pub fn weight_residuals_sparse(
+    residual_target: &mut DVector<Float>,
+    weights_vec: &DVector<Float>,
+) -> () {
+    residual_target.component_mul_assign(weights_vec);
+}
+
+//TODO: optimize
+pub fn weight_jacobian_sparse<const T: usize>(
+    jacobian: &mut Matrix<Float, Dynamic, Const<T>, VecStorage<Float, Dynamic, Const<T>>>,
+    weights_vec: &DVector<Float>,
+) -> () {
+    let size = weights_vec.len();
+    for i in 0..size {
+        let weighted_row = jacobian.row(i) * weights_vec[i];
+        jacobian.row_mut(i).copy_from(&weighted_row);
+    }
+}
+
+pub fn scale_to_diagonal<const T: usize>(
+    mat: &mut Matrix<Float, Dynamic, Const<T>, VecStorage<Float, Dynamic, Const<T>>>,
+    residual: &DVector<Float>,
+    first_deriv: Float,
+    second_deriv: Float,
+) -> () {
+    for j in 0..T {
+        for i in 0..residual.nrows() {
+            mat[(i, j)] *= first_deriv + 2.0 * second_deriv * residual[i].powi(2);
+        }
+    }
 
 }
 

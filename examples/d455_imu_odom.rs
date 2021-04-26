@@ -17,7 +17,7 @@ use vision::{float, Float};
 use vision::numerics;
 
 fn main() {
-    let dataset_name = "simple_trans_imu";
+    let dataset_name = "z";
 
     let root_path = format!("D:/Workspace/Datasets/D455/{}", dataset_name);
     let out_folder = "D:/Workspace/Rust/Vision/output";
@@ -25,7 +25,7 @@ fn main() {
     let image_loading_parameters = ImageLoadingParameters {
         starting_index: 5,
         step: 1,
-        count: 300,
+        count: 150,
         negate_depth_values: false,
         invert_focal_lengths: false,
         invert_y: true,

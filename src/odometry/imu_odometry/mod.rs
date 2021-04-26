@@ -113,8 +113,17 @@ pub fn generate_residual(estimate: &ImuDelta, measurement: &ImuDelta) -> ImuResi
     residual
 }
 
+pub fn weight_residuals(residual: &mut ImuResidual, weights: &SMatrix<Float,9,9>) -> () {
+    weights.mul_to(&residual.clone(),residual);
+}
+
+pub fn weight_jacobian(jacobian: &mut ImuJacobian, weights: &SMatrix<Float,9,9>) -> () {
+    weights.mul_to(&jacobian.clone(),jacobian);
+}
+
 //TODO
 pub fn gravityEstimation(data_frames: &Vec<DataFrame>) -> Vector3::<Float> {
 
     panic!("Gravity Estimation Not yet implemented")
 }
+

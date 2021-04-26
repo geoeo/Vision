@@ -14,12 +14,12 @@ use crate::numerics::{lie, loss::LossFunction};
 use crate::odometry::runtime_parameters::RuntimeParameters;
 use crate::odometry::visual_odometry::dense_direct::{
     backproject_points, compute_full_jacobian, compute_image_gradients, compute_residuals,
-    precompute_jacobians,
+    precompute_jacobians,norm,weight_jacobian_sparse,weight_residuals_sparse,scale_to_diagonal
 };
 use crate::odometry::{
     imu_odometry,
     imu_odometry::imu_delta::ImuDelta,
-    imu_odometry::{ImuCovariance, ImuJacobian, ImuPertrubation, ImuResidual},
+    imu_odometry::{ImuCovariance, ImuJacobian, ImuPertrubation, ImuResidual, weight_residuals, weight_jacobian},
 };
 use crate::pyramid::gd::{gd_octave::GDOctave, GDPyramid};
 use crate::sensors::camera::{pinhole::Pinhole, Camera};
@@ -256,7 +256,7 @@ fn estimate(
         &image_gradient_points,
         &mut image_gradients,
     );
-    compute_full_jacobian::<ResidualDim, RESIDUAL_DIM>(
+    compute_full_jacobian::<RESIDUAL_DIM>(
         &image_gradients,
         &constant_jacobians,
         &mut full_jacobian,
@@ -279,8 +279,6 @@ fn estimate(
             );
         }
 
-        //TODO: I AM HERE
-        //TODO: fix jacobians + residuals
         let (delta, g, gain_ratio_denom, mu_val) = gauss_newton_step_with_loss(
             &residuals,
             &residuals_unweighted,
@@ -365,7 +363,7 @@ fn estimate(
                 &image_gradient_points,
                 &mut image_gradients,
             );
-            compute_full_jacobian::<ResidualDim, RESIDUAL_DIM>(
+            compute_full_jacobian::<RESIDUAL_DIM>(
                 &image_gradients,
                 &constant_jacobians,
                 &mut full_jacobian,
@@ -533,56 +531,6 @@ fn compute_cost(
     )
 }
 
-fn norm(
-    residuals: &DVector<Float>,
-    loss_function: &Box<dyn LossFunction>,
-    weights_vec: &mut DVector<Float>,
-) -> () {
-    for i in 0..residuals.len() {
-        let res = residuals[i];
-        weights_vec[i] = (loss_function.second_derivative_at_current(res) * res)
-            .abs()
-            .sqrt(); // Squareroot here is technically too hardcoded
-    }
-}
 
-fn weight_residuals(residual: &mut ImuResidual, weights: &SMatrix<Float, 9, 9>) -> () {
-    weights.mul_to(&residual.clone(), residual);
-}
 
-fn weight_jacobian(jacobian: &mut ImuJacobian, weights: &SMatrix<Float, 9, 9>) -> () {
-    weights.mul_to(&jacobian.clone(), jacobian);
-}
-
-fn weight_residuals_sparse(
-    residual_target: &mut DVector<Float>,
-    weights_vec: &DVector<Float>,
-) -> () {
-    residual_target.component_mul_assign(weights_vec);
-}
-
-//TODO: optimize
-fn weight_jacobian_sparse(
-    jacobian: &mut Matrix<Float, Dynamic, ResidualDim, VecStorage<Float, Dynamic, ResidualDim>>,
-    weights_vec: &DVector<Float>,
-) -> () {
-    let size = weights_vec.len();
-    for i in 0..size {
-        let weighted_row = jacobian.row(i) * weights_vec[i];
-        jacobian.row_mut(i).copy_from(&weighted_row);
-    }
-}
-
-fn scale_to_diagonal(
-    mat: &mut Matrix<Float, Dynamic, ResidualDim, VecStorage<Float, Dynamic, ResidualDim>>,
-    residual: &DVector<Float>,
-    first_deriv: Float,
-    second_deriv: Float,
-) -> () {
-    for j in 0..RESIDUAL_DIM {
-        for i in 0..residual.nrows() {
-            mat[(i, j)] *= first_deriv + 2.0 * second_deriv * residual[i].powi(2);
-        }
-    }
-}
 

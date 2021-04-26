@@ -18,7 +18,7 @@ use vision::{float, Float};
 use vision::numerics;
 
 fn main() {
-    let dataset_name = "x";
+    let dataset_name = "z";
 
     let root_path = format!("D:/Workspace/Datasets/D455/{}", dataset_name);
     let out_folder = "D:/Workspace/Rust/Vision/output";

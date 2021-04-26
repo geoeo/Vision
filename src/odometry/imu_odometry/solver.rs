@@ -4,7 +4,7 @@ use na::{Vector3,Vector6,Matrix4,SMatrix};
 use std::boxed::Box;
 
 use crate::odometry::runtime_parameters::RuntimeParameters;
-use crate::odometry::{imu_odometry, imu_odometry::imu_delta::ImuDelta, imu_odometry::{ImuResidual,ImuJacobian,ImuPertrubation, ImuCovariance}};
+use crate::odometry::{imu_odometry, imu_odometry::imu_delta::ImuDelta, imu_odometry::{ImuResidual,ImuJacobian,ImuPertrubation, ImuCovariance, weight_jacobian, weight_residuals}};
 use crate::numerics::{lie,loss::LossFunction};
 use crate::sensors::imu::imu_data_frame::ImuDataFrame;
 use crate::{Float,float};
@@ -139,14 +139,6 @@ fn estimate(imu_data_measurement: &ImuDataFrame, preintegrated_measurement: &Imu
     (est_transform,iteration_count)
 }
 
-
-fn weight_residuals(residual: &mut ImuResidual, weights: &SMatrix<Float,9,9>) -> () {
-    weights.mul_to(&residual.clone(),residual);
-}
-
-fn weight_jacobian(jacobian: &mut ImuJacobian, weights: &SMatrix<Float,9,9>) -> () {
-    weights.mul_to(&jacobian.clone(),jacobian);
-}
 
 //TODO: potential for optimization. Maybe use less memory/matrices. 
 #[allow(non_snake_case)]
