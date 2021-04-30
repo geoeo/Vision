@@ -28,6 +28,8 @@ fn main() {
         starting_index: 0,
         step :1,
         count :1,
+        image_height: 480,
+        image_width: 640,
         negate_depth_values :true,
         invert_focal_lengths :true,
         invert_y :false,

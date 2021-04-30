@@ -55,7 +55,7 @@ pub fn load(root_path: &str, parameters: &ImageLoadingParameters) -> CameraDataF
         source_depth_images: source_indices.clone().map(|s| {
             let source = &ts_names[s].1;
             let depth_source_image_path = format!("{}{}.{}",depth_image_folder,source, depth_image_format);
-            load_depth_image_from_csv(&Path::new(&depth_source_image_path),parameters.negate_depth_values, true, 640, 480, 1.0, false,parameters.set_default_depth, &None)
+            load_depth_image_from_csv(&Path::new(&depth_source_image_path),parameters.negate_depth_values, true, parameters.image_width,parameters.image_height, 1.0, false,parameters.set_default_depth, &None)
         }).collect::<Vec<Image>>(),
         target_gray_images: target_indices.clone().map(|t| {
             let target = &ts_names[t].1;
@@ -65,7 +65,7 @@ pub fn load(root_path: &str, parameters: &ImageLoadingParameters) -> CameraDataF
         target_depth_images:  target_indices.clone().map(|t| {
             let target = &ts_names[t].1;
             let depth_target_image_path = format!("{}{}.{}",depth_image_folder,target, depth_image_format);
-            load_depth_image_from_csv(&Path::new(&depth_target_image_path), parameters.negate_depth_values, true, 640, 480, 1.0, false,parameters.set_default_depth, &None)
+            load_depth_image_from_csv(&Path::new(&depth_target_image_path), parameters.negate_depth_values, true, parameters.image_width,parameters.image_height, 1.0, false,parameters.set_default_depth, &None)
         }).collect::<Vec<Image>>(),
         intensity_camera,
         depth_camera,

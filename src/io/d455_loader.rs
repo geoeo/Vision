@@ -52,7 +52,7 @@ pub fn load_camera(root_path: &str, parameters: &ImageLoadingParameters) -> Came
         }).collect::<Vec<Image>>(),
         source_depth_images: source_depth_indices.iter().map(|&i| {
             let depth_source_image_path = format!("{}/{}",depth_image_folder,depth_ts_string[i]);
-            load_depth_image_from_csv(&Path::new(&depth_source_image_path), parameters.negate_depth_values, parameters.invert_y,640,480,1.0,false,parameters.set_default_depth, &Some((&depth_camera_transform,&depth_camera))) //TODO: pass into
+            load_depth_image_from_csv(&Path::new(&depth_source_image_path), parameters.negate_depth_values, parameters.invert_y,parameters.image_width,parameters.image_height,1.0,false,parameters.set_default_depth, &Some((&depth_camera_transform,&depth_camera))) //TODO: pass into
         }).collect::<Vec<Image>>(),
         target_gray_images: target_rgb_indices.map(|i| {
             let color_target_image_path = format!("{}/{}",color_image_folder,rgb_ts_string[i]);
@@ -60,7 +60,7 @@ pub fn load_camera(root_path: &str, parameters: &ImageLoadingParameters) -> Came
         }).collect::<Vec<Image>>(),
         target_depth_images:  target_depth_indices.iter().map(|&i| {
             let depth_target_image_path = format!("{}/{}",depth_image_folder,depth_ts_string[i]);
-            load_depth_image_from_csv(&Path::new(&depth_target_image_path), parameters.negate_depth_values, parameters.invert_y,640,480,1.0,false,parameters.set_default_depth, &Some((&depth_camera_transform,&depth_camera))) //TODO: pass into
+            load_depth_image_from_csv(&Path::new(&depth_target_image_path), parameters.negate_depth_values, parameters.invert_y,parameters.image_width,parameters.image_height,1.0,false,parameters.set_default_depth, &Some((&depth_camera_transform,&depth_camera))) //TODO: pass into
         }).collect::<Vec<Image>>(),
         intensity_camera,
         depth_camera,

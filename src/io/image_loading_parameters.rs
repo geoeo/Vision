@@ -8,6 +8,8 @@ pub struct ImageLoadingParameters {
     pub starting_index: usize,
     pub step: usize,
     pub count: usize,
+    pub image_width: usize,
+    pub image_height: usize,
     pub negate_depth_values: bool,
     pub invert_focal_lengths: bool,
     pub invert_y: bool,

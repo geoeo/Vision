@@ -31,6 +31,8 @@ fn main() {
         starting_index: 0,
         step :1,
         count :10,
+        image_height: 720,
+        image_width: 1280,
         negate_depth_values :false,
         invert_focal_lengths :false,
         invert_y :true,
