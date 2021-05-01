@@ -4,7 +4,7 @@ extern crate nalgebra as na;
 
 use na::{
     storage::Storage, DMatrix, DVector, Dynamic, Matrix, Matrix4, RowVector2, SMatrix, SVector,
-    VecStorage, Vector3, Vector4, Vector6, U2, U4, U6, U9,
+    VecStorage, Vector3, Vector4, Vector6, U2, U4, U6, U9, Const, DimMin, DimMinimum
 };
 use std::boxed::Box;
 
@@ -19,16 +19,16 @@ use crate::odometry::visual_odometry::dense_direct::{
 use crate::odometry::{
     imu_odometry,
     imu_odometry::imu_delta::ImuDelta,
-    imu_odometry::{ImuCovariance, ImuJacobian, ImuPertrubation, ImuResidual, weight_residuals, weight_jacobian},
+    imu_odometry::{weight_residuals, weight_jacobian},
 };
 use crate::pyramid::gd::{gd_octave::GDOctave, GDPyramid};
 use crate::sensors::camera::{pinhole::Pinhole, Camera};
 use crate::sensors::imu::imu_data_frame::ImuDataFrame;
 use crate::{float, reconstruct_original_coordiantes, Float};
 
-type ResidualDim = U9;
-const RESIDUAL_DIM: usize = 9;
-type Identity = SMatrix<Float, RESIDUAL_DIM, RESIDUAL_DIM>;
+//type ResidualDim = U9;
+//const RESIDUAL_DIM: usize = 9;
+//type Identity = SMatrix<Float, RESIDUAL_DIM, RESIDUAL_DIM>;
 
 pub fn run_trajectory(
     source_rgdb_pyramids: &Vec<GDPyramid<GDOctave>>,
@@ -82,7 +82,7 @@ pub fn run(
     assert_eq!(octave_count, runtime_parameters.max_iterations.len());
 
     let depth_image = &source_rgdb_pyramid.depth_image;
-    let mut lie_result = SVector::<Float, RESIDUAL_DIM>::zeros();
+    let mut lie_result = SVector::<Float, 9>::zeros();
     let mut mat_result = Matrix4::<Float>::identity();
 
     let (preintegrated_measurement, imu_covariance) = imu_odometry::pre_integration(
@@ -127,21 +127,21 @@ pub fn run(
 }
 
 //TODO: buffer all debug strings and print at the end. Also the numeric matricies could be buffered per octave level
-fn estimate(
+fn estimate<const T: usize>(
     source_octave: &GDOctave,
     source_depth_image_original: &Image,
     target_octave: &GDOctave,
     octave_index: usize,
-    initial_guess_lie: &SVector<Float, RESIDUAL_DIM>,
+    initial_guess_lie: &SVector<Float, T>,
     initial_guess_mat: &Matrix4<Float>,
     intensity_camera: &Pinhole,
     depth_camera: &Pinhole,
     imu_data_measurement: &ImuDataFrame,
     preintegrated_measurement: &ImuDelta,
-    imu_covariance: &ImuCovariance,
+    imu_covariance: &SMatrix<Float,T,T>,
     gravity_body: &Vector3<Float>,
     runtime_parameters: &RuntimeParameters,
-) -> (Matrix4<Float>, usize) {
+) -> (Matrix4<Float>, usize) where  Const<T>: DimMin<Const<T>, Output = Const<T>> {
     let source_image = &source_octave.gray_images[0];
     let target_image = &target_octave.gray_images[0];
     let x_gradient_image = &target_octave.x_gradients[0];
@@ -152,17 +152,17 @@ fn estimate(
     let mut percentage_of_valid_pixels = 100.0;
 
     let mut weights_vec = DVector::<Float>::from_element(number_of_pixels, 1.0);
-    let identity = Identity::identity();
+    let identity = SMatrix::<Float,T,T>::identity();
     let mut residuals = DVector::<Float>::from_element(number_of_pixels, float::MAX);
     let mut residuals_unweighted = DVector::<Float>::from_element(number_of_pixels, float::MAX);
     let mut new_residuals_unweighted = DVector::<Float>::from_element(number_of_pixels, float::MAX);
     let mut new_residuals = DVector::<Float>::from_element(number_of_pixels, float::MAX);
     let mut full_jacobian =
-        Matrix::<Float, Dynamic, ResidualDim, VecStorage<Float, Dynamic, ResidualDim>>::zeros(
+        Matrix::<Float, Dynamic, Const<T>, VecStorage<Float, Dynamic, Const<T>>>::zeros(
             number_of_pixels,
         );
     let mut jacobian_scaled =
-    Matrix::<Float, Dynamic, ResidualDim, VecStorage<Float, Dynamic, ResidualDim>>::zeros(
+    Matrix::<Float, Dynamic, Const<T>, VecStorage<Float, Dynamic, Const<T>>>::zeros(
         number_of_pixels,
     );
     let mut image_gradients =
@@ -170,7 +170,7 @@ fn estimate(
     let mut image_gradient_points = Vec::<Point<usize>>::with_capacity(number_of_pixels);
     let mut new_image_gradient_points = Vec::<Point<usize>>::with_capacity(number_of_pixels);
     let mut rescaled_jacobian_target =
-        Matrix::<Float, Dynamic, ResidualDim, VecStorage<Float, Dynamic, ResidualDim>>::zeros(
+        Matrix::<Float, Dynamic, Const<T>, VecStorage<Float, Dynamic, Const<T>>>::zeros(
             number_of_pixels,
         );
     let mut rescaled_residual_target = DVector::<Float>::zeros(number_of_pixels);
@@ -206,7 +206,7 @@ fn estimate(
     let delta_t = imu_data_measurement.gyro_ts[imu_data_measurement.gyro_ts.len() - 1]
         - imu_data_measurement.gyro_ts[0]; // Gyro has a higher sampling rate
 
-    let mut imu_residuals = imu_odometry::generate_residual(&estimate, preintegrated_measurement);
+    let mut imu_residuals = imu_odometry::generate_residual::<T>(&estimate, preintegrated_measurement);
     let mut imu_residuals_unweighted = imu_residuals.clone();
 
     let imu_weights = match imu_covariance.cholesky() {
@@ -222,8 +222,8 @@ fn estimate(
         .l()
         .transpose();
     let mut imu_jacobian = imu_odometry::generate_jacobian(&estimate.rotation_lie(), delta_t);
-    let mut imu_rescaled_jacobian_target = ImuJacobian::zeros();
-    let mut imu_rescaled_residual_target = ImuResidual::zeros();
+    let mut imu_rescaled_jacobian_target = SMatrix::<Float,T,T>::zeros();
+    let mut imu_rescaled_residual_target = SVector::<Float,T>::zeros();
 
     weight_residuals(&mut imu_residuals, &imu_weight_l_upper);
     weight_jacobian(&mut imu_jacobian, &imu_weight_l_upper);
@@ -256,7 +256,7 @@ fn estimate(
         &image_gradient_points,
         &mut image_gradients,
     );
-    compute_full_jacobian::<RESIDUAL_DIM>(
+    compute_full_jacobian::<T>(
         &image_gradients,
         &constant_jacobians,
         &mut full_jacobian,
@@ -326,7 +326,7 @@ fn estimate(
             (new_image_gradient_points.len() as Float / number_of_pixels_float) * 100.0;
 
         let mut imu_new_residuals =
-            imu_odometry::generate_residual(&new_estimate, preintegrated_measurement);
+            imu_odometry::generate_residual::<T>(&new_estimate, preintegrated_measurement);
         let imu_new_residuals_unweighted = imu_new_residuals.clone();
         weight_residuals(&mut imu_new_residuals, &imu_weight_l_upper);
 
@@ -363,7 +363,7 @@ fn estimate(
                 &image_gradient_points,
                 &mut image_gradients,
             );
-            compute_full_jacobian::<RESIDUAL_DIM>(
+            compute_full_jacobian::<T>(
                 &image_gradients,
                 &constant_jacobians,
                 &mut full_jacobian,
@@ -389,14 +389,14 @@ fn estimate(
 
 //TODO: potential for optimization. Maybe use less memory/matrices.
 #[allow(non_snake_case)]
-fn gauss_newton_step_with_loss(
+fn gauss_newton_step_with_loss<const T: usize>(
     residuals: &DVector<Float>,
     residuals_unweighted: &DVector<Float>,
-    imu_residuals: &ImuResidual,
-    imu_residuals_unweighted: &ImuResidual,
-    jacobian: &Matrix<Float, Dynamic, ResidualDim, VecStorage<Float, Dynamic, ResidualDim>>,
-    imu_jacobian: &ImuJacobian,
-    identity: &Identity,
+    imu_residuals: &SVector<Float, T>,
+    imu_residuals_unweighted: &SVector<Float, T>,
+    jacobian: &Matrix<Float, Dynamic, Const<T>, VecStorage<Float, Dynamic, Const<T>>>,
+    imu_jacobian: &SMatrix<Float,T,T>,
+    identity: &SMatrix<Float,T,T>,
     mu: Option<Float>,
     tau: Float,
     current_cost: Float,
@@ -404,24 +404,24 @@ fn gauss_newton_step_with_loss(
     jacobian_scaled: &mut Matrix<
         Float,
         Dynamic,
-        ResidualDim,
-        VecStorage<Float, Dynamic, ResidualDim>,
+        Const<T>,
+        VecStorage<Float, Dynamic, Const<T>>,
     >,
     rescaled_jacobian_target: &mut Matrix<
         Float,
         Dynamic,
-        ResidualDim,
-        VecStorage<Float, Dynamic, ResidualDim>,
+        Const<T>,
+        VecStorage<Float, Dynamic, Const<T>>,
     >,
     rescaled_residuals_target: &mut DVector<Float>,
-    imu_rescaled_jacobian_target: &mut ImuJacobian,
-    imu_rescaled_residuals_target: &mut ImuResidual,
+    imu_rescaled_jacobian_target: &mut SMatrix<Float, T,T>,
+    imu_rescaled_residuals_target: &mut SVector<Float, T>,
 ) -> (
-    SVector<Float, RESIDUAL_DIM>,
-    SVector<Float, RESIDUAL_DIM>,
+    SVector<Float, T>,
+    SVector<Float, T>,
     Float,
     Float,
-) {
+)  where Const<T>: DimMin<Const<T>, Output = Const<T>> {
     let selected_root = loss_function.select_root(current_cost);
     let first_deriv_at_cost = loss_function.first_derivative_at_current(current_cost);
     let second_deriv_at_cost = loss_function.second_derivative_at_current(current_cost);
@@ -458,15 +458,15 @@ fn gauss_newton_step_with_loss(
                             as &Matrix<
                                 Float,
                                 Dynamic,
-                                ResidualDim,
-                                VecStorage<Float, Dynamic, ResidualDim>,
+                                Const<T>,
+                                VecStorage<Float, Dynamic, Const<T>>,
                             >
                         + imu_rescaled_jacobian_target.transpose()
-                            * imu_rescaled_jacobian_target as &ImuJacobian,
+                            * imu_rescaled_jacobian_target as &SMatrix<Float,T,T>,
                     rescaled_jacobian_target.transpose()
                         * rescaled_residuals_target as &DVector<Float>
                         + imu_rescaled_jacobian_target.transpose()
-                            * imu_rescaled_residuals_target as &ImuResidual,
+                            * imu_rescaled_residuals_target as &SVector<Float,T>,
                 )
             }
             _ => {
@@ -487,9 +487,9 @@ fn gauss_newton_step_with_loss(
                             as &Matrix<
                                 Float,
                                 Dynamic,
-                                ResidualDim,
-                                VecStorage<Float, Dynamic, ResidualDim>,
-                            >
+                                Const<T>,
+                                VecStorage<Float, Dynamic, Const<T>>>
+                         
                         + imu_jacobian.transpose()
                             * (first_deriv_at_cost * identity
                                 + 2.0
@@ -520,9 +520,9 @@ fn gauss_newton_step_with_loss(
 }
 
 //TODO: make this more generic
-fn compute_cost(
+fn compute_cost<const T: usize>(
     visual_residuals: &DVector<Float>,
-    imu_residuals: &ImuResidual,
+    imu_residuals: &SVector<Float,T>,
     loss_function: &Box<dyn LossFunction>,
 ) -> Float {
     loss_function.cost(

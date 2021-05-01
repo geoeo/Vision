@@ -1,6 +1,6 @@
 extern crate nalgebra as na;
 
-use na::{Vector3,Vector6,Matrix4,SMatrix};
+use na::{Vector3,Vector6,Matrix4,SMatrix,SVector, Const, DimMin, DimMinimum};
 use std::boxed::Box;
 
 use crate::odometry::runtime_parameters::RuntimeParameters;
@@ -46,7 +46,7 @@ fn estimate(imu_data_measurement: &ImuDataFrame, preintegrated_measurement: &Imu
     let mut estimate = ImuDelta::empty();
     let delta_t = imu_data_measurement.gyro_ts[imu_data_measurement.gyro_ts.len()-1] - imu_data_measurement.gyro_ts[0]; // Gyro has a higher sampling rate
 
-    let mut residuals = imu_odometry::generate_residual(&estimate, preintegrated_measurement);
+    let mut residuals = imu_odometry::generate_residual::<9>(&estimate, preintegrated_measurement);
     let mut residuals_unweighted = residuals.clone();
 
     let weights = match imu_covariance.cholesky() {
@@ -95,7 +95,7 @@ fn estimate(imu_data_measurement: &ImuDataFrame, preintegrated_measurement: &Imu
 
         let pertb = step*delta;
         let new_estimate = estimate.add_pertb(&pertb);
-        let mut new_residuals = imu_odometry::generate_residual(&new_estimate, preintegrated_measurement);
+        let mut new_residuals = imu_odometry::generate_residual::<9>(&new_estimate, preintegrated_measurement);
         let new_residuals_unweighted = new_residuals.clone();
 
         weight_residuals(&mut new_residuals, &weight_l_upper);
@@ -142,17 +142,17 @@ fn estimate(imu_data_measurement: &ImuDataFrame, preintegrated_measurement: &Imu
 
 //TODO: potential for optimization. Maybe use less memory/matrices. 
 #[allow(non_snake_case)]
-fn gauss_newton_step_with_loss(
-    residuals: &ImuResidual, 
-    residuals_unweighted: &ImuResidual, 
-    jacobian: &ImuJacobian,
-    identity: &SMatrix<Float,9,9>,
+fn gauss_newton_step_with_loss<const T: usize>(
+    residuals: &SVector<Float, T>, 
+    residuals_unweighted: &SVector<Float, T>, 
+    jacobian: &SMatrix<Float,T,T>,
+    identity: &SMatrix<Float,T,T>,
      mu: Option<Float>, 
      tau: Float, 
      current_cost: Float, 
      loss_function: &Box<dyn LossFunction>,
-      rescaled_jacobian_target: &mut ImuJacobian, 
-      rescaled_residuals_target: &mut ImuResidual) -> (ImuPertrubation,ImuPertrubation,Float,Float) {
+      rescaled_jacobian_target: &mut SMatrix<Float,T,T>, 
+      rescaled_residuals_target: &mut SVector<Float, T>) -> (SVector<Float,T>,SVector<Float,T>,Float,Float) where Const<T>: DimMin<Const<T>, Output = Const<T>> {
 
     let selected_root = loss_function.select_root(current_cost);
     let first_deriv_at_cost = loss_function.first_derivative_at_current(current_cost);
@@ -171,7 +171,7 @@ fn gauss_newton_step_with_loss(
                         rescaled_jacobian_target.row_mut(i).copy_from(&(first_derivative_sqrt*(jacobian.row(i) - (jacobian_factor*residuals[i]*res_j))));
                         rescaled_residuals_target[i] = residual_scale*residuals[i];
                     }
-                    (rescaled_jacobian_target.transpose()*(rescaled_jacobian_target as &ImuJacobian),rescaled_jacobian_target.transpose()*(rescaled_residuals_target as &ImuResidual))
+                    (rescaled_jacobian_target.transpose()*(rescaled_jacobian_target as &SMatrix<Float,T,T>),rescaled_jacobian_target.transpose()*(rescaled_residuals_target as &SVector<Float, T>))
                 }
                 _ => (jacobian.transpose()*(first_deriv_at_cost*identity + 2.0*second_deriv_at_cost*residuals_unweighted*residuals_unweighted.transpose())*jacobian,first_deriv_at_cost*jacobian.transpose()*residuals) 
             }

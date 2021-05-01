@@ -1,6 +1,6 @@
 extern crate nalgebra as na;
 
-use na::{Vector3,Matrix3,Matrix4,U1,U3};
+use na::{Vector3,Matrix3,Matrix4,U1,U3, SVector};
 use crate::odometry::imu_odometry::ImuPertrubation;
 use crate::numerics::lie::{exp,exp_r,ln_SO3, vector_from_skew_symmetric};
 use crate::Float;
@@ -25,7 +25,7 @@ impl ImuDelta {
         }
     }
 
-    pub fn add_pertb(&self, new_pertb: &ImuPertrubation) -> ImuDelta {
+    pub fn add_pertb<const T: usize>(&self, new_pertb: &SVector<Float,T>) -> ImuDelta {
         //TODO: check this, we are interpreting delta trans as a differential quantity
         let delta_pose = exp(&new_pertb.fixed_rows::<3>(0),&new_pertb.fixed_rows::<3>(3));
         ImuDelta {

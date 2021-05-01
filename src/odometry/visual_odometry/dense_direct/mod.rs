@@ -20,7 +20,6 @@ pub fn compute_t_dist_weights(residuals: &DVector<Float>, weights_vec: &mut DVec
         let res = residuals[i];
         weights_vec[i] = compute_t_dist_weight(res,variance,t_dist_nu).sqrt();
     }
-
     
 }
 

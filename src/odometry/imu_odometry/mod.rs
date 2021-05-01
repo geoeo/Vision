@@ -89,9 +89,10 @@ fn generate_linear_model_matrices(accelerometer_k: &Vector3<Float>,gyrpscope_k: 
 }
 
 
-pub fn generate_jacobian<T>(lie: &Vector<Float,U3,T>, delta_t: Float) -> ImuJacobian where T: Storage<Float,U3,U1> {
+pub fn generate_jacobian<R, const T: usize>(lie: &Vector<Float,U3,R>, delta_t: Float) -> SMatrix<Float,T,T> where R: Storage<Float,U3,U1> {
 
-    let mut jacobian = ImuJacobian::zeros();
+    let mut jacobian = SMatrix::<Float,T,T>::zeros();
+        //TODO: check if T >= 9
     let identity = Matrix3::<Float>::identity();
     let right_inverse_jacobian = right_inverse_jacobian(&lie);
     jacobian.fixed_slice_mut::<3,3>(0,0).copy_from(&identity);
@@ -102,8 +103,9 @@ pub fn generate_jacobian<T>(lie: &Vector<Float,U3,T>, delta_t: Float) -> ImuJaco
     jacobian
 }
 
-pub fn generate_residual(estimate: &ImuDelta, measurement: &ImuDelta) -> ImuResidual {
-    let mut residual = ImuResidual::zeros();
+pub fn generate_residual<const T: usize>(estimate: &ImuDelta, measurement: &ImuDelta) -> SVector<Float,T> {
+    let mut residual = SVector::<Float,T>::zeros();
+    //TODO: check if T >= 9
     residual.fixed_rows_mut::<3>(0).copy_from(&(estimate.delta_position - measurement.delta_position));
     let rotation_residual = measurement.delta_rotation().transpose()*estimate.delta_rotation();
     let w_x = ln_SO3(&rotation_residual);
@@ -113,11 +115,11 @@ pub fn generate_residual(estimate: &ImuDelta, measurement: &ImuDelta) -> ImuResi
     residual
 }
 
-pub fn weight_residuals(residual: &mut ImuResidual, weights: &SMatrix<Float,9,9>) -> () {
+pub fn weight_residuals<const T : usize>(residual: &mut SVector<Float, T>, weights: &SMatrix<Float,T,T>) -> () {
     weights.mul_to(&residual.clone(),residual);
 }
 
-pub fn weight_jacobian(jacobian: &mut ImuJacobian, weights: &SMatrix<Float,9,9>) -> () {
+pub fn weight_jacobian<const T: usize>(jacobian: &mut SMatrix<Float,T,T>, weights: &SMatrix<Float,T,T>) -> () {
     weights.mul_to(&jacobian.clone(),jacobian);
 }
 

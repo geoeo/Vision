@@ -18,17 +18,17 @@ use vision::{float, Float};
 use vision::numerics;
 
 fn main() {
-    let dataset_name = "z_forward";
+    let dataset_name = "x_left_corr";
 
     let root_path = format!("D:/Workspace/Datasets/D455/{}", dataset_name);
     let out_folder = "D:/Workspace/Rust/Vision/output";
 
     let image_loading_parameters = ImageLoadingParameters {
-        starting_index: 5,
+        starting_index: 10,
         step: 1,
         count: 150,
-        image_height: 720,
-        image_width: 1280,
+        image_height: 480,
+        image_width: 640,
         negate_depth_values: false,
         invert_focal_lengths: false,
         invert_y: true,
