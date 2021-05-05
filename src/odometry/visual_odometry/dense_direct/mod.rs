@@ -167,6 +167,7 @@ pub fn compute_residuals(target_image_buffer: &DMatrix<Float>,source_image_buffe
 
 }
 
+//TODO: find a source for a good approximation of W
 pub fn norm(
     residuals: &DVector<Float>,
     loss_function: &Box<dyn LossFunction>,
@@ -174,7 +175,9 @@ pub fn norm(
 ) -> () {
     for i in 0..residuals.len() {
         let res = residuals[i];
-        weights_vec[i] = (loss_function.second_derivative_at_current(res) * res)
+        let res_sqrd = res.powi(2);
+        //weights_vec[i] = (loss_function.second_derivative_at_current(res_sqrd)*res_sqrd)
+        weights_vec[i] = (loss_function.second_derivative_at_current(res)*res)
             .abs()
             .sqrt();
     }
@@ -194,7 +197,7 @@ pub fn weight_jacobian_sparse<const T: usize>(
 ) -> () {
     let size = weights_vec.len();
     for i in 0..size {
-        let weighted_row = jacobian.row(i) * weights_vec[i];
+        let weighted_row = jacobian.row(i)*weights_vec[i];
         jacobian.row_mut(i).copy_from(&weighted_row);
     }
 }

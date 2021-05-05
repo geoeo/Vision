@@ -281,9 +281,7 @@ fn estimate<const T: usize>(
 
         let (delta, g, gain_ratio_denom, mu_val) = gauss_newton_step_with_loss(
             &residuals,
-            &residuals_unweighted,
             &imu_residuals,
-            &imu_residuals_unweighted,
             &full_jacobian,
             &imu_jacobian,
             &identity,
@@ -291,7 +289,6 @@ fn estimate<const T: usize>(
             tau,
             cost,
             &runtime_parameters.loss_function,
-            &mut jacobian_scaled,
             &mut rescaled_jacobian_target,
             &mut rescaled_residual_target,
             &mut imu_rescaled_jacobian_target,
@@ -391,9 +388,7 @@ fn estimate<const T: usize>(
 #[allow(non_snake_case)]
 fn gauss_newton_step_with_loss<const T: usize>(
     residuals: &DVector<Float>,
-    residuals_unweighted: &DVector<Float>,
     imu_residuals: &SVector<Float, T>,
-    imu_residuals_unweighted: &SVector<Float, T>,
     jacobian: &Matrix<Float, Dynamic, Const<T>, VecStorage<Float, Dynamic, Const<T>>>,
     imu_jacobian: &SMatrix<Float,T,T>,
     identity: &SMatrix<Float,T,T>,
@@ -401,12 +396,6 @@ fn gauss_newton_step_with_loss<const T: usize>(
     tau: Float,
     current_cost: Float,
     loss_function: &Box<dyn LossFunction>,
-    jacobian_scaled: &mut Matrix<
-        Float,
-        Dynamic,
-        Const<T>,
-        VecStorage<Float, Dynamic, Const<T>>,
-    >,
     rescaled_jacobian_target: &mut Matrix<
         Float,
         Dynamic,
@@ -473,33 +462,21 @@ fn gauss_newton_step_with_loss<const T: usize>(
                 //TODO: check this part
                 //let mut center = 2.0* second_deriv_at_cost* residuals_unweighted* residuals_unweighted.transpose();
 
-                jacobian_scaled.copy_from(&jacobian);
-                scale_to_diagonal(
-                    jacobian_scaled,
-                    &residuals_unweighted,
-                    first_deriv_at_cost,
-                    second_deriv_at_cost,
-                );
+
+                /*
+jacobian*first_deriv_at_cost+2.0*second_deriv_at_cost*jacobian.transpose() * residuals*residuals.transpose() * jacobian,first_deriv_at_cost * jacobian.transpose() * residuals
+                */
+
+
+                
+
 
                 (
-                    jacobian_scaled.transpose()
-                        * jacobian_scaled
-                            as &Matrix<
-                                Float,
-                                Dynamic,
-                                Const<T>,
-                                VecStorage<Float, Dynamic, Const<T>>>
-                         
-                        + imu_jacobian.transpose()
-                            * (first_deriv_at_cost * identity
-                                + 2.0
-                                    * second_deriv_at_cost
-                                    * imu_residuals_unweighted
-                                    * imu_residuals_unweighted.transpose())
-                            * imu_jacobian,
-                    first_deriv_at_cost
-                        * (jacobian.transpose() * residuals
-                            + imu_jacobian.transpose() * imu_residuals),
+                    jacobian.transpose()*first_deriv_at_cost*jacobian+2.0*second_deriv_at_cost*jacobian.transpose() * residuals*residuals.transpose() * jacobian + 
+                    imu_jacobian.transpose()*first_deriv_at_cost*imu_jacobian+2.0*second_deriv_at_cost*imu_jacobian.transpose() * imu_residuals*imu_residuals.transpose() * imu_jacobian,
+
+                    first_deriv_at_cost * jacobian.transpose() * residuals +
+                    first_deriv_at_cost * imu_jacobian.transpose() * imu_residuals
                 )
             }
         },

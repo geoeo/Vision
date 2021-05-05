@@ -89,7 +89,7 @@ fn estimate(imu_data_measurement: &ImuDataFrame, preintegrated_measurement: &Imu
         }
 
         let (delta,g,gain_ratio_denom, mu_val) 
-            = gauss_newton_step_with_loss(&residuals, &residuals_unweighted, &jacobian, &identity_9, mu, tau, cost, & runtime_parameters.loss_function, &mut rescaled_jacobian_target,&mut rescaled_residual_target);
+            = gauss_newton_step_with_loss(&residuals, &jacobian, &identity_9, mu, tau, cost, & runtime_parameters.loss_function, &mut rescaled_jacobian_target,&mut rescaled_residual_target);
         mu = Some(mu_val);
 
 
@@ -110,7 +110,6 @@ fn estimate(imu_data_measurement: &ImuDataFrame, preintegrated_measurement: &Imu
         if gain_ratio >= 0.0  || !runtime_parameters.lm {
             estimate = new_estimate;
             est_transform = estimate.get_pose();
-            //est_lie = lie::ln(&est_transform);
 
             cost = new_cost;
 
@@ -144,7 +143,6 @@ fn estimate(imu_data_measurement: &ImuDataFrame, preintegrated_measurement: &Imu
 #[allow(non_snake_case)]
 fn gauss_newton_step_with_loss<const T: usize>(
     residuals: &SVector<Float, T>, 
-    residuals_unweighted: &SVector<Float, T>, 
     jacobian: &SMatrix<Float,T,T>,
     identity: &SMatrix<Float,T,T>,
      mu: Option<Float>, 
@@ -173,7 +171,7 @@ fn gauss_newton_step_with_loss<const T: usize>(
                     }
                     (rescaled_jacobian_target.transpose()*(rescaled_jacobian_target as &SMatrix<Float,T,T>),rescaled_jacobian_target.transpose()*(rescaled_residuals_target as &SVector<Float, T>))
                 }
-                _ => (jacobian.transpose()*(first_deriv_at_cost*identity + 2.0*second_deriv_at_cost*residuals_unweighted*residuals_unweighted.transpose())*jacobian,first_deriv_at_cost*jacobian.transpose()*residuals) 
+                _ => (jacobian.transpose()*first_deriv_at_cost*jacobian+2.0*second_deriv_at_cost*jacobian.transpose() * residuals*residuals.transpose() * jacobian, first_deriv_at_cost * jacobian.transpose() * residuals)
             }
 
         },

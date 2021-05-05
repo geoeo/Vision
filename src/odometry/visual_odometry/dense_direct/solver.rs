@@ -216,14 +216,12 @@ fn estimate<const T: usize>(
 
         let (delta, g, gain_ratio_denom, mu_val) = gauss_newton_step_with_loss(
             &residuals,
-            &residuals_unweighted,
             &full_jacobian,
             &identity,
             mu,
             tau,
             cost,
             &runtime_parameters.loss_function,
-            &mut full_jacobian_scaled,
             &mut rescaled_jacobian_target,
             &mut rescaled_residual_target,
         );
@@ -311,40 +309,33 @@ fn estimate<const T: usize>(
 #[allow(non_snake_case)]
 fn gauss_newton_step_with_loss<const T: usize>(
     residuals: &DVector<Float>,
-    residuals_unweighted: &DVector<Float>,
     jacobian: &Matrix<Float, Dynamic, Const<T>, VecStorage<Float, Dynamic, Const<T>>>,
     identity: &SMatrix<Float, T, T>,
     mu: Option<Float>,
     tau: Float,
     current_cost: Float,
     loss_function: &Box<dyn LossFunction>,
-    jacobian_scaled: &mut Matrix<
-        Float,
-        Dynamic,
-        Const<T>,
-        VecStorage<Float, Dynamic, Const<T>>>,
     rescaled_jacobian_target: &mut Matrix<
         Float,
         Dynamic,
         Const<T>,
         VecStorage<Float, Dynamic, Const<T>>>,
-    rescaled_residuals_target: &mut DVector<Float>,
+    rescaled_residuals_target: &mut DVector<Float>
 ) -> (
     SVector<Float, T>,
     SVector<Float, T>,
     Float,
-    Float,
+    Float
 ) where Const<T>: DimMin<Const<T>, Output = Const<T>> {
     let selected_root = loss_function.select_root(current_cost);
     let first_deriv_at_cost = loss_function.first_derivative_at_current(current_cost);
     let second_deriv_at_cost = loss_function.second_derivative_at_current(current_cost);
     let is_curvature_negative = second_deriv_at_cost * current_cost < -0.5 * first_deriv_at_cost;
+
     let (A, g) = match selected_root {
         root if root != 0.0 => match is_curvature_negative {
             false => {
-                let first_derivative_sqrt = loss_function
-                    .first_derivative_at_current(current_cost)
-                    .sqrt();
+                let first_derivative_sqrt = first_deriv_at_cost.sqrt();
                 let jacobian_factor = selected_root / current_cost;
                 let residual_scale = first_derivative_sqrt / (1.0 - selected_root);
                 let res_j = residuals.transpose() * jacobian;
@@ -369,26 +360,7 @@ fn gauss_newton_step_with_loss<const T: usize>(
                 )
             }
             _ => {
-                //TODO: check this part
-                jacobian_scaled.copy_from(&jacobian);
-                scale_to_diagonal(
-                    jacobian_scaled,
-                    &residuals_unweighted,
-                    first_deriv_at_cost,
-                    second_deriv_at_cost,
-                );
-
-                (
-                    jacobian_scaled.transpose()
-                        * jacobian_scaled
-                            as &Matrix<
-                                Float,
-                                Dynamic,
-                                Const<T>,
-                                VecStorage<Float, Dynamic, Const<T>>,
-                            >,
-                    first_deriv_at_cost * jacobian.transpose() * residuals,
-                )
+                (jacobian.transpose()*first_deriv_at_cost*jacobian+2.0*second_deriv_at_cost*jacobian.transpose() * residuals*residuals.transpose() * jacobian,first_deriv_at_cost * jacobian.transpose() * residuals)
             }
         },
         _ => (
