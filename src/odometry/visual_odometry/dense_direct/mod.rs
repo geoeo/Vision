@@ -176,9 +176,7 @@ pub fn norm(
     for i in 0..residuals.len() {
         let res = residuals[i];
         let res_sqrd = res.powi(2);
-        //weights_vec[i] = (loss_function.second_derivative_at_current(res_sqrd)*res_sqrd)
-        weights_vec[i] = (loss_function.second_derivative_at_current(res)*res)
-            .abs()
+        weights_vec[i] = (2.0*loss_function.second_derivative_at_current(res_sqrd)*res_sqrd + loss_function.first_derivative_at_current(res_sqrd))
             .sqrt();
     }
 }
@@ -202,19 +200,20 @@ pub fn weight_jacobian_sparse<const T: usize>(
     }
 }
 
-pub fn scale_to_diagonal<const T: usize>(
-    mat: &mut Matrix<Float, Dynamic, Const<T>, VecStorage<Float, Dynamic, Const<T>>>,
-    residual: &DVector<Float>,
-    first_deriv: Float,
-    second_deriv: Float,
-) -> () {
-    for j in 0..T {
-        for i in 0..residual.nrows() {
-            mat[(i, j)] *= first_deriv + 2.0 * second_deriv * residual[i].powi(2);
-        }
-    }
+//TODO: check this
+// pub fn scale_to_diagonal<const T: usize>(
+//     mat: &mut Matrix<Float, Dynamic, Const<T>, VecStorage<Float, Dynamic, Const<T>>>,
+//     residual: &DVector<Float>,
+//     first_deriv: Float,
+//     second_deriv: Float,
+// ) -> () {
+//     for j in 0..T {
+//         for i in 0..residual.nrows() {
+//             mat[(i, j)] *= first_deriv + 2.0 * second_deriv * residual[i].powi(2);
+//         }
+//     }
 
-}
+// }
 
 
 

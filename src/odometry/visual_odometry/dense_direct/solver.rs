@@ -13,16 +13,11 @@ use crate::numerics::{lie, loss::LossFunction};
 use crate::odometry::runtime_parameters::RuntimeParameters;
 use crate::odometry::visual_odometry::dense_direct::{
     backproject_points, compute_full_jacobian, compute_image_gradients, compute_residuals,
-    precompute_jacobians,norm,weight_jacobian_sparse,weight_residuals_sparse,scale_to_diagonal
+    precompute_jacobians,norm,weight_jacobian_sparse,weight_residuals_sparse
 };
 use crate::pyramid::gd::{gd_octave::GDOctave, GDPyramid};
 use crate::sensors::camera::pinhole::Pinhole;
 use crate::{float, Float};
-
-
-//const RESIDUAL_DIM: usize = 6;
-//type ResidualDim = Const<RESIDUAL_DIM>;
-//type Identity = SMatrix<Float, RESIDUAL_DIM, RESIDUAL_DIM>;
 
 pub fn run_trajectory(
     source_rgdb_pyramids: &Vec<GDPyramid<GDOctave>>,

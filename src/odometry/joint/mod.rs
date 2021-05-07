@@ -14,7 +14,7 @@ use crate::numerics::{lie, loss::LossFunction};
 use crate::odometry::runtime_parameters::RuntimeParameters;
 use crate::odometry::visual_odometry::dense_direct::{
     backproject_points, compute_full_jacobian, compute_image_gradients, compute_residuals,
-    precompute_jacobians,norm,weight_jacobian_sparse,weight_residuals_sparse,scale_to_diagonal
+    precompute_jacobians,norm,weight_jacobian_sparse,weight_residuals_sparse
 };
 use crate::odometry::{
     imu_odometry,
@@ -387,7 +387,7 @@ fn estimate<const T: usize>(
 //TODO: potential for optimization. Maybe use less memory/matrices.
 #[allow(non_snake_case)]
 fn gauss_newton_step_with_loss<const T: usize>(
-    residuals: &DVector<Float>,
+    residuals: &DVector<Float>, 
     imu_residuals: &SVector<Float, T>,
     jacobian: &Matrix<Float, Dynamic, Const<T>, VecStorage<Float, Dynamic, Const<T>>>,
     imu_jacobian: &SMatrix<Float,T,T>,
@@ -459,22 +459,10 @@ fn gauss_newton_step_with_loss<const T: usize>(
                 )
             }
             _ => {
-                //TODO: check this part
-                //let mut center = 2.0* second_deriv_at_cost* residuals_unweighted* residuals_unweighted.transpose();
-
-
-                /*
-jacobian*first_deriv_at_cost+2.0*second_deriv_at_cost*jacobian.transpose() * residuals*residuals.transpose() * jacobian,first_deriv_at_cost * jacobian.transpose() * residuals
-                */
-
-
-                
-
 
                 (
                     jacobian.transpose()*first_deriv_at_cost*jacobian+2.0*second_deriv_at_cost*jacobian.transpose() * residuals*residuals.transpose() * jacobian + 
                     imu_jacobian.transpose()*first_deriv_at_cost*imu_jacobian+2.0*second_deriv_at_cost*imu_jacobian.transpose() * imu_residuals*imu_residuals.transpose() * imu_jacobian,
-
                     first_deriv_at_cost * jacobian.transpose() * residuals +
                     first_deriv_at_cost * imu_jacobian.transpose() * imu_residuals
                 )

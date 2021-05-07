@@ -26,7 +26,7 @@ fn main() {
     let image_loading_parameters = ImageLoadingParameters {
         starting_index: 5,
         step: 1,
-        count: 150,
+        count: 300,
         image_height: 480,
         image_width: 640,
         negate_depth_values: false,
@@ -72,7 +72,8 @@ fn main() {
         debug: false,
 
         show_octave_result: true,
-        loss_function: Box::new(numerics::loss::CauchyLoss { eps: 1e-16 }), //TODO: check loss functions
+        //loss_function: Box::new(numerics::loss::SoftOneLoss { eps: 1e-16 }), //TODO: check loss functions
+        loss_function: Box::new(numerics::loss::HuberLossForPos { eps: 1e-16, delta: 1.0 }), //TODO: check loss functions
     };
 
     let mut se3_est = vec![Matrix4::<Float>::identity()];

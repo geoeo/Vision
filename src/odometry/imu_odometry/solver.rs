@@ -171,6 +171,7 @@ fn gauss_newton_step_with_loss<const T: usize>(
                     }
                     (rescaled_jacobian_target.transpose()*(rescaled_jacobian_target as &SMatrix<Float,T,T>),rescaled_jacobian_target.transpose()*(rescaled_residuals_target as &SVector<Float, T>))
                 }
+                //TODO: check conditioning
                 _ => (jacobian.transpose()*first_deriv_at_cost*jacobian+2.0*second_deriv_at_cost*jacobian.transpose() * residuals*residuals.transpose() * jacobian, first_deriv_at_cost * jacobian.transpose() * residuals)
             }
 

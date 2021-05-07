@@ -61,7 +61,7 @@ fn main() {
     let target_pyramids = camera_data.target_gray_images.into_iter().zip(camera_data.target_depth_images.into_iter()).map(|(g,d)| build_rgbd_pyramid(g,d,&pyramid_parameters)).collect::<Vec<GDPyramid<GDOctave>>>();
 
     let vo_parameters = RuntimeParameters {
-        max_iterations: vec![800; 3],
+        max_iterations: vec![300; 3],
         eps: vec![1e-3;3],
         step_sizes: vec![1e-8;3],
         max_norm_eps: 1e-10,
@@ -72,7 +72,8 @@ fn main() {
         debug: false,
 
         show_octave_result: true,
-        loss_function: Box::new(numerics::loss::CauchyLoss { eps: 1e-16 }), //TODO: check loss functions
+        loss_function: Box::new(numerics::loss::SoftOneLoss { eps: 1e-16 })
+       //loss_function: Box::new(numerics::loss::HuberLossForPos { eps: 1e-16, delta: 10.0 })
     };
 
     let mut se3_est = vec![Matrix4::<Float>::identity()];

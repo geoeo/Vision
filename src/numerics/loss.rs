@@ -145,4 +145,44 @@ impl LossFunction for SoftOneLoss {
 
 }
 
+pub struct HuberLossForPos {
+    pub eps: Float,
+    pub delta: Float
+
+}
+
+// Look for a different
+impl LossFunction for HuberLossForPos {
+
+    fn cost(&self, cost: Float) -> Float {
+        match cost {
+            cost if cost <= self.delta => 0.5*cost.powi(2),
+            _ => self.delta*(cost - 0.5*self.delta)
+        }
+    }
+
+    fn eps(&self) -> Float {
+        self.eps
+    }
+
+    fn first_derivative_at_current(&self,current_cost: Float) -> Float {
+        match current_cost {
+            cost if cost <= self.delta => cost,
+            _ => current_cost
+        }
+    }
+
+    fn second_derivative_at_current(&self, current_cost: Float) -> Float {
+        match current_cost {
+            cost if cost <= self.delta => 1.0,
+            _ => 0.0
+        }
+    }
+
+    fn name(&self) -> &str {
+        "HuberLossForPos"
+    }
+
+}
+
 

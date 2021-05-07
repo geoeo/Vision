@@ -28,7 +28,7 @@ fn main() {
         negate_depth_values :false,
         invert_focal_lengths :false,
         invert_y :true,
-        set_default_depth: true,
+        set_default_depth: false,
         gt_alignment_rot:UnitQuaternion::identity()
     };
 
@@ -72,7 +72,7 @@ fn main() {
         debug: false,
 
         show_octave_result: true,
-        loss_function: Box::new(numerics::loss::CauchyLoss {eps: 1e-16})
+        loss_function: Box::new(numerics::loss::SoftOneLoss {eps: 1e-16})
     };
 
     let mut se3_est = vec!(Matrix4::<Float>::identity());
