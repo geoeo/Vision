@@ -81,7 +81,7 @@ fn estimate(imu_data_measurement: &ImuDataFrame, preintegrated_measurement: &Imu
     let tau = runtime_parameters.taus[0];
     let max_iterations = runtime_parameters.max_iterations[0];
     
-    let mut cost = compute_cost(&residuals,&runtime_parameters.loss_function);
+    let mut cost = compute_cost(&residuals);
     let mut iteration_count = 0;
     while ((!runtime_parameters.lm && (cost.sqrt() > runtime_parameters.eps[0])) || (runtime_parameters.lm && (delta_norm >= delta_thresh && max_norm_delta > runtime_parameters.max_norm_eps)))  && iteration_count < max_iterations  {
         if runtime_parameters.debug{
@@ -89,7 +89,7 @@ fn estimate(imu_data_measurement: &ImuDataFrame, preintegrated_measurement: &Imu
         }
 
         let (delta,g,gain_ratio_denom, mu_val) 
-            = gauss_newton_step_with_loss(&residuals, &jacobian, &identity_9, mu, tau, cost, & runtime_parameters.loss_function, &mut rescaled_jacobian_target,&mut rescaled_residual_target);
+            = gauss_newton_step_with_loss(&residuals, &jacobian, &identity_9, mu, tau, cost);
         mu = Some(mu_val);
 
 
@@ -100,7 +100,7 @@ fn estimate(imu_data_measurement: &ImuDataFrame, preintegrated_measurement: &Imu
 
         weight_residuals(&mut new_residuals, &weight_l_upper);
 
-        let new_cost = compute_cost(&new_residuals, &runtime_parameters.loss_function);
+        let new_cost = compute_cost(&new_residuals);
         let cost_diff = cost-new_cost;
         let gain_ratio = cost_diff/gain_ratio_denom;
         if runtime_parameters.debug {
@@ -147,37 +147,9 @@ fn gauss_newton_step_with_loss<const T: usize>(
     identity: &SMatrix<Float,T,T>,
      mu: Option<Float>, 
      tau: Float, 
-     current_cost: Float, 
-     loss_function: &Box<dyn LossFunction>,
-      rescaled_jacobian_target: &mut SMatrix<Float,T,T>, 
-      rescaled_residuals_target: &mut SVector<Float, T>) -> (SVector<Float,T>,SVector<Float,T>,Float,Float) where Const<T>: DimMin<Const<T>, Output = Const<T>> {
+     current_cost: Float)-> (SVector<Float,T>,SVector<Float,T>,Float,Float) where Const<T>: DimMin<Const<T>, Output = Const<T>> {
 
-    let selected_root = loss_function.select_root(current_cost);
-    let first_deriv_at_cost = loss_function.first_derivative_at_current(current_cost);
-    let second_deriv_at_cost = loss_function.second_derivative_at_current(current_cost);
-    let is_curvature_negative = second_deriv_at_cost*current_cost < -0.5*first_deriv_at_cost;
-    let (A,g) = match selected_root { //TODO: check root selection
-
-        root if root != 0.0 => {
-            match is_curvature_negative {
-                false => {
-                    let first_derivative_sqrt = first_deriv_at_cost.sqrt();
-                    let jacobian_factor = selected_root/current_cost;
-                    let residual_scale = first_derivative_sqrt/(1.0-selected_root);
-                    let res_j = residuals.transpose()*jacobian;
-                    for i in 0..jacobian.nrows(){
-                        rescaled_jacobian_target.row_mut(i).copy_from(&(first_derivative_sqrt*(jacobian.row(i) - (jacobian_factor*residuals[i]*res_j))));
-                        rescaled_residuals_target[i] = residual_scale*residuals[i];
-                    }
-                    (rescaled_jacobian_target.transpose()*(rescaled_jacobian_target as &SMatrix<Float,T,T>),rescaled_jacobian_target.transpose()*(rescaled_residuals_target as &SVector<Float, T>))
-                }
-                //TODO: check conditioning
-                _ => (jacobian.transpose()*first_deriv_at_cost*jacobian+2.0*second_deriv_at_cost*jacobian.transpose() * residuals*residuals.transpose() * jacobian, first_deriv_at_cost * jacobian.transpose() * residuals)
-            }
-
-        },
-        _ => (jacobian.transpose()*jacobian,jacobian.transpose()*residuals) 
-    };
+    let (A,g) = (jacobian.transpose()*jacobian,jacobian.transpose()*residuals);
     let mu_val = match mu {
         None => tau*A.diagonal().max(),
         Some(v) => v
@@ -190,7 +162,7 @@ fn gauss_newton_step_with_loss<const T: usize>(
 }
 
 
-fn compute_cost(residuals: &ImuResidual, loss_function: &Box<dyn LossFunction>) -> Float {
-    loss_function.cost((residuals.transpose()*residuals)[0])
+fn compute_cost(residuals: &ImuResidual) -> Float {
+    (residuals.transpose()*residuals)[0]
 }
 

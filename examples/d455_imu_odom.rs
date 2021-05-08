@@ -51,7 +51,7 @@ fn main() {
         debug: false,
 
         show_octave_result: true,
-        loss_function: Box::new(numerics::loss::SoftOneLoss { eps: 1e-16 }), //TODO: check loss functions
+        loss_function: Box::new(numerics::loss::SoftOneLoss { eps: 1e-16, approximate_gauss_newton_matrices: true }), //TODO: check loss functions
     };
 
     let mut se3_est = vec![Matrix4::<Float>::identity()];

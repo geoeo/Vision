@@ -24,6 +24,7 @@ pub trait LossFunction {
         };
         root_1.max(root_2) //TODO: test with other root, make this customisable
     }
+    fn approximate_gauss_newton_matrices(&self) -> bool;
     fn name(&self) -> &str;
 }
 
@@ -47,7 +48,8 @@ impl Display for dyn LossFunction {
 
 
 pub struct CauchyLoss {
-    pub eps: Float
+    pub eps: Float,
+    pub approximate_gauss_newton_matrices: bool
 }
 
 impl LossFunction for CauchyLoss {
@@ -66,6 +68,10 @@ impl LossFunction for CauchyLoss {
 
     fn second_derivative_at_current(&self, current_cost: Float) -> Float {
         -1.0/(1.0+current_cost).powi(2)
+    }
+
+    fn approximate_gauss_newton_matrices(&self) -> bool {
+        return self.approximate_gauss_newton_matrices
     }
 
     fn name(&self) -> &str {
@@ -109,6 +115,10 @@ impl LossFunction for TrivialLoss {
         0.0
     }
 
+    fn approximate_gauss_newton_matrices(&self) -> bool {
+        return false
+    }
+
     fn name(&self) -> &str {
         "Trivial"
     }
@@ -117,7 +127,8 @@ impl LossFunction for TrivialLoss {
 }
 
 pub struct SoftOneLoss {
-    pub eps: Float
+    pub eps: Float,
+    pub approximate_gauss_newton_matrices: bool
 }
 
 
@@ -139,6 +150,10 @@ impl LossFunction for SoftOneLoss {
         -1.0/(2.0*(1.0+current_cost).powf(3.0/2.0))
     }
 
+    fn approximate_gauss_newton_matrices(&self) -> bool {
+        return self.approximate_gauss_newton_matrices
+    }
+
     fn name(&self) -> &str {
         "SoftOneLoss"
     }
@@ -147,11 +162,12 @@ impl LossFunction for SoftOneLoss {
 
 pub struct HuberLossForPos {
     pub eps: Float,
-    pub delta: Float
+    pub delta: Float,
+    pub approximate_gauss_newton_matrices: bool
 
 }
 
-// Look for a different
+// TODO: Check this now that solver is working properly
 impl LossFunction for HuberLossForPos {
 
     fn cost(&self, cost: Float) -> Float {
@@ -177,6 +193,10 @@ impl LossFunction for HuberLossForPos {
             cost if cost <= self.delta => 1.0,
             _ => 0.0
         }
+    }
+
+    fn approximate_gauss_newton_matrices(&self) -> bool {
+        return self.approximate_gauss_newton_matrices
     }
 
     fn name(&self) -> &str {

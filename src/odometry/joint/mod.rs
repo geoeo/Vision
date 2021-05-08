@@ -161,10 +161,6 @@ fn estimate<const T: usize>(
         Matrix::<Float, Dynamic, Const<T>, VecStorage<Float, Dynamic, Const<T>>>::zeros(
             number_of_pixels,
         );
-    let mut jacobian_scaled =
-    Matrix::<Float, Dynamic, Const<T>, VecStorage<Float, Dynamic, Const<T>>>::zeros(
-        number_of_pixels,
-    );
     let mut image_gradients =
         Matrix::<Float, Dynamic, U2, VecStorage<Float, Dynamic, U2>>::zeros(number_of_pixels);
     let mut image_gradient_points = Vec::<Point<usize>>::with_capacity(number_of_pixels);
@@ -222,8 +218,6 @@ fn estimate<const T: usize>(
         .l()
         .transpose();
     let mut imu_jacobian = imu_odometry::generate_jacobian(&estimate.rotation_lie(), delta_t);
-    let mut imu_rescaled_jacobian_target = SMatrix::<Float,T,T>::zeros();
-    let mut imu_rescaled_residual_target = SVector::<Float,T>::zeros();
 
     weight_residuals(&mut imu_residuals, &imu_weight_l_upper);
     weight_jacobian(&mut imu_jacobian, &imu_weight_l_upper);
@@ -232,7 +226,7 @@ fn estimate<const T: usize>(
         &residuals,
         &imu_residuals,
         &runtime_parameters.loss_function,
-    ); //TODO this has to be visual + imu
+    ); 
 
     let mut max_norm_delta = float::MAX;
     let mut delta_thresh = float::MIN;
@@ -290,9 +284,7 @@ fn estimate<const T: usize>(
             cost,
             &runtime_parameters.loss_function,
             &mut rescaled_jacobian_target,
-            &mut rescaled_residual_target,
-            &mut imu_rescaled_jacobian_target,
-            &mut imu_rescaled_residual_target,
+            &mut rescaled_residual_target
         );
         mu = Some(mu_val);
 
@@ -402,9 +394,7 @@ fn gauss_newton_step_with_loss<const T: usize>(
         Const<T>,
         VecStorage<Float, Dynamic, Const<T>>,
     >,
-    rescaled_residuals_target: &mut DVector<Float>,
-    imu_rescaled_jacobian_target: &mut SMatrix<Float, T,T>,
-    imu_rescaled_residuals_target: &mut SVector<Float, T>,
+    rescaled_residuals_target: &mut DVector<Float>
 ) -> (
     SVector<Float, T>,
     SVector<Float, T>,
@@ -415,8 +405,9 @@ fn gauss_newton_step_with_loss<const T: usize>(
     let first_deriv_at_cost = loss_function.first_derivative_at_current(current_cost);
     let second_deriv_at_cost = loss_function.second_derivative_at_current(current_cost);
     let is_curvature_negative = second_deriv_at_cost * current_cost < -0.5 * first_deriv_at_cost;
+    let approximate_gauss_newton_matrices = loss_function.approximate_gauss_newton_matrices();
     let (A, g) = match selected_root {
-        root if root != 0.0 => match is_curvature_negative {
+        root if root != 0.0 && approximate_gauss_newton_matrices => match is_curvature_negative {
             false => {
                 let first_derivative_sqrt = loss_function
                     .first_derivative_at_current(current_cost)
@@ -425,21 +416,12 @@ fn gauss_newton_step_with_loss<const T: usize>(
                 let residual_scale = first_derivative_sqrt / (1.0 - selected_root);
                 let res_j = residuals.transpose() * jacobian;
 
-                let imu_res_j = imu_residuals.transpose() * imu_jacobian;
                 for i in 0..jacobian.nrows() {
                     rescaled_jacobian_target.row_mut(i).copy_from(
                         &(first_derivative_sqrt
                             * (jacobian.row(i) - (jacobian_factor * residuals[i] * res_j))),
                     );
                     rescaled_residuals_target[i] = residual_scale * residuals[i];
-                }
-                for i in 0..imu_jacobian.nrows() {
-                    imu_rescaled_jacobian_target.row_mut(i).copy_from(
-                        &(first_derivative_sqrt
-                            * (imu_jacobian.row(i)
-                                - (jacobian_factor * imu_residuals[i] * imu_res_j))),
-                    );
-                    imu_rescaled_residuals_target[i] = residual_scale * imu_residuals[i];
                 }
                 (
                     rescaled_jacobian_target.transpose()
@@ -450,21 +432,18 @@ fn gauss_newton_step_with_loss<const T: usize>(
                                 Const<T>,
                                 VecStorage<Float, Dynamic, Const<T>>,
                             >
-                        + imu_rescaled_jacobian_target.transpose()
-                            * imu_rescaled_jacobian_target as &SMatrix<Float,T,T>,
+                        + imu_jacobian.transpose()* imu_jacobian,
                     rescaled_jacobian_target.transpose()
                         * rescaled_residuals_target as &DVector<Float>
-                        + imu_rescaled_jacobian_target.transpose()
-                            * imu_rescaled_residuals_target as &SVector<Float,T>,
+                        + imu_jacobian.transpose()* imu_residuals,
                 )
             }
             _ => {
 
                 (
                     jacobian.transpose()*first_deriv_at_cost*jacobian+2.0*second_deriv_at_cost*jacobian.transpose() * residuals*residuals.transpose() * jacobian + 
-                    imu_jacobian.transpose()*first_deriv_at_cost*imu_jacobian+2.0*second_deriv_at_cost*imu_jacobian.transpose() * imu_residuals*imu_residuals.transpose() * imu_jacobian,
-                    first_deriv_at_cost * jacobian.transpose() * residuals +
-                    first_deriv_at_cost * imu_jacobian.transpose() * imu_residuals
+                    imu_jacobian.transpose()* imu_jacobian,
+                    first_deriv_at_cost * jacobian.transpose() * residuals + imu_jacobian.transpose() * imu_residuals
                 )
             }
         },
@@ -490,10 +469,8 @@ fn compute_cost<const T: usize>(
     imu_residuals: &SVector<Float,T>,
     loss_function: &Box<dyn LossFunction>,
 ) -> Float {
-    loss_function.cost(
-        (visual_residuals.transpose() * visual_residuals)[0]
-            + (imu_residuals.transpose() * imu_residuals)[0],
-    )
+    loss_function.cost((visual_residuals.transpose() * visual_residuals)[0]) + 
+    (imu_residuals.transpose() * imu_residuals)[0]
 }
 
 

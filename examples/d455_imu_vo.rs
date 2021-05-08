@@ -72,7 +72,7 @@ fn main() {
         debug: false,
 
         show_octave_result: true,
-        loss_function: Box::new(numerics::loss::SoftOneLoss { eps: 1e-16 })
+        loss_function: Box::new(numerics::loss::SoftOneLoss { eps: 1e-16, approximate_gauss_newton_matrices: true })
        //loss_function: Box::new(numerics::loss::HuberLossForPos { eps: 1e-16, delta: 10.0 })
     };
 

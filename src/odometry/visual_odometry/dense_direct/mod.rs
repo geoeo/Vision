@@ -200,20 +200,6 @@ pub fn weight_jacobian_sparse<const T: usize>(
     }
 }
 
-//TODO: check this
-// pub fn scale_to_diagonal<const T: usize>(
-//     mat: &mut Matrix<Float, Dynamic, Const<T>, VecStorage<Float, Dynamic, Const<T>>>,
-//     residual: &DVector<Float>,
-//     first_deriv: Float,
-//     second_deriv: Float,
-// ) -> () {
-//     for j in 0..T {
-//         for i in 0..residual.nrows() {
-//             mat[(i, j)] *= first_deriv + 2.0 * second_deriv * residual[i].powi(2);
-//         }
-//     }
-
-// }
 
 
 
