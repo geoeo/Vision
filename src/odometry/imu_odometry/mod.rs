@@ -23,7 +23,11 @@ pub fn pre_integration(imu_data: &ImuDataFrame, bias_gyroscope: &Vector3<Float>,
     let gyro_delta_times = imu_data.gyro_ts[1..].iter().enumerate().map(|(i,t)| t - imu_data.gyro_ts[i]).collect::<Vec<Float>>();
     
     let delta_rotations = imu_data.gyro_data[0..imu_data.gyro_count()-1].iter().zip(gyro_delta_times.iter()).map(|(x,&dt)| (x-bias_gyroscope)*dt).map(|x| exp_r(&x)).collect::<Vec<Matrix3::<Float>>>();
-    let delta_velocities = imu_data.acceleration_data[0..imu_data.acceleration_count()-1].iter().zip(delta_rotations.iter()).zip(accel_delta_times.iter()).map(|((x,dR),&dt)| dR*(x - bias_accelerometer + gravity_body)*dt).collect::<Vec<Vector3<Float>>>(); 
+    let accumulated_rotations = delta_rotations.iter().scan(Matrix3::<Float>::identity(),|acc,dr| {
+        *acc=*acc*(*dr);
+        Some(*acc)
+    }).collect::<Vec<Matrix3::<Float>>>();
+    let delta_velocities = imu_data.acceleration_data[0..imu_data.acceleration_count()-1].iter().zip(accumulated_rotations.iter()).zip(accel_delta_times.iter()).map(|((x,dR),&dt)| dR*(x - bias_accelerometer + gravity_body)*dt).collect::<Vec<Vector3<Float>>>(); 
     let accumulated_velocities = delta_velocities.iter().scan(Vector3::<Float>::zeros(),|acc,dv| {
         *acc=*acc+*dv;
         Some(*acc)
@@ -42,7 +46,7 @@ pub fn pre_integration(imu_data: &ImuDataFrame, bias_gyroscope: &Vector3<Float>,
         let a_delta_t_i_k = accel_delta_times[0..gyro_idx].iter().fold(0.0,|acc,x| acc+x);
         let g_delta_t_k = gyro_delta_times[gyro_idx];
 
-        let delta_rotation_i_k = delta_rotations[0..gyro_idx].iter().fold(identity,|acc,x| acc*x);
+        let delta_rotation_i_k = accumulated_rotations[gyro_idx];
         let delta_rotation_k = delta_rotations[gyro_idx];
 
         let (linear_state_design_matrix,linear_noise_design_matrix) = generate_linear_model_matrices(&accelerometer_k, &gyro_k,a_delta_t_i_k,g_delta_t_k ,&delta_rotation_i_k, &delta_rotation_k, gravity_body);

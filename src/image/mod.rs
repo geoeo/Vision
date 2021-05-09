@@ -19,6 +19,10 @@ pub struct Image {
 
 impl Image {
 
+    pub fn size(&self) -> usize {
+        self.buffer.ncols()*self.buffer.nrows()
+    }
+
     pub fn empty(width: usize, height: usize, image_encoding: ImageEncoding) -> Image {
         let buffer =  DMatrix::<Float>::from_element(height,width,255.0);
         Image{ buffer, original_encoding: image_encoding}
@@ -111,7 +115,7 @@ impl Image {
 
     pub fn upsample_double(image: &Image, normalize: bool) -> Image {
         let width = image.buffer.ncols();
-        let height = image.buffer.ncols();
+        let height = image.buffer.nrows();
 
         let new_width = width*2;
         let new_height = height*2;
