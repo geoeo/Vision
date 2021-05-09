@@ -16,7 +16,7 @@ pub type NoiseCovariance = SMatrix<Float,6,6>;
 pub type ImuJacobian = SMatrix<Float,9,9>;
 
 
-#[allow(non_snake_case)]
+#[allow(non_snake_case)] //TODO check this against basalt and when gravity + biases are done
 pub fn pre_integration(imu_data: &ImuDataFrame, bias_gyroscope: &Vector3<Float>,bias_accelerometer: &Vector3<Float>, gravity_body: &Vector3<Float>) -> (ImuDelta, ImuCovariance) {
 
     let accel_delta_times = imu_data.acceleration_ts[1..].iter().enumerate().map(|(i,t)| t - imu_data.acceleration_ts[i]).collect::<Vec<Float>>();
@@ -28,11 +28,16 @@ pub fn pre_integration(imu_data: &ImuDataFrame, bias_gyroscope: &Vector3<Float>,
         Some(*acc)
     }).collect::<Vec<Matrix3::<Float>>>();
     let delta_velocities = imu_data.acceleration_data[0..imu_data.acceleration_count()-1].iter().zip(accumulated_rotations.iter()).zip(accel_delta_times.iter()).map(|((x,dR),&dt)| dR*(x - bias_accelerometer + gravity_body)*dt).collect::<Vec<Vector3<Float>>>(); 
-    let accumulated_velocities = delta_velocities.iter().scan(Vector3::<Float>::zeros(),|acc,dv| {
-        *acc=*acc+*dv;
-        Some(*acc)
-    }).collect::<Vec<Vector3<Float>>>();
-    let delta_positions = delta_velocities.iter().zip(accel_delta_times.iter()).zip(accumulated_velocities.iter()).map(|((dv,&dt),v_initial)| v_initial*dt +0.5*dv*dt).collect::<Vec<Vector3::<Float>>>(); 
+
+    let mut accumulated_velocities = Vec::<Vector3<Float>>::with_capacity(delta_velocities.len());
+    accumulated_velocities.push(Vector3::<Float>::zeros());
+    let mut acc_vel = Vector3::<Float>::zeros();
+    for i in 0..delta_velocities.len()-1{
+        acc_vel +=delta_velocities[i];
+        accumulated_velocities.push(acc_vel);
+    }
+
+    let delta_positions = delta_velocities.iter().zip(accel_delta_times.iter()).zip(accumulated_velocities.iter()).map(|((dv,&dt),v_initial)| v_initial*dt + 0.5*dv*dt).collect::<Vec<Vector3::<Float>>>(); 
 
 
     let identity = Matrix3::<Float>::identity();
