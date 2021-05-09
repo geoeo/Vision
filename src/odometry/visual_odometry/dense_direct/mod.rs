@@ -177,9 +177,9 @@ pub fn norm(
         let res = residuals[i];
         let res_sqrd = res.powi(2);
         //weights_vec[i] = loss_function.second_derivative_at_current(res_sqrd)*res
-        weights_vec[i] = (2.0*loss_function.second_derivative_at_current(res_sqrd)*res_sqrd + loss_function.first_derivative_at_current(res_sqrd))
-        //weights_vec[i] = loss_function.second_derivative_at_current(res)*res
-        //.abs()
+        //weights_vec[i] = (2.0*loss_function.second_derivative_at_current(res_sqrd)*res_sqrd + loss_function.first_derivative_at_current(res_sqrd))
+        weights_vec[i] = loss_function.second_derivative_at_current(res)*res
+        .abs()
         .sqrt();
 
         //    .sqrt();
