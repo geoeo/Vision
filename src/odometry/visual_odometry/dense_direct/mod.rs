@@ -12,6 +12,54 @@ use crate::{Float,float,reconstruct_original_coordiantes};
 
 pub mod solver;
 
+pub struct RuntimeMemory<const T: usize> {
+    pub weights_vec: DVector::<Float>,
+    pub residuals: DVector::<Float>,
+    pub residuals_unweighted: DVector::<Float>,
+    pub new_residuals_unweighted: DVector::<Float>,
+    pub new_residuals: DVector::<Float>,
+    pub full_jacobian: Matrix::<Float, Dynamic, Const<T>, VecStorage<Float, Dynamic, Const<T>>>,
+    pub image_gradients: Matrix::<Float, Dynamic, U2, VecStorage<Float, Dynamic, U2>>,
+    pub image_gradient_points: Vec::<Point<usize>>,
+    pub new_image_gradient_points: Vec::<Point<usize>>,
+    pub rescaled_jacobian_target: Matrix::<Float, Dynamic, Const<T>, VecStorage<Float, Dynamic, Const<T>>>,
+    pub rescaled_residual_target: DVector::<Float>
+
+}
+
+impl<const T: usize> RuntimeMemory<T> {
+
+    pub fn new(size: usize) ->  RuntimeMemory<T>{
+
+        RuntimeMemory{
+            weights_vec: DVector::<Float>::zeros(size),
+            residuals: DVector::<Float>::from_element(size, float::MAX),
+            residuals_unweighted: DVector::<Float>::from_element(size, float::MAX),
+            new_residuals_unweighted: DVector::<Float>::from_element(size, float::MAX),
+            new_residuals: DVector::<Float>::from_element(size, float::MAX),
+            full_jacobian:
+                Matrix::<Float, Dynamic, Const<T>, VecStorage<Float, Dynamic, Const<T>>>::zeros(
+                    size,
+                ),
+            image_gradients:
+                Matrix::<Float, Dynamic, U2, VecStorage<Float, Dynamic, U2>>::zeros(size),
+            image_gradient_points: Vec::<Point<usize>>::with_capacity(size),
+            new_image_gradient_points: Vec::<Point<usize>>::with_capacity(size),
+            rescaled_jacobian_target:
+                Matrix::<Float, Dynamic, Const<T>, VecStorage<Float, Dynamic, Const<T>>>::zeros(
+                    size,
+                ),
+            rescaled_residual_target: DVector::<Float>::zeros(size)
+
+        }
+
+    }
+
+    pub fn from_pyramid(pyramid: &GDPyramid<GDOctave>) -> Vec<RuntimeMemory<T>> {
+        pyramid.octaves.iter().map(|octave| RuntimeMemory::new(octave.gray_images[0].size())).collect::<Vec<RuntimeMemory<T>>>()
+    }
+}
+
 
 pub fn compute_t_dist_weights(residuals: &DVector<Float>, weights_vec: &mut DVector<Float>, n: Float, t_dist_nu: Float, max_it: usize, eps: Float) -> () {
 
