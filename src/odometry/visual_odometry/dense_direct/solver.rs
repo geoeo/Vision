@@ -273,6 +273,8 @@ fn estimate<const T: usize>(
         );
         runtime_memory.new_residuals_unweighted.copy_from(&runtime_memory.new_residuals);
         if runtime_parameters.weighting {
+            //try hessian as approx to weight
+
             //dense_direct::compute_t_dist_weights(&new_residuals,&mut weights_vec,new_image_gradient_points.len() as Float,5.0,20,1e-10);
             norm(
                 &runtime_memory.new_residuals,
