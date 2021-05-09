@@ -19,6 +19,54 @@ use crate::pyramid::gd::{gd_octave::GDOctave, GDPyramid};
 use crate::sensors::camera::pinhole::Pinhole;
 use crate::{float, Float};
 
+pub struct RuntimeMemory<const T: usize> {
+    weights_vec: DVector::<Float>,
+    residuals: DVector::<Float>,
+    residuals_unweighted: DVector::<Float>,
+    new_residuals_unweighted: DVector::<Float>,
+    new_residuals: DVector::<Float>,
+    full_jacobian: Matrix::<Float, Dynamic, Const<T>, VecStorage<Float, Dynamic, Const<T>>>,
+    image_gradients: Matrix::<Float, Dynamic, U2, VecStorage<Float, Dynamic, U2>>,
+    image_gradient_points: Vec::<Point<usize>>,
+    new_image_gradient_points: Vec::<Point<usize>>,
+    rescaled_jacobian_target: Matrix::<Float, Dynamic, Const<T>, VecStorage<Float, Dynamic, Const<T>>>,
+    rescaled_residual_target: DVector::<Float>
+
+}
+
+impl<const T: usize> RuntimeMemory<T> {
+
+    pub fn new(size: usize) ->  RuntimeMemory<T>{
+
+        RuntimeMemory{
+            weights_vec: DVector::<Float>::zeros(size),
+            residuals: DVector::<Float>::from_element(size, float::MAX),
+            residuals_unweighted: DVector::<Float>::from_element(size, float::MAX),
+            new_residuals_unweighted: DVector::<Float>::from_element(size, float::MAX),
+            new_residuals: DVector::<Float>::from_element(size, float::MAX),
+            full_jacobian:
+                Matrix::<Float, Dynamic, Const<T>, VecStorage<Float, Dynamic, Const<T>>>::zeros(
+                    size,
+                ),
+            image_gradients:
+                Matrix::<Float, Dynamic, U2, VecStorage<Float, Dynamic, U2>>::zeros(size),
+            image_gradient_points: Vec::<Point<usize>>::with_capacity(size),
+            new_image_gradient_points: Vec::<Point<usize>>::with_capacity(size),
+            rescaled_jacobian_target:
+                Matrix::<Float, Dynamic, Const<T>, VecStorage<Float, Dynamic, Const<T>>>::zeros(
+                    size,
+                ),
+            rescaled_residual_target: DVector::<Float>::zeros(size)
+
+        }
+
+    }
+
+    pub fn from_pyramid(pyramid: &GDPyramid<GDOctave>) -> Vec<RuntimeMemory<T>> {
+        pyramid.octaves.iter().map(|octave| RuntimeMemory::new(octave.gray_images[0].size())).collect::<Vec<RuntimeMemory<T>>>()
+    }
+}
+
 pub fn run_trajectory(
     source_rgdb_pyramids: &Vec<GDPyramid<GDOctave>>,
     target_rgdb_pyramids: &Vec<GDPyramid<GDOctave>>,
@@ -26,6 +74,7 @@ pub fn run_trajectory(
     depth_camera: &Pinhole,
     runtime_parameters: &RuntimeParameters,
 ) -> Vec<Matrix4<Float>> {
+    let mut runtime_memory_vector = RuntimeMemory::<6>::from_pyramid(&source_rgdb_pyramids[0]);
     source_rgdb_pyramids
         .iter()
         .zip(target_rgdb_pyramids.iter())
@@ -35,6 +84,7 @@ pub fn run_trajectory(
                 i + 1,
                 &source,
                 &target,
+                &mut runtime_memory_vector,
                 intensity_camera,
                 depth_camera,
                 runtime_parameters,
@@ -43,14 +93,15 @@ pub fn run_trajectory(
         .collect::<Vec<Matrix4<Float>>>()
 }
 
-pub fn run(
+pub fn run<const T: usize>(
     iteration: usize,
     source_rgdb_pyramid: &GDPyramid<GDOctave>,
     target_rgdb_pyramid: &GDPyramid<GDOctave>,
+    runtime_memory_vector: &mut Vec<RuntimeMemory<T>>,
     intensity_camera: &Pinhole,
     depth_camera: &Pinhole,
     runtime_parameters: &RuntimeParameters,
-) -> Matrix4<Float> {
+) -> Matrix4<Float> where Const<T>: DimMin<Const<T>, Output = Const<T>> {
     let octave_count = source_rgdb_pyramid.octaves.len();
 
     assert_eq!(octave_count, runtime_parameters.taus.len());
@@ -58,7 +109,6 @@ pub fn run(
     assert_eq!(octave_count, runtime_parameters.max_iterations.len());
 
     let depth_image = &source_rgdb_pyramid.depth_image;
-    let mut lie_result = SVector::<Float, 6>::zeros();
     let mut mat_result = Matrix4::<Float>::identity();
 
     for index in (0..octave_count).rev() {
@@ -66,8 +116,8 @@ pub fn run(
             &source_rgdb_pyramid.octaves[index],
             depth_image,
             &target_rgdb_pyramid.octaves[index],
+            &mut runtime_memory_vector[index],
             index,
-            &lie_result,
             &mat_result,
             intensity_camera,
             depth_camera,
@@ -96,8 +146,8 @@ fn estimate<const T: usize>(
     source_octave: &GDOctave,
     source_depth_image_original: &Image,
     target_octave: &GDOctave,
+    runtime_memory: &mut RuntimeMemory<T>,
     octave_index: usize,
-    initial_guess_lie: &SVector<Float, T>,
     initial_guess_mat: &Matrix4<Float>,
     intensity_camera: &Pinhole,
     depth_camera: &Pinhole,
@@ -112,29 +162,12 @@ fn estimate<const T: usize>(
     let number_of_pixels_float = number_of_pixels as Float;
     let mut percentage_of_valid_pixels = 100.0;
 
-    let mut weights_vec = DVector::<Float>::from_element(number_of_pixels, 1.0);
+    runtime_memory.weights_vec.fill(1.0);
+    runtime_memory.image_gradient_points.clear();
+    runtime_memory.new_image_gradient_points.clear();
+
+
     let identity = SMatrix::<Float,T,T>::identity();
-    let mut residuals = DVector::<Float>::from_element(number_of_pixels, float::MAX);
-    let mut residuals_unweighted = DVector::<Float>::from_element(number_of_pixels, float::MAX);
-    let mut new_residuals_unweighted = DVector::<Float>::from_element(number_of_pixels, float::MAX);
-    let mut new_residuals = DVector::<Float>::from_element(number_of_pixels, float::MAX);
-    let mut full_jacobian =
-        Matrix::<Float, Dynamic, Const<T>, VecStorage<Float, Dynamic, Const<T>>>::zeros(
-            number_of_pixels,
-        );
-    let mut full_jacobian_scaled =
-        Matrix::<Float, Dynamic, Const<T>, VecStorage<Float, Dynamic, Const<T>>>::zeros(
-            number_of_pixels,
-        );
-    let mut image_gradients =
-        Matrix::<Float, Dynamic, U2, VecStorage<Float, Dynamic, U2>>::zeros(number_of_pixels);
-    let mut image_gradient_points = Vec::<Point<usize>>::with_capacity(number_of_pixels);
-    let mut new_image_gradient_points = Vec::<Point<usize>>::with_capacity(number_of_pixels);
-    let mut rescaled_jacobian_target =
-        Matrix::<Float, Dynamic, Const<T>, VecStorage<Float, Dynamic, Const<T>>>::zeros(
-            number_of_pixels,
-        );
-    let mut rescaled_residual_target = DVector::<Float>::zeros(number_of_pixels);
     let (backprojected_points, backprojected_points_flags) = backproject_points(
         &source_image.buffer,
         &source_depth_image_original.buffer,
@@ -148,7 +181,6 @@ fn estimate<const T: usize>(
     );
 
     let mut est_transform = initial_guess_mat.clone();
-    //let mut est_lie = initial_guess_lie.clone();
 
     compute_residuals(
         &target_image.buffer,
@@ -157,12 +189,12 @@ fn estimate<const T: usize>(
         &backprojected_points_flags,
         &est_transform,
         &intensity_camera,
-        &mut residuals,
-        &mut image_gradient_points,
+        &mut runtime_memory.residuals,
+        &mut runtime_memory.image_gradient_points,
     );
-    residuals_unweighted.copy_from(&residuals);
-    weight_residuals_sparse(&mut residuals, &weights_vec);
-    let mut cost = compute_cost(&residuals, &runtime_parameters.loss_function);
+    runtime_memory.residuals_unweighted.copy_from(&runtime_memory.residuals);
+    weight_residuals_sparse(&mut runtime_memory.residuals, &runtime_memory.weights_vec);
+    let mut cost = compute_cost(&runtime_memory.residuals, &runtime_parameters.loss_function);
 
     let mut max_norm_delta = float::MAX;
     let mut delta_thresh = float::MIN;
@@ -183,16 +215,16 @@ fn estimate<const T: usize>(
     compute_image_gradients(
         &x_gradient_image.buffer,
         &y_gradient_image.buffer,
-        &image_gradient_points,
-        &mut image_gradients,
+        &runtime_memory.image_gradient_points,
+        &mut runtime_memory.image_gradients,
     );
     compute_full_jacobian::<T>(
-        &image_gradients,
+        &runtime_memory.image_gradients,
         &constant_jacobians,
-        &mut full_jacobian,
+        &mut runtime_memory.full_jacobian,
     );
 
-    weight_jacobian_sparse(&mut full_jacobian, &weights_vec);
+    weight_jacobian_sparse(&mut runtime_memory.full_jacobian, &runtime_memory.weights_vec);
 
     let mut iteration_count = 0;
     while ((!runtime_parameters.lm && (cost.sqrt() > runtime_parameters.eps[octave_index]))
@@ -210,15 +242,15 @@ fn estimate<const T: usize>(
         }
 
         let (delta, g, gain_ratio_denom, mu_val) = gauss_newton_step_with_loss(
-            &residuals,
-            &full_jacobian,
+            &runtime_memory.residuals,
+            &runtime_memory.full_jacobian,
             &identity,
             mu,
             tau,
             cost,
             &runtime_parameters.loss_function,
-            &mut rescaled_jacobian_target,
-            &mut rescaled_residual_target,
+            &mut runtime_memory.rescaled_jacobian_target,
+            &mut runtime_memory.rescaled_residual_target,
         );
         mu = Some(mu_val);
 
@@ -228,7 +260,7 @@ fn estimate<const T: usize>(
             &pertb.fixed_slice::<3, 1>(3, 0),
         ) * est_transform;
 
-        new_image_gradient_points.clear();
+        runtime_memory.new_image_gradient_points.clear();
         compute_residuals(
             &target_image.buffer,
             &source_image.buffer,
@@ -236,23 +268,23 @@ fn estimate<const T: usize>(
             &backprojected_points_flags,
             &new_est_transform,
             &intensity_camera,
-            &mut new_residuals,
-            &mut new_image_gradient_points,
+            &mut runtime_memory.new_residuals,
+            &mut runtime_memory.new_image_gradient_points,
         );
-        new_residuals_unweighted.copy_from(&new_residuals);
+        runtime_memory.new_residuals_unweighted.copy_from(&runtime_memory.new_residuals);
         if runtime_parameters.weighting {
             //dense_direct::compute_t_dist_weights(&new_residuals,&mut weights_vec,new_image_gradient_points.len() as Float,5.0,20,1e-10);
             norm(
-                &new_residuals,
+                &runtime_memory.new_residuals,
                 &runtime_parameters.loss_function,
-                &mut weights_vec,
+                &mut runtime_memory.weights_vec,
             );
         }
-        weight_residuals_sparse(&mut new_residuals, &weights_vec);
+        weight_residuals_sparse(&mut runtime_memory.new_residuals, &runtime_memory.weights_vec);
 
         percentage_of_valid_pixels =
-            (new_image_gradient_points.len() as Float / number_of_pixels_float) * 100.0;
-        let new_cost = compute_cost(&new_residuals, &runtime_parameters.loss_function);
+            (runtime_memory.new_image_gradient_points.len() as Float / number_of_pixels_float) * 100.0;
+        let new_cost = compute_cost(&runtime_memory.new_residuals, &runtime_parameters.loss_function);
         let cost_diff = cost - new_cost;
         let gain_ratio = cost_diff / gain_ratio_denom;
         if runtime_parameters.debug {
@@ -268,22 +300,22 @@ fn estimate<const T: usize>(
             delta_thresh =
                 runtime_parameters.delta_eps * (est_lie.norm() + runtime_parameters.delta_eps);
 
-            image_gradient_points = new_image_gradient_points.clone();
-            residuals.copy_from(&new_residuals);
-            residuals_unweighted.copy_from(&new_residuals_unweighted);
+            runtime_memory.image_gradient_points = runtime_memory.new_image_gradient_points.clone();
+            runtime_memory.residuals.copy_from(&runtime_memory.new_residuals);
+            runtime_memory.residuals_unweighted.copy_from(&runtime_memory.new_residuals_unweighted);
 
             compute_image_gradients(
                 &x_gradient_image.buffer,
                 &y_gradient_image.buffer,
-                &image_gradient_points,
-                &mut image_gradients,
+                &runtime_memory.image_gradient_points,
+                &mut runtime_memory.image_gradients,
             );
             compute_full_jacobian::<T>(
-                &image_gradients,
+                &runtime_memory.image_gradients,
                 &constant_jacobians,
-                &mut full_jacobian,
+                &mut runtime_memory.full_jacobian,
             );
-            weight_jacobian_sparse(&mut full_jacobian, &weights_vec);
+            weight_jacobian_sparse(&mut runtime_memory.full_jacobian, &runtime_memory.weights_vec);
 
             let v: Float = 1.0 / 3.0;
             mu = Some(mu.unwrap() * v.max(1.0 - (2.0 * gain_ratio - 1.0).powi(3)));
