@@ -28,7 +28,7 @@ fn main() {
     let loading_parameters = ImageLoadingParameters {
         starting_index: 0,
         step :1,
-        count :20,
+        count :300,
         image_height: 480,
         image_width: 640,
         negate_depth_values :false,
@@ -82,6 +82,7 @@ fn main() {
 
         show_octave_result: true,
         loss_function: Box::new(numerics::loss::SoftOneLoss {eps: 1e-16, approximate_gauss_newton_matrices: true}),
+        //intensity_weighting_function:  Box::new(numerics::loss::HuberLossForPos {eps: 1e-16,delta:1.0, approximate_gauss_newton_matrices: true})
         intensity_weighting_function:  Box::new(numerics::loss::SoftOneLoss {eps: 1e-16, approximate_gauss_newton_matrices: true})
     };
 

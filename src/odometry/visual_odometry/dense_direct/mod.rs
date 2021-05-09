@@ -223,7 +223,6 @@ pub fn norm(
 ) -> () {
     for i in 0..residuals.len() {
         let res = residuals[i];
-        let res_sqrd = res.powi(2);
         weights_vec[i] = weight_function.cost(res)
     }
 }

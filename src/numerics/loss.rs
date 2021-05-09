@@ -168,13 +168,14 @@ pub struct HuberLossForPos {
 
 }
 
-// TODO: Check this now that solver is working properly
+// TODO: revisit this for weighting only
 impl LossFunction for HuberLossForPos {
 
     fn cost(&self, cost: Float) -> Float {
-        match cost {
-            cost if cost <= self.delta => 0.5*cost.powi(2),
-            _ => self.delta*(cost - 0.5*self.delta)
+        let cost_abs = cost.abs();
+        match cost_abs {
+            cost_abs if cost_abs <= self.delta => 0.5*cost_abs.powi(2),
+            _ => self.delta*(cost_abs - 0.5*self.delta)
         }
     }
 
@@ -182,16 +183,18 @@ impl LossFunction for HuberLossForPos {
         self.eps
     }
 
-    fn first_derivative_at_current(&self,current_cost: Float) -> Float {
-        match current_cost {
-            cost if cost <= self.delta => cost,
-            _ => current_cost
+    fn first_derivative_at_current(&self,cost: Float) -> Float {
+        let cost_abs = cost.abs();
+        match cost_abs {
+            cost_abs if cost_abs <= self.delta => cost,
+            _ => self.delta
         }
     }
 
-    fn second_derivative_at_current(&self, current_cost: Float) -> Float {
-        match current_cost {
-            cost if cost <= self.delta => 1.0,
+    fn second_derivative_at_current(&self, cost: Float) -> Float {
+        let cost_abs = cost.abs();
+        match cost_abs {
+            cost_abs if cost_abs <= self.delta => 1.0,
             _ => 0.0
         }
     }
