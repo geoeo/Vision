@@ -15,8 +15,6 @@ pub mod solver;
 pub struct RuntimeMemory<const T: usize> {
     pub weights_vec: DVector::<Float>,
     pub residuals: DVector::<Float>,
-    pub residuals_unweighted: DVector::<Float>,
-    pub new_residuals_unweighted: DVector::<Float>,
     pub new_residuals: DVector::<Float>,
     pub full_jacobian: Matrix::<Float, Dynamic, Const<T>, VecStorage<Float, Dynamic, Const<T>>>,
     pub image_gradients: Matrix::<Float, Dynamic, U2, VecStorage<Float, Dynamic, U2>>,
@@ -34,8 +32,6 @@ impl<const T: usize> RuntimeMemory<T> {
         RuntimeMemory{
             weights_vec: DVector::<Float>::zeros(size),
             residuals: DVector::<Float>::from_element(size, float::MAX),
-            residuals_unweighted: DVector::<Float>::from_element(size, float::MAX),
-            new_residuals_unweighted: DVector::<Float>::from_element(size, float::MAX),
             new_residuals: DVector::<Float>::from_element(size, float::MAX),
             full_jacobian:
                 Matrix::<Float, Dynamic, Const<T>, VecStorage<Float, Dynamic, Const<T>>>::zeros(

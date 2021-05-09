@@ -145,7 +145,7 @@ fn estimate<const T: usize>(
         &mut runtime_memory.residuals,
         &mut runtime_memory.image_gradient_points,
     );
-    runtime_memory.residuals_unweighted.copy_from(&runtime_memory.residuals);
+    //TODO: check why this performs badly
     // norm(
     //     &runtime_memory.residuals,
     //     &runtime_parameters.intensity_weighting_function,
@@ -229,7 +229,6 @@ fn estimate<const T: usize>(
             &mut runtime_memory.new_residuals,
             &mut runtime_memory.new_image_gradient_points,
         );
-        runtime_memory.new_residuals_unweighted.copy_from(&runtime_memory.new_residuals);
         if runtime_parameters.weighting {
             norm(
                 &runtime_memory.new_residuals,
@@ -259,7 +258,6 @@ fn estimate<const T: usize>(
 
             runtime_memory.image_gradient_points = runtime_memory.new_image_gradient_points.clone();
             runtime_memory.residuals.copy_from(&runtime_memory.new_residuals);
-            runtime_memory.residuals_unweighted.copy_from(&runtime_memory.new_residuals_unweighted);
 
             compute_image_gradients(
                 &x_gradient_image.buffer,
