@@ -218,19 +218,13 @@ pub fn compute_residuals(target_image_buffer: &DMatrix<Float>,source_image_buffe
 //TODO: find a source for a good approximation of W
 pub fn norm(
     residuals: &DVector<Float>,
-    loss_function: &Box<dyn LossFunction>,
+    weight_function: &Box<dyn LossFunction>,
     weights_vec: &mut DVector<Float>,
 ) -> () {
     for i in 0..residuals.len() {
         let res = residuals[i];
         let res_sqrd = res.powi(2);
-        //weights_vec[i] = loss_function.second_derivative_at_current(res_sqrd)*res
-        //weights_vec[i] = (2.0*loss_function.second_derivative_at_current(res_sqrd)*res_sqrd + loss_function.first_derivative_at_current(res_sqrd))
-        weights_vec[i] = loss_function.second_derivative_at_current(res)*res
-        .abs()
-        .sqrt();
-
-        //    .sqrt();
+        weights_vec[i] = weight_function.cost(res)
     }
 }
 

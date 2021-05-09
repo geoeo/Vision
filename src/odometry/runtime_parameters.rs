@@ -15,7 +15,8 @@ pub struct RuntimeParameters{
     pub show_octave_result: bool,
     pub lm: bool,
     pub weighting: bool,
-    pub loss_function: Box<dyn LossFunction>
+    pub loss_function: Box<dyn LossFunction>,
+    pub intensity_weighting_function: Box<dyn LossFunction>
 }
 
 impl fmt::Display for RuntimeParameters {

@@ -158,25 +158,6 @@ fn estimate<const T: usize>(
     runtime_memory.image_gradient_points.clear();
     runtime_memory.new_image_gradient_points.clear();
 
-
-    // let mut weights_vec = DVector::<Float>::from_element(number_of_pixels, 1.0);
-    // let mut residuals = DVector::<Float>::from_element(number_of_pixels, float::MAX);
-    // let mut residuals_unweighted = DVector::<Float>::from_element(number_of_pixels, float::MAX);
-    // let mut new_residuals_unweighted = DVector::<Float>::from_element(number_of_pixels, float::MAX);
-    // let mut new_residuals = DVector::<Float>::from_element(number_of_pixels, float::MAX);
-    // let mut full_jacobian =
-    //     Matrix::<Float, Dynamic, Const<T>, VecStorage<Float, Dynamic, Const<T>>>::zeros(
-    //         number_of_pixels,
-    //     );
-    // let mut image_gradients =
-    //     Matrix::<Float, Dynamic, U2, VecStorage<Float, Dynamic, U2>>::zeros(number_of_pixels);
-    // let mut image_gradient_points = Vec::<Point<usize>>::with_capacity(number_of_pixels);
-    // let mut new_image_gradient_points = Vec::<Point<usize>>::with_capacity(number_of_pixels);
-    // let mut rescaled_jacobian_target =
-    //     Matrix::<Float, Dynamic, Const<T>, VecStorage<Float, Dynamic, Const<T>>>::zeros(
-    //         number_of_pixels,
-    //     );
-    // let mut rescaled_residual_target = DVector::<Float>::zeros(number_of_pixels);
     let (backprojected_points, backprojected_points_flags) = backproject_points(
         &source_image.buffer,
         &source_depth_image_original.buffer,
@@ -202,6 +183,11 @@ fn estimate<const T: usize>(
         &mut runtime_memory.image_gradient_points,
     );
     runtime_memory.residuals_unweighted.copy_from(&runtime_memory.residuals);
+    // norm(
+    //     &runtime_memory.residuals,
+    //     &runtime_parameters.intensity_weighting_function,
+    //     &mut runtime_memory.weights_vec,
+    // );
     weight_residuals_sparse(&mut runtime_memory.residuals, &runtime_memory.weights_vec);
 
     let mut estimate = ImuDelta::empty();
@@ -313,7 +299,7 @@ fn estimate<const T: usize>(
         runtime_memory.new_residuals_unweighted.copy_from(&runtime_memory.new_residuals);
         norm(
             &runtime_memory.new_residuals,
-            &runtime_parameters.loss_function,
+            &runtime_parameters.intensity_weighting_function,
             &mut runtime_memory.weights_vec,
         );
         weight_residuals_sparse(&mut runtime_memory.new_residuals, &runtime_memory.weights_vec);

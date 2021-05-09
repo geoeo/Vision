@@ -81,13 +81,14 @@ impl LossFunction for CauchyLoss {
 }
 
 pub struct TrivialLoss {
-    pub eps: Float
+    pub eps: Float,
+    pub approximate_gauss_newton_matrices: bool
 }
 
 impl LossFunction for TrivialLoss {
 
-    fn cost(&self, _cost: Float) -> Float {
-        1.0
+    fn cost(&self, cost: Float) -> Float {
+        cost
     }
 
     // roots are 0 and 2
@@ -107,7 +108,7 @@ impl LossFunction for TrivialLoss {
         self.eps
     }
 
-    fn first_derivative_at_current(&self,_: Float) -> Float {
+    fn first_derivative_at_current(&self, _: Float) -> Float {
         1.0
     }
 
