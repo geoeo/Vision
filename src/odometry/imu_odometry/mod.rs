@@ -1,6 +1,6 @@
 use nalgebra as na;
 
-use na::{U1,U3,U6,U9,Matrix3,SMatrix,SVector,Vector,Vector3,UnitQuaternion,base::storage::Storage};
+use na::{Const, Matrix3,SMatrix,SVector,Vector,Vector3,UnitQuaternion,base::storage::Storage};
 use crate::{float,Float};
 use crate::sensors::{DataFrame, imu::imu_data_frame::ImuDataFrame};
 use crate::odometry::imu_odometry::imu_delta::ImuDelta;
@@ -9,17 +9,13 @@ use crate::numerics::lie::{exp_r,skew_symmetric,right_jacobian, right_inverse_ja
 pub mod imu_delta;
 pub mod solver;
 
-// pub type ImuCovariance = SMatrix<Float,9,9>;
-// pub type ImuResidual = SVector<Float,9>;
-// pub type ImuPertrubation = SVector<Float,9>;
-// pub type NoiseCovariance = SMatrix<Float,6,6>;
-// pub type ImuJacobian = SMatrix<Float,9,9>;
-
 pub type ImuCovariance = SMatrix<Float,9,9>;
 pub type ImuResidual = SVector<Float,9>;
 pub type ImuPertrubation = SVector<Float,9>;
 pub type NoiseCovariance = SMatrix<Float,6,6>;
 pub type ImuJacobian = SMatrix<Float,9,9>;
+
+
 
 
 #[allow(non_snake_case)] //TODO check this against basalt and when gravity + biases are done
@@ -104,10 +100,9 @@ fn generate_linear_model_matrices(accelerometer_k: &Vector3<Float>,gyrpscope_k: 
 }
 
 
-pub fn generate_jacobian<R, const T: usize>(lie: &Vector<Float,U3,R>, delta_t: Float) -> SMatrix<Float,T,T> where R: Storage<Float,U3,U1> {
+pub fn generate_jacobian<R>(lie: &Vector<Float,Const<3>,R>, delta_t: Float) -> ImuCovariance where R: Storage<Float,Const<3>,Const<1>> {
 
-    let mut jacobian = SMatrix::<Float,T,T>::zeros();
-        //TODO: check if T >= 9
+    let mut jacobian = ImuCovariance::zeros();
     let identity = Matrix3::<Float>::identity();
     let right_inverse_jacobian = right_inverse_jacobian(&lie);
     jacobian.fixed_slice_mut::<3,3>(0,0).copy_from(&identity);
@@ -118,9 +113,8 @@ pub fn generate_jacobian<R, const T: usize>(lie: &Vector<Float,U3,R>, delta_t: F
     jacobian
 }
 
-pub fn generate_residual<const T: usize>(estimate: &ImuDelta, measurement: &ImuDelta) -> SVector<Float,T> {
-    let mut residual = SVector::<Float,T>::zeros();
-    //TODO: check if T >= 9
+pub fn generate_residual(estimate: &ImuDelta, measurement: &ImuDelta) -> ImuResidual {
+    let mut residual = ImuResidual::zeros();
     residual.fixed_rows_mut::<3>(0).copy_from(&(estimate.delta_position - measurement.delta_position));
     let rotation_residual = measurement.delta_rotation().transpose()*estimate.delta_rotation();
     let w_x = ln_SO3(&rotation_residual);
@@ -130,11 +124,11 @@ pub fn generate_residual<const T: usize>(estimate: &ImuDelta, measurement: &ImuD
     residual
 }
 
-pub fn weight_residuals<const T : usize>(residual: &mut SVector<Float, T>, weights: &SMatrix<Float,T,T>) -> () {
+pub fn weight_residuals(residual: &mut ImuResidual, weights: &ImuCovariance) -> () {
     weights.mul_to(&residual.clone(),residual);
 }
 
-pub fn weight_jacobian<const T: usize>(jacobian: &mut SMatrix<Float,T,T>, weights: &SMatrix<Float,T,T>) -> () {
+pub fn weight_jacobian(jacobian: &mut ImuCovariance, weights: &ImuCovariance) -> () {
     weights.mul_to(&jacobian.clone(),jacobian);
 }
 

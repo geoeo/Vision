@@ -19,7 +19,7 @@ use crate::odometry::visual_odometry::dense_direct::{ RuntimeMemory,
 use crate::odometry::{
     imu_odometry,
     imu_odometry::imu_delta::ImuDelta,
-    imu_odometry::{weight_residuals, weight_jacobian},
+    imu_odometry::{ImuResidual,ImuJacobian,ImuPertrubation, ImuCovariance,weight_residuals, weight_jacobian},
 };
 use crate::pyramid::gd::{gd_octave::GDOctave, GDPyramid};
 use crate::sensors::camera::Camera;
@@ -65,7 +65,7 @@ pub fn run<C: Camera, const T: usize>(
     iteration: usize,
     source_rgdb_pyramid: &GDPyramid<GDOctave>,
     target_rgdb_pyramid: &GDPyramid<GDOctave>,
-    runtime_memory_vector: &mut Vec<RuntimeMemory<9>>,
+    runtime_memory_vector: &mut Vec<RuntimeMemory<T>>,
     intensity_camera: &C,
     depth_camera: &C,
     imu_data_measurement: &ImuDataFrame,
@@ -91,7 +91,7 @@ pub fn run<C: Camera, const T: usize>(
     );
 
     for index in (0..octave_count).rev() {
-        let result = estimate::<C, 9>(
+        let result = estimate::<C, T>(
             &source_rgdb_pyramid.octaves[index],
             depth_image,
             &target_rgdb_pyramid.octaves[index],
@@ -136,7 +136,7 @@ fn estimate<C: Camera, const T: usize>(
     depth_camera: &C,
     imu_data_measurement: &ImuDataFrame,
     preintegrated_measurement: &ImuDelta,
-    imu_covariance: &SMatrix<Float,T,T>,
+    imu_covariance: &ImuCovariance,
     gravity_body: &Vector3<Float>,
     runtime_parameters: &RuntimeParameters,
 ) -> (Matrix4<Float>, usize) where  Const<T>: DimMin<Const<T>, Output = Const<T>> {
@@ -149,6 +149,8 @@ fn estimate<C: Camera, const T: usize>(
     let number_of_pixels_float = number_of_pixels as Float;
     let mut percentage_of_valid_pixels = 100.0;
     let identity = SMatrix::<Float,T,T>::identity();
+    let mut imu_residuals_full = SVector::<Float,T>::zeros();
+    let mut imu_jacobian_full = SMatrix::<Float,T,T>::zeros();
 
     runtime_memory.weights_vec.fill(1.0);
     runtime_memory.image_gradient_points.clear();
@@ -190,14 +192,14 @@ fn estimate<C: Camera, const T: usize>(
     let delta_t = imu_data_measurement.gyro_ts[imu_data_measurement.gyro_ts.len() - 1]
         - imu_data_measurement.gyro_ts[0]; // Gyro has a higher sampling rate
 
-    let mut imu_residuals = imu_odometry::generate_residual::<T>(&estimate, preintegrated_measurement);
+    let mut imu_residuals = imu_odometry::generate_residual(&estimate, preintegrated_measurement);
     let mut imu_residuals_unweighted = imu_residuals.clone();
 
     let imu_weights = match imu_covariance.cholesky() {
         Some(v) => v.inverse(),
         None => {
             println!("Warning Cholesky failed for imu covariance");
-            identity
+            ImuCovariance::identity()
         }
     };
     let imu_weight_l_upper = imu_weights
@@ -260,12 +262,14 @@ fn estimate<C: Camera, const T: usize>(
                 percentage_of_valid_pixels
             );
         }
+        imu_residuals_full.fixed_rows_mut::<9>(0).copy_from(&imu_residuals);
+        imu_jacobian_full.fixed_slice_mut::<9,9>(0,0).copy_from(&imu_jacobian);
 
         let (delta, g, gain_ratio_denom, mu_val) = gauss_newton_step_with_loss(
             &runtime_memory.residuals,
-            &imu_residuals,
+            &imu_residuals_full,
             &runtime_memory.full_jacobian,
-            &imu_jacobian,
+            &imu_jacobian_full,
             &identity,
             mu,
             tau,
@@ -277,7 +281,7 @@ fn estimate<C: Camera, const T: usize>(
         mu = Some(mu_val);
 
         let pertb = step * delta;
-        let new_estimate = estimate.add_pertb(&pertb);
+        let new_estimate = estimate.add_pertb(&pertb.fixed_rows::<9>(0));
         let new_est_transform =
             lie::exp(&pertb.fixed_rows::<3>(0), &pertb.fixed_rows::<3>(3)) * est_transform;
 
@@ -302,7 +306,7 @@ fn estimate<C: Camera, const T: usize>(
             (runtime_memory.new_image_gradient_points.len() as Float / number_of_pixels_float) * 100.0;
 
         let mut imu_new_residuals =
-            imu_odometry::generate_residual::<T>(&new_estimate, preintegrated_measurement);
+            imu_odometry::generate_residual(&new_estimate, preintegrated_measurement);
         let imu_new_residuals_unweighted = imu_new_residuals.clone();
         weight_residuals(&mut imu_new_residuals, &imu_weight_l_upper);
 

@@ -1,11 +1,9 @@
 extern crate nalgebra as na;
 
-use na::{Vector3,Vector6,Matrix4,SMatrix,SVector, Const, DimMin, DimMinimum};
-use std::boxed::Box;
+use na::{Vector3,Matrix4,SMatrix,SVector, Const, DimMin, DimMinimum};
 
 use crate::odometry::runtime_parameters::RuntimeParameters;
 use crate::odometry::{imu_odometry, imu_odometry::imu_delta::ImuDelta, imu_odometry::{ImuResidual,ImuJacobian,ImuPertrubation, ImuCovariance, weight_jacobian, weight_residuals}};
-use crate::numerics::{lie,loss::LossFunction};
 use crate::sensors::imu::imu_data_frame::ImuDataFrame;
 use crate::{Float,float};
 
@@ -38,13 +36,13 @@ pub fn run(iteration: usize, imu_data_measurement: &ImuDataFrame,bias_gyroscope:
 
 //TODO: buffer all debug strings and print at the end. Also the numeric matricies could be buffered per octave level
 fn estimate(imu_data_measurement: &ImuDataFrame, preintegrated_measurement: &ImuDelta,imu_covariance: &ImuCovariance,initial_guess_mat: &Matrix4<Float>,gravity_body: &Vector3<Float>, runtime_parameters: &RuntimeParameters) -> (Matrix4<Float>, usize) {
-    let identity_9 = SMatrix::<Float,9,9>::identity();
+    let identity_9 = ImuCovariance::identity();
 
     let mut est_transform = initial_guess_mat.clone();
     let mut estimate = ImuDelta::empty();
     let delta_t = imu_data_measurement.gyro_ts[imu_data_measurement.gyro_ts.len()-1] - imu_data_measurement.gyro_ts[0]; // Gyro has a higher sampling rate
 
-    let mut residuals = imu_odometry::generate_residual::<9>(&estimate, preintegrated_measurement);
+    let mut residuals = imu_odometry::generate_residual(&estimate, preintegrated_measurement);
     let mut residuals_unweighted = residuals.clone();
 
     let weights = match imu_covariance.cholesky() {
@@ -91,7 +89,7 @@ fn estimate(imu_data_measurement: &ImuDataFrame, preintegrated_measurement: &Imu
 
         let pertb = step*delta;
         let new_estimate = estimate.add_pertb(&pertb);
-        let mut new_residuals = imu_odometry::generate_residual::<9>(&new_estimate, preintegrated_measurement);
+        let mut new_residuals = imu_odometry::generate_residual(&new_estimate, preintegrated_measurement);
         let new_residuals_unweighted = new_residuals.clone();
 
         weight_residuals(&mut new_residuals, &weight_l_upper);
