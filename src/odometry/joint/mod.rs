@@ -22,19 +22,15 @@ use crate::odometry::{
     imu_odometry::{weight_residuals, weight_jacobian},
 };
 use crate::pyramid::gd::{gd_octave::GDOctave, GDPyramid};
-use crate::sensors::camera::{pinhole::Pinhole, Camera};
+use crate::sensors::camera::Camera;
 use crate::sensors::imu::imu_data_frame::ImuDataFrame;
-use crate::{float, reconstruct_original_coordiantes, Float};
+use crate::{float, Float};
 
-//type ResidualDim = U9;
-//const RESIDUAL_DIM: usize = 9;
-//type Identity = SMatrix<Float, RESIDUAL_DIM, RESIDUAL_DIM>;
-
-pub fn run_trajectory(
+pub fn run_trajectory<C: Camera>(
     source_rgdb_pyramids: &Vec<GDPyramid<GDOctave>>,
     target_rgdb_pyramids: &Vec<GDPyramid<GDOctave>>,
-    intensity_camera: &Pinhole,
-    depth_camera: &Pinhole,
+    intensity_camera: &C,
+    depth_camera: &C,
     imu_data_measurements: &Vec<ImuDataFrame>,
     bias_gyroscope: &Vector3<Float>,
     bias_accelerometer: &Vector3<Float>,
@@ -48,7 +44,7 @@ pub fn run_trajectory(
         .zip(imu_data_measurements.iter())
         .enumerate()
         .map(|(i, ((source, target), imu_data_measurement))| {
-            run::<9>(
+            run::<C, 9>(
                 i + 1,
                 &source,
                 &target,
@@ -65,13 +61,13 @@ pub fn run_trajectory(
         .collect::<Vec<Matrix4<Float>>>()
 }
 
-pub fn run<const T: usize>(
+pub fn run<C: Camera, const T: usize>(
     iteration: usize,
     source_rgdb_pyramid: &GDPyramid<GDOctave>,
     target_rgdb_pyramid: &GDPyramid<GDOctave>,
     runtime_memory_vector: &mut Vec<RuntimeMemory<9>>,
-    intensity_camera: &Pinhole,
-    depth_camera: &Pinhole,
+    intensity_camera: &C,
+    depth_camera: &C,
     imu_data_measurement: &ImuDataFrame,
     bias_gyroscope: &Vector3<Float>,
     bias_accelerometer: &Vector3<Float>,
@@ -95,7 +91,7 @@ pub fn run<const T: usize>(
     );
 
     for index in (0..octave_count).rev() {
-        let result = estimate::<9>(
+        let result = estimate::<C, 9>(
             &source_rgdb_pyramid.octaves[index],
             depth_image,
             &target_rgdb_pyramid.octaves[index],
@@ -129,15 +125,15 @@ pub fn run<const T: usize>(
 }
 
 //TODO: buffer all debug strings and print at the end. Also the numeric matricies could be buffered per octave level
-fn estimate<const T: usize>(
+fn estimate<C: Camera, const T: usize>(
     source_octave: &GDOctave,
     source_depth_image_original: &Image,
     target_octave: &GDOctave,
     runtime_memory: &mut RuntimeMemory<T>,
     octave_index: usize,
     initial_guess_mat: &Matrix4<Float>,
-    intensity_camera: &Pinhole,
-    depth_camera: &Pinhole,
+    intensity_camera: &C,
+    depth_camera: &C,
     imu_data_measurement: &ImuDataFrame,
     preintegrated_measurement: &ImuDelta,
     imu_covariance: &SMatrix<Float,T,T>,
@@ -161,13 +157,13 @@ fn estimate<const T: usize>(
     let (backprojected_points, backprojected_points_flags) = backproject_points(
         &source_image.buffer,
         &source_depth_image_original.buffer,
-        &depth_camera,
+        depth_camera,
         octave_index,
     );
     let constant_jacobians = precompute_jacobians(
         &backprojected_points,
         &backprojected_points_flags,
-        &intensity_camera,
+        intensity_camera,
     );
 
     let mut est_transform = initial_guess_mat.clone();
@@ -178,7 +174,7 @@ fn estimate<const T: usize>(
         &backprojected_points,
         &backprojected_points_flags,
         &est_transform,
-        &intensity_camera,
+        intensity_camera,
         &mut runtime_memory.residuals,
         &mut runtime_memory.image_gradient_points,
     );
@@ -292,7 +288,7 @@ fn estimate<const T: usize>(
             &backprojected_points,
             &backprojected_points_flags,
             &new_est_transform,
-            &intensity_camera,
+            intensity_camera,
             &mut runtime_memory.new_residuals,
             &mut runtime_memory.new_image_gradient_points,
         );
