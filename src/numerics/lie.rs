@@ -1,6 +1,6 @@
 extern crate nalgebra as na;
 
-use na::{Vector,Vector3,Vector6,Matrix3,Matrix3x6,Matrix,SMatrix, Matrix4,U3,U1,base::storage::Storage};
+use na::{Vector,Vector3,Vector6,Matrix3,Matrix3x6,Matrix, Matrix4,U3,U1,base::storage::Storage};
 use crate::Float;
 
 pub fn skew_symmetric<T>(w: &Vector<Float,U3,T>) -> Matrix3<Float> where T: Storage<Float,U3,U1>  {
