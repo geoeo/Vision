@@ -7,7 +7,7 @@ use na::{
 use std::boxed::Box;
 
 use crate::image::Image;
-use crate::numerics::{lie, loss::LossFunction};
+use crate::numerics::{lie, loss::LossFunction, max_norm};
 use crate::odometry::runtime_parameters::RuntimeParameters;
 use crate::odometry::visual_odometry::dense_direct::{
     RuntimeMemory,backproject_points, compute_full_jacobian, compute_image_gradients, compute_residuals,
@@ -185,7 +185,7 @@ fn estimate<C : Camera, const T: usize>(
     let mut iteration_count = 0;
     while ((!runtime_parameters.lm && (cost.sqrt() > runtime_parameters.eps[octave_index]))
         || (runtime_parameters.lm
-            && (delta_norm >= delta_thresh && max_norm_delta > runtime_parameters.max_norm_eps)))
+            && (delta_norm > delta_thresh && max_norm_delta > runtime_parameters.max_norm_eps)))
         && iteration_count < max_iterations
     {
         if runtime_parameters.debug {
@@ -249,8 +249,8 @@ fn estimate<C : Camera, const T: usize>(
             est_transform = new_est_transform.clone();
             cost = new_cost;
 
-            max_norm_delta = g.max();
-            delta_norm = delta.norm();
+            max_norm_delta = max_norm(&g); 
+            delta_norm = pertb.norm(); 
             delta_thresh =
                 runtime_parameters.delta_eps * (est_lie.norm() + runtime_parameters.delta_eps);
 

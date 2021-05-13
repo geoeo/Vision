@@ -10,7 +10,7 @@ use std::boxed::Box;
 
 use crate::features::geometry::point::Point;
 use crate::image::Image;
-use crate::numerics::{lie, loss::LossFunction};
+use crate::numerics::{lie, loss::LossFunction, max_norm};
 use crate::odometry::runtime_parameters::RuntimeParameters;
 use crate::odometry::visual_odometry::dense_direct::{ RuntimeMemory,
     backproject_points, compute_full_jacobian, compute_image_gradients, compute_residuals,
@@ -251,7 +251,7 @@ fn estimate<C: Camera, const T: usize>(
     let mut iteration_count = 0;
     while ((!runtime_parameters.lm && (cost.sqrt() > runtime_parameters.eps[octave_index]))
         || (runtime_parameters.lm
-            && (delta_norm >= delta_thresh && max_norm_delta > runtime_parameters.max_norm_eps)))
+            && (delta_norm > delta_thresh && max_norm_delta > runtime_parameters.max_norm_eps)))
         && iteration_count < max_iterations
     {
         if runtime_parameters.debug {
@@ -321,14 +321,17 @@ fn estimate<C: Camera, const T: usize>(
             println!("{},{}", cost, new_cost);
         }
         if gain_ratio >= 0.0 || !runtime_parameters.lm {
+            let mut state_vector = SVector::<Float,T>::zeros();
+            state_vector.fixed_rows_mut::<9>(0).copy_from(&estimate.state_vector());
             estimate = new_estimate;
             est_transform = new_est_transform;
 
             cost = new_cost;
-            max_norm_delta = g.max();
-            delta_norm = delta.norm();
+
+            max_norm_delta = max_norm(&g); // TODO: this is not the max norm
+            delta_norm = pertb.norm();
             delta_thresh =
-                runtime_parameters.delta_eps * (estimate.norm() + runtime_parameters.delta_eps);
+                runtime_parameters.delta_eps * (state_vector.norm() + runtime_parameters.delta_eps);
 
             runtime_memory.image_gradient_points = runtime_memory.new_image_gradient_points.clone();
             runtime_memory.residuals.copy_from(&runtime_memory.new_residuals);

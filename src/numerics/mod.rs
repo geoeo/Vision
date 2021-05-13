@@ -1,6 +1,6 @@
 extern crate nalgebra as na;
 
-use na::{Matrix2,Matrix3,Matrix1x2,Matrix3x1};
+use na::{Matrix2,Matrix3,Matrix1x2,Matrix3x1, SVector,Const, DimMin};
 use crate::image::Image;
 use crate::{Float,float};
 
@@ -138,5 +138,19 @@ pub fn gauss_2d(x_center: Float, y_center: Float, x: Float, y: Float, sigma: Flo
 
     exp/denom
 }
+
+pub fn max_norm<const T: usize>(vector: &SVector<Float,T>) -> Float where Const<T>: DimMin<Const<T>, Output = Const<T>> {
+
+    vector.iter().fold(0.0,|max,v| 
+        match v.abs() {
+            v_abs if v_abs > max => v_abs,
+            _ => max
+        }
+    )
+
+}
+
+
+
 
 

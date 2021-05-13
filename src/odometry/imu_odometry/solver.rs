@@ -1,10 +1,11 @@
 extern crate nalgebra as na;
 
-use na::{Vector3,Matrix4,SMatrix,SVector, Const, DimMin, DimMinimum};
+use na::{Vector3,Matrix4,SMatrix,SVector, Const, DimMin};
 
 use crate::odometry::runtime_parameters::RuntimeParameters;
 use crate::odometry::{imu_odometry, imu_odometry::imu_delta::ImuDelta, imu_odometry::{ImuResidual,ImuJacobian,ImuPertrubation, ImuCovariance, weight_jacobian, weight_residuals}};
 use crate::sensors::imu::imu_data_frame::ImuDataFrame;
+use crate::numerics::max_norm;
 use crate::{Float,float};
 
 
@@ -77,7 +78,7 @@ fn estimate(imu_data_measurement: &ImuDataFrame, preintegrated_measurement: &Imu
     
     let mut cost = compute_cost(&residuals);
     let mut iteration_count = 0;
-    while ((!runtime_parameters.lm && (cost.sqrt() > runtime_parameters.eps[0])) || (runtime_parameters.lm && (delta_norm >= delta_thresh && max_norm_delta > runtime_parameters.max_norm_eps)))  && iteration_count < max_iterations  {
+    while ((!runtime_parameters.lm && (cost.sqrt() > runtime_parameters.eps[0])) || (runtime_parameters.lm && (delta_norm > delta_thresh && max_norm_delta > runtime_parameters.max_norm_eps)))  && iteration_count < max_iterations  {
         if runtime_parameters.debug{
             println!("it: {}, avg_rmse: {}",iteration_count,cost.sqrt());
         }
@@ -107,8 +108,9 @@ fn estimate(imu_data_measurement: &ImuDataFrame, preintegrated_measurement: &Imu
 
             cost = new_cost;
 
-            max_norm_delta = g.max();
-            delta_norm = delta.norm();
+            max_norm_delta = max_norm(&g);
+            delta_norm = pertb.norm(); 
+
             delta_thresh = runtime_parameters.delta_eps*(estimate.norm() + runtime_parameters.delta_eps);
 
             residuals.copy_from(&new_residuals);
