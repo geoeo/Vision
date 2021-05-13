@@ -1,13 +1,11 @@
 extern crate nalgebra as na;
 
 use na::{
-    storage::Storage, DMatrix, DVector, DimMin, DimMinimum, Dynamic, Matrix, Matrix4, SMatrix, SVector,
-    VecStorage, U2, U4, U6, U9,Const, DefaultAllocator, allocator::Allocator
+    DVector, DimMin, Dynamic, Matrix, Matrix4, SMatrix, SVector,
+    VecStorage,Const
 };
 use std::boxed::Box;
-use std::ops::IndexMut;
 
-use crate::features::geometry::point::Point;
 use crate::image::Image;
 use crate::numerics::{lie, loss::LossFunction};
 use crate::odometry::runtime_parameters::RuntimeParameters;
@@ -16,17 +14,17 @@ use crate::odometry::visual_odometry::dense_direct::{
     precompute_jacobians,norm,weight_jacobian_sparse,weight_residuals_sparse
 };
 use crate::pyramid::gd::{gd_octave::GDOctave, GDPyramid};
-use crate::sensors::camera::pinhole::Pinhole;
+use crate::sensors::camera::Camera;
 use crate::{float, Float};
 
 
-pub fn run_trajectory(
+pub fn run_trajectory<C>(
     source_rgdb_pyramids: &Vec<GDPyramid<GDOctave>>,
     target_rgdb_pyramids: &Vec<GDPyramid<GDOctave>>,
-    intensity_camera: &Pinhole,
-    depth_camera: &Pinhole,
+    intensity_camera: &C,
+    depth_camera: &C,
     runtime_parameters: &RuntimeParameters,
-) -> Vec<Matrix4<Float>> {
+) -> Vec<Matrix4<Float>> where C: Camera {
     let mut runtime_memory_vector = RuntimeMemory::<6>::from_pyramid(&source_rgdb_pyramids[0]);
     source_rgdb_pyramids
         .iter()
@@ -46,13 +44,13 @@ pub fn run_trajectory(
         .collect::<Vec<Matrix4<Float>>>()
 }
 
-pub fn run<const T: usize>(
+pub fn run<C: Camera, const T: usize>(
     iteration: usize,
     source_rgdb_pyramid: &GDPyramid<GDOctave>,
     target_rgdb_pyramid: &GDPyramid<GDOctave>,
     runtime_memory_vector: &mut Vec<RuntimeMemory<T>>,
-    intensity_camera: &Pinhole,
-    depth_camera: &Pinhole,
+    intensity_camera: &C,
+    depth_camera: &C,
     runtime_parameters: &RuntimeParameters,
 ) -> Matrix4<Float> where Const<T>: DimMin<Const<T>, Output = Const<T>> {
     let octave_count = source_rgdb_pyramid.octaves.len();
@@ -95,15 +93,15 @@ pub fn run<const T: usize>(
 }
 
 //TODO: buffer all debug strings and print at the end. Also the numeric matricies could be buffered per octave level
-fn estimate<const T: usize>(
+fn estimate<C : Camera, const T: usize>(
     source_octave: &GDOctave,
     source_depth_image_original: &Image,
     target_octave: &GDOctave,
     runtime_memory: &mut RuntimeMemory<T>,
     octave_index: usize,
     initial_guess_mat: &Matrix4<Float>,
-    intensity_camera: &Pinhole,
-    depth_camera: &Pinhole,
+    intensity_camera: &C,
+    depth_camera: &C,
     runtime_parameters: &RuntimeParameters,
 ) -> (Matrix4<Float>, usize) where Const<T>: DimMin<Const<T>, Output = Const<T>> {
     let source_image = &source_octave.gray_images[0];
@@ -124,13 +122,13 @@ fn estimate<const T: usize>(
     let (backprojected_points, backprojected_points_flags) = backproject_points(
         &source_image.buffer,
         &source_depth_image_original.buffer,
-        &depth_camera,
+        depth_camera,
         octave_index,
     );
     let constant_jacobians = precompute_jacobians(
         &backprojected_points,
         &backprojected_points_flags,
-        &intensity_camera,
+        intensity_camera,
     );
 
     let mut est_transform = initial_guess_mat.clone();
@@ -141,7 +139,7 @@ fn estimate<const T: usize>(
         &backprojected_points,
         &backprojected_points_flags,
         &est_transform,
-        &intensity_camera,
+        intensity_camera,
         &mut runtime_memory.residuals,
         &mut runtime_memory.image_gradient_points,
     );
@@ -225,7 +223,7 @@ fn estimate<const T: usize>(
             &backprojected_points,
             &backprojected_points_flags,
             &new_est_transform,
-            &intensity_camera,
+            intensity_camera,
             &mut runtime_memory.new_residuals,
             &mut runtime_memory.new_image_gradient_points,
         );

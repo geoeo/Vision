@@ -1,11 +1,9 @@
 extern crate nalgebra as na;
 
-use na::{U2,U4,U6,U9,Dim,DimName,allocator::Allocator,Const,RowVector2,Vector4,SVector,DVector,Matrix4,Matrix,SMatrix,DMatrix,Dynamic,VecStorage};
+use na::{U2,U4,Dim,DimName,Const,RowVector2,Vector4,DVector,Matrix4,Matrix,DMatrix,Dynamic,VecStorage};
 
 use crate::pyramid::gd::{GDPyramid,gd_octave::GDOctave};
-use crate::sensors::camera::{Camera,pinhole::Pinhole};
-use crate::odometry::runtime_parameters::RuntimeParameters;
-use crate::image::Image;
+use crate::sensors::camera::Camera;
 use crate::numerics::{lie,loss::LossFunction};
 use crate::features::geometry::point::Point;
 use crate::{Float,float,reconstruct_original_coordiantes};
@@ -122,7 +120,7 @@ pub fn compute_image_gradients(x_gradients: &DMatrix<Float>, y_gradients: &DMatr
 
 }
 
-pub fn backproject_points(source_image_buffer: &DMatrix<Float>,depth_image_buffer: &DMatrix<Float>,  pinhole_camera: &Pinhole, octave_index: usize) -> (Matrix<Float,U4,Dynamic,VecStorage<Float,U4,Dynamic>>, Vec<bool>) {
+pub fn backproject_points<C : Camera>(source_image_buffer: &DMatrix<Float>,depth_image_buffer: &DMatrix<Float>,  camera: &C, octave_index: usize) -> (Matrix<Float,U4,Dynamic,VecStorage<Float,U4,Dynamic>>, Vec<bool>) {
     let (rows,cols) = source_image_buffer.shape();
     let mut backproject_points =  Matrix::<Float,U4,Dynamic,VecStorage<Float,U4,Dynamic>>::zeros(rows*cols);
     let mut backproject_points_flags =  vec![false;rows*cols];
@@ -137,7 +135,7 @@ pub fn backproject_points(source_image_buffer: &DMatrix<Float>,depth_image_buffe
 
 
         if depth_sample != 0.0 {
-            let backprojected_point = pinhole_camera.backproject(&Point::<Float>::new(c as Float + 0.5,r as Float + 0.5), depth_sample); //TODO: inverse depth
+            let backprojected_point = camera.backproject(&Point::<Float>::new(c as Float + 0.5,r as Float + 0.5), depth_sample); //TODO: inverse depth
             backproject_points.set_column(image_to_linear_index(r,cols,c),&Vector4::<Float>::new(backprojected_point[0],backprojected_point[1],backprojected_point[2],1.0));
             backproject_points_flags[image_to_linear_index(r,cols,c)] = true;
         } else {
@@ -147,14 +145,14 @@ pub fn backproject_points(source_image_buffer: &DMatrix<Float>,depth_image_buffe
     (backproject_points,backproject_points_flags)
 }
 
-pub fn precompute_jacobians<T: Dim + DimName>(backprojected_points: &Matrix<Float,U4,Dynamic,VecStorage<Float,U4,Dynamic>>,backprojected_points_flags: &Vec<bool>, pinhole_camera: &Pinhole) -> Matrix<Float,Dynamic,T, VecStorage<Float,Dynamic,T>> {
+pub fn precompute_jacobians<C: Camera, T: Dim + DimName>(backprojected_points: &Matrix<Float,U4,Dynamic,VecStorage<Float,U4,Dynamic>>,backprojected_points_flags: &Vec<bool>, camera: &C) -> Matrix<Float,Dynamic,T, VecStorage<Float,Dynamic,T>> {
     let number_of_points = backprojected_points.ncols();
     let mut precomputed_jacobians = Matrix::<Float,Dynamic,T, VecStorage<Float,Dynamic,T>>::zeros(2*number_of_points);
 
     for i in 0..number_of_points {
         if backprojected_points_flags[i] {
             let point = backprojected_points.fixed_slice::<3,1>(0,i);
-            let camera_jacobian = pinhole_camera.get_jacobian_with_respect_to_position(&point);
+            let camera_jacobian = camera.get_jacobian_with_respect_to_position(&point);
             let lie_jacobian = lie::left_jacobian_around_identity(&point);
             precomputed_jacobians.fixed_slice_mut::<2,6>(i*2,0).copy_from(&(camera_jacobian*lie_jacobian));
         }
@@ -166,6 +164,7 @@ pub fn precompute_jacobians<T: Dim + DimName>(backprojected_points: &Matrix<Floa
     precomputed_jacobians
 }
 
+//TODO: performance offender
 pub fn compute_full_jacobian<const D: usize>(image_gradients: &Matrix<Float,Dynamic,U2, VecStorage<Float,Dynamic,U2>>, const_jacobians: &Matrix<Float,Dynamic,Const<D>, VecStorage<Float,Dynamic,Const<D>>>, target: &mut Matrix<Float,Dynamic,Const<D>, VecStorage<Float,Dynamic,Const<D>>>) -> () {
     let number_of_elements = image_gradients.nrows();
 
@@ -177,7 +176,9 @@ pub fn compute_full_jacobian<const D: usize>(image_gradients: &Matrix<Float,Dyna
 
 }
 
-pub fn compute_residuals(target_image_buffer: &DMatrix<Float>,source_image_buffer: &DMatrix<Float>,backprojected_points: &Matrix<Float,U4,Dynamic,VecStorage<Float,U4,Dynamic>>,backprojected_points_flags: &Vec<bool>, est_transform: &Matrix4<Float>, pinhole_camera: &Pinhole, residual_target: &mut DVector<Float>, image_gradient_points: &mut Vec<Point<usize>>) -> () {
+//TODO: highest performance offender
+pub fn compute_residuals<C>(target_image_buffer: &DMatrix<Float>,source_image_buffer: &DMatrix<Float>,backprojected_points: &Matrix<Float,U4,Dynamic,VecStorage<Float,U4,Dynamic>>,
+    backprojected_points_flags: &Vec<bool>, est_transform: &Matrix4<Float>, camera: &C, residual_target: &mut DVector<Float>, image_gradient_points: &mut Vec<Point<usize>>) -> () where C: Camera {
     let transformed_points = est_transform*backprojected_points;
     let number_of_points = transformed_points.ncols();
     let image_width = target_image_buffer.ncols();
@@ -185,7 +186,7 @@ pub fn compute_residuals(target_image_buffer: &DMatrix<Float>,source_image_buffe
     let (rows,cols) = source_image_buffer.shape();
     for i in 0..number_of_points {
         let source_point = linear_to_image_index(i,image_width);
-        let target_point = pinhole_camera.project(&transformed_points.fixed_slice::<3,1>(0,i)); //TODO: inverse depth
+        let target_point = camera.project(&transformed_points.fixed_slice::<3,1>(0,i)); //TODO: inverse depth
         let target_point_y = target_point.y.trunc() as usize;
         let target_point_x = target_point.x.trunc() as usize;
         let target_linear_idx = image_to_linear_index(target_point_y, image_width, target_point_x);
@@ -219,7 +220,7 @@ pub fn norm(
 ) -> () {
     for i in 0..residuals.len() {
         let res = residuals[i];
-        weights_vec[i] = weight_function.cost(res)
+        weights_vec[i] = weight_function.cost(res).sqrt()
     }
 }
 
@@ -231,6 +232,7 @@ pub fn weight_residuals_sparse(
 }
 
 //TODO: optimize
+//TODO: performance offender
 pub fn weight_jacobian_sparse<const T: usize>(
     jacobian: &mut Matrix<Float, Dynamic, Const<T>, VecStorage<Float, Dynamic, Const<T>>>,
     weights_vec: &DVector<Float>,

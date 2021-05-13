@@ -17,10 +17,9 @@ pub fn run_trajectory(imu_data_measurements: &Vec<ImuDataFrame>, bias_gyroscope:
 pub fn run(iteration: usize, imu_data_measurement: &ImuDataFrame,bias_gyroscope: &Vector3<Float>,bias_accelerometer: &Vector3<Float>, gravity_body: &Vector3<Float>, runtime_parameters: &RuntimeParameters) -> Matrix4<Float> {
 
     let (preintegrated_measurement, imu_covariance) = imu_odometry::pre_integration(imu_data_measurement, bias_gyroscope, bias_accelerometer, gravity_body);
-    let mut lie_result = Vector6::<Float>::zeros();
     let mut mat_result = Matrix4::<Float>::identity();
     
-    let result = estimate(imu_data_measurement,&preintegrated_measurement, &imu_covariance ,&lie_result,&mat_result,gravity_body,runtime_parameters);
+    let result = estimate(imu_data_measurement,&preintegrated_measurement, &imu_covariance ,&mat_result,gravity_body,runtime_parameters);
     mat_result = result.0;
     let solver_iterations = result.1;
 
@@ -38,11 +37,10 @@ pub fn run(iteration: usize, imu_data_measurement: &ImuDataFrame,bias_gyroscope:
 }
 
 //TODO: buffer all debug strings and print at the end. Also the numeric matricies could be buffered per octave level
-fn estimate(imu_data_measurement: &ImuDataFrame, preintegrated_measurement: &ImuDelta,imu_covariance: &ImuCovariance ,initial_guess_lie: &Vector6<Float>,initial_guess_mat: &Matrix4<Float>,gravity_body: &Vector3<Float>, runtime_parameters: &RuntimeParameters) -> (Matrix4<Float>, usize) {
+fn estimate(imu_data_measurement: &ImuDataFrame, preintegrated_measurement: &ImuDelta,imu_covariance: &ImuCovariance,initial_guess_mat: &Matrix4<Float>,gravity_body: &Vector3<Float>, runtime_parameters: &RuntimeParameters) -> (Matrix4<Float>, usize) {
     let identity_9 = SMatrix::<Float,9,9>::identity();
 
     let mut est_transform = initial_guess_mat.clone();
-    //let mut est_lie = initial_guess_lie.clone();
     let mut estimate = ImuDelta::empty();
     let delta_t = imu_data_measurement.gyro_ts[imu_data_measurement.gyro_ts.len()-1] - imu_data_measurement.gyro_ts[0]; // Gyro has a higher sampling rate
 
@@ -58,8 +56,6 @@ fn estimate(imu_data_measurement: &ImuDataFrame, preintegrated_measurement: &Imu
     };
     let weight_l_upper = weights.cholesky().expect("Cholesky Decomp Failed!").l().transpose();
     let mut jacobian = imu_odometry::generate_jacobian(&estimate.rotation_lie(), delta_t);
-    let mut rescaled_jacobian_target = ImuJacobian::zeros(); 
-    let mut rescaled_residual_target = ImuResidual::zeros();
 
     weight_residuals(&mut residuals, &weight_l_upper);
     weight_jacobian(&mut jacobian, &weight_l_upper);
@@ -89,7 +85,7 @@ fn estimate(imu_data_measurement: &ImuDataFrame, preintegrated_measurement: &Imu
         }
 
         let (delta,g,gain_ratio_denom, mu_val) 
-            = gauss_newton_step_with_loss(&residuals, &jacobian, &identity_9, mu, tau, cost);
+            = gauss_newton_step_with_loss(&residuals, &jacobian, &identity_9, mu, tau);
         mu = Some(mu_val);
 
 
@@ -146,8 +142,7 @@ fn gauss_newton_step_with_loss<const T: usize>(
     jacobian: &SMatrix<Float,T,T>,
     identity: &SMatrix<Float,T,T>,
      mu: Option<Float>, 
-     tau: Float, 
-     current_cost: Float)-> (SVector<Float,T>,SVector<Float,T>,Float,Float) where Const<T>: DimMin<Const<T>, Output = Const<T>> {
+     tau: Float)-> (SVector<Float,T>,SVector<Float,T>,Float,Float) where Const<T>: DimMin<Const<T>, Output = Const<T>> {
 
     let (A,g) = (jacobian.transpose()*jacobian,jacobian.transpose()*residuals);
     let mu_val = match mu {

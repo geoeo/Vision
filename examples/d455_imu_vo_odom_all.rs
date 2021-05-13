@@ -14,7 +14,7 @@ use vision::pyramid::gd::{
     build_rgbd_pyramid, gd_octave::GDOctave, gd_runtime_parameters::GDRuntimeParameters, GDPyramid,
 };
 use vision::visualize::plot;
-use vision::{float, Float};
+use vision::Float;
 use vision::numerics;
 
 fn main() {

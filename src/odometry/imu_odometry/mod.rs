@@ -9,6 +9,12 @@ use crate::numerics::lie::{exp_r,skew_symmetric,right_jacobian, right_inverse_ja
 pub mod imu_delta;
 pub mod solver;
 
+// pub type ImuCovariance = SMatrix<Float,9,9>;
+// pub type ImuResidual = SVector<Float,9>;
+// pub type ImuPertrubation = SVector<Float,9>;
+// pub type NoiseCovariance = SMatrix<Float,6,6>;
+// pub type ImuJacobian = SMatrix<Float,9,9>;
+
 pub type ImuCovariance = SMatrix<Float,9,9>;
 pub type ImuResidual = SVector<Float,9>;
 pub type ImuPertrubation = SVector<Float,9>;
