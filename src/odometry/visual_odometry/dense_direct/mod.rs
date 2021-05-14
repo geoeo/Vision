@@ -10,15 +10,15 @@ use crate::{Float,float,reconstruct_original_coordiantes};
 
 pub mod solver;
 
-pub struct RuntimeMemory<const T: usize> {
+pub struct RuntimeMemory<const C: usize> {
     pub weights_vec: DVector::<Float>,
     pub residuals: DVector::<Float>,
     pub new_residuals: DVector::<Float>,
-    pub full_jacobian: Matrix::<Float, Dynamic, Const<T>, VecStorage<Float, Dynamic, Const<T>>>,
+    pub full_jacobian: Matrix::<Float, Dynamic, Const<C>, VecStorage<Float, Dynamic, Const<C>>>,
     pub image_gradients: Matrix::<Float, Dynamic, U2, VecStorage<Float, Dynamic, U2>>,
     pub image_gradient_points: Vec::<Point<usize>>,
     pub new_image_gradient_points: Vec::<Point<usize>>,
-    pub rescaled_jacobian_target: Matrix::<Float, Dynamic, Const<T>, VecStorage<Float, Dynamic, Const<T>>>,
+    pub rescaled_jacobian_target: Matrix::<Float, Dynamic, Const<C>, VecStorage<Float, Dynamic, Const<C>>>,
     pub rescaled_residual_target: DVector::<Float>
 
 }

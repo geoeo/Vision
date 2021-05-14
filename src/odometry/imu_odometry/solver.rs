@@ -8,17 +8,21 @@ use crate::sensors::imu::imu_data_frame::ImuDataFrame;
 use crate::numerics::max_norm;
 use crate::{Float,float};
 
+const OBSERVATIONS_DIM: usize = 9;
+const PARAMETERS_DIM: usize = 15; //With bias
+
 
 pub fn run_trajectory(imu_data_measurements: &Vec<ImuDataFrame>, bias_gyroscope: &Vector3<Float>,bias_accelerometer: &Vector3<Float>, gravity_body: &Vector3<Float>, runtime_parameters: &RuntimeParameters) -> Vec<Matrix4<Float>> {
     imu_data_measurements.iter().enumerate().map(|(i,measurement)| run(i+1,&measurement,bias_gyroscope,bias_accelerometer,gravity_body,runtime_parameters)).collect::<Vec<Matrix4<Float>>>()
 }
 
-pub fn run(iteration: usize, imu_data_measurement: &ImuDataFrame,bias_gyroscope: &Vector3<Float>,bias_accelerometer: &Vector3<Float>, gravity_body: &Vector3<Float>, runtime_parameters: &RuntimeParameters) -> Matrix4<Float> {
+pub fn run<>(iteration: usize, imu_data_measurement: &ImuDataFrame,bias_gyroscope: &Vector3<Float>,bias_accelerometer: &Vector3<Float>, 
+    gravity_body: &Vector3<Float>, runtime_parameters: &RuntimeParameters) -> Matrix4<Float> {
 
     let (preintegrated_measurement, imu_covariance) = imu_odometry::pre_integration(imu_data_measurement, bias_gyroscope, bias_accelerometer, gravity_body);
     let mut mat_result = Matrix4::<Float>::identity();
     
-    let result = estimate(imu_data_measurement,&preintegrated_measurement, &imu_covariance ,&mat_result,gravity_body,runtime_parameters);
+    let result = estimate::<OBSERVATIONS_DIM,PARAMETERS_DIM>(imu_data_measurement,&preintegrated_measurement, &imu_covariance ,&mat_result,gravity_body,runtime_parameters);
     mat_result = result.0;
     let solver_iterations = result.1;
 
@@ -36,8 +40,11 @@ pub fn run(iteration: usize, imu_data_measurement: &ImuDataFrame,bias_gyroscope:
 }
 
 //TODO: buffer all debug strings and print at the end. Also the numeric matricies could be buffered per octave level
-fn estimate(imu_data_measurement: &ImuDataFrame, preintegrated_measurement: &ImuDelta,imu_covariance: &ImuCovariance,initial_guess_mat: &Matrix4<Float>,gravity_body: &Vector3<Float>, runtime_parameters: &RuntimeParameters) -> (Matrix4<Float>, usize) {
-    let identity_9 = ImuCovariance::identity();
+fn estimate<const R: usize, const C: usize>(imu_data_measurement: &ImuDataFrame, preintegrated_measurement: &ImuDelta,imu_covariance: &ImuCovariance,
+    initial_guess_mat: &Matrix4<Float>,gravity_body: &Vector3<Float>, runtime_parameters: &RuntimeParameters) -> (Matrix4<Float>, usize) where Const<C>: DimMin<Const<C>, Output = Const<C>> {
+    let identity = SMatrix::<Float,C,C>::identity();
+    let mut residuals_full = SVector::<Float,R>::zeros();
+    let mut jacobian_full = SMatrix::<Float,R,C>::zeros();
 
     let mut est_transform = initial_guess_mat.clone();
     let mut estimate = ImuDelta::empty();
@@ -50,7 +57,7 @@ fn estimate(imu_data_measurement: &ImuDataFrame, preintegrated_measurement: &Imu
         Some(v) => v.inverse(),
         None => {
             println!("Warning Cholesky failed for imu covariance");
-            identity_9
+            ImuCovariance::identity()
         }
     };
     let weight_l_upper = weights.cholesky().expect("Cholesky Decomp Failed!").l().transpose();
@@ -83,13 +90,16 @@ fn estimate(imu_data_measurement: &ImuDataFrame, preintegrated_measurement: &Imu
             println!("it: {}, avg_rmse: {}",iteration_count,cost.sqrt());
         }
 
+        residuals_full.fixed_rows_mut::<9>(0).copy_from(&residuals);
+        jacobian_full.fixed_slice_mut::<9,9>(0,0).copy_from(&jacobian);
+
         let (delta,g,gain_ratio_denom, mu_val) 
-            = gauss_newton_step_with_loss(&residuals, &jacobian, &identity_9, mu, tau);
+            = gauss_newton_step_with_loss(&residuals_full, &jacobian_full, &identity, mu, tau);
         mu = Some(mu_val);
 
 
         let pertb = step*delta;
-        let new_estimate = estimate.add_pertb(&pertb);
+        let new_estimate = estimate.add_pertb(&pertb.fixed_rows::<9>(0));
         let mut new_residuals = imu_odometry::generate_residual(&new_estimate, preintegrated_measurement);
         let new_residuals_unweighted = new_residuals.clone();
 
@@ -137,12 +147,12 @@ fn estimate(imu_data_measurement: &ImuDataFrame, preintegrated_measurement: &Imu
 
 //TODO: potential for optimization. Maybe use less memory/matrices. 
 #[allow(non_snake_case)]
-fn gauss_newton_step_with_loss<const T: usize>(
-    residuals: &SVector<Float, T>, 
-    jacobian: &SMatrix<Float,T,T>,
-    identity: &SMatrix<Float,T,T>,
+fn gauss_newton_step_with_loss<const R: usize, const C: usize>(
+    residuals: &SVector<Float, R>, 
+    jacobian: &SMatrix<Float,R,C>,
+    identity: &SMatrix<Float,C,C>,
      mu: Option<Float>, 
-     tau: Float)-> (SVector<Float,T>,SVector<Float,T>,Float,Float) where Const<T>: DimMin<Const<T>, Output = Const<T>> {
+     tau: Float)-> (SVector<Float,C>,SVector<Float,C>,Float,Float) where Const<C>: DimMin<Const<C>, Output = Const<C>> {
 
     let (A,g) = (jacobian.transpose()*jacobian,jacobian.transpose()*residuals);
     let mu_val = match mu {

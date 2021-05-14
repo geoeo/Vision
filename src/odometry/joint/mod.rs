@@ -3,12 +3,11 @@
 extern crate nalgebra as na;
 
 use na::{
-    storage::Storage, DMatrix, DVector, Dynamic, Matrix, Matrix4, RowVector2, SMatrix, SVector,
-    VecStorage, Vector3, Vector4, Vector6, U2, U4, U6, U9, Const, DimMin, DimMinimum
+    DVector, Dynamic, Matrix, Matrix4, SMatrix, SVector,
+    VecStorage, Vector3, Const, DimMin
 };
 use std::boxed::Box;
 
-use crate::features::geometry::point::Point;
 use crate::image::Image;
 use crate::numerics::{lie, loss::LossFunction, max_norm};
 use crate::odometry::runtime_parameters::RuntimeParameters;
@@ -19,32 +18,35 @@ use crate::odometry::visual_odometry::dense_direct::{ RuntimeMemory,
 use crate::odometry::{
     imu_odometry,
     imu_odometry::imu_delta::ImuDelta,
-    imu_odometry::{ImuResidual,ImuJacobian,ImuPertrubation, ImuCovariance,weight_residuals, weight_jacobian},
+    imu_odometry::{ImuCovariance,weight_residuals, weight_jacobian},
 };
 use crate::pyramid::gd::{gd_octave::GDOctave, GDPyramid};
 use crate::sensors::camera::Camera;
 use crate::sensors::imu::imu_data_frame::ImuDataFrame;
 use crate::{float, Float};
 
-pub fn run_trajectory<C: Camera>(
+const OBSERVATIONS_DIM: usize = 9;
+const PARAMETERS_DIM: usize = 15; //With bias
+
+pub fn run_trajectory<Cam: Camera>(
     source_rgdb_pyramids: &Vec<GDPyramid<GDOctave>>,
     target_rgdb_pyramids: &Vec<GDPyramid<GDOctave>>,
-    intensity_camera: &C,
-    depth_camera: &C,
+    intensity_camera: &Cam,
+    depth_camera: &Cam,
     imu_data_measurements: &Vec<ImuDataFrame>,
     bias_gyroscope: &Vector3<Float>,
     bias_accelerometer: &Vector3<Float>,
     gravity_body: &Vector3<Float>,
     runtime_parameters: &RuntimeParameters,
 ) -> Vec<Matrix4<Float>> {
-    let mut runtime_memory_vector = RuntimeMemory::<9>::from_pyramid(&source_rgdb_pyramids[0]);
+    let mut runtime_memory_vector = RuntimeMemory::<PARAMETERS_DIM>::from_pyramid(&source_rgdb_pyramids[0]);
     source_rgdb_pyramids
         .iter()
         .zip(target_rgdb_pyramids.iter())
         .zip(imu_data_measurements.iter())
         .enumerate()
         .map(|(i, ((source, target), imu_data_measurement))| {
-            run::<C, 9>(
+            run::<Cam, PARAMETERS_DIM>(
                 i + 1,
                 &source,
                 &target,
@@ -61,19 +63,19 @@ pub fn run_trajectory<C: Camera>(
         .collect::<Vec<Matrix4<Float>>>()
 }
 
-pub fn run<C: Camera, const T: usize>(
+pub fn run<Cam: Camera, const C: usize>(
     iteration: usize,
     source_rgdb_pyramid: &GDPyramid<GDOctave>,
     target_rgdb_pyramid: &GDPyramid<GDOctave>,
-    runtime_memory_vector: &mut Vec<RuntimeMemory<T>>,
-    intensity_camera: &C,
-    depth_camera: &C,
+    runtime_memory_vector: &mut Vec<RuntimeMemory<C>>,
+    intensity_camera: &Cam,
+    depth_camera: &Cam,
     imu_data_measurement: &ImuDataFrame,
     bias_gyroscope: &Vector3<Float>,
     bias_accelerometer: &Vector3<Float>,
     gravity_body: &Vector3<Float>,
     runtime_parameters: &RuntimeParameters,
-) -> Matrix4<Float> where  Const<T>: DimMin<Const<T>, Output = Const<T>> {
+) -> Matrix4<Float> where Const<C>: DimMin<Const<C>, Output = Const<C>> {
     let octave_count = source_rgdb_pyramid.octaves.len();
 
     assert_eq!(octave_count, runtime_parameters.taus.len());
@@ -91,7 +93,7 @@ pub fn run<C: Camera, const T: usize>(
     );
 
     for index in (0..octave_count).rev() {
-        let result = estimate::<C, T>(
+        let result = estimate::<Cam, OBSERVATIONS_DIM, C>(
             &source_rgdb_pyramid.octaves[index],
             depth_image,
             &target_rgdb_pyramid.octaves[index],
@@ -125,21 +127,21 @@ pub fn run<C: Camera, const T: usize>(
 }
 
 //TODO: buffer all debug strings and print at the end. Also the numeric matricies could be buffered per octave level
-fn estimate<C: Camera, const T: usize>(
+fn estimate<Cam: Camera, const R: usize, const C: usize>(
     source_octave: &GDOctave,
     source_depth_image_original: &Image,
     target_octave: &GDOctave,
-    runtime_memory: &mut RuntimeMemory<T>,
+    runtime_memory: &mut RuntimeMemory<C>,
     octave_index: usize,
     initial_guess_mat: &Matrix4<Float>,
-    intensity_camera: &C,
-    depth_camera: &C,
+    intensity_camera: &Cam,
+    depth_camera: &Cam,
     imu_data_measurement: &ImuDataFrame,
     preintegrated_measurement: &ImuDelta,
     imu_covariance: &ImuCovariance,
     gravity_body: &Vector3<Float>,
     runtime_parameters: &RuntimeParameters,
-) -> (Matrix4<Float>, usize) where  Const<T>: DimMin<Const<T>, Output = Const<T>> {
+) -> (Matrix4<Float>, usize) where Const<C>: DimMin<Const<C>, Output = Const<C>> {
     let source_image = &source_octave.gray_images[0];
     let target_image = &target_octave.gray_images[0];
     let x_gradient_image = &target_octave.x_gradients[0];
@@ -148,9 +150,9 @@ fn estimate<C: Camera, const T: usize>(
     let number_of_pixels = rows * cols;
     let number_of_pixels_float = number_of_pixels as Float;
     let mut percentage_of_valid_pixels = 100.0;
-    let identity = SMatrix::<Float,T,T>::identity();
-    let mut imu_residuals_full = SVector::<Float,T>::zeros();
-    let mut imu_jacobian_full = SMatrix::<Float,T,T>::zeros();
+    let identity = SMatrix::<Float,C,C>::identity();
+    let mut imu_residuals_full = SVector::<Float,R>::zeros();
+    let mut imu_jacobian_full = SMatrix::<Float,R,C>::zeros();
 
     runtime_memory.weights_vec.fill(1.0);
     runtime_memory.image_gradient_points.clear();
@@ -240,7 +242,7 @@ fn estimate<C: Camera, const T: usize>(
         &runtime_memory.image_gradient_points,
         &mut runtime_memory.image_gradients,
     );
-    compute_full_jacobian::<T>(
+    compute_full_jacobian::<C>(
         &runtime_memory.image_gradients,
         &constant_jacobians,
         &mut runtime_memory.full_jacobian,
@@ -321,7 +323,7 @@ fn estimate<C: Camera, const T: usize>(
             println!("{},{}", cost, new_cost);
         }
         if gain_ratio >= 0.0 || !runtime_parameters.lm {
-            let mut state_vector = SVector::<Float,T>::zeros();
+            let mut state_vector = SVector::<Float,R>::zeros();
             state_vector.fixed_rows_mut::<9>(0).copy_from(&estimate.state_vector());
             estimate = new_estimate;
             est_transform = new_est_transform;
@@ -345,7 +347,7 @@ fn estimate<C: Camera, const T: usize>(
                 &runtime_memory.image_gradient_points,
                 &mut runtime_memory.image_gradients,
             );
-            compute_full_jacobian::<T>(
+            compute_full_jacobian::<C>(
                 &runtime_memory.image_gradients,
                 &constant_jacobians,
                 &mut runtime_memory.full_jacobian,
@@ -371,12 +373,12 @@ fn estimate<C: Camera, const T: usize>(
 
 //TODO: potential for optimization. Maybe use less memory/matrices.
 #[allow(non_snake_case)]
-fn gauss_newton_step_with_loss<const T: usize>(
+fn gauss_newton_step_with_loss<const R: usize, const C: usize>(
     residuals: &DVector<Float>, 
-    imu_residuals: &SVector<Float, T>,
-    jacobian: &Matrix<Float, Dynamic, Const<T>, VecStorage<Float, Dynamic, Const<T>>>,
-    imu_jacobian: &SMatrix<Float,T,T>,
-    identity: &SMatrix<Float,T,T>,
+    imu_residuals: &SVector<Float, R>,
+    jacobian: &Matrix<Float, Dynamic, Const<C>, VecStorage<Float, Dynamic, Const<C>>>,
+    imu_jacobian: &SMatrix<Float,R,C>,
+    identity: &SMatrix<Float,C,C>,
     mu: Option<Float>,
     tau: Float,
     current_cost: Float,
@@ -384,16 +386,16 @@ fn gauss_newton_step_with_loss<const T: usize>(
     rescaled_jacobian_target: &mut Matrix<
         Float,
         Dynamic,
-        Const<T>,
-        VecStorage<Float, Dynamic, Const<T>>,
+        Const<C>,
+        VecStorage<Float, Dynamic, Const<C>>,
     >,
     rescaled_residuals_target: &mut DVector<Float>
 ) -> (
-    SVector<Float, T>,
-    SVector<Float, T>,
+    SVector<Float, C>,
+    SVector<Float, C>,
     Float,
     Float,
-)  where Const<T>: DimMin<Const<T>, Output = Const<T>> {
+)  where Const<C>: DimMin<Const<C>, Output = Const<C>> {
     let selected_root = loss_function.select_root(current_cost);
     let first_deriv_at_cost = loss_function.first_derivative_at_current(current_cost);
     let second_deriv_at_cost = loss_function.second_derivative_at_current(current_cost);
@@ -422,8 +424,8 @@ fn gauss_newton_step_with_loss<const T: usize>(
                             as &Matrix<
                                 Float,
                                 Dynamic,
-                                Const<T>,
-                                VecStorage<Float, Dynamic, Const<T>>,
+                                Const<C>,
+                                VecStorage<Float, Dynamic, Const<C>>,
                             >
                         + imu_jacobian.transpose()* imu_jacobian,
                     rescaled_jacobian_target.transpose()

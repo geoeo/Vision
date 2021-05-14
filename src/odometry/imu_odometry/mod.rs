@@ -100,7 +100,7 @@ fn generate_linear_model_matrices(accelerometer_k: &Vector3<Float>,gyrpscope_k: 
 }
 
 
-pub fn generate_jacobian<R>(lie: &Vector<Float,Const<3>,R>, delta_t: Float) -> ImuCovariance where R: Storage<Float,Const<3>,Const<1>> {
+pub fn generate_jacobian<S>(lie: &Vector<Float,Const<3>,S>, delta_t: Float) -> ImuCovariance where S: Storage<Float,Const<3>,Const<1>> {
 
     let mut jacobian = ImuCovariance::zeros();
     let identity = Matrix3::<Float>::identity();
