@@ -19,7 +19,7 @@ pub fn run_trajectory(imu_data_measurements: &Vec<ImuDataFrame>, bias_gyroscope:
 pub fn run<>(iteration: usize, imu_data_measurement: &ImuDataFrame,bias_gyroscope: &Vector3<Float>,bias_accelerometer: &Vector3<Float>, 
     gravity_body: &Vector3<Float>, runtime_parameters: &RuntimeParameters) -> Matrix4<Float> {
 
-    let (preintegrated_measurement, imu_covariance) = imu_odometry::pre_integration(imu_data_measurement, bias_gyroscope, bias_accelerometer, gravity_body);
+    let (preintegrated_measurement, imu_covariance, bias) = imu_odometry::pre_integration(imu_data_measurement, bias_gyroscope, bias_accelerometer, gravity_body);
     let mut mat_result = Matrix4::<Float>::identity();
     
     let result = estimate::<OBSERVATIONS_DIM,PARAMETERS_DIM>(imu_data_measurement,&preintegrated_measurement, &imu_covariance ,&mat_result,gravity_body,runtime_parameters);

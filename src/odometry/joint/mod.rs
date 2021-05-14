@@ -85,7 +85,7 @@ pub fn run<Cam: Camera, const C: usize>(
     let depth_image = &source_rgdb_pyramid.depth_image;
     let mut mat_result = Matrix4::<Float>::identity();
 
-    let (preintegrated_measurement, imu_covariance) = imu_odometry::pre_integration(
+    let (preintegrated_measurement, imu_covariance, bias) = imu_odometry::pre_integration(
         imu_data_measurement,
         bias_gyroscope,
         bias_accelerometer,

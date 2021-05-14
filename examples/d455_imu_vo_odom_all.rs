@@ -117,7 +117,7 @@ fn main() {
     );
 
     for (i, data) in imu_data.iter().enumerate() {
-        let (imu_delta, _) = pre_integration(
+        let (imu_delta, _,_) = pre_integration(
             data,
             &Vector3::<Float>::zeros(),
             &Vector3::<Float>::zeros(),
