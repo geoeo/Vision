@@ -220,7 +220,12 @@ pub fn norm(
 ) -> () {
     for i in 0..residuals.len() {
         let res = residuals[i];
-        weights_vec[i] = weight_function.cost(res).sqrt()
+        // if (res < 10e-5) {
+        //     weights_vec[i] = 0.0;
+        // } else {
+            weights_vec[i] = weight_function.cost(res).sqrt();
+        //}
+
     }
 }
 

@@ -26,7 +26,7 @@ fn main() {
     let image_loading_parameters = ImageLoadingParameters {
         starting_index: 5,
         step: 1,
-        count: 150,
+        count: 50,
         image_height: 480,
         image_width: 640,
         negate_depth_values: false,
@@ -63,7 +63,7 @@ fn main() {
     let vo_parameters = RuntimeParameters {
         max_iterations: vec![800; 3],
         eps: vec![1e-3;3],
-        step_sizes: vec![1e-8;3],
+        step_sizes: vec![1e-3;3],
         max_norm_eps: 1e-10,
         delta_eps: 1e-10,
         taus: vec!(1e-6,1e-3,1e-3),
@@ -119,8 +119,6 @@ fn main() {
     for (i, data) in imu_data.iter().enumerate() {
         let (imu_delta, _,_) = pre_integration(
             data,
-            &Vector3::<Float>::zeros(),
-            &Vector3::<Float>::zeros(),
             &Vector3::<Float>::new(0.0, 9.81, 0.0),
         );
         let pose = imu_delta.get_pose();

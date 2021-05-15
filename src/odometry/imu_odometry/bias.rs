@@ -1,6 +1,6 @@
 extern crate nalgebra as na;
 
-use na::{Vector3,Matrix3};
+use na::{Vector3,Vector6,Matrix3, SMatrix};
 
 use crate::numerics::lie::{right_jacobian,skew_symmetric};
 use crate::Float;
@@ -109,4 +109,16 @@ impl BiasPreintegrated {
 
         }
     }
+}
+
+pub fn generate_residuals() -> Vector6<Float> {
+
+    panic!("TODO")
+
+}
+
+pub fn generate_jacobian<const R: usize>() -> SMatrix<Float, R, 6> {
+
+    panic!("TODO")
+
 }

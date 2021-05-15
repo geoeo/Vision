@@ -1,11 +1,17 @@
 use nalgebra as na;
 
-use na::{Vector3,Matrix6};
+use na::{Vector3,Vector6,Matrix6};
 use crate::Float;
 
 #[derive(Clone)]
 pub struct ImuDataFrame {
+    //TODO: rework bias and std dev of bias
     pub noise_covariance: Matrix6<Float>,
+    pub bias_noise_covariance: Matrix6<Float>,
+    pub bias_a: Vector3<Float>,
+    pub bias_g: Vector3<Float>,
+    pub accelerometer_bias_noise_density: Float,
+    pub gyro_bias_noise_density: Float,
     pub gyro_data: Vec<Vector3<Float>>,
     pub gyro_ts: Vec<Float>,
     pub acceleration_data: Vec<Vector3<Float>>,
@@ -13,7 +19,8 @@ pub struct ImuDataFrame {
 }
 
 impl ImuDataFrame {
-    pub fn new(acceleration_inital_capacity: usize, gyro_inital_capacity: usize, accelerometer_noise_density: Float, gyro_noise_density:Float) -> ImuDataFrame {
+/*     pub fn new(acceleration_inital_capacity: usize, gyro_inital_capacity: usize, accelerometer_noise_density: Float, gyro_noise_density:Float) -> ImuDataFrame {
+        
         ImuDataFrame {
             noise_covariance: ImuDataFrame::generate_noise_covariance(accelerometer_noise_density,gyro_noise_density),
             acceleration_data: Vec::<Vector3<Float>>::with_capacity(acceleration_inital_capacity),
@@ -21,22 +28,38 @@ impl ImuDataFrame {
             gyro_data: Vec::<Vector3<Float>>::with_capacity(gyro_inital_capacity),
             gyro_ts: Vec::<Float>::with_capacity(gyro_inital_capacity)
         }
-    }
+    }*/
 
     pub fn empty_from_other(imu_data_frame: &ImuDataFrame) -> ImuDataFrame {
         ImuDataFrame {
             noise_covariance: imu_data_frame.noise_covariance,
+            bias_noise_covariance: imu_data_frame.bias_noise_covariance,
+            bias_a: imu_data_frame.bias_a,
+            bias_g: imu_data_frame.bias_g,
+            accelerometer_bias_noise_density: imu_data_frame.accelerometer_bias_noise_density,
+            gyro_bias_noise_density: imu_data_frame.gyro_bias_noise_density,
             acceleration_data: Vec::<Vector3<Float>>::new(),
             acceleration_ts: Vec::<Float>::new(),
             gyro_data: Vec::<Vector3<Float>>::new(),
             gyro_ts: Vec::<Float>::new()
         }
 
-    }
+    } 
 
-    pub fn from_data(gyro_data: Vec<Vector3<Float>>,gyro_ts: Vec<Float>, acceleration_data: Vec<Vector3<Float>>,acceleration_ts: Vec<Float>, accelerometer_noise_density: Float, gyro_noise_density:Float) -> ImuDataFrame {
+    pub fn from_data(gyro_data: Vec<Vector3<Float>>,gyro_ts: Vec<Float>, acceleration_data: Vec<Vector3<Float>>,
+        acceleration_ts: Vec<Float>, accelerometer_noise_density: Float, gyro_noise_density:Float, 
+        accelerometer_bias_noise_density: Float,
+        gyro_bias_noise_density: Float,
+        accelerometer_bias: Vector3<Float>,
+        gyro_bias:Vector3<Float>,
+    ) -> ImuDataFrame {
         ImuDataFrame {
             noise_covariance: ImuDataFrame::generate_noise_covariance(accelerometer_noise_density,gyro_noise_density),
+            bias_noise_covariance: ImuDataFrame::generate_noise_covariance(accelerometer_bias_noise_density,gyro_bias_noise_density),
+            bias_a: accelerometer_bias,
+            bias_g: gyro_bias,
+            accelerometer_bias_noise_density,
+            gyro_bias_noise_density,
             gyro_data,
             gyro_ts,
             acceleration_data,
@@ -44,14 +67,15 @@ impl ImuDataFrame {
         }
     }
 
+
     fn generate_noise_covariance( accelerometer_noise_density: Float, gyro_noise_density:Float) -> Matrix6<Float> {
         let mut noise_covariance = Matrix6::<Float>::zeros();
-        noise_covariance[(0,0)] = gyro_noise_density;
-        noise_covariance[(1,1)] = gyro_noise_density;
-        noise_covariance[(2,2)] = gyro_noise_density;
-        noise_covariance[(3,3)] = accelerometer_noise_density;
-        noise_covariance[(4,4)] = accelerometer_noise_density;
-        noise_covariance[(5,5)] = accelerometer_noise_density;
+        noise_covariance[(0,0)] = accelerometer_noise_density.powi(2);
+        noise_covariance[(1,1)] = accelerometer_noise_density.powi(2);
+        noise_covariance[(2,2)] = accelerometer_noise_density.powi(2);
+        noise_covariance[(3,3)] = gyro_noise_density.powi(2);
+        noise_covariance[(4,4)] = gyro_noise_density.powi(2);
+        noise_covariance[(5,5)] = gyro_noise_density.powi(2);
 
         noise_covariance
     }

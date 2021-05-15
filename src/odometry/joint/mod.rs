@@ -87,10 +87,10 @@ pub fn run<Cam: Camera, const C: usize>(
 
     let (preintegrated_measurement, imu_covariance, bias) = imu_odometry::pre_integration(
         imu_data_measurement,
-        bias_gyroscope,
-        bias_accelerometer,
         gravity_body,
     );
+
+
 
     for index in (0..octave_count).rev() {
         let result = estimate::<Cam, OBSERVATIONS_DIM, C>(
@@ -183,11 +183,11 @@ fn estimate<Cam: Camera, const R: usize, const C: usize>(
         &mut runtime_memory.image_gradient_points,
     );
     //TODO: check why this performs badly
-    // norm(
-    //     &runtime_memory.residuals,
-    //     &runtime_parameters.intensity_weighting_function,
-    //     &mut runtime_memory.weights_vec,
-    // );
+    norm(
+        &runtime_memory.residuals,
+        &runtime_parameters.intensity_weighting_function,
+        &mut runtime_memory.weights_vec,
+    );
     weight_residuals_sparse(&mut runtime_memory.residuals, &runtime_memory.weights_vec);
 
     let mut estimate = ImuDelta::empty();

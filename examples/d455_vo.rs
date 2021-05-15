@@ -22,7 +22,7 @@ fn main() {
     let loading_parameters = ImageLoadingParameters {
         starting_index: 5,
         step: 1,
-        count: 150,
+        count: 10,
         image_height: 480,
         image_width: 640,
         negate_depth_values :false,
@@ -73,7 +73,7 @@ fn main() {
 
         show_octave_result: true,
         loss_function: Box::new(numerics::loss::SoftOneLoss {eps: 1e-16, approximate_gauss_newton_matrices: true}),
-        intensity_weighting_function:  Box::new(numerics::loss::SoftOneLoss {eps: 1e-16, approximate_gauss_newton_matrices: true})
+        intensity_weighting_function:  Box::new(numerics::loss::HuberLossForPos {eps: 1e-16,delta: 1.0, approximate_gauss_newton_matrices: true})
     };
 
     let mut se3_est = vec!(Matrix4::<Float>::identity());
