@@ -1,7 +1,7 @@
 extern crate nalgebra as na;
 
 use na::{Vector3,SVector,Matrix3,Matrix4,Const, Vector, storage::Storage};
-use crate::odometry::imu_odometry::ImuPertrubation;
+use crate::odometry::imu_odometry::{ImuPertrubation, bias::{BiasPreintegrated, BiasDelta}};
 use crate::numerics::lie::{exp,exp_r,ln_SO3, vector_from_skew_symmetric};
 use crate::Float;
 
@@ -64,12 +64,19 @@ impl ImuDelta {
     }
 
     pub fn norm(&self) -> Float {
-        //let lie_r = vector_from_skew_symmetric(&ln_SO3(&self.delta_rotation()));
         let lie_r = self.rotation_lie();
         let mut state_vector = ImuPertrubation::zeros();
         state_vector.fixed_rows_mut::<3>(0).copy_from(&self.delta_position);
         state_vector.fixed_rows_mut::<3>(3).copy_from(&lie_r);
         state_vector.fixed_rows_mut::<3>(6).copy_from(&self.delta_velocity);
         state_vector.norm()
+    }
+
+    pub fn update_with_bias(&mut self, bias_preintegrated: &BiasPreintegrated, bias_delta: &BiasDelta) -> () {
+        self.delta_rotation_k = self.delta_rotation_k*exp_r(&(bias_preintegrated.rotation_jacobian_bias_g*bias_delta.bias_g_delta));
+        self.delta_velocity = self.delta_velocity + bias_preintegrated.velocity_jacobian_bias_a*bias_delta.bias_a_delta 
+        + bias_preintegrated.velocity_jacobian_bias_g*bias_delta.bias_g_delta;
+        self.delta_position = self.delta_position + bias_preintegrated.position_jacobian_bias_a*bias_delta.bias_a_delta 
+        + bias_preintegrated.position_jacobian_bias_g*bias_delta.bias_g_delta;
     }
 }
