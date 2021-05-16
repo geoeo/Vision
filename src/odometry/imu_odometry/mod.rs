@@ -3,7 +3,7 @@ use nalgebra as na;
 use na::{Const, Matrix3,SMatrix,SVector,Vector,Vector3,base::storage::Storage};
 use crate::Float;
 use crate::sensors::{DataFrame, imu::imu_data_frame::ImuDataFrame};
-use crate::odometry::imu_odometry::{imu_delta::ImuDelta, bias::BiasPreintegrated};
+use crate::odometry::imu_odometry::{imu_delta::ImuDelta, bias::{BiasPreintegrated, BiasDelta}};
 use crate::numerics::lie::{exp_r,skew_symmetric,right_jacobian, right_inverse_jacobian, ln_SO3, vector_from_skew_symmetric};
 
 
@@ -81,7 +81,18 @@ pub fn pre_integration(imu_data: &ImuDataFrame, gravity_body: &Vector3<Float>) -
 
 
 
-    (ImuDelta {delta_position,delta_velocity, delta_rotation_i_k,delta_rotation_k}, imu_covariance, BiasPreintegrated::new(&imu_data.bias_a,&imu_data.acceleration_data[0..imu_data.acceleration_count()-1],&gyro_delta_times,&delta_lie,&delta_rotations))
+    (ImuDelta {
+        delta_position,delta_velocity, 
+        delta_rotation_i_k,delta_rotation_k}, 
+        imu_covariance, 
+        BiasPreintegrated::new(
+            &imu_data.bias_a,
+            &imu_data.bias_g,
+            imu_data.accelerometer_bias_noise_density, 
+            imu_data.gyro_bias_noise_density
+            ,&imu_data.acceleration_data[0..imu_data.acceleration_count()-1],
+            &gyro_delta_times,&delta_lie,&delta_rotations
+        ))
 }
 
 fn generate_linear_model_matrices(accelerometer_k: &Vector3<Float>,gyrpscope_k: &Vector3<Float> ,a_delta_t_i_k: Float, g_delta_t_k: Float , delta_rotation_i_k: &Matrix3<Float>, delta_rotation_k: &Matrix3<Float>, gravity_body: &Vector3<Float>) -> (SMatrix<Float,9,9>,SMatrix<Float,9,6>) {
@@ -111,7 +122,6 @@ fn generate_linear_model_matrices(accelerometer_k: &Vector3<Float>,gyrpscope_k: 
 
 }
 
-//TODO: revisit these
 pub fn generate_jacobian<S>(lie: &Vector<Float,Const<3>,S>, delta_t: Float) -> ImuCovariance where S: Storage<Float,Const<3>,Const<1>> {
 
     let mut jacobian = ImuCovariance::zeros();
@@ -125,6 +135,7 @@ pub fn generate_jacobian<S>(lie: &Vector<Float,Const<3>,S>, delta_t: Float) -> I
     jacobian
 }
 
+//TODO_ these have to change for bias estiamtion
 pub fn generate_residual(estimate: &ImuDelta, measurement: &ImuDelta) -> ImuResidual {
     let mut residual = ImuResidual::zeros();
     residual.fixed_rows_mut::<3>(0).copy_from(&(estimate.delta_position - measurement.delta_position));

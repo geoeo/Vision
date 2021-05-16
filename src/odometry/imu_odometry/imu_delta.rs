@@ -6,7 +6,7 @@ use crate::numerics::lie::{exp,exp_r,ln_SO3, vector_from_skew_symmetric};
 use crate::Float;
 
 
-
+//TODO: make make preintegrated term and delta more explicit/separate
 pub struct ImuDelta {
     pub delta_position: Vector3<Float>,
     pub delta_velocity: Vector3<Float>,
@@ -29,12 +29,12 @@ impl ImuDelta {
         //TODO: check this, we are interpreting delta trans as a differential quantity
         let delta_pose = exp(&new_pertb.fixed_rows::<3>(0),&new_pertb.fixed_rows::<3>(3));
         ImuDelta {
-            //delta_position: self.delta_position + new_pertb.fixed_rows::<3>(0),
-            delta_position: self.delta_position + delta_pose.fixed_slice::<3,1>(0,3),
+            delta_position: self.delta_position + new_pertb.fixed_rows::<3>(0),
+            //delta_position: self.delta_position + delta_pose.fixed_slice::<3,1>(0,3),
             delta_velocity: self.delta_velocity + new_pertb.fixed_rows::<3>(6),
             delta_rotation_i_k: self.delta_rotation(),
-            //delta_rotation_k: exp_r(&new_pertb.fixed_rows::<3>(3))
-            delta_rotation_k: delta_pose.fixed_slice::<3,3>(0,0).clone_owned()
+            delta_rotation_k: exp_r(&new_pertb.fixed_rows::<3>(3))
+            //delta_rotation_k: delta_pose.fixed_slice::<3,3>(0,0).clone_owned()
         }
     }
 

@@ -2,6 +2,7 @@ extern crate nalgebra as na;
 
 use na::{Vector3,Vector6,Matrix3, SMatrix};
 
+use crate::odometry::imu_odometry::imu_delta::ImuDelta;
 use crate::numerics::lie::{right_jacobian,skew_symmetric};
 use crate::Float;
 
@@ -16,13 +17,15 @@ pub struct BiasPreintegrated {
     pub velocity_jacobian_bias_a: Matrix3<Float>,
     pub velocity_jacobian_bias_g: Matrix3<Float>,
     pub position_jacobian_bias_a: Matrix3<Float>,
-    pub position_jacobian_bias_g: Matrix3<Float>
+    pub position_jacobian_bias_g: Matrix3<Float>,
+    pub integrated_bias_a: Vector3<Float>,
+    pub integrated_bias_g: Vector3<Float>
 }
 
 impl BiasPreintegrated {
 
     //TODO:test
-    pub fn new(bias_accelerometer: &Vector3<Float>,acceleration_data: &[Vector3<Float>],gyro_delta_times: &Vec<Float>, 
+    pub fn new(bias_accelerometer: &Vector3<Float>,bias_gyro: &Vector3<Float>, bias_noise_density_acc: Float, bias_noise_density_gyro: Float, acceleration_data: &[Vector3<Float>],gyro_delta_times: &Vec<Float>, 
         delta_lie_i_k: &Vec<Vector3<Float>>, delta_rotations_i_k: &Vec<Matrix3::<Float>>) -> BiasPreintegrated {
 
         let acc_rotations_i_k = delta_rotations_i_k.iter().scan(Matrix3::identity(), |acc, dr| {
@@ -100,25 +103,28 @@ impl BiasPreintegrated {
             acc + dv*dt-0.5*delta_r_dt*acceleration_ss*dr*dt
         });
 
+        //TODO: preintegrate biases
+
         BiasPreintegrated {
             rotation_jacobian_bias_g: *rotation_jacobian_i_j,
             velocity_jacobian_bias_a: *velocity_jacobian_for_bias_a,
             velocity_jacobian_bias_g: *velocity_jacobian_for_bias_g,
             position_jacobian_bias_a: pos_jacobian_for_bias_a,
-            position_jacobian_bias_g: pos_jacobian_for_bias_g
+            position_jacobian_bias_g: pos_jacobian_for_bias_g,
+            integrated_bias_a: Vector3::<Float>::zeros(),
+            integrated_bias_g: Vector3::<Float>::zeros()
 
         }
     }
 }
 
-pub fn generate_residuals() -> Vector6<Float> {
+pub fn generate_residuals(bias_a_initial: &Vector3<Float>, bias_g_initial: &Vector3<Float>, bias_preintegrated: &BiasPreintegrated, bias_delta: &BiasDelta) -> Vector6<Float> {
 
     panic!("TODO")
 
 }
 
-pub fn generate_jacobian<const R: usize>() -> SMatrix<Float, R, 6> {
-
+pub fn genrate_jacobian(bias_delta: &BiasDelta, bias_preintegrated: &BiasPreintegrated, preintegrated_imu: &ImuDelta) -> SMatrix<Float,3,6> {
     panic!("TODO")
 
 }

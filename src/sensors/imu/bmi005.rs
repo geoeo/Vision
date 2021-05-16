@@ -23,7 +23,8 @@ pub fn new_dataframe_from_data(gyro_data: Vec<Vector3<Float>>,gyro_ts: Vec<Float
     let scaled_acc_white_noise = ACCELEROMETER_WHITE_NOISE_DENSITY*ACCELEROMETER_SCALE;
     let scaled_gyro_white_noise = GYRO_WHITE_NOISE_DENSITY*GYRO_SCALE;
 
-    let scaled_acc_bias_white_noise = ACCELEROMETER_BIAS_NOISE_DENSITY*ACCELEROMETER_SCALE;
+    //TODO: these two should maybe still be in frequency domain?
+    let scaled_acc_bias_white_noise = ACCELEROMETER_BIAS_NOISE_DENSITY*ACCELEROMETER_SCALE; 
     let scaled_gyro_bias_white_noise = GYRO_BIAS_NOISE_DENSITY*GYRO_SCALE;
 
     ImuDataFrame::from_data(gyro_data,gyro_ts,
@@ -33,7 +34,8 @@ pub fn new_dataframe_from_data(gyro_data: Vec<Vector3<Float>>,gyro_ts: Vec<Float
         scaled_gyro_white_noise,
         scaled_acc_bias_white_noise,
         scaled_gyro_bias_white_noise,
-        Vector3::<Float>::new(0.6,0.4,-0.05), // simple from plots
+        //Vector3::<Float>::new(0.6,0.4,-0.05), // simple from plots
+        Vector3::<Float>::new(0.6,0.4,0.0), // simple from plots
         Vector3::<Float>::new(0.0,0.0,0.0),
     )
 
