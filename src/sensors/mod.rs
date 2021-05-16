@@ -92,4 +92,71 @@ impl DataFrame {
             imu_data_vec: imu_sequences
         }
     }
+
+    //TODO: doesnt really work
+    pub fn from_imu_data(loaded_imu_data: ImuDataFrame) -> Vec<ImuDataFrame> {
+
+        let step = 5;
+        let number_of_sequences = loaded_imu_data.gyro_count()/step;
+
+        let mut imu_sequences = Vec::<ImuDataFrame>::with_capacity(number_of_sequences);
+        let target_timestamps = loaded_imu_data.gyro_ts.iter().skip(step-1).step_by(step).copied().collect::<Vec<Float>>();
+        let mut accel_imu_idx = 0;
+        let mut gyro_imu_idx = 0;
+
+        for target_ts in target_timestamps {
+
+            let mut imu = ImuDataFrame::empty_from_other(&loaded_imu_data);
+            let mut temp_accel_data = Vec::<Vector3<Float>>::new();
+            let mut temp_accel_ts = Vec::<Float>::new();
+            let mut accel_hit = false;
+            let mut gyro_hit = false;
+
+            while loaded_imu_data.acceleration_ts[accel_imu_idx] <= target_ts {
+                
+
+                temp_accel_data.push(loaded_imu_data.acceleration_data[accel_imu_idx]);
+                temp_accel_ts.push(loaded_imu_data.acceleration_ts[accel_imu_idx]);
+
+                accel_imu_idx += 1;
+                accel_hit = true;
+            }
+            if accel_hit {
+                accel_imu_idx -= 1;
+            }
+
+
+            //TODO: use spline interpolation
+            while loaded_imu_data.gyro_ts[gyro_imu_idx] <= target_ts {
+                imu.gyro_data.push(loaded_imu_data.gyro_data[gyro_imu_idx]);
+                imu.gyro_ts.push(loaded_imu_data.gyro_ts[gyro_imu_idx]);
+
+                imu.acceleration_ts.push(loaded_imu_data.gyro_ts[gyro_imu_idx]);
+                let accel_idx = closest_ts_index(loaded_imu_data.gyro_ts[gyro_imu_idx],&temp_accel_ts);
+                imu.acceleration_data.push(loaded_imu_data.acceleration_data[accel_idx]);
+
+            
+                gyro_imu_idx += 1;
+                gyro_hit = true
+            }
+
+            if gyro_hit {
+                gyro_imu_idx -= 1;
+            }
+
+            assert_eq!(imu.acceleration_ts.len(),imu.gyro_ts.len());
+            assert_eq!(imu.acceleration_data.len(),imu.gyro_data.len());
+
+            if imu.acceleration_ts.len() == 0 {
+                println!("warning no data!");
+            }
+
+
+            imu_sequences.push(imu);
+
+
+        }
+
+        imu_sequences
+    }
 }

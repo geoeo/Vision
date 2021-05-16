@@ -33,7 +33,7 @@ pub fn new_dataframe_from_data(gyro_data: Vec<Vector3<Float>>,gyro_ts: Vec<Float
         scaled_gyro_white_noise,
         scaled_acc_bias_white_noise,
         scaled_gyro_bias_white_noise,
-        Vector3::<Float>::new(0.0,0.0,0.0),
+        Vector3::<Float>::new(0.6,0.4,-0.05), // simple from plots
         Vector3::<Float>::new(0.0,0.0,0.0),
     )
 

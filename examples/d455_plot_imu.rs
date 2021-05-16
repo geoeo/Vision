@@ -10,7 +10,8 @@ use vision::{float,Float};
 
 fn main() {
 
-    let dataset_name = "x";
+    //let dataset_name = "x";
+    let dataset_name = "imu_only_not_moving";
     let output_folder = "D:/Workspace/Rust/Vision/output/";
     let root_path = format!("D:/Workspace/Datasets/D455/{}",dataset_name);
 

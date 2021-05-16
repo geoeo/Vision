@@ -5,7 +5,6 @@ use crate::Float;
 
 #[derive(Clone)]
 pub struct ImuDataFrame {
-    //TODO: rework bias and std dev of bias
     pub noise_covariance: Matrix6<Float>,
     pub bias_noise_covariance: Matrix6<Float>,
     pub bias_a: Vector3<Float>,
@@ -19,16 +18,7 @@ pub struct ImuDataFrame {
 }
 
 impl ImuDataFrame {
-/*     pub fn new(acceleration_inital_capacity: usize, gyro_inital_capacity: usize, accelerometer_noise_density: Float, gyro_noise_density:Float) -> ImuDataFrame {
-        
-        ImuDataFrame {
-            noise_covariance: ImuDataFrame::generate_noise_covariance(accelerometer_noise_density,gyro_noise_density),
-            acceleration_data: Vec::<Vector3<Float>>::with_capacity(acceleration_inital_capacity),
-            acceleration_ts: Vec::<Float>::with_capacity(acceleration_inital_capacity),
-            gyro_data: Vec::<Vector3<Float>>::with_capacity(gyro_inital_capacity),
-            gyro_ts: Vec::<Float>::with_capacity(gyro_inital_capacity)
-        }
-    }*/
+
 
     pub fn empty_from_other(imu_data_frame: &ImuDataFrame) -> ImuDataFrame {
         ImuDataFrame {

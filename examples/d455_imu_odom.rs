@@ -7,6 +7,7 @@ use vision::io::{
     d455_loader, image_loading_parameters::ImageLoadingParameters,
     imu_loading_parameters::ImuLoadingParameters,
 };
+use vision::sensors::DataFrame;
 use vision::odometry::imu_odometry::{pre_integration, solver::run_trajectory};
 use vision::odometry::runtime_parameters::RuntimeParameters;
 use vision::pyramid::gd::{
@@ -52,7 +53,7 @@ fn main() {
 
         show_octave_result: true,
         loss_function: Box::new(numerics::loss::SoftOneLoss { eps: 1e-16, approximate_gauss_newton_matrices: true }), 
-        intensity_weighting_function:  Box::new(numerics::loss::SoftOneLoss {eps: 1e-16, approximate_gauss_newton_matrices: true})
+        intensity_weighting_function:  Box::new(numerics::loss::HuberLossForPos {eps: 1e-16,delta: 1.0, approximate_gauss_newton_matrices: true})
     };
 
     let mut se3_est = vec![Matrix4::<Float>::identity()];
