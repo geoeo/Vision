@@ -101,8 +101,6 @@ fn main() {
 
     se3_est_imu.extend(vision::odometry::imu_odometry::solver::run_trajectory(        
         &imu_data,
-        &Vector3::<Float>::zeros(),
-        &Vector3::<Float>::zeros(),
         &Vector3::<Float>::new(0.0, 9.81, 0.0),
         &vo_parameters));
 

@@ -3,7 +3,7 @@ extern crate nalgebra as na;
 use na::{Vector3,Matrix4,SMatrix,SVector, Const, DimMin};
 
 use crate::odometry::runtime_parameters::RuntimeParameters;
-use crate::odometry::{imu_odometry, imu_odometry::imu_delta::ImuDelta, imu_odometry::{ImuResidual,ImuJacobian,ImuPertrubation, ImuCovariance, weight_jacobian, weight_residuals}};
+use crate::odometry::{imu_odometry, imu_odometry::imu_delta::ImuDelta, imu_odometry::{ImuResidual, ImuCovariance, weight_jacobian, weight_residuals}};
 use crate::sensors::imu::imu_data_frame::ImuDataFrame;
 use crate::numerics::max_norm;
 use crate::{Float,float};
@@ -12,11 +12,11 @@ const OBSERVATIONS_DIM: usize = 9;
 const PARAMETERS_DIM: usize = 15; //With bias
 
 
-pub fn run_trajectory(imu_data_measurements: &Vec<ImuDataFrame>, bias_gyroscope: &Vector3<Float>,bias_accelerometer: &Vector3<Float>, gravity_body: &Vector3<Float>, runtime_parameters: &RuntimeParameters) -> Vec<Matrix4<Float>> {
-    imu_data_measurements.iter().enumerate().map(|(i,measurement)| run(i+1,&measurement,bias_gyroscope,bias_accelerometer,gravity_body,runtime_parameters)).collect::<Vec<Matrix4<Float>>>()
+pub fn run_trajectory(imu_data_measurements: &Vec<ImuDataFrame>, gravity_body: &Vector3<Float>, runtime_parameters: &RuntimeParameters) -> Vec<Matrix4<Float>> {
+    imu_data_measurements.iter().enumerate().map(|(i,measurement)| run(i+1,&measurement,gravity_body,runtime_parameters)).collect::<Vec<Matrix4<Float>>>()
 }
 
-pub fn run<>(iteration: usize, imu_data_measurement: &ImuDataFrame,bias_gyroscope: &Vector3<Float>,bias_accelerometer: &Vector3<Float>, 
+pub fn run<>(iteration: usize, imu_data_measurement: &ImuDataFrame, 
     gravity_body: &Vector3<Float>, runtime_parameters: &RuntimeParameters) -> Matrix4<Float> {
 
     let (preintegrated_measurement, imu_covariance, bias) = imu_odometry::pre_integration(imu_data_measurement, gravity_body);

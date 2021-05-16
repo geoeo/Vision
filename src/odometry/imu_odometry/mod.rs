@@ -67,7 +67,7 @@ pub fn pre_integration(imu_data: &ImuDataFrame, gravity_body: &Vector3<Float>) -
         let delta_rotation_k = delta_rotations[gyro_idx];
 
         let (linear_state_design_matrix,linear_noise_design_matrix) = generate_linear_model_matrices(&accelerometer_k, &gyro_k,a_delta_t_i_k,g_delta_t_k ,&delta_rotation_i_k, &delta_rotation_k, gravity_body);
-        imu_covariance = linear_state_design_matrix*imu_covariance*linear_state_design_matrix.transpose() + linear_noise_design_matrix*(imu_data.noise_covariance)*linear_noise_design_matrix.transpose()
+        imu_covariance = linear_state_design_matrix*imu_covariance*linear_state_design_matrix.transpose() + linear_noise_design_matrix*imu_data.noise_covariance*linear_noise_design_matrix.transpose()
 
     }
 

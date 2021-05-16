@@ -183,11 +183,11 @@ fn estimate<Cam: Camera, const R: usize, const C: usize>(
         &mut runtime_memory.image_gradient_points,
     );
     //TODO: check why this performs badly
-    norm(
-        &runtime_memory.residuals,
-        &runtime_parameters.intensity_weighting_function,
-        &mut runtime_memory.weights_vec,
-    );
+    // norm(
+    //     &runtime_memory.residuals,
+    //     &runtime_parameters.intensity_weighting_function,
+    //     &mut runtime_memory.weights_vec,
+    // );
     weight_residuals_sparse(&mut runtime_memory.residuals, &runtime_memory.weights_vec);
 
     let mut estimate = ImuDelta::empty();

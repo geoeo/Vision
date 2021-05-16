@@ -1,6 +1,6 @@
 extern crate nalgebra as na;
 
-use na::{Vector3,SVector,Matrix3,Matrix4,Const, Vector, storage::Storage};
+use na::{Vector3,Matrix3,Matrix4,Const, Vector, storage::Storage};
 use crate::odometry::imu_odometry::{ImuPertrubation, bias::{BiasPreintegrated, BiasDelta}};
 use crate::numerics::lie::{exp,exp_r,ln_SO3, vector_from_skew_symmetric};
 use crate::Float;
