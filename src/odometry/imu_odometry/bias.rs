@@ -25,7 +25,7 @@ pub struct BiasPreintegrated {
 impl BiasPreintegrated {
 
     //TODO:test
-    pub fn new(bias_accelerometer: &Vector3<Float>,bias_gyro: &Vector3<Float>, bias_noise_density_acc: Float, bias_noise_density_gyro: Float, acceleration_data: &[Vector3<Float>],gyro_delta_times: &Vec<Float>, 
+    pub fn new(bias_accelerometer: &Vector3<Float>,bias_gyro: &Vector3<Float>, bias_noise_density_acc: &Vector3<Float>, bias_noise_density_gyro: &Vector3<Float>, acceleration_data: &[Vector3<Float>],gyro_delta_times: &Vec<Float>, 
         delta_lie_i_k: &Vec<Vector3<Float>>, delta_rotations_i_k: &Vec<Matrix3::<Float>>) -> BiasPreintegrated {
 
         let acc_rotations_i_k = delta_rotations_i_k.iter().scan(Matrix3::identity(), |acc, dr| {

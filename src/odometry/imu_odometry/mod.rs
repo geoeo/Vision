@@ -88,9 +88,9 @@ pub fn pre_integration(imu_data: &ImuDataFrame, gravity_body: &Vector3<Float>) -
         BiasPreintegrated::new(
             &imu_data.bias_a,
             &imu_data.bias_g,
-            imu_data.accelerometer_bias_noise_density, 
-            imu_data.gyro_bias_noise_density
-            ,&imu_data.acceleration_data[0..imu_data.acceleration_count()-1],
+            &imu_data.accelerometer_bias_noise_density, 
+            &imu_data.gyro_bias_noise_density,
+            &imu_data.acceleration_data[0..imu_data.acceleration_count()-1],
             &gyro_delta_times,&delta_lie,&delta_rotations
         ))
 }

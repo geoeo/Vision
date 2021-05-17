@@ -30,12 +30,12 @@ pub fn new_dataframe_from_data(gyro_data: Vec<Vector3<Float>>,gyro_ts: Vec<Float
     ImuDataFrame::from_data(gyro_data,gyro_ts,
         accleration_data,
         acceleration_ts,
-        scaled_acc_white_noise,
-        scaled_gyro_white_noise,
-        scaled_acc_bias_white_noise,
-        scaled_gyro_bias_white_noise,
+        Vector3::<Float>::new(scaled_acc_white_noise,scaled_acc_white_noise,scaled_acc_white_noise),
+        Vector3::<Float>::new(scaled_gyro_white_noise,scaled_gyro_white_noise,scaled_gyro_white_noise),
+        Vector3::<Float>::new(scaled_acc_bias_white_noise,scaled_acc_bias_white_noise,scaled_acc_bias_white_noise),
+        Vector3::<Float>::new(scaled_gyro_bias_white_noise,scaled_gyro_bias_white_noise,scaled_gyro_bias_white_noise),
         //Vector3::<Float>::new(0.6,0.4,-0.05), // simple from plots
-        Vector3::<Float>::new(0.6,0.4,0.0), // simple from plots
+        Vector3::<Float>::new(0.6,0.2,0.0), // simple from plots
         Vector3::<Float>::new(0.0,0.0,0.0),
     )
 
