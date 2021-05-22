@@ -1,6 +1,7 @@
 use nalgebra as na;
 
 use na::{Vector3,Vector6,Matrix6};
+use crate::odometry::imu_odometry::bias::BiasDelta;
 use crate::Float;
 
 #[derive(Clone)]
@@ -54,6 +55,22 @@ impl ImuDataFrame {
             gyro_ts,
             acceleration_data,
             acceleration_ts
+        }
+    }
+
+    pub fn new_from_bias(&self, bias_delta: &BiasDelta) -> ImuDataFrame {
+
+        ImuDataFrame {
+            noise_covariance: self.noise_covariance,
+            bias_noise_covariance: self.bias_noise_covariance,
+            bias_a: self.bias_a + bias_delta.bias_a_delta,
+            bias_g: self.bias_g + bias_delta.bias_g_delta,
+            accelerometer_bias_noise_density: self.accelerometer_bias_noise_density,
+            gyro_bias_noise_density: self.gyro_bias_noise_density,
+            gyro_data: self.gyro_data.clone(),
+            gyro_ts: self.gyro_ts.clone(),
+            acceleration_data: self.acceleration_data.clone(),
+            acceleration_ts: self.acceleration_ts.clone()
         }
     }
 

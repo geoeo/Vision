@@ -1,14 +1,46 @@
 extern crate nalgebra as na;
 
-use na::{Vector3,Vector6,Matrix3, SMatrix};
+use na::{Vector,Vector3,Vector6,Matrix3,Matrix,SMatrix,U3,storage::Storage, Const};
 
-use crate::odometry::imu_odometry::imu_delta::ImuDelta;
-use crate::numerics::lie::{right_jacobian,skew_symmetric};
+use crate::odometry::imu_odometry::{imu_delta::ImuDelta, ImuResidual};
+use crate::numerics::lie::{right_jacobian,skew_symmetric, right_inverse_jacobian, exp_r};
 use crate::Float;
 
 pub struct BiasDelta {
     pub bias_a_delta: Vector3<Float>,
     pub bias_g_delta: Vector3<Float>
+}
+
+impl BiasDelta {
+
+    pub fn empty() -> BiasDelta {
+        BiasDelta {
+            bias_a_delta: Vector3::<Float>::zeros(),
+            bias_g_delta: Vector3::<Float>::zeros()
+        }
+
+    }
+
+    pub fn add_pertb<R>(&self, new_pertb: &Vector<Float,Const<6>,R>) -> BiasDelta where R: Storage<Float,Const<6>,Const<1>> {
+        BiasDelta {
+            bias_a_delta: self.bias_a_delta + new_pertb.fixed_rows::<3>(0),
+            bias_g_delta: self.bias_g_delta + new_pertb.fixed_rows::<3>(3)
+        }
+
+    }
+
+    pub fn add_delta(&self, new_delta: &BiasDelta) -> BiasDelta {
+        BiasDelta {
+            bias_a_delta: self.bias_a_delta + new_delta.bias_a_delta,
+            bias_g_delta: self.bias_g_delta + new_delta.bias_g_delta
+        }
+
+    }
+
+    pub fn norm(&self) -> Float {
+        self.bias_a_delta.norm() + self.bias_g_delta.norm()
+    }
+
 }
 
 
@@ -19,13 +51,15 @@ pub struct BiasPreintegrated {
     pub position_jacobian_bias_a: Matrix3<Float>,
     pub position_jacobian_bias_g: Matrix3<Float>,
     pub integrated_bias_a: Vector3<Float>,
-    pub integrated_bias_g: Vector3<Float>
+    pub integrated_bias_g: Vector3<Float>,
+    pub bias_a_std: Vector3<Float>,
+    pub bias_g_std: Vector3<Float>,
 }
 
 impl BiasPreintegrated {
 
     //TODO:test
-    pub fn new(bias_accelerometer: &Vector3<Float>,bias_gyro: &Vector3<Float>, bias_noise_density_acc: &Vector3<Float>, bias_noise_density_gyro: &Vector3<Float>, acceleration_data: &[Vector3<Float>],gyro_delta_times: &Vec<Float>, 
+    pub fn new(bias_accelerometer: &Vector3<Float>,bias_gyro: &Vector3<Float>, bias_spectral_noise_density_acc: &Vector3<Float>, bias_spectral_noise_density_gyro: &Vector3<Float>, acceleration_data: &[Vector3<Float>],gyro_delta_times: &Vec<Float>, 
         delta_lie_i_k: &Vec<Vector3<Float>>, delta_rotations_i_k: &Vec<Matrix3::<Float>>) -> BiasPreintegrated {
 
         let acc_rotations_i_k = delta_rotations_i_k.iter().scan(Matrix3::identity(), |acc, dr| {
@@ -103,7 +137,17 @@ impl BiasPreintegrated {
             acc + dv*dt-0.5*delta_r_dt*acceleration_ss*dr*dt
         });
 
-        //TODO: preintegrate biases
+        let dt = *acc_delta_times_i_k.last().unwrap();
+        let dt_sqrt = dt.sqrt();
+        let bias_a_std = bias_spectral_noise_density_acc*(dt_sqrt);
+        let bias_g_std = bias_spectral_noise_density_gyro*(dt_sqrt);
+
+        //TODO: check if dt or sqrt(dt) is better
+        // let integrated_bias_a = bias_accelerometer + bias_a_std;
+        // let integrated_bias_g = bias_gyro + bias_g_std;
+
+        let integrated_bias_a = bias_accelerometer + bias_spectral_noise_density_acc*dt;
+        let integrated_bias_g = bias_gyro + bias_spectral_noise_density_gyro*dt;
 
         BiasPreintegrated {
             rotation_jacobian_bias_g: *rotation_jacobian_i_j,
@@ -111,20 +155,46 @@ impl BiasPreintegrated {
             velocity_jacobian_bias_g: *velocity_jacobian_for_bias_g,
             position_jacobian_bias_a: pos_jacobian_for_bias_a,
             position_jacobian_bias_g: pos_jacobian_for_bias_g,
-            integrated_bias_a: Vector3::<Float>::zeros(),
-            integrated_bias_g: Vector3::<Float>::zeros()
-
+            integrated_bias_a,
+            integrated_bias_g,
+            bias_a_std,
+            bias_g_std
         }
     }
 }
 
-pub fn generate_residuals(bias_a_initial: &Vector3<Float>, bias_g_initial: &Vector3<Float>, bias_preintegrated: &BiasPreintegrated, bias_delta: &BiasDelta) -> Vector6<Float> {
+pub fn compute_residual(bias_est: &Vector3<Float>, bias_preintegrated: &Vector3<Float>) -> Vector3<Float> {
+    bias_preintegrated - bias_est
+}
 
-    panic!("TODO")
+pub fn compute_cost_for_weighted(residual_bias_a_weighted: &Vector3<Float>, residual_bias_g_weighted: &Vector3<Float>) -> Float {
+    (residual_bias_a_weighted.transpose()*residual_bias_a_weighted + residual_bias_g_weighted.transpose()*residual_bias_g_weighted)[0]
 
 }
 
-pub fn genrate_jacobian(bias_delta: &BiasDelta, bias_preintegrated: &BiasPreintegrated, preintegrated_imu: &ImuDelta) -> SMatrix<Float,3,6> {
-    panic!("TODO")
+pub fn weight_residual(res_target: &mut Vector3<Float>, weights: &Vector3<Float>) -> () {
+    res_target.component_mul_assign(weights);
+}
+
+pub fn genrate_residual_jacobian(bias_delta: &BiasDelta, preintegrated_bias: &BiasPreintegrated, residuals: &ImuResidual) -> SMatrix<Float,9,6> {
+    let mut jacobian = SMatrix::<Float,9,6>::zeros();
+
+    let residual_position_jacobian_bias_a = -preintegrated_bias.position_jacobian_bias_a;
+    let residual_position_jacobian_bias_g = -preintegrated_bias.position_jacobian_bias_g;
+    let residual_velocity_jacobian_bias_a = -preintegrated_bias.velocity_jacobian_bias_a;
+    let residual_velocity_jacobian_bias_g = -preintegrated_bias.velocity_jacobian_bias_g;
+
+
+    let j_r_b = right_jacobian(&(preintegrated_bias.rotation_jacobian_bias_g*bias_delta.bias_g_delta));
+    let residual_rotation = residuals.fixed_rows::<3>(3);
+    let residual_rotation_jacbobian_bias_g = -right_inverse_jacobian(&residual_rotation)*exp_r(&residual_rotation).transpose()*j_r_b*preintegrated_bias.rotation_jacobian_bias_g;
+
+    jacobian.fixed_slice_mut::<3,3>(0,0).copy_from(&residual_position_jacobian_bias_a);
+    jacobian.fixed_slice_mut::<3,3>(0,3).copy_from(&residual_position_jacobian_bias_g);
+    jacobian.fixed_slice_mut::<3,3>(3,3).copy_from(&residual_rotation_jacbobian_bias_g);
+    jacobian.fixed_slice_mut::<3,3>(6,0).copy_from(&residual_velocity_jacobian_bias_a);
+    jacobian.fixed_slice_mut::<3,3>(6,3).copy_from(&residual_velocity_jacobian_bias_g);
+
+    jacobian
 
 }

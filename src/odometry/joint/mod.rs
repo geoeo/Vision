@@ -19,6 +19,7 @@ use crate::odometry::{
     imu_odometry,
     imu_odometry::imu_delta::ImuDelta,
     imu_odometry::{ImuCovariance,weight_residuals, weight_jacobian},
+    imu_odometry::bias::{BiasDelta,BiasPreintegrated}
 };
 use crate::pyramid::gd::{gd_octave::GDOctave, GDPyramid};
 use crate::sensors::camera::Camera;
@@ -85,7 +86,7 @@ pub fn run<Cam: Camera, const C: usize>(
     let depth_image = &source_rgdb_pyramid.depth_image;
     let mut mat_result = Matrix4::<Float>::identity();
 
-    let (preintegrated_measurement, imu_covariance, bias) = imu_odometry::pre_integration(
+    let (preintegrated_measurement, imu_covariance, preintegrated_bias) = imu_odometry::pre_integration(
         imu_data_measurement,
         gravity_body,
     );
@@ -104,6 +105,7 @@ pub fn run<Cam: Camera, const C: usize>(
             depth_camera,
             imu_data_measurement,
             &preintegrated_measurement,
+            &preintegrated_bias,
             &imu_covariance,
             gravity_body,
             runtime_parameters,
@@ -138,6 +140,7 @@ fn estimate<Cam: Camera, const R: usize, const C: usize>(
     depth_camera: &Cam,
     imu_data_measurement: &ImuDataFrame,
     preintegrated_measurement: &ImuDelta,
+    preintegrated_bias: &BiasPreintegrated,
     imu_covariance: &ImuCovariance,
     gravity_body: &Vector3<Float>,
     runtime_parameters: &RuntimeParameters,
@@ -191,10 +194,11 @@ fn estimate<Cam: Camera, const R: usize, const C: usize>(
     weight_residuals_sparse(&mut runtime_memory.residuals, &runtime_memory.weights_vec);
 
     let mut estimate = ImuDelta::empty();
+    let mut bias_estimate = BiasDelta::empty();
     let delta_t = imu_data_measurement.gyro_ts[imu_data_measurement.gyro_ts.len() - 1]
         - imu_data_measurement.gyro_ts[0]; // Gyro has a higher sampling rate
 
-    let mut imu_residuals = imu_odometry::generate_residual(&estimate, preintegrated_measurement);
+    let mut imu_residuals = imu_odometry::generate_residual(&estimate, preintegrated_measurement, &bias_estimate, preintegrated_bias);
     let mut imu_residuals_unweighted = imu_residuals.clone();
 
     let imu_weights = match imu_covariance.cholesky() {
@@ -308,7 +312,7 @@ fn estimate<Cam: Camera, const R: usize, const C: usize>(
             (runtime_memory.new_image_gradient_points.len() as Float / number_of_pixels_float) * 100.0;
 
         let mut imu_new_residuals =
-            imu_odometry::generate_residual(&new_estimate, preintegrated_measurement);
+            imu_odometry::generate_residual(&new_estimate, preintegrated_measurement, &bias_estimate, preintegrated_bias);
         let imu_new_residuals_unweighted = imu_new_residuals.clone();
         weight_residuals(&mut imu_new_residuals, &imu_weight_l_upper);
 

@@ -135,14 +135,32 @@ pub fn generate_jacobian<S>(lie: &Vector<Float,Const<3>,S>, delta_t: Float) -> I
     jacobian
 }
 
-//TODO_ these have to change for bias estiamtion
-pub fn generate_residual(estimate: &ImuDelta, measurement: &ImuDelta) -> ImuResidual {
+pub fn generate_residual(estimate: &ImuDelta, measurement: &ImuDelta, bias_estimate: &BiasDelta, bias_preintegrated: &BiasPreintegrated) -> ImuResidual {
     let mut residual = ImuResidual::zeros();
-    residual.fixed_rows_mut::<3>(0).copy_from(&(estimate.delta_position - measurement.delta_position));
-    let rotation_residual = measurement.delta_rotation().transpose()*estimate.delta_rotation();
+
+
+
+    let rotation_bias_adjustment = exp_r(&(bias_preintegrated.rotation_jacobian_bias_g*bias_estimate.bias_g_delta));
+
+
+    let velocity_bias_adjustment = bias_preintegrated.velocity_jacobian_bias_a*bias_estimate.bias_a_delta + bias_preintegrated.velocity_jacobian_bias_g*bias_estimate.bias_g_delta;
+    let position_bias_adjustment = bias_preintegrated.position_jacobian_bias_a*bias_estimate.bias_a_delta + bias_preintegrated.position_jacobian_bias_g*bias_estimate.bias_g_delta;
+
+    //bias
+    residual.fixed_rows_mut::<3>(0).copy_from(&(estimate.delta_position - measurement.delta_position - position_bias_adjustment));
+    let rotation_residual = (measurement.delta_rotation()*rotation_bias_adjustment).transpose()*estimate.delta_rotation();
     let w_x = ln_SO3(&rotation_residual);
     residual.fixed_rows_mut::<3>(3).copy_from(&vector_from_skew_symmetric(&w_x));
-    residual.fixed_rows_mut::<3>(6).copy_from(&(estimate.delta_velocity - measurement.delta_velocity)); 
+    residual.fixed_rows_mut::<3>(6).copy_from(&(estimate.delta_velocity - measurement.delta_velocity - velocity_bias_adjustment)); 
+
+    // residual.fixed_rows_mut::<3>(0).copy_from(&(estimate.delta_position - measurement.delta_position));
+    // let rotation_residual = measurement.delta_rotation().transpose()*estimate.delta_rotation();
+    // let w_x = ln_SO3(&rotation_residual);
+    // residual.fixed_rows_mut::<3>(3).copy_from(&vector_from_skew_symmetric(&w_x));
+    // residual.fixed_rows_mut::<3>(6).copy_from(&(estimate.delta_velocity - measurement.delta_velocity)); 
+
+
+
 
     residual
 }

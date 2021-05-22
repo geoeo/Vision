@@ -74,16 +74,23 @@ pub fn exp<T>(u: &Vector<Float,U3,T>, w: &Vector<Float,U3,T>) -> Matrix4<Float> 
 #[allow(non_snake_case)]
 pub fn exp_r<T>(w: &Vector<Float,U3,T>) -> Matrix3<Float> where T: Storage<Float,U3,U1> {
     let omega = (w.transpose()*w)[0].sqrt();
-    let omega_sqr = omega.powi(2);
-    let A = omega.sin()/omega;
-    let B = (1.0 - omega.cos())/omega_sqr;
-    //let C = (1.0 - A)/omega_sqr;
 
-    let w_x = skew_symmetric(w);
-    let w_x_sqr = w_x*w_x;
-    let I = Matrix3::<Float>::identity();
-    I + A*w_x + B*w_x_sqr
+    match omega {
+        omega if omega != 0.0 => {
+            let omega_sqr = omega.powi(2);
+            let A = omega.sin()/omega;
+            let B = (1.0 - omega.cos())/omega_sqr;
+            //let C = (1.0 - A)/omega_sqr;
+        
+            let w_x = skew_symmetric(w);
+            let w_x_sqr = w_x*w_x;
+            let I = Matrix3::<Float>::identity();
+            I + A*w_x + B*w_x_sqr
+        },
+        _ => Matrix3::identity()
+    }
 }
+
 
 // TODO: taylor expansion, check this
 #[allow(non_snake_case)]
