@@ -5,7 +5,7 @@ Orb implementation in Rust. http://www.willowgarage.com/sites/default/files/orb_
 
 Dense VO implementation in Rust. https://ieeexplore.ieee.org/document/6631104
 
-Imu Preintgration in Rust (Wip) http://rpg.ifi.uzh.ch/docs/TRO16_forster.pdf
+Imu Preintgration in Rust http://rpg.ifi.uzh.ch/docs/TRO16_forster.pdf
 
 ## Orb
 ![orb](doc/lenna_orb_matches_all.png)
