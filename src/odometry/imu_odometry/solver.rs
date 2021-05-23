@@ -21,13 +21,9 @@ pub fn run_trajectory(imu_data_measurements: &Vec<ImuDataFrame>, gravity_body: &
     }).collect::<Vec<Matrix4<Float>>>()
 }
 
-pub fn run<>(iteration: usize, imu_data_measurement: &ImuDataFrame, 
-    bias_delta: &BiasDelta, gravity_body: &Vector3<Float>, runtime_parameters: &RuntimeParameters) -> (Matrix4<Float>, BiasDelta) {
+pub fn run<>(iteration: usize, imu_data_measurement: &ImuDataFrame, prev_bias_delta: &BiasDelta, gravity_body: &Vector3<Float>, runtime_parameters: &RuntimeParameters) -> (Matrix4<Float>, BiasDelta) {
 
-    //TODO: update bias with previous estimate
-    println!("start bias a: {}", imu_data_measurement.bias_a);
-    let imu_data_measurement_with_bias = imu_data_measurement.new_from_bias(bias_delta);
-    println!("updated bias a: {}", imu_data_measurement_with_bias.bias_a);
+    let imu_data_measurement_with_bias = imu_data_measurement.new_from_bias(prev_bias_delta);
     let (preintegrated_measurement, imu_covariance, preintegrated_bias) = imu_odometry::pre_integration(&imu_data_measurement_with_bias, gravity_body);
     let mut mat_result = Matrix4::<Float>::identity();
     
@@ -182,9 +178,9 @@ fn estimate<const R: usize, const C: usize>(imu_data_measurement: &ImuDataFrame,
 
     }
 
-    println!{"bias delta a: {}", bias_estimate.bias_a_delta};
-    println!{"bias delta g: {}", bias_estimate.bias_g_delta};
-    println!{"bias a: {}", bias_estimate.bias_g_delta};
+    // println!{"bias delta a: {}", bias_estimate.bias_a_delta};
+    // println!{"bias delta g: {}", bias_estimate.bias_g_delta};
+    // println!{"bias a: {}", bias_estimate.bias_g_delta};
 
     (est_transform,iteration_count, bias_estimate)
 }

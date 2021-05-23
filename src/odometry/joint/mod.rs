@@ -19,7 +19,8 @@ use crate::odometry::{
     imu_odometry,
     imu_odometry::imu_delta::ImuDelta,
     imu_odometry::{ImuCovariance,weight_residuals, weight_jacobian},
-    imu_odometry::bias::{BiasDelta,BiasPreintegrated}
+    imu_odometry::bias::{BiasDelta,BiasPreintegrated},
+    imu_odometry::bias
 };
 use crate::pyramid::gd::{gd_octave::GDOctave, GDPyramid};
 use crate::sensors::camera::Camera;
@@ -35,19 +36,18 @@ pub fn run_trajectory<Cam: Camera>(
     intensity_camera: &Cam,
     depth_camera: &Cam,
     imu_data_measurements: &Vec<ImuDataFrame>,
-    bias_gyroscope: &Vector3<Float>,
-    bias_accelerometer: &Vector3<Float>,
     gravity_body: &Vector3<Float>,
     runtime_parameters: &RuntimeParameters,
 ) -> Vec<Matrix4<Float>> {
     let mut runtime_memory_vector = RuntimeMemory::<PARAMETERS_DIM>::from_pyramid(&source_rgdb_pyramids[0]);
+    let mut bias_delta = BiasDelta::empty();
     source_rgdb_pyramids
         .iter()
         .zip(target_rgdb_pyramids.iter())
         .zip(imu_data_measurements.iter())
         .enumerate()
         .map(|(i, ((source, target), imu_data_measurement))| {
-            run::<Cam, PARAMETERS_DIM>(
+            let (transform_est, bias_update) = run::<Cam, PARAMETERS_DIM> (
                 i + 1,
                 &source,
                 &target,
@@ -55,11 +55,12 @@ pub fn run_trajectory<Cam: Camera>(
                 intensity_camera,
                 depth_camera,
                 imu_data_measurement,
-                bias_gyroscope,
-                bias_accelerometer,
+                &bias_delta,
                 gravity_body,
                 runtime_parameters,
-            )
+            );
+            bias_delta = bias_delta.add_delta(&bias_update);
+            transform_est
         })
         .collect::<Vec<Matrix4<Float>>>()
 }
@@ -72,27 +73,33 @@ pub fn run<Cam: Camera, const C: usize>(
     intensity_camera: &Cam,
     depth_camera: &Cam,
     imu_data_measurement: &ImuDataFrame,
-    bias_gyroscope: &Vector3<Float>,
-    bias_accelerometer: &Vector3<Float>,
+    prev_bias_delta: &BiasDelta,
     gravity_body: &Vector3<Float>,
     runtime_parameters: &RuntimeParameters,
-) -> Matrix4<Float> where Const<C>: DimMin<Const<C>, Output = Const<C>> {
+) -> (Matrix4<Float>, BiasDelta) where Const<C>: DimMin<Const<C>, Output = Const<C>> {
     let octave_count = source_rgdb_pyramid.octaves.len();
 
     assert_eq!(octave_count, runtime_parameters.taus.len());
     assert_eq!(octave_count, runtime_parameters.step_sizes.len());
     assert_eq!(octave_count, runtime_parameters.max_iterations.len());
 
+
+
+    let imu_data_measurement_with_bias = imu_data_measurement.new_from_bias(prev_bias_delta);
+
+    println!("bias a: {}",imu_data_measurement_with_bias.bias_a);
+    println!("bias g: {}",imu_data_measurement_with_bias.bias_g);
+
     let depth_image = &source_rgdb_pyramid.depth_image;
     let mut mat_result = Matrix4::<Float>::identity();
 
     let (preintegrated_measurement, imu_covariance, preintegrated_bias) = imu_odometry::pre_integration(
-        imu_data_measurement,
+        &imu_data_measurement_with_bias,
         gravity_body,
     );
 
-
-
+    //TODO: bias estimate for a octave
+    let mut bias_delta = BiasDelta::empty();
     for index in (0..octave_count).rev() {
         let result = estimate::<Cam, OBSERVATIONS_DIM, C>(
             &source_rgdb_pyramid.octaves[index],
@@ -112,6 +119,7 @@ pub fn run<Cam: Camera, const C: usize>(
         );
         mat_result = result.0;
         let solver_iterations = result.1;
+        bias_delta = result.2;
 
         if runtime_parameters.show_octave_result {
             println!(
@@ -125,7 +133,7 @@ pub fn run<Cam: Camera, const C: usize>(
         println!("final: est_transform: {}", mat_result);
     }
 
-    mat_result
+    (mat_result,bias_delta)
 }
 
 //TODO: buffer all debug strings and print at the end. Also the numeric matricies could be buffered per octave level
@@ -144,7 +152,7 @@ fn estimate<Cam: Camera, const R: usize, const C: usize>(
     imu_covariance: &ImuCovariance,
     gravity_body: &Vector3<Float>,
     runtime_parameters: &RuntimeParameters,
-) -> (Matrix4<Float>, usize) where Const<C>: DimMin<Const<C>, Output = Const<C>> {
+) -> (Matrix4<Float>, usize, BiasDelta) where Const<C>: DimMin<Const<C>, Output = Const<C>> {
     let source_image = &source_octave.gray_images[0];
     let target_image = &target_octave.gray_images[0];
     let x_gradient_image = &target_octave.x_gradients[0];
@@ -201,6 +209,10 @@ fn estimate<Cam: Camera, const R: usize, const C: usize>(
     let mut imu_residuals = imu_odometry::generate_residual(&estimate, preintegrated_measurement, &bias_estimate, preintegrated_bias);
     let mut imu_residuals_unweighted = imu_residuals.clone();
 
+    
+    let mut bias_a_residuals = bias::compute_residual(&bias_estimate.bias_a_delta, &preintegrated_bias.integrated_bias_a);
+    let mut bias_g_residuals = bias::compute_residual(&bias_estimate.bias_g_delta, &preintegrated_bias.integrated_bias_g);
+
     let imu_weights = match imu_covariance.cholesky() {
         Some(v) => v.inverse(),
         None => {
@@ -218,11 +230,16 @@ fn estimate<Cam: Camera, const R: usize, const C: usize>(
     weight_residuals(&mut imu_residuals, &imu_weight_l_upper);
     weight_jacobian(&mut imu_jacobian, &imu_weight_l_upper);
 
+    let mut bias_jacobian = bias::genrate_residual_jacobian(&bias_estimate, preintegrated_bias, &imu_residuals);
+
+    bias::weight_residual(&mut bias_a_residuals, &preintegrated_bias.bias_a_std);
+    bias::weight_residual(&mut bias_g_residuals, &preintegrated_bias.bias_g_std);
+
     let mut cost = compute_cost(
         &runtime_memory.residuals,
         &imu_residuals,
         &runtime_parameters.loss_function,
-    ); 
+    ) + bias::compute_cost_for_weighted(&bias_a_residuals, &bias_g_residuals); 
 
     let mut max_norm_delta = float::MAX;
     let mut delta_thresh = float::MIN;
@@ -270,6 +287,7 @@ fn estimate<Cam: Camera, const R: usize, const C: usize>(
         }
         imu_residuals_full.fixed_rows_mut::<9>(0).copy_from(&imu_residuals);
         imu_jacobian_full.fixed_slice_mut::<9,9>(0,0).copy_from(&imu_jacobian);
+        imu_jacobian_full.fixed_slice_mut::<9,6>(0,9).copy_from(&bias_jacobian);
 
         let (delta, g, gain_ratio_denom, mu_val) = gauss_newton_step_with_loss(
             &runtime_memory.residuals,
@@ -288,6 +306,8 @@ fn estimate<Cam: Camera, const R: usize, const C: usize>(
 
         let pertb = step * delta;
         let new_estimate = estimate.add_pertb(&pertb.fixed_rows::<9>(0));
+        let new_bias_estimate = bias_estimate.add_pertb(&pertb.fixed_rows::<6>(9));
+
         let new_est_transform =
             lie::exp(&pertb.fixed_rows::<3>(0), &pertb.fixed_rows::<3>(3)) * est_transform;
 
@@ -308,6 +328,8 @@ fn estimate<Cam: Camera, const R: usize, const C: usize>(
             &mut runtime_memory.weights_vec,
         );
         weight_residuals_sparse(&mut runtime_memory.new_residuals, &runtime_memory.weights_vec);
+
+        
         percentage_of_valid_pixels =
             (runtime_memory.new_image_gradient_points.len() as Float / number_of_pixels_float) * 100.0;
 
@@ -316,11 +338,18 @@ fn estimate<Cam: Camera, const R: usize, const C: usize>(
         let imu_new_residuals_unweighted = imu_new_residuals.clone();
         weight_residuals(&mut imu_new_residuals, &imu_weight_l_upper);
 
+        let mut new_bias_a_residuals = bias::compute_residual(&new_bias_estimate.bias_a_delta, &preintegrated_bias.integrated_bias_a);
+        let mut new_bias_g_residuals = bias::compute_residual(&new_bias_estimate.bias_g_delta, &preintegrated_bias.integrated_bias_g);
+
+        bias::weight_residual(&mut new_bias_a_residuals, &preintegrated_bias.bias_a_std);
+        bias::weight_residual(&mut new_bias_g_residuals, &preintegrated_bias.bias_g_std);
+
         let new_cost = compute_cost(
             &runtime_memory.new_residuals,
             &imu_new_residuals,
             &runtime_parameters.loss_function,
-        );
+        ) + bias::compute_cost_for_weighted(&new_bias_a_residuals, &new_bias_g_residuals);
+
         let cost_diff = cost - new_cost;
         let gain_ratio = cost_diff / gain_ratio_denom;
         if runtime_parameters.debug {
@@ -329,7 +358,9 @@ fn estimate<Cam: Camera, const R: usize, const C: usize>(
         if gain_ratio >= 0.0 || !runtime_parameters.lm {
             let mut state_vector = SVector::<Float,R>::zeros();
             state_vector.fixed_rows_mut::<9>(0).copy_from(&estimate.state_vector());
+
             estimate = new_estimate;
+            bias_estimate = new_bias_estimate;
             est_transform = new_est_transform;
 
             cost = new_cost;
@@ -337,13 +368,15 @@ fn estimate<Cam: Camera, const R: usize, const C: usize>(
             max_norm_delta = max_norm(&g); // TODO: this is not the max norm
             delta_norm = pertb.norm();
             delta_thresh =
-                runtime_parameters.delta_eps * (state_vector.norm() + runtime_parameters.delta_eps);
+                runtime_parameters.delta_eps * (state_vector.norm() + bias_estimate.norm() + runtime_parameters.delta_eps);
 
             runtime_memory.image_gradient_points = runtime_memory.new_image_gradient_points.clone();
             runtime_memory.residuals.copy_from(&runtime_memory.new_residuals);
 
             imu_residuals.copy_from(&imu_new_residuals);
             imu_residuals_unweighted.copy_from(&imu_new_residuals_unweighted);
+            bias_a_residuals.copy_from(&new_bias_a_residuals);
+            bias_g_residuals.copy_from(&new_bias_g_residuals);
 
             compute_image_gradients(
                 &x_gradient_image.buffer,
@@ -360,6 +393,7 @@ fn estimate<Cam: Camera, const R: usize, const C: usize>(
 
             imu_jacobian = imu_odometry::generate_jacobian(&estimate.rotation_lie(), delta_t);
             weight_jacobian(&mut imu_jacobian, &imu_weight_l_upper);
+            bias_jacobian = bias::genrate_residual_jacobian(&bias_estimate, preintegrated_bias, &imu_residuals);
 
             let v: Float = 1.0 / 3.0;
             mu = Some(mu.unwrap() * v.max(1.0 - (2.0 * gain_ratio - 1.0).powi(3)));
@@ -372,7 +406,7 @@ fn estimate<Cam: Camera, const R: usize, const C: usize>(
         iteration_count += 1;
     }
 
-    (est_transform, iteration_count)
+    (est_transform, iteration_count, bias_estimate)
 }
 
 //TODO: potential for optimization. Maybe use less memory/matrices.

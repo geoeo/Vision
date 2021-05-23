@@ -27,7 +27,7 @@ fn main() {
     let image_loading_parameters = ImageLoadingParameters {
         starting_index: 5,
         step: 1,
-        count: 300,
+        count: 150,
         image_height: 480,
         image_width: 640,
         negate_depth_values: false,
@@ -45,7 +45,7 @@ fn main() {
     let camera_data = loaded_data.camera_data;
 
     let pyramid_parameters = GDRuntimeParameters{
-        sigma: 0.5,
+        sigma: 0.1,
         use_blur: true,
         blur_radius: 1.0,
         octave_count: 3,
@@ -62,7 +62,7 @@ fn main() {
     let target_pyramids = camera_data.target_gray_images.into_iter().zip(camera_data.target_depth_images.into_iter()).map(|(g,d)| build_rgbd_pyramid(g,d,&pyramid_parameters)).collect::<Vec<GDPyramid<GDOctave>>>();
 
     let vo_parameters = RuntimeParameters {
-        max_iterations: vec![800; 3],
+        max_iterations: vec![100; 3],
         eps: vec![1e-3;3],
         step_sizes: vec![1e-3;3],
         max_norm_eps: 1e-10,
@@ -94,8 +94,6 @@ fn main() {
         &camera_data.intensity_camera,
         &camera_data.depth_camera,
         &imu_data,
-        &Vector3::<Float>::zeros(),
-        &Vector3::<Float>::zeros(),
         &Vector3::<Float>::new(0.0, 9.81, 0.0),
         &vo_parameters
     ));

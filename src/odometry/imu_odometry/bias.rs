@@ -58,7 +58,7 @@ pub struct BiasPreintegrated {
 
 impl BiasPreintegrated {
 
-    //TODO:test
+    //TODO:rename bias spectral -> discrete
     pub fn new(bias_accelerometer: &Vector3<Float>,bias_gyro: &Vector3<Float>, bias_spectral_noise_density_acc: &Vector3<Float>, bias_spectral_noise_density_gyro: &Vector3<Float>, acceleration_data: &[Vector3<Float>],gyro_delta_times: &Vec<Float>, 
         delta_lie_i_k: &Vec<Vector3<Float>>, delta_rotations_i_k: &Vec<Matrix3::<Float>>) -> BiasPreintegrated {
 
@@ -73,7 +73,6 @@ impl BiasPreintegrated {
         }).collect::<Vec<Float>>();
 
         let acc_rotations_i_k_delta_times = acc_rotations_i_k.iter().zip(acc_delta_times_i_k.iter()).map(|(&dr,&dt)| dr*dt).collect::<Vec<Matrix3<Float>>>();
-        //let acc_rotations_i_k_delta_times_sqrd = acc_rotations_i_k_delta_times.iter().zip(acc_delta_times_i_k.iter()).map(|(&dr,&dt)| dr*dt).collect::<Vec<Matrix3<Float>>>();
         let acceleration_skew_symmetric_matrices = acceleration_data.iter().map(|x| skew_symmetric(&(x - bias_accelerometer))).collect::<Vec<Matrix3<Float>>>();
 
         
