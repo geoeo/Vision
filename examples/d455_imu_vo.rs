@@ -93,8 +93,6 @@ fn main() {
         &camera_data.intensity_camera,
         &camera_data.depth_camera,
         &imu_data,
-        &Vector3::<Float>::zeros(),
-        &Vector3::<Float>::zeros(),
         &Vector3::<Float>::new(0.0, 9.81, 0.0),
         &vo_parameters,
     ));
