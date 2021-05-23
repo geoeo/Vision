@@ -138,6 +138,10 @@ impl BiasPreintegrated {
 
         let dt = *acc_delta_times_i_k.last().unwrap();
         let dt_sqrt = dt.sqrt();
+
+        // let bias_a_std = bias_spectral_noise_density_acc.clone();
+        // let bias_g_std = bias_spectral_noise_density_gyro.clone();
+
         let bias_a_std = bias_spectral_noise_density_acc*(dt_sqrt);
         let bias_g_std = bias_spectral_noise_density_gyro*(dt_sqrt);
 
