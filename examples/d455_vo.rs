@@ -8,7 +8,7 @@ use vision::pyramid::gd::{GDPyramid,gd_octave::GDOctave, build_rgbd_pyramid,gd_r
 use vision::odometry::visual_odometry::dense_direct;
 use vision::odometry::runtime_parameters::RuntimeParameters;
 use vision::Float;
-use vision::{numerics,numerics::loss};
+use vision::{numerics, numerics::{loss,weighting}};
 use vision::visualize::plot;
 
 fn main() {
@@ -72,8 +72,8 @@ fn main() {
         debug: false,
 
         show_octave_result: true,
-        loss_function: Box::new(numerics::loss::SoftOneLoss {eps: 1e-16, approximate_gauss_newton_matrices: true}),
-        intensity_weighting_function:  Box::new(numerics::loss::HuberLossForPos {eps: 1e-16,delta: 1.0, approximate_gauss_newton_matrices: true})
+        loss_function: Box::new(loss::SoftOneLoss {eps: 1e-16, approximate_gauss_newton_matrices: true}),
+        intensity_weighting_function:  Box::new(weighting::HuberWeightForPos {delta: 1.0})
     };
 
     let mut se3_est = vec!(Matrix4::<Float>::identity());

@@ -3,10 +3,8 @@ extern crate vision;
 extern crate nalgebra as na;
 
 
-use na::{Vector3,UnitQuaternion};
 use vision::io::{imu_loading_parameters::ImuLoadingParameters,d455_loader};
 use vision::visualize::plot;
-use vision::{float,Float};
 
 fn main() {
 

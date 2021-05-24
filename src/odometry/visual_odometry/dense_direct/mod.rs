@@ -4,7 +4,7 @@ use na::{U2,U4,Dim,DimName,Const,RowVector2,Vector4,DVector,Matrix4,Matrix,DMatr
 
 use crate::pyramid::gd::{GDPyramid,gd_octave::GDOctave};
 use crate::sensors::camera::Camera;
-use crate::numerics::{lie,loss::LossFunction};
+use crate::numerics::{lie,loss::LossFunction, weighting::WeightingFunction};
 use crate::features::geometry::point::Point;
 use crate::{Float,float,reconstruct_original_coordiantes};
 
@@ -212,19 +212,16 @@ pub fn compute_residuals<C>(target_image_buffer: &DMatrix<Float>,source_image_bu
 
 }
 
-//TODO: find a source for a good approximation of W
+//TODO: naming
 pub fn norm(
     residuals: &DVector<Float>,
-    weight_function: &Box<dyn LossFunction>,
+    weight_function: &Box<dyn WeightingFunction>,
     weights_vec: &mut DVector<Float>,
 ) -> () {
     for i in 0..residuals.len() {
         let res = residuals[i];
-        // if (res < 10e-5) {
-        //     weights_vec[i] = 0.0;
-        // } else {
-            weights_vec[i] = weight_function.cost(res).sqrt();
-        //}
+        weights_vec[i] = weight_function.cost(res).sqrt();
+
 
     }
 }

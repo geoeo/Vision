@@ -1,5 +1,5 @@
 use crate::Float;
-use crate::numerics::loss::LossFunction;
+use crate::numerics::{loss::LossFunction, weighting::WeightingFunction};
 use std::{fmt,boxed::Box};
 
 
@@ -16,7 +16,7 @@ pub struct RuntimeParameters{
     pub lm: bool,
     pub weighting: bool,
     pub loss_function: Box<dyn LossFunction>,
-    pub intensity_weighting_function: Box<dyn LossFunction>
+    pub intensity_weighting_function: Box<dyn WeightingFunction>
 }
 
 impl fmt::Display for RuntimeParameters {

@@ -98,7 +98,6 @@ pub fn run<Cam: Camera, const C: usize>(
         gravity_body,
     );
 
-    //TODO: bias estimate for a octave
     let mut bias_delta = BiasDelta::empty();
     for index in (0..octave_count).rev() {
         let result = estimate::<Cam, OBSERVATIONS_DIM, C>(
@@ -108,6 +107,7 @@ pub fn run<Cam: Camera, const C: usize>(
             &mut runtime_memory_vector[index],
             index,
             &mat_result,
+            &bias_delta,
             intensity_camera,
             depth_camera,
             imu_data_measurement,
@@ -143,7 +143,8 @@ fn estimate<Cam: Camera, const R: usize, const C: usize>(
     target_octave: &GDOctave,
     runtime_memory: &mut RuntimeMemory<C>,
     octave_index: usize,
-    initial_guess_mat: &Matrix4<Float>,
+    initial_transform_estimate: &Matrix4<Float>,
+    initial_bias_estimate: &BiasDelta,
     intensity_camera: &Cam,
     depth_camera: &Cam,
     imu_data_measurement: &ImuDataFrame,
@@ -181,7 +182,7 @@ fn estimate<Cam: Camera, const R: usize, const C: usize>(
         intensity_camera,
     );
 
-    let mut est_transform = initial_guess_mat.clone();
+    let mut est_transform = initial_transform_estimate.clone();
 
     compute_residuals(
         &target_image.buffer,
@@ -193,16 +194,11 @@ fn estimate<Cam: Camera, const R: usize, const C: usize>(
         &mut runtime_memory.residuals,
         &mut runtime_memory.image_gradient_points,
     );
-    //TODO: check why this performs badly
-    // norm(
-    //     &runtime_memory.residuals,
-    //     &runtime_parameters.intensity_weighting_function,
-    //     &mut runtime_memory.weights_vec,
-    // );
     weight_residuals_sparse(&mut runtime_memory.residuals, &runtime_memory.weights_vec);
 
     let mut estimate = ImuDelta::empty();
-    let mut bias_estimate = BiasDelta::empty();
+    //let mut bias_estimate = BiasDelta::empty();
+    let mut bias_estimate: BiasDelta = *initial_bias_estimate;
     let delta_t = imu_data_measurement.gyro_ts[imu_data_measurement.gyro_ts.len() - 1]
         - imu_data_measurement.gyro_ts[0]; // Gyro has a higher sampling rate
 
@@ -238,8 +234,10 @@ fn estimate<Cam: Camera, const R: usize, const C: usize>(
     let mut cost = compute_cost(
         &runtime_memory.residuals,
         &imu_residuals,
+        &bias_a_residuals,
+        &bias_g_residuals,
         &runtime_parameters.loss_function,
-    ) + bias::compute_cost_for_weighted(&bias_a_residuals, &bias_g_residuals); 
+    ); 
 
     let mut max_norm_delta = float::MAX;
     let mut delta_thresh = float::MIN;
@@ -347,8 +345,10 @@ fn estimate<Cam: Camera, const R: usize, const C: usize>(
         let new_cost = compute_cost(
             &runtime_memory.new_residuals,
             &imu_new_residuals,
+            &new_bias_a_residuals,
+            &new_bias_g_residuals,
             &runtime_parameters.loss_function,
-        ) + bias::compute_cost_for_weighted(&new_bias_a_residuals, &new_bias_g_residuals);
+        );
 
         let cost_diff = cost - new_cost;
         let gain_ratio = cost_diff / gain_ratio_denom;
@@ -365,7 +365,7 @@ fn estimate<Cam: Camera, const R: usize, const C: usize>(
 
             cost = new_cost;
 
-            max_norm_delta = max_norm(&g); // TODO: this is not the max norm
+            max_norm_delta = max_norm(&g);
             delta_norm = pertb.norm();
             delta_thresh =
                 runtime_parameters.delta_eps * (state_vector.norm() + bias_estimate.norm() + runtime_parameters.delta_eps);
@@ -409,7 +409,6 @@ fn estimate<Cam: Camera, const R: usize, const C: usize>(
     (est_transform, iteration_count, bias_estimate)
 }
 
-//TODO: potential for optimization. Maybe use less memory/matrices.
 #[allow(non_snake_case)]
 fn gauss_newton_step_with_loss<const R: usize, const C: usize>(
     residuals: &DVector<Float>, 
@@ -500,10 +499,12 @@ fn gauss_newton_step_with_loss<const R: usize, const C: usize>(
 fn compute_cost<const T: usize>(
     visual_residuals: &DVector<Float>,
     imu_residuals: &SVector<Float,T>,
+    bias_a_residuals: &Vector3<Float>,
+    bias_g_residuals: &Vector3<Float>,
     loss_function: &Box<dyn LossFunction>,
 ) -> Float {
     loss_function.cost((visual_residuals.transpose() * visual_residuals)[0]) + 
-    (imu_residuals.transpose() * imu_residuals)[0]
+    (imu_residuals.transpose() * imu_residuals)[0] + bias::compute_cost_for_weighted(bias_a_residuals, bias_g_residuals)
 }
 
 

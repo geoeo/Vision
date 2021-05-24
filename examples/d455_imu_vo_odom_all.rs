@@ -13,13 +13,14 @@ use vision::odometry::runtime_parameters::RuntimeParameters;
 use vision::pyramid::gd::{
     build_rgbd_pyramid, gd_octave::GDOctave, gd_runtime_parameters::GDRuntimeParameters, GDPyramid,
 };
+use vision::numerics::{loss,weighting};
 use vision::visualize::plot;
 use vision::Float;
 use vision::numerics;
 
 fn main() {
     let dataset_name = "simple_trans_imu";
-    //let dataset_name = "z";
+    //let dataset_name = "x";
 
     let root_path = format!("D:/Workspace/Datasets/D455/{}", dataset_name);
     let out_folder = "D:/Workspace/Rust/Vision/output";
@@ -27,7 +28,7 @@ fn main() {
     let image_loading_parameters = ImageLoadingParameters {
         starting_index: 5,
         step: 1,
-        count: 300,
+        count: 150,
         image_height: 480,
         image_width: 640,
         negate_depth_values: false,
@@ -45,7 +46,7 @@ fn main() {
     let camera_data = loaded_data.camera_data;
 
     let pyramid_parameters = GDRuntimeParameters{
-        sigma: 0.1,
+        sigma: 0.01,
         use_blur: true,
         blur_radius: 1.0,
         octave_count: 3,
@@ -65,16 +66,16 @@ fn main() {
         max_iterations: vec![100; 3],
         eps: vec![1e-3;3],
         step_sizes: vec![1e-3;3],
-        max_norm_eps: 1e-10,
-        delta_eps: 1e-10,
+        max_norm_eps: 1e-5,
+        delta_eps: 1e-5,
         taus: vec!(1e-6,1e-3,1e-3),
         lm: true,
         weighting: true,
         debug: false,
 
         show_octave_result: true,
-        loss_function: Box::new(numerics::loss::SoftOneLoss { eps: 1e-16, approximate_gauss_newton_matrices: true}),
-        intensity_weighting_function:  Box::new(numerics::loss::HuberLossForPos {eps: 1e-16,delta: 1.0, approximate_gauss_newton_matrices: true})
+        loss_function: Box::new(loss::CauchyLoss { eps: 1e-16, approximate_gauss_newton_matrices: true}),
+        intensity_weighting_function:  Box::new(weighting::HuberWeightForPos {delta: 1.0})
     };
 
     let mut se3_est = vec![Matrix4::<Float>::identity()];

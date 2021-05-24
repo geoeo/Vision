@@ -33,7 +33,7 @@ pub fn new_dataframe_from_data(gyro_data: Vec<Vector3<Float>>,gyro_ts: Vec<Float
         Vector3::<Float>::new(scaled_acc_spectral_white_noise,scaled_acc_spectral_white_noise,scaled_acc_spectral_white_noise),
         Vector3::<Float>::new(scaled_gyro_spectral_white_noise,scaled_gyro_spectral_white_noise,scaled_gyro_spectral_white_noise),
         //Vector3::<Float>::new(10e1*scaled_acc_bias_white_noise,scaled_acc_bias_white_noise,70e5*scaled_acc_bias_white_noise),
-        Vector3::<Float>::new(scaled_acc_bias_white_noise,scaled_acc_bias_white_noise,30e4*scaled_acc_bias_white_noise),
+        Vector3::<Float>::new(10e1*scaled_acc_bias_white_noise,scaled_acc_bias_white_noise,30e4*scaled_acc_bias_white_noise),
         Vector3::<Float>::new(scaled_gyro_bias_white_noise,scaled_gyro_bias_white_noise,scaled_gyro_bias_white_noise),
         Vector3::<Float>::new(0.6,0.2,0.0), // simple from plots
         Vector3::<Float>::new(0.0,0.0,0.0),

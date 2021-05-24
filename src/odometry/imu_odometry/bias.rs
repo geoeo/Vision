@@ -6,6 +6,7 @@ use crate::odometry::imu_odometry::{imu_delta::ImuDelta, ImuResidual};
 use crate::numerics::lie::{right_jacobian,skew_symmetric, right_inverse_jacobian, exp_r};
 use crate::Float;
 
+#[derive(Clone,Copy)]
 pub struct BiasDelta {
     pub bias_a_delta: Vector3<Float>,
     pub bias_g_delta: Vector3<Float>
