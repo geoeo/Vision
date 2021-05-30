@@ -6,8 +6,10 @@ fn moment((p,q): (u32,u32), image: &Image, points: &Vec<Point<usize>>) -> Float 
     assert!(p <= 1 && q <= 1);
     let mut moment = 0.0;
     for point in points {
-        let intensity = image.buffer[(point.y,point.x)];
-        moment += ((point.x.pow(p)*point.y.pow(q)) as Float)*intensity;
+        if point.x < image.buffer.ncols() && point.y < image.buffer.nrows() {
+            let intensity = image.buffer[(point.y,point.x)];
+            moment += ((point.x.pow(p)*point.y.pow(q)) as Float)*intensity;
+        }
     }
 
     moment

@@ -232,6 +232,26 @@ impl FastFeature {
         Circle::new(self.location.x,self.location.y, self.radius, offsets)
     }
 
+    pub fn get_all_points_in_radius(&self) -> Vec<Point<usize>> {
+
+        let mut points = Vec::<Point<usize>>::with_capacity(self.radius.pow(2));
+        let radius_singed = self.radius as isize;
+        let location_x_signed = self.location.x as isize;
+        let location_y_signed = self.location.y as isize;
+
+        for i in -radius_singed..radius_singed {
+            for j in -radius_singed..radius_singed {
+                let new_location_x = location_x_signed+i;
+                let new_location_y = location_y_signed+j;
+                if new_location_x >= 0 && new_location_y >= 0{
+                    points.push(Point::<usize>::new(new_location_x as usize, new_location_y as usize));
+                }
+            }
+        }
+
+        points
+    }
+
     pub fn print_continuous_offsets(feature: &FastFeature) -> () {
         for offset in &feature.continuous_offsets {
             println!("{:?}",offset);

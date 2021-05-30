@@ -31,11 +31,11 @@ fn main() {
 
     let runtime_params = OrbRuntimeParameters {
         min_image_dimensions: (50,50),
-        sigma: 2.0,
-        blur_radius: 4.0,
-        max_features_per_octave: 100,
+        sigma: 1.5,
+        blur_radius: 3.0,
+        max_features_per_octave: 25,
         octave_count: 3,
-        harris_k: 0.04,
+        harris_k: 0.06,
         fast_circle_radius: 3,
         fast_threshold_factor: 0.2,
         fast_consecutive_pixels: 12,
@@ -43,7 +43,7 @@ fn main() {
         fast_offsets: (0,0),
         brief_n: 256,
         brief_s: 31,
-        brief_matching_min_threshold: 256/2
+        brief_matching_min_threshold: 256/4
     };
     
     let sample_lookup_table = BriefDescriptor::generate_sample_lookup_tables(runtime_params.brief_n, runtime_params.brief_s);

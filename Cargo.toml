@@ -14,3 +14,15 @@ rand = "*"
 rand_distr = "*"
 optimization_engine = "*"
 plotters = { version = "*", default_features = true}
+
+[[example]]
+name = "orb_pyramid_match"
+path = "examples/image_processing/orb_pyramid_match.rs"
+
+[[example]]
+name = "orb_pyramid"
+path = "examples/image_processing/orb_pyramid.rs"
+
+[[example]]
+name = "fast_descriptor"
+path = "examples/image_processing/fast_descriptor.rs"

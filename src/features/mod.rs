@@ -25,7 +25,8 @@ pub trait Oriented {
 pub fn orientation(source_images: &Vec<Image>, feature: &dyn Feature) -> Float {
     let kernel = PrewittKernel::new();
     let x_grad = gradient_convolution_at_sample(source_images,feature, &kernel, GradientDirection::HORIZINTAL);
-    let y_grad = gradient_convolution_at_sample(source_images,feature, &kernel, GradientDirection::VERTICAL);
+    // We negate here because the y-axis of a matrix is inverted from the first quadrant of a cartesian plane
+    let y_grad = -gradient_convolution_at_sample(source_images,feature, &kernel, GradientDirection::VERTICAL);
     match y_grad.atan2(x_grad) {
         angle if angle < 0.0 => 2.0*float::consts::PI + angle,
         angle => angle

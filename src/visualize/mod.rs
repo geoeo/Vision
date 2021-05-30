@@ -131,6 +131,7 @@ fn draw_matches<T>(image: &mut Image,  matches: &Vec<(T,T)>, radius:Float, draw_
 pub fn draw_line(image: &mut Image, x_start: usize, y_start: usize, length: Float, angle: Float, intensity: Float) -> () {
 
     let dir_x = length*angle.cos();
+    //let dir_y = -length*angle.sin();
     let dir_y = length*angle.sin();
 
     for i in (0..100).step_by(1) {

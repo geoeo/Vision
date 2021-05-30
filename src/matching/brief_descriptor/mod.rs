@@ -29,10 +29,11 @@ impl BriefDescriptor {
 
         let mut samples_delta_a = DMatrix::<Float>::zeros(2,n);
         let mut samples_delta_b = DMatrix::<Float>::zeros(2,n);
+        let step = 15.0; //TODO: make this a parameter
 
-        let mut lookup_tables = Vec::<Vec<(Point<Float>,Point<Float>)>>::with_capacity(30);
+        let mut lookup_tables = Vec::<Vec<(Point<Float>,Point<Float>)>>::with_capacity(step as usize);
 
-        let table_inc = 2.0*float::consts::PI/30.0;
+        let table_inc = 2.0*float::consts::PI/step;
 
         for _ in 0..lookup_tables.capacity() {
             lookup_tables.push(Vec::<(Point<Float>,Point<Float>)>::with_capacity(n));
@@ -48,7 +49,8 @@ impl BriefDescriptor {
 
         for j in 0..lookup_tables.len(){
             let angle = table_inc*j as Float;
-            let rotation_matrix = rotation_matrix_2d_from_orientation(angle);
+            // We transpose here because the y-axis of a matrix is inverted from the first quadrant of a cartesian plane
+            let rotation_matrix = rotation_matrix_2d_from_orientation(angle).transpose();
 
             let rotated_delta_a = rotation_matrix*&samples_delta_a;
             let rotated_delta_b = rotation_matrix*&samples_delta_b;
