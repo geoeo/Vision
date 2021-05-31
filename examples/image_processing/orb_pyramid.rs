@@ -2,7 +2,7 @@ extern crate image as image_rs;
 extern crate vision;
 
 use std::path::Path;
-use vision::pyramid::orb::{build_orb_pyramid,generate_feature_pyramid,generate_feature_descriptor_pyramid,  orb_runtime_parameters::OrbRuntimeParameters};
+use vision::pyramid::orb::{build_orb_pyramid,generate_feature_pyramid, generate_feature_descriptor_pyramid,  orb_runtime_parameters::OrbRuntimeParameters};
 use vision::visualize::visualize_pyramid_feature_with_orientation;
 use vision::matching::brief_descriptor::BriefDescriptor;
 use vision::image::Image;

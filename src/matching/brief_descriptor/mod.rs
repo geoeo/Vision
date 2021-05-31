@@ -65,11 +65,11 @@ impl BriefDescriptor {
 
     }
 
-    pub fn match_descriptors(descriptors_a: &Vec<&BriefDescriptor>, descriptors_b: &Vec<&BriefDescriptor>, matching_min_threshold: u64) -> Vec<Option<usize>> {
+    pub fn match_descriptors(descriptors_a: &Vec<BriefDescriptor>, descriptors_b: &Vec<BriefDescriptor>, matching_min_threshold: u64) -> Vec<Option<usize>> {
         descriptors_a.iter().map(|x| BriefDescriptor::best_match_against(x, descriptors_b,matching_min_threshold)).collect::<Vec<Option<usize>>>()
     }
 
-    pub fn best_match_against(descriptor: &BriefDescriptor, other_descriptors: &Vec<&BriefDescriptor>, matching_min_threshold: u64) -> Option<usize> {
+    pub fn best_match_against(descriptor: &BriefDescriptor, other_descriptors: &Vec<BriefDescriptor>, matching_min_threshold: u64) -> Option<usize> {
         let (min_idx,_) 
             = other_descriptors.iter().enumerate()
                                .map(|(idx,x)| (idx,descriptor.bit_vector.hamming_distance(&x.bit_vector)))
@@ -103,15 +103,16 @@ impl BriefDescriptor {
             None
         } else {
 
-            let sample_pair_idx = (orb_feature.orientation / (2.0*float::consts::PI/sample_lookup_tables.len() as Float)).trunc() as usize;
+            let max_bin = (sample_lookup_tables.len()-1) as Float;
+            let idx_as_float = orb_feature.orientation / (2.0*float::consts::PI/max_bin);
+            let sample_pair_idx =  idx_as_float.round() as usize;
             let samples_pattern = &sample_lookup_tables[sample_pair_idx];
             
-
 
             for i in 0..n{
 
                 let (sample_a,sample_b) = samples_pattern[i];
-                // Rotation may make samples go out of bounds
+                // Rotation may make samples go out of bounds -> Check this
                 let a_float = Point::<Float>{x: orb_feature.location.x as Float + sample_a.x, y: orb_feature.location.y as Float + sample_a.y};
                 let b_float = Point::<Float>{x: orb_feature.location.x as Float + sample_b.x, y: orb_feature.location.y as Float + sample_b.y};
 

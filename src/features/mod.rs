@@ -31,4 +31,5 @@ pub fn orientation(source_images: &Vec<Image>, feature: &dyn Feature) -> Float {
         angle if angle < 0.0 => 2.0*float::consts::PI + angle,
         angle => angle
     }
+
 }

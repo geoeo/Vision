@@ -31,6 +31,7 @@ pub fn build_orb_pyramid(base_gray_image: Image, runtime_parameters: &OrbRuntime
     Pyramid {octaves}
 }
 
+
 pub fn generate_features_for_octave(octave: &OrbOctave, octave_idx: usize, runtime_parameters: &OrbRuntimeParameters) -> Vec<OrbFeature> {
     let orig_offset = runtime_parameters.fast_offsets;
     let scale = 2usize.pow(octave_idx as u32) as Float;
@@ -44,12 +45,13 @@ pub fn generate_feature_pyramid(pyramid: &Pyramid<OrbOctave>, runtime_parameters
     Pyramid{octaves: pyramid.octaves.iter().enumerate().map(|(idx,x)| generate_features_for_octave(x,idx,runtime_parameters)).collect::<Vec<Vec<OrbFeature>>>()}
 }
 
+
 pub fn generate_feature_descriptor_pyramid(octave_pyramid: &Pyramid<OrbOctave>, feature_pyramid: &Pyramid<Vec<OrbFeature>>, sample_lookup_table: &Vec<Vec<(Point<Float>,Point<Float>)>>, runtime_parameters: &OrbRuntimeParameters) -> Pyramid<Vec<(OrbFeature,BriefDescriptor)>> {
     assert_eq!(octave_pyramid.octaves.len(),feature_pyramid.octaves.len());
     let octave_len = octave_pyramid.octaves.len();
     let mut feature_descriptor_pyramid = Pyramid::<Vec<(OrbFeature,BriefDescriptor)>>::empty(octave_len);
 
-
+    //TODO: pyramids might not match for images takes at different scales, maybe n^2 would be better here, or maybe even no image pyramid for the target image!
     for i in 0..octave_len {
         let image = &octave_pyramid.octaves[i].images[0];
         let feature_octave = &feature_pyramid.octaves[i];
@@ -73,25 +75,28 @@ pub fn generate_feature_descriptor_pyramid(octave_pyramid: &Pyramid<OrbOctave>, 
     feature_descriptor_pyramid
 }
 
-pub fn generate_match_pyramid(feature_descriptor_pyramid_a: &Pyramid<Vec<(OrbFeature,BriefDescriptor)>>,feature_descriptor_pyramid_b: &Pyramid<Vec<(OrbFeature,BriefDescriptor)>>,  runtime_parameters: &OrbRuntimeParameters) -> Pyramid<Vec<(OrbFeature,OrbFeature)>> {
-    let octave_len = feature_descriptor_pyramid_a.octaves.len();
-    let mut match_pyramid = Pyramid::<Vec<(OrbFeature,OrbFeature)>>::empty(octave_len);
+pub fn generate_match_pyramid(feature_descriptor_pyramid_a: &Pyramid<Vec<(OrbFeature,BriefDescriptor)>>,feature_descriptor_pyramid_b: &Pyramid<Vec<(OrbFeature,BriefDescriptor)>>,  runtime_parameters: &OrbRuntimeParameters) -> Vec<((usize,OrbFeature),(usize,OrbFeature))> {
 
-    for i in 0..octave_len {
-        let descriptors_a = feature_descriptor_pyramid_a.octaves[i].iter().map(|(_,descriptor)| descriptor).collect::<Vec<&BriefDescriptor>>();
-        let descriptors_b = feature_descriptor_pyramid_b.octaves[i].iter().map(|(_,descriptor)| descriptor).collect::<Vec<&BriefDescriptor>>();
-        let matches_indices
-            = BriefDescriptor::match_descriptors(&descriptors_a, &descriptors_b, runtime_parameters.brief_matching_min_threshold).iter().enumerate()
-            .filter(|(_,option)| option.is_some())
-            .map(|(idx,option)| (idx,option.unwrap()) ).collect::<Vec<(usize,usize)>>();
+    let octave_levels_a = feature_descriptor_pyramid_a.octaves.iter().enumerate().map(|(i,x)| vec!(i;x.len())).flatten().collect::<Vec<usize>>();
+    let octave_levels_b = feature_descriptor_pyramid_b.octaves.iter().enumerate().map(|(i,x)| vec!(i;x.len())).flatten().collect::<Vec<usize>>();
 
-        let feature_descriptors_a = feature_descriptor_pyramid_a.octaves[i].iter().map(|x| x.0).collect::<Vec<OrbFeature>>();
-        let feature_descriptors_b = &feature_descriptor_pyramid_b.octaves[i].iter().map(|x| x.0).collect::<Vec<OrbFeature>>();
-        let matches = matches_indices.into_iter().map(|(a_idx,b_idx)| (feature_descriptors_a[a_idx],feature_descriptors_b[b_idx])).collect::<Vec<(OrbFeature,OrbFeature)>>();
-        match_pyramid.octaves.push(matches);
-    }
+    let all_features_descriptors_a = feature_descriptor_pyramid_a.octaves.iter().map(|x| x.clone()).flatten().collect::<Vec<(OrbFeature,BriefDescriptor)>>();
+    let all_features_descriptors_b = feature_descriptor_pyramid_b.octaves.iter().map(|x| x.clone()).flatten().collect::<Vec<(OrbFeature,BriefDescriptor)>>();
 
-    match_pyramid
+
+    let (all_features_a, all_descriptors_a): (Vec<OrbFeature>, Vec<BriefDescriptor>) = all_features_descriptors_a.into_iter().unzip();
+    let (all_features_b, all_descriptors_b):  (Vec<OrbFeature>, Vec<BriefDescriptor>) = all_features_descriptors_b.into_iter().unzip();
+
+    let matches_indices
+        = BriefDescriptor::match_descriptors(&all_descriptors_a, &all_descriptors_b, runtime_parameters.brief_matching_min_threshold).iter().enumerate()
+        .filter(|(_,option)| option.is_some())
+        .map(|(idx,option)| (idx,option.unwrap()) ).collect::<Vec<(usize,usize)>>();
+
+    let matches = matches_indices.into_iter().map(|(a_idx,b_idx)| ((octave_levels_a[a_idx],all_features_a[a_idx]),(octave_levels_b[b_idx],all_features_b[b_idx]))).collect::<Vec<((usize,OrbFeature),(usize,OrbFeature))>>();
+
+
+
+    matches
 
 }
 
