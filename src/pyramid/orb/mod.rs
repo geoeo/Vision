@@ -38,7 +38,7 @@ pub fn generate_features_for_octave(octave: &OrbOctave, octave_idx: usize, runti
     let x_offset_scaled = (orig_offset.0 as Float / scale).trunc() as usize;
     let y_offset_scaled = (orig_offset.1 as Float / scale).trunc() as usize;
 
-    OrbFeature::new(&octave.images, runtime_parameters.fast_circle_radius, runtime_parameters.fast_threshold_factor, runtime_parameters.fast_consecutive_pixels, runtime_parameters.fast_grid_size,(x_offset_scaled,y_offset_scaled), runtime_parameters.harris_k)
+    OrbFeature::new(&octave.images,octave_idx as i32, runtime_parameters.fast_circle_radius, runtime_parameters.fast_threshold_factor, runtime_parameters.fast_consecutive_pixels, runtime_parameters.fast_grid_size,(x_offset_scaled,y_offset_scaled), runtime_parameters.harris_k)
 }
 
 pub fn generate_feature_pyramid(pyramid: &Pyramid<OrbOctave>, runtime_parameters: &OrbRuntimeParameters) -> Pyramid<Vec<OrbFeature>> {
@@ -46,7 +46,7 @@ pub fn generate_feature_pyramid(pyramid: &Pyramid<OrbOctave>, runtime_parameters
 }
 
 
-pub fn generate_feature_descriptor_pyramid(octave_pyramid: &Pyramid<OrbOctave>, feature_pyramid: &Pyramid<Vec<OrbFeature>>, sample_lookup_table: &Vec<Vec<(Point<Float>,Point<Float>)>>, runtime_parameters: &OrbRuntimeParameters) -> Pyramid<Vec<(OrbFeature,BriefDescriptor)>> {
+pub fn generate_feature_descriptor_pyramid(octave_pyramid: &Pyramid<OrbOctave>, feature_pyramid: &Pyramid<Vec<OrbFeature>>, sample_lookup_tables: &Pyramid<Vec<Vec<(Point<Float>,Point<Float>)>>>, runtime_parameters: &OrbRuntimeParameters) -> Pyramid<Vec<(OrbFeature,BriefDescriptor)>> {
     assert_eq!(octave_pyramid.octaves.len(),feature_pyramid.octaves.len());
     let octave_len = octave_pyramid.octaves.len();
     let mut feature_descriptor_pyramid = Pyramid::<Vec<(OrbFeature,BriefDescriptor)>>::empty(octave_len);
@@ -59,7 +59,7 @@ pub fn generate_feature_descriptor_pyramid(octave_pyramid: &Pyramid<OrbOctave>, 
         let data_vector 
             = feature_octave.iter()
                             .enumerate()
-                            .map(|x| (x.0,BriefDescriptor::new(image, x.1, runtime_parameters.brief_n, runtime_parameters.brief_s,&sample_lookup_table)))
+                            .map(|x| (x.0,BriefDescriptor::new(image, x.1, runtime_parameters.brief_n, runtime_parameters.brief_s,i,&sample_lookup_tables.octaves[i])))
                             .filter(|x| x.1.is_some())
                             .map(|(idx,option)| (feature_octave[idx],option.unwrap()))
                             .take(n)

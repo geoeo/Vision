@@ -7,6 +7,7 @@ use rand_distr::{Normal,Distribution};
 use na::DMatrix;
 
 use crate::image::Image;
+use crate::pyramid::Pyramid;
 use crate::features::{geometry::point::Point, orb_feature::OrbFeature};
 use crate::{Float,float};
 use crate::numerics::rotation_matrix_2d_from_orientation;
@@ -65,6 +66,22 @@ impl BriefDescriptor {
 
     }
 
+    pub fn generate_sample_lookup_table_pyramid(n: usize, brief_s: usize, octave_count: usize) -> Pyramid<Vec<Vec<(Point<Float>,Point<Float>)>>> {
+
+        let mut octaves: Vec<Vec<Vec<(Point<Float>,Point<Float>)>>> = Vec::with_capacity(octave_count);
+        for i in 0..octave_count {
+            let scale_base: Float = 2.0;
+            let octave_scale = scale_base.powi(i as i32);
+            let brief_s_scaled = (brief_s as Float/ octave_scale).round() as usize;
+
+            octaves.push(BriefDescriptor::generate_sample_lookup_tables(n, brief_s_scaled));
+            //octaves.push(BriefDescriptor::generate_sample_lookup_tables(n, brief_s));
+        }
+
+        Pyramid {octaves}
+
+    }
+
     pub fn match_descriptors(descriptors_a: &Vec<BriefDescriptor>, descriptors_b: &Vec<BriefDescriptor>, matching_min_threshold: u64) -> Vec<Option<usize>> {
         descriptors_a.iter().map(|x| BriefDescriptor::best_match_against(x, descriptors_b,matching_min_threshold)).collect::<Vec<Option<usize>>>()
     }
@@ -87,13 +104,18 @@ impl BriefDescriptor {
         }             
     }
 
-    pub fn new(image: &Image, orb_feature: &OrbFeature, n: usize, brief_s: usize, sample_lookup_tables: &Vec<Vec<(Point<Float>,Point<Float>)>>) -> Option<BriefDescriptor> {
+    pub fn new(image: &Image, orb_feature: &OrbFeature, n: usize, brief_s: usize, octave_idx: usize, sample_lookup_tables: &Vec<Vec<(Point<Float>,Point<Float>)>>) -> Option<BriefDescriptor> {
         let mut samples_a = Vec::<Point<usize>>::with_capacity(n);
         let mut samples_b = Vec::<Point<usize>>::with_capacity(n);
         let mut bit_vector = BitVector::new(n);
 
+        let scale_base: Float = 2.0;
+        let octave_scale = scale_base.powi(octave_idx as i32);
+        let brief_s_scaled = (brief_s as Float/ octave_scale).round() as usize;
 
-        let patch_radius = (brief_s-1)/2;
+
+        //let patch_radius = (brief_s-1)/2;
+        let patch_radius = (brief_s_scaled-1)/2;
         let top_left_r = orb_feature.location.y as isize-patch_radius as isize;
         let top_left_c = orb_feature.location.x as isize-patch_radius as isize;
         let bottom_right_r = orb_feature.location.y+patch_radius;
@@ -132,8 +154,6 @@ impl BriefDescriptor {
     }
 
     fn generate_sample_pair(sampling_thread: &mut ThreadRng,normal_dist: &Normal<Float>) -> (Point<Float>,Point<Float>) {
-
-
         let a_x = normal_dist.sample(sampling_thread);
         let a_y = normal_dist.sample(sampling_thread);
 

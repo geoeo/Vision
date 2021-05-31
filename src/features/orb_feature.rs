@@ -37,11 +37,17 @@ impl Oriented for OrbFeature {
 
 impl OrbFeature {
 
-    pub fn new(images: &Vec<Image>, radius: usize, threshold_factor: Float, consecutive_pixels: usize, fast_grid_size: (usize,usize), fast_offsets: (usize,usize), harris_k: Float ) -> Vec<OrbFeature> {
+    pub fn new(images: &Vec<Image>, octave_idx: i32, radius: usize, threshold_factor: Float, consecutive_pixels: usize, fast_grid_size: (usize,usize), fast_offsets: (usize,usize), harris_k: Float ) -> Vec<OrbFeature> {
         assert!(images.len() == 1);
+        
+        let scale_base: Float = 2.0;
+        let octave_scale = scale_base.powi(octave_idx);
+        let scale_grid_size = ((fast_grid_size.0 as Float * octave_scale).trunc() as usize, (fast_grid_size.1 as Float * octave_scale).trunc() as usize);
+
+        
 
         let image = &images[0];
-        let fast_features = FastFeature::compute_valid_features(image, radius, threshold_factor, consecutive_pixels, fast_grid_size, fast_offsets);
+        let fast_features = FastFeature::compute_valid_features(image, radius, threshold_factor, consecutive_pixels, scale_grid_size, fast_offsets);
         // Gradient orientation ala SIFT seems to perform better than intensity centroid
         let orientations = fast_features.iter().map(|x| orientation(images, &x.0)).collect::<Vec<Float>>();
         
