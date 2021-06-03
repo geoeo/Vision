@@ -4,8 +4,9 @@ use crate::features::{
     geometry::point::Point,
     harris_corner::harris_response_for_feature, 
     intensity_centroid,
-    orientation
+    orientation,
 };
+use crate::pyramid::orb::orb_runtime_parameters::OrbRuntimeParameters;
 use crate::image::Image;
 use crate::Float;
 
@@ -37,21 +38,27 @@ impl Oriented for OrbFeature {
 
 impl OrbFeature {
 
-    pub fn new(images: &Vec<Image>, octave_idx: i32, radius: usize, threshold_factor: Float, consecutive_pixels: usize, fast_grid_size: (usize,usize), fast_offsets: (usize,usize), harris_k: Float ) -> Vec<OrbFeature> {
+    pub fn new(images: &Vec<Image>, octave_idx: i32, runtime_parameters: &OrbRuntimeParameters) -> Vec<OrbFeature> {
         assert!(images.len() == 1);
+
+        let orig_offset = runtime_parameters.fast_offsets;
+        let offset_scale = runtime_parameters.fast_offset_scale_base.powi(octave_idx) as Float;
+        let x_offset_scaled = (orig_offset.0 as Float / offset_scale).trunc() as usize;
+        let y_offset_scaled = (orig_offset.1 as Float / offset_scale).trunc() as usize;
         
-        let scale_base: Float = 2.0;
-        let octave_scale = scale_base.powi(octave_idx);
-        let scale_grid_size = ((fast_grid_size.0 as Float * octave_scale).trunc() as usize, (fast_grid_size.1 as Float * octave_scale).trunc() as usize);
+        let octave_scale = runtime_parameters.fast_grid_size_scale_base.powi(octave_idx);
+        let scale_grid_size = ((runtime_parameters.fast_grid_size.0 as Float * octave_scale).trunc() as usize, (runtime_parameters.fast_grid_size.1 as Float * octave_scale).trunc() as usize);
 
         
 
         let image = &images[0];
-        let fast_features = FastFeature::compute_valid_features(image, radius, threshold_factor, consecutive_pixels, scale_grid_size, fast_offsets);
+        let fast_features = FastFeature::compute_valid_features(image, runtime_parameters.fast_circle_radius, runtime_parameters.fast_threshold_factor, runtime_parameters.fast_consecutive_pixels, scale_grid_size, (x_offset_scaled,y_offset_scaled));
         // Gradient orientation ala SIFT seems to perform better than intensity centroid
         let orientations = fast_features.iter().map(|x| orientation(images, &x.0)).collect::<Vec<Float>>();
+        //TODO: seems buggy
+        //let orientations = fast_features.iter().map(|x| intensity_centroid::orientation(&images[0], &x.0.get_all_points_in_radius())).collect::<Vec<Float>>();
         
-        let mut indexed_harris_corner_responses = fast_features.iter().map(|x| harris_response_for_feature(images,&x.0,harris_k)).enumerate().collect::<Vec<(usize,Float)>>();
+        let mut indexed_harris_corner_responses = fast_features.iter().map(|x| harris_response_for_feature(images,&x.0,runtime_parameters.harris_k)).enumerate().collect::<Vec<(usize,Float)>>();
         indexed_harris_corner_responses.sort_unstable_by(|a,b| b.1.partial_cmp(&a.1).unwrap());
 
 

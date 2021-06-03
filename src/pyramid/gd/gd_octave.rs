@@ -27,8 +27,8 @@ impl GDOctave {
         let sigmas = vec!(sigma);
         let kernels: Vec<GaussKernel1D> = sigmas.iter().map(|&sigma| GaussKernel1D::new(mean, sigma,step,blur_radius)).collect();
         let gray_images: Vec<Image> = match runtime_parameters.use_blur {
-            false => vec!(Image::normalize(base_gray_image)),
-            _ => kernels.iter().map(|kernel| gaussian_2_d_convolution(base_gray_image, kernel, runtime_parameters.normalize_gray)).collect() //TODO make this a parameter
+            false => vec!(base_gray_image.standardize().normalize()),
+            _ => kernels.iter().map(|kernel| gaussian_2_d_convolution(&base_gray_image.standardize(), kernel, runtime_parameters.normalize_gray)).collect() //TODO make this a parameter
         };
         let images_borrows: Vec<&Image> = gray_images.iter().map(|x| x).collect();
 

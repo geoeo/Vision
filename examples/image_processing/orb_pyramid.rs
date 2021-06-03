@@ -32,17 +32,21 @@ fn main() {
         fast_threshold_factor: 0.2,
         fast_consecutive_pixels: 12,
         fast_grid_size: (10,10),
+        fast_grid_size_scale_base: 2.0,
         fast_offsets: (20,20),
+        fast_offset_scale_base: 1.25,
         brief_n: 256,
         brief_s: 31,
+        brief_s_scale_base: 2.0,
         brief_matching_min_threshold: 256/4
     };
     
-    let sample_lookup_table = BriefDescriptor::generate_sample_lookup_tables(runtime_params.brief_n, runtime_params.brief_s);
+    //let sample_lookup_table = BriefDescriptor::generate_sample_lookup_tables(runtime_params.brief_n, runtime_params.brief_s);
+    let sample_lookup_pyramid = BriefDescriptor::generate_sample_lookup_table_pyramid(&runtime_params,runtime_params.octave_count);
 
     let pyramid = build_orb_pyramid(image, &runtime_params);
     let feature_pyramid = generate_feature_pyramid(&pyramid, &runtime_params);
-    let feautre_descriptors = generate_feature_descriptor_pyramid(&pyramid,&feature_pyramid,&sample_lookup_table,&runtime_params);
+    let feautre_descriptors = generate_feature_descriptor_pyramid(&pyramid,&feature_pyramid,&sample_lookup_pyramid,&runtime_params);
 
     // for i in 0..pyramid.octaves.len() {
     //     let octave = &pyramid.octaves[i];

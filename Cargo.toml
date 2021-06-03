@@ -10,7 +10,7 @@ edition = '2018'
 image = "*"
 nalgebra = {version="*"}
 #nalgebra-lapack = {version ="*", default-features=false}
-rand = "*"
+rand = {version = "*", features = ["small_rng"] }
 rand_distr = "*"
 optimization_engine = "*"
 plotters = { version = "*", default_features = true}

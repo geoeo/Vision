@@ -80,8 +80,8 @@ pub fn display_matches_for_pyramid<T>(image_a_original: &Image, image_b_original
 
 fn draw_match<T>(image: &mut Image,  (feature_a,feature_b): &(T,T), (radius_a, radius_b): (Float,Float), draw_lines: bool, intensity: Float)-> ()  where T: Feature + Oriented {
 
-    let intensity_min = intensity/2.0;
-    let intensity_max = intensity_min + intensity;
+    let intensity_min = intensity/4.0;
+    let intensity_max = intensity/2.0;
 
     let range = Uniform::from(intensity_min..intensity_max);
     let mut rng = rand::thread_rng();

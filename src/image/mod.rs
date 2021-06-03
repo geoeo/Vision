@@ -31,6 +31,7 @@ impl Image {
     pub fn from_matrix(matrix: &DMatrix<Float>, original_encoding: ImageEncoding, normalize: bool) -> Image {
         let mut buffer = matrix.clone();
 
+        //TODO use nalgebra
         if normalize {
             let max = buffer.amax();
             for elem in buffer.iter_mut() {
@@ -44,6 +45,7 @@ impl Image {
     pub fn from_gray_image(image: &GrayImage , normalize: bool, invert_y : bool) -> Image {
         let mut buffer = Image::image8_to_matrix(image, invert_y);
         
+        //TODO use nalgebra
         if normalize {
             let max = buffer.amax();
             for elem in buffer.iter_mut() {
@@ -73,10 +75,17 @@ impl Image {
     //     return Image::matrix_to_image16(&self.buffer,  self.original_encoding);
     // }
 
-    pub fn normalize(image: &Image) -> Image {
-        Image{ buffer: image.buffer.normalize(), original_encoding:  image.original_encoding}
+    pub fn normalize(&self) -> Image {
+        Image{ buffer: self.buffer.normalize(), original_encoding:  self.original_encoding}
     }
 
+    pub fn standardize(&self) -> Image {
+        let mean = self.buffer.mean();
+        let variance = self.buffer.variance();
+        let std_dev = variance.sqrt();
+        Image{ buffer: (self.buffer.add_scalar(-mean))/std_dev, original_encoding:  self.original_encoding}
+
+    }
 
 
     pub fn downsample_half(image: &Image, normalize: bool, (r_min,c_min): (usize,usize)) -> Image {

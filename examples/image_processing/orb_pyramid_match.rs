@@ -15,7 +15,7 @@ use vision::Float;
 fn main() {
 
     let image_name = "beaver";
-    let image_name_2 = "beaver_90";
+    let image_name_2 = "beaver_180";
     let image_format = "png";
     let image_folder = "images/";
     let image_out_folder = "output/";
@@ -32,33 +32,41 @@ fn main() {
     let display = Image::from_gray_image(&gray_image, false, false); 
     let display_2 = Image::from_gray_image(&gray_image_2, false, false); 
 
+    //TODO: debug
     let runtime_params = OrbRuntimeParameters {
-        min_image_dimensions: (50,50),
-        sigma: 1.5,
-        blur_radius: 3.0,
-        max_features_per_octave: 15,
-        octave_count: 3,
+        min_image_dimensions: (20,20),
+        sigma: 0.8,
+        blur_radius: 1.0,
+        max_features_per_octave: 3,
+        octave_count: 1,
         harris_k: 0.04,
         fast_circle_radius: 3,
         fast_threshold_factor: 0.2,
         fast_consecutive_pixels: 12,
-        fast_grid_size: (20,20),
+        fast_grid_size: (1,1),
+        fast_grid_size_scale_base: 1.25,
         fast_offsets: (0,0),
+        fast_offset_scale_base: 1.25,
         brief_n: 256,
         brief_s: 31,
+        brief_s_scale_base: 2.0,
         brief_matching_min_threshold: 256/8
     };
     
-    //let sample_lookup_table = BriefDescriptor::generate_sample_lookup_tables(runtime_params.brief_n, runtime_params.brief_s);
-    let sample_lookup_pyramid = BriefDescriptor::generate_sample_lookup_table_pyramid(runtime_params.brief_n, runtime_params.brief_s,runtime_params.octave_count);
+    //TODO: score features based on hamming distance
+    let sample_lookup_pyramid = BriefDescriptor::generate_sample_lookup_table_pyramid(&runtime_params,runtime_params.octave_count);
 
     let pyramid = build_orb_pyramid(image, &runtime_params);
     let feature_pyramid = generate_feature_pyramid(&pyramid, &runtime_params);
     let feature_descriptor_pyramid_a = generate_feature_descriptor_pyramid(&pyramid,&feature_pyramid,&sample_lookup_pyramid,&runtime_params);
 
+    println!("image 1 done");
+
     let pyramid_2 = build_orb_pyramid(image_2, &runtime_params);
     let feature_pyramid_2 = generate_feature_pyramid(&pyramid_2, &runtime_params);
     let feature_descriptor_pyramid_b = generate_feature_descriptor_pyramid(&pyramid_2,&feature_pyramid_2,&sample_lookup_pyramid,&runtime_params);
+
+    println!("image 2 done");
 
     let matches = generate_match_pyramid(&feature_descriptor_pyramid_a,&feature_descriptor_pyramid_b, &runtime_params);
 
@@ -90,6 +98,7 @@ fn main() {
     // }
 
 
+    //TODO: make this work with images of different sizes
     let match_display = display_matches_for_pyramid(&display, &display_2, &matches, true, display.buffer.max()/2.0);
 
 

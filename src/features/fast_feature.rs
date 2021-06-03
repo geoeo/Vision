@@ -232,7 +232,7 @@ impl FastFeature {
         Circle::new(self.location.x,self.location.y, self.radius, offsets)
     }
 
-    pub fn get_all_points_in_radius(&self) -> Vec<Point<usize>> {
+    pub fn get_all_points_in_radius(&self) -> (Vec<Point<usize>>, Point<usize>) {
 
         let mut points = Vec::<Point<usize>>::with_capacity(self.radius.pow(2));
         let radius_singed = self.radius as isize;
@@ -249,7 +249,7 @@ impl FastFeature {
             }
         }
 
-        points
+        (points, self.location)
     }
 
     pub fn print_continuous_offsets(feature: &FastFeature) -> () {
