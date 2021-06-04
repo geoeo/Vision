@@ -15,7 +15,7 @@ use vision::Float;
 fn main() {
 
     let image_name = "beaver";
-    let image_name_2 = "beaver_180";
+    let image_name_2 = "beaver_90";
     let image_format = "png";
     let image_folder = "images/";
     let image_out_folder = "output/";
@@ -35,7 +35,7 @@ fn main() {
     //TODO: debug/improve brief matching. maybe two way matching
     let runtime_params = OrbRuntimeParameters {
         min_image_dimensions: (20,20),
-        sigma: 0.8,
+        sigma: 0.2,
         blur_radius: 1.0,
         max_features_per_octave: 3,
         octave_count: 1,
@@ -44,14 +44,14 @@ fn main() {
         fast_threshold_factor: 0.2,
         fast_consecutive_pixels: 12,
         fast_grid_size: (1,1),
-        fast_grid_size_scale_base: 1.25,
+        fast_grid_size_scale_base: 1.0,
         fast_offsets: (0,0),
-        fast_offset_scale_base: 1.25,
+        fast_offset_scale_base: 1.0,
         brief_n: 256,
         brief_s: 31,
         brief_s_scale_base: 2.0,
-        brief_matching_min_threshold: 256/4,
-        brief_lookup_table_step: 8.0
+        brief_matching_min_threshold: 256/4, //8
+        brief_lookup_table_step: 15.0
     };
     
     //TODO: score features based on hamming distance

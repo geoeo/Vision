@@ -1,4 +1,5 @@
 
+use std::collections::{VecDeque,HashMap};
 use self::{orb_octave::OrbOctave, orb_runtime_parameters::OrbRuntimeParameters};
 use crate::image::Image;
 use crate::pyramid::Pyramid;
@@ -54,10 +55,10 @@ pub fn generate_feature_descriptor_pyramid(octave_pyramid: &Pyramid<OrbOctave>, 
         let data_vector 
             = feature_octave.iter()
                             .enumerate()
+                            .take(n) //TODO: check how take n performs with enumerate
                             .map(|x| (x.0,BriefDescriptor::new(image, x.1, runtime_parameters,i,&sample_lookup_tables.octaves[i])))
                             .filter(|x| x.1.is_some())
                             .map(|(idx,option)| (feature_octave[idx],option.unwrap()))
-                            .take(n) //TODO: check how take n performs with enumerate
                             .collect::<Vec<(OrbFeature,BriefDescriptor)>>();
 
         if data_vector.len() == 0 {
@@ -111,11 +112,14 @@ pub fn generate_match_pyramid(feature_descriptor_pyramid_a: &Pyramid<Vec<(OrbFea
         let matches_indices_scored_b_to_a
             = BriefDescriptor::sorted_match_descriptors(&all_descriptors_b, &all_descriptors_a, runtime_parameters.brief_matching_min_threshold).into_iter().filter(|option| option.is_some()).map(|x| x.unwrap()).collect::<Vec<Vec<(usize,u64)>>>();
     
-        let n = std::cmp::min(runtime_parameters.max_features_per_octave,matches_indices_scored_b_to_a.len());
-    
-        let matches_indices = matches_indices_scored_a_to_b
-            .iter().enumerate() //TODO: check how take n performs with enumerate
-            .map(|(a_idx,indice_score_vec)| (a_idx,indice_score_vec[0].0) ).take(n).collect::<Vec<(usize,usize)>>();
+
+
+        //let n = std::cmp::min(runtime_parameters.max_features_per_octave,matches_indices_scored_b_to_a.len());
+        //let matches_indices = matches_indices_scored_a_to_b
+        //    .iter().enumerate() //TODO: check how take n performs with enumerate
+        //    .map(|(a_idx,indice_score_vec)| (a_idx,indice_score_vec[0].0) ).take(n).collect::<Vec<(usize,usize)>>();
+
+        let matches_indices = cross_match(&matches_indices_scored_a_to_b,&matches_indices_scored_b_to_a, runtime_parameters.max_features_per_octave);
     
         let matches_per_octave = matches_indices.into_iter().map(|(a_idx,b_idx)| ((i,all_features_a[a_idx]),(i,all_features_b[b_idx]))).collect::<Vec<((usize,OrbFeature),(usize,OrbFeature))>>();
         for m in matches_per_octave {
@@ -126,6 +130,69 @@ pub fn generate_match_pyramid(feature_descriptor_pyramid_a: &Pyramid<Vec<(OrbFea
 
 
     matches
+
+}
+
+fn cross_match(matches_indices_scored_a_to_b: &Vec<Vec<(usize,u64)>>, matches_indices_scored_b_to_a: &Vec<Vec<(usize,u64)>>, max_features_per_octave: usize) -> Vec<(usize,usize)> {
+    let (max_len, min_len) = 
+        match(matches_indices_scored_a_to_b,matches_indices_scored_b_to_a ) {
+            (a_to_b, b_to_a) if a_to_b.len() > b_to_a.len() => (a_to_b.len(), b_to_a.len()),
+            (a_to_b, b_to_a) => (b_to_a.len(), a_to_b.len())
+        };
+
+    let n = std::cmp::min(max_features_per_octave,min_len);
+    let mut match_indices = Vec::<(usize,usize)>::with_capacity(n);
+
+    let mut match_indices_scored = Vec::<(usize,usize,u64)>::with_capacity(max_len);
+
+
+    for feature_idx_a in 0..matches_indices_scored_a_to_b.len(){
+
+        let scored_matches_for_feature_a = &matches_indices_scored_a_to_b[feature_idx_a];
+
+        match_indices.push((feature_idx_a, scored_matches_for_feature_a[0].0));
+        println!("a to b {} : {:?}",feature_idx_a,scored_matches_for_feature_a);
+
+        let (idx_b, score_for_match_in_a) = scored_matches_for_feature_a[0];
+        if idx_b < matches_indices_scored_b_to_a.len(){
+            let (idx_a, score_for_a_in_b) = matches_indices_scored_b_to_a[idx_b][0];
+            if idx_a == feature_idx_a && score_for_match_in_a == score_for_a_in_b {
+                match_indices_scored.push((idx_a,idx_b,std::cmp::max(score_for_a_in_b,score_for_match_in_a)));
+            }
+        }
+
+
+
+
+        //TODO: matching for features with scores not initially aligning
+        
+
+    }
+
+    println!("-------");
+
+    for feature_idx_b in 0..matches_indices_scored_b_to_a.len(){
+
+    
+        let matches_scored_feature = &matches_indices_scored_b_to_a[feature_idx_b];
+        println!("b to a {} : {:?}",feature_idx_b,matches_scored_feature);
+
+
+
+    }
+
+
+    
+    println!("-------");
+
+    match_indices_scored.sort_unstable_by(|a,b| a.2.cmp(&b.2));
+    println!("{:?}",match_indices_scored);
+
+    //match_indices.into_iter().collect::<Vec<(usize,usize)>>()
+    //match_indices.into_iter().take(n).collect::<Vec<(usize,usize)>>()
+    //vec!((0,0),(1,1),(4,4),(5,5)) // beaver 180
+    //vec!((0,0),(1,1),(2,2),(5,5),(4,4)) // beaver 90
+    match_indices_scored.into_iter().take(n).map(|(a_idx,b_idx,_)| (a_idx,b_idx)).collect::<Vec<(usize,usize)>>()
 
 }
 
