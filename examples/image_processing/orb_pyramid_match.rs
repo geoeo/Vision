@@ -32,7 +32,7 @@ fn main() {
     let display = Image::from_gray_image(&gray_image, false, false); 
     let display_2 = Image::from_gray_image(&gray_image_2, false, false); 
 
-    //TODO: debug
+    //TODO: debug/improve brief matching. maybe two way matching
     let runtime_params = OrbRuntimeParameters {
         min_image_dimensions: (20,20),
         sigma: 0.8,
@@ -50,7 +50,8 @@ fn main() {
         brief_n: 256,
         brief_s: 31,
         brief_s_scale_base: 2.0,
-        brief_matching_min_threshold: 256/8
+        brief_matching_min_threshold: 256/4,
+        brief_lookup_table_step: 8.0
     };
     
     //TODO: score features based on hamming distance
@@ -99,6 +100,7 @@ fn main() {
 
 
     //TODO: make this work with images of different sizes
+    println!("{}",matches.len());
     let match_display = display_matches_for_pyramid(&display, &display_2, &matches, true, display.buffer.max()/2.0);
 
 

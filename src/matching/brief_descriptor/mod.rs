@@ -23,27 +23,31 @@ pub struct BriefDescriptor {
 
 impl BriefDescriptor {
 
-    pub fn generate_sample_lookup_tables(brief_n: usize, brief_s: usize) -> Vec<Vec<(Point<Float>,Point<Float>)>> {
-        let std_dev = (brief_s as Float)/5.0;
+    pub fn generate_sample_lookup_tables(runtime_parameters: &OrbRuntimeParameters, octave_idx: i32) -> Vec<Vec<(Point<Float>,Point<Float>)>> {
 
-        //TODO: find a good seed/ sampling pattern
+
+        let octave_scale = runtime_parameters.brief_s_scale_base.powi(octave_idx);
+        let brief_s_scaled = (runtime_parameters.brief_s as Float/ octave_scale).round();
+
+        let std_dev = (brief_s_scaled)/5.0;
+
+
         let mut sampling_thread = rand::rngs::SmallRng::seed_from_u64(0x0DDB1A5ECBAD5EEDu64); 
         let normal_distribution = Normal::new(0.0,std_dev).unwrap();
 
-        let mut samples_delta_a = DMatrix::<Float>::zeros(2,brief_n);
-        let mut samples_delta_b = DMatrix::<Float>::zeros(2,brief_n);
-        //let step = 15; //TODO: make this a parameter
-        let step = 8.0; //TODO: make this a parameter
+        let mut samples_delta_a = DMatrix::<Float>::zeros(2,runtime_parameters.brief_n);
+        let mut samples_delta_b = DMatrix::<Float>::zeros(2,runtime_parameters.brief_n);
+        let step = runtime_parameters.brief_lookup_table_step; 
 
         let mut lookup_tables = Vec::<Vec<(Point<Float>,Point<Float>)>>::with_capacity(step as usize);
 
         let table_inc = 2.0*float::consts::PI/step;
 
         for _ in 0..lookup_tables.capacity() {
-            lookup_tables.push(Vec::<(Point<Float>,Point<Float>)>::with_capacity(brief_n));
+            lookup_tables.push(Vec::<(Point<Float>,Point<Float>)>::with_capacity(runtime_parameters.brief_n));
         }
 
-        for i in 0..brief_n {
+        for i in 0..runtime_parameters.brief_n {
             let (delta_a,delta_b) = BriefDescriptor::generate_sample_pair(&mut sampling_thread,&normal_distribution);
             samples_delta_a[(0,i)] = delta_a.x;
             samples_delta_a[(1,i)] = delta_a.y;
@@ -53,6 +57,8 @@ impl BriefDescriptor {
 
         for j in 0..step as usize{
             let angle = table_inc*j as Float;
+
+            //TODO: check this
             // We transpose here because the y-axis of a matrix is inverted from the first quadrant of a cartesian plane
             //let rotation_matrix = rotation_matrix_2d_from_orientation(angle).transpose();
             let rotation_matrix = rotation_matrix_2d_from_orientation(angle);
@@ -60,7 +66,7 @@ impl BriefDescriptor {
             let rotated_delta_a = rotation_matrix*&samples_delta_a;
             let rotated_delta_b = rotation_matrix*&samples_delta_b;
 
-            for i in 0..brief_n {
+            for i in 0..runtime_parameters.brief_n {
                 //TODO: check this
                 lookup_tables[j].push((Point::new(rotated_delta_a[(0,i)], rotated_delta_a[(1,i)]),Point::new(rotated_delta_b[(0,i)], rotated_delta_b[(1,i)])));
             }
@@ -75,36 +81,32 @@ impl BriefDescriptor {
 
         let mut octaves: Vec<Vec<Vec<(Point<Float>,Point<Float>)>>> = Vec::with_capacity(octave_count);
         for i in 0..octave_count {
-            let octave_scale = runtime_parameters.brief_s_scale_base.powi(i as i32);
-            let brief_s_scaled = (runtime_parameters.brief_s as Float/ octave_scale).round() as usize;
-
-            octaves.push(BriefDescriptor::generate_sample_lookup_tables(runtime_parameters.brief_n, brief_s_scaled));
+            octaves.push(BriefDescriptor::generate_sample_lookup_tables(runtime_parameters, i as i32));
         }
 
         Pyramid {octaves}
 
     }
 
-    pub fn match_descriptors(descriptors_a: &Vec<BriefDescriptor>, descriptors_b: &Vec<BriefDescriptor>, matching_min_threshold: u64) -> Vec<Option<(usize, u64)>> {
-        descriptors_a.iter().map(|x| BriefDescriptor::best_match_against(x, descriptors_b,matching_min_threshold)).collect::<Vec<Option<(usize, u64)>>>()
+    pub fn sorted_match_descriptors(descriptors_a: &Vec<BriefDescriptor>, descriptors_b: &Vec<BriefDescriptor>, matching_min_threshold: u64) -> Vec<Option<Vec<(usize, u64)>>> {
+        descriptors_a.iter().map(|x| BriefDescriptor::sorted_matches_against(x, descriptors_b,matching_min_threshold)).collect::<Vec<Option<Vec<(usize, u64)>>>>()
     }
 
-    pub fn best_match_against(descriptor: &BriefDescriptor, other_descriptors: &Vec<BriefDescriptor>, matching_min_threshold: u64) -> Option<(usize, u64)> {
-        let (min_idx,best_value) 
-            = other_descriptors.iter().enumerate()
-                               .map(|(idx,x)| (idx,descriptor.bit_vector.hamming_distance(&x.bit_vector)))
-                               .fold((std::usize::MAX,std::u64::MAX),|(min_idx,min_value),(idx,value)| -> (usize,u64) {
-                                   if value < min_value && value < matching_min_threshold { 
-                                       (idx,value)
-                                   } else {
-                                       (min_idx,min_value)
-                                   }
-                               });
+    pub fn sorted_matches_against(descriptor: &BriefDescriptor, other_descriptors: &Vec<BriefDescriptor>, matching_min_threshold: u64) -> Option<Vec<(usize, u64)>> {
+        let indicies_hamming_distances
+            = other_descriptors
+            .iter()
+            .enumerate()
+            .map(|(idx,x)| (idx,descriptor.bit_vector.hamming_distance(&x.bit_vector))).collect::<Vec<(usize, u64)>>();
 
-        match (min_idx,best_value)  {
-            (std::usize::MAX, _) => None,
-            (idx,v) => Some((idx,v))
-        }             
+        match indicies_hamming_distances {
+            vec if vec.is_empty() => None,
+            vec if vec[0].1 > matching_min_threshold => None,
+            mut vec => {
+                vec.sort_unstable_by(|a,b|  a.1.partial_cmp(&b.1).unwrap());
+                Some(vec)
+            }
+        }
     }
 
     pub fn new(image: &Image, orb_feature: &OrbFeature, runtime_parameters: &OrbRuntimeParameters, octave_idx: usize, sample_lookup_tables: &Vec<Vec<(Point<Float>,Point<Float>)>>) -> Option<BriefDescriptor> {
@@ -151,8 +153,6 @@ impl BriefDescriptor {
                 let a = BriefDescriptor::clamp_to_image(&image.buffer,&a_float);
                 let b = BriefDescriptor::clamp_to_image(&image.buffer,&b_float);
 
-                //let a = Point::<usize> {x: a_float.x.trunc() as usize , y: a_float.y.trunc() as usize};
-                //let b = Point::<usize> {x: b_float.x.trunc() as usize , y: b_float.y.trunc() as usize};
 
                 bit_vector.add_value(BriefDescriptor::bit_value(&image.buffer,&a, &b));
                 samples_a.push(a);

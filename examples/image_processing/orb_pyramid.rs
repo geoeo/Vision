@@ -38,7 +38,8 @@ fn main() {
         brief_n: 256,
         brief_s: 31,
         brief_s_scale_base: 2.0,
-        brief_matching_min_threshold: 256/4
+        brief_matching_min_threshold: 256/4,
+        brief_lookup_table_step: 8.0
     };
     
     //let sample_lookup_table = BriefDescriptor::generate_sample_lookup_tables(runtime_params.brief_n, runtime_params.brief_s);

@@ -105,15 +105,17 @@ pub fn generate_match_pyramid(feature_descriptor_pyramid_a: &Pyramid<Vec<(OrbFea
         let (all_features_a, all_descriptors_a): (Vec<OrbFeature>, Vec<BriefDescriptor>) = features_descriptors_a_per_octave[i].clone().into_iter().unzip();
         let (all_features_b, all_descriptors_b):  (Vec<OrbFeature>, Vec<BriefDescriptor>) = features_descriptors_b_per_octave[i].clone().into_iter().unzip();
     
-        let mut matches_indices_scored
-            = BriefDescriptor::match_descriptors(&all_descriptors_a, &all_descriptors_b, runtime_parameters.brief_matching_min_threshold).iter().filter(|option| option.is_some()).map(|x| x.unwrap()).collect::<Vec<(usize,u64)>>();
-        matches_indices_scored.sort_unstable_by(|a,b| a.1.partial_cmp(&b.1).unwrap());
+        let matches_indices_scored_a_to_b
+            = BriefDescriptor::sorted_match_descriptors(&all_descriptors_a, &all_descriptors_b, runtime_parameters.brief_matching_min_threshold).into_iter().filter(|option| option.is_some()).map(|x| x.unwrap()).collect::<Vec<Vec<(usize,u64)>>>();
+
+        let matches_indices_scored_b_to_a
+            = BriefDescriptor::sorted_match_descriptors(&all_descriptors_b, &all_descriptors_a, runtime_parameters.brief_matching_min_threshold).into_iter().filter(|option| option.is_some()).map(|x| x.unwrap()).collect::<Vec<Vec<(usize,u64)>>>();
     
-        let n = std::cmp::min(runtime_parameters.max_features_per_octave,matches_indices_scored.len());
+        let n = std::cmp::min(runtime_parameters.max_features_per_octave,matches_indices_scored_b_to_a.len());
     
-        let matches_indices = matches_indices_scored
+        let matches_indices = matches_indices_scored_a_to_b
             .iter().enumerate() //TODO: check how take n performs with enumerate
-            .map(|(a_idx,&(b_idx,_))| (a_idx,b_idx) ).take(n).collect::<Vec<(usize,usize)>>();
+            .map(|(a_idx,indice_score_vec)| (a_idx,indice_score_vec[0].0) ).take(n).collect::<Vec<(usize,usize)>>();
     
         let matches_per_octave = matches_indices.into_iter().map(|(a_idx,b_idx)| ((i,all_features_a[a_idx]),(i,all_features_b[b_idx]))).collect::<Vec<((usize,OrbFeature),(usize,OrbFeature))>>();
         for m in matches_per_octave {
