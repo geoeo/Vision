@@ -14,14 +14,16 @@ use vision::Float;
 
 fn main() {
 
-    let image_name = "board_1_scaled_25";
-    let image_name_2 = "board_2_scaled_25";
+    let image_name = "cereal_1_scaled_25";
+    let image_name_2 = "cereal_1_scaled_25_cropped";
     let image_format = "png";
     let image_folder = "images/";
     let image_out_folder = "output/";
     let image_path = format!("{}{}.{}",image_folder,image_name, image_format);
     let image_path_2 = format!("{}{}.{}",image_folder,image_name_2, image_format);
     let converted_file_out_path = format!("{}{}_orb_matches_all.{}",image_out_folder,image_name,image_format);
+
+    println!("{},{}",image_path,image_path_2);
 
     let gray_image = image_rs::open(&Path::new(&image_path)).unwrap().to_luma8();
     let gray_image_2 = image_rs::open(&Path::new(&image_path_2)).unwrap().to_luma8();
@@ -35,18 +37,19 @@ fn main() {
     //TODO: check octave code
     let runtime_params = OrbRuntimeParameters {
         min_image_dimensions: (20,20),
-        sigma: 1.2,
+        sigma: 0.2,
         blur_radius: 1.0,
-        max_features_per_octave: 3,
-        octave_count: 1,
+        max_features_per_octave: 6,
+        octave_count: 2,
         harris_k: 0.04,
-        fast_circle_radius: 3,
+        fast_circle_radius: 5,
         fast_threshold_factor: 0.2,
         fast_consecutive_pixels: 12,
-        fast_grid_size: (1,1),
+        fast_grid_size: (5,5),
         fast_grid_size_scale_base: 1.0,
-        fast_offsets: (0,0),
+        fast_offsets: (3,3),
         fast_offset_scale_base: 1.0,
+        brief_features_to_descriptors: 128,
         brief_n: 256,
         brief_s: 31,
         brief_s_scale_base: 1.0,

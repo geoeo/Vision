@@ -14,6 +14,7 @@ pub struct OrbRuntimeParameters {
     pub fast_grid_size_scale_base: Float,
     pub fast_offsets: (usize,usize),
     pub fast_offset_scale_base: Float,
+    pub brief_features_to_descriptors: usize,
     pub brief_n: usize,
     pub brief_s: usize,
     pub brief_s_scale_base: Float,

@@ -35,6 +35,7 @@ fn main() {
         fast_grid_size_scale_base: 2.0,
         fast_offsets: (20,20),
         fast_offset_scale_base: 1.25,
+        brief_features_to_descriptors: 128,
         brief_n: 256,
         brief_s: 31,
         brief_s_scale_base: 2.0,

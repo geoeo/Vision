@@ -43,10 +43,6 @@ pub fn display_histogram(histogram: &OrientationHistogram, width_scaling:usize, 
 
 //TODO: Remove OrbFeature dependency or make OrbFeature a more basic feature
 pub fn display_matches_for_pyramid<T>(image_a_original: &Image, image_b_original: &Image, match_pyramid: &Vec<((usize,T),(usize,T))>, draw_lines: bool, intensity: Float) -> Image where T: Feature + Oriented {
-
-    assert_eq!(image_a_original.buffer.nrows(),image_b_original.buffer.nrows());
-    assert_eq!(image_a_original.buffer.ncols(),image_b_original.buffer.ncols());
-
     let height = image_a_original.buffer.nrows();
     let width = image_a_original.buffer.ncols() + image_b_original.buffer.ncols();
 
@@ -55,6 +51,11 @@ pub fn display_matches_for_pyramid<T>(image_a_original: &Image, image_b_original
     for x in 0..image_a_original.buffer.ncols() {
         for y in 0..image_a_original.buffer.nrows() {
             target_image.buffer[(y,x)] = image_a_original.buffer[(y,x)];
+        }
+    }
+
+    for x in 0..image_b_original.buffer.ncols() {
+        for y in 0..image_b_original.buffer.nrows() {
             target_image.buffer[(y,x+image_a_original.buffer.ncols())] = image_b_original.buffer[(y,x)];
         }
     }
