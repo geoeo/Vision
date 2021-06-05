@@ -51,11 +51,11 @@ pub fn generate_feature_descriptor_pyramid(octave_pyramid: &Pyramid<OrbOctave>, 
     for i in 0..octave_len {
         let image = &octave_pyramid.octaves[i].images[0];
         let feature_octave = &feature_pyramid.octaves[i];
-        let n = std::cmp::min(runtime_parameters.brief_features_to_descriptors,feature_octave.len()); //TODO: make this a parameter
+        let n = std::cmp::min(runtime_parameters.brief_features_to_descriptors,feature_octave.len());
         let data_vector 
             = feature_octave.iter()
                             .enumerate()
-                            .take(n) //TODO: check how take n performs with enumerate
+                            .take(n) 
                             .map(|x| (x.0,BriefDescriptor::new(image, x.1, runtime_parameters,i,&sample_lookup_tables.octaves[i])))
                             .filter(|x| x.1.is_some())
                             .map(|(idx,option)| (feature_octave[idx],option.unwrap()))
@@ -128,20 +128,7 @@ fn cross_match(matches_indices_scored_a_to_b: &Vec<Vec<(usize,u64)>>, matches_in
     }
 
 
-    for feature_idx_a in 0..matches_indices_scored_a_to_b.len(){
 
-         let scored_matches_for_feature_a = &matches_indices_scored_a_to_b[feature_idx_a];
-         println!("a to b {} : {:?}",feature_idx_a,scored_matches_for_feature_a);
-    }
-
-    println!("-------");
-
-    for feature_idx_b in 0..matches_indices_scored_b_to_a.len(){
-
-    
-        let matches_scored_feature = &matches_indices_scored_b_to_a[feature_idx_b];
-        println!("b to a {} : {:?}",feature_idx_b,matches_scored_feature);
-    }
 
 
 
@@ -188,15 +175,32 @@ fn cross_match(matches_indices_scored_a_to_b: &Vec<Vec<(usize,u64)>>, matches_in
         match_indices_scored.push((*idx_a,*idx_b,*score));
     }
 
-    println!("Map");
-    println!("{:?}",match_indices_scored);
-    println!("-------");
+//     println!("Map");
+//     println!("{:?}",match_indices_scored);
+//     println!("-------");
+
 
     match_indices_scored.sort_unstable_by(|a,b| a.2.cmp(&b.2));
 
-    println!("Sorted Map");
-    println!("{:?}",match_indices_scored);
-    println!("-------");
+
+
+//     println!("Sorted Map");
+//     println!("{:?}",match_indices_scored);
+//     println!("-------");
+
+//     for feature_idx_a in 0..matches_indices_scored_a_to_b.len(){
+//         let scored_matches_for_feature_a = &matches_indices_scored_a_to_b[feature_idx_a];
+//         println!("a to b {} : {:?}",feature_idx_a,scored_matches_for_feature_a);
+//     }
+
+//    println!("-------");
+
+//    for feature_idx_b in 0..matches_indices_scored_b_to_a.len(){
+   
+//        let matches_scored_feature = &matches_indices_scored_b_to_a[feature_idx_b];
+//        println!("b to a {} : {:?}",feature_idx_b,matches_scored_feature);
+//     }
+
 
     match_indices_scored.into_iter().take(n).map(|(a_idx,b_idx,_)| (a_idx,b_idx)).collect::<Vec<(usize,usize)>>()
     //match_indices_scored.into_iter().map(|(a_idx,b_idx,_)| (a_idx,b_idx)).collect::<Vec<(usize,usize)>>()

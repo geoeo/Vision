@@ -32,6 +32,7 @@ impl BriefDescriptor {
         let std_dev = (brief_s_scaled)/5.0;
 
 
+        //TODO: check determinism
         let mut sampling_thread = rand::rngs::SmallRng::seed_from_u64(0x0DDB1A5ECBAD5EEDu64); 
         let normal_distribution = Normal::new(0.0,std_dev).unwrap();
 
@@ -58,9 +59,6 @@ impl BriefDescriptor {
         for j in 0..step as usize{
             let angle = table_inc*j as Float;
 
-            //TODO: check this
-            // We transpose here because the y-axis of a matrix is inverted from the first quadrant of a cartesian plane
-            //let rotation_matrix = rotation_matrix_2d_from_orientation(angle).transpose();
             let rotation_matrix = rotation_matrix_2d_from_orientation(angle);
 
             let rotated_delta_a = rotation_matrix*&samples_delta_a;
