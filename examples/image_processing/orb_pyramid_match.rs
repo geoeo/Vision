@@ -14,11 +14,14 @@ use vision::Float;
 
 fn main() {
 
-    //let image_name = "lenna";
-    //let image_name_2 = "lenna_90";
+    let image_name = "lenna";
+    let image_name_2 = "lenna_90";
 
-    let image_name = "cereal_1_scaled_25";
-    let image_name_2 = "cereal_1_scaled_25_cropped";
+    //let image_name = "cereal_1_scaled_25";
+    //let image_name_2 = "cereal_1_scaled_25_cropped";
+
+    //let image_name = "cereal_1_scaled_25";
+    //let image_name_2 = "cereal_2_scaled_25";
 
 
     let image_format = "png";
@@ -28,7 +31,7 @@ fn main() {
     let image_path_2 = format!("{}{}.{}",image_folder,image_name_2, image_format);
     let converted_file_out_path = format!("{}{}_orb_matches_all.{}",image_out_folder,image_name,image_format);
 
-    println!("{},{}",image_path,image_path_2);
+    println!("{}, {}",image_path,image_path_2);
 
     let gray_image = image_rs::open(&Path::new(&image_path)).unwrap().to_luma8();
     let gray_image_2 = image_rs::open(&Path::new(&image_path_2)).unwrap().to_luma8();
@@ -48,10 +51,10 @@ fn main() {
         max_features_per_octave_scale: 1.5,
         octave_count: 3,
         harris_k: 0.04,
-        fast_circle_radius: 3,
+        fast_circle_radius: 9,
         fast_threshold_factor: 0.2,
         fast_consecutive_pixels: 12,
-        fast_grid_size: (5,5),
+        fast_grid_size: (2,2),
         fast_grid_size_scale_base: 1.0,
         fast_offsets: (3,3),
         fast_offset_scale_base: 1.0,
@@ -60,7 +63,8 @@ fn main() {
         brief_s: 31,
         brief_s_scale_base: 1.0,
         brief_matching_min_threshold: 256/4, //8
-        brief_lookup_table_step: 15.0
+        brief_lookup_table_step: 30.0,
+        brief_sampling_pattern_seed: 0x0DDB1A5ECBAD5EEDu64
     };
     
     let sample_lookup_pyramid = BriefDescriptor::generate_sample_lookup_table_pyramid(&runtime_params,runtime_params.octave_count);

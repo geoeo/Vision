@@ -28,33 +28,17 @@ impl BriefDescriptor {
 
         let octave_scale = runtime_parameters.brief_s_scale_base.powi(octave_idx);
         let brief_s_scaled = (runtime_parameters.brief_s as Float/ octave_scale).round();
-
-        let std_dev = (brief_s_scaled)/5.0;
-
-
-        //TODO: check determinism
-        let mut sampling_thread = rand::rngs::SmallRng::seed_from_u64(0x0DDB1A5ECBAD5EEDu64); 
-        let normal_distribution = Normal::new(0.0,std_dev).unwrap();
-
-        let mut samples_delta_a = DMatrix::<Float>::zeros(2,runtime_parameters.brief_n);
-        let mut samples_delta_b = DMatrix::<Float>::zeros(2,runtime_parameters.brief_n);
         let step = runtime_parameters.brief_lookup_table_step; 
+        let table_inc = 2.0*float::consts::PI/step;
 
         let mut lookup_tables = Vec::<Vec<(Point<Float>,Point<Float>)>>::with_capacity(step as usize);
-
-        let table_inc = 2.0*float::consts::PI/step;
 
         for _ in 0..lookup_tables.capacity() {
             lookup_tables.push(Vec::<(Point<Float>,Point<Float>)>::with_capacity(runtime_parameters.brief_n));
         }
 
-        for i in 0..runtime_parameters.brief_n {
-            let (delta_a,delta_b) = BriefDescriptor::generate_sample_pair(&mut sampling_thread,&normal_distribution);
-            samples_delta_a[(0,i)] = delta_a.x;
-            samples_delta_a[(1,i)] = delta_a.y;
-            samples_delta_b[(0,i)] = delta_b.x;
-            samples_delta_b[(1,i)] = delta_b.y;
-        }
+
+        let (samples_delta_a,samples_delta_b) = BriefDescriptor::generate_sampling_pattern(brief_s_scaled, runtime_parameters);
 
         for j in 0..step as usize{
             let angle = table_inc*j as Float;
@@ -65,13 +49,33 @@ impl BriefDescriptor {
             let rotated_delta_b = rotation_matrix*&samples_delta_b;
 
             for i in 0..runtime_parameters.brief_n {
-                //TODO: check this
                 lookup_tables[j].push((Point::new(rotated_delta_a[(0,i)], rotated_delta_a[(1,i)]),Point::new(rotated_delta_b[(0,i)], rotated_delta_b[(1,i)])));
             }
         }
 
 
         lookup_tables
+
+    }
+
+    pub fn generate_sampling_pattern(brief_s_scaled: Float, runtime_parameters: &OrbRuntimeParameters) -> (DMatrix::<Float>,DMatrix::<Float>) {
+
+        let std_dev = (brief_s_scaled)/5.0;
+        let mut sampling_thread = rand::rngs::SmallRng::seed_from_u64(runtime_parameters.brief_sampling_pattern_seed); 
+        let normal_distribution = Normal::new(0.0,std_dev).unwrap();
+
+        let mut samples_delta_a = DMatrix::<Float>::zeros(2,runtime_parameters.brief_n);
+        let mut samples_delta_b = DMatrix::<Float>::zeros(2,runtime_parameters.brief_n);
+
+        for i in 0..runtime_parameters.brief_n {
+            let (delta_a,delta_b) = BriefDescriptor::generate_sample_pair(&mut sampling_thread,&normal_distribution);
+            samples_delta_a[(0,i)] = delta_a.x;
+            samples_delta_a[(1,i)] = delta_a.y;
+            samples_delta_b[(0,i)] = delta_b.x;
+            samples_delta_b[(1,i)] = delta_b.y;
+        }
+
+        (samples_delta_a,samples_delta_b)
 
     }
 
@@ -131,14 +135,6 @@ impl BriefDescriptor {
             let max_bin = (sample_lookup_tables.len()-1) as Float;
             let idx_as_float = orb_feature.orientation / (2.0*float::consts::PI/max_bin);
             let sample_pair_idx =  idx_as_float.round() as usize;
-
-            // let max_bin = (sample_lookup_tables.len()) as Float;
-            // let idx_as_float = orb_feature.orientation / (2.0*float::consts::PI/max_bin);
-            // let sample_pair_idx =  idx_as_float.trunc() as usize;
-
-            //println!("x {}, y {}, o: {}", orb_feature.location.x, orb_feature.location.y, orb_feature.orientation);
-            //println!("{}, {}", orb_feature.location.x, orb_feature.location.y);
-            //let sample_pair_idx =  sample_lookup_tables.len()- 1 - idx_as_float.round() as usize;
             let samples_pattern = &sample_lookup_tables[sample_pair_idx];
             
 
