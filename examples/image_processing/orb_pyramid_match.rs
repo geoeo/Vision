@@ -14,8 +14,8 @@ use vision::Float;
 
 fn main() {
 
-    let image_name = "beaver";
-    let image_name_2 = "beaver_90";
+    let image_name = "board_1_scaled_25";
+    let image_name_2 = "board_2_scaled_25";
     let image_format = "png";
     let image_folder = "images/";
     let image_out_folder = "output/";
@@ -32,10 +32,10 @@ fn main() {
     let display = Image::from_gray_image(&gray_image, false, false); 
     let display_2 = Image::from_gray_image(&gray_image_2, false, false); 
 
-    //TODO: debug/improve brief matching. maybe two way matching
+    //TODO: check octave code
     let runtime_params = OrbRuntimeParameters {
         min_image_dimensions: (20,20),
-        sigma: 0.2,
+        sigma: 1.2,
         blur_radius: 1.0,
         max_features_per_octave: 3,
         octave_count: 1,
@@ -49,7 +49,7 @@ fn main() {
         fast_offset_scale_base: 1.0,
         brief_n: 256,
         brief_s: 31,
-        brief_s_scale_base: 2.0,
+        brief_s_scale_base: 1.0,
         brief_matching_min_threshold: 256/4, //8
         brief_lookup_table_step: 15.0
     };

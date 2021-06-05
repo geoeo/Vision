@@ -102,9 +102,10 @@ impl BriefDescriptor {
         match indicies_hamming_distances {
             vec if vec.is_empty() => None,
             vec if vec[0].1 > matching_min_threshold => None,
-            mut vec => {
-                vec.sort_unstable_by(|a,b|  a.1.partial_cmp(&b.1).unwrap());
-                Some(vec)
+            vec => {
+                let mut filtered_vec = vec.into_iter().filter(|&(_,score)| score <= matching_min_threshold).collect::<Vec<(usize,u64)>>();
+                filtered_vec.sort_unstable_by(|a,b|  a.1.partial_cmp(&b.1).unwrap());
+                Some(filtered_vec)
             }
         }
     }
