@@ -26,6 +26,7 @@ fn main() {
         sigma: 0.5,
         blur_radius: 5.0,
         max_features_per_octave: std::usize::MAX,
+        max_features_per_octave_scale: 1.25,
         octave_count: 3,
         harris_k: 0.04,
         fast_circle_radius: 3,

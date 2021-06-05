@@ -94,7 +94,7 @@ pub fn generate_match_pyramid(feature_descriptor_pyramid_a: &Pyramid<Vec<(OrbFea
             = BriefDescriptor::sorted_match_descriptors(&all_descriptors_b, &all_descriptors_a, runtime_parameters.brief_matching_min_threshold).into_iter().filter(|option| option.is_some()).map(|x| x.unwrap()).collect::<Vec<Vec<(usize,u64)>>>();
     
 
-        let matches_indices = cross_match(&matches_indices_scored_a_to_b,&matches_indices_scored_b_to_a, runtime_parameters.max_features_per_octave);
+        let matches_indices = cross_match(&matches_indices_scored_a_to_b,&matches_indices_scored_b_to_a, runtime_parameters, i as i32);
     
         let matches_per_octave = matches_indices.into_iter().map(|(a_idx,b_idx)| ((i,all_features_a[a_idx]),(i,all_features_b[b_idx]))).collect::<Vec<((usize,OrbFeature),(usize,OrbFeature))>>();
         for m in matches_per_octave {
@@ -108,7 +108,7 @@ pub fn generate_match_pyramid(feature_descriptor_pyramid_a: &Pyramid<Vec<(OrbFea
 
 }
 
-fn cross_match(matches_indices_scored_a_to_b: &Vec<Vec<(usize,u64)>>, matches_indices_scored_b_to_a: &Vec<Vec<(usize,u64)>>, max_features_per_octave: usize) -> Vec<(usize,usize)> {
+fn cross_match(matches_indices_scored_a_to_b: &Vec<Vec<(usize,u64)>>, matches_indices_scored_b_to_a: &Vec<Vec<(usize,u64)>>, runtime_parameters: &OrbRuntimeParameters, octave_idx: i32) -> Vec<(usize,usize)> {
 
 
     let (max_len, min_len) = match (matches_indices_scored_a_to_b.len(),matches_indices_scored_b_to_a.len()) {
@@ -117,8 +117,8 @@ fn cross_match(matches_indices_scored_a_to_b: &Vec<Vec<(usize,u64)>>, matches_in
     };
     
 
-
-    let n = std::cmp::min(max_features_per_octave,min_len);
+    let max_features = (runtime_parameters.max_features_per_octave as Float / runtime_parameters.max_features_per_octave_scale.powi(octave_idx)).round() as usize;
+    let n = std::cmp::min(max_features,min_len);
     let mut match_indices_scored = Vec::<(usize,usize,u64)>::with_capacity(max_len);
 
     let mut best_match_indices_b_for_a = HashMap::<usize,(usize,u64)>::with_capacity(n);

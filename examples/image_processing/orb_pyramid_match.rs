@@ -14,11 +14,11 @@ use vision::Float;
 
 fn main() {
 
-    let image_name = "lenna";
-    let image_name_2 = "lenna_90";
+    //let image_name = "lenna";
+    //let image_name_2 = "lenna_90";
 
-    //let image_name = "cereal_1_scaled_25";
-    //let image_name_2 = "cereal_1_scaled_25_cropped";
+    let image_name = "cereal_1_scaled_25";
+    let image_name_2 = "cereal_1_scaled_25_cropped";
 
 
     let image_format = "png";
@@ -45,7 +45,8 @@ fn main() {
         sigma: 0.8,
         blur_radius: 3.0,
         max_features_per_octave: 4,
-        octave_count: 2,
+        max_features_per_octave_scale: 1.5,
+        octave_count: 3,
         harris_k: 0.04,
         fast_circle_radius: 3,
         fast_threshold_factor: 0.2,
@@ -57,7 +58,7 @@ fn main() {
         brief_features_to_descriptors: 256,
         brief_n: 256,
         brief_s: 31,
-        brief_s_scale_base: 1.25,
+        brief_s_scale_base: 1.0,
         brief_matching_min_threshold: 256/4, //8
         brief_lookup_table_step: 15.0
     };
