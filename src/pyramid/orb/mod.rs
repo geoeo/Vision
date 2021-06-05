@@ -51,7 +51,7 @@ pub fn generate_feature_descriptor_pyramid(octave_pyramid: &Pyramid<OrbOctave>, 
     for i in 0..octave_len {
         let image = &octave_pyramid.octaves[i].images[0];
         let feature_octave = &feature_pyramid.octaves[i];
-        let n = std::cmp::min(2*runtime_parameters.max_features_per_octave,feature_octave.len());
+        let n = std::cmp::min(runtime_parameters.brief_features_to_descriptors,feature_octave.len()); //TODO: make this a parameter
         let data_vector 
             = feature_octave.iter()
                             .enumerate()
@@ -182,20 +182,29 @@ fn cross_match(matches_indices_scored_a_to_b: &Vec<Vec<(usize,u64)>>, matches_in
         }
     }
 
-    println!("Map");
-    println!("{:?}",best_match_indices_b_for_a);
-    println!("-------");
+
 
     for (idx_b, (idx_a, score)) in best_match_indices_b_for_a.iter() {
         match_indices_scored.push((*idx_a,*idx_b,*score));
     }
 
+    println!("Map");
+    println!("{:?}",match_indices_scored);
+    println!("-------");
 
     match_indices_scored.sort_unstable_by(|a,b| a.2.cmp(&b.2));
+
+    println!("Sorted Map");
+    println!("{:?}",match_indices_scored);
+    println!("-------");
+
     match_indices_scored.into_iter().take(n).map(|(a_idx,b_idx,_)| (a_idx,b_idx)).collect::<Vec<(usize,usize)>>()
     //match_indices_scored.into_iter().map(|(a_idx,b_idx,_)| (a_idx,b_idx)).collect::<Vec<(usize,usize)>>()
+
+
     //vec!((0,0),(1,1),(4,4),(5,5)) // beaver 180
     //vec!((0,0),(1,1),(2,2),(3,3)) // beaver 90
+    //vec!((3,0),(2,1)) // beaver cropped bottom 90
 
 }
 
