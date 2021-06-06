@@ -17,7 +17,7 @@ pub fn build_rgbd_pyramid(base_gray_image: Image, depth_image: Image, runtime_pa
 
     let mut octaves: Vec<GDOctave> = Vec::with_capacity(runtime_parameters.octave_count);
 
-    let mut octave_image = base_gray_image;
+    let mut octave_image = base_gray_image.normalize();
     let mut sigma = runtime_parameters.sigma;
 
     for i in 0..runtime_parameters.octave_count {

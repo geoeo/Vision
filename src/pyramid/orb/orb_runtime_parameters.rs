@@ -21,5 +21,6 @@ pub struct OrbRuntimeParameters {
     pub brief_s_scale_base: Float,
     pub brief_matching_min_threshold: u64,
     pub brief_lookup_table_step: Float,
-    pub brief_sampling_pattern_seed: u64
+    pub brief_sampling_pattern_seed: u64,
+    pub brief_use_opencv_sampling_pattern: bool
 }

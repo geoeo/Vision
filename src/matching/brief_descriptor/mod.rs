@@ -25,9 +25,6 @@ impl BriefDescriptor {
 
     pub fn generate_sample_lookup_tables(runtime_parameters: &OrbRuntimeParameters, octave_idx: i32) -> Vec<Vec<(Point<Float>,Point<Float>)>> {
 
-
-        let octave_scale = runtime_parameters.brief_s_scale_base.powi(octave_idx);
-        let brief_s_scaled = (runtime_parameters.brief_s as Float/ octave_scale).round();
         let step = runtime_parameters.brief_lookup_table_step; 
         let table_inc = 2.0*float::consts::PI/step;
 
@@ -38,8 +35,10 @@ impl BriefDescriptor {
         }
 
 
-        //let (samples_delta_a,samples_delta_b) = BriefDescriptor::generate_sampling_pattern(brief_s_scaled, runtime_parameters);
-        let (samples_delta_a,samples_delta_b) = BriefDescriptor::generate_open_cv_sampling_pattern_31_256(runtime_parameters);
+        let (samples_delta_a,samples_delta_b) = match runtime_parameters.brief_use_opencv_sampling_pattern {
+            true => BriefDescriptor::generate_open_cv_sampling_pattern_31_256(runtime_parameters),
+            false => BriefDescriptor::generate_sampling_pattern(octave_idx, runtime_parameters)
+        };
 
         for j in 0..step as usize{
             let angle = table_inc*j as Float;
@@ -59,9 +58,13 @@ impl BriefDescriptor {
 
     }
 
-    pub fn generate_sampling_pattern(brief_s_scaled: Float, runtime_parameters: &OrbRuntimeParameters) -> (DMatrix::<Float>,DMatrix::<Float>) {
+    pub fn generate_sampling_pattern(octave_idx: i32, runtime_parameters: &OrbRuntimeParameters) -> (DMatrix::<Float>,DMatrix::<Float>) {
 
+        let octave_scale = runtime_parameters.brief_s_scale_base.powi(octave_idx);
+        let brief_s_scaled = (runtime_parameters.brief_s as Float/ octave_scale).round();
         let std_dev = (brief_s_scaled)/5.0;
+
+        let brief_s_scaled = (runtime_parameters.brief_s as Float/ octave_scale).round();
         let mut sampling_thread = rand::rngs::SmallRng::seed_from_u64(runtime_parameters.brief_sampling_pattern_seed); 
         let normal_distribution = Normal::new(0.0,std_dev).unwrap();
 

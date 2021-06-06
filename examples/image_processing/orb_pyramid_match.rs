@@ -18,7 +18,7 @@ fn main() {
     //let image_name_2 = "lenna_90";
 
     let image_name = "cereal_1_scaled_25";
-    let image_name_2 = "cereal_1_scaled_25_cropped";
+    let image_name_2 = "cereal_2_far_scaled_25";
 
     //let image_name = "cereal_1_scaled_25";
     //let image_name_2 = "cereal_2_scaled_25";
@@ -45,7 +45,6 @@ fn main() {
     let display = Image::from_gray_image(&gray_image, false, false); 
     let display_2 = Image::from_gray_image(&gray_image_2, false, false); 
 
-    //TODO: check determinism
     let runtime_params = OrbRuntimeParameters {
         min_image_dimensions: (20,20),
         sigma: 0.8,
@@ -61,13 +60,14 @@ fn main() {
         fast_grid_size_scale_base: 1.0,
         fast_offsets: (3,3),
         fast_offset_scale_base: 1.0,
-        brief_features_to_descriptors: 128,
+        brief_features_to_descriptors: 256,
         brief_n: 256,
         brief_s: 31,
         brief_s_scale_base: 1.0,
         brief_matching_min_threshold: 256/2, //8
         brief_lookup_table_step: 30.0,
-        brief_sampling_pattern_seed: 0x0DDB1A5ECBAD5EEDu64
+        brief_sampling_pattern_seed: 0x0DDB1A5ECBAD5EEDu64,
+        brief_use_opencv_sampling_pattern: true
     };
     
     let sample_lookup_pyramid = BriefDescriptor::generate_sample_lookup_table_pyramid(&runtime_params,runtime_params.octave_count);

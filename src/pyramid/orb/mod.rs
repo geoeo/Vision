@@ -15,7 +15,7 @@ pub fn build_orb_pyramid(base_gray_image: Image, runtime_parameters: &OrbRuntime
 
     let mut octaves: Vec<OrbOctave> = Vec::with_capacity(runtime_parameters.octave_count);
 
-    let mut octave_image = base_gray_image;
+    let mut octave_image = base_gray_image.normalize();
     let mut sigma = runtime_parameters.sigma;
 
     for i in 0..runtime_parameters.octave_count {
@@ -25,7 +25,7 @@ pub fn build_orb_pyramid(base_gray_image: Image, runtime_parameters: &OrbRuntime
             sigma *= 2.0;
         }
 
-        let new_octave = OrbOctave::build_octave(&octave_image.normalize(),sigma, runtime_parameters);
+        let new_octave = OrbOctave::build_octave(&octave_image,sigma, runtime_parameters);
 
         octaves.push(new_octave);
     }
@@ -71,9 +71,8 @@ pub fn generate_feature_descriptor_pyramid(octave_pyramid: &Pyramid<OrbOctave>, 
     feature_descriptor_pyramid
 }
 
+//TODO: try matching across all octaves again
 pub fn generate_match_pyramid(feature_descriptor_pyramid_a: &Pyramid<Vec<(OrbFeature,BriefDescriptor)>>,feature_descriptor_pyramid_b: &Pyramid<Vec<(OrbFeature,BriefDescriptor)>>,  runtime_parameters: &OrbRuntimeParameters) -> Vec<((usize,OrbFeature),(usize,OrbFeature))> {
-
-
 
 
     let mut matches = Vec::<((usize,OrbFeature),(usize,OrbFeature))>::new(); //TODO: with capacity of runtime paramets
