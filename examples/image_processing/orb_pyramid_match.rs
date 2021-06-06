@@ -14,14 +14,14 @@ use vision::Float;
 
 fn main() {
 
-    let image_name = "lenna";
-    let image_name_2 = "lenna_90";
+    //let image_name = "lenna";
+    //let image_name_2 = "lenna_90";
 
     //let image_name = "cereal_1_scaled_25";
     //let image_name_2 = "cereal_1_scaled_25_cropped";
 
-    //let image_name = "cereal_1_scaled_25";
-    //let image_name_2 = "cereal_2_scaled_25";
+    let image_name = "cereal_1_scaled_25";
+    let image_name_2 = "cereal_2_scaled_25";
 
 
     let image_format = "png";
