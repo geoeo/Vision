@@ -25,7 +25,9 @@ pub fn build_orb_pyramid(base_gray_image: Image, runtime_parameters: &OrbRuntime
             sigma *= 2.0;
         }
 
-        let new_octave = OrbOctave::build_octave(&octave_image.standardize(),sigma, runtime_parameters);
+        //TODO: investigate not using z-standardizing improves results
+        //let new_octave = OrbOctave::build_octave(&octave_image.standardize(),sigma, runtime_parameters);
+        let new_octave = OrbOctave::build_octave(&octave_image,sigma, runtime_parameters);
 
         octaves.push(new_octave);
     }

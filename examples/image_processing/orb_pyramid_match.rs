@@ -22,6 +22,9 @@ fn main() {
 
     let image_name = "cereal_1_scaled_25";
     let image_name_2 = "cereal_2_scaled_25";
+    
+    //let image_name = "board_1_scaled_25";
+    //let image_name_2 = "board_2_scaled_25";
 
 
     let image_format = "png";
@@ -51,18 +54,18 @@ fn main() {
         max_features_per_octave_scale: 1.5,
         octave_count: 3,
         harris_k: 0.04,
-        fast_circle_radius: 9,
+        fast_circle_radius: 3,
         fast_threshold_factor: 0.2,
         fast_consecutive_pixels: 12,
         fast_grid_size: (2,2),
         fast_grid_size_scale_base: 1.0,
         fast_offsets: (3,3),
         fast_offset_scale_base: 1.0,
-        brief_features_to_descriptors: 256,
+        brief_features_to_descriptors: 128,
         brief_n: 256,
         brief_s: 31,
         brief_s_scale_base: 1.0,
-        brief_matching_min_threshold: 256/4, //8
+        brief_matching_min_threshold: 256/2, //8
         brief_lookup_table_step: 30.0,
         brief_sampling_pattern_seed: 0x0DDB1A5ECBAD5EEDu64
     };
