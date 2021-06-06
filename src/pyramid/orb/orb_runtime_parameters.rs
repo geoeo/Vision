@@ -8,6 +8,7 @@ pub struct OrbRuntimeParameters {
     pub max_features_per_octave_scale: Float,
     pub min_image_dimensions: (usize,usize),
     pub harris_k: Float,
+    pub harris_window_size: usize,
     pub fast_circle_radius: usize,
     pub fast_threshold_factor: Float,
     pub fast_consecutive_pixels: usize,

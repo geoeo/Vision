@@ -3,7 +3,7 @@ extern crate vision;
 
 use std::path::Path;
 use vision::pyramid::orb::{
-    build_orb_pyramid,generate_feature_pyramid,generate_feature_descriptor_pyramid,  orb_runtime_parameters::OrbRuntimeParameters, generate_match_pyramid, 
+    build_orb_pyramid,generate_feature_pyramid,generate_feature_descriptor_pyramid,  orb_runtime_parameters::OrbRuntimeParameters, generate_match_pyramid, generate_matches
 
 };
 use vision::visualize::{visualize_pyramid_feature_with_orientation, display_matches_for_pyramid};
@@ -18,14 +18,13 @@ fn main() {
     //let image_name_2 = "lenna_90";
 
     let image_name = "cereal_1_scaled_25";
-    let image_name_2 = "cereal_2_far_scaled_25";
+    let image_name_2 = "cereal_2_scaled_25";
 
     //let image_name = "cereal_1_scaled_25";
-    //let image_name_2 = "cereal_2_scaled_25";
-    
-    //let image_name = "board_1_scaled_25";
-    //let image_name_2 = "board_2_scaled_25";
+    //let image_name_2 = "cereal_2_far_scaled_25";
 
+
+    
 
     let image_format = "png";
     let image_folder = "images/";
@@ -45,6 +44,7 @@ fn main() {
     let display = Image::from_gray_image(&gray_image, false, false); 
     let display_2 = Image::from_gray_image(&gray_image_2, false, false); 
 
+    //TODO: harris window size
     let runtime_params = OrbRuntimeParameters {
         min_image_dimensions: (20,20),
         sigma: 0.8,
@@ -53,14 +53,15 @@ fn main() {
         max_features_per_octave_scale: 1.5,
         octave_count: 3,
         harris_k: 0.04,
-        fast_circle_radius: 3,
+        harris_window_size: 3,
+        fast_circle_radius: 5,
         fast_threshold_factor: 0.2,
-        fast_consecutive_pixels: 12,
-        fast_grid_size: (2,2),
+        fast_consecutive_pixels: 17,
+        fast_grid_size: (1,1),
         fast_grid_size_scale_base: 1.0,
-        fast_offsets: (3,3),
+        fast_offsets: (12,12),
         fast_offset_scale_base: 1.0,
-        brief_features_to_descriptors: 256,
+        brief_features_to_descriptors: 512,
         brief_n: 256,
         brief_s: 31,
         brief_s_scale_base: 1.0,
@@ -85,6 +86,7 @@ fn main() {
     println!("image 2 done");
 
     let matches = generate_match_pyramid(&feature_descriptor_pyramid_a,&feature_descriptor_pyramid_b, &runtime_params);
+    //let matches = generate_matches(&feature_descriptor_pyramid_a,&feature_descriptor_pyramid_b, &runtime_params);
 
 
 

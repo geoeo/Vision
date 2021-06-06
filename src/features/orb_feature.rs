@@ -53,12 +53,12 @@ impl OrbFeature {
 
         let image = &images[0];
         let fast_features = FastFeature::compute_valid_features(image, runtime_parameters.fast_circle_radius, runtime_parameters.fast_threshold_factor, runtime_parameters.fast_consecutive_pixels, scale_grid_size, (x_offset_scaled,y_offset_scaled));
-        // Gradient orientation ala SIFT seems to perform better than intensity centroid
+        // Gradient orientation ala SIFT seems to perform better than intensity centroid => move this to feature
         let orientations = fast_features.iter().map(|x| orientation(images, &x.0)).collect::<Vec<Float>>();
         //TODO: seems buggy
         //let orientations = fast_features.iter().map(|x| intensity_centroid::orientation(&images[0], &x.0.get_all_points_in_radius())).collect::<Vec<Float>>();
         
-        let mut indexed_harris_corner_responses = fast_features.iter().map(|x| harris_response_for_feature(images,&x.0,runtime_parameters.harris_k)).enumerate().collect::<Vec<(usize,Float)>>();
+        let mut indexed_harris_corner_responses = fast_features.iter().map(|x| harris_response_for_feature(images,&x.0,runtime_parameters.harris_k, runtime_parameters.harris_window_size)).enumerate().collect::<Vec<(usize,Float)>>();
         indexed_harris_corner_responses.sort_unstable_by(|a,b| b.1.partial_cmp(&a.1).unwrap());
 
 

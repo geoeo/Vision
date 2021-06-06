@@ -29,6 +29,7 @@ fn main() {
         max_features_per_octave_scale: 1.25,
         octave_count: 3,
         harris_k: 0.04,
+        harris_window_size: 7,
         fast_circle_radius: 3,
         fast_threshold_factor: 0.2,
         fast_consecutive_pixels: 12,
