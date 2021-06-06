@@ -15,7 +15,7 @@ pub fn build_orb_pyramid(base_gray_image: Image, runtime_parameters: &OrbRuntime
 
     let mut octaves: Vec<OrbOctave> = Vec::with_capacity(runtime_parameters.octave_count);
 
-    let mut octave_image = base_gray_image;
+    let mut octave_image = base_gray_image.normalize();
     let mut sigma = runtime_parameters.sigma;
 
     for i in 0..runtime_parameters.octave_count {
@@ -50,13 +50,14 @@ pub fn generate_feature_descriptor_pyramid(octave_pyramid: &Pyramid<OrbOctave>, 
 
     for i in 0..octave_len {
         let image = &octave_pyramid.octaves[i].images[0];
+        let original_image = &octave_pyramid.octaves[0].images[0];
         let feature_octave = &feature_pyramid.octaves[i];
         let n = std::cmp::min(runtime_parameters.brief_features_to_descriptors,feature_octave.len());
         let data_vector 
             = feature_octave.iter()
                             .enumerate()
                             .take(n) 
-                            .map(|x| (x.0,BriefDescriptor::new(image, x.1, runtime_parameters,i,&sample_lookup_tables.octaves[i])))
+                            .map(|x| (x.0,BriefDescriptor::new(original_image, x.1, runtime_parameters,i,&sample_lookup_tables.octaves[i])))
                             .filter(|x| x.1.is_some())
                             .map(|(idx,option)| (feature_octave[idx],option.unwrap()))
                             .collect::<Vec<(OrbFeature,BriefDescriptor)>>();

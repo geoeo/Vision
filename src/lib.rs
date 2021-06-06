@@ -33,6 +33,12 @@ pub fn reconstruct_original_coordiantes(x: usize, y: usize, octave_index: u32) -
     (x*factor,y*factor)
 }
 
+pub fn reconstruct_original_coordiantes_for_float(x: Float, y: Float, octave_index: i32) -> (Float,Float) {
+    let base: Float = 2.0;
+    let factor = base.powi(octave_index);
+    (x*factor,y*factor)
+}
+
 
 
 

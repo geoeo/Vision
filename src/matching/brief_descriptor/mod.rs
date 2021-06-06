@@ -9,7 +9,7 @@ use na::DMatrix;
 use crate::image::Image;
 use crate::pyramid::{Pyramid, orb::orb_runtime_parameters::OrbRuntimeParameters};
 use crate::features::{geometry::point::Point, orb_feature::OrbFeature};
-use crate::{Float,float};
+use crate::{Float,float, reconstruct_original_coordiantes, reconstruct_original_coordiantes_for_float};
 use crate::numerics::rotation_matrix_2d_from_orientation;
 use self::bit_vector::BitVector;
 
@@ -144,17 +144,27 @@ impl BriefDescriptor {
         let mut bit_vector = BitVector::new(runtime_parameters.brief_n);
 
         let octave_scale = runtime_parameters.brief_s_scale_base.powi(octave_idx as i32);
-        let brief_s_scaled = (runtime_parameters.brief_s as Float/ octave_scale).round() as usize;
-
-
+        //let brief_s_scaled = (runtime_parameters.brief_s as Float/ octave_scale).round() as usize;
+        let brief_s_scaled = (runtime_parameters.brief_s as Float * octave_scale).round() as usize;
         //let patch_radius = (brief_s-1)/2;
         let patch_radius = (brief_s_scaled-1)/2;
-        let top_left_r = orb_feature.location.y as isize - patch_radius as isize;
-        let top_left_c = orb_feature.location.x as isize - patch_radius as isize;
-        let bottom_right_r = orb_feature.location.y+patch_radius;
-        let bottom_right_c = orb_feature.location.x+patch_radius;
+
+        // let top_left_r = orb_feature.location.y as isize - patch_radius as isize;
+        // let top_left_c = orb_feature.location.x as isize - patch_radius as isize;
+        // let bottom_right_r = orb_feature.location.y+patch_radius;
+        // let bottom_right_c = orb_feature.location.x+patch_radius;
+
+        let (reconstructed_x_location, reconstructed_y_location)  = reconstruct_original_coordiantes_for_float(orb_feature.location.x as Float, orb_feature.location.y as Float, octave_idx as i32);
+
+
+
+        let top_left_r = reconstructed_y_location.trunc() as isize - patch_radius as isize;
+        let top_left_c = reconstructed_x_location.trunc() as isize - patch_radius as isize;
+        let bottom_right_r = reconstructed_y_location.trunc() as usize + patch_radius;
+        let bottom_right_c = reconstructed_x_location.trunc() as usize + patch_radius;
 
         if top_left_r < 0 || top_left_c < 0 || bottom_right_r >= image.buffer.nrows() || bottom_right_c >= image.buffer.ncols() {
+            println!("Warning BriefDescriptor::new - patch radius out of bounds");
             None
         } else {
 
@@ -166,10 +176,23 @@ impl BriefDescriptor {
 
             for (sample_a,sample_b) in samples_pattern{
 
-    
-                // Rotation may make samples go out of bounds -> Check this
-                let a_float = Point::<Float>{x: orb_feature.location.x as Float + sample_a.x, y: orb_feature.location.y as Float - sample_a.y};
-                let b_float = Point::<Float>{x: orb_feature.location.x as Float + sample_b.x, y: orb_feature.location.y as Float - sample_b.y};
+                //let sample_location_x_a = orb_feature.location.x as Float + sample_a.x;
+                //let sample_location_y_a = orb_feature.location.y as Float + sample_a.y;
+
+                //let sample_location_x_b = orb_feature.location.x as Float + sample_b.x;
+                //let sample_location_y_b = orb_feature.location.y as Float + sample_b.y;
+
+                // let a_float = Point::<Float>{x: orb_feature.location.x as Float + sample_a.x, y: orb_feature.location.y as Float - sample_a.y};
+                // let b_float = Point::<Float>{x: orb_feature.location.x as Float + sample_b.x, y: orb_feature.location.y as Float - sample_b.y};
+
+                let (reconstructed_x_a,reconstructed_y_a)  = reconstruct_original_coordiantes_for_float(sample_a.x, sample_a.y, octave_idx as i32);
+                let (reconstructed_x_b,reconstructed_y_b)  = reconstruct_original_coordiantes_for_float(sample_b.x, sample_b.y, octave_idx as i32);
+
+                //let a_float = Point::<Float>{x: orb_feature.location.x as Float + reconstructed_x_a, y: orb_feature.location.y as Float - reconstructed_y_a};
+                //let b_float = Point::<Float>{x: orb_feature.location.x as Float + reconstructed_x_b, y: orb_feature.location.y as Float - reconstructed_y_b};
+
+                let a_float = Point::<Float>{x: reconstructed_x_location + reconstructed_x_a, y: reconstructed_y_location - reconstructed_y_a};
+                let b_float = Point::<Float>{x: reconstructed_x_location + reconstructed_x_b, y: reconstructed_y_location - reconstructed_y_b};
 
                 let a = BriefDescriptor::clamp_to_image(&image.buffer,&a_float);
                 let b = BriefDescriptor::clamp_to_image(&image.buffer,&b_float);
