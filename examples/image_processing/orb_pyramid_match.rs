@@ -14,8 +14,8 @@ use vision::Float;
 
 fn main() {
 
-    //let image_name = "lenna";
-    //let image_name_2 = "lenna_90";
+    let image_name = "lenna";
+    let image_name_2 = "lenna_90";
 
     //let image_name = "beaver";
     //let image_name_2 = "beaver_90";
@@ -26,8 +26,8 @@ fn main() {
     //let image_name = "cereal_1_scaled_25";
     //let image_name_2 = "cereal_2_scaled_25";
 
-    let image_name = "cereal_1_scaled_25";
-    let image_name_2 = "cereal_2_far_scaled_25";
+    //let image_name = "cereal_1_scaled_25";
+    //let image_name_2 = "cereal_2_far_scaled_25";
 
 
     
@@ -53,17 +53,17 @@ fn main() {
     //TODO: recheck maximal suppression -> try reconstructing brief into the top pyramid level
     let runtime_params = OrbRuntimeParameters {
         min_image_dimensions: (20,20),
-        sigma: 2.5,
+        sigma: 2.0,
         blur_radius: 7.0,
         max_features_per_octave: 9,
         max_features_per_octave_scale: 1.0,
         octave_count: 3,
         harris_k: 0.04,
-        harris_window_size: 7,
+        harris_window_size: 9,
         fast_circle_radius: 7,
         fast_threshold_factor: 0.2,
         fast_consecutive_pixels: 21,
-        fast_grid_size: (2,2),
+        fast_grid_size: (2,2), //TODO: only apply this in one image
         fast_grid_size_scale_base: 1.0,
         fast_offsets: (12,12),
         fast_offset_scale_base: 1.0,

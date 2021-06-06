@@ -15,7 +15,7 @@ pub fn build_orb_pyramid(base_gray_image: Image, runtime_parameters: &OrbRuntime
 
     let mut octaves: Vec<OrbOctave> = Vec::with_capacity(runtime_parameters.octave_count);
 
-    let mut octave_image = base_gray_image.normalize();
+    let mut octave_image = base_gray_image.z_standardize().normalize();
     let mut sigma = runtime_parameters.sigma;
 
     for i in 0..runtime_parameters.octave_count {

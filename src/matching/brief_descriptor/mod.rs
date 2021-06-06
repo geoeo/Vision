@@ -164,7 +164,6 @@ impl BriefDescriptor {
         let bottom_right_c = reconstructed_x_location.trunc() as usize + patch_radius;
 
         if top_left_r < 0 || top_left_c < 0 || bottom_right_r >= image.buffer.nrows() || bottom_right_c >= image.buffer.ncols() {
-            println!("Warning BriefDescriptor::new - patch radius out of bounds");
             None
         } else {
 
