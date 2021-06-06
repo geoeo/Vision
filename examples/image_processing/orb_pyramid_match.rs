@@ -14,11 +14,14 @@ use vision::Float;
 
 fn main() {
 
-    //let image_name = "lenna";
-    //let image_name_2 = "lenna_90";
+    let image_name = "lenna";
+    let image_name_2 = "lenna_90";
 
-    let image_name = "cereal_1_scaled_25";
-    let image_name_2 = "cereal_2_scaled_25";
+    //let image_name = "beaver";
+    //let image_name_2 = "beaver_90";
+
+    //let image_name = "cereal_1_scaled_25";
+    //let image_name_2 = "cereal_2_scaled_25";
 
     //let image_name = "cereal_1_scaled_25";
     //let image_name_2 = "cereal_2_far_scaled_25";
@@ -44,12 +47,12 @@ fn main() {
     let display = Image::from_gray_image(&gray_image, false, false); 
     let display_2 = Image::from_gray_image(&gray_image_2, false, false); 
 
-    //TODO: harris window size
+    //TODO: recheck maximal suppression -> try reconstructing brief into the top pyramid level
     let runtime_params = OrbRuntimeParameters {
         min_image_dimensions: (20,20),
         sigma: 0.8,
         blur_radius: 3.0,
-        max_features_per_octave: 4,
+        max_features_per_octave: 8,
         max_features_per_octave_scale: 1.5,
         octave_count: 3,
         harris_k: 0.04,
@@ -57,8 +60,8 @@ fn main() {
         fast_circle_radius: 5,
         fast_threshold_factor: 0.2,
         fast_consecutive_pixels: 17,
-        fast_grid_size: (1,1),
-        fast_grid_size_scale_base: 1.0,
+        fast_grid_size: (2,2),
+        fast_grid_size_scale_base: 1.25,
         fast_offsets: (12,12),
         fast_offset_scale_base: 1.0,
         brief_features_to_descriptors: 512,
@@ -85,8 +88,11 @@ fn main() {
 
     println!("image 2 done");
 
-    let matches = generate_match_pyramid(&feature_descriptor_pyramid_a,&feature_descriptor_pyramid_b, &runtime_params);
-    //let matches = generate_matches(&feature_descriptor_pyramid_a,&feature_descriptor_pyramid_b, &runtime_params);
+
+    //let matches = generate_match_pyramid(&feature_descriptor_pyramid_a,&feature_descriptor_pyramid_b, &runtime_params);
+    
+    //TODO: seems buggy => improve sampling of brief pattern in octave scales
+    let matches = generate_matches(&feature_descriptor_pyramid_a,&feature_descriptor_pyramid_b, &runtime_params);
 
 
 

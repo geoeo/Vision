@@ -81,8 +81,16 @@ pub fn generate_matches(feature_descriptor_pyramid_a: &Pyramid<Vec<(OrbFeature,B
     let features_descriptors_b_per_octave = feature_descriptor_pyramid_b.octaves.iter().map(|x| x.clone()).collect::<Vec<Vec<(OrbFeature,BriefDescriptor)>>>();
 
 
-    let features_descriptors_a = features_descriptors_a_per_octave.into_iter().flatten().collect::<Vec<(OrbFeature,BriefDescriptor)>>();
-    let features_descriptors_b = features_descriptors_b_per_octave.into_iter().flatten().collect::<Vec<(OrbFeature,BriefDescriptor)>>();
+    //let features_descriptors_a = features_descriptors_a_per_octave.into_iter().flatten().collect::<Vec<(OrbFeature,BriefDescriptor)>>();
+    //let features_descriptors_b = features_descriptors_b_per_octave.into_iter().flatten().collect::<Vec<(OrbFeature,BriefDescriptor)>>();
+
+
+
+    let features_descriptors_a_with_octave_idx = features_descriptors_a_per_octave.into_iter().enumerate().map(|(i,list)| list.into_iter().map(|x| (i,x)).collect::<Vec<(usize,(OrbFeature,BriefDescriptor))>>()).flatten().collect::<Vec<(usize,(OrbFeature,BriefDescriptor))>>();
+    let features_descriptors_b_with_octave_idx = features_descriptors_b_per_octave.into_iter().enumerate().map(|(i,list)| list.into_iter().map(|x| (i,x)).collect::<Vec<(usize,(OrbFeature,BriefDescriptor))>>()).flatten().collect::<Vec<(usize,(OrbFeature,BriefDescriptor))>>();
+
+    let (octave_indices_a, features_descriptors_a): (Vec<usize>, Vec<(OrbFeature,BriefDescriptor)>) = features_descriptors_a_with_octave_idx.into_iter().unzip();
+    let (octave_indices_b, features_descriptors_b): (Vec<usize>, Vec<(OrbFeature,BriefDescriptor)>) = features_descriptors_b_with_octave_idx.into_iter().unzip();
 
     let (all_features_a, all_descriptors_a): (Vec<OrbFeature>, Vec<BriefDescriptor>) = features_descriptors_a.clone().into_iter().unzip();
     let (all_features_b, all_descriptors_b):  (Vec<OrbFeature>, Vec<BriefDescriptor>) = features_descriptors_b.clone().into_iter().unzip();
@@ -96,7 +104,7 @@ pub fn generate_matches(feature_descriptor_pyramid_a: &Pyramid<Vec<(OrbFeature,B
 
     let matches_indices = cross_match(&matches_indices_scored_a_to_b,&matches_indices_scored_b_to_a, runtime_parameters, 0 as i32);
 
-    matches_indices.into_iter().map(|(a_idx,b_idx)| ((0,all_features_a[a_idx]),(0,all_features_b[b_idx]))).collect::<Vec<((usize,OrbFeature),(usize,OrbFeature))>>()
+    matches_indices.into_iter().map(|(a_idx,b_idx)| ((octave_indices_a[a_idx],all_features_a[a_idx]),(octave_indices_b[b_idx],all_features_b[b_idx]))).collect::<Vec<((usize,OrbFeature),(usize,OrbFeature))>>()
 
     // for i in 0..features_descriptors_a_per_octave.len() {
 
