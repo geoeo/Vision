@@ -79,7 +79,13 @@ impl Image {
         Image{ buffer: self.buffer.normalize(), original_encoding:  self.original_encoding}
     }
 
-    pub fn standardize(&self) -> Image {
+    pub fn center(&self) -> Image {
+        let mean = self.buffer.mean();
+        Image{ buffer: (self.buffer.add_scalar(-mean)), original_encoding:  self.original_encoding}
+
+    }
+
+    pub fn z_standardize(&self) -> Image {
         let mean = self.buffer.mean();
         let variance = self.buffer.variance();
         let std_dev = variance.sqrt();
