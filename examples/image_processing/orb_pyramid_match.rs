@@ -14,8 +14,8 @@ use vision::Float;
 
 fn main() {
 
-    let image_name = "lenna";
-    let image_name_2 = "lenna_90";
+    //let image_name = "lenna";
+    //let image_name_2 = "lenna_90";
 
     //let image_name = "beaver";
     //let image_name_2 = "beaver_90";
@@ -23,8 +23,8 @@ fn main() {
     //let image_name = "beaver";
     //let image_name_2 = "beaver_scaled_50";
 
-    //let image_name = "cereal_1_scaled_25";
-    //let image_name_2 = "cereal_2_scaled_25";
+    let image_name = "cereal_1_scaled_25";
+    let image_name_2 = "cereal_2_scaled_25";
 
     //let image_name = "cereal_1_scaled_25";
     //let image_name_2 = "cereal_2_far_scaled_25";
@@ -56,7 +56,7 @@ fn main() {
         min_image_dimensions: (20,20),
         sigma: 2.0,
         blur_radius: 7.0,
-        max_features_per_octave: 9,
+        max_features_per_octave: 8,
         max_features_per_octave_scale: 1.0,
         octave_count: 8, // opencv default is 8
         harris_k: 0.04,
@@ -77,6 +77,9 @@ fn main() {
         brief_sampling_pattern_seed: 0x0DDB1A5ECBAD5EEDu64,
         brief_use_opencv_sampling_pattern: true
     };
+
+
+
     
     let sample_lookup_pyramid = BriefDescriptor::generate_sample_lookup_table_pyramid(&runtime_params,runtime_params.octave_count);
 
@@ -86,9 +89,11 @@ fn main() {
 
     println!("image 1 done");
 
-    let pyramid_2 = build_orb_pyramid(image_2, &runtime_params);
-    let feature_pyramid_2 = generate_feature_pyramid(&pyramid_2, &runtime_params);
-    let feature_descriptor_pyramid_b = generate_feature_descriptor_pyramid(&pyramid_2,&feature_pyramid_2,&sample_lookup_pyramid,&runtime_params);
+    let mut runtime_params_b = runtime_params;
+    runtime_params_b.fast_grid_size = (1,1);
+    let pyramid_2 = build_orb_pyramid(image_2, &runtime_params_b);
+    let feature_pyramid_2 = generate_feature_pyramid(&pyramid_2, &runtime_params_b);
+    let feature_descriptor_pyramid_b = generate_feature_descriptor_pyramid(&pyramid_2,&feature_pyramid_2,&sample_lookup_pyramid,&runtime_params_b);
 
     println!("image 2 done");
 

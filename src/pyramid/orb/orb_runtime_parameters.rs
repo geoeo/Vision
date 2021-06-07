@@ -1,5 +1,6 @@
 use crate::Float;
 
+#[derive(Clone,Copy)]
 pub struct OrbRuntimeParameters {
     pub pyramid_scale: Float,
     pub sigma: Float,
