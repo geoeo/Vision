@@ -38,6 +38,7 @@ fn main() {
     };
 
     let vo_parameters = RuntimeParameters {
+        pyramid_scale: 1.0,
         max_iterations: vec![800; 1],
         eps: vec![1e-3],
         step_sizes: vec![1e-8],
