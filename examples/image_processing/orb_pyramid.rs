@@ -22,6 +22,7 @@ fn main() {
     let display_max = display.buffer.max();
 
     let runtime_params = OrbRuntimeParameters {
+        pyramid_scale: 2.0,
         min_image_dimensions: (50,50),
         sigma: 0.5,
         blur_radius: 5.0,
@@ -67,7 +68,7 @@ fn main() {
     for octave_index in 0..feautre_descriptors.octaves.len() {
         let octave = &feautre_descriptors.octaves[octave_index];
         for (feature,_) in octave {
-            visualize_pyramid_feature_with_orientation(&mut display, feature, octave_index, display_max/2.0);
+            visualize_pyramid_feature_with_orientation(&mut display, feature, octave_index,runtime_params.pyramid_scale , display_max/2.0);
         }
     }
 

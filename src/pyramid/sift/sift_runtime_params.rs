@@ -1,6 +1,7 @@
 use crate::Float;
 
 pub struct SiftRuntimeParams {
+    pub pyramid_scale: Float,
     pub min_image_dimensions: (usize,usize),
     pub blur_half_factor: Float,
     pub orientation_histogram_window_factor: Float, 

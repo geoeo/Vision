@@ -21,7 +21,7 @@ pub fn build_orb_pyramid(base_gray_image: Image, runtime_parameters: &OrbRuntime
     for i in 0..runtime_parameters.octave_count {
 
         if i > 0 {
-            octave_image = Image::downsample_half(&octaves[i-1].images[0], false,  runtime_parameters.min_image_dimensions);
+            octave_image = Image::downsample_half(&octaves[i-1].images[0], false, runtime_parameters.pyramid_scale, runtime_parameters.min_image_dimensions);
             sigma *= 2.0;
         }
 

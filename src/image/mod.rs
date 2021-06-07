@@ -94,22 +94,24 @@ impl Image {
     }
 
 
-    pub fn downsample_half(image: &Image, normalize: bool, (r_min,c_min): (usize,usize)) -> Image {
+    pub fn downsample_half(image: &Image, normalize: bool, scale: Float, (r_min,c_min): (usize,usize)) -> Image {
         let width = image.buffer.ncols();
         let height = image.buffer.nrows();
 
-        let new_width = ((width as Float)/2.0).trunc() as usize;
-        let new_height = ((height as Float)/2.0).trunc() as usize;
+        let scale_truncated = scale.trunc() as usize;
+
+        let new_width = ((width as Float + 0.5)/scale).trunc() as usize;
+        let new_height = ((height as Float + 0.5)/scale).trunc() as usize;
 
         if new_height < r_min || new_width < c_min  {
             panic!("new (height,width): ({},{}) are too small",new_height,new_width);
         }
 
         let mut new_buffer = DMatrix::<Float>::from_element(new_height,new_width,0.0);
-        for x in (0..width).step_by(2) {
-            for y in (0..height).step_by(2) {
-                let new_y = y/2;
-                let new_x = x/2;
+        for x in (0..width).step_by(scale_truncated) {
+            for y in (0..height).step_by(scale_truncated) {
+                let new_y = ((y as Float + 0.5)/scale).trunc() as usize;
+                let new_x = ((x as Float + 0.5)/scale).trunc() as usize;
                 if new_y < new_height && new_x < new_width {
                     new_buffer[(new_y,new_x)] = image.buffer[(y,x)];
                 }

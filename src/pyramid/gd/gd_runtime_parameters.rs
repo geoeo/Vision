@@ -3,6 +3,7 @@ use std::fmt;
 
 #[derive(Debug,Clone)]
 pub struct GDRuntimeParameters {
+    pub pyramid_scale: Float,
     pub sigma: Float,
     pub blur_radius: Float,
     pub octave_count: usize,

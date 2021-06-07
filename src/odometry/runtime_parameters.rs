@@ -5,6 +5,7 @@ use std::{fmt,boxed::Box};
 
 #[derive(Debug)]
 pub struct RuntimeParameters{
+    pub pyramid_scale: Float,
     pub max_iterations: Vec<usize>,
     pub eps: Vec<Float>,
     pub max_norm_eps: Float,

@@ -6,7 +6,7 @@ use crate::pyramid::gd::{GDPyramid,gd_octave::GDOctave};
 use crate::sensors::camera::Camera;
 use crate::numerics::{lie,loss::LossFunction, weighting::WeightingFunction};
 use crate::features::geometry::point::Point;
-use crate::{Float,float,reconstruct_original_coordiantes};
+use crate::{Float,float,reconstruct_original_coordiantes_for_float};
 
 pub mod solver;
 
@@ -120,7 +120,7 @@ pub fn compute_image_gradients(x_gradients: &DMatrix<Float>, y_gradients: &DMatr
 
 }
 
-pub fn backproject_points<C : Camera>(source_image_buffer: &DMatrix<Float>,depth_image_buffer: &DMatrix<Float>,  camera: &C, octave_index: usize) -> (Matrix<Float,U4,Dynamic,VecStorage<Float,U4,Dynamic>>, Vec<bool>) {
+pub fn backproject_points<C : Camera>(source_image_buffer: &DMatrix<Float>,depth_image_buffer: &DMatrix<Float>,  camera: &C, pyramid_scale: Float,  octave_index: usize) -> (Matrix<Float,U4,Dynamic,VecStorage<Float,U4,Dynamic>>, Vec<bool>) {
     let (rows,cols) = source_image_buffer.shape();
     let mut backproject_points =  Matrix::<Float,U4,Dynamic,VecStorage<Float,U4,Dynamic>>::zeros(rows*cols);
     let mut backproject_points_flags =  vec![false;rows*cols];
@@ -130,8 +130,8 @@ pub fn backproject_points<C : Camera>(source_image_buffer: &DMatrix<Float>,depth
         let image_point =  linear_to_image_index(i, cols);
         let r = image_point.y;
         let c = image_point.x;
-        let reconstruced_coordiantes = reconstruct_original_coordiantes(c, r, octave_index as u32);
-        let depth_sample = depth_image_buffer[(reconstruced_coordiantes.1,reconstruced_coordiantes.0)];
+        let reconstruced_coordiantes = reconstruct_original_coordiantes_for_float(c as Float + 0.5, r as Float + 0.5,pyramid_scale , octave_index as i32);
+        let depth_sample = depth_image_buffer[(reconstruced_coordiantes.1.trunc() as usize,reconstruced_coordiantes.0.trunc() as usize)];
 
 
         if depth_sample != 0.0 {

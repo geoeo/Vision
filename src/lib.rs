@@ -28,13 +28,12 @@ pub enum GradientDirection {
 
 
 //TODO: maybe move this to pyramid
-pub fn reconstruct_original_coordiantes(x: usize, y: usize, octave_index: u32) -> (usize,usize) {
-    let factor = 2usize.pow(octave_index);
+pub fn reconstruct_original_coordiantes(x: usize, y: usize, base: usize, octave_index: u32) -> (usize,usize) {
+    let factor = base.pow(octave_index);
     (x*factor,y*factor)
 }
 
-pub fn reconstruct_original_coordiantes_for_float(x: Float, y: Float, octave_index: i32) -> (Float,Float) {
-    let base: Float = 2.0;
+pub fn reconstruct_original_coordiantes_for_float(x: Float, y: Float, base:Float,  octave_index: i32) -> (Float,Float) {
     let factor = base.powi(octave_index);
     (x*factor,y*factor)
 }

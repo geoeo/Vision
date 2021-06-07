@@ -123,6 +123,7 @@ fn estimate<C : Camera, const T: usize>(
         &source_image.buffer,
         &source_depth_image_original.buffer,
         depth_camera,
+        runtime_parameters.pyramid_scale,
         octave_index,
     );
     let constant_jacobians = precompute_jacobians(
