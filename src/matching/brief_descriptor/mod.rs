@@ -183,14 +183,18 @@ impl BriefDescriptor {
                 // let a_float = Point::<Float>{x: orb_feature.location.x as Float + sample_a.x, y: orb_feature.location.y as Float - sample_a.y};
                 // let b_float = Point::<Float>{x: orb_feature.location.x as Float + sample_b.x, y: orb_feature.location.y as Float - sample_b.y};
 
-                let (reconstructed_x_a,reconstructed_y_a)  = reconstruct_original_coordiantes_for_float(sample_a.x, sample_a.y,runtime_parameters.pyramid_scale, octave_idx as i32);
-                let (reconstructed_x_b,reconstructed_y_b)  = reconstruct_original_coordiantes_for_float(sample_b.x, sample_b.y,runtime_parameters.pyramid_scale, octave_idx as i32);
-
                 //let a_float = Point::<Float>{x: orb_feature.location.x as Float + reconstructed_x_a, y: orb_feature.location.y as Float - reconstructed_y_a};
                 //let b_float = Point::<Float>{x: orb_feature.location.x as Float + reconstructed_x_b, y: orb_feature.location.y as Float - reconstructed_y_b};
 
-                let a_float = Point::<Float>{x: reconstructed_x_location + reconstructed_x_a, y: reconstructed_y_location - reconstructed_y_a};
-                let b_float = Point::<Float>{x: reconstructed_x_location + reconstructed_x_b, y: reconstructed_y_location - reconstructed_y_b};
+
+                let (reconstructed_x_a,reconstructed_y_a)  = reconstruct_original_coordiantes_for_float(sample_a.x + 0.5, sample_a.y + 0.5,runtime_parameters.pyramid_scale, octave_idx as i32);
+                let (reconstructed_x_b,reconstructed_y_b)  = reconstruct_original_coordiantes_for_float(sample_b.x + 0.5, sample_b.y + 0.5,runtime_parameters.pyramid_scale, octave_idx as i32);
+
+
+                let a_float = Point::<Float>{x: reconstructed_x_location.trunc() + reconstructed_x_a.trunc(), y: reconstructed_y_location.trunc() - reconstructed_y_a.trunc()};
+                let b_float = Point::<Float>{x: reconstructed_x_location.trunc() + reconstructed_x_b.trunc(), y: reconstructed_y_location.trunc() - reconstructed_y_b.trunc()};
+
+
 
                 let a = BriefDescriptor::clamp_to_image(&image.buffer,&a_float);
                 let b = BriefDescriptor::clamp_to_image(&image.buffer,&b_float);

@@ -21,13 +21,23 @@ fn main() {
     //let image_name_2 = "beaver_90";
 
     //let image_name = "beaver";
-    //let image_name_2 = "beaver_scaled_50";
-
-    let image_name = "cereal_1_scaled_25";
-    let image_name_2 = "cereal_2_scaled_25";
+    //et image_name_2 = "beaver_scaled_50";
 
     //let image_name = "cereal_1_scaled_25";
-    //let image_name_2 = "cereal_2_far_scaled_25";
+    //let image_name_2 = "cereal_2_scaled_25";
+
+    let image_name = "cereal_1_scaled_25";
+    let image_name_2 = "cereal_2_far_scaled_25";
+
+    //let image_name = "cereal_1_scaled_25";
+    //let image_name_2 = "cereal_tilted_scaled_25";
+
+    //let image_name = "cereal_1_scaled_25";
+    //let image_name_2 = "cereal_occluded_scaled_25";
+
+    //let image_name = "cereal_1_scaled_25";
+    //let image_name_2 = "cereal_far_scaled_25";
+
 
 
     
@@ -51,28 +61,29 @@ fn main() {
     let display_2 = Image::from_gray_image(&gray_image_2, false, false); 
 
     //TODO: recheck maximal suppression, scale factor for octaves, not hardcoded doubling // opencv default is 1.2
+    let pyramid_scale = 1.4;
     let runtime_params = OrbRuntimeParameters {
-        pyramid_scale: 1.2,
+        pyramid_scale: pyramid_scale,
         min_image_dimensions: (20,20),
         sigma: 2.0,
         blur_radius: 7.0,
-        max_features_per_octave: 8,
+        max_features_per_octave: 5,
         max_features_per_octave_scale: 1.0,
-        octave_count: 8, // opencv default is 8
+        octave_count: 5, // opencv default is 8
         harris_k: 0.04,
         harris_window_size: 9,
         fast_circle_radius: 7,
         fast_threshold_factor: 0.2,
         fast_consecutive_pixels: 21,
-        fast_grid_size: (1,1), //TODO: only apply this in one image
+        fast_grid_size: (1,1), //TODO: this may lead to crashes if too high
         fast_grid_size_scale_base: 1.0,
         fast_offsets: (12,12),
         fast_offset_scale_base: 1.0,
         brief_features_to_descriptors: 512,
         brief_n: 256,
         brief_s: 31,
-        brief_s_scale_base: 2.0,
-        brief_matching_min_threshold: 256/4, //8
+        brief_s_scale_base: pyramid_scale,
+        brief_matching_min_threshold: 256/2, //8
         brief_lookup_table_step: 30.0,
         brief_sampling_pattern_seed: 0x0DDB1A5ECBAD5EEDu64,
         brief_use_opencv_sampling_pattern: true

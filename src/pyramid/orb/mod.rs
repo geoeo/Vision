@@ -15,7 +15,8 @@ pub fn build_orb_pyramid(base_gray_image: Image, runtime_parameters: &OrbRuntime
 
     let mut octaves: Vec<OrbOctave> = Vec::with_capacity(runtime_parameters.octave_count);
 
-    let mut octave_image = base_gray_image.z_standardize().normalize();
+    let mut octave_image = base_gray_image; //TODO: make these parameters
+    //let mut octave_image = base_gray_image; //TODO: make these parameters
     let mut sigma = runtime_parameters.sigma;
 
     for i in 0..runtime_parameters.octave_count {
@@ -53,6 +54,7 @@ pub fn generate_feature_descriptor_pyramid(octave_pyramid: &Pyramid<OrbOctave>, 
         let original_image = &octave_pyramid.octaves[0].images[0];
         let feature_octave = &feature_pyramid.octaves[i];
         let n = std::cmp::min(runtime_parameters.brief_features_to_descriptors,feature_octave.len());
+
         let data_vector 
             = feature_octave.iter()
                             .enumerate()
@@ -72,18 +74,11 @@ pub fn generate_feature_descriptor_pyramid(octave_pyramid: &Pyramid<OrbOctave>, 
     feature_descriptor_pyramid
 }
 
-//TODO: This is buggy
 pub fn generate_matches(feature_descriptor_pyramid_a: &Pyramid<Vec<(OrbFeature,BriefDescriptor)>>,feature_descriptor_pyramid_b: &Pyramid<Vec<(OrbFeature,BriefDescriptor)>>,  runtime_parameters: &OrbRuntimeParameters) -> Vec<((usize,OrbFeature),(usize,OrbFeature))> {
 
 
-    //let mut matches = Vec::<((usize,OrbFeature),(usize,OrbFeature))>::new(); //TODO: with capacity of runtime paramets
-
     let features_descriptors_a_per_octave = feature_descriptor_pyramid_a.octaves.iter().map(|x| x.clone()).collect::<Vec<Vec<(OrbFeature,BriefDescriptor)>>>();
     let features_descriptors_b_per_octave = feature_descriptor_pyramid_b.octaves.iter().map(|x| x.clone()).collect::<Vec<Vec<(OrbFeature,BriefDescriptor)>>>();
-
-
-    //let features_descriptors_a = features_descriptors_a_per_octave.into_iter().flatten().collect::<Vec<(OrbFeature,BriefDescriptor)>>();
-    //let features_descriptors_b = features_descriptors_b_per_octave.into_iter().flatten().collect::<Vec<(OrbFeature,BriefDescriptor)>>();
 
 
 
@@ -107,29 +102,8 @@ pub fn generate_matches(feature_descriptor_pyramid_a: &Pyramid<Vec<(OrbFeature,B
 
     matches_indices.into_iter().map(|(a_idx,b_idx)| ((octave_indices_a[a_idx],all_features_a[a_idx]),(octave_indices_b[b_idx],all_features_b[b_idx]))).collect::<Vec<((usize,OrbFeature),(usize,OrbFeature))>>()
 
-    // for i in 0..features_descriptors_a_per_octave.len() {
+    //matches_indices_scored_a_to_b.into_iter().enumerate().take(5).map(|(a_idx, b_idxs)| ((octave_indices_a[a_idx],all_features_a[a_idx]),(octave_indices_b[b_idxs[0].0],all_features_b[b_idxs[0].0]))).collect::<Vec<((usize,OrbFeature),(usize,OrbFeature))>>()
 
-    //     let (all_features_a, all_descriptors_a): (Vec<OrbFeature>, Vec<BriefDescriptor>) = features_descriptors_a_per_octave[i].clone().into_iter().unzip();
-    //     let (all_features_b, all_descriptors_b):  (Vec<OrbFeature>, Vec<BriefDescriptor>) = features_descriptors_b_per_octave[i].clone().into_iter().unzip();
-    
-    //     let matches_indices_scored_a_to_b
-    //         = BriefDescriptor::sorted_match_descriptors(&all_descriptors_a, &all_descriptors_b, runtime_parameters.brief_matching_min_threshold).into_iter().filter(|option| option.is_some()).map(|x| x.unwrap()).collect::<Vec<Vec<(usize,u64)>>>();
-
-    //     let matches_indices_scored_b_to_a
-    //         = BriefDescriptor::sorted_match_descriptors(&all_descriptors_b, &all_descriptors_a, runtime_parameters.brief_matching_min_threshold).into_iter().filter(|option| option.is_some()).map(|x| x.unwrap()).collect::<Vec<Vec<(usize,u64)>>>();
-    
-
-    //     let matches_indices = cross_match(&matches_indices_scored_a_to_b,&matches_indices_scored_b_to_a, runtime_parameters, i as i32);
-    
-    //     let matches_per_octave = matches_indices.into_iter().map(|(a_idx,b_idx)| ((i,all_features_a[a_idx]),(i,all_features_b[b_idx]))).collect::<Vec<((usize,OrbFeature),(usize,OrbFeature))>>();
-    //     for m in matches_per_octave {
-    //         matches.push(m);
-    //     }
-
-    // }
-
-
-    // matches
 
 }
 
