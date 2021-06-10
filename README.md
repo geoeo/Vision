@@ -8,7 +8,7 @@ Dense VO implementation in Rust. https://ieeexplore.ieee.org/document/6631104
 Imu Preintgration in Rust http://rpg.ifi.uzh.ch/docs/TRO16_forster.pdf
 
 ## Orb
-![billa_cereal](doc/billa_cereal.png)![billa_cereal_tilted](doc/billa_cereal_tilted.png)
+![billa_cereal_far](doc/cereal_far.png)![billa_cereal_tilted](doc/cereal_tilted.png)
 
 ## Fast Corner
 ![fast](doc/lenna_fast.png)

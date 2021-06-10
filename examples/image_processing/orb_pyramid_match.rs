@@ -21,13 +21,13 @@ fn main() {
     //let image_name_2 = "beaver_90";
 
     //let image_name = "beaver";
-    //et image_name_2 = "beaver_scaled_50";
-
-    //let image_name = "cereal_1_scaled_25";
-    //let image_name_2 = "cereal_2_scaled_25";
+    //let image_name_2 = "beaver_scaled_50";
 
     let image_name = "cereal_1_scaled_25";
-    let image_name_2 = "cereal_2_far_scaled_25";
+    let image_name_2 = "cereal_2_scaled_25";
+
+    //let image_name = "cereal_1_scaled_25";
+    //let image_name_2 = "cereal_2_far_scaled_25";
 
     //let image_name = "cereal_1_scaled_25";
     //let image_name_2 = "cereal_tilted_scaled_25";
@@ -60,22 +60,23 @@ fn main() {
     let display = Image::from_gray_image(&gray_image, false, false); 
     let display_2 = Image::from_gray_image(&gray_image_2, false, false); 
 
-    //TODO: recheck maximal suppression, scale factor for octaves, not hardcoded doubling // opencv default is 1.2
-    let pyramid_scale = 1.4;
+    //TODO: recheck maximal suppression, scale factor for octaves
+    // https://www.cc.gatech.edu/classes/AY2016/cs4476_fall/results/proj2/html/agartia3/index.html
+    let pyramid_scale = 1.4; // opencv default is 1.2
     let runtime_params = OrbRuntimeParameters {
         pyramid_scale: pyramid_scale,
         min_image_dimensions: (20,20),
-        sigma: 2.0,
-        blur_radius: 7.0,
+        sigma: 1.0,
+        blur_radius: 3.0,
         max_features_per_octave: 5,
         max_features_per_octave_scale: 1.0,
-        octave_count: 5, // opencv default is 8
+        octave_count: 7, // opencv default is 8
         harris_k: 0.04,
-        harris_window_size: 9,
-        fast_circle_radius: 7,
+        harris_window_size: 5, //TODO: this with fast grid size may lead to out of bounds crash
+        fast_circle_radius: 3,
         fast_threshold_factor: 0.2,
-        fast_consecutive_pixels: 21,
-        fast_grid_size: (1,1), //TODO: this may lead to crashes if too high
+        fast_consecutive_pixels: 12,
+        fast_grid_size: (5,5), //TODO: this may lead to crashes if too high 
         fast_grid_size_scale_base: 1.0,
         fast_offsets: (12,12),
         fast_offset_scale_base: 1.0,
@@ -100,8 +101,8 @@ fn main() {
 
     println!("image 1 done");
 
-    let mut runtime_params_b = runtime_params;
-    runtime_params_b.fast_grid_size = (1,1);
+    let runtime_params_b = runtime_params;
+    //runtime_params_b.fast_grid_size = (1,1);
     let pyramid_2 = build_orb_pyramid(image_2, &runtime_params_b);
     let feature_pyramid_2 = generate_feature_pyramid(&pyramid_2, &runtime_params_b);
     let feature_descriptor_pyramid_b = generate_feature_descriptor_pyramid(&pyramid_2,&feature_pyramid_2,&sample_lookup_pyramid,&runtime_params_b);

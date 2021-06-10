@@ -108,23 +108,35 @@ impl FastFeature {
 
     }
 
-    pub fn compute_valid_feature(image: &Image, radius: usize,  threshold_factor: Float, consecutive_pixels: usize, x_grid_start: usize, y_grid_start: usize, x_grid_size: usize, y_grid_size: usize) -> Option<(FastFeature,usize)> {
+    //TODO: implement non-maximal suppression properly
+    pub fn compute_valid_feature(image: &Image, radius: usize,  threshold_factor: Float, consecutive_pixels: usize, x_grid_start: usize, y_grid_start: usize, x_grid_size: usize, y_grid_size: usize) -> Vec<(FastFeature,usize)> /*Option<(FastFeature,usize)>*/ {
         let mut grid_max_option: Option<(FastFeature,usize)> = None;
         let mut grid_max_score = float::MIN;
+
+        let mut features = Vec::<(FastFeature,usize)>::with_capacity(y_grid_size*x_grid_size);
         
         for r_grid in y_grid_start..y_grid_start+y_grid_size {
             for c_grid in x_grid_start..x_grid_start+x_grid_size {
                 let feature = FastFeature::new(c_grid, r_grid, radius);
                 let (start_option,score) = FastFeature::accept(image, &feature, threshold_factor, consecutive_pixels);
-                if start_option.is_some() && score > grid_max_score {
-                    grid_max_score = score;
-                    grid_max_option = Some((feature,start_option.unwrap()));
+                // if start_option.is_some() && score > grid_max_score {
+                //     grid_max_score = score;
+                //     grid_max_option = Some((feature,start_option.unwrap()));
+                // }
+
+                if start_option.is_some() {
+                    //grid_max_score = score;
+                    features.push((feature,start_option.unwrap()));
                 }
 
             }
         }
 
-        grid_max_option
+        features.sort_unstable_by(|a,b| b.1.cmp(&a.1));
+
+        //grid_max_option
+        let n = std::cmp::min(5,features.len()); //TODO: make this a parameter
+        features.into_iter().take(n).collect::<Vec<(FastFeature,usize)>>()
 
     }
 
@@ -134,14 +146,16 @@ impl FastFeature {
         let x_offset = offsets.0;
         let y_offset = offsets.1;
         
-
+        //TODO: initialize capcity properly
         let mut result = Vec::<(FastFeature,usize)>::new();
         for r in (y_offset..image.buffer.nrows() - y_offset).step_by(y_grid) {
             for c in (x_offset..image.buffer.ncols() - x_offset).step_by(x_grid) {
 
                 match FastFeature::compute_valid_feature(image,radius,threshold_factor,consecutive_pixels,c,r,x_grid,y_grid) {
-                    Some(v) => result.push(v),
-                    None => {}
+                    //Some(v) => result.push(v),
+                    //None => {}
+                    mut vec if !vec.is_empty()=> result.append(&mut vec),
+                    _ => ()
                 }
 
             }

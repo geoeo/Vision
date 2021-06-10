@@ -21,7 +21,7 @@ impl OrbOctave {
 
         let sigmas = vec!(sigma);
         let kernels: Vec<GaussKernel1D> = sigmas.iter().map(|&sigma| GaussKernel1D::new(mean, sigma,step,blur_radius)).collect();
-        let images: Vec<Image> = kernels.iter().map(|kernel| gaussian_2_d_convolution(base_image, kernel, true).normalize()).collect();
+        let images: Vec<Image> = kernels.iter().map(|kernel| gaussian_2_d_convolution(base_image, kernel, true).z_standardize().normalize()).collect();
 
 
         OrbOctave{images,sigmas}
