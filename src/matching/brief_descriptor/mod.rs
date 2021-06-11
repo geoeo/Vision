@@ -9,7 +9,7 @@ use na::DMatrix;
 use crate::image::Image;
 use crate::pyramid::{Pyramid, orb::orb_runtime_parameters::OrbRuntimeParameters};
 use crate::features::{geometry::point::Point, orb_feature::OrbFeature};
-use crate::{Float,float, reconstruct_original_coordiantes, reconstruct_original_coordiantes_for_float};
+use crate::{Float,float, reconstruct_original_coordiantes_for_float};
 use crate::numerics::rotation_matrix_2d_from_orientation;
 use self::bit_vector::BitVector;
 
@@ -64,7 +64,7 @@ impl BriefDescriptor {
         let brief_s_scaled = (runtime_parameters.brief_s as Float/ octave_scale).round();
         let std_dev = (brief_s_scaled)/5.0;
 
-        let brief_s_scaled = (runtime_parameters.brief_s as Float/ octave_scale).round();
+        //let brief_s_scaled = (runtime_parameters.brief_s as Float/ octave_scale).round();
         let mut sampling_thread = rand::rngs::SmallRng::seed_from_u64(runtime_parameters.brief_sampling_pattern_seed); 
         let normal_distribution = Normal::new(0.0,std_dev).unwrap();
 

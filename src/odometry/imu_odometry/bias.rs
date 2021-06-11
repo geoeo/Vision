@@ -1,8 +1,8 @@
 extern crate nalgebra as na;
 
-use na::{Vector,Vector3,Vector6,Matrix3,Matrix,SMatrix,U3,storage::Storage, Const};
+use na::{Vector,Vector3,Matrix3,SMatrix,storage::Storage, Const};
 
-use crate::odometry::imu_odometry::{imu_delta::ImuDelta, ImuResidual};
+use crate::odometry::imu_odometry::ImuResidual;
 use crate::numerics::lie::{right_jacobian,skew_symmetric, right_inverse_jacobian, exp_r};
 use crate::Float;
 

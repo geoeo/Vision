@@ -34,6 +34,7 @@ fn main() {
         fast_circle_radius: 3,
         fast_threshold_factor: 0.2,
         fast_consecutive_pixels: 12,
+        fast_features_per_grid: 5,
         fast_grid_size: (10,10),
         fast_grid_size_scale_base: 2.0,
         fast_offsets: (20,20),

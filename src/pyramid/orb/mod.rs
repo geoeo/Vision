@@ -50,7 +50,7 @@ pub fn generate_feature_descriptor_pyramid(octave_pyramid: &Pyramid<OrbOctave>, 
     let mut feature_descriptor_pyramid = Pyramid::<Vec<(OrbFeature,BriefDescriptor)>>::empty(octave_len);
 
     for i in 0..octave_len {
-        let image = &octave_pyramid.octaves[i].images[0];
+        //let image = &octave_pyramid.octaves[i].images[0];
         let original_image = &octave_pyramid.octaves[0].images[0];
         let feature_octave = &feature_pyramid.octaves[i];
         let n = std::cmp::min(runtime_parameters.brief_features_to_descriptors,feature_octave.len());

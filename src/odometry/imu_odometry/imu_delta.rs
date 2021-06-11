@@ -27,7 +27,7 @@ impl ImuDelta {
 
     pub fn add_pertb<R>(&self, new_pertb: &Vector<Float,Const<9>,R>) -> ImuDelta where R: Storage<Float,Const<9>,Const<1>> {
         //TODO: check this, we are interpreting delta trans as a differential quantity
-        let delta_pose = exp(&new_pertb.fixed_rows::<3>(0),&new_pertb.fixed_rows::<3>(3));
+        //let delta_pose = exp(&new_pertb.fixed_rows::<3>(0),&new_pertb.fixed_rows::<3>(3));
         ImuDelta {
             delta_position: self.delta_position + new_pertb.fixed_rows::<3>(0),
             //delta_position: self.delta_position + delta_pose.fixed_slice::<3,1>(0,3),

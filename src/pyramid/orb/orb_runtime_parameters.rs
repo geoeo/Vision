@@ -14,6 +14,7 @@ pub struct OrbRuntimeParameters {
     pub fast_circle_radius: usize,
     pub fast_threshold_factor: Float,
     pub fast_consecutive_pixels: usize,
+    pub fast_features_per_grid: usize,
     pub fast_grid_size: (usize,usize),
     pub fast_grid_size_scale_base: Float,
     pub fast_offsets: (usize,usize),

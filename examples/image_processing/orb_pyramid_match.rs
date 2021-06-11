@@ -23,11 +23,11 @@ fn main() {
     //let image_name = "beaver";
     //let image_name_2 = "beaver_scaled_50";
 
-    let image_name = "cereal_1_scaled_25";
-    let image_name_2 = "cereal_2_scaled_25";
-
     //let image_name = "cereal_1_scaled_25";
-    //let image_name_2 = "cereal_2_far_scaled_25";
+    //let image_name_2 = "cereal_2_scaled_25";
+
+    let image_name = "cereal_1_scaled_25";
+    let image_name_2 = "cereal_2_far_scaled_25";
 
     //let image_name = "cereal_1_scaled_25";
     //let image_name_2 = "cereal_tilted_scaled_25";
@@ -40,7 +40,6 @@ fn main() {
 
 
 
-    
 
     let image_format = "png";
     let image_folder = "images/";
@@ -62,20 +61,21 @@ fn main() {
 
     //TODO: recheck maximal suppression, scale factor for octaves
     // https://www.cc.gatech.edu/classes/AY2016/cs4476_fall/results/proj2/html/agartia3/index.html
-    let pyramid_scale = 1.4; // opencv default is 1.2
+    let pyramid_scale = 1.2; // opencv default is 1.2
     let runtime_params = OrbRuntimeParameters {
         pyramid_scale: pyramid_scale,
         min_image_dimensions: (20,20),
-        sigma: 1.0,
+        sigma: 0.8,
         blur_radius: 3.0,
         max_features_per_octave: 5,
         max_features_per_octave_scale: 1.0,
-        octave_count: 7, // opencv default is 8
+        octave_count: 8, // opencv default is 8
         harris_k: 0.04,
         harris_window_size: 5, //TODO: this with fast grid size may lead to out of bounds crash
         fast_circle_radius: 3,
         fast_threshold_factor: 0.2,
         fast_consecutive_pixels: 12,
+        fast_features_per_grid: 3,
         fast_grid_size: (5,5), //TODO: this may lead to crashes if too high 
         fast_grid_size_scale_base: 1.0,
         fast_offsets: (12,12),
@@ -84,7 +84,7 @@ fn main() {
         brief_n: 256,
         brief_s: 31,
         brief_s_scale_base: pyramid_scale,
-        brief_matching_min_threshold: 256/2, //8
+        brief_matching_min_threshold: 256/2, 
         brief_lookup_table_step: 30.0,
         brief_sampling_pattern_seed: 0x0DDB1A5ECBAD5EEDu64,
         brief_use_opencv_sampling_pattern: true

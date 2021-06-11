@@ -1,4 +1,5 @@
 use crate::features::{Feature, geometry::{point::Point,shape::circle::{Circle,circle_bresenham},Offset}};
+use crate::pyramid::orb::orb_runtime_parameters::OrbRuntimeParameters;
 use crate::image::Image;
 use crate::{float,Float};
 
@@ -108,52 +109,50 @@ impl FastFeature {
 
     }
 
-    //TODO: implement non-maximal suppression properly
-    pub fn compute_valid_feature(image: &Image, radius: usize,  threshold_factor: Float, consecutive_pixels: usize, x_grid_start: usize, y_grid_start: usize, x_grid_size: usize, y_grid_size: usize) -> Vec<(FastFeature,usize)> /*Option<(FastFeature,usize)>*/ {
-        let mut grid_max_option: Option<(FastFeature,usize)> = None;
-        let mut grid_max_score = float::MIN;
-
-        let mut features = Vec::<(FastFeature,usize)>::with_capacity(y_grid_size*x_grid_size);
+    pub fn compute_valid_feature(image: &Image, radius: usize,  threshold_factor: Float, features_per_grid: usize, consecutive_pixels: usize, x_grid_start: usize, y_grid_start: usize, x_grid_size: usize, y_grid_size: usize) -> Vec<FastFeature> /*Option<(FastFeature,usize)>*/ {
+        let mut features = Vec::<(FastFeature,Float)>::with_capacity(y_grid_size*x_grid_size);
         
         for r_grid in y_grid_start..y_grid_start+y_grid_size {
             for c_grid in x_grid_start..x_grid_start+x_grid_size {
                 let feature = FastFeature::new(c_grid, r_grid, radius);
                 let (start_option,score) = FastFeature::accept(image, &feature, threshold_factor, consecutive_pixels);
-                // if start_option.is_some() && score > grid_max_score {
-                //     grid_max_score = score;
-                //     grid_max_option = Some((feature,start_option.unwrap()));
-                // }
 
                 if start_option.is_some() {
-                    //grid_max_score = score;
-                    features.push((feature,start_option.unwrap()));
+                    features.push((feature,score));
                 }
 
             }
         }
 
-        features.sort_unstable_by(|a,b| b.1.cmp(&a.1));
+        features.sort_unstable_by(|a,b| b.1.partial_cmp(&a.1).unwrap());
 
-        //grid_max_option
-        let n = std::cmp::min(5,features.len()); //TODO: make this a parameter
-        features.into_iter().take(n).collect::<Vec<(FastFeature,usize)>>()
+        let n = std::cmp::min(features_per_grid,features.len());
+        features.into_iter().take(n).map(|x| x.0).collect::<Vec<FastFeature>>()
 
     }
 
-    pub fn compute_valid_features(image: &Image, radius: usize,  threshold_factor: Float, consecutive_pixels: usize, grid_size: (usize,usize), offsets: (usize,usize)) -> Vec<(FastFeature,usize)> {
-        let x_grid = grid_size.0;
-        let y_grid = grid_size.1;
-        let x_offset = offsets.0;
-        let y_offset = offsets.1;
+    pub fn compute_valid_features(image: &Image,octave_idx: i32, runtime_parameters: &OrbRuntimeParameters) -> Vec<FastFeature> {
+
+
+        let orig_offset = runtime_parameters.fast_offsets;
+        let offset_scale = runtime_parameters.fast_offset_scale_base.powi(octave_idx) as Float;
+        let x_offset_scaled = (orig_offset.0 as Float / offset_scale).trunc() as usize;
+        let y_offset_scaled = (orig_offset.1 as Float / offset_scale).trunc() as usize;
+        
+        let octave_scale = runtime_parameters.fast_grid_size_scale_base.powi(octave_idx);
+        let scale_grid_size = ((runtime_parameters.fast_grid_size.0 as Float * octave_scale).trunc() as usize, (runtime_parameters.fast_grid_size.1 as Float * octave_scale).trunc() as usize);
+
+        let x_grid = scale_grid_size.0;
+        let y_grid = scale_grid_size.1;
+        let x_offset = x_offset_scaled;
+        let y_offset = y_offset_scaled;
         
         //TODO: initialize capcity properly
-        let mut result = Vec::<(FastFeature,usize)>::new();
+        let mut result = Vec::<FastFeature>::new();
         for r in (y_offset..image.buffer.nrows() - y_offset).step_by(y_grid) {
             for c in (x_offset..image.buffer.ncols() - x_offset).step_by(x_grid) {
 
-                match FastFeature::compute_valid_feature(image,radius,threshold_factor,consecutive_pixels,c,r,x_grid,y_grid) {
-                    //Some(v) => result.push(v),
-                    //None => {}
+                match FastFeature::compute_valid_feature(image,runtime_parameters.fast_circle_radius,runtime_parameters.fast_threshold_factor, runtime_parameters.fast_features_per_grid ,runtime_parameters.fast_consecutive_pixels,c,r,x_grid,y_grid) {
                     mut vec if !vec.is_empty()=> result.append(&mut vec),
                     _ => ()
                 }
