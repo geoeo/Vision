@@ -3,14 +3,12 @@ extern crate vision;
 
 use std::path::Path;
 use vision::pyramid::orb::{
-    build_orb_pyramid,generate_feature_pyramid,generate_feature_descriptor_pyramid,  orb_runtime_parameters::OrbRuntimeParameters, generate_match_pyramid, generate_matches
+    build_orb_pyramid,generate_feature_pyramid,generate_feature_descriptor_pyramid,  orb_runtime_parameters::OrbRuntimeParameters, generate_matches
 
 };
 use vision::visualize::{visualize_pyramid_feature_with_orientation, display_matches_for_pyramid};
 use vision::matching::brief_descriptor::BriefDescriptor;
-use vision::features::Oriented;
 use vision::image::Image;
-use vision::Float;
 
 fn main() {
 
@@ -23,11 +21,11 @@ fn main() {
     //let image_name = "beaver";
     //let image_name_2 = "beaver_scaled_50";
 
-    //let image_name = "cereal_1_scaled_25";
-    //let image_name_2 = "cereal_2_scaled_25";
-
     let image_name = "cereal_1_scaled_25";
-    let image_name_2 = "cereal_2_far_scaled_25";
+    let image_name_2 = "cereal_2_scaled_25";
+
+    //let image_name = "cereal_1_scaled_25";
+    //let image_name_2 = "cereal_2_far_scaled_25";
 
     //let image_name = "cereal_1_scaled_25";
     //let image_name_2 = "cereal_tilted_scaled_25";

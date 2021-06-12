@@ -83,7 +83,6 @@ impl BriefDescriptor {
 
     }
 
-    //TODO: parse this into my datastructures
     // https://github.com/opencv/opencv/blob/master/modules/features2d/src/orb.cpp
     pub fn generate_open_cv_sampling_pattern_31_256(runtime_parameters: &OrbRuntimeParameters)  -> (DMatrix::<Float>,DMatrix::<Float>) {
 
@@ -144,15 +143,8 @@ impl BriefDescriptor {
         let mut bit_vector = BitVector::new(runtime_parameters.brief_n);
 
         let octave_scale = runtime_parameters.brief_s_scale_base.powi(octave_idx as i32);
-        //let brief_s_scaled = (runtime_parameters.brief_s as Float/ octave_scale).round() as usize;
         let brief_s_scaled = (runtime_parameters.brief_s as Float * octave_scale).round() as usize;
-        //let patch_radius = (brief_s-1)/2;
         let patch_radius = (brief_s_scaled-1)/2;
-
-        // let top_left_r = orb_feature.location.y as isize - patch_radius as isize;
-        // let top_left_c = orb_feature.location.x as isize - patch_radius as isize;
-        // let bottom_right_r = orb_feature.location.y+patch_radius;
-        // let bottom_right_c = orb_feature.location.x+patch_radius;
 
         let (reconstructed_x_location, reconstructed_y_location)  = reconstruct_original_coordiantes_for_float(orb_feature.location.x as Float + 0.5, orb_feature.location.y as Float + 0.5, runtime_parameters.pyramid_scale, octave_idx as i32);
 
@@ -174,27 +166,14 @@ impl BriefDescriptor {
 
             for (sample_a,sample_b) in samples_pattern{
 
-                //let sample_location_x_a = orb_feature.location.x as Float + sample_a.x;
-                //let sample_location_y_a = orb_feature.location.y as Float + sample_a.y;
-
-                //let sample_location_x_b = orb_feature.location.x as Float + sample_b.x;
-                //let sample_location_y_b = orb_feature.location.y as Float + sample_b.y;
-
-                // let a_float = Point::<Float>{x: orb_feature.location.x as Float + sample_a.x, y: orb_feature.location.y as Float - sample_a.y};
-                // let b_float = Point::<Float>{x: orb_feature.location.x as Float + sample_b.x, y: orb_feature.location.y as Float - sample_b.y};
-
-                //let a_float = Point::<Float>{x: orb_feature.location.x as Float + reconstructed_x_a, y: orb_feature.location.y as Float - reconstructed_y_a};
-                //let b_float = Point::<Float>{x: orb_feature.location.x as Float + reconstructed_x_b, y: orb_feature.location.y as Float - reconstructed_y_b};
-
-
-                let (reconstructed_x_a,reconstructed_y_a)  = reconstruct_original_coordiantes_for_float(sample_a.x + 0.5, sample_a.y + 0.5,runtime_parameters.pyramid_scale, octave_idx as i32);
-                let (reconstructed_x_b,reconstructed_y_b)  = reconstruct_original_coordiantes_for_float(sample_b.x + 0.5, sample_b.y + 0.5,runtime_parameters.pyramid_scale, octave_idx as i32);
-
+                let (reconstructed_x_a,reconstructed_y_a) = reconstruct_original_coordiantes_for_float(sample_a.x, sample_a.y,runtime_parameters.pyramid_scale, octave_idx as i32);
+                let (reconstructed_x_b,reconstructed_y_b) = reconstruct_original_coordiantes_for_float(sample_b.x, sample_b.y,runtime_parameters.pyramid_scale, octave_idx as i32);
 
                 let a_float = Point::<Float>{x: reconstructed_x_location.trunc() + reconstructed_x_a.trunc(), y: reconstructed_y_location.trunc() - reconstructed_y_a.trunc()};
                 let b_float = Point::<Float>{x: reconstructed_x_location.trunc() + reconstructed_x_b.trunc(), y: reconstructed_y_location.trunc() - reconstructed_y_b.trunc()};
 
-
+                //let a_float = Point::<Float>{x: (reconstructed_x_location+ reconstructed_x_a).trunc(), y: (reconstructed_y_location - reconstructed_y_a).trunc()};
+                //let b_float = Point::<Float>{x: (reconstructed_x_location + reconstructed_x_b).trunc(), y: (reconstructed_y_location - reconstructed_y_b).trunc()};
 
                 let a = BriefDescriptor::clamp_to_image(&image.buffer,&a_float);
                 let b = BriefDescriptor::clamp_to_image(&image.buffer,&b_float);
@@ -207,8 +186,6 @@ impl BriefDescriptor {
     
             Some(BriefDescriptor{bit_vector})
         }
-
-
 
     }
 
