@@ -21,8 +21,8 @@ fn main() {
     //let image_name = "beaver";
     //let image_name_2 = "beaver_scaled_50";
 
-    let image_name = "cereal_1_scaled_25";
-    let image_name_2 = "cereal_2_scaled_25";
+    // let image_name = "cereal_1_scaled_25";
+    // let image_name_2 = "cereal_2_scaled_25";
 
     //let image_name = "cereal_1_scaled_25";
     //let image_name_2 = "cereal_2_far_scaled_25";
@@ -35,6 +35,10 @@ fn main() {
 
     //let image_name = "cereal_1_scaled_25";
     //let image_name_2 = "cereal_far_scaled_25";
+
+    let image_name = "ba_slow_3";
+    let image_name_2 = "ba_slow_4";
+    //let image_name_2 = "ba_slow_5";
 
 
 
@@ -57,13 +61,13 @@ fn main() {
     let display = Image::from_gray_image(&gray_image, false, false); 
     let display_2 = Image::from_gray_image(&gray_image_2, false, false); 
 
-    //TODO: recheck maximal suppression, scale factor for octaves
+    //TODO: recheck maximal suppression, take best corers for all windows across all pyramid levels
     // https://www.cc.gatech.edu/classes/AY2016/cs4476_fall/results/proj2/html/agartia3/index.html
     let pyramid_scale = 1.2; // opencv default is 1.2
     let runtime_params = OrbRuntimeParameters {
         pyramid_scale: pyramid_scale,
         min_image_dimensions: (20,20),
-        sigma: 0.8,
+        sigma: 1.6,
         blur_radius: 3.0,
         max_features_per_octave: 5,
         max_features_per_octave_scale: 1.0,
@@ -74,11 +78,11 @@ fn main() {
         fast_threshold_factor: 0.2,
         fast_consecutive_pixels: 12,
         fast_features_per_grid: 3,
-        fast_grid_size: (5,5), //TODO: this may lead to crashes if too high 
+        fast_grid_size: (10,10), //TODO: this may lead to crashes if too high 
         fast_grid_size_scale_base: 1.0,
         fast_offsets: (12,12),
         fast_offset_scale_base: 1.0,
-        brief_features_to_descriptors: 512,
+        brief_features_to_descriptors: 128,
         brief_n: 256,
         brief_s: 31,
         brief_s_scale_base: pyramid_scale,
