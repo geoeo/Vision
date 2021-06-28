@@ -28,7 +28,6 @@ impl Kernel for PrewittKernel {
         1
     }
 
-
     fn normalizing_constant(&self) -> Float{
         2.0
     }

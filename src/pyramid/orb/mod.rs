@@ -73,13 +73,29 @@ pub fn generate_feature_descriptor_pyramid(octave_pyramid: &Pyramid<OrbOctave>, 
     feature_descriptor_pyramid
 }
 
-pub fn generate_matches(feature_descriptor_pyramid_a: &Pyramid<Vec<(OrbFeature,BriefDescriptor)>>,feature_descriptor_pyramid_b: &Pyramid<Vec<(OrbFeature,BriefDescriptor)>>,  runtime_parameters: &OrbRuntimeParameters) -> Vec<((usize,OrbFeature),(usize,OrbFeature))> {
+pub fn generate_matches(base_gray_image_a: Image, runtime_parameters_a: &OrbRuntimeParameters,base_gray_image_b: Image, runtime_parameters_b: &OrbRuntimeParameters) -> Vec<((usize,OrbFeature),(usize,OrbFeature))> {
+
+    let sample_lookup_pyramid = BriefDescriptor::generate_sample_lookup_table_pyramid(&runtime_parameters_a,runtime_parameters_a.octave_count);
+
+    let pyramid = build_orb_pyramid(base_gray_image_a, &runtime_parameters_a);
+    let feature_pyramid = generate_feature_pyramid(&pyramid, &runtime_parameters_a);
+    let feature_descriptor_pyramid_a = generate_feature_descriptor_pyramid(&pyramid,&feature_pyramid,&sample_lookup_pyramid,&runtime_parameters_a);
+
+    let pyramid_2 = build_orb_pyramid(base_gray_image_b, &runtime_parameters_b);
+    let feature_pyramid_2 = generate_feature_pyramid(&pyramid_2, &runtime_parameters_b);
+    let feature_descriptor_pyramid_b = generate_feature_descriptor_pyramid(&pyramid_2,&feature_pyramid_2,&sample_lookup_pyramid,&runtime_parameters_b);
+
+    
+    generate_matches_between_pyramid(&feature_descriptor_pyramid_a,&feature_descriptor_pyramid_b, &runtime_parameters_a)
+
+
+}
+
+pub fn generate_matches_between_pyramid(feature_descriptor_pyramid_a: &Pyramid<Vec<(OrbFeature,BriefDescriptor)>>,feature_descriptor_pyramid_b: &Pyramid<Vec<(OrbFeature,BriefDescriptor)>>,  runtime_parameters: &OrbRuntimeParameters) -> Vec<((usize,OrbFeature),(usize,OrbFeature))> {
 
 
     let features_descriptors_a_per_octave = feature_descriptor_pyramid_a.octaves.iter().map(|x| x.clone()).collect::<Vec<Vec<(OrbFeature,BriefDescriptor)>>>();
     let features_descriptors_b_per_octave = feature_descriptor_pyramid_b.octaves.iter().map(|x| x.clone()).collect::<Vec<Vec<(OrbFeature,BriefDescriptor)>>>();
-
-
 
     let features_descriptors_a_with_octave_idx = features_descriptors_a_per_octave.into_iter().enumerate().map(|(i,list)| list.into_iter().map(|x| (i,x)).collect::<Vec<(usize,(OrbFeature,BriefDescriptor))>>()).flatten().collect::<Vec<(usize,(OrbFeature,BriefDescriptor))>>();
     let features_descriptors_b_with_octave_idx = features_descriptors_b_per_octave.into_iter().enumerate().map(|(i,list)| list.into_iter().map(|x| (i,x)).collect::<Vec<(usize,(OrbFeature,BriefDescriptor))>>()).flatten().collect::<Vec<(usize,(OrbFeature,BriefDescriptor))>>();
@@ -100,9 +116,6 @@ pub fn generate_matches(feature_descriptor_pyramid_a: &Pyramid<Vec<(OrbFeature,B
     let matches_indices = cross_match(&matches_indices_scored_a_to_b,&matches_indices_scored_b_to_a, runtime_parameters, 0 as i32);
 
     matches_indices.into_iter().map(|(a_idx,b_idx)| ((octave_indices_a[a_idx],all_features_a[a_idx]),(octave_indices_b[b_idx],all_features_b[b_idx]))).collect::<Vec<((usize,OrbFeature),(usize,OrbFeature))>>()
-
-    //matches_indices_scored_a_to_b.into_iter().enumerate().take(5).map(|(a_idx, b_idxs)| ((octave_indices_a[a_idx],all_features_a[a_idx]),(octave_indices_b[b_idxs[0].0],all_features_b[b_idxs[0].0]))).collect::<Vec<((usize,OrbFeature),(usize,OrbFeature))>>()
-
 
 }
 

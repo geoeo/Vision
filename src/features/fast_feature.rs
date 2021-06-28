@@ -109,6 +109,7 @@ impl FastFeature {
 
     }
 
+    //TODO: performance offender
     pub fn compute_valid_feature(image: &Image, radius: usize,  threshold_factor: Float, features_per_grid: usize, consecutive_pixels: usize, x_grid_start: usize, y_grid_start: usize, x_grid_size: usize, y_grid_size: usize) -> Vec<FastFeature> /*Option<(FastFeature,usize)>*/ {
         let mut features = Vec::<(FastFeature,Float)>::with_capacity(y_grid_size*x_grid_size);
         
@@ -130,6 +131,7 @@ impl FastFeature {
         features.into_iter().take(n).map(|x| x.0).collect::<Vec<FastFeature>>()
 
     }
+
 
     pub fn compute_valid_features(image: &Image,octave_idx: i32, runtime_parameters: &OrbRuntimeParameters) -> Vec<FastFeature> {
 

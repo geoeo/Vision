@@ -52,6 +52,7 @@ impl BitVector {
         self.entries = self.entries+1;
     }
 
+    //TODO: performance offender
     pub fn hamming_distance(&self, other: &BitVector) -> u64 {
 
         let mut xor_vec = Vec::<u64>::with_capacity(self.data.len());

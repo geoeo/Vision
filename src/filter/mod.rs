@@ -73,7 +73,7 @@ pub fn filter_1d_convolution(source_images: &Vec<&Image>, sigma_level: usize, fi
     target
 }
 
-
+//TODO: performance
 pub fn gradient_convolution_at_sample(source_images: &Vec<Image>,input_params: &dyn Feature, filter_kernel: &dyn Kernel, gradient_direction: GradientDirection) -> Float {
 
     let x_input = input_params.get_x_image(); 
@@ -95,13 +95,19 @@ pub fn gradient_convolution_at_sample(source_images: &Vec<Image>,input_params: &
 
     match gradient_direction {
         GradientDirection::HORIZINTAL => {
-            assert!(x_input_signed -kernel_radius_signed >= 0 && x_input + kernel_radius <= width);
+            if !(x_input_signed -kernel_radius_signed >= 0 && x_input + kernel_radius < width){
+                panic!("HORIZONTAL: cant convolve at location: {} with radius: {}, image width: {}",x_input_signed, kernel_radius_signed, width);
+            }
          },
         GradientDirection::VERTICAL => { 
-            assert!(y_input_signed -kernel_radius_signed >= 0 && y_input + kernel_radius <= height);
+            if !(y_input_signed -kernel_radius_signed >= 0 && y_input + kernel_radius < height){
+                panic!("VERTICAL: cant convolve at location: {} with radius: {} image, height: {}",y_input_signed, kernel_radius_signed, height);
+            }
          },
         GradientDirection::SIGMA => { 
-            assert!(sigma_level_input_signed -kernel_radius_signed >= 0 && sigma_level_input + kernel_radius < source_images.len());
+            if !(sigma_level_input_signed -kernel_radius_signed >= 0 && sigma_level_input + kernel_radius < source_images.len()) {
+                panic!("SIGMA: cant convolve at location: {} with radius: {}",sigma_level_input_signed, kernel_radius_signed);
+            }
         }
 
     }

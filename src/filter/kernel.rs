@@ -12,6 +12,7 @@ pub trait Kernel{
     fn radius(&self) -> usize {
         (self.kernel().ncols()-1)/2
     }
+    
     // Half the number of extra repeats of the kernel -> TODO: Make this dervied from Matrix height
     fn half_repeat(&self) -> usize {
         (self.kernel().nrows()-1)/2

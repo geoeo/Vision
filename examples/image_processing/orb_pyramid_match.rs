@@ -3,7 +3,7 @@ extern crate vision;
 
 use std::path::Path;
 use vision::pyramid::orb::{
-    build_orb_pyramid,generate_feature_pyramid,generate_feature_descriptor_pyramid,  orb_runtime_parameters::OrbRuntimeParameters, generate_matches
+    build_orb_pyramid,generate_feature_pyramid,generate_feature_descriptor_pyramid,  orb_runtime_parameters::OrbRuntimeParameters, generate_matches,generate_matches_between_pyramid
 
 };
 use vision::visualize::{visualize_pyramid_feature_with_orientation, display_matches_for_pyramid};
@@ -38,6 +38,8 @@ fn main() {
 
     let image_name = "ba_slow_3";
     let image_name_2 = "ba_slow_4";
+
+    //let image_name = "ba_slow_4";
     //let image_name_2 = "ba_slow_5";
 
 
@@ -67,21 +69,21 @@ fn main() {
     let runtime_params = OrbRuntimeParameters {
         pyramid_scale: pyramid_scale,
         min_image_dimensions: (20,20),
-        sigma: 1.6,
+        sigma: 2.0,
         blur_radius: 3.0,
         max_features_per_octave: 5,
-        max_features_per_octave_scale: 1.0,
+        max_features_per_octave_scale: 1.2,
         octave_count: 8, // opencv default is 8
         harris_k: 0.04,
-        harris_window_size: 5, //TODO: this with fast grid size may lead to out of bounds crash
+        harris_window_size: 5, 
         fast_circle_radius: 3,
         fast_threshold_factor: 0.2,
         fast_consecutive_pixels: 12,
         fast_features_per_grid: 3,
-        fast_grid_size: (10,10), //TODO: this may lead to crashes if too high 
-        fast_grid_size_scale_base: 1.0,
+        fast_grid_size: (15,15),  
+        fast_grid_size_scale_base: 1.2,
         fast_offsets: (12,12),
-        fast_offset_scale_base: 1.0,
+        fast_offset_scale_base: 1.2,
         brief_features_to_descriptors: 128,
         brief_n: 256,
         brief_s: 31,
@@ -92,30 +94,27 @@ fn main() {
         brief_use_opencv_sampling_pattern: true
     };
 
+    let runtime_params_2 = runtime_params;
 
 
-    
-    let sample_lookup_pyramid = BriefDescriptor::generate_sample_lookup_table_pyramid(&runtime_params,runtime_params.octave_count);
+    // let sample_lookup_pyramid = BriefDescriptor::generate_sample_lookup_table_pyramid(&runtime_params,runtime_params.octave_count);
 
-    let pyramid = build_orb_pyramid(image, &runtime_params);
-    let feature_pyramid = generate_feature_pyramid(&pyramid, &runtime_params);
-    let feature_descriptor_pyramid_a = generate_feature_descriptor_pyramid(&pyramid,&feature_pyramid,&sample_lookup_pyramid,&runtime_params);
+    // let pyramid = build_orb_pyramid(image, &runtime_params);
+    // let feature_pyramid = generate_feature_pyramid(&pyramid, &runtime_params);
+    // let feature_descriptor_pyramid_a = generate_feature_descriptor_pyramid(&pyramid,&feature_pyramid,&sample_lookup_pyramid,&runtime_params);
 
-    println!("image 1 done");
+    // println!("image 1 done");
 
-    let runtime_params_b = runtime_params;
-    //runtime_params_b.fast_grid_size = (1,1);
-    let pyramid_2 = build_orb_pyramid(image_2, &runtime_params_b);
-    let feature_pyramid_2 = generate_feature_pyramid(&pyramid_2, &runtime_params_b);
-    let feature_descriptor_pyramid_b = generate_feature_descriptor_pyramid(&pyramid_2,&feature_pyramid_2,&sample_lookup_pyramid,&runtime_params_b);
+    // //runtime_params_b.fast_grid_size = (1,1);
+    // let pyramid_2 = build_orb_pyramid(image_2, &runtime_params_b);
+    // let feature_pyramid_2 = generate_feature_pyramid(&pyramid_2, &runtime_params_b);
+    // let feature_descriptor_pyramid_b = generate_feature_descriptor_pyramid(&pyramid_2,&feature_pyramid_2,&sample_lookup_pyramid,&runtime_params_b);
 
-    println!("image 2 done");
+    // println!("image 2 done");
 
+    // let matches = generate_matches_between_pyramid(&feature_descriptor_pyramid_a,&feature_descriptor_pyramid_b, &runtime_params);
 
-    //let matches = generate_match_pyramid(&feature_descriptor_pyramid_a,&feature_descriptor_pyramid_b, &runtime_params);
-    
-    //TODO: seems buggy => improve sampling of brief pattern in octave scales
-    let matches = generate_matches(&feature_descriptor_pyramid_a,&feature_descriptor_pyramid_b, &runtime_params);
+    let matches = generate_matches(image, &runtime_params, image_2, &runtime_params_2);
 
 
 
