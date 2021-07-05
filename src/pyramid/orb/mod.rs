@@ -73,20 +73,26 @@ pub fn generate_feature_descriptor_pyramid(octave_pyramid: &Pyramid<OrbOctave>, 
     feature_descriptor_pyramid
 }
 
-pub fn generate_matches(base_gray_image_a: Image, runtime_parameters_a: &OrbRuntimeParameters,base_gray_image_b: Image, runtime_parameters_b: &OrbRuntimeParameters) -> Vec<((usize,OrbFeature),(usize,OrbFeature))> {
+//TODO: generate feature id based on Feature + level - hasids.org
+//TODO: same for images -> then combine
+pub fn generate_matches(image_pairs: Vec<(Image,&OrbRuntimeParameters, Image, &OrbRuntimeParameters)>) -> Vec<Vec<((usize,OrbFeature),(usize,OrbFeature))>> {
 
-    let sample_lookup_pyramid = BriefDescriptor::generate_sample_lookup_table_pyramid(&runtime_parameters_a,runtime_parameters_a.octave_count);
 
-    let pyramid = build_orb_pyramid(base_gray_image_a, &runtime_parameters_a);
-    let feature_pyramid = generate_feature_pyramid(&pyramid, &runtime_parameters_a);
-    let feature_descriptor_pyramid_a = generate_feature_descriptor_pyramid(&pyramid,&feature_pyramid,&sample_lookup_pyramid,&runtime_parameters_a);
+    image_pairs.into_iter().map(|(base_gray_image_a,runtime_parameters_a,base_gray_image_b,runtime_parameters_b)| {
+        let sample_lookup_pyramid = BriefDescriptor::generate_sample_lookup_table_pyramid(&runtime_parameters_a,runtime_parameters_a.octave_count);
 
-    let pyramid_2 = build_orb_pyramid(base_gray_image_b, &runtime_parameters_b);
-    let feature_pyramid_2 = generate_feature_pyramid(&pyramid_2, &runtime_parameters_b);
-    let feature_descriptor_pyramid_b = generate_feature_descriptor_pyramid(&pyramid_2,&feature_pyramid_2,&sample_lookup_pyramid,&runtime_parameters_b);
-
+        let pyramid = build_orb_pyramid(base_gray_image_a, &runtime_parameters_a);
+        let feature_pyramid = generate_feature_pyramid(&pyramid, &runtime_parameters_a);
+        let feature_descriptor_pyramid_a = generate_feature_descriptor_pyramid(&pyramid,&feature_pyramid,&sample_lookup_pyramid,&runtime_parameters_a);
     
-    generate_matches_between_pyramid(&feature_descriptor_pyramid_a,&feature_descriptor_pyramid_b, &runtime_parameters_a)
+        let pyramid_2 = build_orb_pyramid(base_gray_image_b, &runtime_parameters_b);
+        let feature_pyramid_2 = generate_feature_pyramid(&pyramid_2, &runtime_parameters_b);
+        let feature_descriptor_pyramid_b = generate_feature_descriptor_pyramid(&pyramid_2,&feature_pyramid_2,&sample_lookup_pyramid,&runtime_parameters_b);
+    
+        
+        generate_matches_between_pyramid(&feature_descriptor_pyramid_a,&feature_descriptor_pyramid_b, &runtime_parameters_a)
+
+    }).collect::<Vec<Vec<((usize,OrbFeature),(usize,OrbFeature))>>>()
 
 
 }

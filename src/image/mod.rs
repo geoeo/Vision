@@ -1,6 +1,8 @@
 extern crate image as image_rs;
 extern crate nalgebra as na;
 
+use std::collections::hash_map::DefaultHasher;
+use std::hash::{Hash,Hasher};
 use image_rs::{GrayImage,ImageBuffer, DynamicImage,Pixel, Luma};
 use image_rs::flat::NormalForm;
 use na::{DMatrix};
@@ -11,10 +13,13 @@ use self::image_encoding::ImageEncoding;
 
 pub mod image_encoding;
 
+//TODO: add id based on image name or something like that - hasids.org
 #[derive(Debug,Clone)]
 pub struct Image {
     pub buffer: DMatrix<Float>,
-    pub original_encoding: ImageEncoding
+    pub original_encoding: ImageEncoding,
+    pub name: Option<String>,
+    pub id: Option<u64>
 }
 
 impl Image {
@@ -25,7 +30,7 @@ impl Image {
 
     pub fn empty(width: usize, height: usize, image_encoding: ImageEncoding) -> Image {
         let buffer =  DMatrix::<Float>::from_element(height,width,255.0);
-        Image{ buffer, original_encoding: image_encoding}
+        Image{buffer, original_encoding: image_encoding, name: None, id: None}
     }
 
     pub fn from_matrix(matrix: &DMatrix<Float>, original_encoding: ImageEncoding, normalize: bool) -> Image {
@@ -39,10 +44,10 @@ impl Image {
             }
         }
 
-        Image{ buffer: buffer, original_encoding}
+        Image{ buffer: buffer, original_encoding,name: None, id: None}
     }
 
-    pub fn from_gray_image(image: &GrayImage , normalize: bool, invert_y : bool) -> Image {
+    pub fn from_gray_image(image: &GrayImage , normalize: bool, invert_y : bool, image_name: Option<String>) -> Image {
         let mut buffer = Image::image8_to_matrix(image, invert_y);
         
         //TODO use nalgebra
@@ -53,17 +58,37 @@ impl Image {
             }
         }
 
-        Image{ buffer: buffer,original_encoding:  ImageEncoding::U8}
+        let (name, id) = match image_name {
+            Some(v) => {
+                let mut hasher = DefaultHasher::new();
+                let mut n = v.clone();
+                n.hash(&mut hasher);
+                (Some(n),Some(hasher.finish()))
+            },
+            _ => (None, None)
+        };
+
+
+        Image{ buffer: buffer,original_encoding:  ImageEncoding::U8, name, id}
     }
 
-    pub fn from_depth_image(image: &ImageBuffer<Luma<u16>, Vec<u16>> ,  negate_values: bool, invert_y : bool) -> Image {
+    pub fn from_depth_image(image: &ImageBuffer<Luma<u16>, Vec<u16>>,  negate_values: bool, invert_y : bool, image_name:  Option<String>) -> Image {
         let mut buffer = Image::image16_to_matrix(image, invert_y);
         
         if negate_values {
             buffer *= -1.0;
         }
 
-        Image{ buffer: buffer,original_encoding:  ImageEncoding::U16}
+        let (name, id) = match image_name {
+            Some(v) => {
+                let mut hasher = DefaultHasher::new();
+                let mut n = v.clone();
+                n.hash(&mut hasher);
+                (Some(n),Some(hasher.finish()))
+            },
+            _ => (None, None)
+        };
+        Image{ buffer: buffer,original_encoding:  ImageEncoding::U16, name, id}
     }
 
 
@@ -71,17 +96,35 @@ impl Image {
         return Image::matrix_to_image(&self.buffer,  self.original_encoding);
     }
 
-    // pub fn to_image16(&self) -> GrayImage {
-    //     return Image::matrix_to_image16(&self.buffer,  self.original_encoding);
-    // }
-
     pub fn normalize(&self) -> Image {
-        Image{ buffer: self.buffer.normalize(), original_encoding:  self.original_encoding}
+
+        let (new_name, id) = match self.name.clone() {
+            Some(v) => {
+                let mut hasher = DefaultHasher::new();
+                let mut n = v.clone();
+                n.push_str("_n");
+                n.hash(&mut hasher);
+                (Some(n),Some(hasher.finish()))
+            },
+            _ => (None, None)
+        };
+
+        Image{ buffer: self.buffer.normalize(), original_encoding:  self.original_encoding, name: new_name, id }
     }
 
     pub fn center(&self) -> Image {
         let mean = self.buffer.mean();
-        Image{ buffer: (self.buffer.add_scalar(-mean)), original_encoding:  self.original_encoding}
+        let (new_name, id) = match self.name.clone() {
+            Some(v) => {
+                let mut hasher = DefaultHasher::new();
+                let mut n = v.clone();
+                n.push_str("_c");
+                n.hash(&mut hasher);
+                (Some(n),Some(hasher.finish()))
+            },
+            _ => (None, None)
+        };
+        Image{ buffer: (self.buffer.add_scalar(-mean)), original_encoding:  self.original_encoding, name: new_name, id}
 
     }
 
@@ -89,7 +132,17 @@ impl Image {
         let mean = self.buffer.mean();
         let variance = self.buffer.variance();
         let std_dev = variance.sqrt();
-        Image{ buffer: (self.buffer.add_scalar(-mean))/std_dev, original_encoding:  self.original_encoding}
+        let (new_name, id) = match self.name.clone() {
+            Some(v) => {
+                let mut hasher = DefaultHasher::new();
+                let mut n = v.clone();
+                n.push_str("_z");
+                n.hash(&mut hasher);
+                (Some(n),Some(hasher.finish()))
+            },
+            _ => (None, None)
+        };
+        Image{ buffer: (self.buffer.add_scalar(-mean))/std_dev, original_encoding:  self.original_encoding,  name: new_name, id}
 
     }
 
@@ -123,9 +176,21 @@ impl Image {
             new_buffer.normalize_mut();
         }
 
+        let (new_name, id) = match image.name.clone() {
+            Some(v) => {
+                let mut hasher = DefaultHasher::new();
+                let mut n = v.clone();
+                n.push_str("_d");
+                n.hash(&mut hasher);
+                (Some(n),Some(hasher.finish()))
+            },
+            _ => (None, None)
+        };
+
         Image{
             buffer: new_buffer,
-            original_encoding: image.original_encoding
+            original_encoding: image.original_encoding,
+            name: new_name, id
         }
 
     }
@@ -162,9 +227,21 @@ impl Image {
             new_buffer.normalize_mut();
         }
 
+        let (new_name, id) = match image.name.clone() {
+            Some(v) => {
+                let mut hasher = DefaultHasher::new();
+                let mut n = v.clone();
+                n.push_str("_u");
+                n.hash(&mut hasher);
+                (Some(n),Some(hasher.finish()))
+            },
+            _ => (None, None)
+        };
+
         Image{
             buffer: new_buffer,
-            original_encoding: image.original_encoding
+            original_encoding: image.original_encoding,
+            name: new_name, id
         }
 
     }

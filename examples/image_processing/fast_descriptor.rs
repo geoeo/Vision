@@ -17,7 +17,7 @@ fn main() {
     println!("Processing Image: {}", image_name);
 
     let image = image_rs::open(&Path::new(&image_path)).unwrap().to_luma8();
-    let mut frame = Image::from_gray_image(&image, false, false);
+    let mut frame = Image::from_gray_image(&image, false, false, None);
 
 
     //Has to be reworked

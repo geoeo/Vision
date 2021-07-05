@@ -57,11 +57,11 @@ fn main() {
     let gray_image = image_rs::open(&Path::new(&image_path)).unwrap().to_luma8();
     let gray_image_2 = image_rs::open(&Path::new(&image_path_2)).unwrap().to_luma8();
 
-    let image = Image::from_gray_image(&gray_image, false, false);
-    let image_2 = Image::from_gray_image(&gray_image_2, false, false);
+    let image = Image::from_gray_image(&gray_image, false, false, Some(image_name.to_string()));
+    let image_2 = Image::from_gray_image(&gray_image_2, false, false, Some(image_name_2.to_string()));
 
-    let display = Image::from_gray_image(&gray_image, false, false); 
-    let display_2 = Image::from_gray_image(&gray_image_2, false, false); 
+    let display = Image::from_gray_image(&gray_image, false, false, None); 
+    let display_2 = Image::from_gray_image(&gray_image_2, false, false, None); 
 
     //TODO: recheck maximal suppression, take best corers for all windows across all pyramid levels
     // https://www.cc.gatech.edu/classes/AY2016/cs4476_fall/results/proj2/html/agartia3/index.html
@@ -114,7 +114,7 @@ fn main() {
 
     // let matches = generate_matches_between_pyramid(&feature_descriptor_pyramid_a,&feature_descriptor_pyramid_b, &runtime_params);
 
-    let matches = generate_matches(image, &runtime_params, image_2, &runtime_params_2);
+    let matches = generate_matches(vec!((image, &runtime_params, image_2, &runtime_params_2)));
 
 
 
@@ -146,7 +146,7 @@ fn main() {
 
     //TODO: make this work with images of different sizes
     println!("{}",matches.len());
-    let match_display = display_matches_for_pyramid(&display, &display_2, &matches, true, display.buffer.max()/2.0, runtime_params.pyramid_scale);
+    let match_display = display_matches_for_pyramid(&display, &display_2, &matches[0], true, display.buffer.max()/2.0, runtime_params.pyramid_scale);
 
 
 

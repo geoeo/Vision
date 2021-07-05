@@ -96,12 +96,14 @@ pub fn load_depth_image_from_csv(file_path: &Path, negate_values: bool, invert_y
 
 pub fn load_image_as_gray(file_path: &Path, normalize: bool, invert_y: bool) -> Image {
     let gray_image = image_rs::open(&Path::new(&file_path)).expect("load_image failed").to_luma8();
-    Image::from_gray_image(&gray_image, normalize, invert_y)
+    let file_name = file_path.file_name().unwrap().to_str().unwrap().to_string();
+    Image::from_gray_image(&gray_image, normalize, invert_y, Some(file_name))
 }
 
 pub fn load_depth_image(file_path: &Path, negate_values: bool, invert_y: bool, scale: Float, set_default_depth: bool) -> Image {
     let depth_image = image_rs::open(&Path::new(&file_path)).expect("load_image failed").to_luma16();
-    let mut image = Image::from_depth_image(&depth_image,negate_values,invert_y);
+    let file_name = file_path.file_name().unwrap().to_str().unwrap().to_string();
+    let mut image = Image::from_depth_image(&depth_image,negate_values,invert_y, Some(file_name));
     image.buffer /= scale;
     if set_default_depth {
         fill_matrix_with_default_depth(&mut image.buffer,negate_values);
