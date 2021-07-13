@@ -23,6 +23,10 @@ impl Feature for KeyPoint {
     fn get_closest_sigma_level(&self) -> usize {
         self.sigma_level
     }
+
+    fn get_id(&self) -> Option<u64> {
+        None
+    }
 }
 
 impl Oriented for KeyPoint {

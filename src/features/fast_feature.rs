@@ -8,7 +8,8 @@ pub struct FastFeature {
     pub location: Point<usize>,
     pub radius: usize,
     pub starting_offsets: [Offset;4],
-    pub continuous_offsets: Vec<Offset>
+    pub continuous_offsets: Vec<Offset>,
+    pub id: Option<u64>
 
 }
 
@@ -23,6 +24,10 @@ impl Feature for FastFeature {
 
     fn get_closest_sigma_level(&self) -> usize {
         0
+    }
+
+    fn get_id(&self) -> Option<u64> {
+        self.id
     }
 }
 
@@ -58,7 +63,7 @@ impl FastFeature {
         let mut continuous_offsets = [pos_zero,positive_y_offset,neg_zero,negative_y_offset].concat();
         continuous_offsets.dedup();
 
-        FastFeature {location: circle_geometry.center,radius: circle.radius, starting_offsets,continuous_offsets}
+        FastFeature {location: circle_geometry.center,radius: circle.radius, starting_offsets,continuous_offsets, id: None }
     }
 
     fn accept(image: &Image, feature: &FastFeature, threshold_factor: Float, consecutive_pixels: usize) -> (Option<usize>,Float) {

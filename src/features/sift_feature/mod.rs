@@ -14,7 +14,8 @@ pub mod processing;
 pub struct SiftFeature {
     pub x: Float,
     pub y: Float,
-    pub sigma_level: Float
+    pub sigma_level: Float,
+    pub id: Option<u64>
     //pub sigma: Float
 } 
 
@@ -30,6 +31,10 @@ impl Feature for SiftFeature {
     fn get_closest_sigma_level(&self) -> usize {
         self.sigma_level.trunc() as usize
     }
+
+    fn get_id(&self) -> Option<u64>{
+        self.id
+    } 
 }
 
 impl fmt::Display for SiftFeature {
@@ -84,7 +89,7 @@ pub fn detect_sift_feature(source_octave: &SiftOctave, sigma_level: usize, x_ste
             let is_extrema = (is_smallest_curr||is_largest_curr) && (is_smallest_prev ||is_largest_prev) && (is_smallest_next || is_largest_next); // This is wrong ?
 
             if is_extrema {
-                extrema_vec.push(SiftFeature{x: x as Float,y: y as Float,sigma_level: sigma_level as Float});
+                extrema_vec.push(SiftFeature{x: x as Float,y: y as Float,sigma_level: sigma_level as Float, id: None});
             }
         }
     }

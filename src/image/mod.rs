@@ -61,7 +61,7 @@ impl Image {
         let (name, id) = match image_name {
             Some(v) => {
                 let mut hasher = DefaultHasher::new();
-                let mut n = v.clone();
+                let n = v.clone();
                 n.hash(&mut hasher);
                 (Some(n),Some(hasher.finish()))
             },
@@ -82,7 +82,7 @@ impl Image {
         let (name, id) = match image_name {
             Some(v) => {
                 let mut hasher = DefaultHasher::new();
-                let mut n = v.clone();
+                let n = v.clone();
                 n.hash(&mut hasher);
                 (Some(n),Some(hasher.finish()))
             },

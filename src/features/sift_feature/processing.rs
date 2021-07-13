@@ -22,7 +22,7 @@ pub fn subpixel_refinement(source_octave: &SiftOctave, feature:  &SiftFeature) -
     let s = source_octave.s();
     let sigma_range = (1.0/(s as Float)).exp2();
     let mut perturb_final = interpolate(source_octave,feature,&first_order_kernel,&second_order_kernel);
-    let mut extrema_final =  SiftFeature{x:feature.x ,y:feature.y,sigma_level:feature.sigma_level};
+    let mut extrema_final =  SiftFeature{x:feature.x ,y:feature.y,sigma_level:feature.sigma_level, id: None};
     let max_it = 5; // TODO: put this in runtime params  
     let mut counter = 0;
     let cutoff = 0.6;
