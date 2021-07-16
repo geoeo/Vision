@@ -26,9 +26,6 @@ impl Feature for FastFeature {
         0
     }
 
-    fn get_id(&self) -> Option<u64> {
-        self.id
-    }
 }
 
 impl FastFeature {

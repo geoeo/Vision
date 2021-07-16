@@ -32,9 +32,6 @@ impl Feature for SiftFeature {
         self.sigma_level.trunc() as usize
     }
 
-    fn get_id(&self) -> Option<u64>{
-        self.id
-    } 
 }
 
 impl fmt::Display for SiftFeature {

@@ -37,8 +37,8 @@ pub fn harris_matrix(images: &Vec<Image>, feature: &dyn Feature, window_size: us
                 v => v as usize
             };
             
-            //TODO: orientaiton not needed here
-            let sample_feature = OrbFeature { location: Point {x:sample_x, y: sample_y }, orientation: 0.0, id: None };
+            //TODO: only location needed here
+            let sample_feature = OrbFeature { location: Point {x:sample_x, y: sample_y }, orientation: 0.0, sigma_level: 0};
 
             let dx = gradient_convolution_at_sample(images,&sample_feature,&first_order_kernel,GradientDirection::HORIZINTAL);
             let dy =  gradient_convolution_at_sample(images,&sample_feature,&first_order_kernel,GradientDirection::VERTICAL);

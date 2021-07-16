@@ -24,9 +24,6 @@ impl Feature for KeyPoint {
         self.sigma_level
     }
 
-    fn get_id(&self) -> Option<u64> {
-        None
-    }
 }
 
 impl Oriented for KeyPoint {
