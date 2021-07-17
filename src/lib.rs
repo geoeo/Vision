@@ -8,6 +8,7 @@ pub mod odometry;
 pub mod numerics;
 pub mod io;
 pub mod sensors;
+pub mod bundle_adjustment;
 
 macro_rules! define_float {
     ($f:tt) => {
