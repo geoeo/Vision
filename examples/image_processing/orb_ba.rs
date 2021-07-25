@@ -51,7 +51,7 @@ fn main() {
     let image_path = format!("{}{}.{}",image_folder,image_name, image_format);
     let image_path_2 = format!("{}{}.{}",image_folder,image_name_2, image_format);
     let image_path_3 = format!("{}{}.{}",image_folder,image_name_3, image_format);
-    let converted_file_out_path = format!("{}{}_orb_ba.{}",image_out_folder,image_name,image_format);
+
 
     println!("{}, {}",image_path,image_path_2);
 
@@ -112,11 +112,14 @@ fn main() {
     let display = Image::from_gray_image(&gray_image, false, false, None); 
     let display_2 = Image::from_gray_image(&gray_image_2, false, false, None); 
     let display_3 = Image::from_gray_image(&gray_image_3, false, false, None); 
-    let match_display = display_matches_for_pyramid(&display, &display_2, &matches[0], true, display.buffer.max()/2.0, runtime_params.pyramid_scale);
 
 
+    let match_display_1_2 = display_matches_for_pyramid(&display, &display_2, &matches[0], true, display.buffer.max()/2.0, runtime_params.pyramid_scale);
+    let match_display_2_3 = display_matches_for_pyramid(&display_2, &display_3, &matches[1], true, display.buffer.max()/2.0, runtime_params.pyramid_scale);
 
-    let new_image = match_display.to_image();
-    new_image.save(converted_file_out_path).unwrap();
+
+    match_display_1_2.to_image().save(format!("{}{}_orb_ba.{}",image_out_folder,image_name,image_format)).unwrap();
+    match_display_2_3.to_image().save(format!("{}{}_orb_ba.{}",image_out_folder,image_name_2,image_format)).unwrap();
+
 
 }
