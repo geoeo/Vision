@@ -54,6 +54,18 @@
             "env": {"RUST_BACKTRACE":"1"}
         },
         {
+            "name": "Orb Pyramid BA",
+            "type": "lldb",
+            "request": "launch",
+            "program": "${workspaceRoot}/target/debug/examples/orb_ba",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "env": {"RUST_BACKTRACE":"1"}
+        },
+        {
             "name": "Draw Line Launch",
             "type": "lldb",
             "request": "launch",

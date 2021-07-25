@@ -40,7 +40,7 @@ fn main() {
     let image_name_2 = "ba_slow_4";
 
     //let image_name = "ba_slow_4";
-    //let image_name_2 = "ba_slow_5";
+    let image_name_3 = "ba_slow_5";
 
 
 
@@ -50,18 +50,20 @@ fn main() {
     let image_out_folder = "output/";
     let image_path = format!("{}{}.{}",image_folder,image_name, image_format);
     let image_path_2 = format!("{}{}.{}",image_folder,image_name_2, image_format);
-    let converted_file_out_path = format!("{}{}_orb_matches_all.{}",image_out_folder,image_name,image_format);
+    let image_path_3 = format!("{}{}.{}",image_folder,image_name_3, image_format);
+    let converted_file_out_path = format!("{}{}_orb_ba.{}",image_out_folder,image_name,image_format);
 
     println!("{}, {}",image_path,image_path_2);
 
     let gray_image = image_rs::open(&Path::new(&image_path)).unwrap().to_luma8();
     let gray_image_2 = image_rs::open(&Path::new(&image_path_2)).unwrap().to_luma8();
+    let gray_image_3 = image_rs::open(&Path::new(&image_path_3)).unwrap().to_luma8();
 
     let image = Image::from_gray_image(&gray_image, false, false, Some(image_name.to_string()));
     let image_2 = Image::from_gray_image(&gray_image_2, false, false, Some(image_name_2.to_string()));
+    let image_3 = Image::from_gray_image(&gray_image_3, false, false, Some(image_name_3.to_string()));
 
-    let display = Image::from_gray_image(&gray_image, false, false, None); 
-    let display_2 = Image::from_gray_image(&gray_image_2, false, false, None); 
+
 
     //TODO: recheck maximal suppression, take best corers for all windows across all pyramid levels
     // https://www.cc.gatech.edu/classes/AY2016/cs4476_fall/results/proj2/html/agartia3/index.html
@@ -94,58 +96,22 @@ fn main() {
         brief_use_opencv_sampling_pattern: true
     };
 
-    let runtime_params_2 = runtime_params;
 
 
-    // let sample_lookup_pyramid = BriefDescriptor::generate_sample_lookup_table_pyramid(&runtime_params,runtime_params.octave_count);
-
-    // let pyramid = build_orb_pyramid(image, &runtime_params);
-    // let feature_pyramid = generate_feature_pyramid(&pyramid, &runtime_params);
-    // let feature_descriptor_pyramid_a = generate_feature_descriptor_pyramid(&pyramid,&feature_pyramid,&sample_lookup_pyramid,&runtime_params);
-
-    // println!("image 1 done");
-
-    // //runtime_params_b.fast_grid_size = (1,1);
-    // let pyramid_2 = build_orb_pyramid(image_2, &runtime_params_b);
-    // let feature_pyramid_2 = generate_feature_pyramid(&pyramid_2, &runtime_params_b);
-    // let feature_descriptor_pyramid_b = generate_feature_descriptor_pyramid(&pyramid_2,&feature_pyramid_2,&sample_lookup_pyramid,&runtime_params_b);
-
-    // println!("image 2 done");
-
-    // let matches = generate_matches_between_pyramid(&feature_descriptor_pyramid_a,&feature_descriptor_pyramid_b, &runtime_params);
-
-    let matches = generate_matches(vec!((&image, &runtime_params, &image_2, &runtime_params_2)));
+    let matches = generate_matches(vec!((&image, &runtime_params, &image_2, &runtime_params), ((&image_2, &runtime_params, &image_3, &runtime_params))));
 
 
 
     println!("matching complete");
 
-    // for i in 0..pyramid.octaves.len() {
-    //     let avg_orientation_a = &feature_pyramid.octaves[i].iter().fold(0.0,|acc,x| acc + x.get_orientation())/feature_pyramid.octaves[i].len() as Float;
-    //     let avg_orientation_b = &feature_pyramid_2.octaves[i].iter().fold(0.0,|acc,x| acc + x.get_orientation())/feature_pyramid_2.octaves[i].len() as Float;
-
-    //     println!("octave: {}, avg orientation for a: {}, avg orientation for b: {}",i,avg_orientation_a,avg_orientation_b);
-    //     println!("octave: {}, difference in orientation: {}",i,(avg_orientation_a-avg_orientation_b).abs());
-
-    // }
-
-    // for i in 0..pyramid.octaves.len() {
-    //     let display_a = &pyramid.octaves[i].images[0];
-    //     let display_b = &images_2[0];
-
-    //     let matches = &match_pyramid.octaves[i];
-    //     let radius = (pyramid.octaves.len()-i) as Float *10.0; 
-    //     let match_dispay = display_matches_for_octave(display_a, display_b, matches,radius, true, display_a.buffer.max()/2.0); //TODO: fix this. values are getting really large
-    //     let gray_image  = match_dispay.to_image();
-
-    //     let name = format!("orb_match_{}",i);
-    //     let file_path = format!("{}{}.{}",image_out_folder,name,image_format);
-    //     gray_image.save(file_path).unwrap();
-    // }
-
 
     //TODO: make this work with images of different sizes
     println!("{}",matches.len());
+
+
+    let display = Image::from_gray_image(&gray_image, false, false, None); 
+    let display_2 = Image::from_gray_image(&gray_image_2, false, false, None); 
+    let display_3 = Image::from_gray_image(&gray_image_3, false, false, None); 
     let match_display = display_matches_for_pyramid(&display, &display_2, &matches[0], true, display.buffer.max()/2.0, runtime_params.pyramid_scale);
 
 

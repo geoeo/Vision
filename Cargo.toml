@@ -16,6 +16,10 @@ optimization_engine = "*"
 plotters = { version = "*", default_features = true}
 
 [[example]]
+name = "orb_ba"
+path = "examples/image_processing/orb_ba.rs"
+
+[[example]]
 name = "orb_pyramid_match"
 path = "examples/image_processing/orb_pyramid_match.rs"
 

@@ -52,7 +52,7 @@ fn main() {
     //let sample_lookup_table = BriefDescriptor::generate_sample_lookup_tables(runtime_params.brief_n, runtime_params.brief_s);
     let sample_lookup_pyramid = BriefDescriptor::generate_sample_lookup_table_pyramid(&runtime_params,runtime_params.octave_count);
 
-    let pyramid = build_orb_pyramid(image, &runtime_params);
+    let pyramid = build_orb_pyramid(&image, &runtime_params);
     let feature_pyramid = generate_feature_pyramid(&pyramid, &runtime_params);
     let feautre_descriptors = generate_feature_descriptor_pyramid(&pyramid,&feature_pyramid,&sample_lookup_pyramid,&runtime_params);
 
