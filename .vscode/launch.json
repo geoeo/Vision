@@ -15,7 +15,7 @@
             "cwd": "${workspaceFolder}",
             "environment": [],
             "externalConsole": false,
-            "env": {"RUST_BACKTRACE":"1"}
+            "env": {"RUST_BACKTRACE":"1", "RUST_BACKTRACE":"full"}
         },
         {
             "name": "Sift Pyramid Launch",
@@ -27,7 +27,7 @@
             "cwd": "${workspaceFolder}",
             "environment": [],
             "externalConsole": false,
-            "env": {"RUST_BACKTRACE":"1"}
+            "env": {"RUST_BACKTRACE":"1", "RUST_BACKTRACE":"full"}
         },
         {
             "name": "Orb Pyramid Launch",
@@ -39,7 +39,8 @@
             "cwd": "${workspaceFolder}",
             "environment": [],
             "externalConsole": false,
-            "env": {"RUST_BACKTRACE":"1"}
+            "env": {"RUST_BACKTRACE":"1", "RUST_BACKTRACE":"full"},
+            "preLaunchTask": "build examples"
         },
         {
             "name": "Orb Pyramid Match Launch",
@@ -51,7 +52,8 @@
             "cwd": "${workspaceFolder}",
             "environment": [],
             "externalConsole": false,
-            "env": {"RUST_BACKTRACE":"1"}
+            "env": {"RUST_BACKTRACE":"1", "RUST_BACKTRACE":"full"},
+            "preLaunchTask": "build examples"
         },
         {
             "name": "Orb Pyramid BA",
@@ -63,7 +65,8 @@
             "cwd": "${workspaceFolder}",
             "environment": [],
             "externalConsole": false,
-            "env": {"RUST_BACKTRACE":"1"}
+            "env": {"RUST_BACKTRACE":"1", "RUST_BACKTRACE":"full"},
+            "preLaunchTask": "build examples"
         },
         {
             "name": "Draw Line Launch",
@@ -75,7 +78,7 @@
             "cwd": "${workspaceFolder}",
             "environment": [],
             "externalConsole": false,
-            "env": {"RUST_BACKTRACE":"1"}
+            "env": {"RUST_BACKTRACE":"1", "RUST_BACKTRACE":"full"}
         },
         {
             "name": "Features Launch",
@@ -87,7 +90,7 @@
             "cwd": "${workspaceFolder}",
             "environment": [],
             "externalConsole": false,
-            "env": {"RUST_BACKTRACE":"1"}
+            "env": {"RUST_BACKTRACE":"1", "RUST_BACKTRACE":"full"}
         },
         {
             "name": "All Features Launch",
@@ -99,7 +102,7 @@
             "cwd": "${workspaceFolder}",
             "environment": [],
             "externalConsole": false,
-            "env": {"RUST_BACKTRACE":"1"}
+            "env": {"RUST_BACKTRACE":"1", "RUST_BACKTRACE":"full"}
         },
         {
             "name": "All Keypoints Launch",
@@ -111,7 +114,7 @@
             "cwd": "${workspaceFolder}",
             "environment": [],
             "externalConsole": false,
-            "env": {"RUST_BACKTRACE":"1"}
+            "env": {"RUST_BACKTRACE":"1", "RUST_BACKTRACE":"full"}
         },
         {
             "name": "Keypoints Multi Launch",
@@ -123,7 +126,7 @@
             "cwd": "${workspaceFolder}",
             "environment": [],
             "externalConsole": false,
-            "env": {"RUST_BACKTRACE":"1"}
+            "env": {"RUST_BACKTRACE":"1", "RUST_BACKTRACE":"full"}
         },
         {
             "name": "Load Save Launch",
@@ -135,7 +138,7 @@
             "cwd": "${workspaceFolder}",
             "environment": [],
             "externalConsole": false,
-            "env": {"RUST_BACKTRACE":"1"}
+            "env": {"RUST_BACKTRACE":"1", "RUST_BACKTRACE":"full"}
         },
         {
             "name": "Edges Launch",
@@ -147,7 +150,7 @@
             "cwd": "${workspaceFolder}",
             "environment": [],
             "externalConsole": false,
-            "env": {"RUST_BACKTRACE":"1"}
+            "env": {"RUST_BACKTRACE":"1", "RUST_BACKTRACE":"full"}
         },
         {
             "name": "Load ETH",
@@ -159,7 +162,8 @@
             "cwd": "${workspaceFolder}",
             "environment": [],
             "externalConsole": false,
-            "env": {"RUST_BACKTRACE":"1"}
+            "env": {"RUST_BACKTRACE":"1", "RUST_BACKTRACE":"full"},
+            "preLaunchTask": "build examples"
         },
         {
             "name": "Load TUM",
@@ -171,7 +175,8 @@
             "cwd": "${workspaceFolder}",
             "environment": [],
             "externalConsole": false,
-            "env": {"RUST_BACKTRACE":"1"}
+            "env": {"RUST_BACKTRACE":"1", "RUST_BACKTRACE":"full"},
+            "preLaunchTask": "build examples"
         },
         {
             "name": "ETH vo",
@@ -183,7 +188,8 @@
             "cwd": "${workspaceFolder}",
             "environment": [],
             "externalConsole": false,
-            "env": {"RUST_BACKTRACE":"1"}
+            "env": {"RUST_BACKTRACE":"1", "RUST_BACKTRACE":"full"},
+            "preLaunchTask": "build examples"
         },
         {
             "name": "TUM vo",
@@ -195,7 +201,8 @@
             "cwd": "${workspaceFolder}",
             "environment": [],
             "externalConsole": false,
-            "env": {"RUST_BACKTRACE":"1"}
+            "env": {"RUST_BACKTRACE":"1", "RUST_BACKTRACE":"full"},
+            "preLaunchTask": "build examples"
         },
         {
             "name": "Load D455",
@@ -207,7 +214,8 @@
             "cwd": "${workspaceFolder}",
             "environment": [],
             "externalConsole": false,
-            "env": {"RUST_BACKTRACE":"1"}
+            "env": {"RUST_BACKTRACE":"1", "RUST_BACKTRACE":"full"},
+            "preLaunchTask": "build examples"
         },
         {
             "name": "D455 Vo",
@@ -219,7 +227,8 @@
             "cwd": "${workspaceFolder}",
             "environment": [],
             "externalConsole": false,
-            "env": {"RUST_BACKTRACE":"1"}
+            "env": {"RUST_BACKTRACE":"1", "RUST_BACKTRACE":"full"},
+            "preLaunchTask": "build examples"
         },
         {
             "name": "D455 Plot Imu",
@@ -231,7 +240,8 @@
             "cwd": "${workspaceFolder}",
             "environment": [],
             "externalConsole": false,
-            "env": {"RUST_BACKTRACE":"1"}
+            "env": {"RUST_BACKTRACE":"1", "RUST_BACKTRACE":"full"},
+            "preLaunchTask": "build examples"
         },
         {
             "name": "D455 Imu Odometry",
@@ -243,7 +253,8 @@
             "cwd": "${workspaceFolder}",
             "environment": [],
             "externalConsole": false,
-            "env": {"RUST_BACKTRACE":"1"}
+            "env": {"RUST_BACKTRACE":"1", "RUST_BACKTRACE":"full"},
+            "preLaunchTask": "build examples"
         },
         {
             "name": "D455 Imu VO",
@@ -255,7 +266,8 @@
             "cwd": "${workspaceFolder}",
             "environment": [],
             "externalConsole": false,
-            "env": {"RUST_BACKTRACE":"1"}
+            "env": {"RUST_BACKTRACE":"1", "RUST_BACKTRACE":"full"},
+            "preLaunchTask": "build examples"
         },
         {
             "name": "D455 VO Plot All",
@@ -267,7 +279,8 @@
             "cwd": "${workspaceFolder}",
             "environment": [],
             "externalConsole": false,
-            "env": {"RUST_BACKTRACE":"1"}
+            "env": {"RUST_BACKTRACE":"1", "RUST_BACKTRACE":"full"},
+            "preLaunchTask": "build examples"
         }
     ]
 }

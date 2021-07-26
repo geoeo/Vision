@@ -1,6 +1,8 @@
 extern crate image as image_rs;
 extern crate vision;
+extern crate color_eyre;
 
+use color_eyre::eyre::Result;
 use std::path::Path;
 use vision::pyramid::orb::{
     build_orb_pyramid,generate_feature_pyramid,generate_feature_descriptor_pyramid,  orb_runtime_parameters::OrbRuntimeParameters, generate_matches,generate_matches_between_pyramid
@@ -10,7 +12,9 @@ use vision::visualize::{visualize_pyramid_feature_with_orientation, display_matc
 use vision::matching::brief_descriptor::BriefDescriptor;
 use vision::image::Image;
 
-fn main() {
+fn main() -> Result<()> {
+
+    color_eyre::install()?;
 
     //let image_name = "lenna";
     //let image_name_2 = "lenna_90";
@@ -120,6 +124,8 @@ fn main() {
 
     match_display_1_2.to_image().save(format!("{}{}_orb_ba.{}",image_out_folder,image_name,image_format)).unwrap();
     match_display_2_3.to_image().save(format!("{}{}_orb_ba.{}",image_out_folder,image_name_2,image_format)).unwrap();
+
+    Ok(())
 
 
 }
