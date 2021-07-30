@@ -9,6 +9,7 @@ use vision::pyramid::orb::{
 
 };
 use vision::visualize::{visualize_pyramid_feature_with_orientation, display_matches_for_pyramid};
+use vision::bundle_adjustment::feature_map::FeatureMap;
 use vision::matching::brief_descriptor::BriefDescriptor;
 use vision::image::Image;
 
@@ -79,7 +80,7 @@ fn main() -> Result<()> {
         blur_radius: 3.0,
         max_features_per_octave: 5,
         max_features_per_octave_scale: 1.2,
-        octave_count: 8, // opencv default is 8
+        octave_count: 4, // opencv default is 8
         harris_k: 0.04,
         harris_window_size: 5, 
         fast_circle_radius: 3,
@@ -101,12 +102,16 @@ fn main() -> Result<()> {
     };
 
 
-
-    let matches = generate_matches(vec!((&image, &runtime_params, &image_2, &runtime_params), ((&image_2, &runtime_params, &image_3, &runtime_params))));
-
-
-
+    let image_pairs = vec!((&image, &runtime_params, &image_2, &runtime_params), ((&image_2, &runtime_params, &image_3, &runtime_params)));
+    let matches = generate_matches(&image_pairs);
     println!("matching complete");
+
+    let mut feature_map = FeatureMap::new();
+    feature_map.add_images_from_params(&image,runtime_params.octave_count,runtime_params.pyramid_scale);
+    feature_map.add_images_from_params(&image_2,runtime_params.octave_count,runtime_params.pyramid_scale);
+    feature_map.add_images_from_params(&image_3,runtime_params.octave_count,runtime_params.pyramid_scale);
+
+    feature_map.add_matches(&image_pairs.into_iter().map(|(i1,_,i2,_)| (i1,i2)).collect(),&matches);
 
 
     //TODO: make this work with images of different sizes

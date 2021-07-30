@@ -146,6 +146,12 @@ impl Image {
 
     }
 
+    pub fn downsampled_dimensions(width: usize, height: usize, scale: Float) -> (usize, usize) {
+        let new_width = ((width as Float + 0.5)/scale).trunc() as usize;
+        let new_height = ((height as Float + 0.5)/scale).trunc() as usize;
+        (new_width,new_height)
+    }
+
 
     pub fn downsample_half(image: &Image, normalize: bool, scale: Float, (r_min,c_min): (usize,usize)) -> Image {
         let width = image.buffer.ncols();
@@ -153,8 +159,7 @@ impl Image {
 
         let scale_truncated = scale.trunc() as usize;
 
-        let new_width = ((width as Float + 0.5)/scale).trunc() as usize;
-        let new_height = ((height as Float + 0.5)/scale).trunc() as usize;
+        let (new_width,new_height) = Image::downsampled_dimensions(width, height, scale);
 
         if new_height < r_min || new_width < c_min  {
             panic!("new (height,width): ({},{}) are too small",new_height,new_width);

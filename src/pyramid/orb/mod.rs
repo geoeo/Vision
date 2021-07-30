@@ -28,13 +28,6 @@ pub fn build_orb_pyramid(base_gray_image: &Image, runtime_parameters: &OrbRuntim
                 OrbOctave::build_octave(&t,sigma, runtime_parameters)
             }
         };
-        // if i > 0 {
-        //     let t = &Image::downsample_half(&octaves[i-1].images[0], false, runtime_parameters.pyramid_scale, runtime_parameters.min_image_dimensions);
-        //     octave_image = t;
-        //     sigma *= 2.0;
-        // }
-
-        // let new_octave = OrbOctave::build_octave(&octave_image,sigma, runtime_parameters);
 
         octaves.push(new_octave);
     }
@@ -82,7 +75,7 @@ pub fn generate_feature_descriptor_pyramid(octave_pyramid: &Pyramid<OrbOctave>, 
     feature_descriptor_pyramid
 }
 
-pub fn generate_matches(image_pairs: Vec<(&Image,&OrbRuntimeParameters, &Image, &OrbRuntimeParameters)>) -> Vec<Vec<((usize,OrbFeature),(usize,OrbFeature))>> {
+pub fn generate_matches(image_pairs: &Vec<(&Image,&OrbRuntimeParameters, &Image, &OrbRuntimeParameters)>) -> Vec<Vec<((usize,OrbFeature),(usize,OrbFeature))>> {
 
 
     image_pairs.into_iter().map(|(base_gray_image_a,runtime_parameters_a,base_gray_image_b,runtime_parameters_b)| {

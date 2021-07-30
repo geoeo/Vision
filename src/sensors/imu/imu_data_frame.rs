@@ -1,6 +1,6 @@
 use nalgebra as na;
 
-use na::{Vector3,Vector6,Matrix6};
+use na::{Vector3,Matrix6};
 use crate::odometry::imu_odometry::bias::BiasDelta;
 use crate::Float;
 

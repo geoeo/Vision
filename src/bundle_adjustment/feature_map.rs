@@ -4,6 +4,7 @@ use na::DMatrix;
 use std::collections::HashMap;
 use crate::image::Image;
 use crate::features::Feature;
+use crate::Float;
 
 pub struct FeatureMap {
     pub map: HashMap<u64,(usize,usize,DMatrix<u8>)>
@@ -19,7 +20,21 @@ impl FeatureMap {
         
     }
 
-    pub fn new_image(&mut self,id: u64, width: usize, height: usize, octave_count: usize) -> () {
+    pub fn add_images_from_params(&mut self, image: &Image, octave_count: usize, pyramid_scale: Float) -> () {
+
+        let (mut width, mut height) = (image.buffer.ncols(), image.buffer.nrows());
+        let id = image.id.expect("image has no id");
+        for i in 0..octave_count {
+            self.add_image(id, width, height, i);
+            let (new_width, new_height) = Image::downsampled_dimensions(width, height, pyramid_scale);
+            width = new_width;
+            height = new_height;
+        }
+
+
+    }
+
+    pub fn add_image(&mut self,id: u64, width: usize, height: usize, octave_count: usize) -> () {
         let pixel_count = width*height;
         self.map.insert(id,(width,height,DMatrix::<u8>::zeros(pixel_count,octave_count)));
 

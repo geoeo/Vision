@@ -3,10 +3,10 @@ extern crate image as image_rs;
 
 use std::path::Path;
 use std::fs::File;
-use std::io::{BufReader,Read,BufRead};
+use std::io::{BufReader,BufRead};
 
 
-use na::{U3,U1,Vector3,Matrix4};
+use na::{Vector3,Matrix4};
 use crate::Float;
 use crate::io::{image_loading_parameters::ImageLoadingParameters,imu_loading_parameters::ImuLoadingParameters, parse_to_float, closest_ts_index};
 use crate::image::{Image};

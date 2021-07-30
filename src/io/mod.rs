@@ -5,7 +5,7 @@ use std::path::Path;
 use std::fs::File;
 use std::io::{BufReader,Read};
 use std::option::Option;
-use na::{U3,RowDVector,DMatrix,Matrix4, Vector4};
+use na::{RowDVector,DMatrix,Matrix4, Vector4};
 use crate::image::{Image,image_encoding::ImageEncoding};
 use crate::features::geometry::point::Point;
 use crate::sensors::camera::{Camera,pinhole::Pinhole};

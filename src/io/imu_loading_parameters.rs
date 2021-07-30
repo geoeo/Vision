@@ -1,7 +1,5 @@
 extern crate nalgebra as na;
 
-use na::UnitQuaternion;
-use crate::Float;
 use std::fmt;
 
 pub struct ImuLoadingParameters {

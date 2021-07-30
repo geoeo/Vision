@@ -89,7 +89,6 @@ fn draw_match<T>(image: &mut Image,  (feature_a,feature_b): &(T,T), (radius_a, r
     let mut rng = rand::thread_rng();
 
 
-    let intenstiy_sample = range.sample(&mut rng);
     draw_circle_with_orientation(image, feature_a.get_x_image(), feature_a.get_y_image(),  feature_a.get_orientation(), radius_a, 0.0);
     draw_circle_with_orientation(image, feature_b.get_x_image(), feature_b.get_y_image(),  feature_b.get_orientation(), radius_b, 0.0);
 
