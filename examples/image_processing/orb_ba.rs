@@ -41,11 +41,12 @@ fn main() -> Result<()> {
     //let image_name = "cereal_1_scaled_25";
     //let image_name_2 = "cereal_far_scaled_25";
 
-    let image_name = "ba_slow_3";
-    let image_name_2 = "ba_slow_4";
+    let image_name_1 = "ba_slow_1";
+    let image_name_2 = "ba_slow_2";
 
-    //let image_name = "ba_slow_4";
-    let image_name_3 = "ba_slow_5";
+    let image_name_3 = "ba_slow_3";
+    let image_name_4 = "ba_slow_4";
+
 
 
 
@@ -53,20 +54,22 @@ fn main() -> Result<()> {
     let image_format = "png";
     let image_folder = "images/";
     let image_out_folder = "output/";
-    let image_path = format!("{}{}.{}",image_folder,image_name, image_format);
+    let image_path_1 = format!("{}{}.{}",image_folder,image_name_1, image_format);
     let image_path_2 = format!("{}{}.{}",image_folder,image_name_2, image_format);
     let image_path_3 = format!("{}{}.{}",image_folder,image_name_3, image_format);
+    let image_path_4 = format!("{}{}.{}",image_folder,image_name_4, image_format);
 
 
-    println!("{}, {}",image_path,image_path_2);
 
-    let gray_image = image_rs::open(&Path::new(&image_path)).unwrap().to_luma8();
+    let gray_image_1 = image_rs::open(&Path::new(&image_path_1)).unwrap().to_luma8();
     let gray_image_2 = image_rs::open(&Path::new(&image_path_2)).unwrap().to_luma8();
     let gray_image_3 = image_rs::open(&Path::new(&image_path_3)).unwrap().to_luma8();
+    let gray_image_4 = image_rs::open(&Path::new(&image_path_4)).unwrap().to_luma8();
 
-    let image = Image::from_gray_image(&gray_image, false, false, Some(image_name.to_string()));
+    let image_1 = Image::from_gray_image(&gray_image_1, false, false, Some(image_name_1.to_string()));
     let image_2 = Image::from_gray_image(&gray_image_2, false, false, Some(image_name_2.to_string()));
     let image_3 = Image::from_gray_image(&gray_image_3, false, false, Some(image_name_3.to_string()));
+    let image_4 = Image::from_gray_image(&gray_image_4, false, false, Some(image_name_4.to_string()));
 
 
 
@@ -78,16 +81,16 @@ fn main() -> Result<()> {
         min_image_dimensions: (20,20),
         sigma: 2.0,
         blur_radius: 3.0,
-        max_features_per_octave: 5,
+        max_features_per_octave: 15,
         max_features_per_octave_scale: 1.2,
-        octave_count: 4, // opencv default is 8
+        octave_count: 3, // opencv default is 8
         harris_k: 0.04,
-        harris_window_size: 5, 
+        harris_window_size: 5,  // 5
         fast_circle_radius: 3,
         fast_threshold_factor: 0.2,
         fast_consecutive_pixels: 12,
         fast_features_per_grid: 3,
-        fast_grid_size: (15,15),  
+        fast_grid_size: (9,9),  // 15
         fast_grid_size_scale_base: 1.2,
         fast_offsets: (12,12),
         fast_offset_scale_base: 1.2,
@@ -102,33 +105,35 @@ fn main() -> Result<()> {
     };
 
 
-    let image_pairs = vec!((&image, &runtime_params, &image_2, &runtime_params), ((&image_2, &runtime_params, &image_3, &runtime_params)));
+    let image_pairs = vec!((&image_1, &runtime_params, &image_2, &runtime_params), ((&image_3, &runtime_params, &image_4, &runtime_params)));
     let matches = generate_matches(&image_pairs);
     println!("matching complete");
 
     let mut feature_map = FeatureMap::new();
-    feature_map.add_images_from_params(&image,runtime_params.octave_count,runtime_params.pyramid_scale);
-    feature_map.add_images_from_params(&image_2,runtime_params.octave_count,runtime_params.pyramid_scale);
-    feature_map.add_images_from_params(&image_3,runtime_params.octave_count,runtime_params.pyramid_scale);
+    feature_map.add_images_from_params(&image_1);
+    feature_map.add_images_from_params(&image_2);
+    feature_map.add_images_from_params(&image_3);
+    feature_map.add_images_from_params(&image_4);
 
-    feature_map.add_matches(&image_pairs.into_iter().map(|(i1,_,i2,_)| (i1,i2)).collect(),&matches);
+    feature_map.add_matches(&image_pairs.into_iter().map(|(i1,_,i2,_)| (i1,i2)).collect(),&matches, runtime_params.pyramid_scale);
 
 
     //TODO: make this work with images of different sizes
     println!("{}",matches.len());
 
 
-    let display = Image::from_gray_image(&gray_image, false, false, None); 
+    let display_1 = Image::from_gray_image(&gray_image_1, false, false, None); 
     let display_2 = Image::from_gray_image(&gray_image_2, false, false, None); 
     let display_3 = Image::from_gray_image(&gray_image_3, false, false, None); 
+    let display_4 = Image::from_gray_image(&gray_image_4, false, false, None); 
 
 
-    let match_display_1_2 = display_matches_for_pyramid(&display, &display_2, &matches[0], true, display.buffer.max()/2.0, runtime_params.pyramid_scale);
-    let match_display_2_3 = display_matches_for_pyramid(&display_2, &display_3, &matches[1], true, display.buffer.max()/2.0, runtime_params.pyramid_scale);
+    let match_display_1_2 = display_matches_for_pyramid(&display_1, &display_2, &matches[0], true, display_1.buffer.max()/2.0, runtime_params.pyramid_scale);
+    let match_display_3_4 = display_matches_for_pyramid(&display_3, &display_4, &matches[1], true, display_1.buffer.max()/2.0, runtime_params.pyramid_scale);
 
 
-    match_display_1_2.to_image().save(format!("{}{}_orb_ba.{}",image_out_folder,image_name,image_format)).unwrap();
-    match_display_2_3.to_image().save(format!("{}{}_orb_ba.{}",image_out_folder,image_name_2,image_format)).unwrap();
+    match_display_1_2.to_image().save(format!("{}{}_orb_ba.{}",image_out_folder,image_name_1,image_format)).unwrap();
+    match_display_3_4.to_image().save(format!("{}{}_orb_ba.{}",image_out_folder,image_name_3,image_format)).unwrap();
 
     Ok(())
 

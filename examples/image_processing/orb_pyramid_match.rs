@@ -118,7 +118,7 @@ fn main() -> Result<()> {
 
     // let matches = generate_matches_between_pyramid(&feature_descriptor_pyramid_a,&feature_descriptor_pyramid_b, &runtime_params);
 
-    let matches = generate_matches(vec!((&image, &runtime_params, &image_2, &runtime_params_2)));
+    let matches = generate_matches(&vec!((&image, &runtime_params, &image_2, &runtime_params_2)));
 
 
 

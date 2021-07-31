@@ -13,7 +13,7 @@ use crate::odometry::{
     imu_odometry::imu_delta::ImuDelta,
     imu_odometry::{weight_residuals, weight_jacobian},
 };
-use crate::{float, reconstruct_original_coordiantes, Float};
+use crate::{float, Float};
 
 
 //TODO: refactor this to work with arbirary number of elements
