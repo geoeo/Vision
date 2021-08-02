@@ -4,14 +4,10 @@ extern crate color_eyre;
 
 use color_eyre::eyre::Result;
 use std::path::Path;
-use vision::pyramid::orb::{
-    build_orb_pyramid,generate_feature_pyramid,generate_feature_descriptor_pyramid,  orb_runtime_parameters::OrbRuntimeParameters, generate_matches,generate_matches_between_pyramid
-
-};
-use vision::visualize::{visualize_pyramid_feature_with_orientation, display_matches_for_pyramid};
-use vision::bundle_adjustment::feature_map::FeatureMap;
-use vision::matching::brief_descriptor::BriefDescriptor;
+use vision::pyramid::orb::{orb_runtime_parameters::OrbRuntimeParameters, generate_matches};
+use vision::visualize::{display_matches_for_pyramid};
 use vision::image::Image;
+use vision::bundle_adjustment::camera_feature_map::CameraFeatureMap;
 
 fn main() -> Result<()> {
 
@@ -90,7 +86,7 @@ fn main() -> Result<()> {
         fast_threshold_factor: 0.2,
         fast_consecutive_pixels: 12,
         fast_features_per_grid: 3,
-        fast_grid_size: (9,9),  // 15
+        fast_grid_size: (15,15),  // 15
         fast_grid_size_scale_base: 1.2,
         fast_offsets: (12,12),
         fast_offset_scale_base: 1.2,
@@ -109,11 +105,11 @@ fn main() -> Result<()> {
     let matches = generate_matches(&image_pairs);
     println!("matching complete");
 
-    let mut feature_map = FeatureMap::new();
-    feature_map.add_images_from_params(&image_1);
-    feature_map.add_images_from_params(&image_2);
-    feature_map.add_images_from_params(&image_3);
-    feature_map.add_images_from_params(&image_4);
+    let mut feature_map = CameraFeatureMap::new();
+    feature_map.add_images_from_params(&image_1, runtime_params.max_features_per_octave,runtime_params.octave_count);
+    feature_map.add_images_from_params(&image_2, runtime_params.max_features_per_octave,runtime_params.octave_count);
+    feature_map.add_images_from_params(&image_3, runtime_params.max_features_per_octave,runtime_params.octave_count);
+    feature_map.add_images_from_params(&image_4, runtime_params.max_features_per_octave,runtime_params.octave_count);
 
     feature_map.add_matches(&image_pairs.into_iter().map(|(i1,_,i2,_)| (i1,i2)).collect(),&matches, runtime_params.pyramid_scale);
 
