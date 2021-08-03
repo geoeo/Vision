@@ -59,16 +59,16 @@ impl CameraFeatureMap {
 
     }
 
-    pub fn get_state(&self) -> DVector<Float> {
+    pub fn get_state(&self) -> (DVector<Float>, usize, Vec<usize>) {
         let camera_ids = self.map.keys();
         let number_of_cameras = camera_ids.len();
         let number_of_features_per_cam = self.map.values().map(|list| list.len()).collect::<Vec<usize>>();
         let number_of_features :usize = number_of_features_per_cam.iter().sum();
-        let number_of_cam_parameters = 3*number_of_cameras;
+        let number_of_cam_parameters = 6*number_of_cameras;
         let number_of_point_parameters = 3*number_of_features;
         let total_parameters = number_of_cam_parameters*number_of_point_parameters;
         let state = DVector::<Float>::zeros(total_parameters);
-        state
+        (state, number_of_cameras,number_of_features_per_cam)
     }
 
 
