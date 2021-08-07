@@ -105,7 +105,7 @@ fn main() -> Result<()> {
     let matches = generate_matches(&image_pairs);
     println!("matching complete");
 
-    let mut feature_map = CameraFeatureMap::new();
+    let mut feature_map = CameraFeatureMap::new(&matches);
     feature_map.add_images_from_params(&image_1, runtime_params.max_features_per_octave,runtime_params.octave_count);
     feature_map.add_images_from_params(&image_2, runtime_params.max_features_per_octave,runtime_params.octave_count);
     feature_map.add_images_from_params(&image_3, runtime_params.max_features_per_octave,runtime_params.octave_count);
