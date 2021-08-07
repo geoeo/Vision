@@ -10,7 +10,7 @@ use vision::io::{
 use vision::odometry::imu_odometry::{pre_integration};
 use vision::odometry::joint::run_trajectory;
 use vision::odometry::runtime_parameters::RuntimeParameters;
-use vision::pyramid::gd::{
+use vision::image::pyramid::gd::{
     build_rgbd_pyramid, gd_octave::GDOctave, gd_runtime_parameters::GDRuntimeParameters, GDPyramid,
 };
 use vision::numerics::{loss,weighting};

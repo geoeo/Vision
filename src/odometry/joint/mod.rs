@@ -22,7 +22,7 @@ use crate::odometry::{
     imu_odometry::bias::{BiasDelta,BiasPreintegrated},
     imu_odometry::bias
 };
-use crate::pyramid::gd::{gd_octave::GDOctave, GDPyramid};
+use crate::image::pyramid::gd::{gd_octave::GDOctave, GDPyramid};
 use crate::sensors::camera::Camera;
 use crate::sensors::imu::imu_data_frame::ImuDataFrame;
 use crate::{float, Float};

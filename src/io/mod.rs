@@ -7,7 +7,7 @@ use std::io::{BufReader,Read};
 use std::option::Option;
 use na::{RowDVector,DMatrix,Matrix4, Vector4};
 use crate::image::{Image,image_encoding::ImageEncoding};
-use crate::features::geometry::point::Point;
+use crate::image::features::geometry::point::Point;
 use crate::sensors::camera::{Camera,pinhole::Pinhole};
 use crate::{float,Float};
 

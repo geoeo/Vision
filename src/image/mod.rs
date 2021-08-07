@@ -12,6 +12,11 @@ use self::image_encoding::ImageEncoding;
 
 
 pub mod image_encoding;
+pub mod filter;
+pub mod pyramid;
+pub mod features;
+pub mod matching;
+pub mod bundle_adjustment;
 
 //TODO: add id based on image name or something like that - hasids.org
 #[derive(Debug,Clone)]

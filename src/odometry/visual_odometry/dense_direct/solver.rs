@@ -13,7 +13,7 @@ use crate::odometry::visual_odometry::dense_direct::{
     RuntimeMemory,backproject_points, compute_full_jacobian, compute_image_gradients, compute_residuals,
     precompute_jacobians,norm,weight_jacobian_sparse,weight_residuals_sparse
 };
-use crate::pyramid::gd::{gd_octave::GDOctave, GDPyramid};
+use crate::image::pyramid::gd::{gd_octave::GDOctave, GDPyramid};
 use crate::sensors::camera::Camera;
 use crate::{float, Float};
 

@@ -2,10 +2,10 @@ extern crate nalgebra as na;
 
 use na::{U2,U4,Dim,DimName,Const,RowVector2,Vector4,DVector,Matrix4,Matrix,DMatrix,Dynamic,VecStorage};
 
-use crate::pyramid::gd::{GDPyramid,gd_octave::GDOctave};
+use crate::image::pyramid::gd::{GDPyramid,gd_octave::GDOctave};
 use crate::sensors::camera::Camera;
 use crate::numerics::{lie, weighting::WeightingFunction};
-use crate::features::geometry::point::Point;
+use crate::image::features::geometry::point::Point;
 use crate::{Float,float,reconstruct_original_coordiantes_for_float};
 
 pub mod solver;

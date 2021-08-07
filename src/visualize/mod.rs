@@ -1,9 +1,9 @@
 extern crate image as image_rs;
 
 use rand::distributions::{Distribution, Uniform};
-use crate::features::{Feature, Oriented,orb_feature::OrbFeature, geometry::{point::Point,shape::circle::circle_bresenham,line::line_bresenham}};
+use crate::image::features::{Feature, Oriented,orb_feature::OrbFeature, geometry::{point::Point,shape::circle::circle_bresenham,line::line_bresenham}};
 use crate::image::{Image,image_encoding::ImageEncoding};
-use crate::matching::sift_descriptor::{orientation_histogram::OrientationHistogram};
+use crate::image::matching::sift_descriptor::{orientation_histogram::OrientationHistogram};
 use crate::{Float,float,reconstruct_original_coordiantes_for_float};
 
 pub mod plot;

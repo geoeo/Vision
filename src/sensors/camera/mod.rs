@@ -2,7 +2,7 @@ extern crate nalgebra as na;
 
 use na::{U1,U3,Vector,Vector3,Matrix2x3,Matrix3, base::storage::Storage};
 use crate::Float;
-use crate::features::geometry::point::Point;
+use crate::image::features::geometry::point::Point;
 
 pub mod pinhole;
 pub mod camera_data_frame;

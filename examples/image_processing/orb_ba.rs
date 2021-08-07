@@ -4,10 +4,10 @@ extern crate color_eyre;
 
 use color_eyre::eyre::Result;
 use std::path::Path;
-use vision::pyramid::orb::{orb_runtime_parameters::OrbRuntimeParameters, generate_matches};
+use vision::image::pyramid::orb::{orb_runtime_parameters::OrbRuntimeParameters, generate_matches};
 use vision::visualize::{display_matches_for_pyramid};
 use vision::image::Image;
-use vision::bundle_adjustment::camera_feature_map::CameraFeatureMap;
+use vision::image::bundle_adjustment::camera_feature_map::CameraFeatureMap;
 
 fn main() -> Result<()> {
 

@@ -5,8 +5,8 @@ use std::path::Path;
 
 use vision::image::Image;
 use vision::visualize::draw_points;
-use vision::features::geometry::shape::Shape;
-use vision::features::fast_feature::FastFeature;
+use vision::image::features::geometry::shape::Shape;
+use vision::image::features::fast_feature::FastFeature;
 
 fn main() {
     let image_name = "lenna_15";
