@@ -2,13 +2,21 @@ extern crate nalgebra as na;
 
 use na::DVector;
 use std::collections::HashMap;
-use crate::image::Image;
-use crate::image::features::Feature;
+use crate::image::{
+    Image,
+    features::Feature,
+    features::geometry::point::Point,
+    bundle_adjustment::state::State
+};
 use crate::{Float, reconstruct_original_coordiantes_for_float};
-use crate::image::features::geometry::point::Point;
+
 
 pub struct CameraFeatureMap {
     pub camera_map: HashMap<u64, Vec<(usize,u64)>>,
+    /**
+     * The image coordiantes in this list have been scaled to the original image resolution
+     * For two features f1, f2 the cam id(f1) < cam_id(f2)
+     * */ 
     pub feature_list: Vec<(Point<usize>,Point<usize>)>
 
 }
@@ -79,14 +87,49 @@ impl CameraFeatureMap {
 
     }
 
-    pub fn get_state(&self) -> (DVector<Float>, usize, usize) {
+    pub fn get_state(&self) -> State {
         let number_of_cameras = self.camera_map.keys().len();
+        //TODO: incorporate transitive associattions i.e. f1 -> f1_prime -> f1_alpaha is the same
         let number_of_unqiue_points = self.feature_list.len();
         let number_of_cam_parameters = 6*number_of_cameras;
         let number_of_point_parameters = 3*number_of_unqiue_points;
         let total_parameters = number_of_cam_parameters*number_of_point_parameters;
         let state = DVector::<Float>::zeros(total_parameters);
-        (state, number_of_cameras,number_of_unqiue_points)
+        State{state, n_cams: number_of_cameras, n_points: number_of_unqiue_points}
+    }
+
+    /**
+     * This vector has ordering In the format [f1_cam1,f2_cam1,f3_cam1,f1_cam2,f2_cam2,...] where cam_id(cam_n-1) < cam_id(cam_n) 
+     */
+    pub fn get_observed_features(&self) -> DVector<Float> {
+        let n_features = self.feature_list.len()*2;
+        let mut observed_features = DVector::<Float>::zeros(n_features*2);
+        let mut sorted_keys = self.camera_map.keys().cloned().collect::<Vec<u64>>();
+        sorted_keys.sort_unstable();
+        let feature_offsets = sorted_keys.iter().scan(0,|acc,x| {
+            *acc = *acc + self.camera_map.get(x).unwrap().len();
+            Some(*acc)
+        }).collect::<Vec<usize>>();
+
+        for i in 0..sorted_keys.len() {
+            let key = sorted_keys[i];
+            let offset = match i {
+                0 => 0,
+                _ => feature_offsets[i-1]
+            };
+            let feature_indices = self.camera_map.get(&key).expect(&format!("No image with id: {} found in map",key).to_string());
+            for j in 0..feature_indices.len() {
+                let (idx, other_cam_id) = feature_indices[j];
+                let feature_pos = match (key, other_cam_id) {
+                    (s,o) if s < o => self.feature_list[idx].0,
+                    _ =>  self.feature_list[idx].1
+                };
+
+                observed_features[offset + 2*j] = feature_pos.x as Float;
+                observed_features[offset + 2*j+1] = feature_pos.y as Float;
+            }
+        }
+        observed_features
     }
 
 

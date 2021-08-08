@@ -4,9 +4,15 @@ use na::{DVector,Matrix, Dynamic, U4, VecStorage};
 use crate::Float;
 use crate::sensors::camera::Camera;
 use crate::numerics::lie::exp;
+use crate::image::bundle_adjustment::state::State;
 
-// In the format [f1_cam1,f2_cam1,f3_cam1,f1_cam2,f2_cam2,...]
-pub fn get_estimated_features<C : Camera>(estimated_state: &DVector<Float>, cameras: &Vec<&C>, n_cams: usize, n_points: usize, estimated_features: &mut DVector<Float>) -> () {
+/**
+ * In the format [f1_cam1,f2_cam1,f3_cam1,f1_cam2,f2_cam2,...]
+ * */
+pub fn get_estimated_features<C : Camera>(state: &State, cameras: &Vec<&C>, estimated_features: &mut DVector<Float>) -> () {
+    let n_cams = state.n_cams;
+    let n_points = state.n_points;
+    let estimated_state = &state.state;
     assert_eq!(estimated_features.nrows(),n_cams*n_points*2);
     for i in (0..n_cams).step_by(6){
         let u = estimated_state.fixed_rows::<3>(i*n_cams);
@@ -28,3 +34,10 @@ pub fn get_estimated_features<C : Camera>(estimated_state: &DVector<Float>, came
     }
 
 }
+
+
+
+pub fn compute_residual(estimated_features: &DVector<Float>, observed_features: &DVector<Float>) -> DVector<Float> {
+    observed_features - estimated_features
+}
+
