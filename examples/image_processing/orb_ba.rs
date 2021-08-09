@@ -8,6 +8,7 @@ use vision::image::pyramid::orb::{orb_runtime_parameters::OrbRuntimeParameters, 
 use vision::visualize::{display_matches_for_pyramid};
 use vision::image::Image;
 use vision::image::bundle_adjustment::camera_feature_map::CameraFeatureMap;
+use vision::sensors::camera::pinhole::Pinhole;
 
 fn main() -> Result<()> {
 
@@ -45,8 +46,6 @@ fn main() -> Result<()> {
 
 
 
-
-
     let image_format = "png";
     let image_folder = "images/";
     let image_out_folder = "output/";
@@ -54,8 +53,6 @@ fn main() -> Result<()> {
     let image_path_2 = format!("{}{}.{}",image_folder,image_name_2, image_format);
     let image_path_3 = format!("{}{}.{}",image_folder,image_name_3, image_format);
     let image_path_4 = format!("{}{}.{}",image_folder,image_name_4, image_format);
-
-
 
     let gray_image_1 = image_rs::open(&Path::new(&image_path_1)).unwrap().to_luma8();
     let gray_image_2 = image_rs::open(&Path::new(&image_path_2)).unwrap().to_luma8();
@@ -67,6 +64,13 @@ fn main() -> Result<()> {
     let image_3 = Image::from_gray_image(&gray_image_3, false, false, Some(image_name_3.to_string()));
     let image_4 = Image::from_gray_image(&gray_image_4, false, false, Some(image_name_4.to_string()));
 
+    //TODO: camera intrinsics 
+    let intensity_camera_1 = Pinhole::new(389.2685546875, 389.2685546875, 319.049255371094, 241.347015380859, false);
+    let intensity_camera_2 = intensity_camera_1.clone();
+    let intensity_camera_3 = intensity_camera_1.clone();
+    let intensity_camera_4 = intensity_camera_1.clone();
+
+    let cameras = vec!(intensity_camera_1,intensity_camera_2,intensity_camera_3,intensity_camera_4);
 
 
     //TODO: recheck maximal suppression, take best corers for all windows across all pyramid levels
