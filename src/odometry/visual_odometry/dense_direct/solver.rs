@@ -7,11 +7,11 @@ use na::{
 use std::boxed::Box;
 
 use crate::image::Image;
-use crate::numerics::{lie, loss::LossFunction, max_norm};
+use crate::numerics::{lie, loss::LossFunction, max_norm, solver::{norm, weight_jacobian_sparse, weight_residuals_sparse, compute_cost}};
 use crate::odometry::runtime_parameters::RuntimeParameters;
 use crate::odometry::visual_odometry::dense_direct::{
     RuntimeMemory,backproject_points, compute_full_jacobian, compute_image_gradients, compute_residuals,
-    precompute_jacobians,norm,weight_jacobian_sparse,weight_residuals_sparse
+    precompute_jacobians
 };
 use crate::image::pyramid::gd::{gd_octave::GDOctave, GDPyramid};
 use crate::sensors::camera::Camera;
@@ -354,6 +354,4 @@ fn gauss_newton_step_with_loss<const T: usize>(
     (h, g, gain_ratio_denom[0], mu_val)
 }
 
-fn compute_cost(residuals: &DVector<Float>, loss_function: &Box<dyn LossFunction>) -> Float {
-    loss_function.cost((residuals.transpose() * residuals)[0])
-}
+

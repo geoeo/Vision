@@ -212,40 +212,5 @@ pub fn compute_residuals<C>(target_image_buffer: &DMatrix<Float>,source_image_bu
 
 }
 
-//TODO: naming
-pub fn norm(
-    residuals: &DVector<Float>,
-    weight_function: &Box<dyn WeightingFunction>,
-    weights_vec: &mut DVector<Float>,
-) -> () {
-    for i in 0..residuals.len() {
-        let res = residuals[i];
-        weights_vec[i] = weight_function.cost(res).sqrt();
-
-
-    }
-}
-
-pub fn weight_residuals_sparse(
-    residual_target: &mut DVector<Float>,
-    weights_vec: &DVector<Float>,
-) -> () {
-    residual_target.component_mul_assign(weights_vec);
-}
-
-//TODO: optimize
-//TODO: performance offender
-pub fn weight_jacobian_sparse<const T: usize>(
-    jacobian: &mut Matrix<Float, Dynamic, Const<T>, VecStorage<Float, Dynamic, Const<T>>>,
-    weights_vec: &DVector<Float>,
-) -> () {
-    let size = weights_vec.len();
-    for i in 0..size {
-        let weighted_row = jacobian.row(i)*weights_vec[i];
-        jacobian.row_mut(i).copy_from(&weighted_row);
-    }
-}
-
-
 
 

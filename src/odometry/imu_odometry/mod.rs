@@ -138,9 +138,6 @@ pub fn generate_jacobian<S>(lie: &Vector<Float,Const<3>,S>, delta_t: Float) -> I
 
 pub fn generate_residual(estimate: &ImuDelta, measurement: &ImuDelta, bias_estimate: &BiasDelta, bias_preintegrated: &BiasPreintegrated) -> ImuResidual {
     let mut residual = ImuResidual::zeros();
-
-
-
     let rotation_bias_adjustment = exp_r(&(bias_preintegrated.rotation_jacobian_bias_g*bias_estimate.bias_g_delta));
 
 
@@ -159,8 +156,6 @@ pub fn generate_residual(estimate: &ImuDelta, measurement: &ImuDelta, bias_estim
     // let w_x = ln_SO3(&rotation_residual);
     // residual.fixed_rows_mut::<3>(3).copy_from(&vector_from_skew_symmetric(&w_x));
     // residual.fixed_rows_mut::<3>(6).copy_from(&(estimate.delta_velocity - measurement.delta_velocity)); 
-
-
 
 
     residual

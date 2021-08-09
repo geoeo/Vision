@@ -6,7 +6,7 @@ use na::{
 };
 use std::boxed::Box;
 
-use crate::numerics::{lie, loss::LossFunction};
+use crate::numerics::{lie, loss::LossFunction, weighting::WeightingFunction};
 use crate::odometry::runtime_parameters::RuntimeParameters;
 use crate::odometry::{
     imu_odometry,
@@ -47,19 +47,37 @@ fn gauss_newton_step_with_loss<const T: usize>(
     panic!("TODO")
 }
 
+//TODO: naming
+// pub fn norm(
+//     residuals: &DVector<Float>,
+//     loss_function: &Box<dyn LossFunction>,
+//     weights_vec: &mut DVector<Float>,
+// ) -> () {
+//     for i in 0..residuals.len() {
+//         let res = residuals[i];
+//         weights_vec[i] = (loss_function.second_derivative_at_current(res) * res)
+//             .abs()
+//             .sqrt();
+//     }
+// }
+
+
 pub fn norm(
     residuals: &DVector<Float>,
-    loss_function: &Box<dyn LossFunction>,
+    weight_function: &Box<dyn WeightingFunction>,
     weights_vec: &mut DVector<Float>,
 ) -> () {
     for i in 0..residuals.len() {
         let res = residuals[i];
-        weights_vec[i] = (loss_function.second_derivative_at_current(res) * res)
-            .abs()
-            .sqrt();
+        weights_vec[i] = weight_function.cost(res).sqrt();
+
+
     }
 }
 
+/**
+ * The values in the weights vector should be the square root of the weight matrix diagonals
+ * */
 pub fn weight_residuals_sparse(
     residual_target: &mut DVector<Float>,
     weights_vec: &DVector<Float>,
@@ -67,7 +85,9 @@ pub fn weight_residuals_sparse(
     residual_target.component_mul_assign(weights_vec);
 }
 
+
 //TODO: optimize
+//TODO: performance offender
 pub fn weight_jacobian_sparse<const T: usize>(
     jacobian: &mut Matrix<Float, Dynamic, Const<T>, VecStorage<Float, Dynamic, Const<T>>>,
     weights_vec: &DVector<Float>,
@@ -91,4 +111,12 @@ pub fn scale_to_diagonal<const T: usize>(
         }
     }
 
+}
+
+pub fn compute_residual(estimated_features: &DVector<Float>, observed_features: &DVector<Float>) -> DVector<Float> {
+    observed_features - estimated_features
+}
+
+pub fn compute_cost(residuals: &DVector<Float>, loss_function: &Box<dyn LossFunction>) -> Float {
+    loss_function.cost((residuals.transpose() * residuals)[0])
 }

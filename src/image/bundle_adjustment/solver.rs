@@ -36,8 +36,3 @@ pub fn get_estimated_features<C : Camera>(state: &State, cameras: &Vec<&C>, esti
 }
 
 
-
-pub fn compute_residual(estimated_features: &DVector<Float>, observed_features: &DVector<Float>) -> DVector<Float> {
-    observed_features - estimated_features
-}
-
