@@ -113,9 +113,6 @@ pub fn scale_to_diagonal<const T: usize>(
 
 }
 
-pub fn compute_residual(estimated_features: &DVector<Float>, observed_features: &DVector<Float>) -> DVector<Float> {
-    observed_features - estimated_features
-}
 
 pub fn compute_cost(residuals: &DVector<Float>, loss_function: &Box<dyn LossFunction>) -> Float {
     loss_function.cost((residuals.transpose() * residuals)[0])

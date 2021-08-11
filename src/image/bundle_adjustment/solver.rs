@@ -1,13 +1,13 @@
 extern crate nalgebra as na;
 
-use na::{DVector,Matrix, Dynamic, U4, VecStorage};
+use na::{DVector,DMatrix,Matrix, Dynamic, U4, VecStorage};
 use crate::Float;
 use crate::sensors::camera::Camera;
 use crate::numerics::lie::exp;
 use crate::image::bundle_adjustment::state::State;
 
 /**
- * In the format [f1_cam1,f2_cam1,f3_cam1,f1_cam2,f2_cam2,...]
+ * In the format [f1_cam1_x,f1_cam1_y,f2_cam1_x,f2_cam1_y,f3_cam1_x,f3_cam1_y,f1_cam2_x,f1_cam2_y,f2_cam2_x,...]
  * */
 pub fn get_estimated_features<C : Camera>(state: &State, cameras: &Vec<&C>, estimated_features: &mut DVector<Float>) -> () {
     let n_cams = state.n_cams;
@@ -33,6 +33,24 @@ pub fn get_estimated_features<C : Camera>(state: &State, cameras: &Vec<&C>, esti
 
     }
 
+}
+
+pub fn compute_residual(estimated_features: &DVector<Float>, observed_features: &DVector<Float>, residual_vector: &mut DVector<Float>) -> () {
+    assert_eq!(residual_vector.nrows(), estimated_features.nrows()/2);
+    let diff = observed_features - estimated_features;
+    let diff_squared = diff.component_mul(&diff);
+    for i in 0..residual_vector.nrows(){
+        residual_vector[i] = (diff_squared[2*i] + diff_squared[2*i+1]).sqrt();
+    }
+}
+
+pub fn compute_jacobian_wrt_object_points<C : Camera>(state: &State, cameras: &Vec<&C>, jacobian: &mut DMatrix<Float>) -> () {
+    panic!("not yet implemented");
+
+}
+
+pub fn compute_jacobian_wrt_camera_parameters<C : Camera>(state: &State, cameras: &Vec<&C>, jacobian: &mut DMatrix<Float>) -> () {
+    panic!("not yet implemented");
 }
 
 
