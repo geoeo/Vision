@@ -1,6 +1,6 @@
 extern crate nalgebra as na;
 
-use na::{DVector,DMatrix,Matrix, Dynamic, U4, VecStorage};
+use na::{DVector,DMatrix,Matrix, Dynamic, U4, VecStorage, Vector4, Matrix2x4};
 use crate::Float;
 use crate::sensors::camera::Camera;
 use crate::numerics::lie::exp;
@@ -45,7 +45,23 @@ pub fn compute_residual(estimated_features: &DVector<Float>, observed_features: 
 }
 
 pub fn compute_jacobian_wrt_object_points<C : Camera>(state: &State, cameras: &Vec<&C>, jacobian: &mut DMatrix<Float>) -> () {
-    panic!("not yet implemented");
+    for i in ((6*state.n_cams)..state.state.ncols()).step_by(3) {
+        let point = &state.state.fixed_rows::<3>(i);
+        for j in (0..6*state.n_cams).step_by(6) {
+            let u = state.state.fixed_rows::<3>(j);
+            let w = state.state.fixed_rows::<3>(j+3);
+            let transformation = exp(&u,&w);
+            let transformed_point = transformation*Vector4::<Float>::new(point[0],point[1],point[2],1.0);
+            let projection_jacobian = cameras[j].get_jacobian_with_respect_to_position(&transformed_point.fixed_rows::<3>(0));
+            let mut projection_jacobian_homogeneous = Matrix2x4::<Float>::zeros();
+            projection_jacobian_homogeneous.fixed_slice_mut::<2,3>(0,0).copy_from(&projection_jacobian);
+
+            let row_idx = ((i/3)*state.n_cams+j)*2;
+            let jacobian_homogeneous = &(projection_jacobian_homogeneous*transformation);
+            jacobian.fixed_slice_mut::<2,3>(row_idx,6*state.n_cams+i).copy_from(&jacobian_homogeneous.fixed_slice::<2,3>(0,0));
+        }
+
+    }
 
 }
 

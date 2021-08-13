@@ -89,11 +89,11 @@ impl CameraFeatureMap {
 
     pub fn get_state(&self) -> State {
         let number_of_cameras = self.camera_map.keys().len();
-        //TODO: incorporate transitive associattions i.e. f1 -> f1_prime -> f1_alpaha is the same
+        //TODO: incorporate transitive associattions i.e. f1 -> f1_prime -> f1_alpha is the same
         let number_of_unqiue_points = self.feature_list.len();
         let number_of_cam_parameters = 6*number_of_cameras;
         let number_of_point_parameters = 3*number_of_unqiue_points;
-        let total_parameters = number_of_cam_parameters*number_of_point_parameters;
+        let total_parameters = number_of_cam_parameters+number_of_point_parameters;
         let state = DVector::<Float>::zeros(total_parameters);
         State{state, n_cams: number_of_cameras, n_points: number_of_unqiue_points}
     }
