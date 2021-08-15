@@ -9,7 +9,7 @@ use na::{
 use std::boxed::Box;
 
 use crate::image::Image;
-use crate::numerics::{lie, loss::LossFunction, max_norm, solver::{norm,weight_jacobian_sparse,weight_residuals_sparse}};
+use crate::numerics::{lie, loss::LossFunction, max_norm, solver::{norm,weight_jacobian_sparse,weight_residuals_sparse,weight_jacobian,weight_residuals}};
 use crate::odometry::runtime_parameters::RuntimeParameters;
 use crate::odometry::visual_odometry::dense_direct::{ RuntimeMemory,
     backproject_points, compute_full_jacobian, compute_image_gradients, compute_residuals,
@@ -18,7 +18,7 @@ use crate::odometry::visual_odometry::dense_direct::{ RuntimeMemory,
 use crate::odometry::{
     imu_odometry,
     imu_odometry::imu_delta::ImuDelta,
-    imu_odometry::{ImuCovariance,weight_residuals, weight_jacobian},
+    imu_odometry::ImuCovariance,
     imu_odometry::bias::{BiasDelta,BiasPreintegrated},
     imu_odometry::bias
 };
@@ -224,8 +224,8 @@ fn estimate<Cam: Camera, const R: usize, const C: usize>(
         .transpose();
     let mut imu_jacobian = imu_odometry::generate_jacobian(&estimate.rotation_lie(), delta_t);
 
-    weight_residuals(&mut imu_residuals, &imu_weight_l_upper);
-    weight_jacobian(&mut imu_jacobian, &imu_weight_l_upper);
+    weight_residuals::<9>(&mut imu_residuals, &imu_weight_l_upper);
+    weight_jacobian::<9,9>(&mut imu_jacobian, &imu_weight_l_upper);
 
     let mut bias_jacobian = bias::genrate_residual_jacobian(&bias_estimate, preintegrated_bias, &imu_residuals);
 
@@ -335,7 +335,7 @@ fn estimate<Cam: Camera, const R: usize, const C: usize>(
         let mut imu_new_residuals =
             imu_odometry::generate_residual(&new_estimate, preintegrated_measurement, &bias_estimate, preintegrated_bias);
         let imu_new_residuals_unweighted = imu_new_residuals.clone();
-        weight_residuals(&mut imu_new_residuals, &imu_weight_l_upper);
+        weight_residuals::<9>(&mut imu_new_residuals, &imu_weight_l_upper);
 
         let mut new_bias_a_residuals = bias::compute_residual(&new_bias_estimate.bias_a_delta, &preintegrated_bias.integrated_bias_a);
         let mut new_bias_g_residuals = bias::compute_residual(&new_bias_estimate.bias_g_delta, &preintegrated_bias.integrated_bias_g);
@@ -393,7 +393,7 @@ fn estimate<Cam: Camera, const R: usize, const C: usize>(
             weight_jacobian_sparse(&mut runtime_memory.full_jacobian, &runtime_memory.weights_vec);
 
             imu_jacobian = imu_odometry::generate_jacobian(&estimate.rotation_lie(), delta_t);
-            weight_jacobian(&mut imu_jacobian, &imu_weight_l_upper);
+            weight_jacobian::<9,9>(&mut imu_jacobian, &imu_weight_l_upper);
             bias_jacobian = bias::genrate_residual_jacobian(&bias_estimate, preintegrated_bias, &imu_residuals);
 
             let v: Float = 1.0 / 3.0;

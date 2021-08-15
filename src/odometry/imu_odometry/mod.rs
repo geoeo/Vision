@@ -5,7 +5,7 @@ use crate::Float;
 use crate::sensors::{DataFrame, imu::imu_data_frame::ImuDataFrame};
 use crate::odometry::imu_odometry::{imu_delta::ImuDelta, bias::{BiasPreintegrated, BiasDelta}};
 use crate::numerics::lie::{exp_r,skew_symmetric,right_jacobian, right_inverse_jacobian, ln_SO3, vector_from_skew_symmetric};
-
+use crate::numerics::solver::{weight_jacobian,weight_residuals};
 
 pub mod imu_delta;
 pub mod solver;
@@ -159,14 +159,6 @@ pub fn generate_residual(estimate: &ImuDelta, measurement: &ImuDelta, bias_estim
 
 
     residual
-}
-
-pub fn weight_residuals(residual: &mut ImuResidual, weights: &ImuCovariance) -> () {
-    weights.mul_to(&residual.clone(),residual);
-}
-
-pub fn weight_jacobian(jacobian: &mut ImuCovariance, weights: &ImuCovariance) -> () {
-    weights.mul_to(&jacobian.clone(),jacobian);
 }
 
 //TODO

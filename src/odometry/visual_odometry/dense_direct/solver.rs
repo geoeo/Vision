@@ -144,6 +144,7 @@ fn estimate<C : Camera, const T: usize>(
         &mut runtime_memory.residuals,
         &mut runtime_memory.image_gradient_points,
     );
+
     weight_residuals_sparse(&mut runtime_memory.residuals, &runtime_memory.weights_vec);
     let mut cost = compute_cost(&runtime_memory.residuals, &runtime_parameters.loss_function);
 

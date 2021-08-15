@@ -3,9 +3,9 @@ extern crate nalgebra as na;
 use na::{Vector3,Matrix4,SMatrix,SVector, Const, DimMin};
 
 use crate::odometry::runtime_parameters::RuntimeParameters;
-use crate::odometry::{imu_odometry, imu_odometry::imu_delta::ImuDelta,imu_odometry::bias, imu_odometry::bias::{BiasDelta,BiasPreintegrated}, imu_odometry::{ImuResidual, ImuCovariance, weight_jacobian, weight_residuals}};
+use crate::odometry::{imu_odometry, imu_odometry::imu_delta::ImuDelta,imu_odometry::bias, imu_odometry::bias::{BiasDelta,BiasPreintegrated}, imu_odometry::{ImuResidual, ImuCovariance}};
 use crate::sensors::imu::imu_data_frame::ImuDataFrame;
-use crate::numerics::max_norm;
+use crate::numerics::{max_norm, solver::{weight_residuals,weight_jacobian}};
 use crate::{Float,float};
 
 const OBSERVATIONS_DIM: usize = 9;
@@ -59,7 +59,7 @@ fn estimate<const R: usize, const C: usize>(imu_data_measurement: &ImuDataFrame,
     let delta_t = imu_data_measurement.gyro_ts[imu_data_measurement.gyro_ts.len()-1] - imu_data_measurement.gyro_ts[0]; // Gyro has a higher sampling rate
 
     let mut residuals = imu_odometry::generate_residual(&estimate, preintegrated_measurement,&bias_estimate,preintegrated_bias);
-    let mut residuals_unweighted = residuals.clone();
+    //let mut residuals_unweighted = residuals.clone();
 
     let mut bias_a_residuals = bias::compute_residual(&bias_estimate.bias_a_delta, &preintegrated_bias.integrated_bias_a);
     let mut bias_g_residuals = bias::compute_residual(&bias_estimate.bias_g_delta, &preintegrated_bias.integrated_bias_g);
@@ -74,8 +74,8 @@ fn estimate<const R: usize, const C: usize>(imu_data_measurement: &ImuDataFrame,
     let weight_l_upper = weights.cholesky().expect("Cholesky Decomp Failed!").l().transpose();
     let mut jacobian = imu_odometry::generate_jacobian(&estimate.rotation_lie(), delta_t);
 
-    weight_residuals(&mut residuals, &weight_l_upper);
-    weight_jacobian(&mut jacobian, &weight_l_upper);
+    weight_residuals::<9>(&mut residuals, &weight_l_upper);
+    weight_jacobian::<9,9>(&mut jacobian, &weight_l_upper);
 
 
     //let mut bias_jacobian = bias::genrate_residual_jacobian(&bias_estimate, preintegrated_bias, &residuals_unweighted);
@@ -122,8 +122,8 @@ fn estimate<const R: usize, const C: usize>(imu_data_measurement: &ImuDataFrame,
         let new_bias_estimate = bias_estimate.add_pertb(&pertb.fixed_rows::<6>(9));
 
         let mut new_residuals = imu_odometry::generate_residual(&new_estimate, preintegrated_measurement, &new_bias_estimate, preintegrated_bias);
-        let new_residuals_unweighted = new_residuals.clone();
-        weight_residuals(&mut new_residuals, &weight_l_upper);
+        //let new_residuals_unweighted = new_residuals.clone();
+        weight_residuals::<9>(&mut new_residuals, &weight_l_upper);
 
         let mut new_bias_a_residuals = bias::compute_residual(&new_bias_estimate.bias_a_delta, &preintegrated_bias.integrated_bias_a);
         let mut new_bias_g_residuals = bias::compute_residual(&new_bias_estimate.bias_g_delta, &preintegrated_bias.integrated_bias_g);
@@ -154,15 +154,14 @@ fn estimate<const R: usize, const C: usize>(imu_data_measurement: &ImuDataFrame,
             delta_thresh = runtime_parameters.delta_eps*(estimate.norm() + bias_estimate.norm() + runtime_parameters.delta_eps);
 
             residuals.copy_from(&new_residuals);
-            residuals_unweighted.copy_from(&new_residuals_unweighted);
+            //residuals_unweighted.copy_from(&new_residuals_unweighted);
             bias_a_residuals.copy_from(&new_bias_a_residuals);
             bias_g_residuals.copy_from(&new_bias_g_residuals);
             
 
             jacobian = imu_odometry::generate_jacobian(&estimate.rotation_lie(), delta_t);
-            weight_jacobian(&mut jacobian, &weight_l_upper);
+            weight_jacobian::<9,9>(&mut jacobian, &weight_l_upper);
 
-            //bias_jacobian = bias::genrate_residual_jacobian(&bias_estimate, preintegrated_bias, &residuals_unweighted);
             bias_jacobian = bias::genrate_residual_jacobian(&bias_estimate, preintegrated_bias, &residuals);
 
             let v: Float = 1.0/3.0;

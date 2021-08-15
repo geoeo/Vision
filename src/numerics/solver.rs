@@ -7,12 +7,6 @@ use na::{
 use std::boxed::Box;
 
 use crate::numerics::{lie, loss::LossFunction, weighting::WeightingFunction};
-use crate::odometry::runtime_parameters::RuntimeParameters;
-use crate::odometry::{
-    imu_odometry,
-    imu_odometry::imu_delta::ImuDelta,
-    imu_odometry::{weight_residuals, weight_jacobian},
-};
 use crate::{float, Float};
 
 
@@ -116,4 +110,13 @@ pub fn scale_to_diagonal<const T: usize>(
 
 pub fn compute_cost(residuals: &DVector<Float>, loss_function: &Box<dyn LossFunction>) -> Float {
     loss_function.cost((residuals.transpose() * residuals)[0])
+}
+
+pub fn weight_residuals<const T: usize>(residual: &mut SVector<Float, T>, weights: &SMatrix<Float,T,T>) -> () where Const<T>: DimMin<Const<T>, Output = Const<T>> {
+    weights.mul_to(&residual.clone(),residual);
+}
+
+pub fn weight_jacobian<const M: usize, const N: usize>(jacobian: &mut SMatrix<Float,M,N>, weights: &SMatrix<Float,M,M>) -> () 
+    where Const<M>: DimMin<Const<M>, Output = Const<M>>,Const<N>: DimMin<Const<N>, Output = Const<N>> {
+    weights.mul_to(&jacobian.clone(),jacobian);
 }
