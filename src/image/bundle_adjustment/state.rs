@@ -9,7 +9,13 @@ use crate::Float;
  * */
 #[derive(Clone)]
 pub struct State {
-    pub state: DVector<Float>,
+    pub data: DVector<Float>,
     pub n_cams: usize, 
     pub n_points: usize
+}
+
+impl State {
+    pub fn update(&mut self, pertub: &DVector<Float>) -> (){
+
+    }
 }

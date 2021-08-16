@@ -94,8 +94,8 @@ impl CameraFeatureMap {
         let number_of_cam_parameters = 6*number_of_cameras;
         let number_of_point_parameters = 3*number_of_unqiue_points;
         let total_parameters = number_of_cam_parameters+number_of_point_parameters;
-        let state = DVector::<Float>::zeros(total_parameters);
-        State{state, n_cams: number_of_cameras, n_points: number_of_unqiue_points}
+        let data = DVector::<Float>::zeros(total_parameters);
+        State{data, n_cams: number_of_cameras, n_points: number_of_unqiue_points}
     }
 
     /**
