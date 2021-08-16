@@ -4,7 +4,7 @@ use na::{DVector,DMatrix,Matrix, Dynamic, U4, VecStorage, Vector4, Matrix2x4, Ma
 use crate::{float,Float};
 use crate::sensors::camera::Camera;
 use crate::numerics::lie::{exp, left_jacobian_around_identity};
-use crate::numerics::{max_norm_dynamic, solver::{compute_cost,weight_jacobian_sparse_dynamic,weight_residuals_sparse, norm, gauss_newton_step_with_loss}};
+use crate::numerics::{max_norm_dynamic, solver::{compute_cost,weight_jacobian_sparse_dynamic,weight_residuals_sparse, norm, gauss_newton_step_with_loss_and_schur}};
 use crate::image::bundle_adjustment::state::State;
 use crate::odometry::runtime_parameters::RuntimeParameters; //TODO remove dependency on odometry module
 
@@ -144,7 +144,7 @@ pub fn optimize<C : Camera>(state: &mut State, cameras: &Vec<&C>, observed_featu
 
 
         let (delta,g,gain_ratio_denom, mu_val) 
-            = gauss_newton_step_with_loss(&residuals,
+            = gauss_newton_step_with_loss_and_schur(&residuals,
                 &jacobian,
                 &identity,
                 mu,
