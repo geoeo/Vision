@@ -1,21 +1,23 @@
 extern crate nalgebra as na;
 
-use na::{ DMatrix, DVector, Dynamic, Matrix, SMatrix, SVector,
-    VecStorage, Const, DimMin
+use na::{ DMatrix, DVector, Dynamic, Matrix, SMatrix, SVector,Vector,Dim,storage::{Storage,StorageMut},base::{default_allocator::DefaultAllocator, allocator::Allocator},
+    VecStorage, Const, DimMin, U1
 };
 use std::boxed::Box;
 
-use crate::numerics::{lie, loss::LossFunction, weighting::WeightingFunction};
+use crate::numerics::{loss::LossFunction, weighting::WeightingFunction};
 use crate::{float, Float};
 
 
 
 
-pub fn norm(
-    residuals: &DVector<Float>,
+pub fn norm<D, S1,S2>(
+    residuals: &Vector<Float,D,S2>,
     weight_function: &Box<dyn WeightingFunction>,
-    weights_vec: &mut DVector<Float>,
-) -> () {
+    weights_vec: &mut Vector<Float,D,S1>) -> () where 
+        D: Dim,
+        S1: StorageMut<Float, D>,
+        S2: Storage<Float, D>{
     for i in 0..residuals.len() {
         let res = residuals[i];
         weights_vec[i] = weight_function.cost(res).sqrt();
@@ -27,37 +29,34 @@ pub fn norm(
 /**
  * The values in the weights vector should be the square root of the weight matrix diagonals
  * */
-pub fn weight_residuals_sparse(
-    residual_target: &mut DVector<Float>,
-    weights_vec: &DVector<Float>,
-) -> () {
+pub fn weight_residuals_sparse<D, S1,S2>(
+    residual_target: &mut Vector<Float,D,S1>,
+     weights_vec: &Vector<Float,D,S2>) -> () where 
+        D: Dim,
+        S1: StorageMut<Float, D>,
+        S2: Storage<Float, D> {
     residual_target.component_mul_assign(weights_vec);
 }
 
 
 //TODO: optimize
 //TODO: performance offender
-pub fn weight_jacobian_sparse<const T: usize>(
-    jacobian: &mut Matrix<Float, Dynamic, Const<T>, VecStorage<Float, Dynamic, Const<T>>>,
-    weights_vec: &DVector<Float>,
-) -> () {
+pub fn weight_jacobian_sparse<D,D1,S1,S2>(
+    jacobian: &mut Matrix<Float, D, D1, S1>,
+    weights_vec: &Vector<Float,D,S2>,) -> () where
+    D: Dim,
+    D1: Dim ,
+    S1: StorageMut<Float, D,D1> ,
+    S2: Storage<Float, D>,
+    DefaultAllocator: Allocator<Float, U1, D1>
+  {
     let size = weights_vec.len();
     for i in 0..size {
-        let weighted_row = jacobian.row(i) * weights_vec[i];
-        jacobian.row_mut(i).copy_from(&weighted_row);
+        let row = jacobian.row_mut(i) * weights_vec[i];
+        jacobian.row_mut(i).copy_from(&row);
     }
 }
 
-pub fn weight_jacobian_sparse_dynamic(
-    jacobian: &mut DMatrix<Float>,
-    weights_vec: &DVector<Float>,
-) -> () {
-    let size = weights_vec.len();
-    for i in 0..size {
-        let weighted_row = jacobian.row(i) * weights_vec[i];
-        jacobian.row_mut(i).copy_from(&weighted_row);
-    }
-}
 
 pub fn scale_to_diagonal<const T: usize>(
     mat: &mut Matrix<Float, Dynamic, Const<T>, VecStorage<Float, Dynamic, Const<T>>>,
