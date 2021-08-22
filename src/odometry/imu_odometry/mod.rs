@@ -79,9 +79,6 @@ pub fn pre_integration(imu_data: &ImuDataFrame, gravity_body: &Vector3<Float>) -
     let delta_velocity = delta_velocities.iter().fold(empty_vector,|acc,v| acc+v);
     let delta_position = delta_positions.iter().fold(empty_vector,|acc,p| acc+p);
 
-
-
-
     (ImuDelta {
         delta_position,delta_velocity, 
         delta_rotation_i_k,delta_rotation_k}, 

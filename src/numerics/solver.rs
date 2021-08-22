@@ -1,6 +1,6 @@
 extern crate nalgebra as na;
 
-use na::{ DMatrix, DVector, Dynamic, Matrix, SMatrix, SVector,Vector,Dim,storage::{Storage,StorageMut},base::{default_allocator::DefaultAllocator, allocator::Allocator},
+use na::{ DMatrix, DVector,OVector, Dynamic, Matrix, SMatrix, SVector,Vector,Dim,storage::{Storage,StorageMut},base::{default_allocator::DefaultAllocator, allocator::Allocator},
     VecStorage, Const, DimMin, U1
 };
 use std::boxed::Box;
@@ -41,14 +41,14 @@ pub fn weight_residuals_sparse<D, S1,S2>(
 
 //TODO: optimize
 //TODO: performance offender
-pub fn weight_jacobian_sparse<D,D1,S1,S2>(
-    jacobian: &mut Matrix<Float, D, D1, S1>,
-    weights_vec: &Vector<Float,D,S2>,) -> () where
-    D: Dim,
-    D1: Dim ,
-    S1: StorageMut<Float, D,D1> ,
-    S2: Storage<Float, D>,
-    DefaultAllocator: Allocator<Float, U1, D1>
+pub fn weight_jacobian_sparse<R,C,S1,S2>(
+    jacobian: &mut Matrix<Float, R, C, S1>,
+    weights_vec: &Vector<Float,R,S2>,) -> () where
+    R: Dim,
+    C: Dim ,
+    S1: StorageMut<Float, R,C> ,
+    S2: Storage<Float, R>,
+    DefaultAllocator: Allocator<Float, U1, C>
   {
     let size = weights_vec.len();
     for i in 0..size {
@@ -132,7 +132,8 @@ pub fn gauss_newton_step_with_loss_and_schur(
                 )
             }
             _ => {
-                (jacobian.transpose()*first_deriv_at_cost*jacobian+2.0*second_deriv_at_cost*jacobian.transpose() * residuals*residuals.transpose() * jacobian,first_deriv_at_cost * jacobian.transpose() * residuals)
+                (jacobian.transpose()*first_deriv_at_cost*jacobian+2.0*second_deriv_at_cost*jacobian.transpose() * residuals*residuals.transpose() * jacobian,
+                first_deriv_at_cost * jacobian.transpose() * residuals)
             }
         },
         _ => (
@@ -149,4 +150,30 @@ pub fn gauss_newton_step_with_loss_and_schur(
     let h = decomp.solve(&(-(&g))).expect("QR Solve Failed");
     let gain_ratio_denom = (&h).transpose() * (mu_val * (&h) - (&g));
     (h, g, gain_ratio_denom[0], mu_val)
+}
+
+#[allow(non_snake_case)]
+pub fn gauss_newton_step<R, C,S1, S2, S3>(
+    residuals: &Vector<Float, R,S1>, 
+    jacobian: &Matrix<Float,R,C,S2>,
+    identity: &Matrix<Float,C,C,S3>,
+     mu: Option<Float>, 
+     tau: Float)-> (OVector<Float,C>,OVector<Float,C>,Float,Float) 
+     where 
+        R: Dim, 
+        C: Dim + DimMin<C, Output = C>,
+        S1: Storage<Float, R>,
+        S2: Storage<Float, R, C>,
+        S3: Storage<Float, C, C>,
+        DefaultAllocator: Allocator<Float, R, C>+  Allocator<Float, C, R> + Allocator<Float, C, C> + Allocator<Float, C>+ Allocator<Float, Const<1_usize>, C>  {
+    let (A,g) = (jacobian.transpose()*jacobian,jacobian.transpose()*residuals);
+    let mu_val = match mu {
+        None => tau*A.diagonal().max(),
+        Some(v) => v
+    };
+
+    let decomp = (A+ mu_val*identity).qr();
+    let h = decomp.solve(&(-(&g))).expect("QR Solve Failed");
+    let gain_ratio_denom = (&h).transpose()*(mu_val*(&h)-(&g));
+    (h,g,gain_ratio_denom[0], mu_val)
 }

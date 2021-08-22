@@ -5,7 +5,7 @@ use na::{Vector3,Matrix4,SMatrix,SVector, Const, DimMin};
 use crate::odometry::runtime_parameters::RuntimeParameters;
 use crate::odometry::{imu_odometry, imu_odometry::imu_delta::ImuDelta,imu_odometry::bias, imu_odometry::bias::{BiasDelta,BiasPreintegrated}, imu_odometry::{ImuResidual, ImuCovariance}};
 use crate::sensors::imu::imu_data_frame::ImuDataFrame;
-use crate::numerics::{max_norm, solver::{weight_residuals,weight_jacobian}};
+use crate::numerics::{max_norm, solver::{weight_residuals,weight_jacobian, gauss_newton_step}};
 use crate::{Float,float};
 
 const OBSERVATIONS_DIM: usize = 9;
@@ -113,7 +113,7 @@ fn estimate<const R: usize, const C: usize>(imu_data_measurement: &ImuDataFrame,
         jacobian_full.fixed_slice_mut::<9,6>(0,9).copy_from(&bias_jacobian);
 
         let (delta,g,gain_ratio_denom, mu_val) 
-            = gauss_newton_step_with_loss(&residuals_imu, &jacobian_full, &identity, mu, tau);
+            = gauss_newton_step(&residuals_imu, &jacobian_full, &identity, mu, tau);
         mu = Some(mu_val);
 
 
@@ -182,28 +182,6 @@ fn estimate<const R: usize, const C: usize>(imu_data_measurement: &ImuDataFrame,
     // println!{"bias a: {}", bias_estimate.bias_g_delta};
 
     (est_transform,iteration_count, bias_estimate)
-}
-
-
-//TODO: potential for optimization. Maybe use less memory/matrices. 
-#[allow(non_snake_case)]
-fn gauss_newton_step_with_loss<const R: usize, const C: usize>(
-    residuals: &SVector<Float, R>, 
-    jacobian: &SMatrix<Float,R,C>,
-    identity: &SMatrix<Float,C,C>,
-     mu: Option<Float>, 
-     tau: Float)-> (SVector<Float,C>,SVector<Float,C>,Float,Float) where Const<C>: DimMin<Const<C>, Output = Const<C>> {
-
-    let (A,g) = (jacobian.transpose()*jacobian,jacobian.transpose()*residuals);
-    let mu_val = match mu {
-        None => tau*A.diagonal().max(),
-        Some(v) => v
-    };
-
-    let decomp = (A+ mu_val*identity).qr();
-    let h = decomp.solve(&(-g)).expect("QR Solve Failed");
-    let gain_ratio_denom = h.transpose()*(mu_val*h-g);
-    (h,g,gain_ratio_denom[0], mu_val)
 }
 
 
