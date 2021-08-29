@@ -87,6 +87,7 @@ pub fn weight_jacobian<const M: usize, const N: usize>(jacobian: &mut SMatrix<Fl
 }
 
 //TODO: use schur compliment
+//TODO: only schur version
 #[allow(non_snake_case)]
 pub fn gauss_newton_step_with_loss_and_schur(
     residuals: &DVector<Float>,
@@ -150,6 +151,33 @@ pub fn gauss_newton_step_with_loss_and_schur(
     let h = decomp.solve(&(-(&g))).expect("QR Solve Failed");
     let gain_ratio_denom = (&h).transpose() * (mu_val * (&h) - (&g));
     (h, g, gain_ratio_denom[0], mu_val)
+}
+
+//TODO: use schur compliment
+#[allow(non_snake_case)]
+pub fn gauss_newton_step_with_schur<R, C,S1, S2, S3>(
+    residuals: &Vector<Float, R,S1>, 
+    jacobian: &Matrix<Float,R,C,S2>,
+    identity: &Matrix<Float,C,C,S3>,
+     mu: Option<Float>, 
+     tau: Float)-> (OVector<Float,C>,OVector<Float,C>,Float,Float) 
+     where 
+        R: Dim, 
+        C: Dim + DimMin<C, Output = C>,
+        S1: Storage<Float, R>,
+        S2: Storage<Float, R, C>,
+        S3: Storage<Float, C, C>,
+        DefaultAllocator: Allocator<Float, R, C>+  Allocator<Float, C, R> + Allocator<Float, C, C> + Allocator<Float, C>+ Allocator<Float, Const<1_usize>, C>  {
+    let (A,g) = (jacobian.transpose()*jacobian,jacobian.transpose()*residuals);
+    let mu_val = match mu {
+        None => tau*A.diagonal().max(),
+        Some(v) => v
+    };
+
+    let decomp = (A+ mu_val*identity).qr();
+    let h = decomp.solve(&(-(&g))).expect("QR Solve Failed");
+    let gain_ratio_denom = (&h).transpose()*(mu_val*(&h)-(&g));
+    (h,g,gain_ratio_denom[0], mu_val)
 }
 
 #[allow(non_snake_case)]

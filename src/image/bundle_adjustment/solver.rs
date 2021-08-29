@@ -4,27 +4,27 @@ use na::{DVector,DMatrix,Matrix, Dynamic, U4, VecStorage, Vector4, Matrix2x4, Ma
 use crate::{float,Float};
 use crate::sensors::camera::Camera;
 use crate::numerics::lie::{exp, left_jacobian_around_identity};
-use crate::numerics::{max_norm, solver::{compute_cost,weight_jacobian_sparse,weight_residuals_sparse, norm, gauss_newton_step_with_loss_and_schur}};
+use crate::numerics::{max_norm, solver::{compute_cost,weight_jacobian_sparse,weight_residuals_sparse, norm, gauss_newton_step_with_loss_and_schur, gauss_newton_step_with_schur}};
 use crate::image::bundle_adjustment::state::State;
 use crate::odometry::runtime_parameters::RuntimeParameters; //TODO remove dependency on odometry module
 
 /**
  * In the format [f1_cam1_x,f1_cam1_y,f2_cam1_x,f2_cam1_y,f3_cam1_x,f3_cam1_y,f1_cam2_x,f1_cam2_y,f2_cam2_x,...]
  * */
-pub fn get_estimated_features<C : Camera>(state: &State, cameras: &Vec<&C>, estimated_features: &mut DVector<Float>) -> () {
+pub fn get_estimated_features<C : Camera>(state: &State, cameras: &Vec<C>, estimated_features: &mut DVector<Float>) -> () {
     let n_cams = state.n_cams;
     let n_points = state.n_points;
     let estimated_state = &state.data;
-    assert_eq!(estimated_features.nrows(),n_cams*n_points*2);
+    assert_eq!(estimated_features.nrows(),4*n_points); // 2 features per point * 2 image coordiantes
     for i in (0..n_cams).step_by(6){
         let u = estimated_state.fixed_rows::<3>(i*n_cams);
         let w = estimated_state.fixed_rows::<3>(i*n_cams+3);
         let pose = exp(&u,&w);
-        let camera = cameras[i];
+        let camera = &cameras[i];
 
-        let mut position_per_cam = Matrix::<Float,U4,Dynamic, VecStorage<Float,U4,Dynamic>>::from_element(n_points, 1.0);
-        for j in (0..n_points).step_by(3) {
-            position_per_cam.fixed_rows_mut::<3>(j).copy_from(&estimated_state.fixed_rows::<3>(n_cams+j));
+        let mut position_per_cam = Matrix::<Float,U4,Dynamic, VecStorage<Float,U4,Dynamic>>::from_element(3*n_points, 1.0);
+        for j in (0..position_per_cam.nrows()).step_by(3) {
+            position_per_cam.fixed_slice_mut::<3,1>(0,j).copy_from(&estimated_state.fixed_rows::<3>(n_cams+j)); //TODO: crash here
         };
         let transformed_points = pose*position_per_cam;
         for j in 0..n_points {
@@ -46,7 +46,9 @@ pub fn compute_residual(estimated_features: &DVector<Float>, observed_features: 
     }
 }
 
-pub fn compute_jacobian_wrt_object_points<C : Camera>(state: &State, cameras: &Vec<&C>, transformation: &Matrix4<Float>, i: usize, j: usize, jacobian: &mut DMatrix<Float>) -> () {
+//TODO: check jacobians, as not all points are visible in all images!
+
+pub fn compute_jacobian_wrt_object_points<C : Camera>(state: &State, cameras: &Vec<C>, transformation: &Matrix4<Float>, i: usize, j: usize, jacobian: &mut DMatrix<Float>) -> () {
 
     let point = &state.data.fixed_rows::<3>(i);
     let transformed_point = transformation*Vector4::<Float>::new(point[0],point[1],point[2],1.0);
@@ -61,7 +63,7 @@ pub fn compute_jacobian_wrt_object_points<C : Camera>(state: &State, cameras: &V
 
 }
 
-pub fn compute_jacobian_wrt_camera_parameters<C : Camera>(state: &State, cameras: &Vec<&C>, transformation: &Matrix4<Float>,i: usize, j: usize, jacobian: &mut DMatrix<Float>) -> () {
+pub fn compute_jacobian_wrt_camera_parameters<C : Camera>(state: &State, cameras: &Vec<C>, transformation: &Matrix4<Float>,i: usize, j: usize, jacobian: &mut DMatrix<Float>) -> () {
 
     let point = &state.data.fixed_rows::<3>(i);
     let transformed_point = transformation*Vector4::<Float>::new(point[0],point[1],point[2],1.0);
@@ -71,7 +73,7 @@ pub fn compute_jacobian_wrt_camera_parameters<C : Camera>(state: &State, cameras
     jacobian.fixed_slice_mut::<2,6>(row_idx,j).copy_from(&(projection_jacobian*lie_jacobian));
 }
 
-pub fn compute_jacobian<C : Camera>(state: &State, cameras: &Vec<&C>, jacobian: &mut DMatrix<Float>) -> () {
+pub fn compute_jacobian<C : Camera>(state: &State, cameras: &Vec<C>, jacobian: &mut DMatrix<Float>) -> () {
     for j in (0..6*state.n_cams).step_by(6) {
         let u = state.data.fixed_rows::<3>(j);
         let w = state.data.fixed_rows::<3>(j+3);
@@ -85,16 +87,14 @@ pub fn compute_jacobian<C : Camera>(state: &State, cameras: &Vec<&C>, jacobian: 
     }
 }
 
-pub fn optimize<C : Camera>(state: &mut State, cameras: &Vec<&C>, observed_features: &mut DVector<Float>, runtime_parameters: &RuntimeParameters ) -> () {
-
-    
+pub fn optimize<C : Camera>(state: &mut State, cameras: &Vec<C>, observed_features: &DVector<Float>, runtime_parameters: &RuntimeParameters ) -> () {
     let mut new_state = state.clone();
     let state_size = state.n_cams+state.n_points;
     let mut jacobian = DMatrix::<Float>::zeros(observed_features.nrows(),state_size);
-    let mut rescaled_jacobian_target = DMatrix::<Float>::zeros(observed_features.nrows(),state_size);
+    //let mut rescaled_jacobian_target = DMatrix::<Float>::zeros(observed_features.nrows(),state_size);
     let identity = DMatrix::<Float>::identity(state_size, state_size);
     let mut residuals = DVector::<Float>::zeros(observed_features.nrows());
-    let mut rescaled_residuals_target = DVector::<Float>::zeros(observed_features.nrows());
+    //let mut rescaled_residuals_target = DVector::<Float>::zeros(observed_features.nrows());
     let mut new_residuals = DVector::<Float>::zeros(observed_features.nrows());
     let mut estimated_features = DVector::<Float>::zeros(observed_features.nrows());
     let mut new_estimated_features = DVector::<Float>::zeros(observed_features.nrows());
@@ -144,15 +144,11 @@ pub fn optimize<C : Camera>(state: &mut State, cameras: &Vec<&C>, observed_featu
 
 
         let (delta,g,gain_ratio_denom, mu_val) 
-            = gauss_newton_step_with_loss_and_schur(&residuals,
+            = gauss_newton_step_with_schur(&residuals,
                 &jacobian,
                 &identity,
                 mu,
-                tau,
-                cost,
-                &runtime_parameters.loss_function,
-                &mut rescaled_jacobian_target,
-                &mut rescaled_residuals_target); //TODO
+                tau); //TODO
         mu = Some(mu_val);
 
 

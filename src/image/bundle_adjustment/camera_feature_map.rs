@@ -11,6 +11,7 @@ use crate::image::{
 use crate::{Float, reconstruct_original_coordiantes_for_float};
 
 
+
 pub struct CameraFeatureMap {
     pub camera_map: HashMap<u64, Vec<(usize,u64)>>,
     /**
@@ -89,7 +90,7 @@ impl CameraFeatureMap {
 
     pub fn get_state(&self) -> State {
         let number_of_cameras = self.camera_map.keys().len();
-        //TODO: incorporate transitive associattions i.e. f1 -> f1_prime -> f1_alpha is the same
+        //TODO: incorporate transitive associations i.e. f1 -> f1_prime -> f1_alpha is the same
         let number_of_unqiue_points = self.feature_list.len();
         let number_of_cam_parameters = 6*number_of_cameras;
         let number_of_point_parameters = 3*number_of_unqiue_points;
@@ -102,8 +103,8 @@ impl CameraFeatureMap {
      * This vector has ordering In the format [f1_cam1,f2_cam1,f3_cam1,f1_cam2,f2_cam2,...] where cam_id(cam_n-1) < cam_id(cam_n) 
      */
     pub fn get_observed_features(&self) -> DVector<Float> {
-        let n_features = self.feature_list.len()*2;
-        let mut observed_features = DVector::<Float>::zeros(n_features*2);
+        let n_points = self.feature_list.len();
+        let mut observed_features = DVector::<Float>::zeros(n_points*4); // 2 features per point * 2 image coordiantes
         let mut sorted_keys = self.camera_map.keys().cloned().collect::<Vec<u64>>();
         sorted_keys.sort_unstable();
         let feature_offsets = sorted_keys.iter().scan(0,|acc,x| {

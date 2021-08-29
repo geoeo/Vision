@@ -56,7 +56,7 @@
             "preLaunchTask": "build examples"
         },
         {
-            "name": "Orb Pyramid BA",
+            "name": "Orb BA",
             "type": "lldb",
             "request": "launch",
             "program": "${workspaceRoot}/target/debug/examples/orb_ba",

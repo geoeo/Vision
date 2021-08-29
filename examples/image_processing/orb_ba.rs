@@ -7,8 +7,10 @@ use std::path::Path;
 use vision::image::pyramid::orb::{orb_runtime_parameters::OrbRuntimeParameters, generate_matches};
 use vision::visualize::{display_matches_for_pyramid};
 use vision::image::Image;
-use vision::image::bundle_adjustment::camera_feature_map::CameraFeatureMap;
+use vision::image::bundle_adjustment::{camera_feature_map::CameraFeatureMap, solver::optimize};
 use vision::sensors::camera::pinhole::Pinhole;
+use vision::odometry::runtime_parameters::RuntimeParameters;
+use vision::numerics::{loss, weighting};
 
 fn main() -> Result<()> {
 
@@ -116,6 +118,29 @@ fn main() -> Result<()> {
     feature_map.add_images_from_params(&image_4, runtime_params.max_features_per_octave,runtime_params.octave_count);
 
     feature_map.add_matches(&image_pairs.into_iter().map(|(i1,_,i2,_)| (i1,i2)).collect(),&matches, runtime_params.pyramid_scale);
+
+    let mut state = feature_map.get_state();
+    let observed_features = feature_map.get_observed_features();
+    let runtime_parameters = RuntimeParameters {
+        pyramid_scale: 1.0,
+        max_iterations: vec![800; 1],
+        eps: vec![1e-3],
+        step_sizes: vec![1e-8],
+        max_norm_eps: 1e-30,
+        delta_eps: 1e-30,
+        taus: vec![1e-6],
+        lm: true,
+        weighting: true,
+        debug: false,
+
+        show_octave_result: true,
+        loss_function: Box::new(loss::TrivialLoss { eps: 1e-16, approximate_gauss_newton_matrices: true }), 
+        intensity_weighting_function:  Box::new(weighting::TrivialWeight{})
+    };
+    optimize(&mut state, &cameras, &observed_features, &runtime_parameters);
+
+
+
 
 
     //TODO: make this work with images of different sizes

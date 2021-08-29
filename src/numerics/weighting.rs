@@ -49,4 +49,19 @@ impl WeightingFunction for HuberWeightForPos {
 
 }
 
+pub struct TrivialWeight {
+}
+
+impl WeightingFunction for TrivialWeight {
+
+    fn cost(&self, cost: Float) -> Float {
+        cost
+    }
+
+    fn name(&self) -> &str {
+        "TrivialWeight"
+    }
+
+}
+
 
