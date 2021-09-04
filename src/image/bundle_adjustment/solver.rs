@@ -38,11 +38,9 @@ pub fn get_estimated_features<C : Camera>(state: &State, cameras: &Vec<C>, estim
 }
 
 pub fn compute_residual(estimated_features: &DVector<Float>, observed_features: &DVector<Float>, residual_vector: &mut DVector<Float>) -> () {
-    assert_eq!(residual_vector.nrows(), estimated_features.nrows()/2);
-    let diff = observed_features - estimated_features;
-    let diff_squared = diff.component_mul(&diff);
+    assert_eq!(residual_vector.nrows(), estimated_features.nrows());
     for i in 0..residual_vector.nrows(){
-        residual_vector[i] = (diff_squared[2*i] + diff_squared[2*i+1]).sqrt();
+        residual_vector[i] = observed_features[i] - estimated_features[i];
     }
 }
 
