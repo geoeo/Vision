@@ -110,6 +110,7 @@ fn main() -> Result<()> {
 
     let image_pairs = vec!((&image_1, &runtime_params, &image_2, &runtime_params), ((&image_3, &runtime_params, &image_4, &runtime_params)));
     //let image_pairs = vec!((&image_1, &runtime_params, &image_2, &runtime_params));
+    println!("start matching...");
     let matches = generate_matches(&image_pairs); //TODO: save matches to file for loading
     println!("matching complete");
 

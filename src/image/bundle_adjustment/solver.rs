@@ -24,7 +24,7 @@ pub fn get_estimated_features<C : Camera>(state: &State, cameras: &Vec<C>, estim
 
         let mut position_per_cam = Matrix::<Float,U4,Dynamic, VecStorage<Float,U4,Dynamic>>::from_element(3*n_points, 1.0);
         for j in (0..position_per_cam.nrows()).step_by(3) {
-            position_per_cam.fixed_slice_mut::<3,1>(0,j).copy_from(&estimated_state.fixed_rows::<3>(n_cams+j)); //TODO: crash here
+            position_per_cam.fixed_slice_mut::<3,1>(0,j).copy_from(&estimated_state.fixed_rows::<3>(n_cams+j)); 
         };
         let transformed_points = pose*position_per_cam;
         for j in 0..n_points {
@@ -44,7 +44,6 @@ pub fn compute_residual(estimated_features: &DVector<Float>, observed_features: 
     }
 }
 
-//TODO: check jacobians, as not all points are visible in all images!
 
 pub fn compute_jacobian_wrt_object_points<C : Camera>(state: &State, cameras: &Vec<C>, transformation: &Matrix4<Float>, i: usize, j: usize, jacobian: &mut DMatrix<Float>) -> () {
 
@@ -72,11 +71,13 @@ pub fn compute_jacobian_wrt_camera_parameters<C : Camera>(state: &State, cameras
 }
 
 pub fn compute_jacobian<C : Camera>(state: &State, cameras: &Vec<C>, jacobian: &mut DMatrix<Float>) -> () {
+    //cam
     for j in (0..6*state.n_cams).step_by(6) {
         let u = state.data.fixed_rows::<3>(j);
         let w = state.data.fixed_rows::<3>(j+3);
         let transformation = exp(&u,&w);
-
+        
+        //point
         for i in ((6*state.n_cams)..state.data.ncols()).step_by(3) {
             compute_jacobian_wrt_camera_parameters(state, cameras , &transformation,i,j, jacobian);
             compute_jacobian_wrt_object_points(state, cameras, &transformation,i,j, jacobian);
@@ -87,7 +88,7 @@ pub fn compute_jacobian<C : Camera>(state: &State, cameras: &Vec<C>, jacobian: &
 
 pub fn optimize<C : Camera>(state: &mut State, cameras: &Vec<C>, observed_features: &DVector<Float>, runtime_parameters: &RuntimeParameters ) -> () {
     let mut new_state = state.clone();
-    let state_size = state.n_cams+state.n_points;
+    let state_size = 6*state.n_cams+3*state.n_points;
     let mut jacobian = DMatrix::<Float>::zeros(observed_features.nrows(),state_size);
     //let mut rescaled_jacobian_target = DMatrix::<Float>::zeros(observed_features.nrows(),state_size);
     let identity = DMatrix::<Float>::identity(state_size, state_size);
@@ -140,13 +141,13 @@ pub fn optimize<C : Camera>(state: &mut State, cameras: &Vec<C>, observed_featur
             println!("it: {}, avg_rmse: {}",iteration_count,cost.sqrt());
         }
 
-
+        //TODO: setup arrowhead matrix
         let (delta,g,gain_ratio_denom, mu_val) 
             = gauss_newton_step_with_schur(&residuals,
                 &jacobian,
                 &identity,
                 mu,
-                tau); //TODO
+                tau); 
         mu = Some(mu_val);
 
 

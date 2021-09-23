@@ -153,7 +153,7 @@ pub fn gauss_newton_step_with_loss_and_schur(
     (h, g, gain_ratio_denom[0], mu_val)
 }
 
-//TODO: use schur compliment
+//TODO: use schur compliment,  setup arrowhead matrix from jacobian
 #[allow(non_snake_case)]
 pub fn gauss_newton_step_with_schur<R, C,S1, S2, S3>(
     residuals: &Vector<Float, R,S1>, 
@@ -167,7 +167,9 @@ pub fn gauss_newton_step_with_schur<R, C,S1, S2, S3>(
         S1: Storage<Float, R>,
         S2: Storage<Float, R, C>,
         S3: Storage<Float, C, C>,
-        DefaultAllocator: Allocator<Float, R, C>+  Allocator<Float, C, R> + Allocator<Float, C, C> + Allocator<Float, C>+ Allocator<Float, Const<1_usize>, C>  {
+        DefaultAllocator: Allocator<Float, R, C>+  Allocator<Float, C, R> + Allocator<Float, C, C> + Allocator<Float, C> + Allocator<Float, Const<1_usize>, C>  {
+
+
     let (A,g) = (jacobian.transpose()*jacobian,jacobian.transpose()*residuals);
     let mu_val = match mu {
         None => tau*A.diagonal().max(),
@@ -204,4 +206,15 @@ pub fn gauss_newton_step<R, C,S1, S2, S3>(
     let h = decomp.solve(&(-(&g))).expect("QR Solve Failed");
     let gain_ratio_denom = (&h).transpose()*(mu_val*(&h)-(&g));
     (h,g,gain_ratio_denom[0], mu_val)
+}
+
+fn compute_arrow_head<R, C,S1, S2, S3>(target:&mut Matrix<Float,R,C,S2>, jacobian:&Matrix<Float,R,C,S2> ) -> () 
+    where 
+    R: Dim, 
+    C: Dim + DimMin<C, Output = C>,
+    S1: Storage<Float, R>,
+    S2: Storage<Float, R, C>,
+    S3: Storage<Float, C, C> {
+        panic!("TODO");
+
 }
