@@ -1,6 +1,6 @@
 extern crate nalgebra as na;
 
-use na::{DVector,DMatrix,Matrix, Dynamic, U4, VecStorage, Vector4, Matrix2x4, Matrix4};
+use na::{DVector,DMatrix,Matrix, Dynamic, U4, VecStorage,Vector, Vector4, Matrix2x4, Matrix4,U3,U1,base::storage::Storage};
 use crate::{float,Float};
 use crate::sensors::camera::Camera;
 use crate::numerics::lie::{exp, left_jacobian_around_identity};
@@ -45,42 +45,46 @@ pub fn compute_residual(estimated_features: &DVector<Float>, observed_features: 
 }
 
 
-pub fn compute_jacobian_wrt_object_points<C : Camera>(state: &State, cameras: &Vec<C>, transformation: &Matrix4<Float>, i: usize, j: usize, jacobian: &mut DMatrix<Float>) -> () {
-
-    let point = &state.data.fixed_rows::<3>(i);
+pub fn compute_jacobian_wrt_object_points<C : Camera, T>(cameras: &Vec<C>, transformation: &Matrix4<Float>,point: &Vector<Float,U3,T>, i: usize, j: usize, jacobian: &mut DMatrix<Float>) 
+    -> () where T: Storage<Float,U3,U1> {
     let transformed_point = transformation*Vector4::<Float>::new(point[0],point[1],point[2],1.0);
     let projection_jacobian = cameras[j].get_jacobian_with_respect_to_position(&transformed_point.fixed_rows::<3>(0));
     let mut projection_jacobian_homogeneous = Matrix2x4::<Float>::zeros();
     projection_jacobian_homogeneous.fixed_slice_mut::<2,3>(0,0).copy_from(&projection_jacobian);
 
-    let row_idx = ((i/3)*state.n_cams+j)*2;
     let jacobian_homogeneous = &(projection_jacobian_homogeneous*transformation);
-    jacobian.fixed_slice_mut::<2,3>(row_idx,6*state.n_cams+i).copy_from(&jacobian_homogeneous.fixed_slice::<2,3>(0,0));
+    jacobian.fixed_slice_mut::<2,3>(i,j).copy_from(&jacobian_homogeneous.fixed_slice::<2,3>(0,0));
 
 
 }
 
-pub fn compute_jacobian_wrt_camera_parameters<C : Camera>(state: &State, cameras: &Vec<C>, transformation: &Matrix4<Float>,i: usize, j: usize, jacobian: &mut DMatrix<Float>) -> () {
-
-    let point = &state.data.fixed_rows::<3>(i);
+pub fn compute_jacobian_wrt_camera_parameters<C : Camera, T>( cameras: &Vec<C>, transformation: &Matrix4<Float>, point: &Vector<Float,U3,T> ,i: usize, j: usize, jacobian: &mut DMatrix<Float>) 
+    -> () where T: Storage<Float,U3,U1> {
     let transformed_point = transformation*Vector4::<Float>::new(point[0],point[1],point[2],1.0);
     let lie_jacobian = left_jacobian_around_identity(&transformed_point.fixed_rows::<3>(0));
     let projection_jacobian = cameras[j].get_jacobian_with_respect_to_position(&transformed_point.fixed_rows::<3>(0));
-    let row_idx = ((i/3)*state.n_cams+j)*2;
-    jacobian.fixed_slice_mut::<2,6>(row_idx,j).copy_from(&(projection_jacobian*lie_jacobian));
+    jacobian.fixed_slice_mut::<2,6>(i,j).copy_from(&(projection_jacobian*lie_jacobian));
 }
 
 pub fn compute_jacobian<C : Camera>(state: &State, cameras: &Vec<C>, jacobian: &mut DMatrix<Float>) -> () {
     //cam
-    for j in (0..6*state.n_cams).step_by(6) {
-        let u = state.data.fixed_rows::<3>(j);
-        let w = state.data.fixed_rows::<3>(j+3);
+    let number_of_cam_params = 6*state.n_cams;
+    for cam_state_idx in (0..number_of_cam_params).step_by(6) {
+        let u = state.data.fixed_rows::<3>(cam_state_idx);
+        let w = state.data.fixed_rows::<3>(cam_state_idx+3);
         let transformation = exp(&u,&w);
         
         //point
-        for i in ((6*state.n_cams)..state.data.ncols()).step_by(3) {
-            compute_jacobian_wrt_camera_parameters(state, cameras , &transformation,i,j, jacobian);
-            compute_jacobian_wrt_object_points(state, cameras, &transformation,i,j, jacobian);
+        for point_state_idx in (number_of_cam_params..state.data.nrows()).step_by(3) {
+            let point = &state.data.fixed_rows::<3>(point_state_idx);
+            let cam_id = cam_state_idx/6;
+            let point_id = (point_state_idx-number_of_cam_params)/3;
+            let a_i = 2*cam_id*point_id;
+            let a_j = cam_state_idx;
+            let b_i = 2*(point_id*state.n_cams+cam_id);
+            let b_j = number_of_cam_params+point_id*3;
+            compute_jacobian_wrt_camera_parameters(cameras , &transformation,point,a_i,a_j, jacobian);
+            compute_jacobian_wrt_object_points(cameras, &transformation,point,b_i,b_j, jacobian);
 
         }
     }
