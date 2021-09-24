@@ -102,6 +102,7 @@ impl CameraFeatureMap {
     /**
      * This vector has ordering In the format [f1_cam1,f2_cam1,f3_cam1,f1_cam2,f2_cam2,...] where cam_id(cam_n-1) < cam_id(cam_n) 
      */
+    //TODO: this is wrong -> needs cam information
     pub fn get_observed_features(&self) -> DVector<Float> {
         let n_points = self.feature_list.len();
         let mut observed_features = DVector::<Float>::zeros(n_points*4); // 2 features per point * 2 image coordiantes

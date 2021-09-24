@@ -11,6 +11,7 @@ use crate::odometry::runtime_parameters::RuntimeParameters; //TODO remove depend
 /**
  * In the format [f1_cam1_x,f1_cam1_y,f2_cam1_x,f2_cam1_y,f3_cam1_x,f3_cam1_y,f1_cam2_x,f1_cam2_y,f2_cam2_x,...]
  * */
+//TODO: this is wrong -> observed features has to be reworked then this
 pub fn get_estimated_features<C : Camera>(state: &State, cameras: &Vec<C>, estimated_features: &mut DVector<Float>) -> () {
     let n_cams = state.n_cams;
     let n_points = state.n_points;
@@ -45,10 +46,10 @@ pub fn compute_residual(estimated_features: &DVector<Float>, observed_features: 
 }
 
 
-pub fn compute_jacobian_wrt_object_points<C : Camera, T>(cameras: &Vec<C>, transformation: &Matrix4<Float>,point: &Vector<Float,U3,T>, i: usize, j: usize, jacobian: &mut DMatrix<Float>) 
+pub fn compute_jacobian_wrt_object_points<C : Camera, T>(camera: &C, transformation: &Matrix4<Float>,point: &Vector<Float,U3,T>, i: usize, j: usize, jacobian: &mut DMatrix<Float>) 
     -> () where T: Storage<Float,U3,U1> {
     let transformed_point = transformation*Vector4::<Float>::new(point[0],point[1],point[2],1.0);
-    let projection_jacobian = cameras[j].get_jacobian_with_respect_to_position(&transformed_point.fixed_rows::<3>(0));
+    let projection_jacobian = camera.get_jacobian_with_respect_to_position(&transformed_point.fixed_rows::<3>(0));
     let mut projection_jacobian_homogeneous = Matrix2x4::<Float>::zeros();
     projection_jacobian_homogeneous.fixed_slice_mut::<2,3>(0,0).copy_from(&projection_jacobian);
 
@@ -58,11 +59,11 @@ pub fn compute_jacobian_wrt_object_points<C : Camera, T>(cameras: &Vec<C>, trans
 
 }
 
-pub fn compute_jacobian_wrt_camera_parameters<C : Camera, T>( cameras: &Vec<C>, transformation: &Matrix4<Float>, point: &Vector<Float,U3,T> ,i: usize, j: usize, jacobian: &mut DMatrix<Float>) 
+pub fn compute_jacobian_wrt_camera_parameters<C : Camera, T>( camera: &C, transformation: &Matrix4<Float>, point: &Vector<Float,U3,T> ,i: usize, j: usize, jacobian: &mut DMatrix<Float>) 
     -> () where T: Storage<Float,U3,U1> {
     let transformed_point = transformation*Vector4::<Float>::new(point[0],point[1],point[2],1.0);
     let lie_jacobian = left_jacobian_around_identity(&transformed_point.fixed_rows::<3>(0));
-    let projection_jacobian = cameras[j].get_jacobian_with_respect_to_position(&transformed_point.fixed_rows::<3>(0));
+    let projection_jacobian = camera.get_jacobian_with_respect_to_position(&transformed_point.fixed_rows::<3>(0));
     jacobian.fixed_slice_mut::<2,6>(i,j).copy_from(&(projection_jacobian*lie_jacobian));
 }
 
@@ -70,6 +71,9 @@ pub fn compute_jacobian<C : Camera>(state: &State, cameras: &Vec<C>, jacobian: &
     //cam
     let number_of_cam_params = 6*state.n_cams;
     for cam_state_idx in (0..number_of_cam_params).step_by(6) {
+        let cam_id = cam_state_idx/6;
+        let camera = &cameras[cam_id];
+
         let u = state.data.fixed_rows::<3>(cam_state_idx);
         let w = state.data.fixed_rows::<3>(cam_state_idx+3);
         let transformation = exp(&u,&w);
@@ -77,23 +81,27 @@ pub fn compute_jacobian<C : Camera>(state: &State, cameras: &Vec<C>, jacobian: &
         //point
         for point_state_idx in (number_of_cam_params..state.data.nrows()).step_by(3) {
             let point = &state.data.fixed_rows::<3>(point_state_idx);
-            let cam_id = cam_state_idx/6;
+
             let point_id = (point_state_idx-number_of_cam_params)/3;
-            let a_i = 2*cam_id*point_id;
+            let a_i = 2*(cam_id+point_id*state.n_cams);
             let a_j = cam_state_idx;
-            let b_i = 2*(point_id*state.n_cams+cam_id);
+            let b_i = 2*(state.n_cams*point_id+cam_id);
             let b_j = number_of_cam_params+point_id*3;
-            compute_jacobian_wrt_camera_parameters(cameras , &transformation,point,a_i,a_j, jacobian);
-            compute_jacobian_wrt_object_points(cameras, &transformation,point,b_i,b_j, jacobian);
+
+            compute_jacobian_wrt_camera_parameters(camera , &transformation,point,a_i,a_j, jacobian);
+            compute_jacobian_wrt_object_points(camera, &transformation,point,b_i,b_j, jacobian);
 
         }
+
     }
+
+
 }
 
 pub fn optimize<C : Camera>(state: &mut State, cameras: &Vec<C>, observed_features: &DVector<Float>, runtime_parameters: &RuntimeParameters ) -> () {
     let mut new_state = state.clone();
     let state_size = 6*state.n_cams+3*state.n_points;
-    let mut jacobian = DMatrix::<Float>::zeros(observed_features.nrows(),state_size);
+    let mut jacobian = DMatrix::<Float>::zeros(state.n_cams*observed_features.nrows(),state_size);
     //let mut rescaled_jacobian_target = DMatrix::<Float>::zeros(observed_features.nrows(),state_size);
     let identity = DMatrix::<Float>::identity(state_size, state_size);
     let mut residuals = DVector::<Float>::zeros(observed_features.nrows());
