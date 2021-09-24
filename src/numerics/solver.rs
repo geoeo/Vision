@@ -208,13 +208,58 @@ pub fn gauss_newton_step<R, C,S1, S2, S3>(
     (h,g,gain_ratio_denom[0], mu_val)
 }
 
-fn compute_arrow_head<R, C,S1, S2, S3>(target:&mut Matrix<Float,R,C,S2>, jacobian:&Matrix<Float,R,C,S2> ) -> () 
+#[allow(non_snake_case)]
+fn compute_arrow_head<R_Target, C_Target, R_Jacobian, C_Jacobian,S_Target, S_Jacobian>
+    (target:&mut Matrix<Float,R_Target,C_Target,S_Target>, jacobian:&Matrix<Float,R_Jacobian,C_Jacobian,S_Jacobian>, n_cams: usize, n_points: usize) -> () 
     where 
-    R: Dim, 
-    C: Dim + DimMin<C, Output = C>,
-    S1: Storage<Float, R>,
-    S2: Storage<Float, R, C>,
-    S3: Storage<Float, C, C> {
+    R_Target: Dim, 
+    C_Target: Dim + DimMin<C_Target, Output = C_Target>,
+    R_Jacobian: Dim, 
+    C_Jacobian: Dim + DimMin<C_Jacobian, Output = C_Jacobian>,
+    S_Target: StorageMut<Float, R_Target, C_Target>,
+    S_Jacobian: Storage<Float, R_Jacobian, C_Jacobian> {
+
+        let number_of_cam_params = 6*n_cams;
+        let number_of_point_params = 3*n_points;
+        let number_of_measurement_rows = 2*n_cams*n_points;
+        
+        //TODO weight matrix for all 
+
+        for j in (0..number_of_cam_params).step_by(6) {
+            let mut U_j = SMatrix::<Float,6,6>::zeros();
+            let cam_num = j/6;
+            let row_start = 2*cam_num;
+            let row_end = number_of_measurement_rows - 2*(n_cams-cam_num);
+            for i in (row_start..row_end).step_by(2*n_cams){
+                let slice_a = jacobian.fixed_slice::<2,6>(i,j);
+                let slice_a_transpose = slice_a.transpose();
+                U_j += slice_a_transpose*slice_a;
+
+                let slice_w_b = jacobian.fixed_slice::<2,3>(i,j+number_of_cam_params+3*i);
+                let W_j = slice_a_transpose*slice_w_b;
+                let W_j_transpose = W_j.transpose();
+                let current_w_idx = j+number_of_cam_params+3*i;
+                target.fixed_slice_mut::<6,3>(i,current_w_idx).copy_from(&W_j);
+                target.fixed_slice_mut::<3,6>(current_w_idx,j).copy_from(&W_j_transpose);
+            }
+            target.fixed_slice_mut::<6,6>(j,j).copy_from(&U_j);
+        }
+
+        for j in (number_of_cam_params..(number_of_cam_params+number_of_point_params)).step_by(3) {
+            let mut V_j = SMatrix::<Float,3,3>::zeros();
+            let row_start = n_cams*(j-number_of_cam_params);
+            let row_end = row_start+2*n_cams;
+            for i in (row_start..row_end).step_by(2){
+                let slice_b = jacobian.fixed_slice::<2,3>(i,j);
+                V_j += slice_b.transpose()*slice_b;
+            }
+            target.fixed_slice_mut::<3,3>(j,j).copy_from(&V_j);
+        }
+
+
+
+
+
         panic!("TODO");
 
 }
