@@ -16,7 +16,7 @@ pub fn get_estimated_features<C : Camera>(state: &State, cameras: &Vec<C>, estim
     let n_cams = state.n_cams;
     let n_points = state.n_points;
     let estimated_state = &state.data;
-    assert_eq!(estimated_features.nrows(),4*n_points); // 2 features per point * 2 image coordiantes
+    assert_eq!(estimated_features.nrows(),2*n_points*n_cams);
     for i in (0..n_cams).step_by(6){
         let u = estimated_state.fixed_rows::<3>(i*n_cams);
         let w = estimated_state.fixed_rows::<3>(i*n_cams+3);
@@ -101,7 +101,7 @@ pub fn compute_jacobian<C : Camera>(state: &State, cameras: &Vec<C>, jacobian: &
 pub fn optimize<C : Camera>(state: &mut State, cameras: &Vec<C>, observed_features: &DVector<Float>, runtime_parameters: &RuntimeParameters ) -> () {
     let mut new_state = state.clone();
     let state_size = 6*state.n_cams+3*state.n_points;
-    let mut jacobian = DMatrix::<Float>::zeros(state.n_cams*observed_features.nrows(),state_size);
+    let mut jacobian = DMatrix::<Float>::zeros(observed_features.nrows(),state_size);
     //let mut rescaled_jacobian_target = DMatrix::<Float>::zeros(observed_features.nrows(),state_size);
     let identity = DMatrix::<Float>::identity(state_size, state_size);
     let mut residuals = DVector::<Float>::zeros(observed_features.nrows());

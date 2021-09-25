@@ -102,24 +102,20 @@ impl CameraFeatureMap {
     /**
      * This vector has ordering In the format [f1_cam1,f2_cam1,f3_cam1,f1_cam2,f2_cam2,...] where cam_id(cam_n-1) < cam_id(cam_n) 
      */
-    //TODO: this is wrong -> needs cam information
+
     pub fn get_observed_features(&self) -> DVector<Float> {
         let n_points = self.feature_list.len();
-        let mut observed_features = DVector::<Float>::zeros(n_points*4); // 2 features per point * 2 image coordiantes
+        let n_cams = self.camera_map.keys().len();
+        let mut observed_features = DVector::<Float>::zeros(n_points*n_cams*2); // some entries might be zero
         let mut sorted_keys = self.camera_map.keys().cloned().collect::<Vec<u64>>();
         sorted_keys.sort_unstable();
-        let feature_offsets = sorted_keys.iter().scan(0,|acc,x| {
-            *acc = *acc + self.camera_map.get(x).unwrap().len();
-            Some(*acc)
-        }).collect::<Vec<usize>>();
 
         for i in 0..sorted_keys.len() {
             let key = sorted_keys[i];
-            let offset = match i {
-                0 => 0,
-                _ => feature_offsets[i-1]
-            };
-            let feature_indices = self.camera_map.get(&key).expect(&format!("No image with id: {} found in map",key).to_string());
+            let camera_map = self.camera_map.get(&key);
+
+            let offset = 2*i*n_points;
+            let feature_indices = camera_map.expect(&format!("No image with id: {} found in map",key).to_string());
             for j in 0..feature_indices.len() {
                 let (idx, other_cam_id) = feature_indices[j];
                 let feature_pos = match (key, other_cam_id) {
@@ -127,8 +123,9 @@ impl CameraFeatureMap {
                     _ =>  self.feature_list[idx].1
                 };
 
-                observed_features[offset + 2*j] = feature_pos.x as Float;
-                observed_features[offset + 2*j+1] = feature_pos.y as Float;
+
+                observed_features[offset + 2*idx] = feature_pos.x as Float;
+                observed_features[offset + 2*idx+1] = feature_pos.y as Float;
             }
         }
         observed_features
