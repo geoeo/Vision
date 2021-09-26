@@ -64,7 +64,6 @@ impl CameraFeatureMap {
         source_cam_map.push((idx_in_feature_list,other_cam_id));
         let other_cam_map = self.camera_map.get_mut(&other_cam_id).expect(&format!("No image with id: {} found in map",other_cam_id).to_string());
         other_cam_map.push((idx_in_feature_list,source_cam_id));
-        
     }
 
     pub fn add_matches<T: Feature>(&mut self, image_pairs: &Vec<(&Image, &Image)>, matches: & Vec<Vec<((usize,T),(usize,T))>>, pyramid_scale: Float) -> () {
@@ -122,8 +121,6 @@ impl CameraFeatureMap {
                     (s,o) if s < o => self.feature_list[idx].0,
                     _ =>  self.feature_list[idx].1
                 };
-
-
                 observed_features[offset + 2*idx] = feature_pos.x as Float;
                 observed_features[offset + 2*idx+1] = feature_pos.y as Float;
             }

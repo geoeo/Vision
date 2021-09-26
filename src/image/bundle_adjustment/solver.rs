@@ -14,19 +14,21 @@ use crate::odometry::runtime_parameters::RuntimeParameters; //TODO remove depend
  * */
 pub fn get_estimated_features<C : Camera>(state: &State, cameras: &Vec<C>, estimated_features: &mut DVector<Float>) -> () {
     let n_cams = state.n_cams;
+    let n_cam_parameters = 6*n_cams;
     let n_points = state.n_points;
     let estimated_state = &state.data;
     assert_eq!(estimated_features.nrows(),2*n_points*n_cams);
-    for i in (0..n_cams).step_by(6){
-        let u = estimated_state.fixed_rows::<3>(i*n_cams);
-        let w = estimated_state.fixed_rows::<3>(i*n_cams+3);
+    for i in 0..n_cams {
+        let cam_idx = 6*i*n_cams;
+        let u = estimated_state.fixed_rows::<3>(cam_idx);
+        let w = estimated_state.fixed_rows::<3>(cam_idx+3);
         let pose = exp(&u,&w);
         let camera = &cameras[i];
         let offset = 2*i*n_points;
 
-        let mut position_per_cam = Matrix::<Float,U4,Dynamic, VecStorage<Float,U4,Dynamic>>::from_element(3*n_points, 1.0);
-        for j in (0..position_per_cam.nrows()).step_by(3) {
-            position_per_cam.fixed_slice_mut::<3,1>(0,j).copy_from(&estimated_state.fixed_rows::<3>(n_cams+j)); 
+        let mut position_per_cam = Matrix::<Float,U4,Dynamic, VecStorage<Float,U4,Dynamic>>::from_element(n_points, 1.0);
+        for j in 0..n_points {
+            position_per_cam.fixed_slice_mut::<3,1>(0,j).copy_from(&estimated_state.fixed_rows::<3>(n_cam_parameters+3*j)); 
         };
         let transformed_points = pose*position_per_cam;
         for j in 0..n_points {
