@@ -1,7 +1,7 @@
 extern crate image as image_rs;
 
 use rand::distributions::{Distribution, Uniform};
-use crate::image::features::{Feature, Oriented,orb_feature::OrbFeature, geometry::{point::Point,shape::circle::circle_bresenham,line::line_bresenham}};
+use crate::image::features::{Feature,Match, Oriented,orb_feature::OrbFeature, geometry::{point::Point,shape::circle::circle_bresenham,line::line_bresenham}};
 use crate::image::{Image,image_encoding::ImageEncoding};
 use crate::image::descriptors::sift_descriptor::{orientation_histogram::OrientationHistogram};
 use crate::{Float,float,reconstruct_original_coordiantes_for_float};
@@ -42,7 +42,7 @@ pub fn display_histogram(histogram: &OrientationHistogram, width_scaling:usize, 
 }
 
 //TODO: Remove OrbFeature dependency or make OrbFeature a more basic feature
-pub fn display_matches_for_pyramid<T>(image_a_original: &Image, image_b_original: &Image, match_pyramid: &Vec<((usize,T),(usize,T))>, draw_lines: bool, intensity: Float, pyramid_scale: Float) -> Image where T: Feature + Oriented {
+pub fn display_matches_for_pyramid<T>(image_a_original: &Image, image_b_original: &Image, match_pyramid: &Vec<Match<T>>, draw_lines: bool, intensity: Float, pyramid_scale: Float) -> Image where T: Feature + Oriented {
     let height = image_a_original.buffer.nrows();
     let width = image_a_original.buffer.ncols() + image_b_original.buffer.ncols();
 
@@ -61,13 +61,14 @@ pub fn display_matches_for_pyramid<T>(image_a_original: &Image, image_b_original
     }
 
     for i in 0..match_pyramid.len() {
-        let ((level_a,a),(level_b,b)) = &match_pyramid[i];
-            let (a_x_orig,a_y_orig) = reconstruct_original_coordiantes_for_float(a.get_x_image() as Float,a.get_y_image() as Float, pyramid_scale,*level_a as i32);
-            let (b_x_orig,b_y_orig) = reconstruct_original_coordiantes_for_float(b.get_x_image() as Float,b.get_y_image() as Float, pyramid_scale,*level_b as i32);
-            let match_tuple = (OrbFeature{location: Point::new(a_x_orig.trunc() as usize, a_y_orig.trunc() as usize), orientation: a.get_orientation(), sigma_level: i},
-            OrbFeature{location: Point::new(image_a_original.buffer.ncols() + (b_x_orig.trunc() as usize), b_y_orig.trunc() as usize), orientation: b.get_orientation(), sigma_level: i} );
-            let radius_a = (level_a+1) as Float *10.0; 
-            let radius_b = (level_b+1) as Float *10.0; 
+        let (level_a,a)= &match_pyramid[i].feature_one;
+        let (level_b,b) = &match_pyramid[i].feature_two;
+        let (a_x_orig,a_y_orig) = reconstruct_original_coordiantes_for_float(a.get_x_image() as Float,a.get_y_image() as Float, pyramid_scale,*level_a as i32);
+        let (b_x_orig,b_y_orig) = reconstruct_original_coordiantes_for_float(b.get_x_image() as Float,b.get_y_image() as Float, pyramid_scale,*level_b as i32);
+        let match_tuple = (OrbFeature{location: Point::new(a_x_orig.trunc() as usize, a_y_orig.trunc() as usize), orientation: a.get_orientation(), sigma_level: i},
+        OrbFeature{location: Point::new(image_a_original.buffer.ncols() + (b_x_orig.trunc() as usize), b_y_orig.trunc() as usize), orientation: b.get_orientation(), sigma_level: i} );
+        let radius_a = (level_a+1) as Float *10.0; 
+        let radius_b = (level_b+1) as Float *10.0; 
     
         draw_match(&mut target_image, &match_tuple, (radius_a,radius_b),draw_lines, intensity);
     }

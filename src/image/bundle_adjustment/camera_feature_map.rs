@@ -4,7 +4,7 @@ use na::DVector;
 use std::collections::HashMap;
 use crate::image::{
     Image,
-    features::Feature,
+    features::{Feature,Match},
     features::geometry::point::Point,
     bundle_adjustment::state::State
 };
@@ -24,7 +24,7 @@ pub struct CameraFeatureMap {
 
 impl CameraFeatureMap {
 
-    pub fn new<T: Feature>(matches: & Vec<Vec<((usize,T),(usize,T))>>) -> CameraFeatureMap {
+    pub fn new<T: Feature>(matches: & Vec<Vec<Match<T>>>) -> CameraFeatureMap {
         let number_of_unique_features = matches.iter().fold(0,|acc,x| acc + x.len());
         CameraFeatureMap{
             camera_map: HashMap::new(),
@@ -66,13 +66,15 @@ impl CameraFeatureMap {
         other_cam_map.push((idx_in_feature_list,source_cam_id));
     }
 
-    pub fn add_matches<T: Feature>(&mut self, image_pairs: &Vec<(&Image, &Image)>, matches: & Vec<Vec<((usize,T),(usize,T))>>, pyramid_scale: Float) -> () {
+    pub fn add_matches<T: Feature>(&mut self, image_pairs: &Vec<(&Image, &Image)>, matches: & Vec<Vec<Match<T>>>, pyramid_scale: Float) -> () {
         assert_eq!(image_pairs.len(), matches.len());
         for i in 0..image_pairs.len(){
             let (image_a,image_b) = image_pairs[i];
             let matches_for_pair = &matches[i];
 
-            for ((_,match_a),(_,match_b)) in matches_for_pair {
+            for feature_match in matches_for_pair {
+                let (_,match_a) = &feature_match.feature_one;
+                let (_,match_b) = &feature_match.feature_two;
                 let id_a = image_a.id.expect("image a has no id");
                 let id_b = image_b.id.expect("image b has no id");
 

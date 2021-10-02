@@ -33,3 +33,8 @@ pub fn orientation(source_images: &Vec<Image>, feature: &dyn Feature) -> Float {
     }
 
 }
+
+pub struct Match<T : Feature> {
+    pub feature_one: (usize,T),
+    pub feature_two: (usize,T)
+}
