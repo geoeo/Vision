@@ -3,7 +3,7 @@ use crate::image::Image;
 use crate::image::filter::{gauss_kernel::GaussKernel1D,gaussian_2_d_convolution};
 use crate::image::pyramid::{Pyramid,sift::{sift_octave::SiftOctave,sift_runtime_params::SiftRuntimeParams}};
 use crate::image::features::sift_feature;
-use crate::image::matching::sift_descriptor::{
+use crate::image::descriptors::sift_descriptor::{
     feature_vector::FeatureVector,
     orientation_histogram::generate_keypoints_from_extrema,
     local_image_descriptor::{is_rotated_keypoint_within_image,LocalImageDescriptor},

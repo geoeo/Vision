@@ -140,10 +140,36 @@ fn main() -> Result<()> {
         loss_function: Box::new(loss::TrivialLoss { eps: 1e-16, approximate_gauss_newton_matrices: true }), 
         intensity_weighting_function:  Box::new(weighting::TrivialWeight{})
     };
+
+    let (before_cam_positions,before_points) = state.lift();
+
+    // println!("{}",state.data);
+
+    // println!("Cam Positions");
+    // for cam_pos in before_cam_positions {
+    //     println!("{}",cam_pos);
+    // }
+
+    // println!("Points");
+    // for point in before_points {
+    //     println!("{}",point);
+    // }
+
+
+
     optimize(&mut state, &cameras, &observed_features, &runtime_parameters);
 
+    let (cam_positions,points) = state.lift();
 
+    println!("Cam Positions");
+    for cam_pos in cam_positions {
+        println!("{}",cam_pos);
+    }
 
+    println!("Points");
+    for point in points {
+        println!("{}",point);
+    }
 
 
     //TODO: make this work with images of different sizes

@@ -9,7 +9,7 @@ use vision::image::pyramid::orb::{
 
 };
 use vision::visualize::{visualize_pyramid_feature_with_orientation, display_matches_for_pyramid};
-use vision::image::matching::brief_descriptor::BriefDescriptor;
+use vision::image::descriptors::brief_descriptor::BriefDescriptor;
 use vision::image::Image;
 
 fn main() -> Result<()> {

@@ -15,7 +15,7 @@ pub mod image_encoding;
 pub mod filter;
 pub mod pyramid;
 pub mod features;
-pub mod matching;
+pub mod descriptors;
 pub mod bundle_adjustment;
 
 //TODO: add id based on image name or something like that - hasids.org

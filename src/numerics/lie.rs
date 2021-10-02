@@ -47,9 +47,14 @@ pub fn right_jacobian_around_identity<T>(position: &Vector<Float,U3,T>, rotation
 pub fn exp<T>(u: &Vector<Float,U3,T>, w: &Vector<Float,U3,T>) -> Matrix4<Float> where T: Storage<Float,U3,U1> {
     let omega = (w.transpose()*w)[0].sqrt();
     let omega_sqr = omega.powi(2);
-    let A = omega.sin()/omega;
-    let B = (1.0 - omega.cos())/omega_sqr;
-    let C = (1.0 - A)/omega_sqr;
+
+    let (A,B,C) = match omega {
+        omega if omega != 0.0 => {
+            let A = omega.sin()/omega;
+            (A,(1.0 - omega.cos())/omega_sqr, (1.0 - A)/omega_sqr)
+        },
+        _ => (1.0,1.0,1.0)
+    };
 
 
     let w_x = skew_symmetric(w);

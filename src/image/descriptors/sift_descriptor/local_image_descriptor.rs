@@ -4,7 +4,7 @@ use na::{core::SMatrix,Vector2, Matrix2x4};
 use crate::{Float,float};
 use crate::numerics::{rotation_matrix_2d_from_orientation,gradient_and_orientation,gauss_2d};
 use crate::image::pyramid::sift::sift_octave::SiftOctave;
-use crate::image::matching::sift_descriptor::{ORIENTATION_BINS,DESCRIPTOR_BINS,orientation_histogram::OrientationHistogram,keypoint::KeyPoint};
+use crate::image::descriptors::sift_descriptor::{ORIENTATION_BINS,DESCRIPTOR_BINS,orientation_histogram::OrientationHistogram,keypoint::KeyPoint};
 
 const SUBMATRIX_LENGTH: usize = 4;
 const SAMPLE_LENGTH: Float = 16.0;

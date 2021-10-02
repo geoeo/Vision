@@ -3,10 +3,12 @@ extern crate nalgebra as na;
 use na::{ DMatrix, DVector,OVector, Dynamic, Matrix, SMatrix, SVector,Vector,Dim,storage::{Storage,StorageMut},base::{default_allocator::DefaultAllocator, allocator::Allocator},
     VecStorage, Const, DimMin, U1
 };
+
 use std::boxed::Box;
 
 use crate::numerics::{loss::LossFunction, weighting::WeightingFunction};
 use crate::{float, Float};
+
 
 
 

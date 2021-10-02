@@ -2,7 +2,7 @@ extern crate nalgebra as na;
 
 use crate::{float,Float};
 use crate::image::pyramid::sift::{sift_runtime_params::SiftRuntimeParams,sift_octave::SiftOctave};
-use crate::image::matching::sift_descriptor::keypoint::KeyPoint;
+use crate::image::descriptors::sift_descriptor::keypoint::KeyPoint;
 use crate::image::features::{Feature,sift_feature::SiftFeature};
 use crate::numerics::{lagrange_interpolation_quadratic, gauss_2d,gradient_and_orientation};
 
