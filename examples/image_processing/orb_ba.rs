@@ -2,9 +2,11 @@ extern crate image as image_rs;
 extern crate vision;
 extern crate color_eyre;
 
+use std::fs;
 use color_eyre::eyre::Result;
 use std::path::Path;
-use vision::image::pyramid::orb::{orb_runtime_parameters::OrbRuntimeParameters, generate_matches};
+use vision::image::pyramid::orb::{orb_runtime_parameters::OrbRuntimeParameters};
+use vision::image::features::{Match,orb_feature::OrbFeature};
 use vision::visualize::{display_matches_for_pyramid};
 use vision::image::Image;
 use vision::image::bundle_adjustment::{camera_feature_map::CameraFeatureMap, solver::optimize};
@@ -16,36 +18,11 @@ fn main() -> Result<()> {
 
     color_eyre::install()?;
 
-    //let image_name = "lenna";
-    //let image_name_2 = "lenna_90";
-
-    //let image_name = "beaver";
-    //let image_name_2 = "beaver_90";
-
-    //let image_name = "beaver";
-    //let image_name_2 = "beaver_scaled_50";
-
-    // let image_name = "cereal_1_scaled_25";
-    // let image_name_2 = "cereal_2_scaled_25";
-
-    //let image_name = "cereal_1_scaled_25";
-    //let image_name_2 = "cereal_2_far_scaled_25";
-
-    //let image_name = "cereal_1_scaled_25";
-    //let image_name_2 = "cereal_tilted_scaled_25";
-
-    //let image_name = "cereal_1_scaled_25";
-    //let image_name_2 = "cereal_occluded_scaled_25";
-
-    //let image_name = "cereal_1_scaled_25";
-    //let image_name_2 = "cereal_far_scaled_25";
-
     let image_name_1 = "ba_slow_1";
     let image_name_2 = "ba_slow_2";
 
     let image_name_3 = "ba_slow_3";
     let image_name_4 = "ba_slow_4";
-
 
 
     let image_format = "png";
@@ -68,7 +45,7 @@ fn main() -> Result<()> {
 
 
 
-    //TODO: recheck maximal suppression, take best corers for all windows across all pyramid levels
+    // //TODO: recheck maximal suppression, take best corers for all windows across all pyramid levels
     // https://www.cc.gatech.edu/classes/AY2016/cs4476_fall/results/proj2/html/agartia3/index.html
     let pyramid_scale = 1.2; // opencv default is 1.2
     let runtime_params = OrbRuntimeParameters {
@@ -106,13 +83,11 @@ fn main() -> Result<()> {
     let intensity_camera_4 = intensity_camera_1.clone();
 
     let cameras = vec!(intensity_camera_1,intensity_camera_2,intensity_camera_3,intensity_camera_4);
-    //let cameras = vec!(intensity_camera_1,intensity_camera_2);
-
     let image_pairs = vec!((&image_1, &runtime_params, &image_2, &runtime_params), ((&image_3, &runtime_params, &image_4, &runtime_params)));
-    //let image_pairs = vec!((&image_1, &runtime_params, &image_2, &runtime_params));
-    println!("start matching...");
-    let matches = generate_matches(&image_pairs); //TODO: save matches to file for loading
-    println!("matching complete");
+
+
+    let orb_matches_read = fs::read_to_string("D:/Workspace/Rust/Vision/output/orb_ba_matches.txt").expect("Unable to read file");
+    let matches: Vec<Vec<Match<OrbFeature>>> = serde_yaml::from_str(&orb_matches_read)?;
 
     let mut feature_map = CameraFeatureMap::new(&matches);
     feature_map.add_images_from_params(&image_1, runtime_params.max_features_per_octave,runtime_params.octave_count);
