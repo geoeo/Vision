@@ -1,7 +1,8 @@
+use serde::{Serialize, Deserialize};
 use std::cmp::{Ordering, Eq,PartialOrd, PartialEq, Ord};
 
 
-#[derive(Debug,Clone,Copy)]
+#[derive(Debug,Clone,Copy, Serialize, Deserialize)]
 pub struct Point<T> where T: PartialOrd + PartialEq {
     pub x: T,
     pub y: T

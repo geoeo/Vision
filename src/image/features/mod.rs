@@ -1,3 +1,4 @@
+use serde::{Serialize, Deserialize};
 use crate::{Float,float};
 use crate::image::Image;
 use crate::image::filter::{prewitt_kernel::PrewittKernel,gradient_convolution_at_sample};
@@ -34,6 +35,8 @@ pub fn orientation(source_images: &Vec<Image>, feature: &dyn Feature) -> Float {
 
 }
 
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Match<T : Feature> {
     pub feature_one: (usize,T),
     pub feature_two: (usize,T)

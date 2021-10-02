@@ -1,3 +1,4 @@
+use serde::{Serialize, Deserialize};
 use crate::image::features::{
     Feature,Oriented,
     fast_feature::FastFeature,
@@ -9,7 +10,7 @@ use crate::image::pyramid::orb::orb_runtime_parameters::OrbRuntimeParameters;
 use crate::image::Image;
 use crate::Float;
 
-#[derive(Debug,Clone,Copy)]
+#[derive(Debug,Clone,Copy,Serialize, Deserialize)]
 pub struct OrbFeature {
     pub location: Point<usize>,
     pub orientation: Float,

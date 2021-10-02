@@ -281,6 +281,32 @@
             "externalConsole": false,
             "env": {"RUST_BACKTRACE":"1", "RUST_BACKTRACE":"full"},
             "preLaunchTask": "build examples"
+        },
+        {
+            "name": "Serde",
+            "type": "lldb",
+            "request": "launch",
+            "program": "${workspaceRoot}/target/debug/examples/serde",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "env": {"RUST_BACKTRACE":"1", "RUST_BACKTRACE":"full"},
+            "preLaunchTask": "build examples"
+        },
+        {
+            "name": "Orb BA Features",
+            "type": "lldb",
+            "request": "launch",
+            "program": "${workspaceRoot}/target/debug/examples/orb_ba_features",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "env": {"RUST_BACKTRACE":"1", "RUST_BACKTRACE":"full"},
+            "preLaunchTask": "build examples"
         }
     ]
 }
