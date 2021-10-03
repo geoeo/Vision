@@ -25,7 +25,7 @@ fn main() {
     let out_folder = "D:/Workspace/Rust/Vision/output";
 
     /*
-     * We invert x,y gradients and dont invert Z because we implicity want a mirrored transform since the cam position is a mirror of the SE3 
+     * Invert Depth should be true, but the coordiante system is not defined in the paper. This produces the best results
      */
     let loading_parameters = ImageLoadingParameters {
         starting_index: 0,

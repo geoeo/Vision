@@ -278,7 +278,7 @@ fn estimate<C : Camera, const T: usize>(
     }
 
 
-    (invert_se3(&est_transform), iteration_count)
+    (est_transform, iteration_count)
 }
 
 

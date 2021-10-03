@@ -128,7 +128,7 @@ pub fn optimize<C : Camera>(state: &mut State, cameras: &Vec<C>, observed_featur
     
     compute_jacobian(&state,&cameras,&mut jacobian);
 
-    weight_residuals_sparse(&mut residuals, &weights_vec);
+    weight_residuals_sparse(&mut residuals, &weights_vec); //TODO: weighting produces NaN!
     weight_jacobian_sparse(&mut jacobian, &weights_vec);
 
 

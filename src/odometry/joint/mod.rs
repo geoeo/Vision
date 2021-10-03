@@ -407,7 +407,7 @@ fn estimate<Cam: Camera, const R: usize, const C: usize>(
         iteration_count += 1;
     }
 
-    (invert_se3(&est_transform), iteration_count, bias_estimate)
+    (est_transform, iteration_count, bias_estimate)
 }
 
 #[allow(non_snake_case)]
