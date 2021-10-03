@@ -24,11 +24,13 @@ fn main() {
     let dataset = tum_loader::Dataset::FR2;
     let out_folder = "D:/Workspace/Rust/Vision/output";
 
-
+    /*
+     * We invert x,y gradients and dont invert Z because we implicity want a mirrored transform since the cam position is a mirror of the SE3 
+     */
     let loading_parameters = ImageLoadingParameters {
         starting_index: 0,
         step :1,
-        count :150,
+        count :300,
         image_height: 480,
         image_width: 640,
         negate_depth_values :false,
@@ -42,13 +44,13 @@ fn main() {
 
     let pyramid_parameters = GDRuntimeParameters{
         pyramid_scale: 2.0,
-        sigma: 0.01,
+        sigma: 0.1,
         use_blur: true,
         blur_radius: 1.0,
         octave_count: 4,
         min_image_dimensions: (50,50),
-        invert_grad_x : true,
-        invert_grad_y : true,
+        invert_grad_x : false,
+        invert_grad_y : false,
         blur_grad_x : false, //TODO: make bluring gradient cleaner
         blur_grad_y: false,
         normalize_gray: true,
@@ -74,7 +76,7 @@ fn main() {
         pyramid_scale: pyramid_parameters.pyramid_scale,
         max_iterations: vec![800;4],
         eps: vec!(1e-5,9e-4,9e-4,1e-6),
-        step_sizes: vec!(1e-0,5e-1,5e-1,1e-3), 
+        step_sizes: vec!(1e-0,1e-1,1e-1,1e-3), 
         max_norm_eps: 1e-10,
         delta_eps: 1e-10,
         taus: vec!(1e-6,1e-3,1e-3,1e-0), 

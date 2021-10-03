@@ -6,9 +6,9 @@ use std::fs;
 use color_eyre::eyre::Result;
 use std::path::Path;
 use vision::image::pyramid::orb::{orb_runtime_parameters::OrbRuntimeParameters, generate_matches};
-use vision::image::features::{Match,Feature,orb_feature::OrbFeature};
 use vision::image::Image;
 use vision::sensors::camera::pinhole::Pinhole;
+use vision::visualize::display_matches_for_pyramid;
 
 
 fn main() ->Result<()> {
@@ -97,16 +97,19 @@ fn main() ->Result<()> {
 
     fs::write("D:/Workspace/Rust/Vision/output/orb_ba_matches.txt", s).expect("Unable to write file");
 
-    // let orb_matches_read = fs::read_to_string("D:/Workspace/Rust/Vision/output/orb_ba_matches.txt").expect("Unable to read file");
-    // let deserialized_matches: Vec<Vec<Match<OrbFeature>>> = serde_yaml::from_str(&orb_matches_read)?;
+    let display_1 = Image::from_gray_image(&gray_image_1, false, false, None); 
+    let display_2 = Image::from_gray_image(&gray_image_2, false, false, None); 
+    let display_3 = Image::from_gray_image(&gray_image_3, false, false, None); 
+    let display_4 = Image::from_gray_image(&gray_image_4, false, false, None); 
 
 
-    // for a in deserialized_matches{
-    //     for b in a {
-    //         let (idx,feat) = b.feature_one;
-    //         println!("{}",feat.get_x_image());
-    //     }
-    // }
+    let match_display_1_2 = display_matches_for_pyramid(&display_1, &display_2, &matches[0], true, display_1.buffer.max()/2.0, runtime_params.pyramid_scale);
+    let match_display_3_4 = display_matches_for_pyramid(&display_3, &display_4, &matches[1], true, display_1.buffer.max()/2.0, runtime_params.pyramid_scale);
+
+
+    match_display_1_2.to_image().save(format!("{}{}_orb_ba.{}",image_out_folder,image_name_1,image_format)).unwrap();
+    match_display_3_4.to_image().save(format!("{}{}_orb_ba.{}",image_out_folder,image_name_3,image_format)).unwrap();
+
 
 
     Ok(())
