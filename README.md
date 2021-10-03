@@ -1,11 +1,13 @@
 # Papers Implemented
-Fast implmentation in Rust. http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.60.3991&rep=rep1&type=pdf
+Fast http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.60.3991&rep=rep1&type=pdf
 
-Orb implementation in Rust. http://www.gwylab.com/download/ORB_2012.pdf
+Orb http://www.gwylab.com/download/ORB_2012.pdf
 
-Dense VO implementation in Rust. https://ieeexplore.ieee.org/document/6631104
+Dense VO https://ieeexplore.ieee.org/document/6631104
 
-Imu Preintgration in Rust http://rpg.ifi.uzh.ch/docs/TRO16_forster.pdf
+Imu Preintgration http://rpg.ifi.uzh.ch/docs/TRO16_forster.pdf
+
+Sparse Bundle Adjustment (WIP) http://users.ics.forth.gr/~lourakis/sba/sba-toms.pdf
 
 ## Orb
 ![billa_cereal_far](doc/cereal_far.png)![billa_cereal_tilted](doc/cereal_tilted.png)
