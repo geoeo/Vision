@@ -128,7 +128,7 @@ pub fn optimize<C : Camera>(state: &mut State, cameras: &Vec<C>, observed_featur
     
     compute_jacobian(&state,&cameras,&mut jacobian);
 
-    weight_residuals_sparse(&mut residuals, &weights_vec); //TODO: weighting produces NaN!
+    weight_residuals_sparse(&mut residuals, &weights_vec); 
     weight_jacobian_sparse(&mut jacobian, &weights_vec);
 
 
@@ -156,7 +156,7 @@ pub fn optimize<C : Camera>(state: &mut State, cameras: &Vec<C>, observed_featur
             println!("it: {}, avg_rmse: {}",iteration_count,cost.sqrt());
         }
 
-        //TODO: setup arrowhead matrix
+        //TODO: setup arrowhead matrix-
         let (delta,g,gain_ratio_denom, mu_val) 
             = gauss_newton_step_with_schur(&residuals,
                 &jacobian,
@@ -178,7 +178,7 @@ pub fn optimize<C : Camera>(state: &mut State, cameras: &Vec<C>, observed_featur
         let cost_diff = cost-new_cost;
         let gain_ratio = cost_diff/gain_ratio_denom;
         if runtime_parameters.debug {
-            println!("delta: {}, g: {}",delta,g);
+            //println!("delta: {}, g: {}",delta,g);
             println!("cost: {}, new cost: {}",cost,new_cost);
         }
 

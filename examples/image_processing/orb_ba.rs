@@ -100,7 +100,7 @@ fn main() -> Result<()> {
     let observed_features = feature_map.get_observed_features();
     let runtime_parameters = RuntimeParameters {
         pyramid_scale: 1.0,
-        max_iterations: vec![800; 1],
+        max_iterations: vec![10; 1],
         eps: vec![1e-3],
         step_sizes: vec![1e-8],
         max_norm_eps: 1e-30,
@@ -108,7 +108,7 @@ fn main() -> Result<()> {
         taus: vec![1e-6],
         lm: true,
         weighting: true,
-        debug: false,
+        debug: true,
 
         show_octave_result: true,
         loss_function: Box::new(loss::TrivialLoss { eps: 1e-16, approximate_gauss_newton_matrices: true }), 
@@ -130,7 +130,7 @@ fn main() -> Result<()> {
     // }
 
 
-
+        //TODO: doesnt converge
     optimize(&mut state, &cameras, &observed_features, &runtime_parameters);
 
     let (cam_positions,points) = state.lift();
