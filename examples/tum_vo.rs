@@ -38,6 +38,7 @@ fn main() {
         invert_y :true,
         set_default_depth: true,
         gt_alignment_rot:UnitQuaternion::<Float>::from_axis_angle(&Vector3::x_axis(),float::consts::FRAC_PI_2)* UnitQuaternion::<Float>::from_axis_angle(&Vector3::y_axis(),float::consts::PI)
+        //gt_alignment_rot:UnitQuaternion::<Float>::from_axis_angle(&Vector3::y_axis(),float::consts::PI) // TODO maybe negate y aswell
     };
 
 

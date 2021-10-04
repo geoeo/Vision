@@ -170,7 +170,7 @@ pub fn compute_full_jacobian<const D: usize>(image_gradients: &Matrix<Float,Dyna
 
     for i in 0..number_of_elements {
         let jacobian_i = image_gradients.row(i)*const_jacobians.fixed_slice::<2, D>(i*2,0);
-        target.fixed_slice_mut::<1,D>(i,0).copy_from(&-jacobian_i);
+        target.fixed_slice_mut::<1,D>(i,0).copy_from(&jacobian_i);
 
     }
 
@@ -199,7 +199,7 @@ pub fn compute_residuals<C>(target_image_buffer: &DMatrix<Float>,source_image_bu
             image_gradient_points.push(Point::<usize>::new(target_point_x,target_point_y));
             let source_sample = source_image_buffer[(source_point.y,source_point.x)];
             let target_sample = target_image_buffer[(target_point_y,target_point_x)];
-            residual_target[i] = target_sample - source_sample;
+            residual_target[i] = source_sample - target_sample;
            }
         else {
             residual_target[i] = 0.0; 
