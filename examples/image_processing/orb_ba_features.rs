@@ -74,16 +74,7 @@ fn main() ->Result<()> {
         brief_use_opencv_sampling_pattern: true
     };
 
-    //TODO: also serialize cameras (ordering + intrinsics) into the yaml file
 
-    //TODO: camera intrinsics 
-    let intensity_camera_1 = Pinhole::new(389.2685546875, 389.2685546875, 319.049255371094, 241.347015380859, false);
-    let intensity_camera_2 = intensity_camera_1.clone();
-    let intensity_camera_3 = intensity_camera_1.clone();
-    let intensity_camera_4 = intensity_camera_1.clone();
-
-    let cameras = vec!(intensity_camera_1,intensity_camera_2,intensity_camera_3,intensity_camera_4);
-    //let cameras = vec!(intensity_camera_1,intensity_camera_2);
 
     let image_pairs = vec!((&image_1, &runtime_params, &image_2, &runtime_params), ((&image_3, &runtime_params, &image_4, &runtime_params)));
     //let image_pairs = vec!((&image_1, &runtime_params, &image_2, &runtime_params));
