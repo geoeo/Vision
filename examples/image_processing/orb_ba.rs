@@ -76,7 +76,7 @@ fn main() -> Result<()> {
     };
 
     //TODO: camera intrinsics 
-    let intensity_camera_1 = Pinhole::new(389.2685546875, 389.2685546875, 319.049255371094, 241.347015380859, false);
+    let intensity_camera_1 = Pinhole::new(389.2685546875, 389.2685546875, 319.049255371094, 241.347015380859, true);
     let intensity_camera_2 = intensity_camera_1.clone();
     let intensity_camera_3 = intensity_camera_1.clone();
     let intensity_camera_4 = intensity_camera_1.clone();
@@ -100,19 +100,19 @@ fn main() -> Result<()> {
     let observed_features = feature_map.get_observed_features();
     let runtime_parameters = RuntimeParameters {
         pyramid_scale: 1.0,
-        max_iterations: vec![10; 1],
+        max_iterations: vec![500; 1],
         eps: vec![1e-3],
         step_sizes: vec![1e-8],
         max_norm_eps: 1e-30,
         delta_eps: 1e-30,
-        taus: vec![1e-6],
+        taus: vec![1e-1],
         lm: true,
         weighting: true,
         debug: true,
 
         show_octave_result: true,
         loss_function: Box::new(loss::TrivialLoss { eps: 1e-16, approximate_gauss_newton_matrices: true }), 
-        intensity_weighting_function:  Box::new(weighting::TrivialWeight{})
+        intensity_weighting_function:  Box::new(weighting::HuberWeightForPos {delta:1.0})
     };
 
     let (before_cam_positions,before_points) = state.lift();
@@ -130,7 +130,6 @@ fn main() -> Result<()> {
     // }
 
 
-        //TODO: doesnt converge
     optimize(&mut state, &cameras, &observed_features, &runtime_parameters);
 
     let (cam_positions,points) = state.lift();

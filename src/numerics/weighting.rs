@@ -55,7 +55,7 @@ pub struct TrivialWeight {
 impl WeightingFunction for TrivialWeight {
 
     fn cost(&self, cost: Float) -> Float {
-        cost.abs()
+        1.0
     }
 
     fn name(&self) -> &str {

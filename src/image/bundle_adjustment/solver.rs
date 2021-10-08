@@ -44,7 +44,8 @@ pub fn get_estimated_features<C : Camera>(state: &State, cameras: &Vec<C>, estim
 pub fn compute_residual(estimated_features: &DVector<Float>, observed_features: &DVector<Float>, residual_vector: &mut DVector<Float>) -> () {
     assert_eq!(residual_vector.nrows(), estimated_features.nrows());
     for i in 0..residual_vector.nrows(){
-        residual_vector[i] = observed_features[i] - estimated_features[i];
+        residual_vector[i] = estimated_features[i] -  observed_features[i];
+        //residual_vector[i] =  observed_features[i] -  estimated_features[i];
     }
 }
 
@@ -156,7 +157,7 @@ pub fn optimize<C : Camera>(state: &mut State, cameras: &Vec<C>, observed_featur
             println!("it: {}, avg_rmse: {}",iteration_count,cost.sqrt());
         }
 
-        //TODO: setup arrowhead matrix-
+        //TODO: setup arrowhead matrix
         let (delta,g,gain_ratio_denom, mu_val) 
             = gauss_newton_step_with_schur(&residuals,
                 &jacobian,
@@ -168,8 +169,8 @@ pub fn optimize<C : Camera>(state: &mut State, cameras: &Vec<C>, observed_featur
 
         let pertb = step*(&delta);
         new_state.update(&pertb);
-        get_estimated_features(state, cameras, &mut new_estimated_features);
-        compute_residual(&estimated_features, observed_features, &mut new_residuals);
+        get_estimated_features(&new_state, cameras, &mut new_estimated_features);
+        compute_residual(&new_estimated_features, observed_features, &mut new_residuals);
         weight_residuals_sparse(&mut new_residuals, &weights_vec);
 
 
@@ -179,9 +180,10 @@ pub fn optimize<C : Camera>(state: &mut State, cameras: &Vec<C>, observed_featur
         let gain_ratio = cost_diff/gain_ratio_denom;
         if runtime_parameters.debug {
             //println!("delta: {}, g: {}",delta,g);
-            println!("cost: {}, new cost: {}",cost,new_cost);
+            println!("cost: {}, new cost: {}, mu: {:?}, nu: {}",cost,new_cost, mu, nu);
         }
 
+        //TODO: check gain ratio calc
         if gain_ratio >= 0.0  || !runtime_parameters.lm {
             estimated_features.copy_from(&new_estimated_features);
             state.data.copy_from(&new_state.data); 
@@ -207,6 +209,9 @@ pub fn optimize<C : Camera>(state: &mut State, cameras: &Vec<C>, observed_featur
 
             mu = Some(nu*mu.unwrap());
             nu *= 2.0;
+            if mu.unwrap().is_infinite(){
+                break;
+            }
         }
 
         iteration_count += 1;
