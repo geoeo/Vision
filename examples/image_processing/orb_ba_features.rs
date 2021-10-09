@@ -28,18 +28,18 @@ fn main() ->Result<()> {
     let image_out_folder = "output/";
     let image_path_1 = format!("{}{}.{}",image_folder,image_name_1, image_format);
     let image_path_2 = format!("{}{}.{}",image_folder,image_name_2, image_format);
-    let image_path_3 = format!("{}{}.{}",image_folder,image_name_3, image_format);
-    let image_path_4 = format!("{}{}.{}",image_folder,image_name_4, image_format);
+    // let image_path_3 = format!("{}{}.{}",image_folder,image_name_3, image_format);
+    // let image_path_4 = format!("{}{}.{}",image_folder,image_name_4, image_format);
 
     let gray_image_1 = image_rs::open(&Path::new(&image_path_1)).unwrap().to_luma8();
     let gray_image_2 = image_rs::open(&Path::new(&image_path_2)).unwrap().to_luma8();
-    let gray_image_3 = image_rs::open(&Path::new(&image_path_3)).unwrap().to_luma8();
-    let gray_image_4 = image_rs::open(&Path::new(&image_path_4)).unwrap().to_luma8();
+    // let gray_image_3 = image_rs::open(&Path::new(&image_path_3)).unwrap().to_luma8();
+    // let gray_image_4 = image_rs::open(&Path::new(&image_path_4)).unwrap().to_luma8();
 
     let image_1 = Image::from_gray_image(&gray_image_1, false, false, Some(image_name_1.to_string()));
     let image_2 = Image::from_gray_image(&gray_image_2, false, false, Some(image_name_2.to_string()));
-    let image_3 = Image::from_gray_image(&gray_image_3, false, false, Some(image_name_3.to_string()));
-    let image_4 = Image::from_gray_image(&gray_image_4, false, false, Some(image_name_4.to_string()));
+    // let image_3 = Image::from_gray_image(&gray_image_3, false, false, Some(image_name_3.to_string()));
+    // let image_4 = Image::from_gray_image(&gray_image_4, false, false, Some(image_name_4.to_string()));
 
 
 
@@ -76,8 +76,9 @@ fn main() ->Result<()> {
 
 
 
-    let image_pairs = vec!((&image_1, &runtime_params, &image_2, &runtime_params), ((&image_3, &runtime_params, &image_4, &runtime_params)));
-    //let image_pairs = vec!((&image_1, &runtime_params, &image_2, &runtime_params));
+    //let image_pairs = vec!((&image_1, &runtime_params, &image_2, &runtime_params), ((&image_3, &runtime_params, &image_4, &runtime_params)));
+    let image_pairs = vec!((&image_1, &runtime_params, &image_2, &runtime_params));
+
     println!("start matching...");
     let matches = generate_matches(&image_pairs); //TODO: save matches to file for loading
     println!("matching complete");
@@ -86,20 +87,20 @@ fn main() ->Result<()> {
     let s = serde_yaml::to_string(&matches)?;
 
 
-    fs::write("D:/Workspace/Rust/Vision/output/orb_ba_matches.txt", s).expect("Unable to write file");
+    fs::write("D:/Workspace/Rust/Vision/output/orb_ba_matches_2_images.txt", s).expect("Unable to write file");
 
     let display_1 = Image::from_gray_image(&gray_image_1, false, false, None); 
     let display_2 = Image::from_gray_image(&gray_image_2, false, false, None); 
-    let display_3 = Image::from_gray_image(&gray_image_3, false, false, None); 
-    let display_4 = Image::from_gray_image(&gray_image_4, false, false, None); 
+    // let display_3 = Image::from_gray_image(&gray_image_3, false, false, None); 
+    // let display_4 = Image::from_gray_image(&gray_image_4, false, false, None); 
 
 
     let match_display_1_2 = display_matches_for_pyramid(&display_1, &display_2, &matches[0], true, display_1.buffer.max()/2.0, runtime_params.pyramid_scale);
-    let match_display_3_4 = display_matches_for_pyramid(&display_3, &display_4, &matches[1], true, display_1.buffer.max()/2.0, runtime_params.pyramid_scale);
+    //let match_display_3_4 = display_matches_for_pyramid(&display_3, &display_4, &matches[1], true, display_1.buffer.max()/2.0, runtime_params.pyramid_scale);
 
 
     match_display_1_2.to_image().save(format!("{}{}_orb_ba.{}",image_out_folder,image_name_1,image_format)).unwrap();
-    match_display_3_4.to_image().save(format!("{}{}_orb_ba.{}",image_out_folder,image_name_3,image_format)).unwrap();
+    //match_display_3_4.to_image().save(format!("{}{}_orb_ba.{}",image_out_folder,image_name_3,image_format)).unwrap();
 
 
 

@@ -78,21 +78,24 @@ fn main() -> Result<()> {
     //TODO: camera intrinsics 
     let intensity_camera_1 = Pinhole::new(389.2685546875, 389.2685546875, 319.049255371094, 241.347015380859, true);
     let intensity_camera_2 = intensity_camera_1.clone();
-    let intensity_camera_3 = intensity_camera_1.clone();
-    let intensity_camera_4 = intensity_camera_1.clone();
+    // let intensity_camera_3 = intensity_camera_1.clone();
+    // let intensity_camera_4 = intensity_camera_1.clone();
 
-    let cameras = vec!(intensity_camera_1,intensity_camera_2,intensity_camera_3,intensity_camera_4);
-    let image_pairs = vec!((&image_1, &runtime_params, &image_2, &runtime_params), ((&image_3, &runtime_params, &image_4, &runtime_params)));
+    let cameras = vec!(intensity_camera_1,intensity_camera_2);
+    let image_pairs = vec!((&image_1, &runtime_params, &image_2, &runtime_params));
+
+    // let cameras = vec!(intensity_camera_1,intensity_camera_2,intensity_camera_3,intensity_camera_4);
+    // let image_pairs = vec!((&image_1, &runtime_params, &image_2, &runtime_params), ((&image_3, &runtime_params, &image_4, &runtime_params)));
 
 
-    let orb_matches_read = fs::read_to_string("D:/Workspace/Rust/Vision/output/orb_ba_matches.txt").expect("Unable to read file");
+    let orb_matches_read = fs::read_to_string("D:/Workspace/Rust/Vision/output/orb_ba_matches_2_images.txt").expect("Unable to read file");
     let matches: Vec<Vec<Match<OrbFeature>>> = serde_yaml::from_str(&orb_matches_read)?;
 
     let mut feature_map = CameraFeatureMap::new(&matches);
     feature_map.add_images_from_params(&image_1, runtime_params.max_features_per_octave,runtime_params.octave_count);
     feature_map.add_images_from_params(&image_2, runtime_params.max_features_per_octave,runtime_params.octave_count);
-    feature_map.add_images_from_params(&image_3, runtime_params.max_features_per_octave,runtime_params.octave_count);
-    feature_map.add_images_from_params(&image_4, runtime_params.max_features_per_octave,runtime_params.octave_count);
+    // feature_map.add_images_from_params(&image_3, runtime_params.max_features_per_octave,runtime_params.octave_count);
+    // feature_map.add_images_from_params(&image_4, runtime_params.max_features_per_octave,runtime_params.octave_count);
 
     feature_map.add_matches(&image_pairs.into_iter().map(|(i1,_,i2,_)| (i1,i2)).collect(),&matches, runtime_params.pyramid_scale);
 

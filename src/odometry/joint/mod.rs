@@ -9,7 +9,7 @@ use na::{
 use std::boxed::Box;
 
 use crate::image::Image;
-use crate::numerics::{lie,pose::invert_se3, loss::LossFunction, max_norm, solver::{norm,weight_jacobian_sparse,weight_residuals_sparse,weight_jacobian,weight_residuals}};
+use crate::numerics::{lie,pose::invert_se3, loss::LossFunction, max_norm, solver::{calc_weight_vec,weight_jacobian_sparse,weight_residuals_sparse,weight_jacobian,weight_residuals}};
 use crate::odometry::runtime_parameters::RuntimeParameters;
 use crate::odometry::visual_odometry::dense_direct::{ RuntimeMemory,
     backproject_points, compute_full_jacobian, compute_image_gradients, compute_residuals,
@@ -321,7 +321,7 @@ fn estimate<Cam: Camera, const R: usize, const C: usize>(
             &mut runtime_memory.new_residuals,
             &mut runtime_memory.new_image_gradient_points,
         );
-        norm(
+        calc_weight_vec(
             &runtime_memory.new_residuals,
             &runtime_parameters.intensity_weighting_function,
             &mut runtime_memory.weights_vec,

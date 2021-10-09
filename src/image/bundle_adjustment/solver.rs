@@ -1,10 +1,10 @@
 extern crate nalgebra as na;
 
-use na::{DVector,DMatrix,Matrix, Dynamic, U4, VecStorage,Vector, Vector4, Matrix2x4,Matrix2x3, Matrix4,U3,U1,base::storage::Storage};
+use na::{DVector,DMatrix,Matrix, Dynamic, U4, VecStorage,Vector, Vector4, Matrix2x4,Matrix2x3,Matrix1x6,Matrix1x3, Matrix4,U3,U1,base::storage::Storage};
 use crate::{float,Float};
 use crate::sensors::camera::Camera;
 use crate::numerics::lie::{exp, left_jacobian_around_identity};
-use crate::numerics::{max_norm, solver::{compute_cost,weight_jacobian_sparse,weight_residuals_sparse, norm, gauss_newton_step_with_loss_and_schur, gauss_newton_step_with_schur}};
+use crate::numerics::{max_norm, solver::{compute_cost,weight_jacobian_sparse,weight_residuals_sparse, calc_weight_vec, gauss_newton_step_with_loss_and_schur, gauss_newton_step_with_schur}};
 use crate::image::bundle_adjustment::state::State;
 use crate::odometry::runtime_parameters::RuntimeParameters; //TODO remove dependency on odometry module
 
@@ -44,9 +44,10 @@ pub fn get_estimated_features<C : Camera>(state: &State, cameras: &Vec<C>, estim
 
 pub fn compute_residual(estimated_features: &DVector<Float>, observed_features: &DVector<Float>, residual_vector: &mut DVector<Float>) -> () {
     assert_eq!(residual_vector.nrows(), estimated_features.nrows());
-    for i in 0..residual_vector.nrows(){
-        residual_vector[i] = estimated_features[i] -  observed_features[i];
-        //residual_vector[i] =  observed_features[i] -  estimated_features[i];
+    for i in (0..residual_vector.nrows()){
+        //residual_vector[i] = estimated_features[i] -  observed_features[i] / ( (estimated_features[i] -  observed_features[i]).powi(2) + (estimated_features[i+1] -  observed_features[i+1]).powi(2)).sqrt();
+        //residual_vector[i+1] = estimated_features[i+1] -  observed_features[i+1] / ( (estimated_features[i] -  observed_features[i]).powi(2) + (estimated_features[i+1] -  observed_features[i+1]).powi(2)).sqrt();
+        residual_vector[i] =  estimated_features[i] - observed_features[i];
     }
 }
 
@@ -73,7 +74,7 @@ pub fn compute_jacobian_wrt_camera_parameters<C : Camera, T>( camera: &C, transf
     jacobian.fixed_slice_mut::<2,6>(i,j).copy_from(&(projection*lie_jacobian));
 }
 
-pub fn compute_jacobian<C : Camera>(state: &State, cameras: &Vec<C>, jacobian: &mut DMatrix<Float>) -> () {
+pub fn compute_jacobian<C : Camera>(state: &State, cameras: &Vec<C>, jacobian: &mut DMatrix<Float>, estimated_features: &DVector<Float>, observed_features: &DVector<Float>) -> () {
     //cam
     let number_of_cam_params = 6*state.n_cams;
     for cam_state_idx in (0..number_of_cam_params).step_by(6) {
@@ -96,6 +97,21 @@ pub fn compute_jacobian<C : Camera>(state: &State, cameras: &Vec<C>, jacobian: &
 
             compute_jacobian_wrt_camera_parameters(camera , &transformation,point,a_i,a_j, jacobian);
             compute_jacobian_wrt_object_points(camera, &transformation,b_i,b_j, jacobian);
+
+            // let v = (estimated_features[a_i] -  observed_features[a_i]).powi(2) + (estimated_features[a_i+1] -  observed_features[a_i+1]).powi(2);
+            // let mut j_a = Matrix1x6::<Float>::zeros();
+            // let mut j_a_y = Matrix1x6::<Float>::zeros();
+            // let mut j_b = Matrix1x3::<Float>::zeros();
+            // let mut j_b_y = Matrix1x3::<Float>::zeros();
+            // j_a.copy_from(&jacobian.fixed_slice::<1,6>(a_i,a_j));
+            // j_a_y.copy_from(&jacobian.fixed_slice::<1,6>(a_i+1,a_j));
+            // j_b.copy_from(&jacobian.fixed_slice::<1,3>(b_i,b_j));
+            // j_b_y.copy_from(&jacobian.fixed_slice::<1,3>(b_i+1,b_j));
+            // //jacobian[(a_i,a_j)] = jacobian[(a_i,a_j)]*(v.sqrt() - 0.5*estimated_features[a_i]*v)/v;
+            // jacobian.fixed_slice_mut::<1,6>(a_i,a_j).copy_from(&(j_a*(v.sqrt() - 0.5*(estimated_features[a_i]- observed_features[a_i])*v)/v));
+            // jacobian.fixed_slice_mut::<1,6>(a_i+1,a_j).copy_from(&(j_a_y*(v.sqrt() - 0.5*(estimated_features[a_i+1]- observed_features[a_i+1])*v)/v));
+            // jacobian.fixed_slice_mut::<1,3>(b_i,b_j).copy_from(&(j_b*(v.sqrt() - 0.5*(estimated_features[b_i] - observed_features[b_i])*v)/v));
+            // jacobian.fixed_slice_mut::<1,3>(b_i+1,b_j).copy_from(&(j_b_y*(v.sqrt() - 0.5*(estimated_features[b_i+1] - observed_features[b_i+1])*v)/v));
 
         }
 
@@ -123,7 +139,7 @@ pub fn optimize<C : Camera>(state: &mut State, cameras: &Vec<C>, observed_featur
 
 
     
-    compute_jacobian(&state,&cameras,&mut jacobian);
+    compute_jacobian(&state,&cameras,&mut jacobian, &estimated_features, &observed_features);
 
     weight_residuals_sparse(&mut residuals, &weights_vec); 
     weight_jacobian_sparse(&mut jacobian, &weights_vec);
@@ -168,7 +184,7 @@ pub fn optimize<C : Camera>(state: &mut State, cameras: &Vec<C>, observed_featur
         get_estimated_features(&new_state, cameras, &mut new_estimated_features);
         compute_residual(&new_estimated_features, observed_features, &mut new_residuals);
         if runtime_parameters.weighting {
-            norm(
+            calc_weight_vec(
                 &new_residuals,
                 &runtime_parameters.intensity_weighting_function,
                 &mut weights_vec,
@@ -202,7 +218,7 @@ pub fn optimize<C : Camera>(state: &mut State, cameras: &Vec<C>, observed_featur
 
             
 
-            compute_jacobian(&state,&cameras,&mut jacobian);
+            compute_jacobian(&state,&cameras,&mut jacobian, &estimated_features, &observed_features);
             weight_jacobian_sparse(&mut jacobian, &weights_vec);
 
             let v: Float = 1.0/3.0;

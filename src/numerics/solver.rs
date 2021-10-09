@@ -13,7 +13,7 @@ use crate::{float, Float};
 
 
 
-pub fn norm<D, S1,S2>(
+pub fn calc_weight_vec<D, S1,S2>(
     residuals: &Vector<Float,D,S2>,
     weight_function: &Box<dyn WeightingFunction>,
     weights_vec: &mut Vector<Float,D,S1>) -> () where 

@@ -49,6 +49,23 @@ impl WeightingFunction for HuberWeightForPos {
 
 }
 
+pub struct CauchyWeight {
+    pub sigma_sqrd: Float
+}
+
+impl WeightingFunction for CauchyWeight {
+
+    fn cost(&self, cost: Float) -> Float {
+        (1.0 + cost.powi(2)/self.sigma_sqrd).ln()
+    }
+
+    fn name(&self) -> &str {
+        "CauchyWeight"
+    }
+
+}
+
+
 pub struct TrivialWeight {
 }
 
