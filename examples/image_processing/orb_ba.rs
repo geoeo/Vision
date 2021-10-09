@@ -105,14 +105,14 @@ fn main() -> Result<()> {
         step_sizes: vec![1e-8],
         max_norm_eps: 1e-30, 
         delta_eps: 1e-30,
-        taus: vec![1e-0],
+        taus: vec![1e-3],
         lm: true,
         weighting: true,
         debug: true,
 
         show_octave_result: true,
         loss_function: Box::new(loss::TrivialLoss { eps: 1e-16, approximate_gauss_newton_matrices: true }), 
-        intensity_weighting_function:  Box::new(weighting::HuberWeightForPos {delta:1.0})
+        intensity_weighting_function:  Box::new(weighting::TrivialWeight {})
     };
 
     let (before_cam_positions,before_points) = state.lift();

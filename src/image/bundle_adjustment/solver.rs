@@ -1,6 +1,6 @@
 extern crate nalgebra as na;
 
-use na::{DVector,DMatrix,Matrix, Dynamic, U4, VecStorage,Vector, Vector4, Matrix2x4, Matrix4,U3,U1,base::storage::Storage};
+use na::{DVector,DMatrix,Matrix, Dynamic, U4, VecStorage,Vector, Vector4, Matrix2x4,Matrix2x3, Matrix4,U3,U1,base::storage::Storage};
 use crate::{float,Float};
 use crate::sensors::camera::Camera;
 use crate::numerics::lie::{exp, left_jacobian_around_identity};
@@ -41,6 +41,7 @@ pub fn get_estimated_features<C : Camera>(state: &State, cameras: &Vec<C>, estim
 
 }
 
+
 pub fn compute_residual(estimated_features: &DVector<Float>, observed_features: &DVector<Float>, residual_vector: &mut DVector<Float>) -> () {
     assert_eq!(residual_vector.nrows(), estimated_features.nrows());
     for i in 0..residual_vector.nrows(){
@@ -50,15 +51,12 @@ pub fn compute_residual(estimated_features: &DVector<Float>, observed_features: 
 }
 
 
-pub fn compute_jacobian_wrt_object_points<C : Camera, T>(camera: &C, transformation: &Matrix4<Float>,point: &Vector<Float,U3,T>, i: usize, j: usize, jacobian: &mut DMatrix<Float>) 
-    -> () where T: Storage<Float,U3,U1> {
-    let transformed_point = transformation*Vector4::<Float>::new(point[0],point[1],point[2],1.0);
-    let projection_jacobian = camera.get_jacobian_with_respect_to_position(&transformed_point.fixed_rows::<3>(0));
-    let mut projection_jacobian_homogeneous = Matrix2x4::<Float>::zeros();
-    projection_jacobian_homogeneous.fixed_slice_mut::<2,3>(0,0).copy_from(&projection_jacobian);
+pub fn compute_jacobian_wrt_object_points<C : Camera>(camera: &C, transformation: &Matrix4<Float>, i: usize, j: usize, jacobian: &mut DMatrix<Float>) 
+    -> () {
 
-    let jacobian_homogeneous = &(projection_jacobian_homogeneous*transformation);
-    jacobian.fixed_slice_mut::<2,3>(i,j).copy_from(&jacobian_homogeneous.fixed_slice::<2,3>(0,0));
+    let mut projection_homogeneous = Matrix2x4::<Float>::zeros();
+    projection_homogeneous.fixed_slice_mut::<2,3>(0,0).copy_from(&camera.get_projection().fixed_slice::<2,3>(0,0));
+    jacobian.fixed_slice_mut::<2,3>(i,j).copy_from(&(projection_homogeneous*transformation).fixed_slice::<2,3>(0,0));
 
 
 }
@@ -67,8 +65,12 @@ pub fn compute_jacobian_wrt_camera_parameters<C : Camera, T>( camera: &C, transf
     -> () where T: Storage<Float,U3,U1> {
     let transformed_point = transformation*Vector4::<Float>::new(point[0],point[1],point[2],1.0);
     let lie_jacobian = left_jacobian_around_identity(&transformed_point.fixed_rows::<3>(0));
-    let projection_jacobian = camera.get_jacobian_with_respect_to_position(&transformed_point.fixed_rows::<3>(0));
-    jacobian.fixed_slice_mut::<2,6>(i,j).copy_from(&(projection_jacobian*lie_jacobian));
+    //let projection_jacobian = camera.get_jacobian_with_respect_to_position(&transformed_point.fixed_rows::<3>(0));
+
+    let mut projection = Matrix2x3::<Float>::zeros();
+    projection.fixed_slice_mut::<2,3>(0,0).copy_from(&camera.get_projection().fixed_slice::<2,3>(0,0));
+
+    jacobian.fixed_slice_mut::<2,6>(i,j).copy_from(&(projection*lie_jacobian));
 }
 
 pub fn compute_jacobian<C : Camera>(state: &State, cameras: &Vec<C>, jacobian: &mut DMatrix<Float>) -> () {
@@ -93,7 +95,7 @@ pub fn compute_jacobian<C : Camera>(state: &State, cameras: &Vec<C>, jacobian: &
             let b_j = number_of_cam_params+point_id*3;
 
             compute_jacobian_wrt_camera_parameters(camera , &transformation,point,a_i,a_j, jacobian);
-            compute_jacobian_wrt_object_points(camera, &transformation,point,b_i,b_j, jacobian);
+            compute_jacobian_wrt_object_points(camera, &transformation,b_i,b_j, jacobian);
 
         }
 
@@ -119,13 +121,7 @@ pub fn optimize<C : Camera>(state: &mut State, cameras: &Vec<C>, observed_featur
     get_estimated_features(state, cameras, &mut estimated_features);
     compute_residual(&estimated_features, observed_features, &mut residuals);
 
-    if runtime_parameters.weighting {
-        norm(
-            &residuals,
-            &runtime_parameters.intensity_weighting_function,
-            &mut weights_vec,
-        );
-    }
+
     
     compute_jacobian(&state,&cameras,&mut jacobian);
 
@@ -171,6 +167,13 @@ pub fn optimize<C : Camera>(state: &mut State, cameras: &Vec<C>, observed_featur
         new_state.update(&pertb);
         get_estimated_features(&new_state, cameras, &mut new_estimated_features);
         compute_residual(&new_estimated_features, observed_features, &mut new_residuals);
+        if runtime_parameters.weighting {
+            norm(
+                &new_residuals,
+                &runtime_parameters.intensity_weighting_function,
+                &mut weights_vec,
+            );
+        }
         weight_residuals_sparse(&mut new_residuals, &weights_vec);
 
 
@@ -209,12 +212,13 @@ pub fn optimize<C : Camera>(state: &mut State, cameras: &Vec<C>, observed_featur
 
             mu = Some(nu*mu.unwrap());
             nu *= 2.0;
-            if mu.unwrap().is_infinite(){
-                break;
-            }
         }
 
         iteration_count += 1;
+
+        if mu.unwrap().is_infinite(){
+            break;
+        }
 
     }
 
