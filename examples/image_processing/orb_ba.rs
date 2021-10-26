@@ -75,7 +75,7 @@ fn main() -> Result<()> {
         brief_use_opencv_sampling_pattern: true
     };
 
-    //TODO: camera intrinsics 
+    //TODO: camera intrinsics -investigate removing badly matched feature in the 2 image set
     let intensity_camera_1 = Pinhole::new(389.2685546875, 389.2685546875, 319.049255371094, 241.347015380859, true);
     let intensity_camera_2 = intensity_camera_1.clone();
     // let intensity_camera_3 = intensity_camera_1.clone();

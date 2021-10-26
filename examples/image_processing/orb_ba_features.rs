@@ -51,7 +51,7 @@ fn main() ->Result<()> {
         min_image_dimensions: (20,20),
         sigma: 2.0,
         blur_radius: 3.0,
-        max_features_per_octave: 15, // 15
+        max_features_per_octave: 10, // 15
         max_features_per_octave_scale: 1.2,
         octave_count: 3, // opencv default is 8
         harris_k: 0.04,
