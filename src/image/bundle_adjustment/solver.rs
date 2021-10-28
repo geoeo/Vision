@@ -4,7 +4,7 @@ use na::{DVector,DMatrix,Matrix, Dynamic, U4, VecStorage,Vector, Vector4, Matrix
 use crate::{float,Float};
 use crate::sensors::camera::Camera;
 use crate::numerics::lie::{exp, left_jacobian_around_identity};
-use crate::numerics::{max_norm, solver::{compute_cost,weight_jacobian_sparse,weight_residuals_sparse, calc_weight_vec, gauss_newton_step_with_loss_and_schur, gauss_newton_step_with_schur}};
+use crate::numerics::{max_norm, solver::{compute_cost,weight_jacobian_sparse,weight_residuals_sparse, calc_weight_vec, gauss_newton_step, gauss_newton_step_with_loss_and_schur, gauss_newton_step_with_schur}};
 use crate::image::bundle_adjustment::state::State;
 use crate::odometry::runtime_parameters::RuntimeParameters; //TODO remove dependency on odometry module
 
@@ -170,8 +170,14 @@ pub fn optimize<C : Camera>(state: &mut State, cameras: &Vec<C>, observed_featur
         }
 
         //TODO: setup arrowhead matrix
-        let (delta,g,gain_ratio_denom, mu_val) 
-            = gauss_newton_step_with_schur(&residuals,
+        // let (delta,g,gain_ratio_denom, mu_val) 
+        //     = gauss_newton_step_with_schur(&residuals,
+        //         &jacobian,
+        //         &identity,
+        //         mu,
+        //         tau); 
+            let (delta,g,gain_ratio_denom, mu_val) 
+            = gauss_newton_step(&residuals,
                 &jacobian,
                 &identity,
                 mu,

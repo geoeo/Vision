@@ -157,31 +157,58 @@ pub fn gauss_newton_step_with_loss_and_schur(
 
 //TODO: use schur compliment,  setup arrowhead matrix from jacobian
 #[allow(non_snake_case)]
-pub fn gauss_newton_step_with_schur<R, C,S1, S2, S3>(
+pub fn gauss_newton_step_with_schur<R, C,S1, S2, S3,S_Target_Arrow,S_Target_Residual>(
+    target_arrowhead: &mut Matrix<Float,C,C,S_Target_Arrow>, 
+    target_arrowhead_residual: &mut Vector<Float,C,S_Target_Residual>, 
+    target_perturb: &mut Vector<Float,C,S_Target_Residual>, 
     residuals: &Vector<Float, R,S1>, 
     jacobian: &Matrix<Float,R,C,S2>,
-    identity: &Matrix<Float,C,C,S3>,
-     mu: Option<Float>, 
-     tau: Float)-> (OVector<Float,C>,OVector<Float,C>,Float,Float) 
+    mu: Option<Float>, 
+    tau: Float,
+    n_cams: usize, 
+    n_points: usize)-> (Float,Float) 
      where 
         R: Dim, 
         C: Dim + DimMin<C, Output = C>,
         S1: Storage<Float, R>,
         S2: Storage<Float, R, C>,
         S3: Storage<Float, C, C>,
+        S_Target_Arrow: StorageMut<Float, C, C>,
+        S_Target_Residual: StorageMut<Float, C, U1>,
         DefaultAllocator: Allocator<Float, R, C>+  Allocator<Float, C, R> + Allocator<Float, C, C> + Allocator<Float, C> + Allocator<Float, Const<1_usize>, C>  {
 
 
-    let (A,g) = (jacobian.transpose()*jacobian,jacobian.transpose()*residuals);
-    let mu_val = match mu {
-        None => tau*A.diagonal().max(),
-        Some(v) => v
-    };
+        let u_span = 6*n_cams;
+        let v_span = 3*n_points;
 
-    let decomp = (A+ mu_val*identity).qr();
-    let h = decomp.solve(&(-(&g))).expect("QR Solve Failed");
-    let gain_ratio_denom = (&h).transpose()*(mu_val*(&h)-(&g));
-    (h,g,gain_ratio_denom[0], mu_val)
+        let diag_max = compute_arrow_head_and_residuals(target_arrowhead,target_arrowhead_residual,jacobian,residuals,mu,tau,n_cams,n_points);
+
+        let U_star = target_arrowhead.slice((0,0),(u_span,u_span));
+        let V_star = target_arrowhead.slice((u_span,u_span),(v_span,v_span));
+        let W = target_arrowhead.slice((0,u_span),(u_span,v_span));
+        let W_t = target_arrowhead.slice((u_span,0),(v_span,u_span));
+        let V_star_cholesky = V_star.cholesky().unwrap();
+        let V_star_inv = V_star_cholesky.inverse();
+        let res_a = target_arrowhead_residual.slice((0,0),(u_span,0));
+        let res_b = target_arrowhead_residual.slice((u_span,0),(v_span,0));
+
+        let schur_compliment = U_star - W*(&V_star_inv)*W_t;
+        let h_a = schur_compliment.cholesky().unwrap().solve(&(res_a-W*V_star_inv*res_b));
+        let h_b = V_star_cholesky.solve(&(res_b-W_t*(&h_a)));
+        target_perturb.slice_mut((0,0),(u_span,0)).copy_from(&h_a);
+        target_perturb.slice_mut((u_span,0),(v_span,0)).copy_from(&h_b);
+
+        
+        let mu_val = match mu {
+            None => tau*diag_max,
+            Some(v) => v
+        };
+        let scaled_target_res = target_perturb.scale(mu_val);
+        let gain_ratio_denom = (&target_perturb).transpose()*(&scaled_target_res-(target_arrowhead_residual as  &Vector<Float,C,S_Target_Residual>));
+        
+        (gain_ratio_denom[0], mu_val)
+
+
 }
 
 #[allow(non_snake_case)]
@@ -211,29 +238,30 @@ pub fn gauss_newton_step<R, C,S1, S2, S3>(
 }
 
 #[allow(non_snake_case)]
-fn compute_arrow_head_and_residuals<R_Target, C_Target, R_Jacobian, C_Jacobian,S_Target_Arrow, S_Target_Residual, S_Jacobian, S_Residual>
+fn compute_arrow_head_and_residuals<R, C,S_Target_Arrow, S_Target_Residual, S_Jacobian, S_Residual>
     (
-        target_arrowhead: &mut Matrix<Float,R_Target,C_Target,S_Target_Arrow>, 
-        target_residual: &mut Vector<Float,R_Target,S_Target_Residual>, 
-        jacobian: &Matrix<Float,R_Jacobian,C_Jacobian,S_Jacobian>, 
-        residuals: &Vector<Float, R_Target, S_Residual>,
+        target_arrowhead: &mut Matrix<Float,C,C,S_Target_Arrow>, 
+        target_residual: &mut Vector<Float,C,S_Target_Residual>, 
+        jacobian: &Matrix<Float,R,C,S_Jacobian>, 
+        residuals: &Vector<Float, R, S_Residual>,
+        mu: Option<Float>, 
+        tau: Float,
         n_cams: usize, 
         n_points: usize
-    ) -> () 
+    ) -> Float
     where 
-    R_Target: Dim, 
-    C_Target: Dim + DimMin<C_Target, Output = C_Target>,
-    R_Jacobian: Dim, 
-    C_Jacobian: Dim + DimMin<C_Jacobian, Output = C_Jacobian>,
-    S_Target_Arrow: StorageMut<Float, R_Target, C_Target>,
-    S_Target_Residual: StorageMut<Float, R_Target, U1>,
-    S_Residual: Storage<Float, R_Target, U1>,
-    S_Jacobian: Storage<Float, R_Jacobian, C_Jacobian> {
+    R: Dim, 
+    C: Dim + DimMin<C, Output = C>,
+    S_Target_Arrow: StorageMut<Float, C, C>,
+    S_Target_Residual: StorageMut<Float, C, U1>,
+    S_Residual: Storage<Float, R, U1>,
+    S_Jacobian: Storage<Float, R, C> {
 
         let number_of_cam_params = 6*n_cams;
         let number_of_point_params = 3*n_points;
         let number_of_measurement_rows = 2*n_cams*n_points;
         let rows_per_cam_block = 2*n_cams;
+        let mut diag_max: Float = 0.0;
         
         //TODO weight matrix for all 
 
@@ -271,11 +299,26 @@ fn compute_arrow_head_and_residuals<R_Target, C_Target, R_Jacobian, C_Jacobian,S
                 target_residual.fixed_slice_mut::<6,1>(u_idx,1).copy_from(&e_a);
                 target_residual.fixed_slice_mut::<3,1>(v_idx,1).copy_from(&e_b);
 
+                let v_diag_max = V_i.diagonal().max();
+                if v_diag_max > diag_max {
+                    diag_max = v_diag_max;
+                }
+
             }
             target_arrowhead.fixed_slice_mut::<6,6>(u_idx,u_idx).copy_from(&U_j);
+            let u_diag_max = U_j.diagonal().max();
+            if u_diag_max > diag_max {
+                diag_max = u_diag_max;
+            }
         }
 
+        let mu_val = match mu {
+            None => tau*diag_max,
+            Some(v) => v
+        };
 
-
-    
+        for i in 0..target_arrowhead.ncols() {
+            target_arrowhead[(i,i)] = target_arrowhead[(i,i)]+mu_val;
+        }
+    diag_max
 }
