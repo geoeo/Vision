@@ -7,7 +7,7 @@ Dense VO https://ieeexplore.ieee.org/document/6631104
 
 Imu Preintgration http://rpg.ifi.uzh.ch/docs/TRO16_forster.pdf
 
-Sparse Bundle Adjustment (WIP) http://users.ics.forth.gr/~lourakis/sba/sba-toms.pdf
+Sparse Bundle Adjustment http://users.ics.forth.gr/~lourakis/sba/sba-toms.pdf
 
 ## Orb
 ![billa_cereal_far](doc/cereal_far.png)![billa_cereal_tilted](doc/cereal_tilted.png)
