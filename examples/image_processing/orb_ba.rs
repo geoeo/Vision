@@ -103,7 +103,7 @@ fn main() -> Result<()> {
     let observed_features = feature_map.get_observed_features();
     let runtime_parameters = RuntimeParameters {
         pyramid_scale: 1.0,
-        max_iterations: vec![500; 1],
+        max_iterations: vec![50; 1],
         eps: vec![1e-3],
         step_sizes: vec![1e-8],
         max_norm_eps: 1e-30, 

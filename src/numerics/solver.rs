@@ -186,24 +186,34 @@ pub fn gauss_newton_step_with_schur<R, C,S1, S2,S_Target_Arrow,S_Target_Residual
         let V_star = target_arrowhead.slice((u_span,u_span),(v_span,v_span));
         let W = target_arrowhead.slice((0,u_span),(u_span,v_span));
         let W_t = target_arrowhead.slice((u_span,0),(v_span,u_span));
-        let V_star_cholesky = V_star.cholesky().unwrap();
+        let V_star_cholesky = V_star.cholesky().expect("v_star cholesky failed");
         let V_star_inv = V_star_cholesky.inverse();
-        let res_a = target_arrowhead_residual.slice((0,0),(u_span,0));
-        let res_b = target_arrowhead_residual.slice((u_span,0),(v_span,0));
+        let res_a = target_arrowhead_residual.slice((0,0),(u_span,1));
+        let res_b = target_arrowhead_residual.slice((u_span,0),(v_span,1));
+
 
         let schur_compliment = U_star - W*(&V_star_inv)*W_t;
-        let h_a = schur_compliment.cholesky().unwrap().solve(&(res_a-W*V_star_inv*res_b));
+        let res_a_augment = res_a-W*V_star_inv*res_b;
+        let h_a = schur_compliment.cholesky().expect("h_a schur cholesky failed").solve(&res_a_augment);
         let h_b = V_star_cholesky.solve(&(res_b-W_t*(&h_a)));
-        target_perturb.slice_mut((0,0),(u_span,0)).copy_from(&h_a);
-        target_perturb.slice_mut((u_span,0),(v_span,0)).copy_from(&h_b);
 
-        
+
+        target_perturb.slice_mut((0,0),(u_span,1)).copy_from(&h_a);
+        target_perturb.slice_mut((u_span,0),(v_span,1)).copy_from(&h_b);
+
+
+    
         let mu_val = match mu {
             None => tau*diag_max,
             Some(v) => v
         };
         let scaled_target_res = target_perturb.scale(mu_val);
-        let gain_ratio_denom = (&target_perturb).transpose()*(&scaled_target_res-(target_arrowhead_residual as  &Vector<Float,C,S_Target_Residual>));
+
+
+
+        let g_1 = (&target_perturb).transpose()*(&scaled_target_res);
+        let g_2 = (&target_perturb).transpose()*(target_arrowhead_residual as  &Vector<Float,C,S_Target_Residual>);
+        let gain_ratio_denom = g_1+g_2;
         
         (gain_ratio_denom[0], mu_val)
 
@@ -269,7 +279,7 @@ fn compute_arrow_head_and_residuals<R, C,S_Target_Arrow, S_Target_Residual, S_Ja
             let u_idx = j;
             let cam_num = j/6;
             let row_start = 2*cam_num;
-            let row_end = number_of_measurement_rows - 2*(n_cams-cam_num);
+            let row_end = number_of_measurement_rows;
             for i in (row_start..row_end).step_by(2*n_cams){
                 let slice_a = jacobian.fixed_slice::<2,6>(i,j);
                 let slice_a_transpose = slice_a.transpose();

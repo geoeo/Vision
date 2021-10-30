@@ -45,8 +45,6 @@ pub fn get_estimated_features<C : Camera>(state: &State, cameras: &Vec<C>, estim
 pub fn compute_residual(estimated_features: &DVector<Float>, observed_features: &DVector<Float>, residual_vector: &mut DVector<Float>) -> () {
     assert_eq!(residual_vector.nrows(), estimated_features.nrows());
     for i in (0..residual_vector.nrows()){
-        //residual_vector[i] = estimated_features[i] -  observed_features[i] / ( (estimated_features[i] -  observed_features[i]).powi(2) + (estimated_features[i+1] -  observed_features[i+1]).powi(2)).sqrt();
-        //residual_vector[i+1] = estimated_features[i+1] -  observed_features[i+1] / ( (estimated_features[i] -  observed_features[i]).powi(2) + (estimated_features[i+1] -  observed_features[i+1]).powi(2)).sqrt();
         residual_vector[i] =  estimated_features[i] - observed_features[i];
     }
 }
@@ -133,8 +131,8 @@ pub fn optimize<C : Camera>(state: &mut State, cameras: &Vec<C>, observed_featur
     let mut new_estimated_features = DVector::<Float>::zeros(observed_features.nrows());
     let mut weights_vec = DVector::<Float>::from_element(observed_features.nrows(),1.0);
     let mut target_arrowhead = DMatrix::<Float>::zeros(state_size, state_size);
-    let mut g = DVector::<Float>::from_element(state_size,1.0); 
-    let mut delta = DVector::<Float>::from_element(state_size,1.0); 
+    let mut g = DVector::<Float>::from_element(state_size,0.0); 
+    let mut delta = DVector::<Float>::from_element(state_size,0.0); 
 
 
     get_estimated_features(state, cameras, &mut estimated_features);
@@ -172,30 +170,37 @@ pub fn optimize<C : Camera>(state: &mut State, cameras: &Vec<C>, observed_featur
             println!("it: {}, avg_rmse: {}",iteration_count,cost.sqrt());
         }
 
-        // let (gain_ratio_denom, mu_val) 
-        //     = gauss_newton_step_with_schur(
-        //         &mut target_arrowhead,
-        //         &mut g,
-        //         &mut delta,
-        //         &residuals,
-        //         &jacobian,
-        //         mu,
-        //         tau,
-        //         state.n_cams,
-        //         state.n_points
-        //     ); 
-        
-            let (delta,g,gain_ratio_denom, mu_val) 
-            = gauss_newton_step(&residuals,
+        //target_arrowhead.fill(0.0);
+        //g.fill(0.0);
+        //delta.fill(0.0);
+
+        let (gain_ratio_denom, mu_val) 
+            = gauss_newton_step_with_schur(
+                &mut target_arrowhead,
+                &mut g,
+                &mut delta,
+                &residuals,
                 &jacobian,
-                &identity,
                 mu,
-                tau); 
+                tau,
+                state.n_cams,
+                state.n_points
+            ); 
+
+            // let (delta,g,gain_ratio_denom, mu_val) 
+            // = gauss_newton_step(&residuals,
+            //     &jacobian,
+            //     &identity,
+            //     mu,
+            //     tau); 
+
         mu = Some(mu_val);
 
 
         let pertb = step*(&delta);
         new_state.update(&pertb);
+
+        //println!("{:?}",pertb);
 
 
         get_estimated_features(&new_state, cameras, &mut new_estimated_features);
@@ -216,7 +221,7 @@ pub fn optimize<C : Camera>(state: &mut State, cameras: &Vec<C>, observed_featur
         let gain_ratio = cost_diff/gain_ratio_denom;
         if runtime_parameters.debug {
             //println!("delta: {}, g: {}",delta,g);
-            println!("cost: {}, new cost: {}, mu: {:?}, nu: {}",cost,new_cost, mu, nu);
+            println!("cost: {}, new cost: {}, mu: {:?}, gain: {} , nu: {}",cost,new_cost, mu, gain_ratio, nu);
         }
 
         //TODO: check gain ratio calc
