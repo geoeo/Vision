@@ -96,21 +96,6 @@ pub fn compute_jacobian<C : Camera>(state: &State, cameras: &Vec<C>, jacobian: &
             compute_jacobian_wrt_camera_parameters(camera , &transformation,point,a_i,a_j, jacobian);
             compute_jacobian_wrt_object_points(camera, &transformation,b_i,b_j, jacobian);
 
-            // let v = (estimated_features[a_i] -  observed_features[a_i]).powi(2) + (estimated_features[a_i+1] -  observed_features[a_i+1]).powi(2);
-            // let mut j_a = Matrix1x6::<Float>::zeros();
-            // let mut j_a_y = Matrix1x6::<Float>::zeros();
-            // let mut j_b = Matrix1x3::<Float>::zeros();
-            // let mut j_b_y = Matrix1x3::<Float>::zeros();
-            // j_a.copy_from(&jacobian.fixed_slice::<1,6>(a_i,a_j));
-            // j_a_y.copy_from(&jacobian.fixed_slice::<1,6>(a_i+1,a_j));
-            // j_b.copy_from(&jacobian.fixed_slice::<1,3>(b_i,b_j));
-            // j_b_y.copy_from(&jacobian.fixed_slice::<1,3>(b_i+1,b_j));
-            // //jacobian[(a_i,a_j)] = jacobian[(a_i,a_j)]*(v.sqrt() - 0.5*estimated_features[a_i]*v)/v;
-            // jacobian.fixed_slice_mut::<1,6>(a_i,a_j).copy_from(&(j_a*(v.sqrt() - 0.5*(estimated_features[a_i]- observed_features[a_i])*v)/v));
-            // jacobian.fixed_slice_mut::<1,6>(a_i+1,a_j).copy_from(&(j_a_y*(v.sqrt() - 0.5*(estimated_features[a_i+1]- observed_features[a_i+1])*v)/v));
-            // jacobian.fixed_slice_mut::<1,3>(b_i,b_j).copy_from(&(j_b*(v.sqrt() - 0.5*(estimated_features[b_i] - observed_features[b_i])*v)/v));
-            // jacobian.fixed_slice_mut::<1,3>(b_i+1,b_j).copy_from(&(j_b_y*(v.sqrt() - 0.5*(estimated_features[b_i+1] - observed_features[b_i+1])*v)/v));
-
         }
 
     }

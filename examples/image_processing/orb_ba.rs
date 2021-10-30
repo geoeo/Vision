@@ -110,7 +110,7 @@ fn main() -> Result<()> {
         delta_eps: 1e-30,
         taus: vec![1e-3],
         lm: true,
-        weighting: false,
+        weighting: true,
         debug: true,
 
         show_octave_result: true,
