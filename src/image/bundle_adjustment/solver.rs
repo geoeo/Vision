@@ -132,6 +132,9 @@ pub fn optimize<C : Camera>(state: &mut State, cameras: &Vec<C>, observed_featur
     let mut estimated_features = DVector::<Float>::zeros(observed_features.nrows());
     let mut new_estimated_features = DVector::<Float>::zeros(observed_features.nrows());
     let mut weights_vec = DVector::<Float>::from_element(observed_features.nrows(),1.0);
+    let mut target_arrowhead = DMatrix::<Float>::zeros(state_size, state_size);
+    let mut g = DVector::<Float>::from_element(state_size,1.0); 
+    let mut delta = DVector::<Float>::from_element(state_size,1.0); 
 
 
     get_estimated_features(state, cameras, &mut estimated_features);
@@ -169,13 +172,19 @@ pub fn optimize<C : Camera>(state: &mut State, cameras: &Vec<C>, observed_featur
             println!("it: {}, avg_rmse: {}",iteration_count,cost.sqrt());
         }
 
-        //TODO: setup arrowhead matrix
-        // let (delta,g,gain_ratio_denom, mu_val) 
-        //     = gauss_newton_step_with_schur(&residuals,
+        // let (gain_ratio_denom, mu_val) 
+        //     = gauss_newton_step_with_schur(
+        //         &mut target_arrowhead,
+        //         &mut g,
+        //         &mut delta,
+        //         &residuals,
         //         &jacobian,
-        //         &identity,
         //         mu,
-        //         tau); 
+        //         tau,
+        //         state.n_cams,
+        //         state.n_points
+        //     ); 
+        
             let (delta,g,gain_ratio_denom, mu_val) 
             = gauss_newton_step(&residuals,
                 &jacobian,
@@ -187,6 +196,8 @@ pub fn optimize<C : Camera>(state: &mut State, cameras: &Vec<C>, observed_featur
 
         let pertb = step*(&delta);
         new_state.update(&pertb);
+
+
         get_estimated_features(&new_state, cameras, &mut new_estimated_features);
         compute_residual(&new_estimated_features, observed_features, &mut new_residuals);
         if runtime_parameters.weighting {

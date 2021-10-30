@@ -157,7 +157,7 @@ pub fn gauss_newton_step_with_loss_and_schur(
 
 //TODO: use schur compliment,  setup arrowhead matrix from jacobian
 #[allow(non_snake_case)]
-pub fn gauss_newton_step_with_schur<R, C,S1, S2, S3,S_Target_Arrow,S_Target_Residual>(
+pub fn gauss_newton_step_with_schur<R, C,S1, S2,S_Target_Arrow,S_Target_Residual>(
     target_arrowhead: &mut Matrix<Float,C,C,S_Target_Arrow>, 
     target_arrowhead_residual: &mut Vector<Float,C,S_Target_Residual>, 
     target_perturb: &mut Vector<Float,C,S_Target_Residual>, 
@@ -172,7 +172,6 @@ pub fn gauss_newton_step_with_schur<R, C,S1, S2, S3,S_Target_Arrow,S_Target_Resi
         C: Dim + DimMin<C, Output = C>,
         S1: Storage<Float, R>,
         S2: Storage<Float, R, C>,
-        S3: Storage<Float, C, C>,
         S_Target_Arrow: StorageMut<Float, C, C>,
         S_Target_Residual: StorageMut<Float, C, U1>,
         DefaultAllocator: Allocator<Float, R, C>+  Allocator<Float, C, R> + Allocator<Float, C, C> + Allocator<Float, C> + Allocator<Float, Const<1_usize>, C>  {
@@ -277,12 +276,11 @@ fn compute_arrow_head_and_residuals<R, C,S_Target_Arrow, S_Target_Residual, S_Ja
                 U_j += slice_a_transpose*slice_a;
                 
                 let point_offset = i/rows_per_cam_block;
-                let b_col = number_of_cam_params - (j*6)+3*point_offset;
-                let slice_b = jacobian.fixed_slice::<2,3>(i,b_col);
+                let v_idx = number_of_cam_params - j+3*point_offset;
+                let slice_b = jacobian.fixed_slice::<2,3>(i,v_idx);
                 let slice_b_transpose = slice_b.transpose();
                 
-                let v_idx = number_of_cam_params+point_offset*6;
-                let V_i =  target_arrowhead.fixed_slice::<3,3>(v_idx,v_idx)+ slice_b_transpose*slice_b;
+                let V_i = target_arrowhead.fixed_slice::<3,3>(v_idx,v_idx)+ slice_b_transpose*slice_b;
                 target_arrowhead.fixed_slice_mut::<3,3>(v_idx,v_idx).copy_from(&V_i);
 
 
@@ -292,12 +290,12 @@ fn compute_arrow_head_and_residuals<R, C,S_Target_Arrow, S_Target_Residual, S_Ja
                 target_arrowhead.fixed_slice_mut::<6,3>(u_idx,v_idx).copy_from(&W_j);
                 target_arrowhead.fixed_slice_mut::<3,6>(v_idx,u_idx).copy_from(&W_j_transpose);
 
-                let residual = residuals.fixed_slice::<2,1>(i,1);
-                let e_a = target_residual.fixed_slice::<6,1>(u_idx,1) + slice_a_transpose*residual;
-                let e_b = target_residual.fixed_slice::<3,1>(v_idx,1) + slice_b_transpose*residual;
+                let residual = residuals.fixed_slice::<2,1>(i,0);
+                let e_a = target_residual.fixed_slice::<6,1>(u_idx,0) + slice_a_transpose*residual;
+                let e_b = target_residual.fixed_slice::<3,1>(v_idx,0) + slice_b_transpose*residual;
 
-                target_residual.fixed_slice_mut::<6,1>(u_idx,1).copy_from(&e_a);
-                target_residual.fixed_slice_mut::<3,1>(v_idx,1).copy_from(&e_b);
+                target_residual.fixed_slice_mut::<6,1>(u_idx,0).copy_from(&e_a);
+                target_residual.fixed_slice_mut::<3,1>(v_idx,0).copy_from(&e_b);
 
                 let v_diag_max = V_i.diagonal().max();
                 if v_diag_max > diag_max {
