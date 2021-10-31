@@ -107,10 +107,7 @@ pub fn optimize<C : Camera>(state: &mut State, cameras: &Vec<C>, observed_featur
     let mut new_state = state.clone();
     let state_size = 6*state.n_cams+3*state.n_points;
     let mut jacobian = DMatrix::<Float>::zeros(observed_features.nrows(),state_size);
-    //let mut rescaled_jacobian_target = DMatrix::<Float>::zeros(observed_features.nrows(),state_size);
-    let identity = DMatrix::<Float>::identity(state_size, state_size);
     let mut residuals = DVector::<Float>::zeros(observed_features.nrows());
-    //let mut rescaled_residuals_target = DVector::<Float>::zeros(observed_features.nrows());
     let mut new_residuals = DVector::<Float>::zeros(observed_features.nrows());
     let mut estimated_features = DVector::<Float>::zeros(observed_features.nrows());
     let mut new_estimated_features = DVector::<Float>::zeros(observed_features.nrows());
@@ -155,9 +152,9 @@ pub fn optimize<C : Camera>(state: &mut State, cameras: &Vec<C>, observed_featur
             println!("it: {}, avg_rmse: {}",iteration_count,cost.sqrt());
         }
 
-        //target_arrowhead.fill(0.0);
-        //g.fill(0.0);
-        //delta.fill(0.0);
+        target_arrowhead.fill(0.0);
+        g.fill(0.0);
+        delta.fill(0.0);
 
         let (gain_ratio_denom, mu_val) 
             = gauss_newton_step_with_schur(
@@ -172,20 +169,12 @@ pub fn optimize<C : Camera>(state: &mut State, cameras: &Vec<C>, observed_featur
                 state.n_points
             ); 
 
-            // let (delta,g,gain_ratio_denom, mu_val) 
-            // = gauss_newton_step(&residuals,
-            //     &jacobian,
-            //     &identity,
-            //     mu,
-            //     tau); 
 
         mu = Some(mu_val);
 
 
         let pertb = step*(&delta);
         new_state.update(&pertb);
-
-        //println!("{:?}",pertb);
 
 
         get_estimated_features(&new_state, cameras, &mut new_estimated_features);

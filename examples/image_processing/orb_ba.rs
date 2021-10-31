@@ -120,19 +120,6 @@ fn main() -> Result<()> {
 
     let (before_cam_positions,before_points) = state.lift();
 
-    // println!("{}",state.data);
-
-    // println!("Cam Positions");
-    // for cam_pos in before_cam_positions {
-    //     println!("{}",cam_pos);
-    // }
-
-    // println!("Points");
-    // for point in before_points {
-    //     println!("{}",point);
-    // }
-
-
     optimize(&mut state, &cameras, &observed_features, &runtime_parameters);
 
     let (cam_positions,points) = state.lift();
