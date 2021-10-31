@@ -155,7 +155,6 @@ pub fn gauss_newton_step_with_loss_and_schur(
     (h, g, gain_ratio_denom[0], mu_val)
 }
 
-//TODO: use schur compliment,  setup arrowhead matrix from jacobian
 #[allow(non_snake_case)]
 pub fn gauss_newton_step_with_schur<R, C,S1, S2,S_Target_Arrow,S_Target_Residual>(
     target_arrowhead: &mut Matrix<Float,C,C,S_Target_Arrow>, 
@@ -270,8 +269,7 @@ fn compute_arrow_head_and_residuals<R, C,S_Target_Arrow, S_Target_Residual, S_Ja
         let number_of_measurement_rows = 2*n_cams*n_points;
         let rows_per_cam_block = 2*n_cams;
         let mut diag_max: Float = 0.0;
-        
-        //TODO weight matrix for all 
+    
 
         for j in (0..number_of_cam_params).step_by(6) {
             let mut U_j = SMatrix::<Float,6,6>::zeros();
@@ -299,7 +297,7 @@ fn compute_arrow_head_and_residuals<R, C,S_Target_Arrow, S_Target_Residual, S_Ja
                 target_arrowhead.fixed_slice_mut::<6,3>(u_idx,v_idx).copy_from(&W_j);
                 target_arrowhead.fixed_slice_mut::<3,6>(v_idx,u_idx).copy_from(&W_j_transpose);
 
-                let residual = residuals.fixed_slice::<2,1>(i,0);
+                let residual = -residuals.fixed_slice::<2,1>(i,0);
                 let e_a = target_residual.fixed_slice::<6,1>(u_idx,0) + slice_a_transpose*residual;
                 let e_b = target_residual.fixed_slice::<3,1>(v_idx,0) + slice_b_transpose*residual;
 
