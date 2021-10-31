@@ -52,9 +52,6 @@ pub fn compute_residual(estimated_features: &DVector<Float>, observed_features: 
 
 pub fn compute_jacobian_wrt_object_points<C : Camera,T>(camera: &C, transformation: &Matrix4<Float>, point: &Vector<Float,U3,T>, i: usize, j: usize, jacobian: &mut DMatrix<Float>) 
     -> () where T: Storage<Float,U3,U1> {
-    let mut projection_homogeneous = Matrix2x4::<Float>::zeros();
-    projection_homogeneous.fixed_slice_mut::<2,3>(0,0).copy_from(&camera.get_projection().fixed_slice::<2,3>(0,0));
-
     let homogeneous_point = transformation*Vector4::<Float>::new(point[0],point[1],point[2],1.0);
     let mut homogeneous_projection_jacobian = Matrix2x4::<Float>::zeros();
     homogeneous_projection_jacobian.fixed_slice_mut::<2,3>(0,0).copy_from(&camera.get_jacobian_with_respect_to_position(&homogeneous_point.fixed_slice::<3,1>(0,0)));
@@ -77,7 +74,7 @@ pub fn compute_jacobian_wrt_camera_parameters<C : Camera, T>( camera: &C, transf
     jacobian.fixed_slice_mut::<2,6>(i,j).copy_from(&(homogeneous_projection_jacobian*lie_jacobian));
 }
 
-pub fn compute_jacobian<C : Camera>(state: &State, cameras: &Vec<C>, jacobian: &mut DMatrix<Float>, estimated_features: &DVector<Float>, observed_features: &DVector<Float>) -> () {
+pub fn compute_jacobian<C : Camera>(state: &State, cameras: &Vec<C>, jacobian: &mut DMatrix<Float>) -> () {
     //cam
     let number_of_cam_params = 6*state.n_cams;
     for cam_state_idx in (0..number_of_cam_params).step_by(6) {
@@ -121,13 +118,13 @@ pub fn optimize<C : Camera>(state: &mut State, cameras: &Vec<C>, observed_featur
     let mut g = DVector::<Float>::from_element(state_size,0.0); 
     let mut delta = DVector::<Float>::from_element(state_size,0.0); 
 
-    let identity = DMatrix::<Float>::identity(state_size, state_size);
+    //let identity = DMatrix::<Float>::identity(state_size, state_size);
 
 
     get_estimated_features(state, cameras, &mut estimated_features);
     compute_residual(&estimated_features, observed_features, &mut residuals);
 
-    compute_jacobian(&state,&cameras,&mut jacobian, &estimated_features, &observed_features);
+    compute_jacobian(&state,&cameras,&mut jacobian);
 
     weight_residuals_sparse(&mut residuals, &weights_vec); 
     weight_jacobian_sparse(&mut jacobian, &weights_vec);
@@ -221,7 +218,7 @@ pub fn optimize<C : Camera>(state: &mut State, cameras: &Vec<C>, observed_featur
 
             
 
-            compute_jacobian(&state,&cameras,&mut jacobian, &estimated_features, &observed_features);
+            compute_jacobian(&state,&cameras,&mut jacobian);
             weight_jacobian_sparse(&mut jacobian, &weights_vec);
 
             let v: Float = 1.0/3.0;
