@@ -201,7 +201,6 @@ pub fn gauss_newton_step_with_schur<R, C,S1, S2,S_Target_Arrow,S_Target_Residual
         target_perturb.slice_mut((0,0),(u_span,1)).copy_from(&h_a);
         target_perturb.slice_mut((u_span,0),(v_span,1)).copy_from(&h_b);
 
-
     
         let mu_val = match mu {
             None => tau*diag_max,
