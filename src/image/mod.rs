@@ -17,6 +17,7 @@ pub mod pyramid;
 pub mod features;
 pub mod descriptors;
 pub mod bundle_adjustment;
+pub mod epipolar;
 
 //TODO: add id based on image name or something like that - hasids.org
 #[derive(Debug,Clone)]
