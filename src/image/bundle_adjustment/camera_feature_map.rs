@@ -1,6 +1,6 @@
 extern crate nalgebra as na;
 
-use na::DVector;
+use na::{Vector3,Matrix3,DVector};
 use std::collections::HashMap;
 use crate::image::{
     Image,
@@ -89,7 +89,8 @@ impl CameraFeatureMap {
 
     }
 
-    pub fn get_state(&self) -> State {
+    //TODO: use epipolar information for initial guess
+    pub fn get_initial_state(&self, initial_motions : &Vec<(Vector3<Float>,Matrix3<Float>)>) -> State {
         let number_of_cameras = self.camera_map.keys().len();
         //TODO: incorporate transitive associations i.e. f1 -> f1_prime -> f1_alpha is the same
         let number_of_unqiue_points = self.feature_list.len();

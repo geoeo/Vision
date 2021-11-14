@@ -39,3 +39,7 @@ path = "examples/image_processing/orb_pyramid.rs"
 name = "fast_descriptor"
 path = "examples/image_processing/fast_descriptor.rs"
 
+[[example]]
+name = "epipolar"
+path = "examples/image_processing/epipolar.rs"
+

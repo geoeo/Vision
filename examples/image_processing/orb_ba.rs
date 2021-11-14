@@ -1,17 +1,22 @@
 extern crate image as image_rs;
 extern crate vision;
 extern crate color_eyre;
+extern crate nalgebra as na;
 
 use std::fs;
+use na::{Vector3,Matrix3};
 use color_eyre::eyre::Result;
 use std::path::Path;
+use vision::Float;
 use vision::image::pyramid::orb::{orb_runtime_parameters::OrbRuntimeParameters};
 use vision::image::features::{Match,orb_feature::OrbFeature};
 use vision::image::Image;
+use vision::sensors::camera::Camera;
 use vision::image::bundle_adjustment::{camera_feature_map::CameraFeatureMap, solver::optimize};
 use vision::sensors::camera::pinhole::Pinhole;
 use vision::odometry::runtime_parameters::RuntimeParameters;
 use vision::numerics::{loss, weighting};
+use vision::image::epipolar;
 
 fn main() -> Result<()> {
 
@@ -47,7 +52,7 @@ fn main() -> Result<()> {
     // //TODO: recheck maximal suppression, take best corers for all windows across all pyramid levels
     // https://www.cc.gatech.edu/classes/AY2016/cs4476_fall/results/proj2/html/agartia3/index.html
     let pyramid_scale = 1.2; // opencv default is 1.2
-    let runtime_params = OrbRuntimeParameters {
+    let orb_runtime_params = OrbRuntimeParameters {
         pyramid_scale: pyramid_scale,
         min_image_dimensions: (20,20),
         sigma: 2.0,
@@ -82,24 +87,27 @@ fn main() -> Result<()> {
     // let intensity_camera_4 = intensity_camera_1.clone();
 
     let cameras = vec!(intensity_camera_1,intensity_camera_2);
-    let image_pairs = vec!((&image_1, &runtime_params, &image_2, &runtime_params));
+    let image_pairs = vec!((&image_1, &orb_runtime_params, &image_2, &orb_runtime_params));
 
     // let cameras = vec!(intensity_camera_1,intensity_camera_2,intensity_camera_3,intensity_camera_4);
-    // let image_pairs = vec!((&image_1, &runtime_params, &image_2, &runtime_params), ((&image_3, &runtime_params, &image_4, &runtime_params)));
+    // let image_pairs = vec!((&image_1, &orb_runtime_params, &image_2, &orb_runtime_params), ((&image_3, &orb_runtime_params, &image_4, &orb_runtime_params)));
 
 
     let orb_matches_read = fs::read_to_string("D:/Workspace/Rust/Vision/output/orb_ba_matches_2_images.txt").expect("Unable to read file");
     let matches: Vec<Vec<Match<OrbFeature>>> = serde_yaml::from_str(&orb_matches_read)?;
 
     let mut feature_map = CameraFeatureMap::new(&matches);
-    feature_map.add_images_from_params(&image_1, runtime_params.max_features_per_octave,runtime_params.octave_count);
-    feature_map.add_images_from_params(&image_2, runtime_params.max_features_per_octave,runtime_params.octave_count);
-    // feature_map.add_images_from_params(&image_3, runtime_params.max_features_per_octave,runtime_params.octave_count);
-    // feature_map.add_images_from_params(&image_4, runtime_params.max_features_per_octave,runtime_params.octave_count);
+    feature_map.add_images_from_params(&image_1, orb_runtime_params.max_features_per_octave,orb_runtime_params.octave_count);
+    feature_map.add_images_from_params(&image_2, orb_runtime_params.max_features_per_octave,orb_runtime_params.octave_count);
+    // feature_map.add_images_from_params(&image_3, orb_runtime_params.max_features_per_octave,orb_runtime_params.octave_count);
+    // feature_map.add_images_from_params(&image_4, orb_runtime_params.max_features_per_octave,orb_runtime_params.octave_count);
 
-    feature_map.add_matches(&image_pairs.into_iter().map(|(i1,_,i2,_)| (i1,i2)).collect(),&matches, runtime_params.pyramid_scale);
+    feature_map.add_matches(&image_pairs.into_iter().map(|(i1,_,i2,_)| (i1,i2)).collect(),&matches, orb_runtime_params.pyramid_scale);
+    let fundamental_matrices = matches.iter().map(|m| epipolar::eight_point(m)).collect::<Vec<epipolar::Fundamental>>();
+    let essential_matrices = fundamental_matrices.iter().enumerate().map(|(i,f)| epipolar::compute_essential(f, &cameras[2*i].get_projection(), &cameras[2*i+1].get_projection())).collect::<Vec<epipolar::Essential>>();
+    let initial_motion_decomp = essential_matrices.iter().zip(matches.iter()).map(|(e,m)| epipolar::decompose_essential(e,m)).collect::<Vec<(Vector3<Float>,Matrix3<Float>)>>();
 
-    let mut state = feature_map.get_state();
+    let mut state = feature_map.get_initial_state(&initial_motion_decomp);
     let observed_features = feature_map.get_observed_features();
     let runtime_parameters = RuntimeParameters {
         pyramid_scale: 1.0,
