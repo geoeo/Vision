@@ -1,12 +1,15 @@
 extern crate nalgebra as na;
 
 
-use na::{Matrix3,Matrix,Dynamic, U9, VecStorage};
+use na::{Vector3, Matrix3,Matrix,Dynamic, U9, VecStorage};
 use crate::Float;
 use crate::image::features::{Feature,Match};
 
+pub type Fundamental =  Matrix3<Float>;
+pub type Essential =  Matrix3<Float>;
 
-pub fn eight_point<T: Feature>(matches: &Vec<Match<T>>) -> Matrix3<Float> {
+
+pub fn eight_point<T: Feature>(matches: &Vec<Match<T>>) -> Fundamental {
     let number_of_matches = matches.len() as Float;
 
 
@@ -56,18 +59,9 @@ pub fn eight_point<T: Feature>(matches: &Vec<Match<T>>) -> Matrix3<Float> {
 
 
     let svd = A.svd(false,true);
-    let s =  &svd.singular_values;
-    let mut min_idx = 0;
-    let mut min_val = s[0];
-    for i in 1..s.nrows() {
-        if s[i] < min_val {
-            min_val = s[i];
-            min_idx = i;
-        } 
-    }
-
-    let v_t =  svd.v_t.expect("SVD failed on A");
-    let f = v_t.row(min_idx);
+    let mut min_idx = svd.singular_values.imin();
+    let v_t =  &svd.v_t.expect("SVD failed on A");
+    let f = &v_t.row(min_idx);
     let mut F = Matrix3::<Float>::zeros();
     F[(0,0)] = f[0];
     F[(1,0)] = f[1];
@@ -81,17 +75,50 @@ pub fn eight_point<T: Feature>(matches: &Vec<Match<T>>) -> Matrix3<Float> {
 
 
     let mut svd_f = F.svd(true,true);
-    let s_f =  &svd_f.singular_values;
-    min_idx = 0;
-    min_val = s_f[0];
-    for i in 1..s_f.nrows() {
-        if s_f[i] < min_val {
-            min_val = s[i];
-            min_idx = i;
-        } 
+    min_idx = svd_f.singular_values.imin();
+    svd_f.singular_values[min_idx] = 0.0;
+    svd_f.recompose().ok().expect("SVD recomposition failed")
+}
+
+/**
+ * Mapping between features and Projections as follows: two*F*one => K_two_transpose * F * K_one
+ */
+pub fn compute_essential(F: &Fundamental, projection_one: &Matrix3<Float>, projection_two: &Matrix3<Float>) -> Essential {
+    projection_two.transpose()*F*projection_one
+}
+
+/**
+ * Statistical Optimization for Geometric Computation p.338
+ * Mapping between features and Projections as follows: two*E*one => K_two_transpose * E * K_one
+ */
+pub fn decompose_essential<T: Feature>(E: &Essential, matches: &Vec<Match<T>>) -> (Vector3<Float>, Matrix3<Float>) {
+
+    let svd = E.svd(true,false);
+    let min_idx = svd.singular_values.imin();
+    let u = &svd.u.expect("SVD failed on E");
+    let mut h = u.column(min_idx).normalize();
+
+    let sum_of_determinants = matches.iter().fold(0.0, |acc,m| {
+        let feature_one = Vector3::new(m.feature_one.1.get_x_image() as Float,m.feature_one.1.get_y_image() as Float,1.0);
+        let feature_two = Vector3::new(m.feature_two.1.get_x_image() as Float,m.feature_two.1.get_y_image() as Float,1.0);
+        let mat = Matrix3::from_columns(&[h,feature_two,E*feature_one]);
+        acc + mat.determinant()
+    });
+    if sum_of_determinants < 0.0 {
+        h  *= -1.0; 
     }
 
-    svd_f.singular_values[min_idx] = 0.0;
+    let K = (-h).cross_matrix()*E;
+    let mut svd_k = K.svd(true,true);
+    let min_idx = svd_k.singular_values.imin();
+    for i in 0..svd_k.singular_values.nrows(){
+        if i == min_idx {
+            svd_k.singular_values[i] = (svd_k.u.expect("SVD U failed on K")*svd_k.v_t.expect("SVD V_t failed on K")).determinant();
+        } else {
+            svd_k.singular_values[i] = 1.0;
+        }
+    }
 
-    svd_f.recompose().ok().expect("SVD recomposition failed")
+    (h,svd_k.recompose().ok().expect("SVD recomposition failed on K"))
+
 }
