@@ -9,11 +9,10 @@ use color_eyre::eyre::Result;
 use std::path::Path;
 use vision::Float;
 use vision::image::pyramid::orb::{orb_runtime_parameters::OrbRuntimeParameters};
-use vision::image::features::{Match,orb_feature::OrbFeature};
+use vision::image::features::{Match,orb_feature::OrbFeature, Feature};
 use vision::image::Image;
-use vision::sensors::camera::Camera;
 use vision::image::bundle_adjustment::{camera_feature_map::CameraFeatureMap, solver::optimize};
-use vision::sensors::camera::pinhole::Pinhole;
+use vision::sensors::camera::{Camera,pinhole::Pinhole};
 use vision::odometry::runtime_parameters::RuntimeParameters;
 use vision::numerics::{loss, weighting};
 use vision::image::epipolar;
@@ -56,10 +55,10 @@ fn main() -> Result<()> {
         pyramid_scale: pyramid_scale,
         min_image_dimensions: (20,20),
         sigma: 2.0,
-        blur_radius: 3.0,
-        max_features_per_octave: 15, // 15
+        blur_radius: 5.0,
+        max_features_per_octave: 8, // 15
         max_features_per_octave_scale: 1.2,
-        octave_count: 3, // opencv default is 8
+        octave_count: 8, // opencv default is 8
         harris_k: 0.04,
         harris_window_size: 5,  // 5
         fast_circle_radius: 3, //3 
@@ -68,7 +67,7 @@ fn main() -> Result<()> {
         fast_features_per_grid: 3, // 3
         fast_grid_size: (15,15),  // 15
         fast_grid_size_scale_base: 1.2,
-        fast_offsets: (12,12),
+        fast_offsets: (20,20),
         fast_offset_scale_base: 1.2,
         brief_features_to_descriptors: 128, // 128
         brief_n: 256,
@@ -93,8 +92,22 @@ fn main() -> Result<()> {
     // let image_pairs = vec!((&image_1, &orb_runtime_params, &image_2, &orb_runtime_params), ((&image_3, &orb_runtime_params, &image_4, &orb_runtime_params)));
 
 
-    let orb_matches_read = fs::read_to_string("D:/Workspace/Rust/Vision/output/orb_ba_matches_2_images.txt").expect("Unable to read file");
+    let orb_matches_read = fs::read_to_string("D:/Workspace/Rust/Vision/output/orb_ba_matches_ba_slow_1_ba_slow_2_images.txt").expect("Unable to read file");
     let matches: Vec<Vec<Match<OrbFeature>>> = serde_yaml::from_str(&orb_matches_read)?;
+
+    let normalized_matches = &matches.iter().map(|ms| 
+        ms.iter().map(|m| {
+            let (x_left, y_left) = m.feature_one.1.reconstruct_original_coordiantes_for_float(pyramid_scale);
+            let (x_right, y_right) = m.feature_two.1.reconstruct_original_coordiantes_for_float(pyramid_scale);
+    
+            let feature_left = Vector3::new(x_left,y_left,-1.0);
+            let feature_right = Vector3::new(x_right,y_right,-1.0);
+    
+            let l = intensity_camera_1.get_projection()*feature_left;
+            let r = intensity_camera_2.get_projection()*feature_right;
+            (l/l[2],r/r[2])
+        }).collect::<Vec<(Vector3<Float>,Vector3<Float>)>>()
+    ).collect::<Vec<Vec<(Vector3<Float>,Vector3<Float>)>>>();
 
     let mut feature_map = CameraFeatureMap::new(&matches);
     feature_map.add_images_from_params(&image_1, orb_runtime_params.max_features_per_octave,orb_runtime_params.octave_count);
@@ -103,9 +116,10 @@ fn main() -> Result<()> {
     // feature_map.add_images_from_params(&image_4, orb_runtime_params.max_features_per_octave,orb_runtime_params.octave_count);
 
     feature_map.add_matches(&image_pairs.into_iter().map(|(i1,_,i2,_)| (i1,i2)).collect(),&matches, orb_runtime_params.pyramid_scale);
-    let fundamental_matrices = matches.iter().map(|m| epipolar::eight_point(m)).collect::<Vec<epipolar::Fundamental>>();
+    let fundamental_matrices = matches.iter().map(|m| epipolar::eight_point(m,pyramid_scale)).collect::<Vec<epipolar::Fundamental>>();
     let essential_matrices = fundamental_matrices.iter().enumerate().map(|(i,f)| epipolar::compute_essential(f, &cameras[2*i].get_projection(), &cameras[2*i+1].get_projection())).collect::<Vec<epipolar::Essential>>();
-    let initial_motion_decomp = essential_matrices.iter().zip(matches.iter()).map(|(e,m)| epipolar::decompose_essential(e,m)).collect::<Vec<(Vector3<Float>,Matrix3<Float>)>>();
+
+    let initial_motion_decomp = essential_matrices.iter().enumerate().map(|(i,e)| epipolar::decompose_essential(e,&normalized_matches[i])).collect::<Vec<(Vector3<Float>,Matrix3<Float>)>>();
 
     let mut state = feature_map.get_initial_state(&initial_motion_decomp);
     let observed_features = feature_map.get_observed_features();

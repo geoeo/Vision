@@ -17,6 +17,10 @@ pub trait Feature {
     fn get_x_image(&self) -> usize;
     fn get_y_image(&self) -> usize;
     fn get_closest_sigma_level(&self) -> usize;
+    fn reconstruct_original_coordiantes_for_float(&self, pyramid_scaling: Float) -> (Float, Float) {
+        let factor = pyramid_scaling.powi(self.get_closest_sigma_level() as i32);
+        ((self.get_x_image() as Float)*factor, (self.get_y_image() as Float)*factor)
+    }
 }
 
 pub trait Oriented {

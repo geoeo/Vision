@@ -23,8 +23,8 @@ pub enum GradientDirection {
 }
 
 
-pub fn reconstruct_original_coordiantes_for_float(x: Float, y: Float, base:Float,  octave_index: i32) -> (Float,Float) {
-    let factor = base.powi(octave_index);
+pub fn reconstruct_original_coordiantes_for_float(x: Float, y: Float, pyramid_scaling:Float,  octave_index: i32) -> (Float,Float) {
+    let factor = pyramid_scaling.powi(octave_index);
     (x*factor,y*factor)
 }
 

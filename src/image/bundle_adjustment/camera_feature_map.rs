@@ -8,6 +8,7 @@ use crate::image::{
     features::geometry::point::Point,
     bundle_adjustment::state::State
 };
+use crate::numerics::lie;
 use crate::{Float, reconstruct_original_coordiantes_for_float};
 
 
@@ -89,18 +90,33 @@ impl CameraFeatureMap {
 
     }
 
-    //TODO: use epipolar information for initial guess
+    /**
+     * initial_motion should all be with respect to the first camera
+     */
     pub fn get_initial_state(&self, initial_motions : &Vec<(Vector3<Float>,Matrix3<Float>)>) -> State {
+
         let number_of_cameras = self.camera_map.keys().len();
-        //TODO: incorporate transitive associations i.e. f1 -> f1_prime -> f1_alpha is the same
         let number_of_unqiue_points = self.feature_list.len();
         let number_of_cam_parameters = 6*number_of_cameras;
         let number_of_point_parameters = 3*number_of_unqiue_points;
         let total_parameters = number_of_cam_parameters+number_of_point_parameters;
         let mut data = DVector::<Float>::zeros(total_parameters);
+
+        assert_eq!(initial_motions.len(),number_of_cameras-1);
+        for i in (6..number_of_cam_parameters).step_by(6){
+            let (h,R) = initial_motions[i/6-1];
+            let lie_algebra = lie::ln_SO3(&R);
+            data[i] = h[0];
+            data[i+1] = h[1];
+            data[i+2] = h[2];
+            //data[i+3] = lie_algebra[0];
+            //data[i+4] = lie_algebra[1];
+            //data[i+5] = lie_algebra[2];
+
+        }
         // Initialise points to a depth of -1
         for i in (number_of_cam_parameters..total_parameters).step_by(3){
-            data[i+0] = 0.0;
+            data[i] = 0.0;
             data[i+1] = 0.0;
             data[i+2] = -1.0;
         }
