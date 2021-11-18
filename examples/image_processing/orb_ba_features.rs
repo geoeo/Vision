@@ -16,7 +16,7 @@ fn main() ->Result<()> {
     color_eyre::install()?;
 
     let image_name_1 = "ba_slow_1";
-    let image_name_2 = "ba_slow_2";
+    let image_name_2 = "ba_slow_3";
 
     //let image_name_2 = "ba_slow_3";
     //let image_name_2 = "ba_slow_4";
@@ -49,7 +49,7 @@ fn main() ->Result<()> {
     let runtime_params = OrbRuntimeParameters {
         pyramid_scale: pyramid_scale,
         min_image_dimensions: (20,20),
-        sigma: 2.0,
+        sigma: 1.2,
         blur_radius: 5.0,
         max_features_per_octave: 8, // 15
         max_features_per_octave_scale: 1.2,

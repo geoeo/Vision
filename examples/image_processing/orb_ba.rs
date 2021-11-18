@@ -92,22 +92,9 @@ fn main() -> Result<()> {
     // let image_pairs = vec!((&image_1, &orb_runtime_params, &image_2, &orb_runtime_params), ((&image_3, &orb_runtime_params, &image_4, &orb_runtime_params)));
 
 
-    let orb_matches_read = fs::read_to_string("D:/Workspace/Rust/Vision/output/orb_ba_matches_ba_slow_1_ba_slow_2_images.txt").expect("Unable to read file");
+    let orb_matches_read = fs::read_to_string("D:/Workspace/Rust/Vision/output/orb_ba_matches_ba_slow_1_ba_slow_3_images.txt").expect("Unable to read file");
     let matches: Vec<Vec<Match<OrbFeature>>> = serde_yaml::from_str(&orb_matches_read)?;
 
-    let normalized_matches = &matches.iter().map(|ms| 
-        ms.iter().map(|m| {
-            let (x_left, y_left) = m.feature_one.1.reconstruct_original_coordiantes_for_float(pyramid_scale);
-            let (x_right, y_right) = m.feature_two.1.reconstruct_original_coordiantes_for_float(pyramid_scale);
-    
-            let feature_left = Vector3::new(x_left,y_left,-1.0);
-            let feature_right = Vector3::new(x_right,y_right,-1.0);
-    
-            let l = intensity_camera_1.get_projection()*feature_left;
-            let r = intensity_camera_2.get_projection()*feature_right;
-            (l/l[2],r/r[2])
-        }).collect::<Vec<(Vector3<Float>,Vector3<Float>)>>()
-    ).collect::<Vec<Vec<(Vector3<Float>,Vector3<Float>)>>>();
 
     let mut feature_map = CameraFeatureMap::new(&matches);
     feature_map.add_images_from_params(&image_1, orb_runtime_params.max_features_per_octave,orb_runtime_params.octave_count);
@@ -119,6 +106,7 @@ fn main() -> Result<()> {
     let fundamental_matrices = matches.iter().map(|m| epipolar::eight_point(m,pyramid_scale)).collect::<Vec<epipolar::Fundamental>>();
     let essential_matrices = fundamental_matrices.iter().enumerate().map(|(i,f)| epipolar::compute_essential(f, &cameras[2*i].get_projection(), &cameras[2*i+1].get_projection())).collect::<Vec<epipolar::Essential>>();
 
+    let normalized_matches = fundamental_matrices.iter().zip(matches.iter()).map(|(f,m)| epipolar::filter_matches(f, m, pyramid_scale)).collect::<Vec<Vec<(Vector3<Float>,Vector3<Float>)>>>();
     let initial_motion_decomp = essential_matrices.iter().enumerate().map(|(i,e)| epipolar::decompose_essential(e,&normalized_matches[i])).collect::<Vec<(Vector3<Float>,Matrix3<Float>)>>();
 
     let mut state = feature_map.get_initial_state(&initial_motion_decomp);

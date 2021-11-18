@@ -58,12 +58,12 @@ pub fn eight_point<T: Feature>(matches: &Vec<Match<T>>, pyramid_scale: Float) ->
 
         A[(i,0)] = u*u_prime;
         A[(i,1)] = u*v_prime;
-        A[(i,2)] = -u;
+        A[(i,2)] = u;
         A[(i,3)] = v*u_prime;
         A[(i,4)] = v*v_prime;
-        A[(i,5)] = -v;
-        A[(i,6)] = -u_prime;
-        A[(i,7)] = -v_prime;
+        A[(i,5)] = v;
+        A[(i,6)] = u_prime;
+        A[(i,7)] = v_prime;
         A[(i,8)] = 1.0;
     }
 
@@ -83,16 +83,6 @@ pub fn eight_point<T: Feature>(matches: &Vec<Match<T>>, pyramid_scale: Float) ->
     F[(1,2)] = f[7];
     F[(2,2)] = f[8];
 
-    // F[(0,0)] = f[0];
-    // F[(0,1)] = f[1];
-    // F[(0,2)] = f[2];
-    // F[(1,0)] = f[3];
-    // F[(1,1)] = f[4];
-    // F[(1,2)] = f[5];
-    // F[(2,0)] = f[6];
-    // F[(2,1)] = f[7];
-    // F[(2,2)] = f[8];
-
 
     let mut svd_f = F.svd(true,true);
     min_idx = svd_f.singular_values.imin();
@@ -105,6 +95,19 @@ pub fn eight_point<T: Feature>(matches: &Vec<Match<T>>, pyramid_scale: Float) ->
  */
 pub fn compute_essential(F: &Fundamental, projection_left: &Matrix3<Float>, projection_right: &Matrix3<Float>) -> Essential {
     projection_right.transpose()*F*projection_left
+}
+
+pub fn filter_matches<T: Feature>(F: &Fundamental, matches : &Vec<Match<T>>, pyramid_scale: Float) -> Vec<(Vector3<Float>,Vector3<Float>)> {
+    matches.iter().map(|m| {
+            let (x_left, y_left) = m.feature_one.1.reconstruct_original_coordiantes_for_float(pyramid_scale);
+            let (x_right, y_right) = m.feature_two.1.reconstruct_original_coordiantes_for_float(pyramid_scale);
+    
+            let feature_left = Vector3::new(x_left,y_left,1.0);
+            let feature_right = Vector3::new(x_right,y_right,1.0);
+            (feature_left,feature_right)
+        }).filter(|(l,r)| 
+            (r.transpose()*F*l)[0].abs() < 1.0
+        ).collect::<Vec<(Vector3<Float>,Vector3<Float>)>>()
 }
 
 /**
@@ -136,20 +139,24 @@ pub fn decompose_essential(E: &Essential,matches: &Vec<(Vector3<Float>,Vector3<F
         let mut v_sign = 0.0;
         let mut u_sign = 0.0;
         for (feature_left,feature_right) in matches {
-            let binormal = ((h.cross_matrix()*feature_left).cross_matrix()*h).normalize();
-            let mat = Matrix3::<Float>::from_columns(&[h,binormal,feature_left.cross_matrix()*R.transpose()*feature_right]);
+
+
+            let binormal = ((h.cross_matrix()*feature_right).cross_matrix()*h).normalize();
+            let mat = Matrix3::<Float>::from_columns(&[h,binormal,feature_right.cross_matrix()*R.transpose()*feature_left]);
             let s_i = mat.determinant();
             v_sign += match s_i {
                 det if det > 0.0 => 1.0,
                 det if det < 0.0 => -1.0,
                 _ => 0.0
             };
-            let s_r = (binormal.transpose()*R.transpose()*feature_right)[0];
+            let s_r = (binormal.transpose()*R.transpose()*feature_left)[0];
             u_sign += match s_i*s_r {
                 s if s > 0.0 => 1.0,
                 s if s < 0.0 => -1.0,
                 _ => 0.0
             }
+            
+
         
         }
 
