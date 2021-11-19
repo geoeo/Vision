@@ -105,13 +105,13 @@ impl CameraFeatureMap {
         assert_eq!(initial_motions.len(),number_of_cameras-1);
         for i in (6..number_of_cam_parameters).step_by(6){
             let (h,R) = initial_motions[i/6-1];
-            let lie_algebra = lie::ln_SO3(&R);
+            let lie_algebra = lie::vector_from_skew_symmetric(&lie::ln_SO3(&R));
             data[i] = h[0];
             data[i+1] = h[1];
             data[i+2] = h[2];
-            //data[i+3] = lie_algebra[0];
-            //data[i+4] = lie_algebra[1];
-            //data[i+5] = lie_algebra[2];
+            // data[i+3] = lie_algebra[0];
+            // data[i+4] = lie_algebra[1];
+            // data[i+5] = lie_algebra[2];
 
         }
         // Initialise points to a depth of -1

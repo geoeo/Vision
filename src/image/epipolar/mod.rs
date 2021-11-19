@@ -86,7 +86,17 @@ pub fn eight_point<T: Feature>(matches: &Vec<Match<T>>, pyramid_scale: Float) ->
 
     let mut svd_f = F.svd(true,true);
     min_idx = svd_f.singular_values.imin();
+    let mut acc = 0.0;
+    for i in 0..2 {
+        if i == min_idx{
+            svd_f.singular_values[i] = 0.0;
+        } else {
+            acc += svd_f.singular_values[i].powi(2);
+        }
+
+    }
     svd_f.singular_values[min_idx] = 0.0;
+    svd_f.singular_values /= acc.sqrt();
     svd_f.recompose().ok().expect("SVD recomposition failed")
 }
 
@@ -140,16 +150,18 @@ pub fn decompose_essential(E: &Essential,matches: &Vec<(Vector3<Float>,Vector3<F
         let mut u_sign = 0.0;
         for (feature_left,feature_right) in matches {
 
+            let fl = Vector3::<Float>::new(feature_left[0],feature_left[1],-1.0);
+            let fr = Vector3::<Float>::new(feature_right[0],feature_right[1],-1.0);
 
-            let binormal = ((h.cross_matrix()*feature_right).cross_matrix()*h).normalize();
-            let mat = Matrix3::<Float>::from_columns(&[h,binormal,feature_right.cross_matrix()*R.transpose()*feature_left]);
+            let binormal = ((h.cross_matrix()*fl).cross_matrix()*h).normalize();
+            let mat = Matrix3::<Float>::from_columns(&[h,binormal,fl.cross_matrix()*R.transpose()*fr]);
             let s_i = mat.determinant();
             v_sign += match s_i {
                 det if det > 0.0 => 1.0,
                 det if det < 0.0 => -1.0,
                 _ => 0.0
             };
-            let s_r = (binormal.transpose()*R.transpose()*feature_left)[0];
+            let s_r = (binormal.transpose()*R.transpose()*fr)[0];
             u_sign += match s_i*s_r {
                 s if s > 0.0 => 1.0,
                 s if s < 0.0 => -1.0,
@@ -172,5 +184,6 @@ pub fn decompose_essential(E: &Essential,matches: &Vec<(Vector3<Float>,Vector3<F
 
     //Invert tranlation as book defines it as [t]xR^T
     (-rotation.transpose()*translation,rotation.transpose())
+    //(translation,rotation)
 
 }

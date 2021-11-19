@@ -30,7 +30,7 @@ fn main() -> Result<()> {
 
 
     //let orb_matches_read = fs::read_to_string("D:/Workspace/Rust/Vision/output/orb_ba_matches_2_images.txt").expect("Unable to read file");
-    let orb_matches_read = fs::read_to_string("D:/Workspace/Rust/Vision/output/orb_ba_matches_ba_slow_3_ba_slow_1_images.txt").expect("Unable to read file");
+    let orb_matches_read = fs::read_to_string("D:/Workspace/Rust/Vision/output/orb_ba_matches_ba_slow_1_ba_slow_3_images.txt").expect("Unable to read file");
     let matches: Vec<Vec<Match<OrbFeature>>> = serde_yaml::from_str(&orb_matches_read)?;
 
     let fundamental_matrix = epipolar::eight_point(&matches[0], pyramid_scale);
