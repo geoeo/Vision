@@ -184,9 +184,6 @@ pub fn decompose_essential(E: &Essential,matches: &Vec<(Vector3<Float>,Vector3<F
                 s if s < 0.0 => -1.0,
                 _ => 0.0
             }
-            
-
-        
         }
 
         let u_sign_avg = u_sign /matches.len() as Float;
@@ -202,5 +199,43 @@ pub fn decompose_essential(E: &Essential,matches: &Vec<(Vector3<Float>,Vector3<F
     //Invert tranlation as book defines it as [t]xR^T
     (-rotation.transpose()*translation,rotation.transpose())
     //(translation,rotation)
+
+}
+
+/**
+ * Statistical Optimization for Geometric Computation p.338
+ */
+pub fn decompose_essential_2(E: &Essential,matches: &Vec<(Vector3<Float>,Vector3<Float>)>) -> (Vector3<Float>, Matrix3<Float>) {
+    let svd = (E*E.transpose()).svd(true,false);
+    let min_idx = svd.singular_values.imin();
+    let u = &svd.u.expect("SVD failed on E");
+    let mut h = u.column(min_idx).normalize();
+
+    let sum_of_determinants = matches.iter().fold(0.0, |acc,(l,r)| {
+        let mat = Matrix3::from_columns(&[h,*l,E*r]);
+        match mat.determinant() {
+            v if v > 0.0 => acc+1.0,
+            v if v < 0.0 => acc-1.0,
+            _ => acc
+        }
+    });
+    if sum_of_determinants < 0.0 {
+        h  *= -1.0; 
+    }
+
+    let K = (-h).cross_matrix()*E;
+    let mut svd_k = K.svd(true,true);
+    let u_k = svd_k.u.expect("SVD U failed on K");
+    let v_t_k = svd_k.v_t.expect("SVD V_t failed on K");
+    let min_idx = svd_k.singular_values.imin();
+    for i in 0..svd_k.singular_values.nrows(){
+        if i == min_idx {
+            svd_k.singular_values[i] = (u_k*v_t_k).determinant();
+        } else {
+            svd_k.singular_values[i] = 1.0;
+        }
+    }
+    let R = svd_k.recompose().ok().expect("SVD recomposition failed on K");
+    (-R.transpose()*h,R.transpose())
 
 }
