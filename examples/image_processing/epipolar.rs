@@ -33,11 +33,16 @@ fn main() -> Result<()> {
     let orb_matches_read = fs::read_to_string("D:/Workspace/Rust/Vision/output/orb_ba_matches_ba_slow_1_ba_slow_3_images.txt").expect("Unable to read file");
     let matches: Vec<Vec<Match<OrbFeature>>> = serde_yaml::from_str(&orb_matches_read)?;
 
-    let fundamental_matrix = epipolar::eight_point(&matches[0], pyramid_scale);
+    let feature_matches = epipolar::exatct_matches(&matches[0], pyramid_scale, false);
+    let fundamental_matrix = epipolar::eight_point(&feature_matches);
 
-    for m in &matches[0] {
-        let (x_left, y_left) = m.feature_one.1.reconstruct_original_coordiantes_for_float(pyramid_scale);
-        let (x_right, y_right) = m.feature_two.1.reconstruct_original_coordiantes_for_float(pyramid_scale);
+    for m in &feature_matches {
+
+        let left = m.0;
+        let right = m.1;
+
+        let (x_left, y_left) = (left[0],left[1]);
+        let (x_right, y_right) = (right[0],right[1]);
 
         let feature_left = Vector3::new(x_left,y_left,1.0);
         let feature_right = Vector3::new(x_right,y_right,1.0);
@@ -49,7 +54,7 @@ fn main() -> Result<()> {
     }
 
     let essential_matrix = epipolar::compute_essential(&fundamental_matrix, &intensity_camera_1.get_projection(), &intensity_camera_2.get_projection());
-    let normalized_matches = epipolar::filter_matches(&fundamental_matrix, &matches[0], pyramid_scale);
+    let normalized_matches = epipolar::filter_matches(&fundamental_matrix, &feature_matches);
     let (h,R) = epipolar::decompose_essential(&essential_matrix,&normalized_matches);
 
     println!("{}",h);

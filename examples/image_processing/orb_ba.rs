@@ -4,7 +4,7 @@ extern crate color_eyre;
 extern crate nalgebra as na;
 
 use std::fs;
-use na::{Vector3,Matrix3};
+use na::{Vector2,Vector3,Matrix3};
 use color_eyre::eyre::Result;
 use std::path::Path;
 use vision::Float;
@@ -103,10 +103,11 @@ fn main() -> Result<()> {
     // feature_map.add_images_from_params(&image_4, orb_runtime_params.max_features_per_octave,orb_runtime_params.octave_count);
 
     feature_map.add_matches(&image_pairs.into_iter().map(|(i1,_,i2,_)| (i1,i2)).collect(),&matches, orb_runtime_params.pyramid_scale);
-    let fundamental_matrices = matches.iter().map(|m| epipolar::eight_point(m,pyramid_scale)).collect::<Vec<epipolar::Fundamental>>();
+    let feature_machtes = matches.iter().map(|m| epipolar::exatct_matches(m, pyramid_scale, false)).collect::<Vec<Vec<(Vector2<Float>,Vector2<Float>)>>>();
+    let fundamental_matrices = feature_machtes.iter().map(|m| epipolar::eight_point(m)).collect::<Vec<epipolar::Fundamental>>();
     let essential_matrices = fundamental_matrices.iter().enumerate().map(|(i,f)| epipolar::compute_essential(f, &cameras[2*i].get_projection(), &cameras[2*i+1].get_projection())).collect::<Vec<epipolar::Essential>>();
 
-    let normalized_matches = fundamental_matrices.iter().zip(matches.iter()).map(|(f,m)| epipolar::filter_matches(f, m, pyramid_scale)).collect::<Vec<Vec<(Vector3<Float>,Vector3<Float>)>>>();
+    let normalized_matches = fundamental_matrices.iter().zip(feature_machtes.iter()).map(|(f,m)| epipolar::filter_matches(f, m)).collect::<Vec<Vec<(Vector3<Float>,Vector3<Float>)>>>();
     let initial_motion_decomp = essential_matrices.iter().enumerate().map(|(i,e)| epipolar::decompose_essential(e,&normalized_matches[i])).collect::<Vec<(Vector3<Float>,Matrix3<Float>)>>();
 
     let mut state = feature_map.get_initial_state(&initial_motion_decomp);
