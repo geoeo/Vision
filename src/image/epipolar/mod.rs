@@ -57,7 +57,9 @@ pub fn exatct_matches<T: Feature>(matches: &Vec<Match<T>>, pyramid_scale: Float,
 
 }
 
-
+/**
+ * Photogrammetric Computer Vision p.570
+ */
 pub fn eight_point(matches: &Vec<(Vector2<Float>,Vector2<Float>)>) -> Fundamental {
     let number_of_matches = matches.len() as Float;
     assert!(number_of_matches >= 8.0);
@@ -69,27 +71,12 @@ pub fn eight_point(matches: &Vec<(Vector2<Float>,Vector2<Float>)>) -> Fundamenta
         let feature_right = matches[i].1;
         let feature_left = matches[i].0;
 
-        // let u = feature_left[0];
-        // let v = feature_left[1];
-
-        // let u_prime = feature_right[0];
-        // let v_prime = feature_right[1];
-
         let l_x =  feature_left[0];
         let l_y =  feature_left[1];
 
         let r_x =  feature_right[0];
         let r_y =  feature_right[1];
 
-        // A[(i,0)] = u*u_prime;
-        // A[(i,1)] = u*v_prime;
-        // A[(i,2)] = u;
-        // A[(i,3)] = v*u_prime;
-        // A[(i,4)] = v*v_prime;
-        // A[(i,5)] = v;
-        // A[(i,6)] = u_prime;
-        // A[(i,7)] = v_prime;
-        // A[(i,8)] = 1.0;
 
         A[(i,0)] = r_x*l_x;
         A[(i,1)] = r_x*l_y;
