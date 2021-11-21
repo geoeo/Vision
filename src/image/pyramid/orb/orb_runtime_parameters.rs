@@ -1,6 +1,7 @@
+use serde::{Serialize, Deserialize};
 use crate::Float;
 
-#[derive(Clone,Copy)]
+#[derive(Clone,Copy,Serialize, Deserialize)]
 pub struct OrbRuntimeParameters {
     pub pyramid_scale: Float,
     pub sigma: Float,

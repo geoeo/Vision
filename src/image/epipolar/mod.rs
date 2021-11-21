@@ -196,9 +196,7 @@ pub fn decompose_essential(E: &Essential,matches: &Vec<(Vector3<Float>,Vector3<F
         }
     }
 
-    //Invert tranlation as book defines it as [t]xR^T
-    (-rotation.transpose()*translation,rotation.transpose())
-    //(translation,rotation)
+    (translation,rotation)
 
 }
 

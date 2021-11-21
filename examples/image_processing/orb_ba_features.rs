@@ -15,12 +15,11 @@ fn main() ->Result<()> {
 
     color_eyre::install()?;
 
-    let image_name_1 = "ba_slow_1";
-    let image_name_2 = "ba_slow_3";
+    let image_name_1 = "ba_slow_3";
+    let image_name_2 = "ba_slow_1";
 
     //let image_name_2 = "ba_slow_3";
     //let image_name_2 = "ba_slow_4";
-
 
 
     let image_format = "png";
@@ -45,9 +44,8 @@ fn main() ->Result<()> {
 
     //TODO: recheck maximal suppression, take best corers for all windows across all pyramid levels
     // https://www.cc.gatech.edu/classes/AY2016/cs4476_fall/results/proj2/html/agartia3/index.html
-    let pyramid_scale = 1.2; // opencv default is 1.2
     let runtime_params = OrbRuntimeParameters {
-        pyramid_scale: pyramid_scale,
+        pyramid_scale: 1.2,
         min_image_dimensions: (20,20),
         sigma: 1.2,
         blur_radius: 5.0,
@@ -67,7 +65,7 @@ fn main() ->Result<()> {
         brief_features_to_descriptors: 128, // 128
         brief_n: 256,
         brief_s: 31,
-        brief_s_scale_base: pyramid_scale,
+        brief_s_scale_base: 1.2,
         brief_matching_min_threshold: 256/2, //256/2
         brief_lookup_table_step: 30.0,
         brief_sampling_pattern_seed: 0x0DDB1A5ECBAD5EEDu64,
@@ -84,7 +82,7 @@ fn main() ->Result<()> {
     println!("matching complete");
     
 
-    let s = serde_yaml::to_string(&matches)?;
+    let s = serde_yaml::to_string(&(runtime_params,&matches))?;
 
 
     fs::write(format!("D:/Workspace/Rust/Vision/output/orb_ba_matches_{}_{}_images.txt",image_name_1,image_name_2), s).expect("Unable to write file");
@@ -103,7 +101,5 @@ fn main() ->Result<()> {
     //match_display_3_4.to_image().save(format!("{}{}_orb_ba.{}",image_out_folder,image_name_3,image_format)).unwrap();
 
 
-
     Ok(())
-
 }

@@ -46,39 +46,6 @@ fn main() -> Result<()> {
     let image_3 = Image::from_gray_image(&gray_image_3, false, false, Some(image_name_3.to_string()));
     let image_4 = Image::from_gray_image(&gray_image_4, false, false, Some(image_name_4.to_string()));
 
-
-
-    // //TODO: recheck maximal suppression, take best corers for all windows across all pyramid levels
-    // https://www.cc.gatech.edu/classes/AY2016/cs4476_fall/results/proj2/html/agartia3/index.html
-    let pyramid_scale = 1.2; // opencv default is 1.2
-    let orb_runtime_params = OrbRuntimeParameters {
-        pyramid_scale: pyramid_scale,
-        min_image_dimensions: (20,20),
-        sigma: 2.0,
-        blur_radius: 5.0,
-        max_features_per_octave: 8, // 15
-        max_features_per_octave_scale: 1.2,
-        octave_count: 8, // opencv default is 8
-        harris_k: 0.04,
-        harris_window_size: 5,  // 5
-        fast_circle_radius: 3, //3 
-        fast_threshold_factor: 0.2,
-        fast_consecutive_pixels: 12, // 12
-        fast_features_per_grid: 3, // 3
-        fast_grid_size: (15,15),  // 15
-        fast_grid_size_scale_base: 1.2,
-        fast_offsets: (20,20),
-        fast_offset_scale_base: 1.2,
-        brief_features_to_descriptors: 128, // 128
-        brief_n: 256,
-        brief_s: 31,
-        brief_s_scale_base: pyramid_scale,
-        brief_matching_min_threshold: 256/2, //256/2
-        brief_lookup_table_step: 30.0,
-        brief_sampling_pattern_seed: 0x0DDB1A5ECBAD5EEDu64,
-        brief_use_opencv_sampling_pattern: true
-    };
-
     //TODO: camera intrinsics -investigate removing badly matched feature in the 2 image set
     let intensity_camera_1 = Pinhole::new(389.2685546875, 389.2685546875, 319.049255371094, 241.347015380859, true);
     let intensity_camera_2 = intensity_camera_1.clone();
@@ -86,24 +53,24 @@ fn main() -> Result<()> {
     // let intensity_camera_4 = intensity_camera_1.clone();
 
     let cameras = vec!(intensity_camera_1,intensity_camera_2);
-    let image_pairs = vec!((&image_1, &orb_runtime_params, &image_2, &orb_runtime_params));
+    let image_pairs = vec!((&image_1, &image_2));
 
     // let cameras = vec!(intensity_camera_1,intensity_camera_2,intensity_camera_3,intensity_camera_4);
     // let image_pairs = vec!((&image_1, &orb_runtime_params, &image_2, &orb_runtime_params), ((&image_3, &orb_runtime_params, &image_4, &orb_runtime_params)));
 
 
-    let orb_matches_read = fs::read_to_string("D:/Workspace/Rust/Vision/output/orb_ba_matches_ba_slow_3_ba_slow_1_images.txt").expect("Unable to read file");
-    let matches: Vec<Vec<Match<OrbFeature>>> = serde_yaml::from_str(&orb_matches_read)?;
+    let orb_matches_as_string = fs::read_to_string("D:/Workspace/Rust/Vision/output/orb_ba_matches_ba_slow_3_ba_slow_1_images.txt").expect("Unable to read file");
+    let (orb_params,matches): (OrbRuntimeParameters,Vec<Vec<Match<OrbFeature>>>) = serde_yaml::from_str(&orb_matches_as_string)?;
 
 
     let mut feature_map = CameraFeatureMap::new(&matches);
-    feature_map.add_images_from_params(&image_1, orb_runtime_params.max_features_per_octave,orb_runtime_params.octave_count);
-    feature_map.add_images_from_params(&image_2, orb_runtime_params.max_features_per_octave,orb_runtime_params.octave_count);
+    feature_map.add_images_from_params(&image_1, orb_params.max_features_per_octave,orb_params.octave_count);
+    feature_map.add_images_from_params(&image_2, orb_params.max_features_per_octave,orb_params.octave_count);
     // feature_map.add_images_from_params(&image_3, orb_runtime_params.max_features_per_octave,orb_runtime_params.octave_count);
     // feature_map.add_images_from_params(&image_4, orb_runtime_params.max_features_per_octave,orb_runtime_params.octave_count);
 
-    feature_map.add_matches(&image_pairs.into_iter().map(|(i1,_,i2,_)| (i1,i2)).collect(),&matches, orb_runtime_params.pyramid_scale);
-    let feature_machtes = matches.iter().map(|m| epipolar::exatct_matches(m, pyramid_scale, false)).collect::<Vec<Vec<(Vector2<Float>,Vector2<Float>)>>>();
+    feature_map.add_matches(&image_pairs,&matches, orb_params.pyramid_scale);
+    let feature_machtes = matches.iter().map(|m| epipolar::exatct_matches(m, orb_params.pyramid_scale, false)).collect::<Vec<Vec<(Vector2<Float>,Vector2<Float>)>>>();
     let fundamental_matrices = feature_machtes.iter().map(|m| epipolar::eight_point(m)).collect::<Vec<epipolar::Fundamental>>();
     let essential_matrices = fundamental_matrices.iter().enumerate().map(|(i,f)| epipolar::compute_essential(f, &cameras[2*i].get_projection(), &cameras[2*i+1].get_projection())).collect::<Vec<epipolar::Essential>>();
 
