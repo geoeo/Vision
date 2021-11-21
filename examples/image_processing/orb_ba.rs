@@ -49,7 +49,7 @@ fn main() -> Result<()> {
     //TODO: camera intrinsics -investigate removing badly matched feature in the 2 image set
     let intensity_camera_1 = Pinhole::new(389.2685546875, 389.2685546875, 319.049255371094, 241.347015380859, true);
     let intensity_camera_2 = intensity_camera_1.clone();
-    // let intensity_camera_3 = intensity_camera_1.clone();
+    let intensity_camera_3 = intensity_camera_1.clone();
     // let intensity_camera_4 = intensity_camera_1.clone();
 
     let cameras = vec!(intensity_camera_1,intensity_camera_2);
@@ -70,6 +70,7 @@ fn main() -> Result<()> {
     // feature_map.add_images_from_params(&image_4, orb_runtime_params.max_features_per_octave,orb_runtime_params.octave_count);
 
     feature_map.add_matches(&image_pairs,&matches, orb_params.pyramid_scale);
+
     let feature_machtes = matches.iter().map(|m| epipolar::exatct_matches(m, orb_params.pyramid_scale, false)).collect::<Vec<Vec<(Vector2<Float>,Vector2<Float>)>>>();
     let fundamental_matrices = feature_machtes.iter().map(|m| epipolar::eight_point(m)).collect::<Vec<epipolar::Fundamental>>();
     let essential_matrices = fundamental_matrices.iter().enumerate().map(|(i,f)| epipolar::compute_essential(f, &cameras[2*i].get_projection(), &cameras[2*i+1].get_projection())).collect::<Vec<epipolar::Essential>>();

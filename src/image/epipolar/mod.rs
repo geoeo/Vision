@@ -69,20 +69,36 @@ pub fn eight_point(matches: &Vec<(Vector2<Float>,Vector2<Float>)>) -> Fundamenta
         let feature_right = matches[i].1;
         let feature_left = matches[i].0;
 
-        let u = feature_left[0];
-        let v = feature_left[1];
+        // let u = feature_left[0];
+        // let v = feature_left[1];
 
-        let u_prime = feature_right[0];
-        let v_prime = feature_right[1];
+        // let u_prime = feature_right[0];
+        // let v_prime = feature_right[1];
 
-        A[(i,0)] = u*u_prime;
-        A[(i,1)] = u*v_prime;
-        A[(i,2)] = u;
-        A[(i,3)] = v*u_prime;
-        A[(i,4)] = v*v_prime;
-        A[(i,5)] = v;
-        A[(i,6)] = u_prime;
-        A[(i,7)] = v_prime;
+        let l_x =  feature_left[0];
+        let l_y =  feature_left[1];
+
+        let r_x =  feature_right[0];
+        let r_y =  feature_right[1];
+
+        // A[(i,0)] = u*u_prime;
+        // A[(i,1)] = u*v_prime;
+        // A[(i,2)] = u;
+        // A[(i,3)] = v*u_prime;
+        // A[(i,4)] = v*v_prime;
+        // A[(i,5)] = v;
+        // A[(i,6)] = u_prime;
+        // A[(i,7)] = v_prime;
+        // A[(i,8)] = 1.0;
+
+        A[(i,0)] = r_x*l_x;
+        A[(i,1)] = r_x*l_y;
+        A[(i,2)] = r_x;
+        A[(i,3)] = r_y*l_x;
+        A[(i,4)] = r_y*l_y;
+        A[(i,5)] = r_y;
+        A[(i,6)] = l_x;
+        A[(i,7)] = l_y;
         A[(i,8)] = 1.0;
     }
 
@@ -119,11 +135,8 @@ pub fn eight_point(matches: &Vec<(Vector2<Float>,Vector2<Float>)>) -> Fundamenta
     svd_f.recompose().ok().expect("SVD recomposition failed")
 }
 
-/**
- * Mapping between features and Projections as follows: two*F*one => K_left_transpose * F * K_right
- */
 pub fn compute_essential(F: &Fundamental, projection_left: &Matrix3<Float>, projection_right: &Matrix3<Float>) -> Essential {
-    projection_right.transpose()*F*projection_left
+    projection_left.transpose()*F*projection_right
 }
 
 pub fn filter_matches(F: &Fundamental,matches: &Vec<(Vector2<Float>,Vector2<Float>)>) -> Vec<(Vector3<Float>,Vector3<Float>)> {
@@ -133,7 +146,7 @@ pub fn filter_matches(F: &Fundamental,matches: &Vec<(Vector2<Float>,Vector2<Floa
             let feature_right = Vector3::new(r[0],r[1],1.0);
             (feature_left,feature_right)
         }).filter(|(l,r)| 
-            (r.transpose()*F*l)[0].abs() < 1.0
+            (l.transpose()*F*r)[0].abs() < 1.0
         ).collect::<Vec<(Vector3<Float>,Vector3<Float>)>>()
 }
 
@@ -173,13 +186,14 @@ pub fn decompose_essential(E: &Essential,matches: &Vec<(Vector3<Float>,Vector3<F
             let binormal = ((h.cross_matrix()*fl).cross_matrix()*h).normalize();
             let mat = Matrix3::<Float>::from_columns(&[h,binormal,fl.cross_matrix()*R.transpose()*fr]);
             let s_i = mat.determinant();
-            v_sign += match s_i {
+            let s_i_sign = match s_i {
                 det if det > 0.0 => 1.0,
                 det if det < 0.0 => -1.0,
                 _ => 0.0
             };
+            v_sign += s_i_sign;
             let s_r = (binormal.transpose()*R.transpose()*fr)[0];
-            u_sign += match s_i*s_r {
+            u_sign += match s_i_sign*s_r {
                 s if s > 0.0 => 1.0,
                 s if s < 0.0 => -1.0,
                 _ => 0.0
@@ -202,38 +216,46 @@ pub fn decompose_essential(E: &Essential,matches: &Vec<(Vector3<Float>,Vector3<F
 
 /**
  * Statistical Optimization for Geometric Computation p.338
+ * //TODO: translation seems strange sometimes
  */
-pub fn decompose_essential_2(E: &Essential,matches: &Vec<(Vector3<Float>,Vector3<Float>)>) -> (Vector3<Float>, Matrix3<Float>) {
-    let svd = (E*E.transpose()).svd(true,false);
-    let min_idx = svd.singular_values.imin();
-    let u = &svd.u.expect("SVD failed on E");
-    let mut h = u.column(min_idx).normalize();
+pub fn decompose_essential_2(E: &Essential, matches: &Vec<(Vector3<Float>,Vector3<Float>)>) -> (Vector3<Float>, Matrix3<Float>) {
+    let mut translation = Vector3::<Float>::zeros();
+    let mut R = Matrix3::<Float>::identity();
 
-    let sum_of_determinants = matches.iter().fold(0.0, |acc,(l,r)| {
-        let mat = Matrix3::from_columns(&[h,*l,E*r]);
-        match mat.determinant() {
-            v if v > 0.0 => acc+1.0,
-            v if v < 0.0 => acc-1.0,
-            _ => acc
+    if matches.len() > 0 {
+        let svd = (E*E.transpose()).svd(true,false);
+        let min_idx = svd.singular_values.imin();
+        let u = &svd.u.expect("SVD failed on E");
+        let mut h = u.column(min_idx).normalize();
+        let sum_of_determinants = matches.iter().fold(0.0, |acc,(l,r)| {
+            let mat = Matrix3::from_columns(&[h,*l,E*r]);
+            match mat.determinant() {
+                v if v > 0.0 => acc+1.0,
+                v if v < 0.0 => acc-1.0,
+                _ => acc
+            }
+        });
+        if sum_of_determinants < 0.0 {
+            h  *= -1.0; 
         }
-    });
-    if sum_of_determinants < 0.0 {
-        h  *= -1.0; 
+    
+        let K = (-h).cross_matrix()*E;
+        let mut svd_k = K.svd(true,true);
+        let u_k = svd_k.u.expect("SVD U failed on K");
+        let v_t_k = svd_k.v_t.expect("SVD V_t failed on K");
+        let min_idx = svd_k.singular_values.imin();
+        for i in 0..svd_k.singular_values.nrows(){
+            if i == min_idx {
+                svd_k.singular_values[i] = (u_k*v_t_k).determinant();
+            } else {
+                svd_k.singular_values[i] = 1.0;
+            }
+        }
+        R = svd_k.recompose().ok().expect("SVD recomposition failed on K");
+        translation = h;
+
     }
 
-    let K = (-h).cross_matrix()*E;
-    let mut svd_k = K.svd(true,true);
-    let u_k = svd_k.u.expect("SVD U failed on K");
-    let v_t_k = svd_k.v_t.expect("SVD V_t failed on K");
-    let min_idx = svd_k.singular_values.imin();
-    for i in 0..svd_k.singular_values.nrows(){
-        if i == min_idx {
-            svd_k.singular_values[i] = (u_k*v_t_k).determinant();
-        } else {
-            svd_k.singular_values[i] = 1.0;
-        }
-    }
-    let R = svd_k.recompose().ok().expect("SVD recomposition failed on K");
-    (-R.transpose()*h,R.transpose())
+    (translation,R.transpose())
 
 }

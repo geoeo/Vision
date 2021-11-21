@@ -24,16 +24,16 @@ fn main() -> Result<()> {
 
 
     //let orb_matches_read = fs::read_to_string("D:/Workspace/Rust/Vision/output/orb_ba_matches_2_images.txt").expect("Unable to read file");
-    let orb_matches_as_string = fs::read_to_string("D:/Workspace/Rust/Vision/output/orb_ba_matches_ba_slow_3_ba_slow_1_images.txt").expect("Unable to read file");
+    let orb_matches_as_string = fs::read_to_string("D:/Workspace/Rust/Vision/output/orb_ba_matches_ba_slow_2_ba_slow_1_images.txt").expect("Unable to read file");
     let (orb_params,matches): (OrbRuntimeParameters,Vec<Vec<Match<OrbFeature>>>) = serde_yaml::from_str(&orb_matches_as_string)?;
 
-    let feature_matches = epipolar::exatct_matches(&matches[0], 1.2, false);
+    let feature_matches = epipolar::exatct_matches(&matches[0], orb_params.pyramid_scale, false);
     let fundamental_matrix = epipolar::eight_point(&feature_matches);
 
     let essential_matrix = epipolar::compute_essential(&fundamental_matrix, &intensity_camera_1.get_projection(), &intensity_camera_2.get_projection());
     let normalized_matches = epipolar::filter_matches(&fundamental_matrix, &feature_matches);
     for (l,r) in &normalized_matches {
-        let t = r.transpose()*fundamental_matrix*l;
+        let t = l.transpose()*fundamental_matrix*r;
         println!("{}",t);
     }
     let (h,R) = epipolar::decompose_essential(&essential_matrix,&normalized_matches);
