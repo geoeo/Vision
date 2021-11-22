@@ -135,7 +135,7 @@ pub fn backproject_points<C : Camera>(source_image_buffer: &DMatrix<Float>,depth
 
 
         if depth_sample != 0.0 {
-            let backprojected_point = camera.backproject(&Point::<Float>::new(c as Float + 0.5,r as Float + 0.5), depth_sample); //TODO: inverse depth
+            let backprojected_point = camera.backproject(&Point::<Float>::new(c as Float + 0.5,r as Float + 0.5), depth_sample);
             backproject_points.set_column(image_to_linear_index(r,cols,c),&Vector4::<Float>::new(backprojected_point[0],backprojected_point[1],backprojected_point[2],1.0));
             backproject_points_flags[image_to_linear_index(r,cols,c)] = true;
         } else {

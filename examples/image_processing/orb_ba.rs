@@ -81,8 +81,8 @@ fn main() -> Result<()> {
     let mut state = feature_map.get_initial_state(&initial_motion_decomp);
     let observed_features = feature_map.get_observed_features();
     let runtime_parameters = RuntimeParameters {
-        pyramid_scale: 1.0,
-        max_iterations: vec![50; 1],
+        pyramid_scale: orb_params.pyramid_scale,
+        max_iterations: vec![15; 1],
         eps: vec![1e-3],
         step_sizes: vec![1e-8],
         max_norm_eps: 1e-30, 
@@ -97,10 +97,9 @@ fn main() -> Result<()> {
         intensity_weighting_function:  Box::new(weighting::TrivialWeight {})
     };
 
-    let (before_cam_positions,before_points) = state.lift();
-
     optimize(&mut state, &cameras, &observed_features, &runtime_parameters);
 
+    //TODO: make this a serializable datatype
     let (cam_positions,points) = state.lift();
 
     println!("Cam Positions");
@@ -113,10 +112,12 @@ fn main() -> Result<()> {
         println!("{}",point);
     }
 
-
     //TODO: make this work with images of different sizes
     println!("{}",matches.len());
 
+
+    let s = serde_yaml::to_string(&state.to_serial())?;
+    fs::write(format!("D:/Workspace/Rust/Vision/output/orb_ba_{}_{}_images.txt",image_name_1,image_name_2), s).expect("Unable to write file");
 
 
     Ok(())

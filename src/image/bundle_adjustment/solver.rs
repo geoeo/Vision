@@ -170,12 +170,6 @@ pub fn optimize<C : Camera>(state: &mut State, cameras: &Vec<C>, observed_featur
                 state.n_points
             ); 
 
-            //             let (delta,g,gain_ratio_denom, mu_val) 
-            // = gauss_newton_step(&residuals,
-            //     &jacobian,
-            //     &identity,
-            //     mu,
-            //     tau); 
 
 
         mu = Some(mu_val);
