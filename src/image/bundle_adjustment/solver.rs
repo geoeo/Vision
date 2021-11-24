@@ -118,7 +118,7 @@ pub fn optimize<C : Camera>(state: &mut State, cameras: &Vec<C>, observed_featur
     let mut g = DVector::<Float>::from_element(state_size,0.0); 
     let mut delta = DVector::<Float>::from_element(state_size,0.0); 
 
-    //let identity = DMatrix::<Float>::identity(state_size, state_size);
+    let identity = DMatrix::<Float>::identity(state_size, state_size);
 
 
     get_estimated_features(state, cameras, &mut estimated_features);
@@ -169,6 +169,13 @@ pub fn optimize<C : Camera>(state: &mut State, cameras: &Vec<C>, observed_featur
                 state.n_cams,
                 state.n_points
             ); 
+
+        // let (delta,g,gain_ratio_denom, mu_val) 
+        //     = gauss_newton_step(&residuals,
+        //          &jacobian,
+        //          &identity,
+        //          mu,
+        //          tau); 
 
 
 

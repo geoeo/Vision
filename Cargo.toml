@@ -8,8 +8,9 @@ edition = '2018'
 
 [dependencies]
 image = "*"
-nalgebra = {version="*"}
-#nalgebra-lapack = {version ="*", default-features=false}
+nalgebra = {version="*", features=["rand"]}
+kiss3d = "*"
+nalgebra-lapack = {version ="*", default-features=false}
 rand = {version = "*", features = ["small_rng"] }
 rand_distr = "*"
 optimization_engine = "*"
@@ -42,4 +43,8 @@ path = "examples/image_processing/fast_descriptor.rs"
 [[example]]
 name = "epipolar"
 path = "examples/image_processing/epipolar.rs"
+
+[[example]]
+name = "pointcloud"
+path = "examples/visualizing/pointcloud.rs"
 

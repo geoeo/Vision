@@ -60,7 +60,7 @@ impl State {
     }
 
     pub fn from_serial((cam_serial, points_serial): &(Vec<[Float;6]>,Vec<[Float;3]>)) -> State {
-        let total_size = cam_serial.len() + points_serial.len();
+        let total_size = 6*cam_serial.len() + 3*points_serial.len();
         let mut data = DVector::<Float>::zeros(total_size);
         let cam_offset = 6*cam_serial.len();
 

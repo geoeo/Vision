@@ -21,11 +21,11 @@ fn main() -> Result<()> {
 
     color_eyre::install()?;
 
-    let image_name_1 = "ba_slow_1";
-    let image_name_2 = "ba_slow_2";
+    let id_1 = "1";
+    let id_2 = "2";
 
-    let image_name_3 = "ba_slow_3";
-    let image_name_4 = "ba_slow_4";
+    let image_name_1 = format!("ba_slow_{}",id_1);
+    let image_name_2 = format!("ba_slow_{}",id_2);
 
 
     let image_format = "png";
@@ -33,18 +33,12 @@ fn main() -> Result<()> {
     let image_out_folder = "output/";
     let image_path_1 = format!("{}{}.{}",image_folder,image_name_1, image_format);
     let image_path_2 = format!("{}{}.{}",image_folder,image_name_2, image_format);
-    let image_path_3 = format!("{}{}.{}",image_folder,image_name_3, image_format);
-    let image_path_4 = format!("{}{}.{}",image_folder,image_name_4, image_format);
 
     let gray_image_1 = image_rs::open(&Path::new(&image_path_1)).unwrap().to_luma8();
     let gray_image_2 = image_rs::open(&Path::new(&image_path_2)).unwrap().to_luma8();
-    let gray_image_3 = image_rs::open(&Path::new(&image_path_3)).unwrap().to_luma8();
-    let gray_image_4 = image_rs::open(&Path::new(&image_path_4)).unwrap().to_luma8();
 
     let image_1 = Image::from_gray_image(&gray_image_1, false, false, Some(image_name_1.to_string()));
     let image_2 = Image::from_gray_image(&gray_image_2, false, false, Some(image_name_2.to_string()));
-    let image_3 = Image::from_gray_image(&gray_image_3, false, false, Some(image_name_3.to_string()));
-    let image_4 = Image::from_gray_image(&gray_image_4, false, false, Some(image_name_4.to_string()));
 
     //TODO: camera intrinsics -investigate removing badly matched feature in the 2 image set
     let intensity_camera_1 = Pinhole::new(389.2685546875, 389.2685546875, 319.049255371094, 241.347015380859, true);
@@ -59,15 +53,13 @@ fn main() -> Result<()> {
     // let image_pairs = vec!((&image_1, &orb_runtime_params, &image_2, &orb_runtime_params), ((&image_3, &orb_runtime_params, &image_4, &orb_runtime_params)));
 
 
-    let orb_matches_as_string = fs::read_to_string("D:/Workspace/Rust/Vision/output/orb_ba_matches_ba_slow_1_ba_slow_3_images.txt").expect("Unable to read file");
+    let orb_matches_as_string = fs::read_to_string(format!("D:/Workspace/Rust/Vision/output/orb_ba_matches_ba_slow_{}_ba_slow_{}_images.txt",id_1,id_2)).expect("Unable to read file");
     let (orb_params,matches): (OrbRuntimeParameters,Vec<Vec<Match<OrbFeature>>>) = serde_yaml::from_str(&orb_matches_as_string)?;
 
 
     let mut feature_map = CameraFeatureMap::new(&matches);
     feature_map.add_images_from_params(&image_1, orb_params.max_features_per_octave,orb_params.octave_count);
     feature_map.add_images_from_params(&image_2, orb_params.max_features_per_octave,orb_params.octave_count);
-    // feature_map.add_images_from_params(&image_3, orb_runtime_params.max_features_per_octave,orb_runtime_params.octave_count);
-    // feature_map.add_images_from_params(&image_4, orb_runtime_params.max_features_per_octave,orb_runtime_params.octave_count);
 
     feature_map.add_matches(&image_pairs,&matches, orb_params.pyramid_scale);
 
@@ -89,7 +81,7 @@ fn main() -> Result<()> {
         delta_eps: 1e-30,
         taus: vec![1e0],
         lm: true,
-        weighting: true,
+        weighting: false,
         debug: true,
 
         show_octave_result: true,
