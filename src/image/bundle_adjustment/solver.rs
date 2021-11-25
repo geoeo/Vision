@@ -19,7 +19,7 @@ pub fn get_estimated_features<C : Camera>(state: &State, cameras: &Vec<C>, estim
     let estimated_state = &state.data;
     assert_eq!(estimated_features.nrows(),2*n_points*n_cams);
     for i in 0..n_cams {
-        let cam_idx = 6*i*n_cams;
+        let cam_idx = 6*i;
         let u = estimated_state.fixed_rows::<3>(cam_idx);
         let w = estimated_state.fixed_rows::<3>(cam_idx+3);
         let pose = exp(&u,&w);
@@ -157,25 +157,25 @@ pub fn optimize<C : Camera>(state: &mut State, cameras: &Vec<C>, observed_featur
         g.fill(0.0);
         delta.fill(0.0);
 
-        let (gain_ratio_denom, mu_val) 
-            = gauss_newton_step_with_schur(
-                &mut target_arrowhead,
-                &mut g,
-                &mut delta,
-                &residuals,
-                &jacobian,
-                mu,
-                tau,
-                state.n_cams,
-                state.n_points
-            ); 
+        // let (gain_ratio_denom, mu_val) 
+        //     = gauss_newton_step_with_schur(
+        //         &mut target_arrowhead,
+        //         &mut g,
+        //         &mut delta,
+        //         &residuals,
+        //         &jacobian,
+        //         mu,
+        //         tau,
+        //         state.n_cams,
+        //         state.n_points
+        //     ); 
 
-        // let (delta,g,gain_ratio_denom, mu_val) 
-        //     = gauss_newton_step(&residuals,
-        //          &jacobian,
-        //          &identity,
-        //          mu,
-        //          tau); 
+        let (delta,g,gain_ratio_denom, mu_val) 
+            = gauss_newton_step(&residuals,
+                 &jacobian,
+                 &identity,
+                 mu,
+                 tau); 
 
 
 

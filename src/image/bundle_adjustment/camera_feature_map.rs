@@ -72,12 +72,13 @@ impl CameraFeatureMap {
         for i in 0..image_pairs.len(){
             let (image_a,image_b) = image_pairs[i];
             let matches_for_pair = &matches[i];
+            let id_a = image_a.id.expect("image a has no id");
+            let id_b = image_b.id.expect("image b has no id");
 
             for feature_match in matches_for_pair {
                 let (_,match_a) = &feature_match.feature_one;
                 let (_,match_b) = &feature_match.feature_two;
-                let id_a = image_a.id.expect("image a has no id");
-                let id_b = image_b.id.expect("image b has no id");
+
 
 
                 self.add_feature(id_a, id_b, 
@@ -102,9 +103,14 @@ impl CameraFeatureMap {
         let total_parameters = number_of_cam_parameters+number_of_point_parameters;
         let mut data = DVector::<Float>::zeros(total_parameters);
 
-        assert_eq!(initial_motions.len(),number_of_cameras-1);
-        for i in (6..number_of_cam_parameters).step_by(6){
-            let (h,R) = initial_motions[i/6-1];
+        assert_eq!(initial_motions.len(),number_of_cameras/2);
+        let mut counter = 0;
+        for i in (6..number_of_cam_parameters).step_by(12){
+            let idx = match i {
+                v if v == 0 => 0,
+                _ => i/6-1-counter
+            };
+            let (h,R) = initial_motions[idx];
             let lie_algebra = lie::vector_from_skew_symmetric(&lie::ln_SO3(&R));
             data[i] = h[0];
             data[i+1] = h[1];
@@ -112,7 +118,7 @@ impl CameraFeatureMap {
             // data[i+3] = lie_algebra[0];
             // data[i+4] = lie_algebra[1];
             // data[i+5] = lie_algebra[2];
-
+            counter += 1;
         }
         // Initialise points to a depth of -1
         for i in (number_of_cam_parameters..total_parameters).step_by(3){
