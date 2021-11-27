@@ -10,9 +10,6 @@ use crate::numerics::{loss::LossFunction, weighting::WeightingFunction};
 use crate::{float, Float};
 
 
-
-
-
 pub fn calc_weight_vec<D, S1,S2>(
     residuals: &Vector<Float,D,S2>,
     weight_function: &Box<dyn WeightingFunction>,
@@ -231,7 +228,7 @@ pub fn gauss_newton_step<R, C,S1, S2, S3>(
         S1: Storage<Float, R>,
         S2: Storage<Float, R, C>,
         S3: Storage<Float, C, C>,
-        DefaultAllocator: Allocator<Float, R, C>+  Allocator<Float, C, R> + Allocator<Float, C, C> + Allocator<Float, C>+ Allocator<Float, Const<1_usize>, C>  {
+        DefaultAllocator: Allocator<Float, R, C>+  Allocator<Float, C, R> + Allocator<Float, C, C> + Allocator<Float, C>+ Allocator<Float, Const<1_usize>, C> + Allocator<(usize, usize), C>,  {
     let (A,g) = (jacobian.transpose()*jacobian,jacobian.transpose()*residuals);
     let mu_val = match mu {
         None => tau*A.diagonal().max(),
@@ -239,6 +236,7 @@ pub fn gauss_newton_step<R, C,S1, S2, S3>(
     };
 
     let decomp = (A+ mu_val*identity).qr();
+    let h = decomp.solve(&(-(&g)));
     let h = decomp.solve(&(-(&g))).expect("QR Solve Failed");
     let gain_ratio_denom = (&h).transpose()*(mu_val*(&h)-(&g));
     (h,g,gain_ratio_denom[0], mu_val)

@@ -16,7 +16,7 @@ fn main() ->Result<()> {
     color_eyre::install()?;
 
     let image_name_1 = "ba_slow_1";
-    let image_name_2 = "ba_slow_2";
+    let image_name_2 = "ba_slow_4";
 
     //let image_name_2 = "ba_slow_3";
     //let image_name_2 = "ba_slow_4";

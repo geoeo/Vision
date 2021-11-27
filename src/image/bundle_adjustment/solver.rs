@@ -4,6 +4,7 @@ use na::{DVector,DMatrix,Matrix, Dynamic, U4, VecStorage,Vector, Vector4, Matrix
 use crate::{float,Float};
 use crate::sensors::camera::Camera;
 use crate::numerics::lie::{exp, left_jacobian_around_identity};
+use crate::numerics::pose::invert_se3;
 use crate::numerics::{max_norm, solver::{compute_cost,weight_jacobian_sparse,weight_residuals_sparse, calc_weight_vec, gauss_newton_step, gauss_newton_step_with_loss_and_schur, gauss_newton_step_with_schur}};
 use crate::image::bundle_adjustment::state::State;
 use crate::odometry::runtime_parameters::RuntimeParameters; //TODO remove dependency on odometry module
@@ -52,11 +53,7 @@ pub fn compute_residual(estimated_features: &DVector<Float>, observed_features: 
 
 pub fn compute_jacobian_wrt_object_points<C : Camera,T>(camera: &C, transformation: &Matrix4<Float>, point: &Vector<Float,U3,T>, i: usize, j: usize, jacobian: &mut DMatrix<Float>) 
     -> () where T: Storage<Float,U3,U1> {
-    let homogeneous_point = transformation*Vector4::<Float>::new(point[0],point[1],point[2],1.0);
-    let mut homogeneous_projection_jacobian = Matrix2x4::<Float>::zeros();
-    homogeneous_projection_jacobian.fixed_slice_mut::<2,3>(0,0).copy_from(&camera.get_jacobian_with_respect_to_position(&homogeneous_point.fixed_slice::<3,1>(0,0)));
-
-    let local_jacobian = homogeneous_projection_jacobian*transformation;
+    let local_jacobian = camera.get_jacobian_with_respect_to_position_in_world_frame(transformation, point);
     jacobian.fixed_slice_mut::<2,3>(i,j).copy_from(&local_jacobian.fixed_slice::<2,3>(0,0));
 }
 
@@ -69,7 +66,7 @@ pub fn compute_jacobian_wrt_camera_parameters<C : Camera, T>( camera: &C, transf
     projection.fixed_slice_mut::<2,3>(0,0).copy_from(&camera.get_projection().fixed_slice::<2,3>(0,0));
 
     let mut homogeneous_projection_jacobian = Matrix2x3::<Float>::zeros();
-    homogeneous_projection_jacobian.fixed_slice_mut::<2,3>(0,0).copy_from(&camera.get_jacobian_with_respect_to_position(&transformed_point.fixed_slice::<3,1>(0,0)));
+    homogeneous_projection_jacobian.fixed_slice_mut::<2,3>(0,0).copy_from(&camera.get_jacobian_with_respect_to_position_in_camera_frame(&transformed_point.fixed_slice::<3,1>(0,0)));
 
     jacobian.fixed_slice_mut::<2,6>(i,j).copy_from(&(homogeneous_projection_jacobian*lie_jacobian));
 }
@@ -92,7 +89,7 @@ pub fn compute_jacobian<C : Camera>(state: &State, cameras: &Vec<C>, jacobian: &
             let point_id = (point_state_idx-number_of_cam_params)/3;
             let a_i = 2*(cam_id+point_id*state.n_cams);
             let a_j = cam_state_idx;
-            let b_i = 2*(state.n_cams*point_id+cam_id);
+            let b_i = 2*(cam_id+point_id*state.n_cams);
             let b_j = number_of_cam_params+point_id*3;
 
             compute_jacobian_wrt_camera_parameters(camera , &transformation,point,a_i,a_j, jacobian);
@@ -157,25 +154,25 @@ pub fn optimize<C : Camera>(state: &mut State, cameras: &Vec<C>, observed_featur
         g.fill(0.0);
         delta.fill(0.0);
 
-        // let (gain_ratio_denom, mu_val) 
-        //     = gauss_newton_step_with_schur(
-        //         &mut target_arrowhead,
-        //         &mut g,
-        //         &mut delta,
-        //         &residuals,
-        //         &jacobian,
-        //         mu,
-        //         tau,
-        //         state.n_cams,
-        //         state.n_points
-        //     ); 
+        let (gain_ratio_denom, mu_val) 
+            = gauss_newton_step_with_schur(
+                &mut target_arrowhead,
+                &mut g,
+                &mut delta,
+                &residuals,
+                &jacobian,
+                mu,
+                tau,
+                state.n_cams,
+                state.n_points
+            ); 
 
-        let (delta,g,gain_ratio_denom, mu_val) 
-            = gauss_newton_step(&residuals,
-                 &jacobian,
-                 &identity,
-                 mu,
-                 tau); 
+        // let (delta,g,gain_ratio_denom, mu_val) 
+        //     = gauss_newton_step(&residuals,
+        //          &jacobian,
+        //          &identity,
+        //          mu,
+        //          tau); 
 
 
 

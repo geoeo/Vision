@@ -51,9 +51,9 @@ impl CameraFeatureMap {
 
         let (x_source,y_source) = reconstruct_original_coordiantes_for_float(x_source as Float, y_source as Float, pyramid_scale, octave_index_source as i32);
         let (x_other,y_other) = reconstruct_original_coordiantes_for_float(x_other as Float, y_other as Float, pyramid_scale, octave_index_other as i32);
-        let point_source = Point::<usize>::new(x_source.trunc() as usize,y_source.trunc() as usize);
-        let point_other = Point::<usize>::new(x_other.trunc() as usize,y_other.trunc() as usize);
-
+        let point_source = Point::<usize>::new(1280 - x_source.trunc() as usize,y_source.trunc() as usize);
+        let point_other = Point::<usize>::new(1280 - x_other.trunc() as usize,y_other.trunc() as usize); //TODO: check x reconstrunction/ writing into file
+ 
         let idx_in_feature_list = self.feature_list.len();
 
         match (source_cam_id, other_cam_id){
@@ -112,9 +112,10 @@ impl CameraFeatureMap {
             };
             let (h,R) = initial_motions[idx];
             let lie_algebra = lie::vector_from_skew_symmetric(&lie::ln_SO3(&R));
-            data[i] = h[0];
-            data[i+1] = h[1];
-            data[i+2] = h[2];
+            //TODO: technically use R.t() aswell!
+            data[i] = -h[0];
+            data[i+1] = -h[1];
+            data[i+2] = -h[2];
             // data[i+3] = lie_algebra[0];
             // data[i+4] = lie_algebra[1];
             // data[i+5] = lie_algebra[2];
