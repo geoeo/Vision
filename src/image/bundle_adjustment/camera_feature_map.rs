@@ -117,6 +117,7 @@ impl CameraFeatureMap {
                 data[i] = -h[0];
                 data[i+1] = -h[1];
                 data[i+2] = -h[2];
+                // TODO: this will have to be axis angle now
                 // data[i+3] = lie_algebra[0];
                 // data[i+4] = lie_algebra[1];
                 // data[i+5] = lie_algebra[2];

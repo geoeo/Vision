@@ -61,8 +61,8 @@ impl Camera for Pinhole {
         let z = position[2];
         let z_sqrd = z.powi(2);
 
-        Matrix2x3::<Float>::new(self.get_fx()/z, 0.0 , -(self.get_fx()*x + self.get_cx())/z_sqrd,
-                                0.0, self.get_fy()/z,  -(self.get_fy()*y + self.get_cy())/z_sqrd)
+        Matrix2x3::<Float>::new(self.get_fx()/z, 0.0 , -(self.get_fx()*x)/z_sqrd,
+                                0.0, self.get_fy()/z,  -(self.get_fy()*y)/z_sqrd)
 
     }
 

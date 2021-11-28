@@ -50,9 +50,9 @@ fn main() -> Result<()> {
         max_iterations: vec![200; 1],
         eps: vec![1e0],
         step_sizes: vec![1e-8],
-        max_norm_eps: 1e-10, 
-        delta_eps: 1e-10,
-        taus: vec![1e-1],
+        max_norm_eps: 1e-30, 
+        delta_eps: 1e-30,
+        taus: vec![1e4],
         lm: true,
         weighting: false,
         debug: true,
@@ -65,7 +65,7 @@ fn main() -> Result<()> {
     optimize(&mut state, &cameras, &observed_features, &runtime_parameters);
 
     //TODO: make this a serializable datatype
-    let (cam_positions,points) = state.lift();
+    let (cam_positions,points) = state.as_matrix_point();
 
     println!("Cam Positions");
     for cam_pos in cam_positions {

@@ -22,7 +22,7 @@ fn main() -> Result<(),()> {
     //let orb_matches_as_string = fs::read_to_string("D:/Workspace/Rust/Vision/output/orb_ba_ba_slow_1_ba_slow_2_ba_slow_3_images.txt").expect("Unable to read file");
     let loaded: (Vec<[Float;6]>,Vec<[Float;3]>) = serde_yaml::from_str(&orb_matches_as_string).unwrap();
     let ba_state = state::State::from_serial(&loaded);
-    let (cams,points) = ba_state.lift();
+    let (cams,points) = ba_state.as_matrix_point();
 
     
 
@@ -34,11 +34,11 @@ fn main() -> Result<(),()> {
         s.append_translation(&Translation3::new(cam_world[(0,3)] as f32,cam_world[(1,3)] as f32,cam_world[(2,3)] as f32));
     }
 
+    let factor = 100.0;
     for point in &points {
-        let mut s = window.add_sphere(0.002);
+        let mut s = window.add_sphere(0.001);
         s.set_color(random(), random(), random());
-        let t = Translation3::new(10.0*(point[0] as f32), 10.0*(point[1] as f32), 9.0 + 10.0*(point[2] as f32));
-        s.append_translation(&t);
+        s.append_translation(&Translation3::new(factor*(point[0] as f32), factor*(point[1] as f32),factor - 1.0 + factor/1.0*(point[2] as f32)));
     }
 
 

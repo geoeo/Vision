@@ -236,7 +236,7 @@ pub fn gauss_newton_step<R, C,S1, S2, S3>(
     };
     let decomp = (A+ mu_val*identity).qr();
     let h = decomp.solve(&(-(&g))).expect("QR Solve Failed");
-    let gain_ratio_denom = (&h).transpose()*(mu_val*(&h)-(&g));
+    let gain_ratio_denom = 0.5*(&h).transpose()*(mu_val*(&h)-(&g));
     (h,g,gain_ratio_denom[0], mu_val)
 }
 

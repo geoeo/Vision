@@ -101,12 +101,12 @@ fn main() -> Result<()> {
     let observed_features = feature_map.get_observed_features();
     let runtime_parameters = RuntimeParameters {
         pyramid_scale: orb_params_1_2.pyramid_scale,
-        max_iterations: vec![20; 1],
+        max_iterations: vec![200; 1],
         eps: vec![1e0],
         step_sizes: vec![1e-8],
         max_norm_eps: 1e-30, 
         delta_eps: 1e-30,
-        taus: vec![1e2],
+        taus: vec![1e0],
         lm: true,
         weighting: false,
         debug: true,
@@ -119,7 +119,7 @@ fn main() -> Result<()> {
     optimize(&mut state, &cameras, &observed_features, &runtime_parameters);
 
     //TODO: make this a serializable datatype
-    let (cam_positions,points) = state.lift();
+    let (cam_positions,points) = state.as_matrix_point();
 
     println!("Cam Positions");
     for cam_pos in cam_positions {
