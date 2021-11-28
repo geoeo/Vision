@@ -28,11 +28,11 @@ pub fn get_estimated_features<C : Camera>(state: &State, cameras: &Vec<C>, estim
         let camera = &cameras[i];
         let offset = 2*i*n_points;
 
-        let mut position_per_cam = Matrix::<Float,U4,Dynamic, VecStorage<Float,U4,Dynamic>>::from_element(n_points, 1.0);
+        let mut position_world = Matrix::<Float,U4,Dynamic, VecStorage<Float,U4,Dynamic>>::from_element(n_points, 1.0);
         for j in 0..n_points {
-            position_per_cam.fixed_slice_mut::<3,1>(0,j).copy_from(&estimated_state.fixed_rows::<3>(n_cam_parameters+3*j)); 
+            position_world.fixed_slice_mut::<3,1>(0,j).copy_from(&estimated_state.fixed_rows::<3>(n_cam_parameters+3*j)); 
         };
-        let transformed_points = pose*position_per_cam;
+        let transformed_points = pose*position_world;
         for j in 0..n_points {
             let estimated_feature = camera.project(&transformed_points.fixed_slice::<3,1>(0,j));            
             estimated_features[offset+2*j] = estimated_feature.x;
