@@ -17,7 +17,8 @@ fn main() -> Result<(),()> {
     let mut window = Window::new("BA: Pointcloud");
 
     //let orb_matches_as_string = fs::read_to_string("D:/Workspace/Rust/Vision/output/orb_ba_ba_slow_1_ba_slow_2_images.txt").expect("Unable to read file");
-    let orb_matches_as_string = fs::read_to_string("D:/Workspace/Rust/Vision/output/orb_ba_ba_slow_1_ba_slow_3_images.txt").expect("Unable to read file");
+    //let orb_matches_as_string = fs::read_to_string("D:/Workspace/Rust/Vision/output/orb_ba_ba_slow_1_ba_slow_3_images.txt").expect("Unable to read file");
+    let orb_matches_as_string = fs::read_to_string("D:/Workspace/Rust/Vision/output/3dv.txt").expect("Unable to read file");
     //let orb_matches_as_string = fs::read_to_string("D:/Workspace/Rust/Vision/output/orb_ba_ba_slow_1_ba_slow_2_ba_slow_3_images.txt").expect("Unable to read file");
     let loaded: (Vec<[Float;6]>,Vec<[Float;3]>) = serde_yaml::from_str(&orb_matches_as_string).unwrap();
     let ba_state = state::State::from_serial(&loaded);
@@ -34,9 +35,10 @@ fn main() -> Result<(),()> {
     }
 
     for point in &points {
-        let mut s = window.add_sphere(0.005);
+        let mut s = window.add_sphere(0.002);
         s.set_color(random(), random(), random());
-        s.append_translation(&Translation3::new((point[0] as f32), (point[1] as f32), 1.5*(point[2] as f32)));
+        let t = Translation3::new(10.0*(point[0] as f32), 10.0*(point[1] as f32), 9.0 + 10.0*(point[2] as f32));
+        s.append_translation(&t);
     }
 
 

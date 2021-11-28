@@ -61,10 +61,12 @@ pub fn display_matches_for_pyramid<T>(image_a_original: &Image, image_b_original
     }
 
     for i in 0..match_pyramid.len() {
-        let (level_a,a)= &match_pyramid[i].feature_one;
-        let (level_b,b) = &match_pyramid[i].feature_two;
-        let (a_x_orig,a_y_orig) = reconstruct_original_coordiantes_for_float(a.get_x_image() as Float,a.get_y_image() as Float, pyramid_scale,*level_a as i32);
-        let (b_x_orig,b_y_orig) = reconstruct_original_coordiantes_for_float(b.get_x_image() as Float,b.get_y_image() as Float, pyramid_scale,*level_b as i32);
+        let a= &match_pyramid[i].feature_one;
+        let b = &match_pyramid[i].feature_two;
+        let level_a = a.get_closest_sigma_level();
+        let level_b = b.get_closest_sigma_level();
+        let (a_x_orig,a_y_orig) = reconstruct_original_coordiantes_for_float(a.get_x_image() as Float,a.get_y_image() as Float, pyramid_scale,level_a as i32);
+        let (b_x_orig,b_y_orig) = reconstruct_original_coordiantes_for_float(b.get_x_image() as Float,b.get_y_image() as Float, pyramid_scale,level_b as i32);
         let match_tuple = (OrbFeature{location: Point::new(a_x_orig.trunc() as usize, a_y_orig.trunc() as usize), orientation: a.get_orientation(), sigma_level: i},
         OrbFeature{location: Point::new(image_a_original.buffer.ncols() + (b_x_orig.trunc() as usize), b_y_orig.trunc() as usize), orientation: b.get_orientation(), sigma_level: i} );
         let radius_a = (level_a+1) as Float *10.0; 

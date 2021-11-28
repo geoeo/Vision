@@ -58,9 +58,9 @@ fn main() -> Result<()> {
 
     //let cameras = vec!(intensity_camera_1,intensity_camera_2,intensity_camera_1,intensity_camera_3);
     let cameras = vec!(intensity_camera_1,intensity_camera_2);
-    //let image_pairs = vec!((&image_1, &image_2));
+    let image_id_pairs = vec!((image_1.id.unwrap(), image_2.id.unwrap()));
     //let image_pairs = vec!((&image_1, &image_2),(&image_1_prime, &image_3));
-    let image_pairs = vec!((&image_1_prime, &image_3));
+    //let image_pairs = vec!((&image_1_prime, &image_3));
     //let image_pairs = vec!((&image_1, &image_4));
 
     // let cameras = vec!(intensity_camera_1,intensity_camera_2,intensity_camera_3,intensity_camera_4);
@@ -75,20 +75,20 @@ fn main() -> Result<()> {
     let (orb_params_1_4,matches_1_4): (OrbRuntimeParameters,Vec<Vec<Match<OrbFeature>>>) = serde_yaml::from_str(&orb_matches_as_string_1_4)?;
 
     let mut matches = Vec::<Vec<Match<OrbFeature>>>::with_capacity(0);
-    //matches.extend(matches_1_2);
-    matches.extend(matches_1_3);
+    matches.extend(matches_1_2);
+    //matches.extend(matches_1_3);
     //matches.extend(matches_1_4);
 
     let mut feature_map = CameraFeatureMap::new(&matches);
 
-    //feature_map.add_images_from_params(&image_1, orb_params_1_2.max_features_per_octave,orb_params_1_2.octave_count);
-    //feature_map.add_images_from_params(&image_2, orb_params_1_2.max_features_per_octave,orb_params_1_2.octave_count);
-    feature_map.add_images_from_params(&image_1_prime, orb_params_1_3.max_features_per_octave,orb_params_1_3.octave_count);
-    feature_map.add_images_from_params(&image_3, orb_params_1_3.max_features_per_octave,orb_params_1_3.octave_count);
+    feature_map.add_images_from_params(image_1.id.unwrap(), orb_params_1_2.max_features_per_octave,orb_params_1_2.octave_count);
+    feature_map.add_images_from_params(image_2.id.unwrap(), orb_params_1_2.max_features_per_octave,orb_params_1_2.octave_count);
+    //feature_map.add_images_from_params(&image_1_prime, orb_params_1_3.max_features_per_octave,orb_params_1_3.octave_count);
+    //feature_map.add_images_from_params(&image_3, orb_params_1_3.max_features_per_octave,orb_params_1_3.octave_count);
     //feature_map.add_images_from_params(&image_1, orb_params_1_3.max_features_per_octave,orb_params_1_3.octave_count);
     //feature_map.add_images_from_params(&image_4, orb_params_1_3.max_features_per_octave,orb_params_1_3.octave_count);
 
-    feature_map.add_matches(&image_pairs,&matches, orb_params_1_2.pyramid_scale);
+    feature_map.add_matches(&image_id_pairs,&matches, orb_params_1_2.pyramid_scale);
 
     let feature_machtes = matches.iter().map(|m| epipolar::exatct_matches(m, orb_params_1_2.pyramid_scale, false)).collect::<Vec<Vec<(Vector2<Float>,Vector2<Float>)>>>();
     let fundamental_matrices = feature_machtes.iter().map(|m| epipolar::eight_point(m)).collect::<Vec<epipolar::Fundamental>>();
@@ -97,7 +97,7 @@ fn main() -> Result<()> {
     let normalized_matches = fundamental_matrices.iter().zip(feature_machtes.iter()).map(|(f,m)| epipolar::filter_matches(f, m)).collect::<Vec<Vec<(Vector3<Float>,Vector3<Float>)>>>();
     let initial_motion_decomp = essential_matrices.iter().enumerate().map(|(i,e)| epipolar::decompose_essential(e,&normalized_matches[i])).collect::<Vec<(Vector3<Float>,Matrix3<Float>)>>();
 
-    let mut state = feature_map.get_initial_state(&initial_motion_decomp);
+    let mut state = feature_map.get_initial_state(Some(&initial_motion_decomp));
     let observed_features = feature_map.get_observed_features();
     let runtime_parameters = RuntimeParameters {
         pyramid_scale: orb_params_1_2.pyramid_scale,
@@ -106,13 +106,13 @@ fn main() -> Result<()> {
         step_sizes: vec![1e-8],
         max_norm_eps: 1e-30, 
         delta_eps: 1e-30,
-        taus: vec![1e0],
+        taus: vec![1e2],
         lm: true,
         weighting: false,
         debug: true,
 
         show_octave_result: true,
-        loss_function: Box::new(loss::TrivialLoss { eps: 1e-16, approximate_gauss_newton_matrices: true }), 
+        loss_function: Box::new(loss::TrivialLoss { eps: 1e-16, approximate_gauss_newton_matrices: false }), 
         intensity_weighting_function:  Box::new(weighting::TrivialWeight {})
     };
 

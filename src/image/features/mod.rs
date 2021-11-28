@@ -2,6 +2,7 @@ use serde::{Serialize, Deserialize};
 use crate::{Float,float};
 use crate::image::Image;
 use crate::image::filter::{prewitt_kernel::PrewittKernel,gradient_convolution_at_sample};
+use crate::image::features::geometry::point::Point;
 use crate::GradientDirection;
 
 pub mod geometry;
@@ -39,9 +40,26 @@ pub fn orientation(source_images: &Vec<Image>, feature: &dyn Feature) -> Float {
 
 }
 
+pub struct ImageFeature {
+    pub location: Point<usize>
+}
+
+impl ImageFeature {
+    pub fn new(x: usize, y: usize) -> ImageFeature {
+        ImageFeature{location: Point::new(x, y)}
+    }
+}
+
+impl Feature for ImageFeature {
+    fn get_x_image(&self) -> usize { self.location.x}
+    fn get_y_image(&self) -> usize { self.location.y}
+    fn get_closest_sigma_level(&self) -> usize { 0}
+}
+
+
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Match<T : Feature> {
-    pub feature_one: (usize,T),
-    pub feature_two: (usize,T)
+    pub feature_one: T,
+    pub feature_two: T
 }

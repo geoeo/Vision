@@ -12,6 +12,7 @@ use crate::sensors::camera::{Camera,pinhole::Pinhole};
 use crate::{float,Float};
 
 
+pub mod three_dv_loader;
 pub mod eth_loader;
 pub mod tum_loader;
 pub mod d455_loader;

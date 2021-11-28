@@ -34,8 +34,7 @@ impl CameraFeatureMap {
         
     }
 
-    pub fn add_images_from_params(&mut self, image: &Image, features_per_octave: usize, octave_count: usize) -> () {
-        let id = image.id.expect("image has no id");
+    pub fn add_images_from_params(&mut self, id: u64, features_per_octave: usize, octave_count: usize) -> () {
         self.add_image(id, features_per_octave, octave_count);
     }
 
@@ -49,10 +48,12 @@ impl CameraFeatureMap {
         x_other: usize, y_other: usize, octave_index_other: usize,  
         pyramid_scale: Float) -> () {
 
-        let (x_source,y_source) = reconstruct_original_coordiantes_for_float(x_source as Float, y_source as Float, pyramid_scale, octave_index_source as i32);
-        let (x_other,y_other) = reconstruct_original_coordiantes_for_float(x_other as Float, y_other as Float, pyramid_scale, octave_index_other as i32);
-        let point_source = Point::<usize>::new(1280 - x_source.trunc() as usize,y_source.trunc() as usize);
-        let point_other = Point::<usize>::new(1280 - x_other.trunc() as usize,y_other.trunc() as usize); //TODO: check x reconstrunction/ writing into file
+        let (x_source_recon,y_source_recon) = reconstruct_original_coordiantes_for_float(x_source as Float, y_source as Float, pyramid_scale, octave_index_source as i32);
+        let (x_other_recon,y_other_recon) = reconstruct_original_coordiantes_for_float(x_other as Float, y_other as Float, pyramid_scale, octave_index_other as i32);
+        //let point_source = Point::<usize>::new(1280 - x_source_recon.trunc() as usize,y_source_recon.trunc() as usize);
+        //let point_other = Point::<usize>::new(1280 - x_other_recon.trunc() as usize,y_other_recon.trunc() as usize); //TODO: check why this improves the result
+        let point_source = Point::<usize>::new(x_source_recon.trunc() as usize,y_source_recon.trunc() as usize);
+        let point_other = Point::<usize>::new(x_other_recon.trunc() as usize,y_other_recon.trunc() as usize); 
  
         let idx_in_feature_list = self.feature_list.len();
 
@@ -67,18 +68,16 @@ impl CameraFeatureMap {
         other_cam_map.push((idx_in_feature_list,source_cam_id));
     }
 
-    pub fn add_matches<T: Feature>(&mut self, image_pairs: &Vec<(&Image, &Image)>, matches: & Vec<Vec<Match<T>>>, pyramid_scale: Float) -> () {
-        assert_eq!(image_pairs.len(), matches.len());
-        for i in 0..image_pairs.len(){
-            let (image_a,image_b) = image_pairs[i];
+    pub fn add_matches<T: Feature>(&mut self, image_id_pairs: &Vec<(u64, u64)>, matches: & Vec<Vec<Match<T>>>, pyramid_scale: Float) -> () {
+        assert_eq!(image_id_pairs.len(), matches.len());
+        for i in 0..image_id_pairs.len(){
+            let (id_a,id_b) = image_id_pairs[i];
             let matches_for_pair = &matches[i];
-            let id_a = image_a.id.expect("image a has no id");
-            let id_b = image_b.id.expect("image b has no id");
+
 
             for feature_match in matches_for_pair {
-                let (_,match_a) = &feature_match.feature_one;
-                let (_,match_b) = &feature_match.feature_two;
-
+                let match_a = &feature_match.feature_one;
+                let match_b = &feature_match.feature_two;
 
 
                 self.add_feature(id_a, id_b, 
@@ -94,7 +93,7 @@ impl CameraFeatureMap {
     /**
      * initial_motion should all be with respect to the first camera
      */
-    pub fn get_initial_state(&self, initial_motions : &Vec<(Vector3<Float>,Matrix3<Float>)>) -> State {
+    pub fn get_initial_state(&self, initial_motions : Option<&Vec<(Vector3<Float>,Matrix3<Float>)>>) -> State {
 
         let number_of_cameras = self.camera_map.keys().len();
         let number_of_unqiue_points = self.feature_list.len();
@@ -102,31 +101,37 @@ impl CameraFeatureMap {
         let number_of_point_parameters = 3*number_of_unqiue_points;
         let total_parameters = number_of_cam_parameters+number_of_point_parameters;
         let mut data = DVector::<Float>::zeros(total_parameters);
+        
+        if initial_motions.is_some() {
+            let value = initial_motions.unwrap();
+            assert_eq!(value.len(),number_of_cameras/2);
+            let mut counter = 0;
+            for i in (6..number_of_cam_parameters).step_by(12){
+                let idx = match i {
+                    v if v == 0 => 0,
+                    _ => i/6-1-counter
+                };
+                let (h,R) = value[idx];
+                let lie_algebra = lie::vector_from_skew_symmetric(&lie::ln_SO3(&R));
+                //TODO: technically use R.t() aswell!
+                data[i] = -h[0];
+                data[i+1] = -h[1];
+                data[i+2] = -h[2];
+                // data[i+3] = lie_algebra[0];
+                // data[i+4] = lie_algebra[1];
+                // data[i+5] = lie_algebra[2];
+                counter += 1;
+            }
 
-        assert_eq!(initial_motions.len(),number_of_cameras/2);
-        let mut counter = 0;
-        for i in (6..number_of_cam_parameters).step_by(12){
-            let idx = match i {
-                v if v == 0 => 0,
-                _ => i/6-1-counter
-            };
-            let (h,R) = initial_motions[idx];
-            let lie_algebra = lie::vector_from_skew_symmetric(&lie::ln_SO3(&R));
-            //TODO: technically use R.t() aswell!
-            data[i] = -h[0];
-            data[i+1] = -h[1];
-            data[i+2] = -h[2];
-            // data[i+3] = lie_algebra[0];
-            // data[i+4] = lie_algebra[1];
-            // data[i+5] = lie_algebra[2];
-            counter += 1;
         }
+
         // Initialise points to a depth of -1
         for i in (number_of_cam_parameters..total_parameters).step_by(3){
             data[i] = 0.0;
-            data[i+1] = 0.1;
+            data[i+1] = 0.0;
             data[i+2] = -1.0;
         }
+
         State{data, n_cams: number_of_cameras, n_points: number_of_unqiue_points}
     }
 
@@ -146,6 +151,7 @@ impl CameraFeatureMap {
             let camera_map = self.camera_map.get(&key);
 
             let offset = 2*i*n_points;
+            //TODO: check this
             let feature_indices = camera_map.expect(&format!("No image with id: {} found in map",key).to_string());
             for j in 0..feature_indices.len() {
                 let (idx, other_cam_id) = feature_indices[j];

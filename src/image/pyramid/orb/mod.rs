@@ -129,8 +129,8 @@ pub fn generate_matches_between_pyramid(feature_descriptor_pyramid_a: &Pyramid<V
 
     matches_indices.into_iter().map(|(a_idx,b_idx)| 
     Match::<OrbFeature>{
-            feature_one:(octave_indices_a[a_idx],all_features_a[a_idx]),
-            feature_two:(octave_indices_b[b_idx],all_features_b[b_idx])
+            feature_one:all_features_a[a_idx],
+            feature_two:all_features_b[b_idx]
         }).collect::<Vec<Match<OrbFeature>>>()
 
 }

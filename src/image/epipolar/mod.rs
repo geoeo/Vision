@@ -14,8 +14,8 @@ pub fn exatct_matches<T: Feature>(matches: &Vec<Match<T>>, pyramid_scale: Float,
         true => {
             let number_of_matches = matches.len() as Float;
             let (left_x_acc,left_y_acc,right_x_acc,right_y_acc) = matches.iter().fold((0.0,0.0,0.0,0.0), | (u_x,u_y,v_x,v_y), f| {
-                let (x_left, y_left) = f.feature_one.1.reconstruct_original_coordiantes_for_float(pyramid_scale);
-                let (x_right, y_right) = f.feature_two.1.reconstruct_original_coordiantes_for_float(pyramid_scale);
+                let (x_left, y_left) = f.feature_one.reconstruct_original_coordiantes_for_float(pyramid_scale);
+                let (x_right, y_right) = f.feature_two.reconstruct_original_coordiantes_for_float(pyramid_scale);
                 (u_x + x_left,u_y + y_left, v_x + x_right, v_y + y_right)
             });
         
@@ -26,8 +26,8 @@ pub fn exatct_matches<T: Feature>(matches: &Vec<Match<T>>, pyramid_scale: Float,
         
             //Transform points so that centroid is at the origin
             let centered_features = matches.iter().map(|f| {
-                let (x_left, y_left) = f.feature_one.1.reconstruct_original_coordiantes_for_float(pyramid_scale);
-                let (x_right, y_right) = f.feature_two.1.reconstruct_original_coordiantes_for_float(pyramid_scale);
+                let (x_left, y_left) = f.feature_one.reconstruct_original_coordiantes_for_float(pyramid_scale);
+                let (x_right, y_right) = f.feature_two.reconstruct_original_coordiantes_for_float(pyramid_scale);
                 ((x_left - left_x_center, y_left - left_y_center),(x_right - right_x_center, y_right - right_y_center))
             }
             ).collect::<Vec<((Float,Float),(Float,Float))>>();
@@ -47,8 +47,8 @@ pub fn exatct_matches<T: Feature>(matches: &Vec<Match<T>>, pyramid_scale: Float,
         },
         false => {
                 matches.iter().map(|feature| {
-                    let (r_x, r_y) = feature.feature_two.1.reconstruct_original_coordiantes_for_float(pyramid_scale);
-                    let (l_x, l_y) = feature.feature_one.1.reconstruct_original_coordiantes_for_float(pyramid_scale);
+                    let (r_x, r_y) = feature.feature_two.reconstruct_original_coordiantes_for_float(pyramid_scale);
+                    let (l_x, l_y) = feature.feature_one.reconstruct_original_coordiantes_for_float(pyramid_scale);
                     (Vector2::<Float>::new(l_x,l_y),Vector2::<Float>::new(r_x,r_y))
                 }).collect()
 

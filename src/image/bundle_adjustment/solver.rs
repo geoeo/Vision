@@ -3,7 +3,7 @@ extern crate nalgebra as na;
 use na::{DVector,DMatrix,Matrix, Dynamic, U4, VecStorage,Vector, Vector4, Matrix2x4,Matrix2x3,Matrix1x6,Matrix1x3, Matrix4,U3,U1,base::storage::Storage};
 use crate::{float,Float};
 use crate::sensors::camera::Camera;
-use crate::numerics::lie::{exp, left_jacobian_around_identity};
+use crate::numerics::lie::{exp, left_jacobian_around_identity,right_jacobian_around_identity};
 use crate::numerics::pose::invert_se3;
 use crate::numerics::{max_norm, solver::{compute_cost,weight_jacobian_sparse,weight_residuals_sparse, calc_weight_vec, gauss_newton_step, gauss_newton_step_with_loss_and_schur, gauss_newton_step_with_schur}};
 use crate::image::bundle_adjustment::state::State;
@@ -53,22 +53,31 @@ pub fn compute_residual(estimated_features: &DVector<Float>, observed_features: 
 
 pub fn compute_jacobian_wrt_object_points<C : Camera,T>(camera: &C, transformation: &Matrix4<Float>, point: &Vector<Float,U3,T>, i: usize, j: usize, jacobian: &mut DMatrix<Float>) 
     -> () where T: Storage<Float,U3,U1> {
-    let local_jacobian = camera.get_jacobian_with_respect_to_position_in_world_frame(transformation, point);
+    let transformed_point = transformation*Vector4::<Float>::new(point[0],point[1],point[2],1.0);
+    let projection_jacobian = camera.get_jacobian_with_respect_to_position_in_camera_frame(&transformed_point.fixed_rows::<3>(0));
+    let rot = transformation.fixed_slice::<3,3>(0,0);
+    let local_jacobian = (projection_jacobian*rot);
+
+    //let local_jacobian = camera.get_jacobian_with_respect_to_position_in_world_frame(transformation, point);
     jacobian.fixed_slice_mut::<2,3>(i,j).copy_from(&local_jacobian.fixed_slice::<2,3>(0,0));
 }
 
 pub fn compute_jacobian_wrt_camera_parameters<C : Camera, T>( camera: &C, transformation: &Matrix4<Float>, point: &Vector<Float,U3,T> ,i: usize, j: usize, jacobian: &mut DMatrix<Float>) 
     -> () where T: Storage<Float,U3,U1> {
     let transformed_point = transformation*Vector4::<Float>::new(point[0],point[1],point[2],1.0);
-    let lie_jacobian = left_jacobian_around_identity(&transformed_point.fixed_rows::<3>(0));
+    let lie_jacobian = left_jacobian_around_identity(&transformed_point.fixed_rows::<3>(0)); //TODO: investigate
 
-    let mut projection = Matrix2x3::<Float>::zeros();
-    projection.fixed_slice_mut::<2,3>(0,0).copy_from(&camera.get_projection().fixed_slice::<2,3>(0,0));
+    // let mut projection = Matrix2x3::<Float>::zeros();
+    // projection.fixed_slice_mut::<2,3>(0,0).copy_from(&camera.get_projection().fixed_slice::<2,3>(0,0));
 
-    let mut homogeneous_projection_jacobian = Matrix2x3::<Float>::zeros();
-    homogeneous_projection_jacobian.fixed_slice_mut::<2,3>(0,0).copy_from(&camera.get_jacobian_with_respect_to_position_in_camera_frame(&transformed_point.fixed_slice::<3,1>(0,0)));
+    // let mut homogeneous_projection_jacobian = Matrix2x3::<Float>::zeros();
+    // homogeneous_projection_jacobian.fixed_slice_mut::<2,3>(0,0).copy_from(&camera.get_jacobian_with_respect_to_position_in_camera_frame(&transformed_point.fixed_slice::<3,1>(0,0)));
+    //homogeneous_projection_jacobian.fixed_slice_mut::<2,3>(0,0).copy_from(&camera.get_jacobian_with_respect_to_position_in_world_frame(transformation,point));
 
-    jacobian.fixed_slice_mut::<2,6>(i,j).copy_from(&(homogeneous_projection_jacobian*lie_jacobian));
+    let projection_jacobian = camera.get_jacobian_with_respect_to_position_in_camera_frame(&transformed_point.fixed_rows::<3>(0));
+    let local_jacobian = (projection_jacobian*lie_jacobian);
+
+    jacobian.fixed_slice_mut::<2,6>(i,j).copy_from(&local_jacobian);
 }
 
 pub fn compute_jacobian<C : Camera>(state: &State, cameras: &Vec<C>, jacobian: &mut DMatrix<Float>) -> () {
@@ -86,11 +95,15 @@ pub fn compute_jacobian<C : Camera>(state: &State, cameras: &Vec<C>, jacobian: &
         for point_state_idx in (number_of_cam_params..state.data.nrows()).step_by(3) {
             let point = &state.data.fixed_rows::<3>(point_state_idx);
 
+
             let point_id = (point_state_idx-number_of_cam_params)/3;
+
+
             let a_i = 2*(cam_id+point_id*state.n_cams);
             let a_j = cam_state_idx;
             let b_i = 2*(cam_id+point_id*state.n_cams);
             let b_j = number_of_cam_params+point_id*3;
+
 
             compute_jacobian_wrt_camera_parameters(camera , &transformation,point,a_i,a_j, jacobian);
             compute_jacobian_wrt_object_points(camera, &transformation,point,b_i,b_j, jacobian);
@@ -154,25 +167,25 @@ pub fn optimize<C : Camera>(state: &mut State, cameras: &Vec<C>, observed_featur
         g.fill(0.0);
         delta.fill(0.0);
 
-        let (gain_ratio_denom, mu_val) 
-            = gauss_newton_step_with_schur(
-                &mut target_arrowhead,
-                &mut g,
-                &mut delta,
-                &residuals,
-                &jacobian,
-                mu,
-                tau,
-                state.n_cams,
-                state.n_points
-            ); 
+        // let (gain_ratio_denom, mu_val) 
+        //     = gauss_newton_step_with_schur(
+        //         &mut target_arrowhead,
+        //         &mut g,
+        //         &mut delta,
+        //         &residuals,
+        //         &jacobian,
+        //         mu,
+        //         tau,
+        //         state.n_cams,
+        //         state.n_points
+        //     ); 
 
-        // let (delta,g,gain_ratio_denom, mu_val) 
-        //     = gauss_newton_step(&residuals,
-        //          &jacobian,
-        //          &identity,
-        //          mu,
-        //          tau); 
+        let (delta,g,gain_ratio_denom, mu_val) 
+            = gauss_newton_step(&residuals,
+                 &jacobian,
+                 &identity,
+                 mu,
+                 tau); 
 
 
 
@@ -219,8 +232,8 @@ pub fn optimize<C : Camera>(state: &mut State, cameras: &Vec<C>, observed_featur
             compute_jacobian(&state,&cameras,&mut jacobian);
             weight_jacobian_sparse(&mut jacobian, &weights_vec);
 
-            let v: Float = 1.0/3.0;
-            mu = Some(mu.unwrap() * v.max(1.0-(2.0*gain_ratio-1.0).powi(3)));
+            let v: Float = 1.0 / 3.0;
+            mu = Some(mu.unwrap() * v.max(1.0 - (2.0 * gain_ratio - 1.0).powi(3)));
             nu = 2.0;
         } else {
 

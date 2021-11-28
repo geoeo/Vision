@@ -333,6 +333,19 @@
             "externalConsole": false,
             "env": {"RUST_BACKTRACE":"1", "RUST_BACKTRACE":"full"},
             "preLaunchTask": "build examples"
+        },
+        {
+            "name": "BA 3DV",
+            "type": "lldb",
+            "request": "launch",
+            "program": "${workspaceRoot}/target/debug/examples/ba_3dv",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "env": {"RUST_BACKTRACE":"1", "RUST_BACKTRACE":"full"},
+            "preLaunchTask": "build examples"
         }
     ]
 }

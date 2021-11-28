@@ -48,3 +48,11 @@ path = "examples/image_processing/epipolar.rs"
 name = "pointcloud"
 path = "examples/visualizing/pointcloud.rs"
 
+[[example]]
+name = "pointcloud_3dv"
+path = "examples/visualizing/pointcloud_3dv.rs"
+
+[[example]]
+name = "ba_3dv"
+path = "examples/image_processing/ba_3dv.rs"
+
