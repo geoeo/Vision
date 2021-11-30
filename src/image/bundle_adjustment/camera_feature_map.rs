@@ -130,7 +130,7 @@ impl CameraFeatureMap {
         for i in (number_of_cam_parameters..total_parameters).step_by(3){
             data[i] = 0.0;
             data[i+1] = 0.0;
-            data[i+2] = -1.0;
+            data[i+2] = -5.5; //TODO: make a parameter
         }
 
         State{data, n_cams: number_of_cameras, n_points: number_of_unqiue_points}

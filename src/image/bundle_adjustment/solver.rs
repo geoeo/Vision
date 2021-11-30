@@ -15,24 +15,22 @@ use crate::odometry::runtime_parameters::RuntimeParameters; //TODO remove depend
  * */
 pub fn get_estimated_features<C : Camera>(state: &State, cameras: &Vec<C>, estimated_features: &mut DVector<Float>) -> () {
     let n_cams = state.n_cams;
-    let n_cam_parameters = 6*n_cams; //cam param
+    let n_cam_parameters = state.getCamParamSize()*n_cams; //cam param
     let n_points = state.n_points;
     let estimated_state = &state.data;
     assert_eq!(estimated_features.nrows(),2*n_points*n_cams);
+    let mut position_world = Matrix::<Float,U4,Dynamic, VecStorage<Float,U4,Dynamic>>::from_element(n_points, 1.0);
+    for j in 0..n_points {
+        position_world.fixed_slice_mut::<3,1>(0,j).copy_from(&estimated_state.fixed_rows::<3>(n_cam_parameters+3*j)); 
+    };
     for i in 0..n_cams {
-        let cam_idx = 6*i;
-        // let u = estimated_state.fixed_rows::<3>(cam_idx);
-        // let w = estimated_state.fixed_rows::<3>(cam_idx+3);
-        //let pose = exp(&u,&w);
-        let pose = state.lift_se3(cam_idx);
+        let cam_idx = state.getCamParamSize()*i;
+        let pose = state.to_se3(cam_idx);
         let camera = &cameras[i];
         let offset = 2*i*n_points;
 
-        let mut position_world = Matrix::<Float,U4,Dynamic, VecStorage<Float,U4,Dynamic>>::from_element(n_points, 1.0);
-        for j in 0..n_points {
-            position_world.fixed_slice_mut::<3,1>(0,j).copy_from(&estimated_state.fixed_rows::<3>(n_cam_parameters+3*j)); 
-        };
-        let transformed_points = pose*position_world;
+
+        let transformed_points = pose*&position_world;
         for j in 0..n_points {
             let estimated_feature = camera.project(&transformed_points.fixed_slice::<3,1>(0,j));            
             estimated_features[offset+2*j] = estimated_feature.x;
@@ -80,15 +78,12 @@ pub fn compute_jacobian_wrt_camera_parameters<C : Camera, T>( camera: &C, transf
 
 pub fn compute_jacobian<C : Camera>(state: &State, cameras: &Vec<C>, jacobian: &mut DMatrix<Float>) -> () {
     //cam
-    let number_of_cam_params = 6*state.n_cams;
-    for cam_state_idx in (0..number_of_cam_params).step_by(6) {
-        let cam_id = cam_state_idx/6;
+    let number_of_cam_params = state.getCamParamSize()*state.n_cams;
+    for cam_state_idx in (0..number_of_cam_params).step_by(state.getCamParamSize()) {
+        let cam_id = cam_state_idx/state.getCamParamSize();
         let camera = &cameras[cam_id];
 
-        // let u = state.data.fixed_rows::<3>(cam_state_idx);
-        // let w = state.data.fixed_rows::<3>(cam_state_idx+3);
-        //let transformation = exp(&u,&w);
-        let transformation = state.lift_se3(cam_state_idx);
+        let transformation = state.to_se3(cam_state_idx);
         
         //point
         for point_state_idx in (number_of_cam_params..state.data.nrows()).step_by(3) {
@@ -97,7 +92,7 @@ pub fn compute_jacobian<C : Camera>(state: &State, cameras: &Vec<C>, jacobian: &
 
             let point_id = (point_state_idx-number_of_cam_params)/3;
 
-
+            //TODO: Revisit this
             let a_i = 2*(cam_id+point_id*state.n_cams);
             let a_j = cam_state_idx;
             let b_i = 2*(cam_id+point_id*state.n_cams);
@@ -116,7 +111,7 @@ pub fn compute_jacobian<C : Camera>(state: &State, cameras: &Vec<C>, jacobian: &
 
 pub fn optimize<C : Camera>(state: &mut State, cameras: &Vec<C>, observed_features: &DVector<Float>, runtime_parameters: &RuntimeParameters ) -> () {
     let mut new_state = state.clone();
-    let state_size = 6*state.n_cams+3*state.n_points;
+    let state_size = state.getCamParamSize()*state.n_cams+3*state.n_points;
     let mut jacobian = DMatrix::<Float>::zeros(observed_features.nrows(),state_size);
     let mut residuals = DVector::<Float>::zeros(observed_features.nrows());
     let mut new_residuals = DVector::<Float>::zeros(observed_features.nrows());
@@ -135,8 +130,8 @@ pub fn optimize<C : Camera>(state: &mut State, cameras: &Vec<C>, observed_featur
 
     compute_jacobian(&state,&cameras,&mut jacobian);
 
-    weight_residuals_sparse(&mut residuals, &weights_vec); 
-    weight_jacobian_sparse(&mut jacobian, &weights_vec);
+    //weight_residuals_sparse(&mut residuals, &weights_vec); 
+    //weight_jacobian_sparse(&mut jacobian, &weights_vec);
 
 
     let mut max_norm_delta = float::MAX;
@@ -190,19 +185,19 @@ pub fn optimize<C : Camera>(state: &mut State, cameras: &Vec<C>, observed_featur
 
         mu = Some(mu_val);
 
-        let pertb = step*(&delta);
+        let pertb = (&delta);
         new_state.update(&pertb);
 
         get_estimated_features(&new_state, cameras, &mut new_estimated_features);
         compute_residual(&new_estimated_features, observed_features, &mut new_residuals);
-        if runtime_parameters.weighting {
-            calc_weight_vec(
-                &new_residuals,
-                &runtime_parameters.intensity_weighting_function,
-                &mut weights_vec,
-            );
-        }
-        weight_residuals_sparse(&mut new_residuals, &weights_vec);
+        // if runtime_parameters.weighting {
+        //     calc_weight_vec(
+        //         &new_residuals,
+        //         &runtime_parameters.intensity_weighting_function,
+        //         &mut weights_vec,
+        //     );
+        // }
+        //weight_residuals_sparse(&mut new_residuals, &weights_vec);
 
         let new_cost = compute_cost(&new_residuals,&runtime_parameters.loss_function);
         let cost_diff = cost-new_cost;
@@ -227,15 +222,15 @@ pub fn optimize<C : Camera>(state: &mut State, cameras: &Vec<C>, observed_featur
             residuals.copy_from(&new_residuals);
 
             
-
+            jacobian.fill(0.0);
             compute_jacobian(&state,&cameras,&mut jacobian);
-            weight_jacobian_sparse(&mut jacobian, &weights_vec);
+           // weight_jacobian_sparse(&mut jacobian, &weights_vec);
 
             let v: Float = 1.0 / 3.0;
             mu = Some(mu.unwrap() * v.max(1.0 - (2.0 * gain_ratio - 1.0).powi(3)));
             nu = 2.0;
         } else {
-
+            new_state.data.copy_from(&state.data); 
             mu = Some(nu*mu.unwrap());
             nu *= 2.0;
         }

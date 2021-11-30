@@ -72,7 +72,7 @@ fn main() -> Result<(),()> {
 
 
 
-    let factor = 10.0;
+    let factor = 1.0;
     for point in &points {
         let mut s = window.add_sphere(0.01);
         s.set_color(random(), random(), random());

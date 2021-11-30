@@ -34,11 +34,11 @@ fn main() -> Result<(),()> {
         s.append_translation(&Translation3::new(cam_world[(0,3)] as f32,cam_world[(1,3)] as f32,cam_world[(2,3)] as f32));
     }
 
-    let factor = 100.0;
+    let factor = 1.0;
     for point in &points {
-        let mut s = window.add_sphere(0.001);
+        let mut s = window.add_sphere(0.01);
         s.set_color(random(), random(), random());
-        s.append_translation(&Translation3::new(factor*(point[0] as f32), factor*(point[1] as f32),factor - 1.0 + factor/1.0*(point[2] as f32)));
+        s.append_translation(&Translation3::new(factor*(point[0] as f32), factor*(point[1] as f32), factor + factor/5.0*(point[2] as f32)));
     }
 
 

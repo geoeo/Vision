@@ -2,7 +2,7 @@ extern crate nalgebra as na;
 
 use crate::numerics::lie::exp;
 use crate::Float;
-use na::{DVector, Matrix3, Matrix4, Vector3};
+use na::{DVector, Matrix3, Matrix4, Vector3, ArrayStorage};
 
 /**
  * This is ordered [cam_1,cam_2,..,cam_n,point_1,point_2,...,point_m]
@@ -17,9 +17,14 @@ pub struct State {
 }
 
 impl State {
+
+    pub fn getCamParamSize(&self) -> usize {
+        6
+    }
+
     pub fn update(&mut self, perturb: &DVector<Float>) -> () {
         //self.data += perturb;
-        for i in (0..6 * self.n_cams).step_by(6) {
+        for i in (0..self.getCamParamSize() * self.n_cams).step_by(6) {
             // self.data[i] += perturb[i];
             // self.data[i + 1] += perturb[i + 1];
             // self.data[i + 2] += perturb[i + 2];
@@ -31,40 +36,33 @@ impl State {
             let w = perturb.fixed_rows::<3>(i + 3);
             let delta_transform = exp(&u, &w);
             
-            let current_transform = self.lift_se3(i);
+            let current_transform = self.to_se3(i);
 
-            //perform increment in state space
+            //Check this pipeline
             let new_transform = delta_transform*current_transform;
             let new_translation = new_transform.fixed_slice::<3,1>(0,3);
             self.data.fixed_slice_mut::<3,1>(i,0).copy_from(&new_translation);
 
-            let new_rotation_matrix = Matrix3::<Float>::from_columns(&[new_transform.fixed_slice::<3,1>(0,0),new_transform.fixed_slice::<3,1>(0,1),new_transform.fixed_slice::<3,1>(0,2)]);
-            let new_rotation = na::Rotation3::from_matrix_unchecked(new_rotation_matrix);
-
-            match new_rotation.axis_angle() {
-               Some((axis,angle)) => self.data.fixed_slice_mut::<3,1>(i+3,0).copy_from(&(angle*Vector3::new(axis[0],axis[1],axis[2]))),
-               None => self.data.fixed_slice_mut::<3,1>(i+3,0).copy_from(&Vector3::zeros())
-            };
-            
+            let new_rotation = na::Rotation3::from_matrix(&new_transform.fixed_slice::<3,3>(0,0).into_owned());
+            self.data.fixed_slice_mut::<3,1>(i+3,0).copy_from(&(new_rotation.scaled_axis()));
 
 
         }
 
-        //TODO: check point jacobians
-        for i in (6 * self.n_cams..self.data.nrows()).step_by(3) {
+        for i in (self.getCamParamSize() * self.n_cams..self.data.nrows()).step_by(3) {
             self.data[i] += perturb[i]; 
             self.data[i + 1] += perturb[i + 1];
             self.data[i + 2] += perturb[i + 2];
         }
     }
 
-    pub fn lift_se3(&self, i: usize) -> Matrix4<Float> {
-        assert!(i < self.n_cams*6);
+    pub fn to_se3(&self, i: usize) -> Matrix4<Float> {
+        assert!(i < self.n_cams*self.getCamParamSize());
 
         let translation = self.data.fixed_rows::<3>(i);
         let axis = na::Vector3::new(self.data[i+3],self.data[i+4],self.data[i+5]);
         let axis_angle = na::Rotation3::new(axis);
-        let mut transform = Matrix4::<Float>::zeros();
+        let mut transform = Matrix4::<Float>::identity();
         transform.fixed_slice_mut::<3,3>(0,0).copy_from(axis_angle.matrix());
         transform.fixed_slice_mut::<3,1>(0,3).copy_from(&translation);
         transform
@@ -74,17 +72,17 @@ impl State {
         let mut cam_positions = Vec::<Matrix4<Float>>::with_capacity(self.n_cams);
         let mut points = Vec::<Vector3<Float>>::with_capacity(self.n_points);
 
-        for i in (0..6 * self.n_cams).step_by(6) {
-            let u = self.data.fixed_rows::<3>(i);
-            let w = self.data.fixed_rows::<3>(i + 3);
+        for i in (0..self.getCamParamSize() * self.n_cams).step_by(self.getCamParamSize()) {
+            //let u = self.data.fixed_rows::<3>(i);
+            //let w = self.data.fixed_rows::<3>(i + 3);
             //cam_positions.push(exp(&u, &w));
 
-            let transform = self.lift_se3(i);
+            let transform = self.to_se3(i);
         
             cam_positions.push(transform); //TODO: ENABLE FOR STATE CHANGE
         }
 
-        for i in (6 * self.n_cams..self.data.nrows()).step_by(3) {
+        for i in (self.getCamParamSize() * self.n_cams..self.data.nrows()).step_by(3) {
             let point = self.data.fixed_rows::<3>(i);
             points.push(Vector3::from(point));
         }
@@ -95,7 +93,7 @@ impl State {
     pub fn to_serial(&self) -> (Vec<[Float; 6]>, Vec<[Float; 3]>) {
         let mut cam_serial = Vec::<[Float; 6]>::with_capacity(self.n_cams);
         let mut points_serial = Vec::<[Float; 3]>::with_capacity(self.n_points);
-        let number_of_cam_params = 6 * self.n_cams;
+        let number_of_cam_params = self.getCamParamSize() * self.n_cams;
 
         for i in (0..number_of_cam_params).step_by(6) {
             let arr: [Float; 6] = [
