@@ -12,6 +12,11 @@ pub struct KeyPoint {
 }
 
 impl Feature for KeyPoint {
+
+    fn get_x_image_float(&self) -> Float { self.x as Float}
+
+    fn get_y_image_float(&self) -> Float { self.y as Float}
+
     fn get_x_image(&self) -> usize {
         self.x
     }

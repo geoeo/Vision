@@ -15,6 +15,8 @@ pub mod intensity_centroid;
 
 
 pub trait Feature {
+    fn get_x_image_float(&self) -> Float;
+    fn get_y_image_float(&self) -> Float;
     fn get_x_image(&self) -> usize;
     fn get_y_image(&self) -> usize;
     fn get_closest_sigma_level(&self) -> usize;
@@ -41,18 +43,20 @@ pub fn orientation(source_images: &Vec<Image>, feature: &dyn Feature) -> Float {
 }
 
 pub struct ImageFeature {
-    pub location: Point<usize>
+    pub location: Point<Float>
 }
 
 impl ImageFeature {
-    pub fn new(x: usize, y: usize) -> ImageFeature {
+    pub fn new(x: Float, y: Float) -> ImageFeature {
         ImageFeature{location: Point::new(x, y)}
     }
 }
 
 impl Feature for ImageFeature {
-    fn get_x_image(&self) -> usize { self.location.x}
-    fn get_y_image(&self) -> usize { self.location.y}
+    fn get_x_image_float(&self) -> Float { self.location.x }
+    fn get_y_image_float(&self) -> Float {self.location.y}
+    fn get_x_image(&self) -> usize { self.location.x.trunc() as usize}
+    fn get_y_image(&self) -> usize { self.location.y.trunc() as usize}
     fn get_closest_sigma_level(&self) -> usize { 0}
 }
 

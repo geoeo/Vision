@@ -20,6 +20,11 @@ pub struct SiftFeature {
 } 
 
 impl Feature for SiftFeature {
+
+
+    fn get_x_image_float(&self) -> Float { self.get_x_image() as Float}
+    fn get_y_image_float(&self) -> Float { self.get_y_image() as Float}
+
     fn get_x_image(&self) -> usize {
         self.x.trunc() as usize
     }

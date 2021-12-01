@@ -43,13 +43,15 @@ impl State {
             let new_translation = new_transform.fixed_slice::<3,1>(0,3);
             self.data.fixed_slice_mut::<3,1>(i,0).copy_from(&new_translation);
 
-            let new_rotation = na::Rotation3::from_matrix(&new_transform.fixed_slice::<3,3>(0,0).into_owned());
+            let new_rotation = na::Rotation3::from_matrix_unchecked(new_transform.fixed_slice::<3,3>(0,0).into_owned());
             self.data.fixed_slice_mut::<3,1>(i+3,0).copy_from(&(new_rotation.scaled_axis()));
+
+            //println!("{}",new_transform);
 
 
         }
 
-        for i in (self.getCamParamSize() * self.n_cams..self.data.nrows()).step_by(3) {
+        for i in ((self.getCamParamSize() * self.n_cams)..self.data.nrows()).step_by(3) {
             self.data[i] += perturb[i]; 
             self.data[i + 1] += perturb[i + 1];
             self.data[i + 2] += perturb[i + 2];

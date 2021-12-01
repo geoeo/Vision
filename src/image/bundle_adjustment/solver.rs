@@ -92,15 +92,13 @@ pub fn compute_jacobian<C : Camera>(state: &State, cameras: &Vec<C>, jacobian: &
 
             let point_id = (point_state_idx-number_of_cam_params)/3;
 
-            //TODO: Revisit this
-            let a_i = 2*(cam_id+point_id*state.n_cams);
+            let row = 2*(cam_id+point_id*state.n_cams);
             let a_j = cam_state_idx;
-            let b_i = 2*(cam_id+point_id*state.n_cams);
             let b_j = number_of_cam_params+point_id*3;
+            
 
-
-            compute_jacobian_wrt_camera_parameters(camera , &transformation,point,a_i,a_j, jacobian);
-            compute_jacobian_wrt_object_points(camera, &transformation,point,b_i,b_j, jacobian);
+            compute_jacobian_wrt_camera_parameters(camera , &transformation,point,row,a_j, jacobian);
+            compute_jacobian_wrt_object_points(camera, &transformation,point,row,b_j, jacobian);
 
         }
 
@@ -185,7 +183,7 @@ pub fn optimize<C : Camera>(state: &mut State, cameras: &Vec<C>, observed_featur
 
         mu = Some(mu_val);
 
-        let pertb = (&delta);
+        let pertb = step*(&delta);
         new_state.update(&pertb);
 
         get_estimated_features(&new_state, cameras, &mut new_estimated_features);

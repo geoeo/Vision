@@ -19,7 +19,7 @@ pub struct CameraFeatureMap {
      * The image coordiantes in this list have been scaled to the original image resolution
      * For two features f1, f2 the cam id(f1) < cam_id(f2)
      * */ 
-    pub feature_list: Vec<(Point<usize>,Point<usize>)>
+    pub feature_list: Vec<(Point<Float>,Point<Float>)>
 
 }
 
@@ -29,7 +29,7 @@ impl CameraFeatureMap {
         let number_of_unique_features = matches.iter().fold(0,|acc,x| acc + x.len());
         CameraFeatureMap{
             camera_map: HashMap::new(),
-            feature_list: Vec::<(Point<usize>,Point<usize>)>::with_capacity(number_of_unique_features)
+            feature_list: Vec::<(Point<Float>,Point<Float>)>::with_capacity(number_of_unique_features)
         }
         
     }
@@ -44,16 +44,16 @@ impl CameraFeatureMap {
     }
 
     pub fn add_feature(&mut self, source_cam_id: u64, other_cam_id: u64, 
-        x_source: usize, y_source: usize, octave_index_source: usize, 
-        x_other: usize, y_other: usize, octave_index_other: usize,  
+        x_source: Float, y_source: Float, octave_index_source: usize, 
+        x_other: Float, y_other: Float, octave_index_other: usize,  
         pyramid_scale: Float) -> () {
 
-        let (x_source_recon,y_source_recon) = reconstruct_original_coordiantes_for_float(x_source as Float, y_source as Float, pyramid_scale, octave_index_source as i32);
-        let (x_other_recon,y_other_recon) = reconstruct_original_coordiantes_for_float(x_other as Float, y_other as Float, pyramid_scale, octave_index_other as i32);
+        let (x_source_recon,y_source_recon) = reconstruct_original_coordiantes_for_float(x_source, y_source, pyramid_scale, octave_index_source as i32);
+        let (x_other_recon,y_other_recon) = reconstruct_original_coordiantes_for_float(x_other, y_other, pyramid_scale, octave_index_other as i32);
         //let point_source = Point::<usize>::new(1280 - x_source_recon.trunc() as usize,y_source_recon.trunc() as usize);
         //let point_other = Point::<usize>::new(1280 - x_other_recon.trunc() as usize,y_other_recon.trunc() as usize); //TODO: check why this improves the result
-        let point_source = Point::<usize>::new(x_source_recon.trunc() as usize,y_source_recon.trunc() as usize);
-        let point_other = Point::<usize>::new(x_other_recon.trunc() as usize,y_other_recon.trunc() as usize); 
+        let point_source = Point::<Float>::new(x_source_recon,y_source_recon);
+        let point_other = Point::<Float>::new(x_other_recon,y_other_recon); 
  
         let idx_in_feature_list = self.feature_list.len();
 
@@ -81,8 +81,8 @@ impl CameraFeatureMap {
 
 
                 self.add_feature(id_a, id_b, 
-                    match_a.get_x_image(), match_a.get_y_image(),match_a.get_closest_sigma_level(),
-                    match_b.get_x_image(), match_b.get_y_image(),match_b.get_closest_sigma_level(),
+                    match_a.get_x_image_float(), match_a.get_y_image_float(),match_a.get_closest_sigma_level(),
+                    match_b.get_x_image_float(), match_b.get_y_image_float(),match_b.get_closest_sigma_level(),
                     pyramid_scale);
             }
 
@@ -164,8 +164,10 @@ impl CameraFeatureMap {
                 observed_features[offset + 2*idx+1] = feature_pos.y as Float;
             }
         }
+
         observed_features
     }
+
 
 
 

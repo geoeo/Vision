@@ -23,7 +23,7 @@ pub fn load_matches(root_path: &str, file_name_1: &str, file_name_2: &str) -> Ve
         let values = v.trim().split(' ').collect::<Vec<&str>>();
         let x = io::parse_to_float(values[0], false); 
         let y = io::parse_to_float(values[1], false); 
-        ImageFeature::new(x.trunc() as usize,y.trunc() as usize)
+        ImageFeature::new(x,y)
     }).collect::<Vec<ImageFeature>>();
 
     let reader_2 = BufReader::new(file_2);
@@ -33,7 +33,7 @@ pub fn load_matches(root_path: &str, file_name_1: &str, file_name_2: &str) -> Ve
         let values = v.trim().split(' ').collect::<Vec<&str>>();
         let x = io::parse_to_float(values[0], false); 
         let y = io::parse_to_float(values[1], false); 
-        ImageFeature::new(x.trunc() as usize,y.trunc() as usize)
+        ImageFeature::new(x,y)
     }).collect::<Vec<ImageFeature>>();
 
     features_1.into_iter().zip(features_2.into_iter()).map(|(f1,f2)| {
