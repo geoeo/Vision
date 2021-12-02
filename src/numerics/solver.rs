@@ -73,8 +73,7 @@ pub fn scale_to_diagonal<const T: usize>(
 
 
 pub fn compute_cost(residuals: &DVector<Float>, loss_function: &Box<dyn LossFunction>) -> Float {
-    //loss_function.cost((residuals.transpose() * residuals)[0])
-    (residuals.transpose() * residuals)[0]
+    loss_function.cost((residuals.transpose() * residuals)[0])
 }
 
 pub fn weight_residuals<const T: usize>(residual: &mut SVector<Float, T>, weights: &SMatrix<Float,T,T>) -> () where Const<T>: DimMin<Const<T>, Output = Const<T>> {

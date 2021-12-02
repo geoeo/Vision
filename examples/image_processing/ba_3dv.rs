@@ -22,8 +22,7 @@ fn main() -> Result<()> {
 
     color_eyre::install()?;
 
-    let matches = three_dv_loader::load_matches("D:/Workspace/Cpp/3dv_tutorial/bin", "image_formation0_neg_z.xyz", "image_formation1_neg_z.xyz");
-    //let matches = three_dv_loader::load_matches("D:/Workspace/Cpp/3dv_tutorial/bin/data", "image_formation_no_noise_0_small.xyz", "image_formation_no_noise_1_small.xyz");
+    let matches = three_dv_loader::load_matches("D:/Workspace/Cpp/3dv_tutorial/bin/data", "image_formation0.xyz", "image_formation1.xyz");
     let number_of_matches = matches.len();
     let intensity_camera_0 = Pinhole::new(1000.0, 1000.0, 320.0, 240.0, true);
     let intensity_camera_1 = Pinhole::new(1000.0, 1000.0, 320.0, 240.0, true);
@@ -55,7 +54,7 @@ fn main() -> Result<()> {
         delta_eps: 1e-30,
         taus: vec![1e-3],
         lm: true,
-        weighting: false,
+        weighting: true,
         debug: true,
 
         show_octave_result: true,

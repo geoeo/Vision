@@ -124,8 +124,8 @@ pub fn optimize<C : Camera>(state: &mut State, cameras: &Vec<C>, observed_featur
 
     compute_jacobian(&state,&cameras,&mut jacobian);
 
-    //weight_residuals_sparse(&mut residuals, &weights_vec); 
-    //weight_jacobian_sparse(&mut jacobian, &weights_vec);
+    weight_residuals_sparse(&mut residuals, &weights_vec); 
+    weight_jacobian_sparse(&mut jacobian, &weights_vec);
 
 
     let mut max_norm_delta = float::MAX;
@@ -154,7 +154,8 @@ pub fn optimize<C : Camera>(state: &mut State, cameras: &Vec<C>, observed_featur
         // target_arrowhead.fill(0.0);
         // g.fill(0.0);
         // delta.fill(0.0);
-
+        
+        //TODO: rework indexing
         // let (gain_ratio_denom, mu_val) 
         //     = gauss_newton_step_with_schur(
         //         &mut target_arrowhead,
@@ -187,14 +188,14 @@ pub fn optimize<C : Camera>(state: &mut State, cameras: &Vec<C>, observed_featur
 
         get_estimated_features(&new_state, cameras, &mut new_estimated_features);
         compute_residual(&new_estimated_features, observed_features, &mut new_residuals);
-        // if runtime_parameters.weighting {
-        //     calc_weight_vec(
-        //         &new_residuals,
-        //         &runtime_parameters.intensity_weighting_function,
-        //         &mut weights_vec,
-        //     );
-        // }
-        //weight_residuals_sparse(&mut new_residuals, &weights_vec);
+        if runtime_parameters.weighting {
+            calc_weight_vec(
+                &new_residuals,
+                &runtime_parameters.intensity_weighting_function,
+                &mut weights_vec,
+            );
+        }
+        weight_residuals_sparse(&mut new_residuals, &weights_vec);
 
         let new_cost = compute_cost(&new_residuals,&runtime_parameters.loss_function);
         let cost_diff = cost-new_cost;
@@ -220,7 +221,7 @@ pub fn optimize<C : Camera>(state: &mut State, cameras: &Vec<C>, observed_featur
 
             jacobian.fill(0.0);
             compute_jacobian(&state,&cameras,&mut jacobian);
-           // weight_jacobian_sparse(&mut jacobian, &weights_vec);
+            weight_jacobian_sparse(&mut jacobian, &weights_vec);
 
             let v: Float = 1.0 / 3.0;
             mu = Some(mu.unwrap() * v.max(1.0 - (2.0 * gain_ratio - 1.0).powi(3)));
