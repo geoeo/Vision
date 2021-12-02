@@ -10,7 +10,7 @@ use crate::image::bundle_adjustment::state::State;
 use crate::odometry::runtime_parameters::RuntimeParameters; //TODO remove dependency on odometry module
 
 /**
- * In the format [f1_cam1_x,f1_cam1_y,f2_cam1_x,f2_cam1_y,f3_cam1_x,f3_cam1_y,f1_cam2_x,f1_cam2_y,f2_cam2_x,...]
+ * In the format [f1_cam1, f1_cam2,...]
  * Some entries may be 0 since not all cams see all points
  * */
 pub fn get_estimated_features<C : Camera>(state: &State, cameras: &Vec<C>, estimated_features: &mut DVector<Float>) -> () {
@@ -27,14 +27,14 @@ pub fn get_estimated_features<C : Camera>(state: &State, cameras: &Vec<C>, estim
         let cam_idx = state.getCamParamSize()*i;
         let pose = state.to_se3(cam_idx);
         let camera = &cameras[i];
-        let offset = 2*i*n_points;
-
 
         let transformed_points = pose*&position_world;
         for j in 0..n_points {
-            let estimated_feature = camera.project(&transformed_points.fixed_slice::<3,1>(0,j));            
-            estimated_features[offset+2*j] = estimated_feature.x;
-            estimated_features[offset+2*j+1] = estimated_feature.y;
+            let estimated_feature = camera.project(&transformed_points.fixed_slice::<3,1>(0,j));  
+            
+            let feat_id = 2*i + 2*j*n_cams;
+            estimated_features[feat_id] = estimated_feature.x;
+            estimated_features[feat_id+1] = estimated_feature.y;
         }
 
     }
@@ -57,8 +57,6 @@ pub fn compute_jacobian_wrt_object_points<C : Camera,T>(camera: &C, transformati
     let rot = transformation.fixed_slice::<3,3>(0,0);
     let local_jacobian = projection_jacobian*rot;
 
-    //println!("{}",local_jacobian);
-
     jacobian.fixed_slice_mut::<2,3>(i,j).copy_from(&local_jacobian.fixed_slice::<2,3>(0,0));
 }
 
@@ -70,8 +68,6 @@ pub fn compute_jacobian_wrt_camera_parameters<C : Camera, T>( camera: &C, transf
 
     let projection_jacobian = camera.get_jacobian_with_respect_to_position_in_camera_frame(&transformed_point.fixed_rows::<3>(0));
     let local_jacobian = projection_jacobian*lie_jacobian;
-
-    //println!("{}",local_jacobian);
 
     jacobian.fixed_slice_mut::<2,6>(i,j).copy_from(&local_jacobian);
 }
@@ -184,6 +180,9 @@ pub fn optimize<C : Camera>(state: &mut State, cameras: &Vec<C>, observed_featur
         mu = Some(mu_val);
 
         let pertb = step*(&delta);
+
+
+
         new_state.update(&pertb);
 
         get_estimated_features(&new_state, cameras, &mut new_estimated_features);
@@ -219,7 +218,6 @@ pub fn optimize<C : Camera>(state: &mut State, cameras: &Vec<C>, observed_featur
 
             residuals.copy_from(&new_residuals);
 
-            
             jacobian.fill(0.0);
             compute_jacobian(&state,&cameras,&mut jacobian);
            // weight_jacobian_sparse(&mut jacobian, &weights_vec);

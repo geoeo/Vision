@@ -23,32 +23,21 @@ impl State {
     }
 
     pub fn update(&mut self, perturb: &DVector<Float>) -> () {
-        //self.data += perturb;
-        for i in (0..self.getCamParamSize() * self.n_cams).step_by(6) {
-            // self.data[i] += perturb[i];
-            // self.data[i + 1] += perturb[i + 1];
-            // self.data[i + 2] += perturb[i + 2];
-            // self.data[i + 3] += perturb[i + 3];
-            // self.data[i + 4] += perturb[i + 4];
-            // self.data[i + 5] += perturb[i + 5];
 
-            let u = perturb.fixed_rows::<3>(i);
-            let w = perturb.fixed_rows::<3>(i + 3);
+        for i in (0..self.getCamParamSize() * self.n_cams).step_by(self.getCamParamSize()) {
+            let u = 1.0*perturb.fixed_rows::<3>(i);
+            let w = 1.0*perturb.fixed_rows::<3>(i + 3);
             let delta_transform = exp(&u, &w);
             
             let current_transform = self.to_se3(i);
 
-            //Check this pipeline
             let new_transform = delta_transform*current_transform;
+
             let new_translation = new_transform.fixed_slice::<3,1>(0,3);
             self.data.fixed_slice_mut::<3,1>(i,0).copy_from(&new_translation);
 
             let new_rotation = na::Rotation3::from_matrix_unchecked(new_transform.fixed_slice::<3,3>(0,0).into_owned());
             self.data.fixed_slice_mut::<3,1>(i+3,0).copy_from(&(new_rotation.scaled_axis()));
-
-            //println!("{}",new_transform);
-
-
         }
 
         for i in ((self.getCamParamSize() * self.n_cams)..self.data.nrows()).step_by(3) {
@@ -60,7 +49,6 @@ impl State {
 
     pub fn to_se3(&self, i: usize) -> Matrix4<Float> {
         assert!(i < self.n_cams*self.getCamParamSize());
-
         let translation = self.data.fixed_rows::<3>(i);
         let axis = na::Vector3::new(self.data[i+3],self.data[i+4],self.data[i+5]);
         let axis_angle = na::Rotation3::new(axis);
@@ -75,13 +63,9 @@ impl State {
         let mut points = Vec::<Vector3<Float>>::with_capacity(self.n_points);
 
         for i in (0..self.getCamParamSize() * self.n_cams).step_by(self.getCamParamSize()) {
-            //let u = self.data.fixed_rows::<3>(i);
-            //let w = self.data.fixed_rows::<3>(i + 3);
-            //cam_positions.push(exp(&u, &w));
-
-            let transform = self.to_se3(i);
-        
-            cam_positions.push(transform); //TODO: ENABLE FOR STATE CHANGE
+            let u = self.data.fixed_rows::<3>(i);
+            let w = self.data.fixed_rows::<3>(i + 3);
+            cam_positions.push(exp(&u, &w));
         }
 
         for i in (self.getCamParamSize() * self.n_cams..self.data.nrows()).step_by(3) {

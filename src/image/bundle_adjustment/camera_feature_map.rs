@@ -1,6 +1,6 @@
 extern crate nalgebra as na;
 
-use na::{Vector3,Matrix3,DVector};
+use na::{Vector3,Matrix3,DVector, Matrix4};
 use std::collections::HashMap;
 use crate::image::{
     Image,
@@ -133,11 +133,11 @@ impl CameraFeatureMap {
             data[i+2] = -5.5; //TODO: make a parameter
         }
 
-        State{data, n_cams: number_of_cameras, n_points: number_of_unqiue_points}
+        State{data , n_cams: number_of_cameras, n_points: number_of_unqiue_points}
     }
 
     /**
-     * This vector has ordering In the format [f1_cam1,f2_cam1,f3_cam1,f1_cam2,f2_cam2,...] where cam_id(cam_n-1) < cam_id(cam_n) 
+     * This vector has ordering In the format [f1_cam1, f1_cam2,...] where cam_id(cam_n-1) < cam_id(cam_n) 
      */
 
     pub fn get_observed_features(&self) -> DVector<Float> {
@@ -146,13 +146,12 @@ impl CameraFeatureMap {
         let mut observed_features = DVector::<Float>::zeros(n_points*n_cams*2); // some entries might be zero
         let mut sorted_keys = self.camera_map.keys().cloned().collect::<Vec<u64>>();
         sorted_keys.sort_unstable();
-
+        
+        //TODO: rewrite this -> very hard to understand logic
         for i in 0..sorted_keys.len() {
             let key = sorted_keys[i];
-            let camera_map = self.camera_map.get(&key);
+            let camera_map = self.camera_map.get(&key); 
 
-            let offset = 2*i*n_points;
-            //TODO: check this
             let feature_indices = camera_map.expect(&format!("No image with id: {} found in map",key).to_string());
             for j in 0..feature_indices.len() {
                 let (idx, other_cam_id) = feature_indices[j];
@@ -160,8 +159,9 @@ impl CameraFeatureMap {
                     (s,o) if s < o => self.feature_list[idx].0,
                     _ =>  self.feature_list[idx].1
                 };
-                observed_features[offset + 2*idx] = feature_pos.x as Float;
-                observed_features[offset + 2*idx+1] = feature_pos.y as Float;
+                let feat_id = 2*i + 2*j*n_cams;
+                observed_features[feat_id] = feature_pos.x as Float;
+                observed_features[feat_id+1] = feature_pos.y as Float;
             }
         }
 

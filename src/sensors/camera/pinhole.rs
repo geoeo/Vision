@@ -98,9 +98,9 @@ impl Camera for Pinhole {
 
     fn project<T>(&self, position: &Vector<Float,U3,T>) -> Point<Float> where T: Storage<Float,U3,U1> {
         let z = position[2];
-        //let homogeneous = position/z;
-        let projected_coordiantes = self.projection*position;
-        Point::<Float>::new(projected_coordiantes[0]/z,projected_coordiantes[1]/z)
+        let homogeneous = position/z;
+        let projected_coordiantes = self.projection*homogeneous;
+        Point::<Float>::new(projected_coordiantes[0],projected_coordiantes[1])
     }
 
     fn backproject(&self, point: &Point<Float>, depth: Float) -> Vector3<Float> {
