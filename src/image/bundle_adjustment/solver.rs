@@ -112,11 +112,9 @@ pub fn optimize<C : Camera>(state: &mut State, cameras: &Vec<C>, observed_featur
     let mut estimated_features = DVector::<Float>::zeros(observed_features.nrows());
     let mut new_estimated_features = DVector::<Float>::zeros(observed_features.nrows());
     let mut weights_vec = DVector::<Float>::from_element(observed_features.nrows(),1.0);
-    // let mut target_arrowhead = DMatrix::<Float>::zeros(state_size, state_size);
-    // let mut g = DVector::<Float>::from_element(state_size,0.0); 
-    // let mut delta = DVector::<Float>::from_element(state_size,0.0); 
-
-    let identity = DMatrix::<Float>::identity(state_size, state_size);
+    let mut target_arrowhead = DMatrix::<Float>::zeros(state_size, state_size);
+    let mut g = DVector::<Float>::from_element(state_size,0.0); 
+    let mut delta = DVector::<Float>::from_element(state_size,0.0); 
 
 
     get_estimated_features(state, cameras, &mut estimated_features);
@@ -151,39 +149,26 @@ pub fn optimize<C : Camera>(state: &mut State, cameras: &Vec<C>, observed_featur
             println!("it: {}, avg_rmse: {}",iteration_count,cost.sqrt());
         }
 
-        // target_arrowhead.fill(0.0);
-        // g.fill(0.0);
-        // delta.fill(0.0);
-        
-        //TODO: rework indexing
-        // let (gain_ratio_denom, mu_val) 
-        //     = gauss_newton_step_with_schur(
-        //         &mut target_arrowhead,
-        //         &mut g,
-        //         &mut delta,
-        //         &residuals,
-        //         &jacobian,
-        //         mu,
-        //         tau,
-        //         state.n_cams,
-        //         state.n_points
-        //     ); 
+        target_arrowhead.fill(0.0);
+        g.fill(0.0);
+        delta.fill(0.0);
 
-        let (delta,g,gain_ratio_denom, mu_val) 
-            = gauss_newton_step(&residuals,
-                 &(jacobian),
-                 &identity,
-                 mu,
-                 tau); 
-
+        let (gain_ratio_denom, mu_val) 
+            = gauss_newton_step_with_schur(
+                &mut target_arrowhead,
+                &mut g,
+                &mut delta,
+                &residuals,
+                &jacobian,
+                mu,
+                tau,
+                state.n_cams,
+                state.n_points
+            ); 
 
 
         mu = Some(mu_val);
-
         let pertb = step*(&delta);
-
-
-
         new_state.update(&pertb);
 
         get_estimated_features(&new_state, cameras, &mut new_estimated_features);
@@ -201,11 +186,9 @@ pub fn optimize<C : Camera>(state: &mut State, cameras: &Vec<C>, observed_featur
         let cost_diff = cost-new_cost;
         let gain_ratio = cost_diff/gain_ratio_denom;
         if runtime_parameters.debug {
-            //println!("delta: {}, g: {}",delta,g);
             println!("cost: {}, new cost: {}, mu: {:?}, gain: {} , nu: {}",cost,new_cost, mu, gain_ratio, nu);
         }
 
-        //TODO: check gain ratio calc
         if gain_ratio > 0.0  || !runtime_parameters.lm {
             estimated_features.copy_from(&new_estimated_features);
             state.data.copy_from(&new_state.data); 

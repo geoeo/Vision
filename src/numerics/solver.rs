@@ -261,31 +261,28 @@ fn compute_arrow_head_and_residuals<R, C,S_Target_Arrow, S_Target_Residual, S_Ja
     S_Jacobian: Storage<Float, R, C> {
 
         let number_of_cam_params = 6*n_cams;
-        let number_of_point_params = 3*n_points;
         let number_of_measurement_rows = 2*n_cams*n_points;
-        let rows_per_cam_block = 2*n_cams;
         let mut diag_max: Float = 0.0;
     
-
         for j in (0..number_of_cam_params).step_by(6) {
             let mut U_j = SMatrix::<Float,6,6>::zeros();
             let u_idx = j;
-            let cam_num = j/6;
-            let row_start = 2*cam_num;
+            let cam_id = j/6;
+            let row_start = 2*cam_id;
             let row_end = number_of_measurement_rows;
             for i in (row_start..row_end).step_by(2*n_cams){
+                let feature_id = i/(2*n_cams);
+
                 let slice_a = jacobian.fixed_slice::<2,6>(i,j);
                 let slice_a_transpose = slice_a.transpose();
                 U_j += slice_a_transpose*slice_a;
                 
-                let point_offset = i/rows_per_cam_block;
-                let v_idx = number_of_cam_params - j+3*point_offset;
+                let v_idx = number_of_cam_params + feature_id*3;
                 let slice_b = jacobian.fixed_slice::<2,3>(i,v_idx);
                 let slice_b_transpose = slice_b.transpose();
                 
                 let V_i = target_arrowhead.fixed_slice::<3,3>(v_idx,v_idx)+ slice_b_transpose*slice_b;
                 target_arrowhead.fixed_slice_mut::<3,3>(v_idx,v_idx).copy_from(&V_i);
-
 
                 let W_j = slice_a_transpose*slice_b;
                 let W_j_transpose = W_j.transpose();

@@ -29,14 +29,14 @@ fn main() -> Result<(),()> {
 
     for cam in &cams {
         let cam_world = invert_se3(&cam);
-        let mut s = window.add_sphere(0.01);
+        let mut s = window.add_sphere(0.1);
         s.set_color(random(), random(), random());
         s.append_translation(&Translation3::new(cam_world[(0,3)] as f32,cam_world[(1,3)] as f32,cam_world[(2,3)] as f32));
     }
 
     let factor = 1.0;
     for point in &points {
-        let mut s = window.add_sphere(0.01);
+        let mut s = window.add_sphere(0.02);
         s.set_color(random(), random(), random());
         s.append_translation(&Translation3::new(factor*(point[0] as f32), factor*(point[1] as f32),  factor*(point[2] as f32)));
     }
