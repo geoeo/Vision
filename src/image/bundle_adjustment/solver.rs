@@ -116,7 +116,6 @@ pub fn optimize<C : Camera>(state: &mut State, cameras: &Vec<C>, observed_featur
     let mut g = DVector::<Float>::from_element(state_size,0.0); 
     let mut delta = DVector::<Float>::from_element(state_size,0.0); 
 
-
     get_estimated_features(state, cameras, &mut estimated_features);
     compute_residual(&estimated_features, observed_features, &mut residuals);
 
@@ -166,9 +165,10 @@ pub fn optimize<C : Camera>(state: &mut State, cameras: &Vec<C>, observed_featur
                 state.n_points
             ); 
 
-
         mu = Some(mu_val);
+
         let pertb = step*(&delta);
+
         new_state.update(&pertb);
 
         get_estimated_features(&new_state, cameras, &mut new_estimated_features);
