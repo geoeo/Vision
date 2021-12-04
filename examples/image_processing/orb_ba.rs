@@ -59,7 +59,7 @@ fn main() -> Result<()> {
     //let cameras = vec!(intensity_camera_1,intensity_camera_2,intensity_camera_1,intensity_camera_3);
     let cameras = vec!(intensity_camera_1,intensity_camera_2);
     let image_id_pairs = vec!((image_1.id.unwrap(), image_2.id.unwrap()));
-    //let image_pairs = vec!((&image_1, &image_2),(&image_1_prime, &image_3));
+    //let image_id_pairs = vec!((image_1.id.unwrap(), image_2.id.unwrap()),(image_1_prime.id.unwrap(), image_3.id.unwrap()));
     //let image_id_pairs = vec!((image_1_prime.id.unwrap(), image_3.id.unwrap()));
     //let image_pairs = vec!((&image_1, &image_4));
 
@@ -83,8 +83,8 @@ fn main() -> Result<()> {
 
     feature_map.add_images_from_params(image_1.id.unwrap(), orb_params_1_2.max_features_per_octave,orb_params_1_2.octave_count);
     feature_map.add_images_from_params(image_2.id.unwrap(), orb_params_1_2.max_features_per_octave,orb_params_1_2.octave_count);
-    //feature_map.add_images_from_params(image_1_prime.id.unwrap(), orb_params_1_3.max_features_per_octave,orb_params_1_3.octave_count);
-    //feature_map.add_images_from_params(image_3.id.unwrap(), orb_params_1_3.max_features_per_octave,orb_params_1_3.octave_count);
+    // feature_map.add_images_from_params(image_1_prime.id.unwrap(), orb_params_1_3.max_features_per_octave,orb_params_1_3.octave_count);
+    // feature_map.add_images_from_params(image_3.id.unwrap(), orb_params_1_3.max_features_per_octave,orb_params_1_3.octave_count);
     //feature_map.add_images_from_params(&image_1, orb_params_1_3.max_features_per_octave,orb_params_1_3.octave_count);
     //feature_map.add_images_from_params(&image_4, orb_params_1_3.max_features_per_octave,orb_params_1_3.octave_count);
 

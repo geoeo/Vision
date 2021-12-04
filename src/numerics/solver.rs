@@ -240,6 +240,7 @@ pub fn gauss_newton_step<R, C,S1, S2, S3>(
     (h,g,gain_ratio_denom[0], mu_val)
 }
 
+//TODO: somewhat hardcoded for the BA case
 #[allow(non_snake_case)]
 fn compute_arrow_head_and_residuals<R, C,S_Target_Arrow, S_Target_Residual, S_Jacobian, S_Residual>
     (
