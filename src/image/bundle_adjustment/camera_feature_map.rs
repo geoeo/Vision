@@ -1,13 +1,12 @@
 extern crate nalgebra as na;
 
-use na::{Vector3,Matrix3,DVector, Matrix4};
+use na::{Vector3,Matrix3,DVector};
 use std::collections::HashMap;
 use crate::image::{
     features::{Feature,Match},
     features::geometry::point::Point,
     bundle_adjustment::state::State
 };
-use crate::numerics::lie;
 use crate::{Float, reconstruct_original_coordiantes_for_float};
 
 

@@ -1,6 +1,6 @@
 extern crate nalgebra as na;
 
-use na::{U1,U3,Vector3,Vector4,Quaternion,UnitQuaternion,Matrix4};
+use na::{Vector3,Vector4,Quaternion,UnitQuaternion,Matrix4};
 use crate::Float;
 
 pub fn se3(t: &Vector3<Float>, quat: &Quaternion<Float>) -> Matrix4<Float> {

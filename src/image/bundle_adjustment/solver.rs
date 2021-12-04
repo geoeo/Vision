@@ -1,10 +1,10 @@
 extern crate nalgebra as na;
 
-use na::{DVector,DMatrix,Matrix, Dynamic, U4, VecStorage,Vector, Vector4, Matrix2x4,Matrix2x3,Matrix1x6,Matrix1x3, Matrix4,U3,U1,base::storage::Storage};
+use na::{DVector,DMatrix,Matrix, Dynamic, U4, VecStorage,Vector, Vector4,Matrix4,U3,U1,base::storage::Storage};
 use crate::{float,Float};
 use crate::sensors::camera::Camera;
 use crate::numerics::lie::left_jacobian_around_identity;
-use crate::numerics::{max_norm, solver::{compute_cost,weight_jacobian_sparse,weight_residuals_sparse, calc_weight_vec, gauss_newton_step, gauss_newton_step_with_loss_and_schur, gauss_newton_step_with_schur}};
+use crate::numerics::{max_norm, solver::{compute_cost,weight_jacobian_sparse,weight_residuals_sparse, calc_weight_vec, gauss_newton_step_with_schur}};
 use crate::image::bundle_adjustment::state::State;
 use crate::odometry::runtime_parameters::RuntimeParameters; //TODO remove dependency on odometry module
 
@@ -19,7 +19,7 @@ pub fn get_feature_index_in_residual(cam_id: usize, feature_id: usize, n_cams: u
  * */
 pub fn get_estimated_features<C : Camera>(state: &State, cameras: &Vec<C>, estimated_features: &mut DVector<Float>) -> () {
     let n_cams = state.n_cams;
-    let n_cam_parameters = state.getCamParamSize()*n_cams; //cam param
+    let n_cam_parameters = state.get_cam_param_size()*n_cams; //cam param
     let n_points = state.n_points;
     let estimated_state = &state.data;
     assert_eq!(estimated_features.nrows(),2*n_points*n_cams);
@@ -28,7 +28,7 @@ pub fn get_estimated_features<C : Camera>(state: &State, cameras: &Vec<C>, estim
         position_world.fixed_slice_mut::<3,1>(0,j).copy_from(&estimated_state.fixed_rows::<3>(n_cam_parameters+3*j)); 
     };
     for i in 0..n_cams {
-        let cam_idx = state.getCamParamSize()*i;
+        let cam_idx = state.get_cam_param_size()*i;
         let pose = state.to_se3(cam_idx);
         let camera = &cameras[i];
 
@@ -78,9 +78,9 @@ pub fn compute_jacobian_wrt_camera_parameters<C : Camera, T>( camera: &C, transf
 
 pub fn compute_jacobian<C : Camera>(state: &State, cameras: &Vec<C>, jacobian: &mut DMatrix<Float>) -> () {
     //cam
-    let number_of_cam_params = state.getCamParamSize()*state.n_cams;
-    for cam_state_idx in (0..number_of_cam_params).step_by(state.getCamParamSize()) {
-        let cam_id = cam_state_idx/state.getCamParamSize();
+    let number_of_cam_params = state.get_cam_param_size()*state.n_cams;
+    for cam_state_idx in (0..number_of_cam_params).step_by(state.get_cam_param_size()) {
+        let cam_id = cam_state_idx/state.get_cam_param_size();
         let camera = &cameras[cam_id];
 
         let transformation = state.to_se3(cam_state_idx);
@@ -109,7 +109,7 @@ pub fn compute_jacobian<C : Camera>(state: &State, cameras: &Vec<C>, jacobian: &
 
 pub fn optimize<C : Camera>(state: &mut State, cameras: &Vec<C>, observed_features: &DVector<Float>, runtime_parameters: &RuntimeParameters ) -> () {
     let mut new_state = state.clone();
-    let state_size = state.getCamParamSize()*state.n_cams+3*state.n_points;
+    let state_size = state.get_cam_param_size()*state.n_cams+3*state.n_points;
     let mut jacobian = DMatrix::<Float>::zeros(observed_features.nrows(),state_size);
     let mut residuals = DVector::<Float>::zeros(observed_features.nrows());
     let mut new_residuals = DVector::<Float>::zeros(observed_features.nrows());

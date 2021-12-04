@@ -56,7 +56,6 @@ pub fn exp_se3<T>(u: &Vector<Float,U3,T>, w: &Vector<Float,U3,T>) -> Matrix4<Flo
         _ => (1.0,1.0,1.0)
     };
 
-
     let w_x = skew_symmetric(w);
     let w_x_sqr = w_x*w_x;
     let I = Matrix3::<Float>::identity();
@@ -72,7 +71,6 @@ pub fn exp_se3<T>(u: &Vector<Float,U3,T>, w: &Vector<Float,U3,T>) -> Matrix4<Flo
     t_slice.copy_from(&t);
 
     res
-
 }
 
 //TODO: reuse exp_r in exp

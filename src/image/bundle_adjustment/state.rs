@@ -18,13 +18,13 @@ pub struct State {
 
 impl State {
 
-    pub fn getCamParamSize(&self) -> usize {
+    pub fn get_cam_param_size(&self) -> usize {
         6
     }
 
     pub fn update(&mut self, perturb: &DVector<Float>) -> () {
 
-        for i in (0..self.getCamParamSize() * self.n_cams).step_by(self.getCamParamSize()) {
+        for i in (0..self.get_cam_param_size() * self.n_cams).step_by(self.get_cam_param_size()) {
             let u = 1.0*perturb.fixed_rows::<3>(i);
             let w = 1.0*perturb.fixed_rows::<3>(i + 3);
             let delta_transform = exp_se3(&u, &w);
@@ -40,7 +40,7 @@ impl State {
             self.data.fixed_slice_mut::<3,1>(i+3,0).copy_from(&(new_rotation.scaled_axis()));
         }
 
-        for i in ((self.getCamParamSize() * self.n_cams)..self.data.nrows()).step_by(3) {
+        for i in ((self.get_cam_param_size() * self.n_cams)..self.data.nrows()).step_by(3) {
             self.data[i] += perturb[i]; 
             self.data[i + 1] += perturb[i + 1];
             self.data[i + 2] += perturb[i + 2];
@@ -48,7 +48,7 @@ impl State {
     }
 
     pub fn to_se3(&self, i: usize) -> Matrix4<Float> {
-        assert!(i < self.n_cams*self.getCamParamSize());
+        assert!(i < self.n_cams*self.get_cam_param_size());
         let translation = self.data.fixed_rows::<3>(i);
         let axis = na::Vector3::new(self.data[i+3],self.data[i+4],self.data[i+5]);
         let axis_angle = na::Rotation3::new(axis);
@@ -62,13 +62,13 @@ impl State {
         let mut cam_positions = Vec::<Matrix4<Float>>::with_capacity(self.n_cams);
         let mut points = Vec::<Vector3<Float>>::with_capacity(self.n_points);
 
-        for i in (0..self.getCamParamSize() * self.n_cams).step_by(self.getCamParamSize()) {
+        for i in (0..self.get_cam_param_size() * self.n_cams).step_by(self.get_cam_param_size()) {
             let u = self.data.fixed_rows::<3>(i);
             let w = self.data.fixed_rows::<3>(i + 3);
             cam_positions.push(exp_se3(&u, &w));
         }
 
-        for i in (self.getCamParamSize() * self.n_cams..self.data.nrows()).step_by(3) {
+        for i in (self.get_cam_param_size() * self.n_cams..self.data.nrows()).step_by(3) {
             let point = self.data.fixed_rows::<3>(i);
             points.push(Vector3::from(point));
         }
@@ -79,7 +79,7 @@ impl State {
     pub fn to_serial(&self) -> (Vec<[Float; 6]>, Vec<[Float; 3]>) {
         let mut cam_serial = Vec::<[Float; 6]>::with_capacity(self.n_cams);
         let mut points_serial = Vec::<[Float; 3]>::with_capacity(self.n_points);
-        let number_of_cam_params = self.getCamParamSize() * self.n_cams;
+        let number_of_cam_params = self.get_cam_param_size() * self.n_cams;
 
         for i in (0..number_of_cam_params).step_by(6) {
             let arr: [Float; 6] = [
