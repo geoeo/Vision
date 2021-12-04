@@ -42,7 +42,7 @@ fn main() -> Result<()> {
 
 
     let initial_motions = vec!((Vector3::<Float>::new(0.0,0.0,0.0),Matrix3::<Float>::identity()));
-    let mut state = feature_map.get_initial_state(Some(&initial_motions));
+    let mut state = feature_map.get_initial_state(Some(&initial_motions), -5.5);
     let observed_features = feature_map.get_observed_features();
 
 

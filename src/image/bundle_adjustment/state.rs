@@ -1,8 +1,8 @@
 extern crate nalgebra as na;
 
-use crate::numerics::lie::exp;
+use crate::numerics::lie::exp_se3;
 use crate::Float;
-use na::{DVector, Matrix3, Matrix4, Vector3, ArrayStorage};
+use na::{DVector, Matrix4, Vector3};
 
 /**
  * This is ordered [cam_1,cam_2,..,cam_n,point_1,point_2,...,point_m]
@@ -27,7 +27,7 @@ impl State {
         for i in (0..self.getCamParamSize() * self.n_cams).step_by(self.getCamParamSize()) {
             let u = 1.0*perturb.fixed_rows::<3>(i);
             let w = 1.0*perturb.fixed_rows::<3>(i + 3);
-            let delta_transform = exp(&u, &w);
+            let delta_transform = exp_se3(&u, &w);
             
             let current_transform = self.to_se3(i);
 
@@ -36,7 +36,7 @@ impl State {
             let new_translation = new_transform.fixed_slice::<3,1>(0,3);
             self.data.fixed_slice_mut::<3,1>(i,0).copy_from(&new_translation);
 
-            let new_rotation = na::Rotation3::from_matrix_unchecked(new_transform.fixed_slice::<3,3>(0,0).into_owned());
+            let new_rotation = na::Rotation3::from_matrix(&new_transform.fixed_slice::<3,3>(0,0).into_owned());
             self.data.fixed_slice_mut::<3,1>(i+3,0).copy_from(&(new_rotation.scaled_axis()));
         }
 
@@ -65,7 +65,7 @@ impl State {
         for i in (0..self.getCamParamSize() * self.n_cams).step_by(self.getCamParamSize()) {
             let u = self.data.fixed_rows::<3>(i);
             let w = self.data.fixed_rows::<3>(i + 3);
-            cam_positions.push(exp(&u, &w));
+            cam_positions.push(exp_se3(&u, &w));
         }
 
         for i in (self.getCamParamSize() * self.n_cams..self.data.nrows()).step_by(3) {

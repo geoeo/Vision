@@ -11,8 +11,6 @@ use kiss3d::window::Window;
 use na::{Point2, Point3, Translation3, Matrix4, Vector3};
 use kiss3d::text::Font;
 use vision::Float;
-use vision::image::bundle_adjustment::state;
-use vision::numerics::pose::invert_se3;
 use vision::io;
 use vision::numerics::lie;
 use vision::numerics::pose;
@@ -57,7 +55,7 @@ fn main() -> Result<(),()> {
         let u_3 = io::parse_to_float(values[5], false); 
         let w = Vector3::new(w_1,w_2,w_3);
         let u = Vector3::new(u_1,u_2,u_3);
-        let cam = lie::exp(&u, &w);
+        let cam = lie::exp_se3(&u, &w);
         pose::invert_se3(&cam)
 
 

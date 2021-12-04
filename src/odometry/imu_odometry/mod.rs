@@ -4,8 +4,7 @@ use na::{Const, Matrix3,SMatrix,SVector,Vector,Vector3,base::storage::Storage};
 use crate::Float;
 use crate::sensors::{DataFrame, imu::imu_data_frame::ImuDataFrame};
 use crate::odometry::imu_odometry::{imu_delta::ImuDelta, bias::{BiasPreintegrated, BiasDelta}};
-use crate::numerics::lie::{exp_r,skew_symmetric,right_jacobian, right_inverse_jacobian, ln_SO3, vector_from_skew_symmetric};
-use crate::numerics::solver::{weight_jacobian,weight_residuals};
+use crate::numerics::lie::{skew_symmetric, right_jacobian, right_inverse_jacobian, ln_SO3, vector_from_skew_symmetric, exp_so3};
 
 pub mod imu_delta;
 pub mod solver;
@@ -27,7 +26,7 @@ pub fn pre_integration(imu_data: &ImuDataFrame, gravity_body: &Vector3<Float>) -
     let gyro_delta_times = imu_data.gyro_ts[1..].iter().enumerate().map(|(i,t)| t - imu_data.gyro_ts[i]).collect::<Vec<Float>>();
 
     let delta_lie = imu_data.gyro_data[0..imu_data.gyro_count()-1].iter().zip(gyro_delta_times.iter()).map(|(x,&dt)| (x-imu_data.bias_g)*dt).collect::<Vec<Vector3::<Float>>>();
-    let delta_rotations = delta_lie.iter().map(|x| exp_r(&x)).collect::<Vec<Matrix3::<Float>>>();
+    let delta_rotations = delta_lie.iter().map(|x| exp_so3(&x)).collect::<Vec<Matrix3::<Float>>>();
     let accumulated_rotations = delta_rotations.iter().scan(Matrix3::<Float>::identity(),|acc,dr| {
         *acc=*acc*(*dr);
         Some(*acc)
@@ -135,7 +134,7 @@ pub fn generate_jacobian<S>(lie: &Vector<Float,Const<3>,S>, delta_t: Float) -> I
 
 pub fn generate_residual(estimate: &ImuDelta, measurement: &ImuDelta, bias_estimate: &BiasDelta, bias_preintegrated: &BiasPreintegrated) -> ImuResidual {
     let mut residual = ImuResidual::zeros();
-    let rotation_bias_adjustment = exp_r(&(bias_preintegrated.rotation_jacobian_bias_g*bias_estimate.bias_g_delta));
+    let rotation_bias_adjustment = exp_so3(&(bias_preintegrated.rotation_jacobian_bias_g*bias_estimate.bias_g_delta));
 
 
     let velocity_bias_adjustment = bias_preintegrated.velocity_jacobian_bias_a*bias_estimate.bias_a_delta + bias_preintegrated.velocity_jacobian_bias_g*bias_estimate.bias_g_delta;

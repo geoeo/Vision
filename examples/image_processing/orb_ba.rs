@@ -97,7 +97,7 @@ fn main() -> Result<()> {
     let normalized_matches = fundamental_matrices.iter().zip(feature_machtes.iter()).map(|(f,m)| epipolar::filter_matches(f, m)).collect::<Vec<Vec<(Vector3<Float>,Vector3<Float>)>>>();
     let initial_motion_decomp = essential_matrices.iter().enumerate().map(|(i,e)| epipolar::decompose_essential(e,&normalized_matches[i])).collect::<Vec<(Vector3<Float>,Matrix3<Float>)>>();
 
-    let mut state = feature_map.get_initial_state(Some(&initial_motion_decomp));
+    let mut state = feature_map.get_initial_state(Some(&initial_motion_decomp), -1.0);
     let observed_features = feature_map.get_observed_features();
     let runtime_parameters = RuntimeParameters {
         pyramid_scale: orb_params_1_2.pyramid_scale,

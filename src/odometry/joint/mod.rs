@@ -308,7 +308,7 @@ fn estimate<Cam: Camera, const R: usize, const C: usize>(
         let new_bias_estimate = bias_estimate.add_pertb(&pertb.fixed_rows::<6>(9));
 
         let new_est_transform =
-            lie::exp(&pertb.fixed_rows::<3>(0), &pertb.fixed_rows::<3>(3)) * est_transform;
+            lie::exp_se3(&pertb.fixed_rows::<3>(0), &pertb.fixed_rows::<3>(3)) * est_transform;
 
         runtime_memory.new_image_gradient_points.clear();
         compute_residuals(

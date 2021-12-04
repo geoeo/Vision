@@ -3,7 +3,7 @@ extern crate nalgebra as na;
 use na::{Vector,Vector3,Matrix3,SMatrix,storage::Storage, Const};
 
 use crate::odometry::imu_odometry::ImuResidual;
-use crate::numerics::lie::{right_jacobian,skew_symmetric, right_inverse_jacobian, exp_r};
+use crate::numerics::lie::{exp_so3,right_jacobian,skew_symmetric, right_inverse_jacobian};
 use crate::Float;
 
 #[derive(Clone,Copy)]
@@ -191,7 +191,7 @@ pub fn genrate_residual_jacobian(bias_delta: &BiasDelta, preintegrated_bias: &Bi
 
     let j_r_b = right_jacobian(&(preintegrated_bias.rotation_jacobian_bias_g*bias_delta.bias_g_delta));
     let residual_rotation = residuals.fixed_rows::<3>(3);
-    let residual_rotation_jacbobian_bias_g = -right_inverse_jacobian(&residual_rotation)*exp_r(&residual_rotation).transpose()*j_r_b*preintegrated_bias.rotation_jacobian_bias_g;
+    let residual_rotation_jacbobian_bias_g = -right_inverse_jacobian(&residual_rotation)*exp_so3(&residual_rotation).transpose()*j_r_b*preintegrated_bias.rotation_jacobian_bias_g;
 
     jacobian.fixed_slice_mut::<3,3>(0,0).copy_from(&residual_position_jacobian_bias_a);
     jacobian.fixed_slice_mut::<3,3>(0,3).copy_from(&residual_position_jacobian_bias_g);

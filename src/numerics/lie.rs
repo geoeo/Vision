@@ -42,9 +42,9 @@ pub fn right_jacobian_around_identity<T>(position: &Vector<Float,U3,T>, rotation
 
 } 
 
-//TODO: taylor expansion, check if this is correct
+//TODO: taylor expansion
 #[allow(non_snake_case)]
-pub fn exp<T>(u: &Vector<Float,U3,T>, w: &Vector<Float,U3,T>) -> Matrix4<Float> where T: Storage<Float,U3,U1> {
+pub fn exp_se3<T>(u: &Vector<Float,U3,T>, w: &Vector<Float,U3,T>) -> Matrix4<Float> where T: Storage<Float,U3,U1> {
     let omega = (w.transpose()*w)[0].sqrt();
     let omega_sqr = omega.powi(2);
 
@@ -77,7 +77,7 @@ pub fn exp<T>(u: &Vector<Float,U3,T>, w: &Vector<Float,U3,T>) -> Matrix4<Float> 
 
 //TODO: reuse exp_r in exp
 #[allow(non_snake_case)]
-pub fn exp_r<T>(w: &Vector<Float,U3,T>) -> Matrix3<Float> where T: Storage<Float,U3,U1> {
+pub fn exp_so3<T>(w: &Vector<Float,U3,T>) -> Matrix3<Float> where T: Storage<Float,U3,U1> {
     let omega = (w.transpose()*w)[0].sqrt();
 
     match omega {

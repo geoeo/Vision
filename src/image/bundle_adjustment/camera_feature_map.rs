@@ -3,7 +3,6 @@ extern crate nalgebra as na;
 use na::{Vector3,Matrix3,DVector, Matrix4};
 use std::collections::HashMap;
 use crate::image::{
-    Image,
     features::{Feature,Match},
     features::geometry::point::Point,
     bundle_adjustment::state::State
@@ -50,8 +49,6 @@ impl CameraFeatureMap {
 
         let (x_source_recon,y_source_recon) = reconstruct_original_coordiantes_for_float(x_source, y_source, pyramid_scale, octave_index_source as i32);
         let (x_other_recon,y_other_recon) = reconstruct_original_coordiantes_for_float(x_other, y_other, pyramid_scale, octave_index_other as i32);
-        //let point_source = Point::<usize>::new(1280 - x_source_recon.trunc() as usize,y_source_recon.trunc() as usize);
-        //let point_other = Point::<usize>::new(1280 - x_other_recon.trunc() as usize,y_other_recon.trunc() as usize); //TODO: check why this improves the result
         let point_source = Point::<Float>::new(x_source_recon,y_source_recon);
         let point_other = Point::<Float>::new(x_other_recon,y_other_recon); 
  
@@ -93,7 +90,7 @@ impl CameraFeatureMap {
     /**
      * initial_motion should all be with respect to the first camera
      */
-    pub fn get_initial_state(&self, initial_motions : Option<&Vec<(Vector3<Float>,Matrix3<Float>)>>) -> State {
+    pub fn get_initial_state(&self, initial_motions : Option<&Vec<(Vector3<Float>,Matrix3<Float>)>>, initial_depth: Float) -> State {
 
         let number_of_cameras = self.camera_map.keys().len();
         let number_of_unqiue_points = self.feature_list.len();
@@ -111,16 +108,12 @@ impl CameraFeatureMap {
                     v if v == 0 => 0,
                     _ => i/6-1-counter
                 };
-                let (h,R) = value[idx];
-                let lie_algebra = lie::vector_from_skew_symmetric(&lie::ln_SO3(&R));
-                //TODO: technically use R.t() aswell!
-                data[i] = -h[0];
-                data[i+1] = -h[1];
-                data[i+2] = -h[2];
-                // TODO: this will have to be axis angle now
-                // data[i+3] = lie_algebra[0];
-                // data[i+4] = lie_algebra[1];
-                // data[i+5] = lie_algebra[2];
+                let (h,rotation_matrix) = value[idx];
+                let rotation = na::Rotation3::from_matrix(&rotation_matrix);
+                let rotation_transpose = rotation.transpose();
+                let translation = rotation_transpose*(-h);
+                data.fixed_slice_mut::<3,1>(i,0).copy_from(&translation);
+                data.fixed_slice_mut::<3,1>(i,0).copy_from(&rotation_transpose.scaled_axis());
                 counter += 1;
             }
 
@@ -130,7 +123,7 @@ impl CameraFeatureMap {
         for i in (number_of_cam_parameters..total_parameters).step_by(3){
             data[i] = 0.0;
             data[i+1] = 0.0;
-            data[i+2] = -5.5; //TODO: make a parameter
+            data[i+2] = initial_depth; 
         }
 
         State{data , n_cams: number_of_cameras, n_points: number_of_unqiue_points}

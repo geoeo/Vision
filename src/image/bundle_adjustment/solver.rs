@@ -3,11 +3,15 @@ extern crate nalgebra as na;
 use na::{DVector,DMatrix,Matrix, Dynamic, U4, VecStorage,Vector, Vector4, Matrix2x4,Matrix2x3,Matrix1x6,Matrix1x3, Matrix4,U3,U1,base::storage::Storage};
 use crate::{float,Float};
 use crate::sensors::camera::Camera;
-use crate::numerics::lie::{exp, left_jacobian_around_identity,right_jacobian_around_identity};
-use crate::numerics::pose::invert_se3;
+use crate::numerics::lie::left_jacobian_around_identity;
 use crate::numerics::{max_norm, solver::{compute_cost,weight_jacobian_sparse,weight_residuals_sparse, calc_weight_vec, gauss_newton_step, gauss_newton_step_with_loss_and_schur, gauss_newton_step_with_schur}};
 use crate::image::bundle_adjustment::state::State;
 use crate::odometry::runtime_parameters::RuntimeParameters; //TODO remove dependency on odometry module
+
+
+pub fn get_feature_index_in_residual(cam_id: usize, feature_id: usize, n_cams: usize) -> usize {
+    2*(cam_id + feature_id*n_cams)
+}
 
 /**
  * In the format [f1_cam1, f1_cam2,...]
@@ -32,7 +36,7 @@ pub fn get_estimated_features<C : Camera>(state: &State, cameras: &Vec<C>, estim
         for j in 0..n_points {
             let estimated_feature = camera.project(&transformed_points.fixed_slice::<3,1>(0,j));  
             
-            let feat_id = 2*i + 2*j*n_cams;
+            let feat_id = get_feature_index_in_residual(i, j, n_cams);
             estimated_features[feat_id] = estimated_feature.x;
             estimated_features[feat_id+1] = estimated_feature.y;
         }
@@ -88,7 +92,7 @@ pub fn compute_jacobian<C : Camera>(state: &State, cameras: &Vec<C>, jacobian: &
 
             let point_id = (point_state_idx-number_of_cam_params)/3;
 
-            let row = 2*(cam_id+point_id*state.n_cams);
+            let row = get_feature_index_in_residual(cam_id, point_id, state.n_cams);
             let a_j = cam_state_idx;
             let b_j = number_of_cam_params+point_id*3;
             
