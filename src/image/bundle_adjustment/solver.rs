@@ -169,6 +169,14 @@ pub fn optimize<C : Camera>(state: &mut State, cameras: &Vec<C>, observed_featur
                 state.n_points
             ); 
 
+        // let identity = DMatrix::<Float>::identity(state_size, state_size);
+        // let (delta,g,gain_ratio_denom, mu_val) 
+        //     = crate::numerics::solver::gauss_newton_step(&residuals,
+        //          &(jacobian),
+        //          &identity,
+        //          mu,
+        //          tau); 
+
         mu = Some(mu_val);
 
         let pertb = step*(&delta);

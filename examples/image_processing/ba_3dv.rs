@@ -20,8 +20,10 @@ fn main() -> Result<()> {
     color_eyre::install()?;
 
     //let matches = three_dv_loader::load_matches("D:/Workspace/Cpp/3dv_tutorial/bin/data", "image_formation0.xyz", "image_formation1.xyz");
-    let matches = three_dv_loader::load_matches("D:/Workspace/Cpp/3dv_tutorial/bin/data", "image_formation_neg_z_no_noise_0.xyz", "image_formation_neg_z_no_noise_1.xyz");
-    let matches_2_3 = three_dv_loader::load_matches("D:/Workspace/Cpp/3dv_tutorial/bin/data", "image_formation_neg_z_no_noise_2.xyz", "image_formation_neg_z_no_noise_3.xyz");
+    //let matches = three_dv_loader::load_matches("D:/Workspace/Cpp/3dv_tutorial/bin/data", "image_formation_neg_z_no_noise_0.xyz", "image_formation_neg_z_no_noise_1.xyz");
+    //let matches_2_3 = three_dv_loader::load_matches("D:/Workspace/Cpp/3dv_tutorial/bin/data", "image_formation_neg_z_no_noise_0.xyz", "image_formation_neg_z_no_noise_3.xyz");
+    let matches = three_dv_loader::load_matches("D:/Workspace/Cpp/3dv_tutorial/bin/data", "image_formation_neg_z_no_noise_0_small.xyz", "image_formation_neg_z_no_noise_1_small.xyz");
+    let matches_2_3 = three_dv_loader::load_matches("D:/Workspace/Cpp/3dv_tutorial/bin/data", "image_formation_neg_z_no_noise_0_small.xyz", "image_formation_neg_z_no_noise_3_small.xyz");
     let number_of_matches = matches.len();
     let intensity_camera_0 = Pinhole::new(1000.0, 1000.0, 320.0, 240.0, true);
     let intensity_camera_1 = Pinhole::new(1000.0, 1000.0, 320.0, 240.0, true);
@@ -33,22 +35,22 @@ fn main() -> Result<()> {
 
     let mut all_matches = Vec::<Vec<Match<ImageFeature>>>::with_capacity(2);
     all_matches.push(matches);
-    //all_matches.push(matches_2_3);
 
-    let mut feature_map = CameraFeatureMap::new(&all_matches, (480,640));
+    let mut feature_map = CameraFeatureMap::new(&all_matches,3, (480,640));
 
-    // let image_id_pairs = vec!((0,1),(2,3));
-    // feature_map.add_camera(vec!(0,1,2,3), number_of_matches,1);
-    // feature_map.add_matches(&image_id_pairs,&all_matches, 1.0);
-    // let initial_motions = vec!((Vector3::<Float>::new(0.0,0.0,0.0),Matrix3::<Float>::identity()),(Vector3::<Float>::new(0.0,0.0,0.0),Matrix3::<Float>::identity()));
-
-    let image_id_pairs = vec!((0,1));
-    feature_map.add_camera(vec!(0,1), number_of_matches,1);
+    all_matches.push(matches_2_3);
+    let image_id_pairs = vec!((0,1),(0,3));
+    feature_map.add_camera(vec!(0,1,3), number_of_matches,1);
     feature_map.add_matches(&image_id_pairs,&all_matches, 1.0);
-    let initial_motions = vec!((Vector3::<Float>::new(0.0,0.0,0.0),Matrix3::<Float>::identity()));
+    let initial_motions = vec!((Vector3::<Float>::new(0.0,0.0,0.0),Matrix3::<Float>::identity()),(Vector3::<Float>::new(0.0,0.0,0.0),Matrix3::<Float>::identity()));
+
+    // let image_id_pairs = vec!((0,1));
+    // feature_map.add_camera(vec!(0,1), number_of_matches,1);
+    // feature_map.add_matches(&image_id_pairs,&all_matches, 1.0);
+    // let initial_motions = vec!((Vector3::<Float>::new(0.0,0.0,0.0),Matrix3::<Float>::identity()));
 
 
-    let mut state = feature_map.get_initial_state(Some(&initial_motions), -5.5);
+    let mut state = feature_map.get_initial_state(None, -5.5);
     let observed_features = feature_map.get_observed_features();
 
 
@@ -57,9 +59,9 @@ fn main() -> Result<()> {
         max_iterations: vec![200; 1],
         eps: vec![1e0],
         step_sizes: vec![1e0],
-        max_norm_eps: 1e-30, 
-        delta_eps: 1e-30,
-        taus: vec![1e0],
+        max_norm_eps: 1e-15, 
+        delta_eps: 1e-15,
+        taus: vec![1e-3],
         lm: true,
         weighting: true,
         debug: true,

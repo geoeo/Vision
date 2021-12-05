@@ -31,14 +31,14 @@ pub struct CameraFeatureMap {
 
 impl CameraFeatureMap {
 
-    pub fn new<T: Feature>(matches: & Vec<Vec<Match<T>>>, image_row_col: (usize,usize)) -> CameraFeatureMap {
+    pub fn new<T: Feature>(matches: & Vec<Vec<Match<T>>>, n_cams: usize, image_row_col: (usize,usize)) -> CameraFeatureMap {
         let max_number_of_points = matches.iter().fold(0,|acc,x| acc + x.len());
         CameraFeatureMap{
             camera_map: HashMap::new(),
             feature_list: Vec::<(Point<Float>,Point<Float>)>::with_capacity(max_number_of_points),
             camera_map_2:  HashMap::new(),
             number_of_unique_points: 0,
-            point_cam_map: vec![vec![None;2*matches.len()]; max_number_of_points],
+            point_cam_map: vec![vec![None;n_cams]; max_number_of_points],
             image_row_col
         }
     }
@@ -145,7 +145,7 @@ impl CameraFeatureMap {
         
         if initial_motions.is_some() {
             let value = initial_motions.unwrap();
-            assert_eq!(value.len(),number_of_cameras/2);
+            assert_eq!(value.len(),number_of_cameras-1);
             let mut counter = 0;
             for i in (6..number_of_cam_parameters).step_by(12){
                 let idx = match i {
@@ -184,7 +184,7 @@ impl CameraFeatureMap {
         
         if initial_motions.is_some() {
             let value = initial_motions.unwrap();
-            assert_eq!(value.len(),number_of_cameras/2);
+            assert_eq!(value.len(),number_of_cameras-1); //TODO. fix this
             let mut counter = 0;
             for i in (6..number_of_cam_parameters).step_by(12){
                 let idx = match i {
@@ -271,7 +271,7 @@ impl CameraFeatureMap {
             }
         }
 
-
+        println!("{}",observed_features.fixed_slice::<60,1>(0,0));
         observed_features
     }
 
