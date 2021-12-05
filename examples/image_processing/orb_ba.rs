@@ -45,7 +45,6 @@ fn main() -> Result<()> {
     let gray_image_4 = image_rs::open(&Path::new(&image_path_4)).unwrap().to_luma8();
 
     let image_1 = Image::from_gray_image(&gray_image_1, false, false, Some(image_name_1.to_string()));
-    let image_1_prime = Image::from_gray_image(&gray_image_1, false, false, Some(format!("{}_prime",image_name_1.to_string())));
     let image_2 = Image::from_gray_image(&gray_image_2, false, false, Some(image_name_2.to_string()));
     let image_3 = Image::from_gray_image(&gray_image_3, false, false, Some(image_name_3.to_string()));
     let image_4 = Image::from_gray_image(&gray_image_4, false, false, Some(image_name_4.to_string()));
@@ -56,10 +55,10 @@ fn main() -> Result<()> {
     let intensity_camera_3 = intensity_camera_1.clone();
     let intensity_camera_4 = intensity_camera_1.clone();
 
-    let cameras = vec!(intensity_camera_1,intensity_camera_2,intensity_camera_1,intensity_camera_3);
-    //let cameras = vec!(intensity_camera_1,intensity_camera_2);
-    //let image_id_pairs = vec!((image_1.id.unwrap(), image_2.id.unwrap()));
-    let image_id_pairs = vec!((image_1.id.unwrap(), image_2.id.unwrap()),(image_1.id.unwrap(), image_3.id.unwrap()));
+    //let cameras = vec!(intensity_camera_1,intensity_camera_2,intensity_camera_1,intensity_camera_3);
+    let cameras = vec!(intensity_camera_1,intensity_camera_2);
+    let image_id_pairs = vec!((image_1.id.unwrap(), image_2.id.unwrap()));
+    //let image_id_pairs = vec!((image_1.id.unwrap(), image_2.id.unwrap()),(image_1.id.unwrap(), image_3.id.unwrap()));
     //let image_id_pairs = vec!((image_1_prime.id.unwrap(), image_3.id.unwrap()));
     //let image_pairs = vec!((&image_1, &image_4));
 
@@ -76,14 +75,14 @@ fn main() -> Result<()> {
 
     let mut matches = Vec::<Vec<Match<OrbFeature>>>::with_capacity(2);
     matches.extend(matches_1_2);
-    matches.extend(matches_1_3);
+    //matches.extend(matches_1_3);
     //matches.extend(matches_1_4);
 
-    let mut feature_map = CameraFeatureMap::new(&matches,3,(image_1.buffer.nrows(),image_1.buffer.ncols()));
+    let mut feature_map = CameraFeatureMap::new(&matches,2,(image_1.buffer.nrows(),image_1.buffer.ncols()));
 
-    //feature_map.add_camera(vec!(image_1.id.unwrap(),image_2.id.unwrap()), orb_params_1_2.max_features_per_octave,orb_params_1_2.octave_count);
+    feature_map.add_camera(vec!(image_1.id.unwrap(),image_2.id.unwrap()), orb_params_1_2.max_features_per_octave,orb_params_1_2.octave_count);
     //feature_map.add_camera(vec!(image_1_prime.id.unwrap(),image_3.id.unwrap()), orb_params_1_2.max_features_per_octave,orb_params_1_2.octave_count);
-    feature_map.add_camera(vec!(image_1.id.unwrap(),image_2.id.unwrap(),image_3.id.unwrap()), orb_params_1_2.max_features_per_octave,orb_params_1_2.octave_count);
+    //feature_map.add_camera(vec!(image_1.id.unwrap(),image_2.id.unwrap(),image_3.id.unwrap()), orb_params_1_2.max_features_per_octave,orb_params_1_2.octave_count);
 
     feature_map.add_matches(&image_id_pairs,&matches, orb_params_1_2.pyramid_scale);
 
@@ -136,7 +135,7 @@ fn main() -> Result<()> {
 
     let s = serde_yaml::to_string(&state.to_serial())?;
     //fs::write(format!("D:/Workspace/Rust/Vision/output/orb_ba_{}_{}_images.txt",image_name_1,image_name_2), s).expect("Unable to write file");
-    fs::write(format!("D:/Workspace/Rust/Vision/output/orb_ba_{}_{}_images.txt",image_name_1,image_name_3), s).expect("Unable to write file");
+    fs::write(format!("D:/Workspace/Rust/Vision/output/orb_ba.txt"), s).expect("Unable to write file");
     //fs::write(format!("D:/Workspace/Rust/Vision/output/orb_ba_{}_{}_{}_images.txt",image_name_1,image_name_2,image_name_3), s).expect("Unable to write file");
 
 
