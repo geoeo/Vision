@@ -56,10 +56,10 @@ fn main() -> Result<()> {
     let intensity_camera_3 = intensity_camera_1.clone();
     let intensity_camera_4 = intensity_camera_1.clone();
 
-    //let cameras = vec!(intensity_camera_1,intensity_camera_2,intensity_camera_1,intensity_camera_3);
-    let cameras = vec!(intensity_camera_1,intensity_camera_2);
-    let image_id_pairs = vec!((image_1.id.unwrap(), image_2.id.unwrap()));
-    //let image_id_pairs = vec!((image_1.id.unwrap(), image_2.id.unwrap()),(image_1_prime.id.unwrap(), image_3.id.unwrap()));
+    let cameras = vec!(intensity_camera_1,intensity_camera_2,intensity_camera_1,intensity_camera_3);
+    //let cameras = vec!(intensity_camera_1,intensity_camera_2);
+    //let image_id_pairs = vec!((image_1.id.unwrap(), image_2.id.unwrap()));
+    let image_id_pairs = vec!((image_1.id.unwrap(), image_2.id.unwrap()),(image_1_prime.id.unwrap(), image_3.id.unwrap()));
     //let image_id_pairs = vec!((image_1_prime.id.unwrap(), image_3.id.unwrap()));
     //let image_pairs = vec!((&image_1, &image_4));
 
@@ -74,19 +74,15 @@ fn main() -> Result<()> {
     let (orb_params_1_3,matches_1_3): (OrbRuntimeParameters,Vec<Vec<Match<OrbFeature>>>) = serde_yaml::from_str(&orb_matches_as_string_1_3)?;
     let (orb_params_1_4,matches_1_4): (OrbRuntimeParameters,Vec<Vec<Match<OrbFeature>>>) = serde_yaml::from_str(&orb_matches_as_string_1_4)?;
 
-    let mut matches = Vec::<Vec<Match<OrbFeature>>>::with_capacity(0);
+    let mut matches = Vec::<Vec<Match<OrbFeature>>>::with_capacity(2);
     matches.extend(matches_1_2);
-    //matches.extend(matches_1_3);
+    matches.extend(matches_1_3);
     //matches.extend(matches_1_4);
 
-    let mut feature_map = CameraFeatureMap::new(&matches);
+    let mut feature_map = CameraFeatureMap::new(&matches,(image_1.buffer.nrows(),image_1.buffer.ncols()));
 
-    feature_map.add_images_from_params(image_1.id.unwrap(), orb_params_1_2.max_features_per_octave,orb_params_1_2.octave_count);
-    feature_map.add_images_from_params(image_2.id.unwrap(), orb_params_1_2.max_features_per_octave,orb_params_1_2.octave_count);
-    // feature_map.add_images_from_params(image_1_prime.id.unwrap(), orb_params_1_3.max_features_per_octave,orb_params_1_3.octave_count);
-    // feature_map.add_images_from_params(image_3.id.unwrap(), orb_params_1_3.max_features_per_octave,orb_params_1_3.octave_count);
-    //feature_map.add_images_from_params(&image_1, orb_params_1_3.max_features_per_octave,orb_params_1_3.octave_count);
-    //feature_map.add_images_from_params(&image_4, orb_params_1_3.max_features_per_octave,orb_params_1_3.octave_count);
+    //feature_map.add_camera(vec!(image_1.id.unwrap(),image_2.id.unwrap()), orb_params_1_2.max_features_per_octave,orb_params_1_2.octave_count);
+    feature_map.add_camera(vec!(image_1.id.unwrap(),image_2.id.unwrap(),image_1_prime.id.unwrap(),image_3.id.unwrap()), orb_params_1_2.max_features_per_octave,orb_params_1_2.octave_count);
 
     feature_map.add_matches(&image_id_pairs,&matches, orb_params_1_2.pyramid_scale);
 

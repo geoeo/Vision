@@ -12,34 +12,47 @@ use crate::{Float, reconstruct_original_coordiantes_for_float};
 
 
 pub struct CameraFeatureMap {
+    //TODO: rework this whole datastructure 
     pub camera_map: HashMap<u64, Vec<(usize,u64)>>,
     /**
      * The image coordiantes in this list have been scaled to the original image resolution
      * For two features f1, f2 the cam id(f1) < cam_id(f2)
      * */ 
-    pub feature_list: Vec<(Point<Float>,Point<Float>)>
+    pub feature_list: Vec<(Point<Float>,Point<Float>)>,
+    pub camera_map_2: HashMap<u64, (usize, HashMap<usize,usize>)>,
+    pub number_of_unique_points: usize,
+    pub cam_point_map: Vec<Vec<bool>>,
+    pub image_row_col: (usize,usize)
 
 }
 
 impl CameraFeatureMap {
 
-    pub fn new<T: Feature>(matches: & Vec<Vec<Match<T>>>) -> CameraFeatureMap {
-        let number_of_unique_features = matches.iter().fold(0,|acc,x| acc + x.len());
+    pub fn new<T: Feature>(matches: & Vec<Vec<Match<T>>>, image_row_col: (usize,usize)) -> CameraFeatureMap {
+        let max_number_of_points = matches.iter().fold(0,|acc,x| acc + x.len());
         CameraFeatureMap{
             camera_map: HashMap::new(),
-            feature_list: Vec::<(Point<Float>,Point<Float>)>::with_capacity(number_of_unique_features)
+            feature_list: Vec::<(Point<Float>,Point<Float>)>::with_capacity(max_number_of_points),
+            camera_map_2:  HashMap::new(),
+            number_of_unique_points: 0,
+            cam_point_map: vec![vec![false;max_number_of_points];2*matches.len()],
+            image_row_col
         }
-        
     }
 
-    pub fn add_images_from_params(&mut self, id: u64, features_per_octave: usize, octave_count: usize) -> () {
-        self.add_image(id, features_per_octave, octave_count);
+    pub fn add_camera(&mut self, ids: Vec<u64>, features_per_octave: usize, octave_count: usize) -> () {
+        for i in 0..ids.len(){
+            let id = ids[i];
+            self.camera_map.insert(id,Vec::<(usize,u64)>::with_capacity(features_per_octave*octave_count));
+            self.camera_map_2.insert(id,(i,HashMap::new()));
+        }
+
     }
 
-    pub fn add_image(&mut self,id: u64, features_per_octave: usize, octave_count: usize) -> () {
-        self.camera_map.insert(id,Vec::<(usize,u64)>::with_capacity(features_per_octave*octave_count));
-
+    fn linear_image_idx(&self, p: &Point<Float>) -> usize {
+        (p.y as usize)*self.image_row_col.1+(p.x as usize)
     }
+
 
     pub fn add_feature(&mut self, source_cam_id: u64, other_cam_id: u64, 
         x_source: Float, y_source: Float, octave_index_source: usize, 
@@ -54,7 +67,7 @@ impl CameraFeatureMap {
         let idx_in_feature_list = self.feature_list.len();
 
         match (source_cam_id, other_cam_id){
-            (s,o) if s < o => self.feature_list.push((point_source,point_other)),
+            (source,other) if source < other => self.feature_list.push((point_source,point_other)),
             _ => self.feature_list.push((point_other,point_source))
         };
 
@@ -62,6 +75,36 @@ impl CameraFeatureMap {
         source_cam_map.push((idx_in_feature_list,other_cam_id));
         let other_cam_map = self.camera_map.get_mut(&other_cam_id).expect(&format!("No image with id: {} found in map",other_cam_id).to_string());
         other_cam_map.push((idx_in_feature_list,source_cam_id));
+
+
+        let point_source_idx = self.linear_image_idx(&point_source);
+        let point_other_idx = self.linear_image_idx(&point_other);
+
+        let source_cam_idx = self.camera_map_2.get(&source_cam_id).unwrap().0;
+        let other_cam_idx = self.camera_map_2.get(&other_cam_id).unwrap().0;
+
+        let source_point_id =  self.camera_map_2.get(&source_cam_id).unwrap().1.get(&point_source_idx);
+        let other_point_id = self.camera_map_2.get(&other_cam_id).unwrap().1.get(&point_other_idx);
+
+        match (source_point_id.is_some(),other_point_id.is_some()) {
+            (false,false) => {
+                self.cam_point_map[source_cam_idx][self.number_of_unique_points] = true;
+                self.cam_point_map[other_cam_idx][self.number_of_unique_points] = true;
+                self.camera_map_2.get_mut(&source_cam_id).unwrap().1.insert(point_source_idx,self.number_of_unique_points);
+                self.camera_map_2.get_mut(&other_cam_id).unwrap().1.insert(point_other_idx, self.number_of_unique_points);
+
+                self.number_of_unique_points += 1;
+            },
+            (true,_) => {
+                let point_id = source_point_id.unwrap();
+                self.cam_point_map[other_cam_idx][*point_id] = true;
+            },
+            (false,true) => {
+                let point_id = other_point_id.unwrap();
+                self.cam_point_map[source_cam_idx][*point_id] = true;
+            }
+        }
+
     }
 
     pub fn add_matches<T: Feature>(&mut self, image_id_pairs: &Vec<(u64, u64)>, matches: & Vec<Vec<Match<T>>>, pyramid_scale: Float) -> () {
@@ -69,7 +112,6 @@ impl CameraFeatureMap {
         for i in 0..image_id_pairs.len(){
             let (id_a,id_b) = image_id_pairs[i];
             let matches_for_pair = &matches[i];
-
 
             for feature_match in matches_for_pair {
                 let match_a = &feature_match.feature_one;
@@ -118,7 +160,6 @@ impl CameraFeatureMap {
 
         }
 
-        // Initialise points to a depth of -1
         for i in (number_of_cam_parameters..total_parameters).step_by(3){
             data[i] = 0.0;
             data[i+1] = 0.0;
@@ -148,7 +189,7 @@ impl CameraFeatureMap {
             for j in 0..feature_indices.len() {
                 let (idx, other_cam_id) = feature_indices[j];
                 let feature_pos = match (key, other_cam_id) {
-                    (s,o) if s < o => self.feature_list[idx].0,
+                    (source,other) if source < other => self.feature_list[idx].0,
                     _ =>  self.feature_list[idx].1
                 };
                 let feat_id = 2*i + 2*j*n_cams;
