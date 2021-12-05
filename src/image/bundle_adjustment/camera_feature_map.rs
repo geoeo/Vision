@@ -21,7 +21,10 @@ pub struct CameraFeatureMap {
     pub feature_list: Vec<(Point<Float>,Point<Float>)>,
     pub camera_map_2: HashMap<u64, (usize, HashMap<usize,usize>)>,
     pub number_of_unique_points: usize,
-    pub cam_point_map: Vec<Vec<bool>>,
+    /**
+     * 2d Vector of dim rows: point, dim : cam. Where the values are in (x,y) tuples
+     */
+    pub point_cam_map: Vec<Vec<Option<(Float,Float)>>>,
     pub image_row_col: (usize,usize)
 
 }
@@ -35,7 +38,7 @@ impl CameraFeatureMap {
             feature_list: Vec::<(Point<Float>,Point<Float>)>::with_capacity(max_number_of_points),
             camera_map_2:  HashMap::new(),
             number_of_unique_points: 0,
-            cam_point_map: vec![vec![false;max_number_of_points];2*matches.len()],
+            point_cam_map: vec![vec![None;2*matches.len()]; max_number_of_points],
             image_row_col
         }
     }
@@ -88,8 +91,8 @@ impl CameraFeatureMap {
 
         match (source_point_id.is_some(),other_point_id.is_some()) {
             (false,false) => {
-                self.cam_point_map[source_cam_idx][self.number_of_unique_points] = true;
-                self.cam_point_map[other_cam_idx][self.number_of_unique_points] = true;
+                self.point_cam_map[self.number_of_unique_points][source_cam_idx] = Some((point_source.x,point_source.y));
+                self.point_cam_map[self.number_of_unique_points][other_cam_idx] = Some((point_other.x,point_other.y));
                 self.camera_map_2.get_mut(&source_cam_id).unwrap().1.insert(point_source_idx,self.number_of_unique_points);
                 self.camera_map_2.get_mut(&other_cam_id).unwrap().1.insert(point_other_idx, self.number_of_unique_points);
 
@@ -97,11 +100,11 @@ impl CameraFeatureMap {
             },
             (true,_) => {
                 let point_id = source_point_id.unwrap();
-                self.cam_point_map[other_cam_idx][*point_id] = true;
+                self.point_cam_map[*point_id][other_cam_idx] = Some((point_other.x,point_other.y));
             },
             (false,true) => {
                 let point_id = other_point_id.unwrap();
-                self.cam_point_map[source_cam_idx][*point_id] = true;
+                self.point_cam_map[*point_id][source_cam_idx] = Some((point_source.x,point_source.y));
             }
         }
 
@@ -166,6 +169,45 @@ impl CameraFeatureMap {
             data[i+2] = initial_depth; 
         }
 
+        //State{data , n_cams: number_of_cameras, n_points: number_of_unqiue_points}
+        self.get_initial_state_2(initial_motions, initial_depth)
+    }
+
+    pub fn get_initial_state_2(&self, initial_motions : Option<&Vec<(Vector3<Float>,Matrix3<Float>)>>, initial_depth: Float) -> State {
+
+        let number_of_cameras = self.camera_map_2.keys().len();
+        let number_of_unqiue_points = self.number_of_unique_points;
+        let number_of_cam_parameters = 6*number_of_cameras;
+        let number_of_point_parameters = 3*number_of_unqiue_points;
+        let total_parameters = number_of_cam_parameters+number_of_point_parameters;
+        let mut data = DVector::<Float>::zeros(total_parameters);
+        
+        if initial_motions.is_some() {
+            let value = initial_motions.unwrap();
+            assert_eq!(value.len(),number_of_cameras/2);
+            let mut counter = 0;
+            for i in (6..number_of_cam_parameters).step_by(12){
+                let idx = match i {
+                    v if v == 0 => 0,
+                    _ => i/6-1-counter
+                };
+                let (h,rotation_matrix) = value[idx];
+                let rotation = na::Rotation3::from_matrix(&rotation_matrix);
+                let rotation_transpose = rotation.transpose();
+                let translation = rotation_transpose*(-h);
+                data.fixed_slice_mut::<3,1>(i,0).copy_from(&translation);
+                data.fixed_slice_mut::<3,1>(i,0).copy_from(&rotation_transpose.scaled_axis());
+                counter += 1;
+            }
+
+        }
+
+        for i in (number_of_cam_parameters..total_parameters).step_by(3){
+            data[i] = 0.0;
+            data[i+1] = 0.0;
+            data[i+2] = initial_depth; 
+        }
+
         State{data , n_cams: number_of_cameras, n_points: number_of_unqiue_points}
     }
 
@@ -173,6 +215,7 @@ impl CameraFeatureMap {
      * This vector has ordering In the format [f1_cam1, f1_cam2,...] where cam_id(cam_n-1) < cam_id(cam_n) 
      */
 
+     //TODO: rewrite this with new data structs
     pub fn get_observed_features(&self) -> DVector<Float> {
         let n_points = self.feature_list.len();
         let n_cams = self.camera_map.keys().len();
@@ -197,6 +240,37 @@ impl CameraFeatureMap {
                 observed_features[feat_id+1] = feature_pos.y as Float;
             }
         }
+
+        //observed_features
+        self.get_observed_features_2()
+    }
+
+    pub fn get_observed_features_2(&self) -> DVector<Float> {
+        let n_points = self.number_of_unique_points;
+        let n_cams = self.camera_map_2.keys().len();
+        let mut observed_features = DVector::<Float>::zeros(n_points*n_cams*2); // some entries might be zero
+
+        'outer: for r in 0..n_points {
+            let row = &self.point_cam_map[r];
+            let mut point_found = false;
+            for c in 0..n_cams {
+                let feat_id = 2*c + 2*r*n_cams;
+                let elem = row[c];
+                let (x_val, y_val) = match elem {
+                    Some(v) => {
+                        point_found = true;
+                        v
+                    },
+                    _ => (0.0,0.0)
+                };
+                observed_features[feat_id] = x_val;
+                observed_features[feat_id+1] = y_val;
+            }
+            if !point_found {
+                break 'outer;
+            }
+        }
+
 
         observed_features
     }

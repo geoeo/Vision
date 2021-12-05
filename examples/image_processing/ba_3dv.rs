@@ -33,16 +33,21 @@ fn main() -> Result<()> {
 
     let mut all_matches = Vec::<Vec<Match<ImageFeature>>>::with_capacity(2);
     all_matches.push(matches);
-    all_matches.push(matches_2_3);
+    //all_matches.push(matches_2_3);
 
     let mut feature_map = CameraFeatureMap::new(&all_matches, (480,640));
 
-    let image_id_pairs = vec!((0,1),(2,3));
-    feature_map.add_camera(vec!(0,1,2,3), number_of_matches,1);
+    // let image_id_pairs = vec!((0,1),(2,3));
+    // feature_map.add_camera(vec!(0,1,2,3), number_of_matches,1);
+    // feature_map.add_matches(&image_id_pairs,&all_matches, 1.0);
+    // let initial_motions = vec!((Vector3::<Float>::new(0.0,0.0,0.0),Matrix3::<Float>::identity()),(Vector3::<Float>::new(0.0,0.0,0.0),Matrix3::<Float>::identity()));
+
+    let image_id_pairs = vec!((0,1));
+    feature_map.add_camera(vec!(0,1), number_of_matches,1);
     feature_map.add_matches(&image_id_pairs,&all_matches, 1.0);
+    let initial_motions = vec!((Vector3::<Float>::new(0.0,0.0,0.0),Matrix3::<Float>::identity()));
 
 
-    let initial_motions = vec!((Vector3::<Float>::new(0.0,0.0,0.0),Matrix3::<Float>::identity()),(Vector3::<Float>::new(0.0,0.0,0.0),Matrix3::<Float>::identity()));
     let mut state = feature_map.get_initial_state(Some(&initial_motions), -5.5);
     let observed_features = feature_map.get_observed_features();
 
