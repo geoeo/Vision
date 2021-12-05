@@ -62,12 +62,12 @@ impl CameraFeatureMap {
 
         let source_cam_idx = self.camera_map.get(&source_cam_id).unwrap().0;
         let other_cam_idx = self.camera_map.get(&other_cam_id).unwrap().0;
-
+        
         let source_point_id =  self.camera_map.get(&source_cam_id).unwrap().1.get(&point_source_idx);
         let other_point_id = self.camera_map.get(&other_cam_id).unwrap().1.get(&point_other_idx);
 
-        match (source_point_id.is_some(),other_point_id.is_some()) {
-            (false,false) => {
+        match (source_point_id.clone(),other_point_id.clone()) {
+            (None,None) => {
                 self.point_cam_map[self.number_of_unique_points][source_cam_idx] = Some((point_source.x,point_source.y));
                 self.point_cam_map[self.number_of_unique_points][other_cam_idx] = Some((point_other.x,point_other.y));
                 self.camera_map.get_mut(&source_cam_id).unwrap().1.insert(point_source_idx,self.number_of_unique_points);
@@ -75,13 +75,15 @@ impl CameraFeatureMap {
 
                 self.number_of_unique_points += 1;
             },
-            (true,_) => {
-                let point_id = source_point_id.unwrap();
-                self.point_cam_map[*point_id][other_cam_idx] = Some((point_other.x,point_other.y));
+            (Some(&point_id),_) => {
+                self.point_cam_map[point_id][other_cam_idx] = Some((point_other.x,point_other.y));
+                self.camera_map.get_mut(&other_cam_id).unwrap().1.insert(point_other_idx, point_id);
+
             },
-            (false,true) => {
-                let point_id = other_point_id.unwrap();
-                self.point_cam_map[*point_id][source_cam_idx] = Some((point_source.x,point_source.y));
+            (None,Some(&point_id)) => {
+                self.camera_map.get_mut(&source_cam_id).unwrap().1.insert(point_source_idx,point_id);
+                self.point_cam_map[point_id][source_cam_idx] = Some((point_source.x,point_source.y));
+
             }
         }
 
