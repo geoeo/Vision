@@ -16,8 +16,8 @@ use rand::random;
 fn main() -> Result<(),()> {
     let mut window = Window::new("BA: Pointcloud");
 
-    //let orb_matches_as_string = fs::read_to_string("D:/Workspace/Rust/Vision/output/orb_ba.txt").expect("Unable to read file");
-    let orb_matches_as_string = fs::read_to_string("D:/Workspace/Rust/Vision/output/3dv.txt").expect("Unable to read file");
+    let orb_matches_as_string = fs::read_to_string("D:/Workspace/Rust/Vision/output/orb_ba.txt").expect("Unable to read file");
+    //let orb_matches_as_string = fs::read_to_string("D:/Workspace/Rust/Vision/output/3dv.txt").expect("Unable to read file");
     let loaded: (Vec<[Float;6]>,Vec<[Float;3]>) = serde_yaml::from_str(&orb_matches_as_string).unwrap();
     let ba_state = state::State::from_serial(&loaded);
     let (cams,points) = ba_state.as_matrix_point();
@@ -32,7 +32,7 @@ fn main() -> Result<(),()> {
         s.append_translation(&Translation3::new(cam_world[(0,3)] as f32,cam_world[(1,3)] as f32,cam_world[(2,3)] as f32));
     }
 
-    let factor = 1.0;
+    let factor = 3.0;
     for point in &points {
         let mut s = window.add_sphere(0.02);
         s.set_color(random(), random(), random());

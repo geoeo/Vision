@@ -124,7 +124,7 @@ impl CameraFeatureMap {
         
         if initial_motions.is_some() {
             let value = initial_motions.unwrap();
-            assert_eq!(value.len(),number_of_cameras-1); //TODO. fix this
+            assert_eq!(value.len(),number_of_cameras-1); 
             let mut counter = 0;
             for i in (6..number_of_cam_parameters).step_by(12){
                 let idx = match i {

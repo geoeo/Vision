@@ -59,8 +59,8 @@ fn main() -> Result<()> {
     let cameras = vec!(intensity_camera_1,intensity_camera_2);
     let image_id_pairs = vec!((image_1.id.unwrap(), image_2.id.unwrap()));
     //let image_id_pairs = vec!((image_1.id.unwrap(), image_2.id.unwrap()),(image_1.id.unwrap(), image_3.id.unwrap()));
-    //let image_id_pairs = vec!((image_1_prime.id.unwrap(), image_3.id.unwrap()));
-    //let image_pairs = vec!((&image_1, &image_4));
+    //let image_id_pairs = vec!((image_1.id.unwrap(), image_3.id.unwrap()));
+    //let image_id_pairs = vec!((image_1.id.unwrap(),image_4.id.unwrap()));
 
     // let cameras = vec!(intensity_camera_1,intensity_camera_2,intensity_camera_3,intensity_camera_4);
     // let image_pairs = vec!((&image_1, &orb_runtime_params, &image_2, &orb_runtime_params), ((&image_3, &orb_runtime_params, &image_4, &orb_runtime_params)));
@@ -81,7 +81,8 @@ fn main() -> Result<()> {
     let mut feature_map = CameraFeatureMap::new(&matches,2,(image_1.buffer.nrows(),image_1.buffer.ncols()));
 
     feature_map.add_camera(vec!(image_1.id.unwrap(),image_2.id.unwrap()), orb_params_1_2.max_features_per_octave,orb_params_1_2.octave_count);
-    //feature_map.add_camera(vec!(image_1_prime.id.unwrap(),image_3.id.unwrap()), orb_params_1_2.max_features_per_octave,orb_params_1_2.octave_count);
+    //feature_map.add_camera(vec!(image_1.id.unwrap(),image_3.id.unwrap()), orb_params_1_2.max_features_per_octave,orb_params_1_2.octave_count);
+    //feature_map.add_camera(vec!(image_1.id.unwrap(),image_4.id.unwrap()), orb_params_1_2.max_features_per_octave,orb_params_1_2.octave_count);
     //feature_map.add_camera(vec!(image_1.id.unwrap(),image_2.id.unwrap(),image_3.id.unwrap()), orb_params_1_2.max_features_per_octave,orb_params_1_2.octave_count);
 
     feature_map.add_matches(&image_id_pairs,&matches, orb_params_1_2.pyramid_scale);
@@ -91,7 +92,8 @@ fn main() -> Result<()> {
     let essential_matrices = fundamental_matrices.iter().enumerate().map(|(i,f)| epipolar::compute_essential(f, &cameras[2*i].get_projection(), &cameras[2*i+1].get_projection())).collect::<Vec<epipolar::Essential>>();
 
     let normalized_matches = fundamental_matrices.iter().zip(feature_machtes.iter()).map(|(f,m)| epipolar::filter_matches(f, m)).collect::<Vec<Vec<(Vector3<Float>,Vector3<Float>)>>>();
-    let initial_motion_decomp = essential_matrices.iter().enumerate().map(|(i,e)| epipolar::decompose_essential(e,&normalized_matches[i])).collect::<Vec<(Vector3<Float>,Matrix3<Float>)>>();
+    //let initial_motion_decomp = essential_matrices.iter().enumerate().map(|(i,e)| epipolar::decompose_essential_förstner(e,&normalized_matches[i])).collect::<Vec<(Vector3<Float>,Matrix3<Float>)>>();
+    let initial_motion_decomp = essential_matrices.iter().enumerate().map(|(i,e)| epipolar::decompose_essential_kanatani(e,&normalized_matches[i])).collect::<Vec<(Vector3<Float>,Matrix3<Float>)>>();
 
     let mut state = feature_map.get_initial_state(Some(&initial_motion_decomp), -1.0);
 
@@ -103,7 +105,7 @@ fn main() -> Result<()> {
         step_sizes: vec![1e-8],
         max_norm_eps: 1e-15, 
         delta_eps: 1e-15,
-        taus: vec![1e-3],
+        taus: vec![1e-0],
         lm: true,
         weighting: false,
         debug: true,

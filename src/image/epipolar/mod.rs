@@ -140,7 +140,7 @@ pub fn filter_matches(F: &Fundamental,matches: &Vec<(Vector2<Float>,Vector2<Floa
 /**
  * Photogrammetric Computer Vision p.583
  */
-pub fn decompose_essential(E: &Essential,matches: &Vec<(Vector3<Float>,Vector3<Float>)>) -> (Vector3<Float>, Matrix3<Float>) {
+pub fn decompose_essential_förstner(E: &Essential,matches: &Vec<(Vector3<Float>,Vector3<Float>)>) -> (Vector3<Float>, Matrix3<Float>) {
     let svd = E.svd(true,true);
     let min_idx = svd.singular_values.imin();
     let u = &svd.u.expect("SVD failed on E");
@@ -203,9 +203,8 @@ pub fn decompose_essential(E: &Essential,matches: &Vec<(Vector3<Float>,Vector3<F
 
 /**
  * Statistical Optimization for Geometric Computation p.338
- * //TODO: translation seems strange sometimes
  */
-pub fn decompose_essential_2(E: &Essential, matches: &Vec<(Vector3<Float>,Vector3<Float>)>) -> (Vector3<Float>, Matrix3<Float>) {
+pub fn decompose_essential_kanatani(E: &Essential, matches: &Vec<(Vector3<Float>,Vector3<Float>)>) -> (Vector3<Float>, Matrix3<Float>) {
     let mut translation = Vector3::<Float>::zeros();
     let mut R = Matrix3::<Float>::identity();
 
