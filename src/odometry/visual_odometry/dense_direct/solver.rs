@@ -2,7 +2,7 @@ extern crate nalgebra as na;
 
 use na::{
     DVector, DimMin, Dynamic, Matrix, Matrix4, SMatrix, SVector,
-    VecStorage,Const
+    VecStorage,Const, Isometry3, Rotation3, Translation3
 };
 use std::boxed::Box;
 
@@ -24,7 +24,7 @@ pub fn run_trajectory<C>(
     intensity_camera: &C,
     depth_camera: &C,
     runtime_parameters: &RuntimeParameters,
-) -> Vec<Matrix4<Float>> where C: Camera {
+) -> Vec<Isometry3<Float>> where C: Camera {
     let mut runtime_memory_vector = RuntimeMemory::<6>::from_pyramid(&source_rgdb_pyramids[0]);
     source_rgdb_pyramids
         .iter()
@@ -41,7 +41,7 @@ pub fn run_trajectory<C>(
                 runtime_parameters,
             )
         })
-        .collect::<Vec<Matrix4<Float>>>()
+        .collect::<Vec<Isometry3<Float>>>()
 }
 
 pub fn run<C: Camera, const T: usize>(
@@ -52,7 +52,7 @@ pub fn run<C: Camera, const T: usize>(
     intensity_camera: &C,
     depth_camera: &C,
     runtime_parameters: &RuntimeParameters,
-) -> Matrix4<Float> where Const<T>: DimMin<Const<T>, Output = Const<T>> {
+) -> Isometry3<Float> where Const<T>: DimMin<Const<T>, Output = Const<T>> {
     let octave_count = source_rgdb_pyramid.octaves.len();
 
     assert_eq!(octave_count, runtime_parameters.taus.len());
@@ -89,7 +89,8 @@ pub fn run<C: Camera, const T: usize>(
         println!("final: est_transform: {}", mat_result);
     }
 
-    mat_result
+    let rotation = Rotation3::<Float>::from_matrix(&mat_result.fixed_slice::<3,3>(0,0).into_owned());
+    Isometry3::<Float>::new(mat_result.fixed_slice::<3,1>(0,3).into_owned(),rotation.scaled_axis())
 }
 
 //TODO: buffer all debug strings and print at the end. Also the numeric matricies could be buffered per octave level

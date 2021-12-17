@@ -80,7 +80,7 @@ fn main() -> Result<()> {
 
     println!("Cam Positions");
     for cam_pos in cam_positions {
-        let cam_pos_world = vision::numerics::pose::invert_se3(&cam_pos);
+        let cam_pos_world = cam_pos.inverse();
         println!("{}",cam_pos_world);
     }
 

@@ -9,7 +9,6 @@ use na::{Point2, Point3, Translation3};
 use kiss3d::text::Font;
 use vision::Float;
 use vision::image::bundle_adjustment::state;
-use vision::numerics::pose::invert_se3;
 use rand::random;
 
 
@@ -26,10 +25,10 @@ fn main() -> Result<(),()> {
 
 
     for cam in &cams {
-        let cam_world = invert_se3(&cam);
+        let cam_world = cam.inverse();
         let mut s = window.add_sphere(0.1);
         s.set_color(random(), random(), random());
-        s.append_translation(&Translation3::new(cam_world[(0,3)] as f32,cam_world[(1,3)] as f32,cam_world[(2,3)] as f32));
+        s.append_translation(&Translation3::new(cam_world.translation.vector[(0,3)] as f32,cam_world.translation.vector[(1,3)] as f32,cam_world.translation.vector[(2,3)] as f32));
     }
 
     let factor = 3.0;

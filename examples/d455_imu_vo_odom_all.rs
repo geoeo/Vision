@@ -1,7 +1,7 @@
 extern crate nalgebra as na;
 extern crate vision;
 
-use na::{Matrix4, UnitQuaternion, Vector3, Vector4};
+use na::{Matrix4, UnitQuaternion, Vector3, Isometry3};
 use std::boxed::Box;
 use vision::io::{
     d455_loader, image_loading_parameters::ImageLoadingParameters,
@@ -80,9 +80,9 @@ fn main() {
         intensity_weighting_function:  Box::new(weighting::HuberWeightForPos {delta: 1.0})
     };
 
-    let mut se3_est = vec![Matrix4::<Float>::identity()];
-    let mut se3_est_imu = vec![Matrix4::<Float>::identity()];
-    let mut se3_preintegration_est = vec![Matrix4::<Float>::identity()];
+    let mut se3_est = vec![Isometry3::<Float>::identity()];
+    let mut se3_est_imu = vec![Isometry3::<Float>::identity()];
+    let mut se3_preintegration_est = vec![Isometry3::<Float>::identity()];
 
     let data_frame = d455_loader::load_data_frame(
         &root_path,
@@ -107,12 +107,12 @@ fn main() {
         &vo_parameters));
 
     let est_points = numerics::pose::apply_pose_deltas_to_point(
-        Vector4::<Float>::new(0.0, 0.0, 0.0, 1.0),
+        Vector3::<Float>::new(0.0, 0.0, 0.0),
         &se3_est,
     );
 
     let imu_est_points = numerics::pose::apply_pose_deltas_to_point(
-        Vector4::<Float>::new(0.0, 0.0, 0.0, 1.0),
+        Vector3::<Float>::new(0.0, 0.0, 0.0),
         &se3_est_imu,
     );
 
@@ -125,7 +125,7 @@ fn main() {
         se3_preintegration_est.push(pose);
     }
     let preintegration_points = numerics::pose::apply_pose_deltas_to_point(
-        Vector4::<Float>::new(0.0, 0.0, 0.0, 1.0),
+        Vector3::<Float>::new(0.0, 0.0, 0.0),
         &se3_preintegration_est,
     );
 

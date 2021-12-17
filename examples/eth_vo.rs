@@ -2,7 +2,7 @@ extern crate image as image_rs;
 extern crate vision;
 extern crate nalgebra as na;
 
-use na::{Vector4,Matrix4, Vector3, UnitQuaternion};
+use na::{Vector4,Matrix4, Vector3, UnitQuaternion, Isometry3};
 use std::boxed::Box;
 use vision::io::{image_loading_parameters::ImageLoadingParameters,eth_loader};
 use vision::image::pyramid::gd::{GDPyramid,gd_octave::GDOctave, build_rgbd_pyramid,gd_runtime_parameters::GDRuntimeParameters};
@@ -80,8 +80,8 @@ fn main() {
         loss_function: Box::new(loss::CauchyLoss {eps: 1e-16, approximate_gauss_newton_matrices: true}),
         intensity_weighting_function:  Box::new(weighting::HuberWeightForPos {delta: 1.0})
     };
-    let mut se3_est = vec!(Matrix4::<Float>::identity());
-    let mut se3_gt_targetory = vec!(Matrix4::<Float>::identity());
+    let mut se3_est = vec!(Isometry3::<Float>::identity());
+    let mut se3_gt_targetory = vec!(Isometry3::<Float>::identity());
 
 
     se3_est.extend(dense_direct::solver::run_trajectory(&source_pyramids, &target_pyramids, &intensity_cam, &depth_cam, &vo_parameters));
@@ -89,11 +89,11 @@ fn main() {
         let se3_s = numerics::pose::se3(&s.0, &s.1);
         let se3_t = numerics::pose::se3(&t.0, &t.1);
         numerics::pose::pose_difference(&se3_s, &se3_t)
-    }).collect::<Vec<Matrix4<Float>>>());
+    }).collect::<Vec<Isometry3<Float>>>());
 
-    let est_points = numerics::pose::apply_pose_deltas_to_point(Vector4::<Float>::new(0.0,0.0,0.0,1.0), &se3_est);
-    let est_gt_points = numerics::pose::apply_pose_deltas_to_point(Vector4::<Float>::new(0.0,0.0,0.0,1.0), &se3_gt_targetory);
-    let mut errors = Vec::<Matrix4<Float>>::with_capacity(se3_est.len()-1);
+    let est_points = numerics::pose::apply_pose_deltas_to_point(Vector3::<Float>::new(0.0,0.0,0.0), &se3_est);
+    let est_gt_points = numerics::pose::apply_pose_deltas_to_point(Vector3::<Float>::new(0.0,0.0,0.0), &se3_gt_targetory);
+    let mut errors = Vec::<Isometry3<Float>>::with_capacity(se3_est.len()-1);
     for i in 0..se3_est.len()-loading_parameters.step{
         let p_1 = se3_est[i];
         let p_2 = se3_est[i+loading_parameters.step];
@@ -110,7 +110,7 @@ fn main() {
     let out_file_name = format!("eth_translation_{}_{}_sigma_{}_octave_{}_blur_{}.png",dataset_name,vo_parameters,pyramid_parameters.sigma,pyramid_parameters.octave_count, pyramid_parameters.use_blur);
     //let info = format!("{}_{}_{}",loading_parameters,pyramid_parameters,vo_parameters);
     let info = format!("rsme: {}",rmse);
-    plot::draw_line_graph_translation_est_gt(&est_points.iter().map(|x| Vector3::<Float>::new(x[0],x[1], x[2])).collect::<Vec<Vector3<Float>>>(),&est_gt_points.iter().map(|x| Vector3::<Float>::new(x[0],x[1], x[2])).collect::<Vec<Vector3<Float>>>(), out_folder, &out_file_name,&info);
+    plot::draw_line_graph_translation_est_gt(&est_points,&est_gt_points, out_folder, &out_file_name,&info);
 
 
 }

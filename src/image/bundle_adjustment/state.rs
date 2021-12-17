@@ -2,7 +2,7 @@ extern crate nalgebra as na;
 
 use crate::numerics::lie::exp_se3;
 use crate::Float;
-use na::{DVector, Matrix4, Vector3};
+use na::{DVector, Matrix4, Vector3, Isometry3, Rotation3};
 
 /**
  * This is ordered [cam_1,cam_2,..,cam_n,point_1,point_2,...,point_m]
@@ -58,14 +58,16 @@ impl State {
         transform
     }
 
-    pub fn as_matrix_point(&self) -> (Vec<Matrix4<Float>>, Vec<Vector3<Float>>) {
-        let mut cam_positions = Vec::<Matrix4<Float>>::with_capacity(self.n_cams);
+    pub fn as_matrix_point(&self) -> (Vec<Isometry3<Float>>, Vec<Vector3<Float>>) {
+        let mut cam_positions = Vec::<Isometry3<Float>>::with_capacity(self.n_cams);
         let mut points = Vec::<Vector3<Float>>::with_capacity(self.n_points);
 
         for i in (0..self.get_cam_param_size() * self.n_cams).step_by(self.get_cam_param_size()) {
             let u = self.data.fixed_rows::<3>(i);
             let w = self.data.fixed_rows::<3>(i + 3);
-            cam_positions.push(exp_se3(&u, &w));
+            let se3 = exp_se3(&u, &w);
+            let rotation = Rotation3::<Float>::from_matrix(&se3.fixed_slice::<3,3>(0,0).into_owned());
+            cam_positions.push(Isometry3::<Float>::new(se3.fixed_slice::<3,1>(0,3).into_owned(),rotation.scaled_axis()));
         }
 
         for i in (self.get_cam_param_size() * self.n_cams..self.data.nrows()).step_by(3) {

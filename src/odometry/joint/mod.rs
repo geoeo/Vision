@@ -3,13 +3,13 @@
 extern crate nalgebra as na;
 
 use na::{
-    DVector, Dynamic, Matrix, Matrix4, SMatrix, SVector,
+    DVector, Dynamic, Matrix, Matrix4,Isometry3,Rotation3, SMatrix, SVector,
     VecStorage, Vector3, Const, DimMin
 };
 use std::boxed::Box;
 
 use crate::image::Image;
-use crate::numerics::{lie,pose::invert_se3, loss::LossFunction, max_norm, solver::{calc_weight_vec,weight_jacobian_sparse,weight_residuals_sparse,weight_jacobian,weight_residuals}};
+use crate::numerics::{lie, loss::LossFunction, max_norm, solver::{calc_weight_vec,weight_jacobian_sparse,weight_residuals_sparse,weight_jacobian,weight_residuals}};
 use crate::odometry::runtime_parameters::RuntimeParameters;
 use crate::odometry::visual_odometry::dense_direct::{ RuntimeMemory,
     backproject_points, compute_full_jacobian, compute_image_gradients, compute_residuals,
@@ -38,7 +38,7 @@ pub fn run_trajectory<Cam: Camera>(
     imu_data_measurements: &Vec<ImuDataFrame>,
     gravity_body: &Vector3<Float>,
     runtime_parameters: &RuntimeParameters,
-) -> Vec<Matrix4<Float>> {
+) -> Vec<Isometry3<Float>> {
     let mut runtime_memory_vector = RuntimeMemory::<PARAMETERS_DIM>::from_pyramid(&source_rgdb_pyramids[0]);
     let mut bias_delta = BiasDelta::empty();
     source_rgdb_pyramids
@@ -60,9 +60,10 @@ pub fn run_trajectory<Cam: Camera>(
                 runtime_parameters,
             );
             bias_delta = bias_delta.add_delta(&bias_update);
-            transform_est
+            let rotation = Rotation3::<Float>::from_matrix(&transform_est.fixed_slice::<3,3>(0,0).into_owned());
+            Isometry3::<Float>::new(transform_est.fixed_slice::<3,1>(0,3).into_owned(),rotation.scaled_axis())
         })
-        .collect::<Vec<Matrix4<Float>>>()
+        .collect::<Vec<Isometry3<Float>>>()
 }
 
 pub fn run<Cam: Camera, const C: usize>(

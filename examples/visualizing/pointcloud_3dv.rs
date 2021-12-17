@@ -8,12 +8,11 @@ use std::io::{BufReader,BufRead};
 use std::{result::Result};
 
 use kiss3d::window::Window;
-use na::{Point2, Point3, Translation3, Matrix4, Vector3};
+use na::{Point2, Point3, Translation3, Matrix4, Vector3, Rotation3,Isometry3};
 use kiss3d::text::Font;
 use vision::Float;
 use vision::io;
 use vision::numerics::lie;
-use vision::numerics::pose;
 use rand::random;
 
 
@@ -56,16 +55,17 @@ fn main() -> Result<(),()> {
         let w = Vector3::new(w_1,w_2,w_3);
         let u = Vector3::new(u_1,u_2,u_3);
         let cam = lie::exp_se3(&u, &w);
-        pose::invert_se3(&cam)
+        let rotation = Rotation3::<Float>::from_matrix(&cam.fixed_slice::<3,3>(0,0).into_owned());
+        Isometry3::<Float>::new(cam.fixed_slice::<3,1>(0,3).into_owned(),rotation.scaled_axis()).inverse()
 
 
-    }).collect::<Vec<Matrix4<Float>>>();
+    }).collect::<Vec<Isometry3<Float>>>();
 
 
     for cam_world in cams {
         let mut s = window.add_sphere(0.01);
         s.set_color(random(), random(), random());
-        s.append_translation(&Translation3::new(cam_world[(0,3)] as f32,cam_world[(1,3)] as f32,cam_world[(2,3)] as f32));
+        s.append_translation(&Translation3::new(cam_world.translation.vector[(0,3)] as f32,cam_world.translation.vector[(1,3)] as f32,cam_world.translation.vector[(2,3)] as f32));
     }
 
 

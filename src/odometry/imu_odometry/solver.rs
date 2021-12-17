@@ -1,6 +1,6 @@
 extern crate nalgebra as na;
 
-use na::{Vector3,Matrix4,SMatrix,SVector, Const, DimMin};
+use na::{Vector3,Matrix4,Isometry3,Rotation3,SMatrix,SVector, Const, DimMin};
 
 use crate::odometry::runtime_parameters::RuntimeParameters;
 use crate::odometry::{imu_odometry, imu_odometry::imu_delta::ImuDelta,imu_odometry::bias, imu_odometry::bias::{BiasDelta,BiasPreintegrated}, imu_odometry::{ImuResidual, ImuCovariance}};
@@ -12,13 +12,14 @@ const OBSERVATIONS_DIM: usize = 9;
 const PARAMETERS_DIM: usize = 15; //With bias
 
 
-pub fn run_trajectory(imu_data_measurements: &Vec<ImuDataFrame>, gravity_body: &Vector3<Float>, runtime_parameters: &RuntimeParameters) -> Vec<Matrix4<Float>> {
+pub fn run_trajectory(imu_data_measurements: &Vec<ImuDataFrame>, gravity_body: &Vector3<Float>, runtime_parameters: &RuntimeParameters) -> Vec<Isometry3<Float>> {
     let mut bias_delta = BiasDelta::empty();
     imu_data_measurements.iter().enumerate().map(|(i,measurement)| {
         let (transform_est, bias_update) = run(i+1,measurement,&bias_delta,gravity_body,runtime_parameters);
         bias_delta = bias_delta.add_delta(&bias_update);
-        transform_est
-    }).collect::<Vec<Matrix4<Float>>>()
+        let rotation = Rotation3::<Float>::from_matrix(&transform_est.fixed_slice::<3,3>(0,0).into_owned());
+        Isometry3::<Float>::new(transform_est.fixed_slice::<3,1>(0,3).into_owned(),rotation.scaled_axis())
+    }).collect::<Vec<Isometry3<Float>>>()
 }
 
 pub fn run<>(iteration: usize, imu_data_measurement: &ImuDataFrame, prev_bias_delta: &BiasDelta, gravity_body: &Vector3<Float>, runtime_parameters: &RuntimeParameters) -> (Matrix4<Float>, BiasDelta) {
@@ -144,7 +145,7 @@ fn estimate<const R: usize, const C: usize>(imu_data_measurement: &ImuDataFrame,
         if gain_ratio >= 0.0  || !runtime_parameters.lm {
             estimate = new_estimate;
             bias_estimate = new_bias_estimate;
-            est_transform = estimate.get_pose();
+            est_transform = estimate.get_pose().to_matrix();
 
             cost = new_cost;
 

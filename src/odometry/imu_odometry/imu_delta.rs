@@ -1,6 +1,6 @@
 extern crate nalgebra as na;
 
-use na::{Vector3,Matrix3,Matrix4,Const, Vector, storage::Storage};
+use na::{Vector3,Matrix3,Matrix4,Rotation3, Isometry3,Const, Vector, storage::Storage};
 use crate::odometry::imu_odometry::{ImuPertrubation, bias::{BiasPreintegrated, BiasDelta}};
 use crate::numerics::lie::{exp_so3,ln_SO3, vector_from_skew_symmetric};
 use crate::Float;
@@ -46,11 +46,9 @@ impl ImuDelta {
         vector_from_skew_symmetric(&ln_SO3(&self.delta_rotation()))
     }
 
-    pub fn get_pose(&self) -> Matrix4<Float> {
-        let mut pose = Matrix4::<Float>::identity();
-        pose.fixed_slice_mut::<3,3>(0,0).copy_from(&self.delta_rotation());
-        pose.fixed_slice_mut::<3,1>(0,3).copy_from(&self.delta_position);
-        pose
+    pub fn get_pose(&self) -> Isometry3<Float> {
+        let rotation = Rotation3::<Float>::from_matrix(&self.delta_rotation());
+        Isometry3::<Float>::new(self.delta_position,rotation.scaled_axis())
     }
 
     pub fn state_vector(&self) -> ImuPertrubation {
