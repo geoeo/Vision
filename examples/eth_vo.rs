@@ -2,7 +2,7 @@ extern crate image as image_rs;
 extern crate vision;
 extern crate nalgebra as na;
 
-use na::{Vector4,Matrix4, Vector3, UnitQuaternion, Isometry3};
+use na::{Vector3,Point3, UnitQuaternion, Isometry3};
 use std::boxed::Box;
 use vision::io::{image_loading_parameters::ImageLoadingParameters,eth_loader};
 use vision::image::pyramid::gd::{GDPyramid,gd_octave::GDOctave, build_rgbd_pyramid,gd_runtime_parameters::GDRuntimeParameters};
@@ -91,8 +91,8 @@ fn main() {
         numerics::pose::pose_difference(&se3_s, &se3_t)
     }).collect::<Vec<Isometry3<Float>>>());
 
-    let est_points = numerics::pose::apply_pose_deltas_to_point(Vector3::<Float>::new(0.0,0.0,0.0), &se3_est);
-    let est_gt_points = numerics::pose::apply_pose_deltas_to_point(Vector3::<Float>::new(0.0,0.0,0.0), &se3_gt_targetory);
+    let est_points = numerics::pose::apply_pose_deltas_to_point(Point3::<Float>::new(0.0,0.0,0.0), &se3_est);
+    let est_gt_points = numerics::pose::apply_pose_deltas_to_point(Point3::<Float>::new(0.0,0.0,0.0), &se3_gt_targetory);
     let mut errors = Vec::<Isometry3<Float>>::with_capacity(se3_est.len()-1);
     for i in 0..se3_est.len()-loading_parameters.step{
         let p_1 = se3_est[i];

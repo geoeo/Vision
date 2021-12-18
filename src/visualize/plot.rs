@@ -2,7 +2,7 @@ extern crate plotters;
 extern crate nalgebra as na;
 
 use plotters::prelude::*;
-use na::Vector3;
+use na::Point3;
 
 use crate::{float,Float};
 
@@ -107,7 +107,7 @@ pub fn draw_line_graph_est_gt(data_est: &Vec<Float>,data_gt: &Vec<Float>, output
     Ok(())
 }
 
-pub fn draw_line_graph_translation_est_gt(translation_est: &Vec<Vector3<Float>>,translation_gt: &Vec<Vector3<Float>>, output_folder: &str, file_name: &str, info: &str) -> Result<(), Box<dyn std::error::Error>> {
+pub fn draw_line_graph_translation_est_gt(translation_est: &Vec<Point3<Float>>,translation_gt: &Vec<Point3<Float>>, output_folder: &str, file_name: &str, info: &str) -> Result<(), Box<dyn std::error::Error>> {
     let x_translation_est = translation_est.iter().map(|point| point[0]).collect::<Vec<Float>>();
     let x_translation_gt = translation_gt.iter().map(|point| point[0]).collect::<Vec<Float>>();
     let y_translation_est = translation_est.iter().map(|point| point[1]).collect::<Vec<Float>>();
@@ -172,7 +172,7 @@ pub fn draw_line_graph_translation_est_gt(translation_est: &Vec<Vector3<Float>>,
     Ok(())
 }
 
-pub fn draw_line_graph_vector3(translation_est: &Vec<Vector3<Float>>, output_folder: &str, file_name: &str, title: &str, subtitle_header: &str, y_desc: &str) -> Result<(), Box<dyn std::error::Error>> {
+pub fn draw_line_graph_vector3(translation_est: &Vec<Point3<Float>>, output_folder: &str, file_name: &str, title: &str, subtitle_header: &str, y_desc: &str) -> Result<(), Box<dyn std::error::Error>> {
     let x_translation_est = translation_est.iter().map(|point| point[0]).collect::<Vec<Float>>();
     let y_translation_est = translation_est.iter().map(|point| point[1]).collect::<Vec<Float>>();
     let z_translation_est = translation_est.iter().map(|point| point[2]).collect::<Vec<Float>>();
@@ -223,7 +223,7 @@ pub fn draw_line_graph_vector3(translation_est: &Vec<Vector3<Float>>, output_fol
     Ok(())
 }
 
-pub fn draw_line_graph_two_vector3(translation_est: &Vec<Vector3<Float>>,label_1: &str, translation_est_2: &Vec<Vector3<Float>>,label_2: &str, output_folder: &str, file_name: &str, title: &str, subtitle_header: &str, y_desc: &str) -> Result<(), Box<dyn std::error::Error>> {
+pub fn draw_line_graph_two_vector3(translation_est: &Vec<Point3<Float>>,label_1: &str, translation_est_2: &Vec<Point3<Float>>,label_2: &str, output_folder: &str, file_name: &str, title: &str, subtitle_header: &str, y_desc: &str) -> Result<(), Box<dyn std::error::Error>> {
     let x_translation_est = translation_est.iter().map(|point| point[0]).collect::<Vec<Float>>();
     let y_translation_est = translation_est.iter().map(|point| point[1]).collect::<Vec<Float>>();
     let z_translation_est = translation_est.iter().map(|point| point[2]).collect::<Vec<Float>>();
@@ -300,7 +300,7 @@ pub fn draw_line_graph_two_vector3(translation_est: &Vec<Vector3<Float>>,label_1
     Ok(())
 }
 
-pub fn draw_line_graph_three_vector3(translation_est: &Vec<Vector3<Float>>,label_1: &str, translation_est_2: &Vec<Vector3<Float>>,label_2: &str,translation_est_3: &Vec<Vector3<Float>>, label_3: &str, output_folder: &str, file_name: &str, title: &str, subtitle_header: &str, y_desc: &str) -> Result<(), Box<dyn std::error::Error>> {
+pub fn draw_line_graph_three_vector3(translation_est: &Vec<Point3<Float>>,label_1: &str, translation_est_2: &Vec<Point3<Float>>,label_2: &str,translation_est_3: &Vec<Point3<Float>>, label_3: &str, output_folder: &str, file_name: &str, title: &str, subtitle_header: &str, y_desc: &str) -> Result<(), Box<dyn std::error::Error>> {
     let x_translation_est = translation_est.iter().map(|point| point[0]).collect::<Vec<Float>>();
     let y_translation_est = translation_est.iter().map(|point| point[1]).collect::<Vec<Float>>();
     let z_translation_est = translation_est.iter().map(|point| point[2]).collect::<Vec<Float>>();

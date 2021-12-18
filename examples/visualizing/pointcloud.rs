@@ -28,7 +28,7 @@ fn main() -> Result<(),()> {
         let cam_world = cam.inverse();
         let mut s = window.add_sphere(0.1);
         s.set_color(random(), random(), random());
-        s.append_translation(&Translation3::new(cam_world.translation.vector[(0,3)] as f32,cam_world.translation.vector[(1,3)] as f32,cam_world.translation.vector[(2,3)] as f32));
+        s.append_translation(&Translation3::new(cam_world.translation.vector[0] as f32,cam_world.translation.vector[1] as f32,cam_world.translation.vector[2] as f32));
     }
 
     let factor = 3.0;

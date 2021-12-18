@@ -1,7 +1,7 @@
 extern crate nalgebra as na;
 extern crate vision;
 
-use na::{Matrix4, UnitQuaternion, Vector3, Vector4, Isometry3};
+use na::{ UnitQuaternion, Vector3, Point3, Isometry3};
 use std::boxed::Box;
 use vision::io::{
     d455_loader, image_loading_parameters::ImageLoadingParameters,
@@ -99,7 +99,7 @@ fn main() {
         &vo_parameters,
     ));
     let est_points = numerics::pose::apply_pose_deltas_to_point(
-        Vector3::<Float>::new(0.0, 0.0, 0.0),
+        Point3::<Float>::new(0.0, 0.0, 0.0),
         &se3_est,
     );
 
@@ -112,7 +112,7 @@ fn main() {
         se3_preintegration_est.push(pose);
     }
     let preintegration_points = numerics::pose::apply_pose_deltas_to_point(
-        Vector3::<Float>::new(0.0, 0.0, 0.0),
+        Point3::<Float>::new(0.0, 0.0, 0.0),
         &se3_preintegration_est,
     );
 
@@ -120,15 +120,9 @@ fn main() {
 
     let title = "solver";
     plot::draw_line_graph_two_vector3(
-        &est_points
-            .iter()
-            .map(|x| Vector3::<Float>::new(x[0], x[1], x[2]))
-            .collect::<Vec<Vector3<Float>>>(),
+        &est_points,
             &"estimated",
-        &preintegration_points
-            .iter()
-            .map(|x| Vector3::<Float>::new(x[0], x[1], x[2]))
-            .collect::<Vec<Vector3<Float>>>(),
+        &preintegration_points,
             &"preintegration",
         out_folder,
         &out_file_name,
@@ -140,10 +134,7 @@ fn main() {
     let out_preintegration_file_name = format!("d455_imu_preintegration_{}.png", dataset_name);
     let title = "preintegration";
     plot::draw_line_graph_vector3(
-        &preintegration_points
-            .iter()
-            .map(|x| Vector3::<Float>::new(x[0], x[1], x[2]))
-            .collect::<Vec<Vector3<Float>>>(),
+        &preintegration_points,
         out_folder,
         &out_preintegration_file_name,
         &title,

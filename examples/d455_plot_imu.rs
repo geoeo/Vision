@@ -2,9 +2,10 @@ extern crate image as image_rs;
 extern crate vision;
 extern crate nalgebra as na;
 
-
+use na::Point3;
 use vision::io::{imu_loading_parameters::ImuLoadingParameters,d455_loader};
 use vision::visualize::plot;
+use vision::Float;
 
 fn main() {
 
@@ -28,8 +29,8 @@ fn main() {
 
     let out_file_name_accelerometer = format!("d455_{}_accelerometer.png",dataset_name);
     let out_file_name_gyro = format!("d455_{}_gyroscope.png",dataset_name);
-    plot::draw_line_graph_vector3(&imu_data_frame.acceleration_data, &output_folder, &out_file_name_accelerometer,&title_accelerometer, &title_accelerometer, &"m/s²");
-    plot::draw_line_graph_vector3(&imu_data_frame.gyro_data, &output_folder, &out_file_name_gyro,&title_gyro, &title_gyro, &"rad/s");
+    plot::draw_line_graph_vector3(&imu_data_frame.acceleration_data.iter().map(|x| Point3::<Float>::new(x[0],x[1],x[2])).collect::<Vec<Point3<Float>>>(), &output_folder, &out_file_name_accelerometer,&title_accelerometer, &title_accelerometer, &"m/s²");
+    plot::draw_line_graph_vector3(&imu_data_frame.gyro_data.iter().map(|x| Point3::<Float>::new(x[0],x[1],x[2])).collect::<Vec<Point3<Float>>>(), &output_folder, &out_file_name_gyro,&title_gyro, &title_gyro, &"rad/s");
 
     
 
