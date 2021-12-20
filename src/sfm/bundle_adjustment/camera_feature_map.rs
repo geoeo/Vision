@@ -4,9 +4,9 @@ use na::{Vector3,Matrix3,DVector};
 use std::collections::HashMap;
 use crate::image::{
     features::{Feature,Match},
-    features::geometry::point::Point,
-    bundle_adjustment::state::State
+    features::geometry::point::Point
 };
+use crate::sfm::bundle_adjustment::state::State;
 use crate::{Float, reconstruct_original_coordiantes_for_float};
 
 

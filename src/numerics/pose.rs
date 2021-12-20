@@ -8,6 +8,7 @@ pub fn se3(t: &Vector3<Float>, quat: &Quaternion<Float>) -> Isometry3<Float> {
     Isometry3::<Float>::from_parts(Translation3::from(*t), unit_quat)
 }
 
+// From a to b
 pub fn pose_difference(a: &Isometry3<Float>, b:&Isometry3<Float>) -> Isometry3<Float> {
     b*a.inverse()
 }

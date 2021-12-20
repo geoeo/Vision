@@ -4,6 +4,7 @@ pub mod odometry;
 pub mod numerics;
 pub mod io;
 pub mod sensors;
+pub mod sfm;
 
 macro_rules! define_float {
     ($f:tt) => {

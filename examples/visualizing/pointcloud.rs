@@ -8,7 +8,7 @@ use kiss3d::window::Window;
 use na::{Point2, Point3, Translation3};
 use kiss3d::text::Font;
 use vision::Float;
-use vision::image::bundle_adjustment::state;
+use vision::sfm::bundle_adjustment::state;
 use rand::random;
 
 
