@@ -110,6 +110,7 @@ impl CameraFeatureMap {
 
     }
 
+    //TODO: inverse depth
     /**
      * initial_motion should all be with respect to the first camera
      */
@@ -117,8 +118,8 @@ impl CameraFeatureMap {
 
         let number_of_cameras = self.camera_map.keys().len();
         let number_of_unqiue_points = self.number_of_unique_points;
-        let number_of_cam_parameters = 6*number_of_cameras;
-        let number_of_point_parameters = 3*number_of_unqiue_points;
+        let number_of_cam_parameters = State::CAM_PARAM_SIZE*number_of_cameras;
+        let number_of_point_parameters = State::LANDMARK_PARAM_SIZE*number_of_unqiue_points;
         let total_parameters = number_of_cam_parameters+number_of_point_parameters;
         let mut data = DVector::<Float>::zeros(total_parameters);
         
@@ -126,23 +127,24 @@ impl CameraFeatureMap {
             let value = initial_motions.unwrap();
             assert_eq!(value.len(),number_of_cameras-1); 
             let mut counter = 0;
-            for i in (6..number_of_cam_parameters).step_by(12){
+            for i in (State::CAM_PARAM_SIZE..number_of_cam_parameters).step_by(2*State::CAM_PARAM_SIZE){
                 let idx = match i {
                     v if v == 0 => 0,
-                    _ => i/6-1-counter
+                    _ => i/State::CAM_PARAM_SIZE-1-counter
                 };
                 let (h,rotation_matrix) = value[idx];
                 let rotation = na::Rotation3::from_matrix(&rotation_matrix);
                 let rotation_transpose = rotation.transpose();
                 let translation = rotation_transpose*(-h);
-                data.fixed_slice_mut::<3,1>(i,0).copy_from(&translation);
-                data.fixed_slice_mut::<3,1>(i,0).copy_from(&rotation_transpose.scaled_axis());
+                //TODO split translation and translation param sizes
+                data.fixed_slice_mut::<{State::CAM_TRANSLATION_PARAM_SIZE},1>(i,0).copy_from(&translation);
+                data.fixed_slice_mut::<{State::CAM_ROTATION_PARAM_SIZE},1>(i,0).copy_from(&rotation_transpose.scaled_axis());
                 counter += 1;
             }
 
         }
 
-        for i in (number_of_cam_parameters..total_parameters).step_by(3){
+        for i in (number_of_cam_parameters..total_parameters).step_by(State::LANDMARK_PARAM_SIZE){
             data[i] = 0.0;
             data[i+1] = 0.0;
             data[i+2] = initial_depth; 

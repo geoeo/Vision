@@ -153,10 +153,10 @@ pub fn gauss_newton_step_with_loss_and_schur(
 }
 
 #[allow(non_snake_case)]
-pub fn gauss_newton_step_with_schur<R, C,S1, S2,S_Target_Arrow,S_Target_Residual>(
-    target_arrowhead: &mut Matrix<Float,C,C,S_Target_Arrow>, 
-    target_arrowhead_residual: &mut Vector<Float,C,S_Target_Residual>, 
-    target_perturb: &mut Vector<Float,C,S_Target_Residual>, 
+pub fn gauss_newton_step_with_schur<R, C,S1, S2,StorageTargetArrow,StorageTargetResidual,const LandmarkParamSize: usize, const CameraParamSize: usize>(
+    target_arrowhead: &mut Matrix<Float,C,C,StorageTargetArrow>, 
+    target_arrowhead_residual: &mut Vector<Float,C,StorageTargetResidual>, 
+    target_perturb: &mut Vector<Float,C,StorageTargetResidual>, 
     residuals: &Vector<Float, R,S1>, 
     jacobian: &Matrix<Float,R,C,S2>,
     mu: Option<Float>, 
@@ -168,8 +168,8 @@ pub fn gauss_newton_step_with_schur<R, C,S1, S2,S_Target_Arrow,S_Target_Residual
         C: Dim + DimMin<C, Output = C>,
         S1: Storage<Float, R>,
         S2: Storage<Float, R, C>,
-        S_Target_Arrow: StorageMut<Float, C, C>,
-        S_Target_Residual: StorageMut<Float, C, U1>,
+        StorageTargetArrow: StorageMut<Float, C, C>,
+        StorageTargetResidual: StorageMut<Float, C, U1>,
         DefaultAllocator: Allocator<Float, R, C>+  Allocator<Float, C, R> + Allocator<Float, C, C> + Allocator<Float, C> + Allocator<Float, Const<1_usize>, C>  {
 
 
@@ -207,7 +207,7 @@ pub fn gauss_newton_step_with_schur<R, C,S1, S2,S_Target_Arrow,S_Target_Residual
 
 
         let g_1 = (&target_perturb).transpose()*(&scaled_target_res);
-        let g_2 = (&target_perturb).transpose()*(target_arrowhead_residual as  &Vector<Float,C,S_Target_Residual>);
+        let g_2 = (&target_perturb).transpose()*(target_arrowhead_residual as  &Vector<Float,C,StorageTargetResidual>);
         let gain_ratio_denom = g_1+g_2;
         
         (gain_ratio_denom[0], mu_val)
@@ -240,14 +240,14 @@ pub fn gauss_newton_step<R, C,S1, S2, S3>(
     (h,g,gain_ratio_denom[0], mu_val)
 }
 
-//TODO: somewhat hardcoded for the BA case
+//TODO: somewhat hardcoded for the BA case -> remove hardcoded size 6
 #[allow(non_snake_case)]
-fn compute_arrow_head_and_residuals<R, C,S_Target_Arrow, S_Target_Residual, S_Jacobian, S_Residual>
+fn compute_arrow_head_and_residuals<R, C,StorageTargetArrow, StorageTargetResidual, StorageJacobian, StorageResidual>
     (
-        target_arrowhead: &mut Matrix<Float,C,C,S_Target_Arrow>, 
-        target_residual: &mut Vector<Float,C,S_Target_Residual>, 
-        jacobian: &Matrix<Float,R,C,S_Jacobian>, 
-        residuals: &Vector<Float, R, S_Residual>,
+        target_arrowhead: &mut Matrix<Float,C,C,StorageTargetArrow>, 
+        target_residual: &mut Vector<Float,C,StorageTargetResidual>, 
+        jacobian: &Matrix<Float,R,C,StorageJacobian>, 
+        residuals: &Vector<Float, R, StorageResidual>,
         mu: Option<Float>, 
         tau: Float,
         n_cams: usize, 
@@ -256,24 +256,28 @@ fn compute_arrow_head_and_residuals<R, C,S_Target_Arrow, S_Target_Residual, S_Ja
     where 
     R: Dim, 
     C: Dim + DimMin<C, Output = C>,
-    S_Target_Arrow: StorageMut<Float, C, C>,
-    S_Target_Residual: StorageMut<Float, C, U1>,
-    S_Residual: Storage<Float, R, U1>,
-    S_Jacobian: Storage<Float, R, C> {
+    StorageTargetArrow: StorageMut<Float, C, C>,
+    StorageTargetResidual: StorageMut<Float, C, U1>,
+    StorageResidual: Storage<Float, R, U1>,
+    StorageJacobian: Storage<Float, R, C> {
 
+        //TODO: inverse depth
         let number_of_cam_params = 6*n_cams;
         let number_of_measurement_rows = 2*n_cams*n_points;
         let mut diag_max: Float = 0.0;
     
+        //TODO: inverse depth
         for j in (0..number_of_cam_params).step_by(6) {
             let mut U_j = SMatrix::<Float,6,6>::zeros();
             let u_idx = j;
+            //TODO: inverse depth
             let cam_id = j/6;
             let row_start = 2*cam_id;
             let row_end = number_of_measurement_rows;
             for i in (row_start..row_end).step_by(2*n_cams){
                 let feature_id = i/(2*n_cams);
 
+                //TODO: inverse depth
                 let slice_a = jacobian.fixed_slice::<2,6>(i,j);
                 let slice_a_transpose = slice_a.transpose();
                 U_j += slice_a_transpose*slice_a;
@@ -287,6 +291,7 @@ fn compute_arrow_head_and_residuals<R, C,S_Target_Arrow, S_Target_Residual, S_Ja
 
                 let W_j = slice_a_transpose*slice_b;
                 let W_j_transpose = W_j.transpose();
+                //TODO: inverse depth
                 target_arrowhead.fixed_slice_mut::<6,6>(j,j).copy_from(&U_j);
                 target_arrowhead.fixed_slice_mut::<6,3>(u_idx,v_idx).copy_from(&W_j);
                 target_arrowhead.fixed_slice_mut::<3,6>(v_idx,u_idx).copy_from(&W_j_transpose);

@@ -18,15 +18,18 @@ pub struct State {
 
 impl State {
 
-    pub fn get_cam_param_size(&self) -> usize {
-        6
-    }
+
+    //TODO make this configurable, jacobians should also be accessed from here
+    pub const CAM_TRANSLATION_PARAM_SIZE: usize = 3;
+    pub const CAM_ROTATION_PARAM_SIZE: usize = 3;
+    pub const CAM_PARAM_SIZE: usize = State::CAM_TRANSLATION_PARAM_SIZE + State::CAM_ROTATION_PARAM_SIZE;
+    pub const LANDMARK_PARAM_SIZE: usize = 3;
 
     pub fn update(&mut self, perturb: &DVector<Float>) -> () {
 
-        for i in (0..self.get_cam_param_size() * self.n_cams).step_by(self.get_cam_param_size()) {
-            let u = 1.0*perturb.fixed_rows::<3>(i);
-            let w = 1.0*perturb.fixed_rows::<3>(i + 3);
+        for i in (0..State::LANDMARK_PARAM_SIZE * self.n_cams).step_by(State::CAM_PARAM_SIZE) {
+            let u = 1.0*perturb.fixed_rows::<{State::CAM_TRANSLATION_PARAM_SIZE}>(i);
+            let w = 1.0*perturb.fixed_rows::<{State::CAM_ROTATION_PARAM_SIZE}>(i + 3);
             let delta_transform = exp_se3(&u, &w);
             
             let current_transform = self.to_se3(i);
@@ -34,13 +37,13 @@ impl State {
             let new_transform = delta_transform*current_transform;
 
             let new_translation = new_transform.fixed_slice::<3,1>(0,3);
-            self.data.fixed_slice_mut::<3,1>(i,0).copy_from(&new_translation);
+            self.data.fixed_slice_mut::<{State::CAM_TRANSLATION_PARAM_SIZE},1>(i,0).copy_from(&new_translation);
 
             let new_rotation = na::Rotation3::from_matrix(&new_transform.fixed_slice::<3,3>(0,0).into_owned());
-            self.data.fixed_slice_mut::<3,1>(i+3,0).copy_from(&(new_rotation.scaled_axis()));
+            self.data.fixed_slice_mut::<{State::CAM_ROTATION_PARAM_SIZE},1>(i+State::CAM_TRANSLATION_PARAM_SIZE,0).copy_from(&(new_rotation.scaled_axis()));
         }
 
-        for i in ((self.get_cam_param_size() * self.n_cams)..self.data.nrows()).step_by(3) {
+        for i in ((State::CAM_PARAM_SIZE * self.n_cams)..self.data.nrows()).step_by(State::LANDMARK_PARAM_SIZE) {
             self.data[i] += perturb[i]; 
             self.data[i + 1] += perturb[i + 1];
             self.data[i + 2] += perturb[i + 2];
@@ -48,7 +51,7 @@ impl State {
     }
 
     pub fn to_se3(&self, i: usize) -> Matrix4<Float> {
-        assert!(i < self.n_cams*self.get_cam_param_size());
+        assert!(i < self.n_cams*State::CAM_PARAM_SIZE);
         let translation = self.data.fixed_rows::<3>(i);
         let axis = na::Vector3::new(self.data[i+3],self.data[i+4],self.data[i+5]);
         let axis_angle = na::Rotation3::new(axis);
@@ -62,7 +65,7 @@ impl State {
         let mut cam_positions = Vec::<Isometry3<Float>>::with_capacity(self.n_cams);
         let mut points = Vec::<Vector3<Float>>::with_capacity(self.n_points);
 
-        for i in (0..self.get_cam_param_size() * self.n_cams).step_by(self.get_cam_param_size()) {
+        for i in (0..State::CAM_PARAM_SIZE * self.n_cams).step_by(State::CAM_PARAM_SIZE) {
             let u = self.data.fixed_rows::<3>(i);
             let w = self.data.fixed_rows::<3>(i + 3);
             let se3 = exp_se3(&u, &w);
@@ -70,7 +73,7 @@ impl State {
             cam_positions.push(Isometry3::<Float>::new(se3.fixed_slice::<3,1>(0,3).into_owned(),rotation.scaled_axis()));
         }
 
-        for i in (self.get_cam_param_size() * self.n_cams..self.data.nrows()).step_by(3) {
+        for i in (State::CAM_PARAM_SIZE * self.n_cams..self.data.nrows()).step_by(3) {
             let point = self.data.fixed_rows::<3>(i);
             points.push(Vector3::from(point));
         }
@@ -81,7 +84,7 @@ impl State {
     pub fn to_serial(&self) -> (Vec<[Float; 6]>, Vec<[Float; 3]>) {
         let mut cam_serial = Vec::<[Float; 6]>::with_capacity(self.n_cams);
         let mut points_serial = Vec::<[Float; 3]>::with_capacity(self.n_points);
-        let number_of_cam_params = self.get_cam_param_size() * self.n_cams;
+        let number_of_cam_params = State::CAM_PARAM_SIZE * self.n_cams;
 
         for i in (0..number_of_cam_params).step_by(6) {
             let arr: [Float; 6] = [

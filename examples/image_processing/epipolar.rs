@@ -3,7 +3,6 @@ extern crate vision;
 extern crate color_eyre;
 extern crate nalgebra as na;
 
-use na::Vector3;
 use std::fs;
 use color_eyre::eyre::Result;
 use vision::image::features::{Match,orb_feature::OrbFeature};
