@@ -56,22 +56,22 @@ pub fn compute_residual(estimated_features: &DVector<Float>, observed_features: 
 }
 
 //TODO: inverse depth -> move pont def to landmark struct
-pub fn compute_jacobian_wrt_object_points<C : Camera,T>(camera: &C, transformation: &Matrix4<Float>, point: &Vector<Float,U3,T>, i: usize, j: usize, jacobian: &mut DMatrix<Float>) 
+pub fn compute_jacobian_wrt_object_points<C : Camera,T>(camera: &C, state: &State, cam_idx: usize, point: &Vector<Float,U3,T>, i: usize, j: usize, jacobian: &mut DMatrix<Float>) 
     -> () where T: Storage<Float,U3,U1> {
+    let transformation = state.to_se3(cam_idx);
+    let jacobian_world = state.jacobian_wrt_world_coordiantes(cam_idx);
     let transformed_point = transformation*Vector4::<Float>::new(point[0],point[1],point[2],1.0);
     let projection_jacobian = camera.get_jacobian_with_respect_to_position_in_camera_frame(&transformed_point.fixed_rows::<{State::LANDMARK_PARAM_SIZE}>(0));
-    //TODO: rot is the jacobian wrt world points
-    let rot = transformation.fixed_slice::<3,3>(0,0);
-    let local_jacobian = projection_jacobian*rot;
+    let local_jacobian = projection_jacobian*jacobian_world;
 
     jacobian.fixed_slice_mut::<2,{State::LANDMARK_PARAM_SIZE}>(i,j).copy_from(&local_jacobian.fixed_slice::<2,{State::LANDMARK_PARAM_SIZE}>(0,0));
 }
 
-pub fn compute_jacobian_wrt_camera_extrinsics<C : Camera, T>( camera: &C, transformation: &Matrix4<Float>, point: &Vector<Float,U3,T> ,i: usize, j: usize, jacobian: &mut DMatrix<Float>) 
+pub fn compute_jacobian_wrt_camera_extrinsics<C : Camera, T>( camera: &C, state: &State, cam_idx: usize, point: &Vector<Float,U3,T> ,i: usize, j: usize, jacobian: &mut DMatrix<Float>) 
     -> () where T: Storage<Float,U3,U1> {
+    let transformation = state.to_se3(cam_idx);
     let transformed_point = transformation*Vector4::<Float>::new(point[0],point[1],point[2],1.0);
     let lie_jacobian = left_jacobian_around_identity(&transformed_point.fixed_rows::<{State::LANDMARK_PARAM_SIZE}>(0)); 
-
 
     let projection_jacobian = camera.get_jacobian_with_respect_to_position_in_camera_frame(&transformed_point.fixed_rows::<{State::LANDMARK_PARAM_SIZE}>(0));
     let local_jacobian = projection_jacobian*lie_jacobian;
@@ -85,8 +85,6 @@ pub fn compute_jacobian<C : Camera>(state: &State, cameras: &Vec<C>, jacobian: &
     for cam_state_idx in (0..number_of_cam_params).step_by(State::CAM_PARAM_SIZE) {
         let cam_id = cam_state_idx/State::CAM_PARAM_SIZE;
         let camera = &cameras[cam_id];
-
-        let transformation = state.to_se3(cam_state_idx);
         
         //point
         for point_state_idx in (number_of_cam_params..state.data.nrows()).step_by(State::LANDMARK_PARAM_SIZE) {
@@ -100,8 +98,8 @@ pub fn compute_jacobian<C : Camera>(state: &State, cameras: &Vec<C>, jacobian: &
             let b_j = number_of_cam_params+point_id*State::LANDMARK_PARAM_SIZE;
             
 
-            compute_jacobian_wrt_camera_extrinsics(camera , &transformation,point,row,a_j, jacobian);
-            compute_jacobian_wrt_object_points(camera, &transformation,point,row,b_j, jacobian);
+            compute_jacobian_wrt_camera_extrinsics(camera , state, cam_state_idx,point,row,a_j, jacobian);
+            compute_jacobian_wrt_object_points(camera, state, cam_state_idx ,point,row,b_j, jacobian);
 
         }
 

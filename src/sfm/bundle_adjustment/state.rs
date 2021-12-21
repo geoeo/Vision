@@ -2,7 +2,7 @@ extern crate nalgebra as na;
 
 use crate::numerics::lie::exp_se3;
 use crate::Float;
-use na::{DVector, Matrix4, Vector3, Isometry3, Rotation3};
+use na::{DVector, Matrix3, Matrix4, Vector3, Isometry3, Rotation3};
 
 /**
  * This is ordered [cam_1,cam_2,..,cam_n,point_1,point_2,...,point_m]
@@ -48,6 +48,13 @@ impl State {
             self.data[i + 1] += perturb[i + 1];
             self.data[i + 2] += perturb[i + 2];
         }
+    }
+
+    //TODO: move this to a landmark class
+    pub fn jacobian_wrt_world_coordiantes(&self, i: usize) -> Matrix3<Float> {
+        let axis = na::Vector3::new(self.data[i+3],self.data[i+4],self.data[i+5]);
+        let axis_angle = na::Rotation3::new(axis);
+        axis_angle.matrix().into_owned()
     }
 
     pub fn to_se3(&self, i: usize) -> Matrix4<Float> {
