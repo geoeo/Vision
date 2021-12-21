@@ -51,16 +51,16 @@ impl State {
     }
 
     //TODO: move this to a landmark class
-    pub fn jacobian_wrt_world_coordiantes(&self, i: usize) -> Matrix3<Float> {
-        let axis = na::Vector3::new(self.data[i+3],self.data[i+4],self.data[i+5]);
+    pub fn jacobian_wrt_world_coordiantes(&self, cam_idx: usize) -> Matrix3<Float> {
+        let axis = na::Vector3::new(self.data[cam_idx+3],self.data[cam_idx+4],self.data[cam_idx+5]);
         let axis_angle = na::Rotation3::new(axis);
         axis_angle.matrix().into_owned()
     }
 
-    pub fn to_se3(&self, i: usize) -> Matrix4<Float> {
-        assert!(i < self.n_cams*State::CAM_PARAM_SIZE);
-        let translation = self.data.fixed_rows::<{State::CAM_TRANSLATION_PARAM_SIZE}>(i);
-        let axis = na::Vector3::new(self.data[i+3],self.data[i+4],self.data[i+5]);
+    pub fn to_se3(&self, cam_idx: usize) -> Matrix4<Float> {
+        assert!(cam_idx < self.n_cams*State::CAM_PARAM_SIZE);
+        let translation = self.data.fixed_rows::<{State::CAM_TRANSLATION_PARAM_SIZE}>(cam_idx);
+        let axis = na::Vector3::new(self.data[cam_idx+3],self.data[cam_idx+4],self.data[cam_idx+5]);
         let axis_angle = na::Rotation3::new(axis);
         let mut transform = Matrix4::<Float>::identity();
         transform.fixed_slice_mut::<3,3>(0,0).copy_from(axis_angle.matrix());
