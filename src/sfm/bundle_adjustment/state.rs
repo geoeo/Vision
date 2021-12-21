@@ -27,16 +27,16 @@ impl State {
 
     pub fn update(&mut self, perturb: &DVector<Float>) -> () {
 
-        for i in (0..State::LANDMARK_PARAM_SIZE * self.n_cams).step_by(State::CAM_PARAM_SIZE) {
+        for i in (0..State::CAM_PARAM_SIZE * self.n_cams).step_by(State::CAM_PARAM_SIZE) {
             let u = 1.0*perturb.fixed_rows::<{State::CAM_TRANSLATION_PARAM_SIZE}>(i);
-            let w = 1.0*perturb.fixed_rows::<{State::CAM_ROTATION_PARAM_SIZE}>(i + 3);
+            let w = 1.0*perturb.fixed_rows::<{State::CAM_ROTATION_PARAM_SIZE}>(i + State::CAM_TRANSLATION_PARAM_SIZE);
             let delta_transform = exp_se3(&u, &w);
             
             let current_transform = self.to_se3(i);
 
             let new_transform = delta_transform*current_transform;
 
-            let new_translation = new_transform.fixed_slice::<3,1>(0,3);
+            let new_translation = new_transform.fixed_slice::<{State::CAM_TRANSLATION_PARAM_SIZE},1>(0,State::CAM_TRANSLATION_PARAM_SIZE);
             self.data.fixed_slice_mut::<{State::CAM_TRANSLATION_PARAM_SIZE},1>(i,0).copy_from(&new_translation);
 
             let new_rotation = na::Rotation3::from_matrix(&new_transform.fixed_slice::<3,3>(0,0).into_owned());
@@ -52,12 +52,12 @@ impl State {
 
     pub fn to_se3(&self, i: usize) -> Matrix4<Float> {
         assert!(i < self.n_cams*State::CAM_PARAM_SIZE);
-        let translation = self.data.fixed_rows::<3>(i);
+        let translation = self.data.fixed_rows::<{State::CAM_TRANSLATION_PARAM_SIZE}>(i);
         let axis = na::Vector3::new(self.data[i+3],self.data[i+4],self.data[i+5]);
         let axis_angle = na::Rotation3::new(axis);
         let mut transform = Matrix4::<Float>::identity();
         transform.fixed_slice_mut::<3,3>(0,0).copy_from(axis_angle.matrix());
-        transform.fixed_slice_mut::<3,1>(0,3).copy_from(&translation);
+        transform.fixed_slice_mut::<{State::CAM_TRANSLATION_PARAM_SIZE},1>(0,State::CAM_TRANSLATION_PARAM_SIZE).copy_from(&translation);
         transform
     }
 

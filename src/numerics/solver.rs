@@ -7,7 +7,7 @@ use na::{ DMatrix, DVector , OVector, Dynamic, Matrix, SMatrix, SVector,Vector,D
 use std::boxed::Box;
 
 use crate::numerics::{loss::LossFunction, weighting::WeightingFunction};
-use crate::{float, Float};
+use crate::Float;
 
 
 pub fn calc_weight_vec<D, S1,S2>(

@@ -24,6 +24,8 @@ pub struct CameraFeatureMap {
 
 impl CameraFeatureMap {
 
+    pub const NO_FEATURE_FLAG : Float = -1.0;
+
     pub fn new<T: Feature>(matches: & Vec<Vec<Match<T>>>, n_cams: usize, image_row_col: (usize,usize)) -> CameraFeatureMap {
         let max_number_of_points = matches.iter().fold(0,|acc,x| acc + x.len());
         CameraFeatureMap{
@@ -136,7 +138,7 @@ impl CameraFeatureMap {
                 let rotation = na::Rotation3::from_matrix(&rotation_matrix);
                 let rotation_transpose = rotation.transpose();
                 let translation = rotation_transpose*(-h);
-                //TODO split translation and translation param sizes
+
                 data.fixed_slice_mut::<{State::CAM_TRANSLATION_PARAM_SIZE},1>(i,0).copy_from(&translation);
                 data.fixed_slice_mut::<{State::CAM_ROTATION_PARAM_SIZE},1>(i,0).copy_from(&rotation_transpose.scaled_axis());
                 counter += 1;
@@ -172,7 +174,7 @@ impl CameraFeatureMap {
                         point_found = true;
                         v
                     },
-                    _ => (0.0,0.0)
+                    _ => (CameraFeatureMap::NO_FEATURE_FLAG,CameraFeatureMap::NO_FEATURE_FLAG)
                 };
                 observed_features[feat_id] = x_val;
                 observed_features[feat_id+1] = y_val;

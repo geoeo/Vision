@@ -5,9 +5,8 @@ use crate::{float,Float};
 use crate::sensors::camera::Camera;
 use crate::numerics::lie::left_jacobian_around_identity;
 use crate::numerics::{max_norm, solver::{compute_cost,weight_jacobian_sparse,weight_residuals_sparse, calc_weight_vec, gauss_newton_step_with_schur}};
-use crate::sfm::bundle_adjustment::state::State;
+use crate::sfm::bundle_adjustment::{state::State, camera_feature_map::CameraFeatureMap};
 use crate::odometry::runtime_parameters::RuntimeParameters; //TODO remove dependency on odometry module
-
 
 pub fn get_feature_index_in_residual(cam_id: usize, feature_id: usize, n_cams: usize) -> usize {
     2*(cam_id + feature_id*n_cams)
@@ -18,7 +17,7 @@ pub fn get_feature_index_in_residual(cam_id: usize, feature_id: usize, n_cams: u
  * In the format [f1_cam1, f1_cam2,...]
  * Some entries may be 0 since not all cams see all points
  * */
-pub fn get_estimated_features<C : Camera>(state: &State, cameras: &Vec<C>, estimated_features: &mut DVector<Float>) -> () {
+pub fn get_estimated_features<C : Camera>(state: &State, cameras: &Vec<C>,observed_features: &DVector<Float>, estimated_features: &mut DVector<Float>) -> () {
     let n_cams = state.n_cams;
     let n_cam_parameters = State::CAM_PARAM_SIZE*n_cams; //cam param
     let n_points = state.n_points;
@@ -38,12 +37,14 @@ pub fn get_estimated_features<C : Camera>(state: &State, cameras: &Vec<C>, estim
             let estimated_feature = camera.project(&transformed_points.fixed_slice::<{State::LANDMARK_PARAM_SIZE},1>(0,j));  
             
             let feat_id = get_feature_index_in_residual(i, j, n_cams);
-            estimated_features[feat_id] = estimated_feature.x;
-            estimated_features[feat_id+1] = estimated_feature.y;
+            if !(observed_features[feat_id] == CameraFeatureMap::NO_FEATURE_FLAG && observed_features[feat_id+1] == CameraFeatureMap::NO_FEATURE_FLAG){
+                estimated_features[feat_id] = estimated_feature.x;
+                estimated_features[feat_id+1] = estimated_feature.y;
+            }
+
         }
 
     }
-
 }
 
 
@@ -59,6 +60,7 @@ pub fn compute_jacobian_wrt_object_points<C : Camera,T>(camera: &C, transformati
     -> () where T: Storage<Float,U3,U1> {
     let transformed_point = transformation*Vector4::<Float>::new(point[0],point[1],point[2],1.0);
     let projection_jacobian = camera.get_jacobian_with_respect_to_position_in_camera_frame(&transformed_point.fixed_rows::<{State::LANDMARK_PARAM_SIZE}>(0));
+    //TODO: rot is the jacobian wrt world points
     let rot = transformation.fixed_slice::<3,3>(0,0);
     let local_jacobian = projection_jacobian*rot;
 
@@ -105,7 +107,6 @@ pub fn compute_jacobian<C : Camera>(state: &State, cameras: &Vec<C>, jacobian: &
 
     }
 
-
 }
 
 pub fn optimize<C : Camera>(state: &mut State, cameras: &Vec<C>, observed_features: &DVector<Float>, runtime_parameters: &RuntimeParameters ) -> () {
@@ -121,7 +122,7 @@ pub fn optimize<C : Camera>(state: &mut State, cameras: &Vec<C>, observed_featur
     let mut g = DVector::<Float>::from_element(state_size,0.0); 
     let mut delta = DVector::<Float>::from_element(state_size,0.0); 
 
-    get_estimated_features(state, cameras, &mut estimated_features);
+    get_estimated_features(state, cameras,observed_features, &mut estimated_features);
     compute_residual(&estimated_features, observed_features, &mut residuals);
 
     compute_jacobian(&state,&cameras,&mut jacobian);
@@ -185,7 +186,7 @@ pub fn optimize<C : Camera>(state: &mut State, cameras: &Vec<C>, observed_featur
 
         new_state.update(&pertb);
 
-        get_estimated_features(&new_state, cameras, &mut new_estimated_features);
+        get_estimated_features(&new_state, cameras,observed_features, &mut new_estimated_features);
         compute_residual(&new_estimated_features, observed_features, &mut new_residuals);
         if runtime_parameters.weighting {
             calc_weight_vec(
