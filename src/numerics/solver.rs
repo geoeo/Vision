@@ -153,7 +153,7 @@ pub fn gauss_newton_step_with_loss_and_schur(
 }
 
 #[allow(non_snake_case)]
-pub fn gauss_newton_step_with_schur<R, C,S1, S2,StorageTargetArrow,StorageTargetResidual,const LandmarkParamSize: usize, const CameraParamSize: usize>(
+pub fn gauss_newton_step_with_schur<R, C,S1, S2,StorageTargetArrow,StorageTargetResidual,const LANDMARK_PARAM_SIZE: usize, const CAMERA_PARAM_SIZE: usize>(
     target_arrowhead: &mut Matrix<Float,C,C,StorageTargetArrow>, 
     target_arrowhead_residual: &mut Vector<Float,C,StorageTargetResidual>, 
     target_perturb: &mut Vector<Float,C,StorageTargetResidual>, 
@@ -173,10 +173,10 @@ pub fn gauss_newton_step_with_schur<R, C,S1, S2,StorageTargetArrow,StorageTarget
         DefaultAllocator: Allocator<Float, R, C>+  Allocator<Float, C, R> + Allocator<Float, C, C> + Allocator<Float, C> + Allocator<Float, Const<1_usize>, C>  {
 
 
-        let u_span = 6*n_cams;
-        let v_span = 3*n_points;
+        let u_span = CAMERA_PARAM_SIZE*n_cams;
+        let v_span = LANDMARK_PARAM_SIZE*n_points;
 
-        let diag_max = compute_arrow_head_and_residuals(target_arrowhead,target_arrowhead_residual,jacobian,residuals,mu,tau,n_cams,n_points);
+        let diag_max = compute_arrow_head_and_residuals::<_,_,_,_,_,_,LANDMARK_PARAM_SIZE,CAMERA_PARAM_SIZE>(target_arrowhead,target_arrowhead_residual,jacobian,residuals,mu,tau,n_cams,n_points);
 
         let U_star = target_arrowhead.slice((0,0),(u_span,u_span));
         let V_star = target_arrowhead.slice((u_span,u_span),(v_span,v_span));
@@ -242,7 +242,7 @@ pub fn gauss_newton_step<R, C,S1, S2, S3>(
 
 //TODO: somewhat hardcoded for the BA case -> remove hardcoded size 6
 #[allow(non_snake_case)]
-fn compute_arrow_head_and_residuals<R, C,StorageTargetArrow, StorageTargetResidual, StorageJacobian, StorageResidual>
+fn compute_arrow_head_and_residuals<R, C,StorageTargetArrow, StorageTargetResidual, StorageJacobian, StorageResidual, const LANDMARK_PARAM_SIZE: usize, const CAM_PARAM_SIZE: usize>
     (
         target_arrowhead: &mut Matrix<Float,C,C,StorageTargetArrow>, 
         target_residual: &mut Vector<Float,C,StorageTargetResidual>, 
@@ -262,46 +262,46 @@ fn compute_arrow_head_and_residuals<R, C,StorageTargetArrow, StorageTargetResidu
     StorageJacobian: Storage<Float, R, C> {
 
         //TODO: inverse depth
-        let number_of_cam_params = 6*n_cams;
+        let number_of_cam_params = CAM_PARAM_SIZE*n_cams;
         let number_of_measurement_rows = 2*n_cams*n_points;
         let mut diag_max: Float = 0.0;
     
         //TODO: inverse depth
-        for j in (0..number_of_cam_params).step_by(6) {
-            let mut U_j = SMatrix::<Float,6,6>::zeros();
+        for j in (0..number_of_cam_params).step_by(CAM_PARAM_SIZE) {
+            let mut U_j = SMatrix::<Float,CAM_PARAM_SIZE,CAM_PARAM_SIZE>::zeros();
             let u_idx = j;
             //TODO: inverse depth
-            let cam_id = j/6;
+            let cam_id = j/CAM_PARAM_SIZE;
             let row_start = 2*cam_id;
             let row_end = number_of_measurement_rows;
             for i in (row_start..row_end).step_by(2*n_cams){
                 let feature_id = i/(2*n_cams);
 
                 //TODO: inverse depth
-                let slice_a = jacobian.fixed_slice::<2,6>(i,j);
+                let slice_a = jacobian.fixed_slice::<2,CAM_PARAM_SIZE>(i,j);
                 let slice_a_transpose = slice_a.transpose();
                 U_j += slice_a_transpose*slice_a;
                 
-                let v_idx = number_of_cam_params + feature_id*3;
-                let slice_b = jacobian.fixed_slice::<2,3>(i,v_idx);
+                let v_idx = number_of_cam_params + feature_id*LANDMARK_PARAM_SIZE;
+                let slice_b = jacobian.fixed_slice::<2,LANDMARK_PARAM_SIZE>(i,v_idx);
                 let slice_b_transpose = slice_b.transpose();
                 
-                let V_i = target_arrowhead.fixed_slice::<3,3>(v_idx,v_idx)+ slice_b_transpose*slice_b;
-                target_arrowhead.fixed_slice_mut::<3,3>(v_idx,v_idx).copy_from(&V_i);
+                let V_i = target_arrowhead.fixed_slice::<LANDMARK_PARAM_SIZE,LANDMARK_PARAM_SIZE>(v_idx,v_idx)+ slice_b_transpose*slice_b;
+                target_arrowhead.fixed_slice_mut::<LANDMARK_PARAM_SIZE,LANDMARK_PARAM_SIZE>(v_idx,v_idx).copy_from(&V_i);
 
                 let W_j = slice_a_transpose*slice_b;
                 let W_j_transpose = W_j.transpose();
                 //TODO: inverse depth
-                target_arrowhead.fixed_slice_mut::<6,6>(j,j).copy_from(&U_j);
-                target_arrowhead.fixed_slice_mut::<6,3>(u_idx,v_idx).copy_from(&W_j);
-                target_arrowhead.fixed_slice_mut::<3,6>(v_idx,u_idx).copy_from(&W_j_transpose);
+                target_arrowhead.fixed_slice_mut::<CAM_PARAM_SIZE,CAM_PARAM_SIZE>(j,j).copy_from(&U_j);
+                target_arrowhead.fixed_slice_mut::<CAM_PARAM_SIZE,LANDMARK_PARAM_SIZE>(u_idx,v_idx).copy_from(&W_j);
+                target_arrowhead.fixed_slice_mut::<LANDMARK_PARAM_SIZE,CAM_PARAM_SIZE>(v_idx,u_idx).copy_from(&W_j_transpose);
 
                 let residual = -residuals.fixed_slice::<2,1>(i,0);
-                let e_a = target_residual.fixed_slice::<6,1>(u_idx,0) + slice_a_transpose*residual;
-                let e_b = target_residual.fixed_slice::<3,1>(v_idx,0) + slice_b_transpose*residual;
+                let e_a = target_residual.fixed_slice::<CAM_PARAM_SIZE,1>(u_idx,0) + slice_a_transpose*residual;
+                let e_b = target_residual.fixed_slice::<LANDMARK_PARAM_SIZE,1>(v_idx,0) + slice_b_transpose*residual;
 
-                target_residual.fixed_slice_mut::<6,1>(u_idx,0).copy_from(&e_a);
-                target_residual.fixed_slice_mut::<3,1>(v_idx,0).copy_from(&e_b);
+                target_residual.fixed_slice_mut::<CAM_PARAM_SIZE,1>(u_idx,0).copy_from(&e_a);
+                target_residual.fixed_slice_mut::<LANDMARK_PARAM_SIZE,1>(v_idx,0).copy_from(&e_b);
 
                 let v_diag_max = V_i.diagonal().max();
                 if v_diag_max > diag_max {
@@ -309,7 +309,7 @@ fn compute_arrow_head_and_residuals<R, C,StorageTargetArrow, StorageTargetResidu
                 }
 
             }
-            target_arrowhead.fixed_slice_mut::<6,6>(u_idx,u_idx).copy_from(&U_j);
+            target_arrowhead.fixed_slice_mut::<CAM_PARAM_SIZE,CAM_PARAM_SIZE>(u_idx,u_idx).copy_from(&U_j);
             let u_diag_max = U_j.diagonal().max();
             if u_diag_max > diag_max {
                 diag_max = u_diag_max;

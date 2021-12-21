@@ -62,7 +62,7 @@ pub fn compute_jacobian_wrt_object_points<C : Camera,T>(camera: &C, transformati
     let rot = transformation.fixed_slice::<3,3>(0,0);
     let local_jacobian = projection_jacobian*rot;
 
-    jacobian.fixed_slice_mut::<2,3>(i,j).copy_from(&local_jacobian.fixed_slice::<2,{State::LANDMARK_PARAM_SIZE}>(0,0));
+    jacobian.fixed_slice_mut::<2,{State::LANDMARK_PARAM_SIZE}>(i,j).copy_from(&local_jacobian.fixed_slice::<2,{State::LANDMARK_PARAM_SIZE}>(0,0));
 }
 
 pub fn compute_jacobian_wrt_camera_extrinsics<C : Camera, T>( camera: &C, transformation: &Matrix4<Float>, point: &Vector<Float,U3,T> ,i: usize, j: usize, jacobian: &mut DMatrix<Float>) 
@@ -74,7 +74,7 @@ pub fn compute_jacobian_wrt_camera_extrinsics<C : Camera, T>( camera: &C, transf
     let projection_jacobian = camera.get_jacobian_with_respect_to_position_in_camera_frame(&transformed_point.fixed_rows::<{State::LANDMARK_PARAM_SIZE}>(0));
     let local_jacobian = projection_jacobian*lie_jacobian;
 
-    jacobian.fixed_slice_mut::<2,6>(i,j).copy_from(&local_jacobian);
+    jacobian.fixed_slice_mut::<2,{State::CAM_PARAM_SIZE}>(i,j).copy_from(&local_jacobian);
 }
 
 pub fn compute_jacobian<C : Camera>(state: &State, cameras: &Vec<C>, jacobian: &mut DMatrix<Float>) -> () {
