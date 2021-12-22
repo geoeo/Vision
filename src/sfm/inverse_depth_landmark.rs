@@ -1,6 +1,6 @@
 extern crate nalgebra as na;
 
-use na::{Vector3,Vector6,Matrix3x6, Isometry3};
+use na::{Vector3,Vector6,Matrix3x6, Isometry3, Point3};
 use crate::{Float,float};
 use crate::image::features::geometry::point::Point;
 use crate::sensors::camera::Camera;
@@ -36,19 +36,19 @@ impl InverseLandmark {
         self.state[5]
     }
 
-    fn get_observing_cam_world(&self) -> Vector3<Float> {
-        self.state.fixed_rows::<3>(0).into_owned()
+    fn get_observing_cam_in_world(&self) -> Point3<Float> {
+        Point3::<Float>::new(self.state[0],self.state[1],self.state[2])
     }
 
-    fn get_euclidean_representation(&self) -> Vector3<Float> {
-        self.get_observing_cam_world()+(1.0/self.get_inverse_depth())*self.get_direction()
+    fn get_euclidean_representation(&self) -> Point3<Float> {
+        self.get_observing_cam_in_world()+(1.0/self.get_inverse_depth())*self.get_direction()
     }
 
-    fn transform_into_other_camera_frame(&self, other_cam_world: &Isometry3<Float>) -> Vector3<Float> {
+    fn transform_into_other_camera_frame(&self, other_cam_world: &Isometry3<Float>) -> Point3<Float> {
         let translation = other_cam_world.translation;
         let rotation = other_cam_world.rotation;
 
-        rotation.inverse()*(self.get_inverse_depth()*(self.get_observing_cam_world() - translation.vector) + self.get_direction())
+        rotation.inverse()*(self.get_inverse_depth()*(self.get_observing_cam_in_world() - translation.vector) + self.get_direction())
     }
 
     fn get_theta(&self) -> Float {
@@ -62,10 +62,11 @@ impl InverseLandmark {
     fn jacobian(&self, world_to_cam: &Isometry3<Float>) -> Matrix3x6<Float> {
         let mut jacobian = Matrix3x6::<Float>::zeros();
         let rotation_matrix = world_to_cam.rotation.to_rotation_matrix();
-        let tranlsation_vector = world_to_cam.translation.vector;
+        let translation_vector = world_to_cam.translation.vector;
+        let observing_cam_in_world = self.get_observing_cam_in_world().coords;
 
         let j_xyz = self.get_inverse_depth()*rotation_matrix.matrix();
-        let j_p = rotation_matrix*self.get_observing_cam_world()+tranlsation_vector;
+        let j_p = rotation_matrix*observing_cam_in_world+translation_vector;
         let j_theta = Vector3::<Float>::new(self.get_phi().cos()*self.get_theta().cos(),0.0,self.get_phi().cos()*(-self.get_theta().sin()));
         let j_phi = Vector3::<Float>::new((-self.get_phi().sin())*self.get_theta().sin(),self.get_phi().cos(),(-self.get_phi().sin())*self.get_theta().cos());
 

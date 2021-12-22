@@ -19,13 +19,11 @@ pub fn get_feature_index_in_residual(cam_id: usize, feature_id: usize, n_cams: u
  * */
 pub fn get_estimated_features<C : Camera>(state: &State, cameras: &Vec<C>,observed_features: &DVector<Float>, estimated_features: &mut DVector<Float>) -> () {
     let n_cams = state.n_cams;
-    let n_cam_parameters = State::CAM_PARAM_SIZE*n_cams; //cam param
     let n_points = state.n_points;
-    let estimated_state = &state.data;
     assert_eq!(estimated_features.nrows(),2*n_points*n_cams);
     let mut position_world = Matrix::<Float,U4,Dynamic, VecStorage<Float,U4,Dynamic>>::from_element(n_points, 1.0);
     for j in 0..n_points {
-        position_world.fixed_slice_mut::<{State::LANDMARK_PARAM_SIZE},1>(0,j).copy_from(&estimated_state.fixed_rows::<{State::LANDMARK_PARAM_SIZE}>(n_cam_parameters+State::LANDMARK_PARAM_SIZE*j)); 
+        position_world.fixed_slice_mut::<{State::LANDMARK_PARAM_SIZE},1>(0,j).copy_from(&state.get_landmarks().fixed_rows::<{State::LANDMARK_PARAM_SIZE}>(State::LANDMARK_PARAM_SIZE*j)); 
     };
     for i in 0..n_cams {
         let cam_idx = State::CAM_PARAM_SIZE*i;
@@ -82,24 +80,23 @@ pub fn compute_jacobian_wrt_camera_extrinsics<C : Camera, T>( camera: &C, state:
 pub fn compute_jacobian<C : Camera>(state: &State, cameras: &Vec<C>, jacobian: &mut DMatrix<Float>) -> () {
     //cam
     let number_of_cam_params = State::CAM_PARAM_SIZE*state.n_cams;
+    let number_of_landmark_params = State::LANDMARK_PARAM_SIZE*state.n_points;
     for cam_state_idx in (0..number_of_cam_params).step_by(State::CAM_PARAM_SIZE) {
         let cam_id = cam_state_idx/State::CAM_PARAM_SIZE;
         let camera = &cameras[cam_id];
         
-        //point
-        for point_state_idx in (number_of_cam_params..state.data.nrows()).step_by(State::LANDMARK_PARAM_SIZE) {
-            let point = &state.data.fixed_rows::<{State::LANDMARK_PARAM_SIZE}>(point_state_idx);
-
-
-            let point_id = (point_state_idx-number_of_cam_params)/State::LANDMARK_PARAM_SIZE;
+        //landmark
+        for point_state_idx in (0..number_of_landmark_params).step_by(State::LANDMARK_PARAM_SIZE) {
+            let point = state.get_landmarks().fixed_rows::<{State::LANDMARK_PARAM_SIZE}>(point_state_idx);
+            let point_id = point_state_idx/State::LANDMARK_PARAM_SIZE;
 
             let row = get_feature_index_in_residual(cam_id, point_id, state.n_cams);
             let a_j = cam_state_idx;
-            let b_j = number_of_cam_params+point_id*State::LANDMARK_PARAM_SIZE;
+            let b_j = number_of_cam_params+point_state_idx;
             
 
-            compute_jacobian_wrt_camera_extrinsics(camera , state, cam_state_idx,point,row,a_j, jacobian);
-            compute_jacobian_wrt_object_points(camera, state, cam_state_idx ,point,row,b_j, jacobian);
+            compute_jacobian_wrt_camera_extrinsics(camera , state, cam_state_idx,&point,row,a_j, jacobian);
+            compute_jacobian_wrt_object_points(camera, state, cam_state_idx ,&point,row,b_j, jacobian);
 
         }
 
@@ -204,7 +201,7 @@ pub fn optimize<C : Camera>(state: &mut State, cameras: &Vec<C>, observed_featur
 
         if gain_ratio > 0.0  || !runtime_parameters.lm {
             estimated_features.copy_from(&new_estimated_features);
-            state.data.copy_from(&new_state.data); 
+            state.copy_from(&new_state); 
 
             cost = new_cost;
 
@@ -223,7 +220,7 @@ pub fn optimize<C : Camera>(state: &mut State, cameras: &Vec<C>, observed_featur
             mu = Some(mu.unwrap() * v.max(1.0 - (2.0 * gain_ratio - 1.0).powi(3)));
             nu = 2.0;
         } else {
-            new_state.data.copy_from(&state.data); 
+            new_state.copy_from(&state); 
             mu = Some(nu*mu.unwrap());
             nu *= 2.0;
         }

@@ -119,11 +119,11 @@ impl CameraFeatureMap {
     pub fn get_initial_state(&self, initial_motions : Option<&Vec<(Vector3<Float>,Matrix3<Float>)>>, initial_depth: Float) -> State {
 
         let number_of_cameras = self.camera_map.keys().len();
-        let number_of_unqiue_points = self.number_of_unique_points;
+        let number_of_unqiue_landmarks = self.number_of_unique_points;
         let number_of_cam_parameters = State::CAM_PARAM_SIZE*number_of_cameras;
-        let number_of_point_parameters = State::LANDMARK_PARAM_SIZE*number_of_unqiue_points;
-        let total_parameters = number_of_cam_parameters+number_of_point_parameters;
-        let mut data = DVector::<Float>::zeros(total_parameters);
+        let number_of_point_parameters = State::LANDMARK_PARAM_SIZE*number_of_unqiue_landmarks;
+        let mut camera_positions = DVector::<Float>::zeros(number_of_cam_parameters);
+        let mut landmarks = DVector::<Float>::zeros(number_of_point_parameters);
         
         if initial_motions.is_some() {
             let value = initial_motions.unwrap();
@@ -139,20 +139,20 @@ impl CameraFeatureMap {
                 let rotation_transpose = rotation.transpose();
                 let translation = rotation_transpose*(-h);
 
-                data.fixed_slice_mut::<{State::CAM_TRANSLATION_PARAM_SIZE},1>(i,0).copy_from(&translation);
-                data.fixed_slice_mut::<{State::CAM_ROTATION_PARAM_SIZE},1>(i,0).copy_from(&rotation_transpose.scaled_axis());
+                camera_positions.fixed_slice_mut::<{State::CAM_TRANSLATION_PARAM_SIZE},1>(i,0).copy_from(&translation);
+                camera_positions.fixed_slice_mut::<{State::CAM_ROTATION_PARAM_SIZE},1>(i,0).copy_from(&rotation_transpose.scaled_axis());
                 counter += 1;
             }
 
         }
 
-        for i in (number_of_cam_parameters..total_parameters).step_by(State::LANDMARK_PARAM_SIZE){
-            data[i] = 0.0;
-            data[i+1] = 0.0;
-            data[i+2] = initial_depth; 
+        for i in (0..number_of_point_parameters).step_by(State::LANDMARK_PARAM_SIZE){
+            landmarks[i] = 0.0;
+            landmarks[i+1] = 0.0;
+            landmarks[i+2] = initial_depth; 
         }
 
-        State{data , n_cams: number_of_cameras, n_points: number_of_unqiue_points}
+        State::new(camera_positions,landmarks , number_of_cameras, number_of_unqiue_landmarks)
     }
 
     /**
