@@ -31,7 +31,7 @@ fn main() -> Result<(),()> {
         s.append_translation(&Translation3::new(cam_world.translation.vector[0] as f32,cam_world.translation.vector[1] as f32,cam_world.translation.vector[2] as f32));
     }
 
-    let factor = 3.0;
+    let factor = 1.0;
     for point in &points {
         let mut s = window.add_sphere(0.02);
         s.set_color(random(), random(), random());

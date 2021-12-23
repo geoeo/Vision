@@ -6,7 +6,7 @@ use crate::image::{
     features::{Feature,Match},
     features::geometry::point::Point
 };
-use crate::sfm::bundle_adjustment::state::State;
+use crate::sfm::{bundle_adjustment::state::State, euclidean_landmark::EuclideanLandmark};
 use crate::{Float, reconstruct_original_coordiantes_for_float};
 
 
@@ -121,9 +121,9 @@ impl CameraFeatureMap {
         let number_of_cameras = self.camera_map.keys().len();
         let number_of_unqiue_landmarks = self.number_of_unique_points;
         let number_of_cam_parameters = State::CAM_PARAM_SIZE*number_of_cameras;
-        let number_of_point_parameters = State::LANDMARK_PARAM_SIZE*number_of_unqiue_landmarks;
         let mut camera_positions = DVector::<Float>::zeros(number_of_cam_parameters);
-        let mut landmarks = DVector::<Float>::zeros(number_of_point_parameters);
+        
+        let landmarks = vec![EuclideanLandmark::new(0.0,0.0,initial_depth);number_of_unqiue_landmarks];
         
         if initial_motions.is_some() {
             let value = initial_motions.unwrap();
@@ -144,12 +144,6 @@ impl CameraFeatureMap {
                 counter += 1;
             }
 
-        }
-
-        for i in (0..number_of_point_parameters).step_by(State::LANDMARK_PARAM_SIZE){
-            landmarks[i] = 0.0;
-            landmarks[i+1] = 0.0;
-            landmarks[i+2] = initial_depth; 
         }
 
         State::new(camera_positions,landmarks , number_of_cameras, number_of_unqiue_landmarks)
