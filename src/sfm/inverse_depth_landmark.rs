@@ -11,6 +11,9 @@ pub struct InverseLandmark {
 }
 
 impl InverseLandmark {
+
+    pub const LANDMARK_PARAM_SIZE: usize = 6;
+
     fn new<C: Camera>(cam_to_world: &Isometry3<Float>, image_coords: &Point<Float>, camera: &C) -> InverseLandmark {
         let image_coords_homogeneous = Vector3::<Float>::new(image_coords.x,image_coords.y,-1.0);
         let h_c = camera.get_inverse_projection()*image_coords_homogeneous;
@@ -28,6 +31,18 @@ impl InverseLandmark {
         InverseLandmark{state,m}
     }
 
+    pub fn from_array(arr: &[Float; InverseLandmark::LANDMARK_PARAM_SIZE]) -> InverseLandmark {
+        let state = Vector6::<Float>::new(arr[0],arr[1],arr[2],arr[3],arr[4],arr[5]);
+        let theta = arr[3];
+        let phi = arr[4];
+        let m = Vector3::<Float>::new(
+            phi.cos()*theta.sin(),
+            phi.sin(),
+            phi.cos()*theta.cos()
+        );
+        InverseLandmark{state,m}
+    }
+
     fn get_direction(&self) -> Vector3<Float> {
         self.m
     }
@@ -40,17 +55,6 @@ impl InverseLandmark {
         Point3::<Float>::new(self.state[0],self.state[1],self.state[2])
     }
 
-    fn get_euclidean_representation(&self) -> Point3<Float> {
-        self.get_observing_cam_in_world()+(1.0/self.get_inverse_depth())*self.get_direction()
-    }
-
-    fn transform_into_other_camera_frame(&self, other_cam_world: &Isometry3<Float>) -> Point3<Float> {
-        let translation = other_cam_world.translation;
-        let rotation = other_cam_world.rotation;
-
-        rotation.inverse()*(self.get_inverse_depth()*(self.get_observing_cam_in_world() - translation.vector) + self.get_direction())
-    }
-
     fn get_theta(&self) -> Float {
         self.state[3]
     }
@@ -59,7 +63,26 @@ impl InverseLandmark {
         self.state[4]
     }
 
-    fn jacobian(&self, world_to_cam: &Isometry3<Float>) -> Matrix3x6<Float> {
+    pub fn get_state_as_vector(&self) -> &Vector6<Float>{
+        &self.state
+    }
+
+    pub fn get_state_as_array(&self) -> [Float; InverseLandmark::LANDMARK_PARAM_SIZE] {
+        [self.state[0], self.state[1], self.state[2],self.state[3],self.state[4],self.state[5]]
+    }
+
+    pub fn get_euclidean_representation(&self) -> Point3<Float> {
+        self.get_observing_cam_in_world()+(1.0/self.get_inverse_depth())*self.get_direction()
+    }
+
+    pub fn transform_into_other_camera_frame(&self, other_cam_world: &Isometry3<Float>) -> Point3<Float> {
+        let translation = other_cam_world.translation;
+        let rotation = other_cam_world.rotation;
+
+        rotation.inverse()*(self.get_inverse_depth()*(self.get_observing_cam_in_world() - translation.vector) + self.get_direction())
+    }
+
+    pub fn jacobian(&self, world_to_cam: &Isometry3<Float>) -> Matrix3x6<Float> {
         let mut jacobian = Matrix3x6::<Float>::zeros();
         let rotation_matrix = world_to_cam.rotation.to_rotation_matrix();
         let translation_vector = world_to_cam.translation.vector;

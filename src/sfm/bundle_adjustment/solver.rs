@@ -23,7 +23,7 @@ pub fn get_estimated_features<C : Camera>(state: &State, cameras: &Vec<C>,observ
     assert_eq!(estimated_features.nrows(),2*n_points*n_cams);
     let mut position_world = Matrix::<Float,U4,Dynamic, VecStorage<Float,U4,Dynamic>>::from_element(n_points, 1.0);
     for j in 0..n_points {
-        position_world.fixed_slice_mut::<{State::LANDMARK_PARAM_SIZE},1>(0,j).copy_from(&state.get_landmarks()[j].get_state().coords); 
+        position_world.fixed_slice_mut::<{State::LANDMARK_PARAM_SIZE},1>(0,j).copy_from(&state.get_landmarks()[j].get_state_as_vector()); 
     };
     for i in 0..n_cams {
         let cam_idx = State::CAM_PARAM_SIZE*i;
@@ -56,7 +56,7 @@ pub fn compute_residual(estimated_features: &DVector<Float>, observed_features: 
 //TODO: inverse depth -> move pont def to landmark struct
 pub fn compute_jacobian_wrt_object_points<C : Camera>(camera: &C, state: &State, cam_idx: usize, point_idx: usize, i: usize, j: usize, jacobian: &mut DMatrix<Float>) -> (){
     let transformation = state.to_se3(cam_idx);
-    let point = state.get_landmarks()[point_idx].get_state().coords;
+    let point = state.get_landmarks()[point_idx].get_state_as_vector();
     let jacobian_world = state.jacobian_wrt_world_coordiantes(point_idx,cam_idx);
     let transformed_point = transformation*Vector4::<Float>::new(point[0],point[1],point[2],1.0);
     let projection_jacobian = camera.get_jacobian_with_respect_to_position_in_camera_frame(&transformed_point.fixed_rows::<{State::LANDMARK_PARAM_SIZE}>(0));
@@ -86,7 +86,7 @@ pub fn compute_jacobian<C : Camera>(state: &State, cameras: &Vec<C>, jacobian: &
         
         //landmark
         for point_id in 0..state.n_points {
-            let point = state.get_landmarks()[point_id].get_state().coords;
+            let point = state.get_landmarks()[point_id].get_state_as_vector();
 
             let row = get_feature_index_in_residual(cam_id, point_id, state.n_cams);
             let a_j = cam_state_idx;

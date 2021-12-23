@@ -1,7 +1,7 @@
 extern crate nalgebra as na;
 
 use crate::numerics::lie::exp_se3;
-use crate::sfm::euclidean_landmark::EuclideanLandmark;
+use crate::sfm::{euclidean_landmark::EuclideanLandmark,landmark::Landmark};
 use crate::Float;
 use na::{DVector, Matrix3, Matrix4, Vector3, Isometry3, Rotation3};
 
@@ -72,7 +72,8 @@ impl State {
         }
     }
 
-    pub fn jacobian_wrt_world_coordiantes(&self, point_index: usize, cam_idx: usize) -> Matrix3<Float> {
+    //TODO: check if there is a nicer way for return type
+    pub fn jacobian_wrt_world_coordiantes(&self, point_index: usize, cam_idx: usize) -> <crate::sfm::euclidean_landmark::EuclideanLandmark as Landmark>::LANDMARK_JACOBIAN {
 
         let translation = na::Vector3::new(self.camera_positions[cam_idx],self.camera_positions[cam_idx+1],self.camera_positions[cam_idx+2]);
         let axis_angle = na::Vector3::new(self.camera_positions[cam_idx+3],self.camera_positions[cam_idx+4],self.camera_positions[cam_idx+5]);
@@ -105,15 +106,15 @@ impl State {
 
         for i in 0..self.landmarks.len() {
             let point = self.landmarks[i];
-            points.push(point.get_state().coords);
+            points.push(*point.get_state_as_vector());
         }
 
         (cam_positions, points)
     }
 
-    pub fn to_serial(&self) -> (Vec<[Float; 6]>, Vec<[Float; 3]>) {
+    pub fn to_serial(&self) -> (Vec<[Float; 6]>, Vec<[Float; State::LANDMARK_PARAM_SIZE]>) {
         let mut cam_serial = Vec::<[Float; 6]>::with_capacity(self.n_cams);
-        let mut points_serial = Vec::<[Float; 3]>::with_capacity(self.n_points);
+        let mut points_serial = Vec::<[Float; State::LANDMARK_PARAM_SIZE]>::with_capacity(self.n_points);
         let number_of_cam_params = State::CAM_PARAM_SIZE * self.n_cams;
 
         for i in (0..number_of_cam_params).step_by(State::CAM_PARAM_SIZE) {
@@ -129,9 +130,7 @@ impl State {
         }
 
         for i in 0..self.landmarks.len() {
-            let vector = self.landmarks[i].get_state().coords;
-            let arr: [Float; State::LANDMARK_PARAM_SIZE] = [vector[0], vector[1], vector[2]];
-            points_serial.push(arr);
+            points_serial.push(self.landmarks[i].get_state_as_array());
         }
 
         (cam_serial, points_serial)
@@ -153,8 +152,7 @@ impl State {
         }
 
         for i in 0..points_serial.len() {
-            let arr = points_serial[i];
-            landmarks.push(EuclideanLandmark::new(arr[0], arr[1], arr[2]));
+            landmarks.push(EuclideanLandmark::from_array(&points_serial[i]));
         }
 
         State::new(camera_positions,landmarks , cam_serial.len(), points_serial.len())
