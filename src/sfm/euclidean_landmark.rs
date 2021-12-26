@@ -1,6 +1,6 @@
 extern crate nalgebra as na;
 
-use na::{Matrix3, Isometry3, Point3, Vector3};
+use na::{Matrix3, Isometry3, Point3, Vector3, SMatrix};
 use crate::sfm::landmark::Landmark;
 use crate::Float;
 
@@ -32,6 +32,8 @@ impl EuclideanLandmark {
         self.state.z += delta_z;
     }
 
+    //TODO: check get_euclidean_representation and transform_into_other_camera_frame for naming
+
     pub fn get_euclidean_representation(&self) -> Point3<Float> {
         self.state
     }
@@ -41,7 +43,7 @@ impl EuclideanLandmark {
         
     }
 
-    pub fn jacobian(&self, world_to_cam: &Isometry3<Float>) -> Matrix3<Float> {
+    pub fn jacobian(&self, world_to_cam: &Isometry3<Float>) -> SMatrix<Float,3,{Self::LANDMARK_PARAM_SIZE}> {
         world_to_cam.rotation.to_rotation_matrix().matrix().into_owned()
     }
 

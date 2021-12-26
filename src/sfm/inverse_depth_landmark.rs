@@ -1,6 +1,6 @@
 extern crate nalgebra as na;
 
-use na::{Vector3,Vector6,Matrix3x6, Isometry3, Point3};
+use na::{Vector3,Vector6,Matrix3x6, Isometry3, Point3, SMatrix};
 use crate::{Float,float};
 use crate::image::features::geometry::point::Point;
 use crate::sensors::camera::Camera;
@@ -82,7 +82,7 @@ impl InverseLandmark {
         rotation.inverse()*(self.get_inverse_depth()*(self.get_observing_cam_in_world() - translation.vector) + self.get_direction())
     }
 
-    pub fn jacobian(&self, world_to_cam: &Isometry3<Float>) -> Matrix3x6<Float> {
+    pub fn jacobian(&self, world_to_cam: &Isometry3<Float>) -> SMatrix<Float,3,{Self::LANDMARK_PARAM_SIZE}> {
         let mut jacobian = Matrix3x6::<Float>::zeros();
         let rotation_matrix = world_to_cam.rotation.to_rotation_matrix();
         let translation_vector = world_to_cam.translation.vector;

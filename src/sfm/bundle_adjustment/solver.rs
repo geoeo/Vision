@@ -1,6 +1,6 @@
 extern crate nalgebra as na;
 
-use na::{DVector,DMatrix,Matrix, Dynamic, U4, VecStorage,Vector, Vector4,Matrix4,U3,U1,base::storage::Storage};
+use na::{DVector,DMatrix,Matrix, Dynamic, U4, VecStorage,Vector,Point3, Vector4,Matrix4,U3,U1,base::storage::Storage};
 use crate::{float,Float};
 use crate::sensors::camera::Camera;
 use crate::numerics::lie::left_jacobian_around_identity;
@@ -23,16 +23,17 @@ pub fn get_estimated_features<C : Camera>(state: &State, cameras: &Vec<C>,observ
     assert_eq!(estimated_features.nrows(),2*n_points*n_cams);
     let mut position_world = Matrix::<Float,U4,Dynamic, VecStorage<Float,U4,Dynamic>>::from_element(n_points, 1.0);
     for j in 0..n_points {
-        position_world.fixed_slice_mut::<{State::LANDMARK_PARAM_SIZE},1>(0,j).copy_from(&state.get_landmarks()[j].get_state_as_vector()); 
+        position_world.fixed_slice_mut::<3,1>(0,j).copy_from(&state.get_landmarks()[j].get_euclidean_representation().coords); 
     };
     for i in 0..n_cams {
         let cam_idx = State::CAM_PARAM_SIZE*i;
         let pose = state.to_se3(cam_idx);
         let camera = &cameras[i];
 
+        //TODO: use transform_into_other_camera_frame
         let transformed_points = pose*&position_world;
         for j in 0..n_points {
-            let estimated_feature = camera.project(&transformed_points.fixed_slice::<{State::LANDMARK_PARAM_SIZE},1>(0,j));  
+            let estimated_feature = camera.project(&transformed_points.fixed_slice::<3,1>(0,j));  
             
             let feat_id = get_feature_index_in_residual(i, j, n_cams);
             if !(observed_features[feat_id] == CameraFeatureMap::NO_FEATURE_FLAG && observed_features[feat_id+1] == CameraFeatureMap::NO_FEATURE_FLAG){
@@ -56,17 +57,17 @@ pub fn compute_residual(estimated_features: &DVector<Float>, observed_features: 
 //TODO: inverse depth -> move pont def to landmark struct
 pub fn compute_jacobian_wrt_object_points<C : Camera>(camera: &C, state: &State, cam_idx: usize, point_idx: usize, i: usize, j: usize, jacobian: &mut DMatrix<Float>) -> (){
     let transformation = state.to_se3(cam_idx);
-    let point = state.get_landmarks()[point_idx].get_state_as_vector();
+    let point = state.get_landmarks()[point_idx].get_euclidean_representation();
     let jacobian_world = state.jacobian_wrt_world_coordiantes(point_idx,cam_idx);
     let transformed_point = transformation*Vector4::<Float>::new(point[0],point[1],point[2],1.0);
-    let projection_jacobian = camera.get_jacobian_with_respect_to_position_in_camera_frame(&transformed_point.fixed_rows::<{State::LANDMARK_PARAM_SIZE}>(0));
+    let projection_jacobian = camera.get_jacobian_with_respect_to_position_in_camera_frame(&transformed_point.fixed_rows::<3>(0));
     let local_jacobian = projection_jacobian*jacobian_world;
 
-    jacobian.fixed_slice_mut::<2,{State::LANDMARK_PARAM_SIZE}>(i,j).copy_from(&local_jacobian.fixed_slice::<2,{State::LANDMARK_PARAM_SIZE}>(0,0));
+    jacobian.fixed_slice_mut::<2,{State::LANDMARK_PARAM_SIZE}>(i,j).copy_from(&local_jacobian.fixed_slice::<2,3>(0,0));
 }
 
-pub fn compute_jacobian_wrt_camera_extrinsics<C : Camera, T>( camera: &C, state: &State, cam_idx: usize, point: &Vector<Float,U3,T> ,i: usize, j: usize, jacobian: &mut DMatrix<Float>) 
-    -> () where T: Storage<Float,U3,U1> {
+pub fn compute_jacobian_wrt_camera_extrinsics<C : Camera>( camera: &C, state: &State, cam_idx: usize, point: &Point3<Float> ,i: usize, j: usize, jacobian: &mut DMatrix<Float>) 
+    -> (){
     let transformation = state.to_se3(cam_idx);
     let transformed_point = transformation*Vector4::<Float>::new(point[0],point[1],point[2],1.0);
     let lie_jacobian = left_jacobian_around_identity(&transformed_point.fixed_rows::<{State::LANDMARK_PARAM_SIZE}>(0)); 
@@ -86,7 +87,7 @@ pub fn compute_jacobian<C : Camera>(state: &State, cameras: &Vec<C>, jacobian: &
         
         //landmark
         for point_id in 0..state.n_points {
-            let point = state.get_landmarks()[point_id].get_state_as_vector();
+            let point = state.get_landmarks()[point_id].get_euclidean_representation();
 
             let row = get_feature_index_in_residual(cam_id, point_id, state.n_cams);
             let a_j = cam_state_idx;
