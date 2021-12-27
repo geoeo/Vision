@@ -1,6 +1,6 @@
 extern crate nalgebra as na;
 
-use na::{Isometry3, Point3, Vector3, SMatrix};
+use na::{Isometry3, Point3, Vector3,SVector, SMatrix};
 use crate::sfm::landmark::Landmark;
 use crate::Float;
 
@@ -11,14 +11,12 @@ pub struct EuclideanLandmark {
 
 impl Landmark<3> for EuclideanLandmark {
 
-    fn new(x: Float, y: Float, z: Float) -> EuclideanLandmark {
-        EuclideanLandmark{state: Point3::<Float>::new(x,y,z)}
+    fn new(state: SVector<Float,3>) -> EuclideanLandmark {
+        EuclideanLandmark{state: Point3::<Float>::from(state)}
     }
 
-    fn update(&mut self,delta_x: Float, delta_y: Float, delta_z: Float) -> () {
-        self.state.x += delta_x;
-        self.state.y += delta_y;
-        self.state.z += delta_z;
+    fn update(&mut self,perturb :&SVector<Float,3>) -> () {
+        self.state.coords += perturb;
     }
 
     fn get_euclidean_representation(&self) -> Point3<Float> {

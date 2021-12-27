@@ -1,6 +1,6 @@
 extern crate nalgebra as na;
 
-use na::{Vector3,Matrix3,DVector};
+use na::{Vector3,Matrix3,DVector, SVector};
 use std::collections::HashMap;
 use crate::image::{
     features::{Feature,Match},
@@ -116,14 +116,14 @@ impl CameraFeatureMap {
     /**
      * initial_motion should all be with respect to the first camera
      */
-    pub fn get_initial_state< L: Landmark<T> + Copy + Clone, const T: usize>(&self, initial_motions : Option<&Vec<(Vector3<Float>,Matrix3<Float>)>>, initial_depth: Float) -> State<L,T> {
+    pub fn get_initial_state< L: Landmark<T> + Copy + Clone, const T: usize>(&self, initial_motions : Option<&Vec<(Vector3<Float>,Matrix3<Float>)>>, initial_landmark: SVector<Float,T>) -> State<L,T> {
 
         let number_of_cameras = self.camera_map.keys().len();
         let number_of_unqiue_landmarks = self.number_of_unique_points;
         let number_of_cam_parameters = 6*number_of_cameras;
         let mut camera_positions = DVector::<Float>::zeros(number_of_cam_parameters);
         
-        let landmarks = vec![L::new(0.0,0.0,initial_depth);number_of_unqiue_landmarks];
+        let landmarks = vec![L::new(initial_landmark);number_of_unqiue_landmarks];
         
         if initial_motions.is_some() {
             let value = initial_motions.unwrap();

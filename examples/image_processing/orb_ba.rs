@@ -4,7 +4,7 @@ extern crate color_eyre;
 extern crate nalgebra as na;
 
 use std::fs;
-use na::{Vector2,Vector3,Matrix3};
+use na::{Vector2,SVector,Vector3,Matrix3};
 use color_eyre::eyre::Result;
 use std::path::Path;
 use vision::Float;
@@ -16,6 +16,10 @@ use vision::sensors::camera::{Camera,pinhole::Pinhole};
 use vision::odometry::runtime_parameters::RuntimeParameters;
 use vision::numerics::{loss, weighting};
 use vision::image::epipolar;
+
+type Landmark = EuclideanLandmark;
+const LANDMARK_PARAM_SIZE : usize = 3;
+
 
 fn main() -> Result<()> {
 
@@ -95,7 +99,8 @@ fn main() -> Result<()> {
     //let initial_motion_decomp = essential_matrices.iter().enumerate().map(|(i,e)| epipolar::decompose_essential_förstner(e,&normalized_matches[i])).collect::<Vec<(Vector3<Float>,Matrix3<Float>)>>();
     let initial_motion_decomp = essential_matrices.iter().enumerate().map(|(i,e)| epipolar::decompose_essential_kanatani(e,&normalized_matches[i])).collect::<Vec<(Vector3<Float>,Matrix3<Float>)>>();
 
-    let mut state = feature_map.get_initial_state::<EuclideanLandmark,3>(Some(&initial_motion_decomp), -1.0);
+    let initial_landmark = SVector::<Float,LANDMARK_PARAM_SIZE>::new(0.0,0.0,-1.0);
+    let mut state = feature_map.get_initial_state::<Landmark,LANDMARK_PARAM_SIZE>(Some(&initial_motion_decomp), initial_landmark);
 
     let observed_features = feature_map.get_observed_features();
     let runtime_parameters = RuntimeParameters {
