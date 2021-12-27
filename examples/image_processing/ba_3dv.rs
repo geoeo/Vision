@@ -4,7 +4,7 @@ extern crate color_eyre;
 extern crate nalgebra as na;
 
 use std::fs;
-use na::{Vector3,SVector,Matrix3};
+use na::{Vector3,Matrix3};
 use color_eyre::eyre::Result;
 use vision::Float;
 use vision::image::features::{Match,ImageFeature};
@@ -14,9 +14,6 @@ use vision::odometry::runtime_parameters::RuntimeParameters;
 use vision::numerics::{loss, weighting};
 use vision::image::epipolar;
 use vision::io::three_dv_loader;
-
-type Landmark = EuclideanLandmark;
-const LANDMARK_PARAM_SIZE : usize = 3;
 
 fn main() -> Result<()> {
 
@@ -54,8 +51,8 @@ fn main() -> Result<()> {
     // feature_map.add_matches(&image_id_pairs,&all_matches, 1.0);
     // let initial_motions = vec!((Vector3::<Float>::new(0.0,0.0,0.0),Matrix3::<Float>::identity()));
 
-    let initial_landmark = SVector::<Float,LANDMARK_PARAM_SIZE>::new(0.0,0.0,-5.5);
-    let mut state = feature_map.get_initial_state::<Landmark,LANDMARK_PARAM_SIZE>(None, initial_landmark);
+
+    let mut state = feature_map.get_euclidean_landmark_state(None, Vector3::<Float>::new(0.0,0.0,-5.5));
     let observed_features = feature_map.get_observed_features();
 
 

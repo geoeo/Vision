@@ -6,6 +6,7 @@ use crate::sfm::landmark::Landmark;
 use crate::image::features::geometry::point::Point;
 use crate::sensors::camera::Camera;
 
+#[derive(Copy,Clone)]
 pub struct InverseLandmark {
     state: Vector6<Float>,
     m : Vector3<Float>

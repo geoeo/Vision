@@ -1,12 +1,12 @@
 extern crate nalgebra as na;
 
-use na::{Vector3,Matrix3,DVector, SVector};
+use na::{Vector3,Matrix3,DVector};
 use std::collections::HashMap;
 use crate::image::{
     features::{Feature,Match},
     features::geometry::point::Point
 };
-use crate::sfm::{bundle_adjustment::state::State, landmark::Landmark};
+use crate::sfm::{bundle_adjustment::state::State, landmark::Landmark, euclidean_landmark::EuclideanLandmark, inverse_depth_landmark::InverseLandmark};
 use crate::{Float, reconstruct_original_coordiantes_for_float};
 
 
@@ -112,18 +112,30 @@ impl CameraFeatureMap {
 
     }
 
-    //TODO: inverse depth
-    /**
-     * initial_motion should all be with respect to the first camera
-     */
-    pub fn get_initial_state< L: Landmark<T> + Copy + Clone, const T: usize>(&self, initial_motions : Option<&Vec<(Vector3<Float>,Matrix3<Float>)>>, initial_landmark: SVector<Float,T>) -> State<L,T> {
+    //TODO: inverse depth as separte function
+
+
+    pub fn get_inverse_depth_landmark_state(&self, initial_motions : Option<&Vec<(Vector3<Float>,Matrix3<Float>)>>) -> State<InverseLandmark,6> {
 
         let number_of_cameras = self.camera_map.keys().len();
         let number_of_unqiue_landmarks = self.number_of_unique_points;
         let number_of_cam_parameters = 6*number_of_cameras;
         let mut camera_positions = DVector::<Float>::zeros(number_of_cam_parameters);
         
-        let landmarks = vec![L::new(initial_landmark);number_of_unqiue_landmarks];
+        panic!("TODO");
+    }
+
+    /**
+     * initial_motion should all be with respect to the first camera
+     */
+    pub fn get_euclidean_landmark_state(&self, initial_motions : Option<&Vec<(Vector3<Float>,Matrix3<Float>)>>, initial_landmark: Vector3<Float>) -> State<EuclideanLandmark,3> {
+
+        let number_of_cameras = self.camera_map.keys().len();
+        let number_of_unqiue_landmarks = self.number_of_unique_points;
+        let number_of_cam_parameters = 6*number_of_cameras;
+        let mut camera_positions = DVector::<Float>::zeros(number_of_cam_parameters);
+        
+        let landmarks = vec![EuclideanLandmark::new(initial_landmark);number_of_unqiue_landmarks];
         
         if initial_motions.is_some() {
             let value = initial_motions.unwrap();
