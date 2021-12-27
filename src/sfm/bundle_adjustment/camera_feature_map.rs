@@ -6,7 +6,7 @@ use crate::image::{
     features::{Feature,Match},
     features::geometry::point::Point
 };
-use crate::sfm::{bundle_adjustment::state::State, euclidean_landmark::EuclideanLandmark};
+use crate::sfm::{bundle_adjustment::state::State, landmark::Landmark};
 use crate::{Float, reconstruct_original_coordiantes_for_float};
 
 
@@ -116,31 +116,31 @@ impl CameraFeatureMap {
     /**
      * initial_motion should all be with respect to the first camera
      */
-    pub fn get_initial_state(&self, initial_motions : Option<&Vec<(Vector3<Float>,Matrix3<Float>)>>, initial_depth: Float) -> State {
+    pub fn get_initial_state< L: Landmark<T> + Copy + Clone, const T: usize>(&self, initial_motions : Option<&Vec<(Vector3<Float>,Matrix3<Float>)>>, initial_depth: Float) -> State<L,T> {
 
         let number_of_cameras = self.camera_map.keys().len();
         let number_of_unqiue_landmarks = self.number_of_unique_points;
-        let number_of_cam_parameters = State::CAM_PARAM_SIZE*number_of_cameras;
+        let number_of_cam_parameters = 6*number_of_cameras;
         let mut camera_positions = DVector::<Float>::zeros(number_of_cam_parameters);
         
-        let landmarks = vec![EuclideanLandmark::new(0.0,0.0,initial_depth);number_of_unqiue_landmarks];
+        let landmarks = vec![L::new(0.0,0.0,initial_depth);number_of_unqiue_landmarks];
         
         if initial_motions.is_some() {
             let value = initial_motions.unwrap();
             assert_eq!(value.len(),number_of_cameras-1); 
             let mut counter = 0;
-            for i in (State::CAM_PARAM_SIZE..number_of_cam_parameters).step_by(2*State::CAM_PARAM_SIZE){
+            for i in (6..number_of_cam_parameters).step_by(2*6){
                 let idx = match i {
                     v if v == 0 => 0,
-                    _ => i/State::CAM_PARAM_SIZE-1-counter
+                    _ => i/6-1-counter
                 };
                 let (h,rotation_matrix) = value[idx];
                 let rotation = na::Rotation3::from_matrix(&rotation_matrix);
                 let rotation_transpose = rotation.transpose();
                 let translation = rotation_transpose*(-h);
 
-                camera_positions.fixed_slice_mut::<{State::CAM_TRANSLATION_PARAM_SIZE},1>(i,0).copy_from(&translation);
-                camera_positions.fixed_slice_mut::<{State::CAM_ROTATION_PARAM_SIZE},1>(i,0).copy_from(&rotation_transpose.scaled_axis());
+                camera_positions.fixed_slice_mut::<3,1>(i,0).copy_from(&translation);
+                camera_positions.fixed_slice_mut::<3,1>(i,0).copy_from(&rotation_transpose.scaled_axis());
                 counter += 1;
             }
 

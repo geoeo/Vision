@@ -10,6 +10,7 @@ pub struct InverseLandmark {
     m : Vector3<Float>
 }
 
+//TODO: Landmark
 impl InverseLandmark {
 
     pub const LANDMARK_PARAM_SIZE: usize = 6;

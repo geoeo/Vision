@@ -9,9 +9,9 @@ use color_eyre::eyre::Result;
 use std::path::Path;
 use vision::Float;
 use vision::image::pyramid::orb::{orb_runtime_parameters::OrbRuntimeParameters};
-use vision::image::features::{Match,orb_feature::OrbFeature, Feature};
+use vision::image::features::{Match,orb_feature::OrbFeature};
 use vision::image::Image;
-use vision::sfm::bundle_adjustment::{camera_feature_map::CameraFeatureMap, solver::optimize};
+use vision::sfm::{bundle_adjustment::{camera_feature_map::CameraFeatureMap, solver::optimize},euclidean_landmark::EuclideanLandmark};
 use vision::sensors::camera::{Camera,pinhole::Pinhole};
 use vision::odometry::runtime_parameters::RuntimeParameters;
 use vision::numerics::{loss, weighting};
@@ -95,7 +95,7 @@ fn main() -> Result<()> {
     //let initial_motion_decomp = essential_matrices.iter().enumerate().map(|(i,e)| epipolar::decompose_essential_förstner(e,&normalized_matches[i])).collect::<Vec<(Vector3<Float>,Matrix3<Float>)>>();
     let initial_motion_decomp = essential_matrices.iter().enumerate().map(|(i,e)| epipolar::decompose_essential_kanatani(e,&normalized_matches[i])).collect::<Vec<(Vector3<Float>,Matrix3<Float>)>>();
 
-    let mut state = feature_map.get_initial_state(Some(&initial_motion_decomp), -1.0);
+    let mut state = feature_map.get_initial_state::<EuclideanLandmark,3>(Some(&initial_motion_decomp), -1.0);
 
     let observed_features = feature_map.get_observed_features();
     let runtime_parameters = RuntimeParameters {

@@ -8,7 +8,7 @@ use kiss3d::window::Window;
 use na::{Point2, Point3, Translation3};
 use kiss3d::text::Font;
 use vision::Float;
-use vision::sfm::bundle_adjustment::state;
+use vision::sfm::{bundle_adjustment::state,euclidean_landmark::EuclideanLandmark};
 use rand::random;
 
 
@@ -18,7 +18,7 @@ fn main() -> Result<(),()> {
     //let orb_matches_as_string = fs::read_to_string("D:/Workspace/Rust/Vision/output/orb_ba.txt").expect("Unable to read file");
     let orb_matches_as_string = fs::read_to_string("D:/Workspace/Rust/Vision/output/3dv.txt").expect("Unable to read file");
     let loaded: (Vec<[Float;6]>,Vec<[Float;3]>) = serde_yaml::from_str(&orb_matches_as_string).unwrap();
-    let ba_state = state::State::from_serial(&loaded);
+    let ba_state = state::State::<EuclideanLandmark,3>::from_serial(&loaded);
     let (cams,points) = ba_state.as_matrix_point();
 
     

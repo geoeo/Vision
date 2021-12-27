@@ -5,7 +5,7 @@ use crate::{float,Float};
 use crate::sensors::camera::Camera;
 use crate::numerics::lie::left_jacobian_around_identity;
 use crate::numerics::{max_norm, solver::{compute_cost,weight_jacobian_sparse,weight_residuals_sparse, calc_weight_vec, gauss_newton_step_with_schur}};
-use crate::sfm::bundle_adjustment::{state::State, camera_feature_map::CameraFeatureMap};
+use crate::sfm::{landmark::Landmark,bundle_adjustment::{state::State, camera_feature_map::CameraFeatureMap}};
 use crate::odometry::runtime_parameters::RuntimeParameters; //TODO remove dependency on odometry module
 
 pub fn get_feature_index_in_residual(cam_id: usize, feature_id: usize, n_cams: usize) -> usize {
@@ -17,7 +17,7 @@ pub fn get_feature_index_in_residual(cam_id: usize, feature_id: usize, n_cams: u
  * In the format [f1_cam1, f1_cam2,...]
  * Some entries may be 0 since not all cams see all points
  * */
-pub fn get_estimated_features<C : Camera>(state: &State, cameras: &Vec<C>,observed_features: &DVector<Float>, estimated_features: &mut DVector<Float>) -> () {
+pub fn get_estimated_features<C : Camera, L: Landmark<T> + Copy + Clone, const T: usize>(state: &State<L,T>, cameras: &Vec<C>,observed_features: &DVector<Float>, estimated_features: &mut DVector<Float>) -> () {
     let n_cams = state.n_cams;
     let n_points = state.n_points;
     assert_eq!(estimated_features.nrows(),2*n_points*n_cams);
@@ -26,7 +26,7 @@ pub fn get_estimated_features<C : Camera>(state: &State, cameras: &Vec<C>,observ
         position_world.fixed_slice_mut::<3,1>(0,j).copy_from(&state.get_landmarks()[j].get_euclidean_representation().coords); 
     };
     for i in 0..n_cams {
-        let cam_idx = State::CAM_PARAM_SIZE*i;
+        let cam_idx = 6*i;
         let pose = state.to_se3(cam_idx);
         let camera = &cameras[i];
 
@@ -55,7 +55,7 @@ pub fn compute_residual(estimated_features: &DVector<Float>, observed_features: 
 }
 
 //TODO: inverse depth -> move pont def to landmark struct
-pub fn compute_jacobian_wrt_object_points<C : Camera>(camera: &C, state: &State, cam_idx: usize, point_idx: usize, i: usize, j: usize, jacobian: &mut DMatrix<Float>) -> (){
+pub fn compute_jacobian_wrt_object_points<C : Camera, L: Landmark<T> + Copy + Clone, const T: usize>(camera: &C, state: &State<L,T>, cam_idx: usize, point_idx: usize, i: usize, j: usize, jacobian: &mut DMatrix<Float>) -> (){
     let transformation = state.to_se3(cam_idx);
     let point = state.get_landmarks()[point_idx].get_euclidean_representation();
     let jacobian_world = state.jacobian_wrt_world_coordiantes(point_idx,cam_idx);
@@ -63,26 +63,26 @@ pub fn compute_jacobian_wrt_object_points<C : Camera>(camera: &C, state: &State,
     let projection_jacobian = camera.get_jacobian_with_respect_to_position_in_camera_frame(&transformed_point.fixed_rows::<3>(0));
     let local_jacobian = projection_jacobian*jacobian_world;
 
-    jacobian.fixed_slice_mut::<2,{State::LANDMARK_PARAM_SIZE}>(i,j).copy_from(&local_jacobian.fixed_slice::<2,3>(0,0));
+    jacobian.fixed_slice_mut::<2,T>(i,j).copy_from(&local_jacobian.fixed_slice::<2,T>(0,0));
 }
 
-pub fn compute_jacobian_wrt_camera_extrinsics<C : Camera>( camera: &C, state: &State, cam_idx: usize, point: &Point3<Float> ,i: usize, j: usize, jacobian: &mut DMatrix<Float>) 
+pub fn compute_jacobian_wrt_camera_extrinsics<C : Camera, L: Landmark<T> + Copy + Clone, const T: usize>( camera: &C, state: &State<L,T>, cam_idx: usize, point: &Point3<Float> ,i: usize, j: usize, jacobian: &mut DMatrix<Float>) 
     -> (){
     let transformation = state.to_se3(cam_idx);
     let transformed_point = transformation*Vector4::<Float>::new(point[0],point[1],point[2],1.0);
-    let lie_jacobian = left_jacobian_around_identity(&transformed_point.fixed_rows::<{State::LANDMARK_PARAM_SIZE}>(0)); 
+    let lie_jacobian = left_jacobian_around_identity(&transformed_point.fixed_rows::<3>(0)); 
 
-    let projection_jacobian = camera.get_jacobian_with_respect_to_position_in_camera_frame(&transformed_point.fixed_rows::<{State::LANDMARK_PARAM_SIZE}>(0));
+    let projection_jacobian = camera.get_jacobian_with_respect_to_position_in_camera_frame(&transformed_point.fixed_rows::<3>(0));
     let local_jacobian = projection_jacobian*lie_jacobian;
 
-    jacobian.fixed_slice_mut::<2,{State::CAM_PARAM_SIZE}>(i,j).copy_from(&local_jacobian);
+    jacobian.fixed_slice_mut::<2,6>(i,j).copy_from(&local_jacobian);
 }
 
-pub fn compute_jacobian<C : Camera>(state: &State, cameras: &Vec<C>, jacobian: &mut DMatrix<Float>) -> () {
+pub fn compute_jacobian<C : Camera, L: Landmark<T> + Copy + Clone, const T: usize>(state: &State<L,T>, cameras: &Vec<C>, jacobian: &mut DMatrix<Float>) -> () {
     //cam
-    let number_of_cam_params = State::CAM_PARAM_SIZE*state.n_cams;
-    for cam_state_idx in (0..number_of_cam_params).step_by(State::CAM_PARAM_SIZE) {
-        let cam_id = cam_state_idx/State::CAM_PARAM_SIZE;
+    let number_of_cam_params = 6*state.n_cams;
+    for cam_state_idx in (0..number_of_cam_params).step_by(6) {
+        let cam_id = cam_state_idx/6;
         let camera = &cameras[cam_id];
         
         //landmark
@@ -91,7 +91,7 @@ pub fn compute_jacobian<C : Camera>(state: &State, cameras: &Vec<C>, jacobian: &
 
             let row = get_feature_index_in_residual(cam_id, point_id, state.n_cams);
             let a_j = cam_state_idx;
-            let b_j = number_of_cam_params+(State::LANDMARK_PARAM_SIZE*point_id);
+            let b_j = number_of_cam_params+(T*point_id);
             
 
             compute_jacobian_wrt_camera_extrinsics(camera , state, cam_state_idx,&point,row,a_j, jacobian);
@@ -103,9 +103,9 @@ pub fn compute_jacobian<C : Camera>(state: &State, cameras: &Vec<C>, jacobian: &
 
 }
 
-pub fn optimize<C : Camera>(state: &mut State, cameras: &Vec<C>, observed_features: &DVector<Float>, runtime_parameters: &RuntimeParameters ) -> () {
+pub fn optimize<C : Camera,L: Landmark<T> + Copy + Clone, const T: usize>(state: &mut State<L,T>, cameras: &Vec<C>, observed_features: &DVector<Float>, runtime_parameters: &RuntimeParameters ) -> () {
     let mut new_state = state.clone();
-    let state_size = State::CAM_PARAM_SIZE*state.n_cams+State::LANDMARK_PARAM_SIZE*state.n_points;
+    let state_size = 6*state.n_cams+T*state.n_points;
     let mut jacobian = DMatrix::<Float>::zeros(observed_features.nrows(),state_size);
     let mut residuals = DVector::<Float>::zeros(observed_features.nrows());
     let mut new_residuals = DVector::<Float>::zeros(observed_features.nrows());
@@ -154,7 +154,7 @@ pub fn optimize<C : Camera>(state: &mut State, cameras: &Vec<C>, observed_featur
 
 
         let (gain_ratio_denom, mu_val) 
-            = gauss_newton_step_with_schur::<_,_,_,_,_,_,{State::LANDMARK_PARAM_SIZE}, {State::CAM_PARAM_SIZE}>(
+            = gauss_newton_step_with_schur::<_,_,_,_,_,_,T, 6>(
                 &mut target_arrowhead,
                 &mut g,
                 &mut delta,

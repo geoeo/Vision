@@ -8,7 +8,7 @@ use na::{Vector3,Matrix3};
 use color_eyre::eyre::Result;
 use vision::Float;
 use vision::image::features::{Match,ImageFeature};
-use vision::sfm::bundle_adjustment::{camera_feature_map::CameraFeatureMap, solver::optimize};
+use vision::sfm::{bundle_adjustment::{camera_feature_map::CameraFeatureMap, solver::optimize},euclidean_landmark::EuclideanLandmark};
 use vision::sensors::camera::pinhole::Pinhole;
 use vision::odometry::runtime_parameters::RuntimeParameters;
 use vision::numerics::{loss, weighting};
@@ -52,7 +52,7 @@ fn main() -> Result<()> {
     // let initial_motions = vec!((Vector3::<Float>::new(0.0,0.0,0.0),Matrix3::<Float>::identity()));
 
 
-    let mut state = feature_map.get_initial_state(None, -5.5);
+    let mut state = feature_map.get_initial_state::<EuclideanLandmark,3>(None, -5.5);
     let observed_features = feature_map.get_observed_features();
 
 
