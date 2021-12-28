@@ -22,7 +22,7 @@ fn main() -> Result<()> {
     //let matches = three_dv_loader::load_matches("D:/Workspace/Cpp/3dv_tutorial/bin/data", "image_formation0.xyz", "image_formation1.xyz");
     //let matches = three_dv_loader::load_matches("D:/Workspace/Cpp/3dv_tutorial/bin/data", "image_formation_neg_z_no_noise_0.xyz", "image_formation_neg_z_no_noise_1.xyz");
     //let matches_2_3 = three_dv_loader::load_matches("D:/Workspace/Cpp/3dv_tutorial/bin/data", "image_formation_neg_z_no_noise_0.xyz", "image_formation_neg_z_no_noise_3.xyz");
-    let matches = three_dv_loader::load_matches("D:/Workspace/Cpp/3dv_tutorial/bin/data", "image_formation_neg_z_no_noise_0.xyz", "image_formation_neg_z_no_noise_1.xyz");
+    let matches_0_1 = three_dv_loader::load_matches("D:/Workspace/Cpp/3dv_tutorial/bin/data", "image_formation_neg_z_no_noise_0.xyz", "image_formation_neg_z_no_noise_1.xyz");
     let matches_0_2 = three_dv_loader::load_matches("D:/Workspace/Cpp/3dv_tutorial/bin/data", "image_formation_neg_z_no_noise_0.xyz", "image_formation_neg_z_no_noise_2.xyz");
     let matches_1_3 = three_dv_loader::load_matches("D:/Workspace/Cpp/3dv_tutorial/bin/data", "image_formation_neg_z_no_noise_1.xyz", "image_formation_neg_z_no_noise_3.xyz");
     let intensity_camera_0 = Pinhole::new(1000.0, 1000.0, 320.0, 240.0, true);
@@ -34,14 +34,13 @@ fn main() -> Result<()> {
     let cameras = vec!(intensity_camera_0,intensity_camera_1,intensity_camera_2,intensity_camera_3);
 
     let mut all_matches = Vec::<Vec<Match<ImageFeature>>>::with_capacity(2);
-    all_matches.push(matches);
-
-
+    all_matches.push(matches_0_1);
     all_matches.push(matches_0_2);
     all_matches.push(matches_1_3);
+
     let image_id_pairs = vec!((0,1),(0,2),(1,3));
     let mut feature_map = CameraFeatureMap::new(&all_matches,4, (480,640));
-    feature_map.add_camera(vec!(0,1,2,3), all_matches.len(),1);
+    feature_map.add_cameras(vec!(0,1,2,3), all_matches.len(),1);
     feature_map.add_matches(&image_id_pairs,&all_matches, 1.0);
     let initial_motions = vec!((Vector3::<Float>::new(0.0,0.0,0.0),Matrix3::<Float>::identity()),(Vector3::<Float>::new(0.0,0.0,0.0),Matrix3::<Float>::identity()));
 

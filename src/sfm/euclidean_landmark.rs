@@ -11,7 +11,7 @@ pub struct EuclideanLandmark {
 
 impl Landmark<3> for EuclideanLandmark {
 
-    fn new(state: SVector<Float,3>) -> EuclideanLandmark {
+    fn from_state(state: SVector<Float,3>) -> EuclideanLandmark {
         EuclideanLandmark{state: Point3::<Float>::from(state)}
     }
 

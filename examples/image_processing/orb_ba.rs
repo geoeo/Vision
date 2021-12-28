@@ -82,7 +82,7 @@ fn main() -> Result<()> {
 
     let mut feature_map = CameraFeatureMap::new(&matches,2,(image_1.buffer.nrows(),image_1.buffer.ncols()));
 
-    feature_map.add_camera(vec!(image_1.id.unwrap(),image_2.id.unwrap()), orb_params_1_2.max_features_per_octave,orb_params_1_2.octave_count);
+    feature_map.add_cameras(vec!(image_1.id.unwrap(),image_2.id.unwrap()), orb_params_1_2.max_features_per_octave,orb_params_1_2.octave_count);
     //feature_map.add_camera(vec!(image_1.id.unwrap(),image_3.id.unwrap()), orb_params_1_2.max_features_per_octave,orb_params_1_2.octave_count);
     //feature_map.add_camera(vec!(image_1.id.unwrap(),image_4.id.unwrap()), orb_params_1_2.max_features_per_octave,orb_params_1_2.octave_count);
     //feature_map.add_camera(vec!(image_1.id.unwrap(),image_2.id.unwrap(),image_3.id.unwrap()), orb_params_1_2.max_features_per_octave,orb_params_1_2.octave_count);

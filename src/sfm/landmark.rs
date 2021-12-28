@@ -6,7 +6,7 @@ use crate::Float;
 pub trait Landmark<const T: usize> {
     const LANDMARK_PARAM_SIZE: usize = T;
 
-    fn new(state: SVector<Float, T>) -> Self; 
+    fn from_state(state: SVector<Float, T>) -> Self; 
     fn update(&mut self, perturb :&SVector<Float,T>) -> (); //TODO: change signature for inverse depth
     fn get_euclidean_representation(&self) -> Point3<Float>;
     fn transform_into_other_camera_frame(&self, other_cam_world: &Isometry3<Float>) -> Point3<Float>; //TODO: check this vs get_euclidean_representation

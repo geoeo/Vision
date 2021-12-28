@@ -65,7 +65,6 @@ impl<L: Landmark<T> + Copy + Clone, const T : usize> State<L,T> {
         let landmark_offset = self.camera_positions.nrows();
         for i in 0..self.landmarks.len() {
             let pertub_offset = i*L::LANDMARK_PARAM_SIZE;
-            //self.landmarks[i].update(perturb[landmark_offset+pertub_offset],perturb[landmark_offset+pertub_offset+1],perturb[landmark_offset+pertub_offset+2]);
             self.landmarks[i].update(&perturb.fixed_slice::<T,1>(landmark_offset+pertub_offset,0).into());
         }
     }

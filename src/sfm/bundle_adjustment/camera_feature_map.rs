@@ -1,12 +1,13 @@
 extern crate nalgebra as na;
 
-use na::{Vector3,Matrix3,DVector};
+use na::{Vector3,Matrix3,DVector, Isometry3, Vector6};
 use std::collections::HashMap;
 use crate::image::{
     features::{Feature,Match},
     features::geometry::point::Point
 };
 use crate::sfm::{bundle_adjustment::state::State, landmark::Landmark, euclidean_landmark::EuclideanLandmark, inverse_depth_landmark::InverseLandmark};
+use crate::sensors::camera::Camera;
 use crate::{Float, reconstruct_original_coordiantes_for_float};
 
 
@@ -36,7 +37,7 @@ impl CameraFeatureMap {
         }
     }
 
-    pub fn add_camera(&mut self, ids: Vec<u64>, features_per_octave: usize, octave_count: usize) -> () {
+    pub fn add_cameras(&mut self, ids: Vec<u64>, features_per_octave: usize, octave_count: usize) -> () {
         for i in 0..ids.len(){
             let id = ids[i];
             self.camera_map.insert(id,(i,HashMap::new()));
@@ -112,17 +113,36 @@ impl CameraFeatureMap {
 
     }
 
-    //TODO: inverse depth as separte function
-
-
-    pub fn get_inverse_depth_landmark_state(&self, initial_motions : Option<&Vec<(Vector3<Float>,Matrix3<Float>)>>) -> State<InverseLandmark,6> {
+    pub fn get_inverse_depth_landmark_state<C: Camera>(&self, initial_motions : Option<&Vec<(Vector3<Float>,Matrix3<Float>)>>, cameras: &Vec<C>) -> State<InverseLandmark,6> {
 
         let number_of_cameras = self.camera_map.keys().len();
         let number_of_unqiue_landmarks = self.number_of_unique_points;
         let number_of_cam_parameters = 6*number_of_cameras;
-        let mut camera_positions = DVector::<Float>::zeros(number_of_cam_parameters);
+        let camera_positions = self.get_initial_camera_positions(initial_motions);
+
+        let n_points = self.number_of_unique_points;
+        let n_cams = self.camera_map.keys().len();
+        let zero_state = Vector6::<Float>::new(0.0,0.0,0.0,0.0,0.0,0.0);
+
+        let mut landmarks = Vec::<InverseLandmark>::with_capacity(number_of_unqiue_landmarks);
+
+
+        for landmark_idx in 0..n_points {
+            let observing_cams = &self.point_cam_map[landmark_idx];
+            let idx_point = observing_cams.iter().enumerate().find(|(i,item)| item.is_some()).expect("get_inverse_depth_landmark_state: No camera for this landmark found! This should not happen");
+            let cam_idx = idx_point.0;
+            let cam_state_idx = 6*cam_idx;
+            let (x_val, y_val) = idx_point.1.unwrap();
+            let point = Point::<Float>::new(x_val,y_val);
+            let cam_translation = camera_positions.fixed_slice::<3,1>(cam_state_idx,0).into();
+            let cam_axis_angle = camera_positions.fixed_slice::<3,1>(cam_state_idx+3,0).into();
+            let isometry = Isometry3::new(cam_translation, cam_axis_angle);
+            let initial_inverse_landmark = InverseLandmark::new(&isometry,&point, &cameras[cam_idx]);
+
+            landmarks.push(initial_inverse_landmark);
+        }
         
-        panic!("TODO");
+        State::new(camera_positions,landmarks , number_of_cameras, number_of_unqiue_landmarks)
     }
 
     /**
@@ -132,11 +152,17 @@ impl CameraFeatureMap {
 
         let number_of_cameras = self.camera_map.keys().len();
         let number_of_unqiue_landmarks = self.number_of_unique_points;
+        let camera_positions = self.get_initial_camera_positions(initial_motions);
+        
+        let landmarks = vec![EuclideanLandmark::from_state(initial_landmark);number_of_unqiue_landmarks];
+        State::new(camera_positions,landmarks , number_of_cameras, number_of_unqiue_landmarks)
+    }
+
+    fn get_initial_camera_positions(&self,initial_motions : Option<&Vec<(Vector3<Float>,Matrix3<Float>)>> ) -> DVector::<Float> {
+
+        let number_of_cameras = self.camera_map.keys().len();
         let number_of_cam_parameters = 6*number_of_cameras;
         let mut camera_positions = DVector::<Float>::zeros(number_of_cam_parameters);
-        
-        let landmarks = vec![EuclideanLandmark::new(initial_landmark);number_of_unqiue_landmarks];
-        
         if initial_motions.is_some() {
             let value = initial_motions.unwrap();
             assert_eq!(value.len(),number_of_cameras-1); 
@@ -158,7 +184,8 @@ impl CameraFeatureMap {
 
         }
 
-        State::new(camera_positions,landmarks , number_of_cameras, number_of_unqiue_landmarks)
+        camera_positions
+
     }
 
     /**
@@ -169,30 +196,19 @@ impl CameraFeatureMap {
         let n_cams = self.camera_map.keys().len();
         let mut observed_features = DVector::<Float>::zeros(n_points*n_cams*2); // some entries might be zero
 
-        'outer: for r in 0..n_points {
-            let row = &self.point_cam_map[r];
-            let mut point_found = false;
+        for landmark_idx in 0..n_points {
+            let observing_cams = &self.point_cam_map[landmark_idx];
             for c in 0..n_cams {
-                let feat_id = 2*c + 2*r*n_cams;
-                let elem = row[c];
+                let feat_id = 2*c + 2*landmark_idx*n_cams;
+                let elem = observing_cams[c];
                 let (x_val, y_val) = match elem {
-                    Some(v) => {
-                        point_found = true;
-                        v
-                    },
-                    _ => (CameraFeatureMap::NO_FEATURE_FLAG,CameraFeatureMap::NO_FEATURE_FLAG)
+                    Some(v) => v,
+                    _ => (CameraFeatureMap::NO_FEATURE_FLAG,CameraFeatureMap::NO_FEATURE_FLAG)  
                 };
                 observed_features[feat_id] = x_val;
                 observed_features[feat_id+1] = y_val;
             }
-            if !point_found {
-                break 'outer;
-            }
         }
         observed_features
     }
-
-
-
-
 }

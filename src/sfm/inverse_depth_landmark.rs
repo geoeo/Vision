@@ -15,7 +15,7 @@ pub struct InverseLandmark {
 //We are not negating h_y because we will also not negate sin(phi)
 impl Landmark<6> for InverseLandmark {
 
-    fn new(state: SVector<Float,6>) -> InverseLandmark {
+    fn from_state(state: SVector<Float,6>) -> InverseLandmark {
         let theta = state[3];
         let phi = state[4];
 
@@ -92,7 +92,7 @@ impl Landmark<6> for InverseLandmark {
 
 impl InverseLandmark {
 
-    fn new<C: Camera>(cam_to_world: &Isometry3<Float>, image_coords: &Point<Float>, camera: &C) -> InverseLandmark {
+    pub fn new<C: Camera>(cam_to_world: &Isometry3<Float>, image_coords: &Point<Float>, camera: &C) -> InverseLandmark {
         let image_coords_homogeneous = Vector3::<Float>::new(image_coords.x,image_coords.y,-1.0);
         let h_c = camera.get_inverse_projection()*image_coords_homogeneous;
         assert!(h_c[0] >= 0.0 && h_c[1] >= 0.0);
