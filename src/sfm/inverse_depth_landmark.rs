@@ -1,7 +1,7 @@
 extern crate nalgebra as na;
 
 use na::{Vector3,Vector6,Matrix3x6, Isometry3, Point3,SVector, SMatrix};
-use crate::{Float,float};
+use crate::Float;
 use crate::sfm::landmark::Landmark;
 use crate::image::features::geometry::point::Point;
 use crate::sensors::camera::Camera;
@@ -79,15 +79,14 @@ impl Landmark<6> for InverseLandmark {
 
 impl InverseLandmark {
 
-    pub fn new<C: Camera>(cam_to_world: &Isometry3<Float>, image_coords: &Point<Float>, camera: &C) -> InverseLandmark {
-        let image_coords_homogeneous = Vector3::<Float>::new(image_coords.x,image_coords.y,-1.0);
+    pub fn new<C: Camera>(cam_to_world: &Isometry3<Float>, image_coords: &Point<Float>, inverse_depth_prior: Float, camera: &C) -> InverseLandmark {
+        let image_coords_homogeneous = Vector3::<Float>::new(image_coords.x,image_coords.y, -1.0);
         let h_c = camera.get_inverse_projection()*image_coords_homogeneous;
         let h_w = cam_to_world.transform_vector(&h_c);
         let theta = h_w[0].atan2(h_w[2]);
         //We are not negating h_w[1] here because we will also not negate sin(phi)
         let phi = h_w[1].atan2((h_w[0].powi(2)+h_w[2].powi(2)).sqrt());
         let m = InverseLandmark::direction(theta,phi);
-        let inverse_depth_prior = 0.5; //TODO: expose this
         let state = Vector6::<Float>::new(cam_to_world.translation.vector[0],cam_to_world.translation.vector[1],cam_to_world.translation.vector[2],theta,phi,inverse_depth_prior);
         InverseLandmark{state,m}
     }

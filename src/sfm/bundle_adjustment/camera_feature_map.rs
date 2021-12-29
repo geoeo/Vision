@@ -1,6 +1,6 @@
 extern crate nalgebra as na;
 
-use na::{Vector3,Matrix3,DVector, Isometry3, Vector6};
+use na::{Vector3,Matrix3,DVector, Isometry3};
 use std::collections::HashMap;
 use crate::image::{
     features::{Feature,Match},
@@ -113,23 +113,20 @@ impl CameraFeatureMap {
 
     }
 
-    pub fn get_inverse_depth_landmark_state<C: Camera>(&self, initial_motions : Option<&Vec<(Vector3<Float>,Matrix3<Float>)>>, cameras: &Vec<C>) -> State<InverseLandmark,6> {
+    /**
+     * initial_motion should all be with respect to the first camera
+     */
+    pub fn get_inverse_depth_landmark_state<C: Camera>(&self, initial_motions : Option<&Vec<(Vector3<Float>,Matrix3<Float>)>>, inverse_depth_prior: Float, cameras: &Vec<C>) -> State<InverseLandmark,6> {
 
         let number_of_cameras = self.camera_map.keys().len();
         let number_of_unqiue_landmarks = self.number_of_unique_points;
-        let number_of_cam_parameters = 6*number_of_cameras;
         let camera_positions = self.get_initial_camera_positions(initial_motions);
-
         let n_points = self.number_of_unique_points;
-        let n_cams = self.camera_map.keys().len();
-        let zero_state = Vector6::<Float>::new(0.0,0.0,0.0,0.0,0.0,0.0);
-
         let mut landmarks = Vec::<InverseLandmark>::with_capacity(number_of_unqiue_landmarks);
-
 
         for landmark_idx in 0..n_points {
             let observing_cams = &self.point_cam_map[landmark_idx];
-            let idx_point = observing_cams.iter().enumerate().find(|(i,item)| item.is_some()).expect("get_inverse_depth_landmark_state: No camera for this landmark found! This should not happen");
+            let idx_point = observing_cams.iter().enumerate().find(|(_,item)| item.is_some()).expect("get_inverse_depth_landmark_state: No camera for this landmark found! This should not happen");
             let cam_idx = idx_point.0;
             let cam_state_idx = 6*cam_idx;
             let (x_val, y_val) = idx_point.1.unwrap();
@@ -137,8 +134,8 @@ impl CameraFeatureMap {
             let cam_translation = camera_positions.fixed_slice::<3,1>(cam_state_idx,0).into();
             let cam_axis_angle = camera_positions.fixed_slice::<3,1>(cam_state_idx+3,0).into();
             let isometry = Isometry3::new(cam_translation, cam_axis_angle);
-            let initial_inverse_landmark = InverseLandmark::new(&isometry,&point, &cameras[cam_idx]);
-
+            let initial_inverse_landmark = InverseLandmark::new(&isometry,&point,inverse_depth_prior , &cameras[cam_idx]);
+ 
             landmarks.push(initial_inverse_landmark);
         }
         

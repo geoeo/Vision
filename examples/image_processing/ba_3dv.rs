@@ -52,7 +52,7 @@ fn main() -> Result<()> {
 
 
     //let mut state = feature_map.get_euclidean_landmark_state(None, Vector3::<Float>::new(0.0,0.0,-5.5));
-    let mut state = feature_map.get_inverse_depth_landmark_state(None, &cameras);
+    let mut state = feature_map.get_inverse_depth_landmark_state(None, 0.5, &cameras);
     let observed_features = feature_map.get_observed_features();
 
 
