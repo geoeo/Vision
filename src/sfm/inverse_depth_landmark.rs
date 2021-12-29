@@ -18,12 +18,7 @@ impl Landmark<6> for InverseLandmark {
     fn from_state(state: SVector<Float,6>) -> InverseLandmark {
         let theta = state[3];
         let phi = state[4];
-
-        let m = Vector3::<Float>::new(
-            phi.cos()*theta.sin(),
-            phi.sin(),
-            phi.cos()*theta.cos()
-        );
+        let m = InverseLandmark::direction(theta,phi);
         InverseLandmark{state,m}
     }
 
@@ -31,11 +26,7 @@ impl Landmark<6> for InverseLandmark {
         let state = Vector6::<Float>::new(arr[0],arr[1],arr[2],arr[3],arr[4],arr[5]);
         let theta = arr[3];
         let phi = arr[4];
-        let m = Vector3::<Float>::new(
-            phi.cos()*theta.sin(),
-            phi.sin(),
-            phi.cos()*theta.cos()
-        );
+        let m = InverseLandmark::direction(theta,phi);
         InverseLandmark{state,m}
     }
 
@@ -81,11 +72,7 @@ impl Landmark<6> for InverseLandmark {
         self.state += perturb;
         let theta = self.get_theta();
         let phi = self.get_phi();
-        self.m = Vector3::<Float>::new(
-            phi.cos()*theta.sin(),
-            phi.sin(),
-            phi.cos()*theta.cos()
-        );
+        self.m = InverseLandmark::direction(theta,phi);
 
     }
 }
@@ -95,17 +82,13 @@ impl InverseLandmark {
     pub fn new<C: Camera>(cam_to_world: &Isometry3<Float>, image_coords: &Point<Float>, camera: &C) -> InverseLandmark {
         let image_coords_homogeneous = Vector3::<Float>::new(image_coords.x,image_coords.y,-1.0);
         let h_c = camera.get_inverse_projection()*image_coords_homogeneous;
-        assert!(h_c[0] >= 0.0 && h_c[1] >= 0.0);
         let h_w = cam_to_world.transform_vector(&h_c);
         let theta = h_w[0].atan2(h_w[2]);
-        //We are not negating here because we will also not negate sin(phi)
+        //We are not negating h_w[1] here because we will also not negate sin(phi)
         let phi = h_w[1].atan2((h_w[0].powi(2)+h_w[2].powi(2)).sqrt());
-        let m = Vector3::<Float>::new(
-            phi.cos()*theta.sin(),
-            phi.sin(),
-            phi.cos()*theta.cos()
-        );
-        let state = Vector6::<Float>::new(cam_to_world.translation.vector[0],cam_to_world.translation.vector[1],cam_to_world.translation.vector[2],theta,phi,float::MAX);
+        let m = InverseLandmark::direction(theta,phi);
+        let inverse_depth_prior = 50.0; //TODO: expose this
+        let state = Vector6::<Float>::new(cam_to_world.translation.vector[0],cam_to_world.translation.vector[1],cam_to_world.translation.vector[2],theta,phi,inverse_depth_prior);
         InverseLandmark{state,m}
     }
 
@@ -128,6 +111,14 @@ impl InverseLandmark {
 
     fn get_phi(&self) -> Float {
         self.state[4]
+    }
+
+    fn direction(theta: Float, phi: Float) -> Vector3<Float> {
+        Vector3::<Float>::new(
+            phi.cos()*theta.sin(),
+            phi.sin(),
+            phi.cos()*theta.cos()
+        )
     }
 
 }

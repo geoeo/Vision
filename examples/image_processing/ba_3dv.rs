@@ -51,7 +51,8 @@ fn main() -> Result<()> {
     // let initial_motions = vec!((Vector3::<Float>::new(0.0,0.0,0.0),Matrix3::<Float>::identity()));
 
 
-    let mut state = feature_map.get_euclidean_landmark_state(None, Vector3::<Float>::new(0.0,0.0,-5.5));
+    //let mut state = feature_map.get_euclidean_landmark_state(None, Vector3::<Float>::new(0.0,0.0,-5.5));
+    let mut state = feature_map.get_inverse_depth_landmark_state(None, &cameras);
     let observed_features = feature_map.get_observed_features();
 
 
