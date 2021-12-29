@@ -113,8 +113,8 @@ pub fn optimize<C : Camera,L: Landmark<T> + Copy + Clone, const T: usize>(state:
     let mut new_estimated_features = DVector::<Float>::zeros(observed_features.nrows());
     let mut weights_vec = DVector::<Float>::from_element(observed_features.nrows(),1.0);
     let mut target_arrowhead = DMatrix::<Float>::zeros(state_size, state_size);
-    // let mut g = DVector::<Float>::from_element(state_size,0.0); 
-    // let mut delta = DVector::<Float>::from_element(state_size,0.0); 
+    let mut g = DVector::<Float>::from_element(state_size,0.0); 
+    let mut delta = DVector::<Float>::from_element(state_size,0.0); 
 
     get_estimated_features(state, cameras,observed_features, &mut estimated_features);
     compute_residual(&estimated_features, observed_features, &mut residuals);
@@ -148,29 +148,29 @@ pub fn optimize<C : Camera,L: Landmark<T> + Copy + Clone, const T: usize>(state:
             println!("it: {}, avg_rmse: {}",iteration_count,cost.sqrt());
         }
 
-        // target_arrowhead.fill(0.0);
-        // g.fill(0.0);
-        // delta.fill(0.0);
-        // let (gain_ratio_denom, mu_val) 
-        //     = gauss_newton_step_with_schur::<_,_,_,_,_,_,T, 6>(
-        //         &mut target_arrowhead,
-        //         &mut g,
-        //         &mut delta,
-        //         &residuals,
-        //         &jacobian,
-        //         mu,
-        //         tau,
-        //         state.n_cams,
-        //         state.n_points
-        //     ); 
+        target_arrowhead.fill(0.0);
+        g.fill(0.0);
+        delta.fill(0.0);
+        let (gain_ratio_denom, mu_val) 
+            = gauss_newton_step_with_schur::<_,_,_,_,_,_,T, 6>(
+                &mut target_arrowhead,
+                &mut g,
+                &mut delta,
+                &residuals,
+                &jacobian,
+                mu,
+                tau,
+                state.n_cams,
+                state.n_points
+            ); 
 
-        let identity = DMatrix::<Float>::identity(state_size, state_size);
-        let (delta,g,gain_ratio_denom, mu_val) 
-            = crate::numerics::solver::gauss_newton_step(&residuals,
-                 &(jacobian),
-                 &identity,
-                 mu,
-                 tau); 
+        // let identity = DMatrix::<Float>::identity(state_size, state_size);
+        // let (delta,g,gain_ratio_denom, mu_val) 
+        //     = crate::numerics::solver::gauss_newton_step(&residuals,
+        //          &(jacobian),
+        //          &identity,
+        //          mu,
+        //          tau); 
 
         mu = Some(mu_val);
 

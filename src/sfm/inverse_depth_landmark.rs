@@ -87,7 +87,7 @@ impl InverseLandmark {
         //We are not negating h_w[1] here because we will also not negate sin(phi)
         let phi = h_w[1].atan2((h_w[0].powi(2)+h_w[2].powi(2)).sqrt());
         let m = InverseLandmark::direction(theta,phi);
-        let inverse_depth_prior = 50.0; //TODO: expose this
+        let inverse_depth_prior = 0.5; //TODO: expose this
         let state = Vector6::<Float>::new(cam_to_world.translation.vector[0],cam_to_world.translation.vector[1],cam_to_world.translation.vector[2],theta,phi,inverse_depth_prior);
         InverseLandmark{state,m}
     }
