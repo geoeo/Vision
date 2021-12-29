@@ -20,7 +20,6 @@ use crate::io::{load_image_as_gray,load_depth_image_from_csv};
 pub fn load_camera(root_path: &str, parameters: &ImageLoadingParameters) -> CameraDataFrame {
     let depth_image_format = "csv";
     let color_image_format = "png";
-    let text_format = "txt";
     let depth_image_folder = format!("{}/{}",root_path,"depth");
     let color_image_folder = format!("{}/{}",root_path,"rgb");
 

@@ -1,6 +1,6 @@
 extern crate nalgebra as na;
 
-use na::{DVector,DMatrix,Matrix, Dynamic, U4, VecStorage,Vector,Point3, Vector4,Matrix4,U3,U1,base::storage::Storage};
+use na::{DVector,DMatrix,Matrix, Dynamic, U4, VecStorage,Point3, Vector4};
 use crate::{float,Float};
 use crate::sensors::camera::Camera;
 use crate::numerics::lie::left_jacobian_around_identity;

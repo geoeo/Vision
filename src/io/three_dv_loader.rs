@@ -2,7 +2,7 @@
 use std::path::Path;
 use std::fs::File;
 use std::io::{BufReader,BufRead};
-use crate::image::features::{Match,ImageFeature, Feature};
+use crate::image::features::{Match,ImageFeature};
 use crate::io;
 
 

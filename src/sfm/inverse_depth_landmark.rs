@@ -80,6 +80,7 @@ impl Landmark<6> for InverseLandmark {
 impl InverseLandmark {
 
     pub fn new<C: Camera>(cam_to_world: &Isometry3<Float>, image_coords: &Point<Float>, inverse_depth_prior: Float, camera: &C) -> InverseLandmark {
+        assert!(inverse_depth_prior > 0.0); // Negative depth is induced by image_coords_homogeneous
         let image_coords_homogeneous = Vector3::<Float>::new(image_coords.x,image_coords.y, -1.0);
         let h_c = camera.get_inverse_projection()*image_coords_homogeneous;
         let h_w = cam_to_world.transform_vector(&h_c);

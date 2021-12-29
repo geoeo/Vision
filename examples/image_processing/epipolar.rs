@@ -18,7 +18,6 @@ fn main() -> Result<()> {
 
     let intensity_camera_1 = Pinhole::new(389.2685546875, 389.2685546875, 319.049255371094, 241.347015380859, true);
     let intensity_camera_2 = intensity_camera_1.clone();
-    let cameras = vec!(intensity_camera_1,intensity_camera_2);
 
 
     //let orb_matches_read = fs::read_to_string("D:/Workspace/Rust/Vision/output/orb_ba_matches_2_images.txt").expect("Unable to read file");

@@ -1,7 +1,7 @@
 extern crate nalgebra as na;
 
 use crate::numerics::lie::exp_se3;
-use crate::sfm::{euclidean_landmark::EuclideanLandmark,landmark::Landmark};
+use crate::sfm::landmark::Landmark;
 use crate::Float;
 use na::{DVector, SMatrix, Matrix4, Vector3, Isometry3, Rotation3};
 
@@ -69,7 +69,6 @@ impl<L: Landmark<T> + Copy + Clone, const T : usize> State<L,T> {
         }
     }
 
-    //TODO: check if there is a nicer way for return type
     pub fn jacobian_wrt_world_coordiantes(&self, point_index: usize, cam_idx: usize) ->  SMatrix<Float,3,T> {
 
         let translation = na::Vector3::new(self.camera_positions[cam_idx],self.camera_positions[cam_idx+1],self.camera_positions[cam_idx+2]);
