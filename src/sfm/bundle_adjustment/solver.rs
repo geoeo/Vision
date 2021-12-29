@@ -173,9 +173,7 @@ pub fn optimize<C : Camera,L: Landmark<T> + Copy + Clone, const T: usize>(state:
         //          tau); 
 
         mu = Some(mu_val);
-
         let pertb = step*(&delta);
-
         new_state.update(&pertb);
 
         get_estimated_features(&new_state, cameras,observed_features, &mut new_estimated_features);
