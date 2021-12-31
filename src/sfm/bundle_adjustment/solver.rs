@@ -12,7 +12,6 @@ pub fn get_feature_index_in_residual(cam_id: usize, feature_id: usize, n_cams: u
     2*(cam_id + feature_id*n_cams)
 }
 
-//TODO: inverse depth
 /**
  * In the format [f1_cam1, f1_cam2,...]
  * Some entries may be 0 since not all cams see all points
@@ -54,7 +53,6 @@ pub fn compute_residual(estimated_features: &DVector<Float>, observed_features: 
     }
 }
 
-//TODO: inverse depth -> move pont def to landmark struct
 pub fn compute_jacobian_wrt_object_points<C : Camera, L: Landmark<T> + Copy + Clone, const T: usize>(camera: &C, state: &State<L,T>, cam_idx: usize, point_idx: usize, i: usize, j: usize, jacobian: &mut DMatrix<Float>) -> (){
     let transformation = state.to_se3(cam_idx);
     let point = state.get_landmarks()[point_idx].get_euclidean_representation();
@@ -103,7 +101,11 @@ pub fn compute_jacobian<C : Camera, L: Landmark<T> + Copy + Clone, const T: usiz
 
 }
 
-pub fn optimize<C : Camera,L: Landmark<T> + Copy + Clone, const T: usize>(state: &mut State<L,T>, cameras: &Vec<C>, observed_features: &DVector<Float>, runtime_parameters: &RuntimeParameters ) -> () {
+pub fn optimize<C : Camera,L: Landmark<T> + Copy + Clone, const T: usize>(state: &mut State<L,T>, cameras: &Vec<C>, observed_features: &DVector<Float>, runtime_parameters: &RuntimeParameters ) -> Option<Vec<(Vec<[Float; 6]>, Vec<[Float; T]>)>> {
+    
+
+    let max_iterations = runtime_parameters.max_iterations[0];
+    
     let mut new_state = state.clone();
     let state_size = 6*state.n_cams+T*state.n_points;
     let mut jacobian = DMatrix::<Float>::zeros(observed_features.nrows(),state_size);
@@ -114,7 +116,11 @@ pub fn optimize<C : Camera,L: Landmark<T> + Copy + Clone, const T: usize>(state:
     let mut weights_vec = DVector::<Float>::from_element(observed_features.nrows(),1.0);
     let mut target_arrowhead = DMatrix::<Float>::zeros(state_size, state_size);
     let mut g = DVector::<Float>::from_element(state_size,0.0); 
-    let mut delta = DVector::<Float>::from_element(state_size,0.0); 
+    let mut delta = DVector::<Float>::from_element(state_size,0.0);
+    let mut debug_state_list = match runtime_parameters.debug {
+        true => Some(Vec::<(Vec<[Float; 6]>, Vec<[Float; T]>)>::with_capacity(max_iterations)),
+        false => None
+    };
 
     get_estimated_features(state, cameras,observed_features, &mut estimated_features);
     compute_residual(&estimated_features, observed_features, &mut residuals);
@@ -129,6 +135,7 @@ pub fn optimize<C : Camera,L: Landmark<T> + Copy + Clone, const T: usize>(state:
     let mut delta_thresh = float::MIN;
     let mut delta_norm = float::MAX;
     let mut nu = 2.0;
+    let tau = runtime_parameters.taus[0];
 
     let mut mu: Option<Float> = match runtime_parameters.lm {
         true => None,
@@ -138,13 +145,13 @@ pub fn optimize<C : Camera,L: Landmark<T> + Copy + Clone, const T: usize>(state:
         true => 1.0,
         false => runtime_parameters.step_sizes[0]
     };
-    let tau = runtime_parameters.taus[0];
-    let max_iterations = runtime_parameters.max_iterations[0];
+
     
     let mut cost = compute_cost(&residuals,&runtime_parameters.loss_function);
     let mut iteration_count = 0;
     while ((!runtime_parameters.lm && (cost.sqrt() > runtime_parameters.eps[0])) || (runtime_parameters.lm && (delta_norm > delta_thresh && max_norm_delta > runtime_parameters.max_norm_eps)))  && iteration_count < max_iterations  {
-        if runtime_parameters.debug{
+        if runtime_parameters.debug {
+            debug_state_list.as_mut().expect("Debug is true but state list is None!. This should not happen").push(state.to_serial());
             println!("it: {}, avg_rmse: {}",iteration_count,cost.sqrt());
         }
 
@@ -228,7 +235,7 @@ pub fn optimize<C : Camera,L: Landmark<T> + Copy + Clone, const T: usize>(state:
 
     }
 
-    
+    debug_state_list
 }
 
 

@@ -73,7 +73,7 @@ fn main() -> Result<()> {
         intensity_weighting_function:  Box::new(weighting::TrivialWeight {})
     };
 
-    optimize(&mut state, &cameras, &observed_features, &runtime_parameters);
+    let some_debug_state_list = optimize(&mut state, &cameras, &observed_features, &runtime_parameters);
 
     //TODO: make this a serializable datatype
     let (cam_positions,points) = state.as_matrix_point();
@@ -92,6 +92,10 @@ fn main() -> Result<()> {
 
     let s = serde_yaml::to_string(&state.to_serial())?;
     fs::write(format!("D:/Workspace/Rust/Vision/output/3dv.txt"), s).expect("Unable to write file");
+    if runtime_parameters.debug {
+        let debug_states_serialized = serde_yaml::to_string(&some_debug_state_list)?;
+        fs::write(format!("D:/Workspace/Rust/Vision/output/3dv_debug.txt"), debug_states_serialized).expect("Unable to write file");
+    }
    
 
     Ok(())
