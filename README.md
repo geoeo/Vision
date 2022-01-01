@@ -20,7 +20,7 @@ Inverse Depth Parameterization https://www.doc.ic.ac.uk/~ajd/Publications/civera
 ![fast](doc/lenna_fast.png)
 
 ## Sparse BA (Euclidean + Inverse Depth Param)
-![ba](doc/ba_3dv.gif)
+![ba](doc/ba_3dv_50.gif)
 
 ## Dense VO (LM + SoftOneLoss) - Tum Dataset Freiburg2 Desk
 
