@@ -2,7 +2,7 @@ extern crate nalgebra as na;
 
 use na::{
     DVector, DimMin, Dynamic, Matrix, Matrix4, SMatrix, SVector,
-    VecStorage,Const, Isometry3, Rotation3, Translation3
+    VecStorage,Const, Isometry3, Rotation3
 };
 use std::boxed::Box;
 

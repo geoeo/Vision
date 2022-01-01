@@ -120,14 +120,12 @@ fn fill_matrix_with_default_depth(target: &mut DMatrix<Float>,negate_values: boo
         false => target.max()
     };
 
-    //let extrema = (target.min() + target.max())/2.0;
-
     for r in 0..target.nrows(){
         for c in 0..target.ncols(){
             if target[(r,c)] == 0.0 {
                 target[(r,c)] = extrema;
             } 
-            //TODO: inverse depth
+
         }
     }
 

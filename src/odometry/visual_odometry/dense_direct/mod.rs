@@ -4,7 +4,7 @@ use na::{U2,U4,Dim,DimName,Const,RowVector2,Vector4,DVector,Matrix4,Matrix,DMatr
 
 use crate::image::pyramid::gd::{GDPyramid,gd_octave::GDOctave};
 use crate::sensors::camera::Camera;
-use crate::numerics::{lie, weighting::WeightingFunction};
+use crate::numerics::lie;
 use crate::image::features::geometry::point::Point;
 use crate::{Float,float,reconstruct_original_coordiantes_for_float};
 
@@ -185,26 +185,24 @@ pub fn compute_residuals<C>(target_image_buffer: &DMatrix<Float>,source_image_bu
 
     let (rows,cols) = source_image_buffer.shape();
     for i in 0..number_of_points {
-        let source_point = linear_to_image_index(i,image_width);
-        let target_point = camera.project(&transformed_points.fixed_slice::<3,1>(0,i)); //TODO: inverse depth
-        let target_point_y = target_point.y.trunc() as usize;
-        let target_point_x = target_point.x.trunc() as usize;
-        let target_linear_idx = image_to_linear_index(target_point_y, image_width, target_point_x);
+        let target_point = linear_to_image_index(i,image_width);
+        let transformed_point = camera.project(&transformed_points.fixed_slice::<3,1>(0,i)); 
+        let transformed_point_y = transformed_point.y.trunc() as usize;
+        let transformed_point_x = transformed_point.x.trunc() as usize;
+        let target_linear_idx = image_to_linear_index(transformed_point_y, image_width, transformed_point_x);
 
         // We only want to compare pixels where both values are valid i.e. has depth estimate
-        if source_point.y < rows && target_point_y < rows && 
-           source_point.x < cols && target_point_x < cols && 
+        if target_point.y < rows && transformed_point_y < rows && 
+        target_point.x < cols && transformed_point_x < cols && 
            backprojected_points_flags[i] &&
            backprojected_points_flags[target_linear_idx]{ 
-            image_gradient_points.push(Point::<usize>::new(target_point_x,target_point_y));
-            let source_sample = source_image_buffer[(source_point.y,source_point.x)];
-            let target_sample = target_image_buffer[(target_point_y,target_point_x)];
+            image_gradient_points.push(Point::<usize>::new(transformed_point_x,transformed_point_y));
+            let source_sample = source_image_buffer[(transformed_point_y,transformed_point_x)];
+            let target_sample = target_image_buffer[(target_point.y,target_point.x)];
             residual_target[i] = source_sample - target_sample;
            }
         else {
             residual_target[i] = 0.0; 
-            //residual_target[i] = 1.0;  // This give a CRT error
-            //residual_target[i] = 1e-8; 
         }
 
     }

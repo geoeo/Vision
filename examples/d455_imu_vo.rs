@@ -19,7 +19,7 @@ use vision::Float;
 use vision::numerics;
 
 fn main() {
-    let dataset_name = "simple_trans_imu";
+    let dataset_name = "y";
 
     let root_path = format!("D:/Workspace/Datasets/D455/{}", dataset_name);
     let out_folder = "D:/Workspace/Rust/Vision/output";
@@ -30,8 +30,8 @@ fn main() {
         count: 150,
         image_height: 480,
         image_width: 640,
-        negate_depth_values: false,
-        invert_focal_lengths: false,
+        negate_depth_values: true,
+        invert_focal_lengths: true,
         invert_y: true,
         set_default_depth: true,
         gt_alignment_rot: UnitQuaternion::identity(),

@@ -30,15 +30,17 @@ fn main() {
     let loading_parameters = ImageLoadingParameters {
         starting_index: 0,
         step :1,
-        count :300,
+        count :150,
         image_height: 480,
         image_width: 640,
-        negate_depth_values :false,
-        invert_focal_lengths :false,
+        negate_depth_values :true,
+        invert_focal_lengths :true,
         invert_y :true,
         set_default_depth: true,
         gt_alignment_rot:UnitQuaternion::<Float>::from_axis_angle(&Vector3::x_axis(),float::consts::FRAC_PI_2)* UnitQuaternion::<Float>::from_axis_angle(&Vector3::y_axis(),float::consts::PI)
-        //gt_alignment_rot:UnitQuaternion::<Float>::from_axis_angle(&Vector3::y_axis(),float::consts::PI) // TODO maybe negate y aswell
+        //gt_alignment_rot:UnitQuaternion::<Float>::from_axis_angle(&Vector3::y_axis(),0.0) // TODO maybe negate y aswell
+        //gt_alignment_rot:UnitQuaternion::<Float>::from_axis_angle(&Vector3::y_axis(),float::consts::PI) 
+        //gt_alignment_rot:UnitQuaternion::<Float>::from_axis_angle(&Vector3::x_axis(),float::consts::FRAC_PI_2) 
     };
 
 
@@ -80,13 +82,14 @@ fn main() {
         step_sizes: vec!(1e-0,1e-1,1e-1,1e-3), 
         max_norm_eps: 1e-10,
         delta_eps: 1e-10,
-        taus: vec!(1e-6,1e-3,1e-3,1e-0), 
+        taus: vec!(1e-3,1e-3,1e-3,1e-0), 
         lm: true,
         weighting: true,
         debug: false,
 
         show_octave_result: true,
         loss_function: Box::new(loss::SoftOneLoss {eps: 1e-16, approximate_gauss_newton_matrices: true}),
+        //loss_function: Box::new(loss::TrivialLoss {eps: 1e-16, approximate_gauss_newton_matrices: false}),
         intensity_weighting_function:  Box::new(weighting::HuberWeightForPos {delta:1.0})
     };
 

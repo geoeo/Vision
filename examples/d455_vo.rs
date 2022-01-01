@@ -14,7 +14,7 @@ use vision::visualize::plot;
 fn main() {
 
 
-    let dataset_name = "simple_trans_imu";
+    let dataset_name = "z";
 
     let root_path = format!("D:/Workspace/Datasets/D455/{}",dataset_name);
     let out_folder = "D:/Workspace/Rust/Vision/output";
@@ -22,13 +22,13 @@ fn main() {
     let loading_parameters = ImageLoadingParameters {
         starting_index: 5,
         step: 1,
-        count: 10,
+        count: 150,
         image_height: 480,
         image_width: 640,
-        negate_depth_values :false,
-        invert_focal_lengths :false,
+        negate_depth_values :true,
+        invert_focal_lengths :true,
         invert_y :true,
-        set_default_depth: false,
+        set_default_depth: true,
         gt_alignment_rot:UnitQuaternion::identity()
     };
 
@@ -45,7 +45,7 @@ fn main() {
 
     let pyramid_parameters = GDRuntimeParameters{
         pyramid_scale: 2.0,
-        sigma: 0.5,
+        sigma: 0.01,
         use_blur: true,
         blur_radius: 1.0,
         octave_count: 3,
@@ -68,7 +68,7 @@ fn main() {
         step_sizes: vec!(1e-8,1e-8,1e-8), 
         max_norm_eps: 1e-10,
         delta_eps: 1e-10,
-        taus: vec!(1e-6,1e-3,1e-3), 
+        taus: vec!(1e-3,1e-3,1e0), 
         lm: true,
         weighting: true,
         debug: false,
