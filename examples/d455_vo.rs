@@ -14,13 +14,13 @@ use vision::visualize::plot;
 fn main() {
 
 
-    let dataset_name = "y";
+    let dataset_name = "z";
 
     let root_path = format!("D:/Workspace/Datasets/D455/{}",dataset_name);
     let out_folder = "D:/Workspace/Rust/Vision/output";
 
     let loading_parameters = ImageLoadingParameters {
-        starting_index: 220,
+        starting_index: 5,
         step: 1,
         count: 100,
         image_height: 480,
@@ -66,8 +66,8 @@ fn main() {
         max_iterations: vec![50;3],
         eps: vec!(1e-3,1e-3,1e-3),
         step_sizes: vec!(1e-8,1e-8,1e-8), 
-        max_norm_eps: 1e0,
-        delta_eps: 1e0,
+        max_norm_eps: 1e-5,
+        delta_eps: 1e-5,
         taus: vec!(1e-3,1e-3,1e0), 
         lm: true,
         weighting: true,
@@ -75,7 +75,7 @@ fn main() {
 
         show_octave_result: true,
         //loss_function: Box::new(loss::SoftOneLoss {eps: 1e-16, approximate_gauss_newton_matrices: true}),
-        loss_function: Box::new(loss::TrivialLoss {eps: 1e-16, approximate_gauss_newton_matrices: true}),
+        loss_function: Box::new(loss::TrivialLoss {eps: 1e-16, approximate_gauss_newton_matrices: false}),
         intensity_weighting_function:  Box::new(weighting::HuberWeightForPos {delta: 1.0})
     };
 

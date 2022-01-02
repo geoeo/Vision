@@ -47,7 +47,7 @@ fn main() {
 
     let pyramid_parameters = GDRuntimeParameters{
         pyramid_scale: 1.2,
-        sigma: 1.8,
+        sigma: 0.8,
         use_blur: true,
         blur_radius: 1.0,
         octave_count: 3,
@@ -80,8 +80,8 @@ fn main() {
         max_iterations: vec![100;3],
         eps: vec!(1e-5,9e-4,9e-4),
         step_sizes: vec!(1e-0,1e-1,1e-1), 
-        max_norm_eps: 0.0,
-        delta_eps: 0.0,
+        max_norm_eps: 1e-10,
+        delta_eps: 1e-10,
         taus: vec!(1e-3,1e0,1e0), 
         lm: true,
         weighting: true,
