@@ -10,7 +10,7 @@ use crate::image::Image;
 use crate::numerics::{lie, loss::LossFunction, max_norm, solver::{calc_weight_vec, weight_jacobian_sparse, weight_residuals_sparse, compute_cost}};
 use crate::odometry::runtime_parameters::RuntimeParameters;
 use crate::odometry::visual_odometry::dense_direct::{
-    RuntimeMemory,backproject_points, compute_full_jacobian, compute_image_gradients, compute_residuals,
+    RuntimeMemory,backproject_points, compute_full_jacobian, compute_image_gradients, compute_residuals,compute_t_dist_weights,
     precompute_jacobians
 };
 use crate::image::pyramid::gd::{gd_octave::GDOctave, GDPyramid};
@@ -214,14 +214,8 @@ fn estimate<C : Camera, const T: usize>(
         ) * est_transform;
 
         runtime_memory.new_image_gradient_points.clear();
-        if runtime_parameters.weighting {
-            calc_weight_vec(
-                &runtime_memory.residuals,
-                &runtime_parameters.intensity_weighting_function,
-                &mut runtime_memory.weights_vec,
-            );
-        }
-        
+
+
         compute_residuals(
             &target_image.buffer,
             &source_image.buffer,
@@ -233,6 +227,18 @@ fn estimate<C : Camera, const T: usize>(
             &mut runtime_memory.new_image_gradient_points,
         );
 
+        if runtime_parameters.weighting {
+            // calc_weight_vec(
+            //     &runtime_memory.new_residuals,
+            //     &runtime_parameters.intensity_weighting_function,
+            //     &mut runtime_memory.weights_vec,
+            // );
+            compute_t_dist_weights(&runtime_memory.new_residuals, &mut runtime_memory.weights_vec, 5.0, 10, 1e-6);
+            
+            weight_residuals_sparse(&mut runtime_memory.new_residuals, &runtime_memory.weights_vec);
+
+        }
+
 
         percentage_of_valid_pixels =
             (runtime_memory.new_image_gradient_points.len() as Float / number_of_pixels_float) * 100.0;
@@ -240,7 +246,7 @@ fn estimate<C : Camera, const T: usize>(
         let cost_diff = cost - new_cost;
         let gain_ratio = cost_diff / gain_ratio_denom;
         if runtime_parameters.debug {
-            println!("{},{}", cost, new_cost);
+            println!("{},{},{}", cost, new_cost,gain_ratio);
         }
         if gain_ratio >= 0.0 || !runtime_parameters.lm {
             let est_lie = lie::ln(&new_est_transform);
@@ -267,7 +273,6 @@ fn estimate<C : Camera, const T: usize>(
                 &mut runtime_memory.full_jacobian,
             );
 
-            weight_residuals_sparse(&mut runtime_memory.residuals, &runtime_memory.weights_vec);
             weight_jacobian_sparse(&mut runtime_memory.full_jacobian, &runtime_memory.weights_vec);
 
             let v: Float = 1.0 / 3.0;
