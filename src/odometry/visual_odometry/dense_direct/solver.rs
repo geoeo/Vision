@@ -146,7 +146,7 @@ fn estimate<C : Camera, const T: usize>(
         &mut runtime_memory.image_gradient_points,
     );
 
-    weight_residuals_sparse(&mut runtime_memory.residuals, &runtime_memory.weights_vec);
+
     let mut cost = compute_cost(&runtime_memory.residuals, &runtime_parameters.loss_function);
 
     let mut max_norm_delta = float::MAX;
@@ -177,7 +177,6 @@ fn estimate<C : Camera, const T: usize>(
         &mut runtime_memory.full_jacobian,
     );
 
-    weight_jacobian_sparse(&mut runtime_memory.full_jacobian, &runtime_memory.weights_vec);
 
     let mut iteration_count = 0;
     while ((!runtime_parameters.lm && (cost.sqrt() > runtime_parameters.eps[octave_index]))
@@ -185,6 +184,7 @@ fn estimate<C : Camera, const T: usize>(
             && (delta_norm > delta_thresh && max_norm_delta > runtime_parameters.max_norm_eps)))
         && iteration_count < max_iterations
     {
+
         if runtime_parameters.debug {
             println!(
                 "it: {}, rmse: {}, valid pixels: {}%",
@@ -214,6 +214,14 @@ fn estimate<C : Camera, const T: usize>(
         ) * est_transform;
 
         runtime_memory.new_image_gradient_points.clear();
+        if runtime_parameters.weighting {
+            calc_weight_vec(
+                &runtime_memory.residuals,
+                &runtime_parameters.intensity_weighting_function,
+                &mut runtime_memory.weights_vec,
+            );
+        }
+        
         compute_residuals(
             &target_image.buffer,
             &source_image.buffer,
@@ -224,14 +232,7 @@ fn estimate<C : Camera, const T: usize>(
             &mut runtime_memory.new_residuals,
             &mut runtime_memory.new_image_gradient_points,
         );
-        if runtime_parameters.weighting {
-            calc_weight_vec(
-                &runtime_memory.new_residuals,
-                &runtime_parameters.intensity_weighting_function,
-                &mut runtime_memory.weights_vec,
-            );
-        }
-        weight_residuals_sparse(&mut runtime_memory.new_residuals, &runtime_memory.weights_vec);
+
 
         percentage_of_valid_pixels =
             (runtime_memory.new_image_gradient_points.len() as Float / number_of_pixels_float) * 100.0;
@@ -265,6 +266,8 @@ fn estimate<C : Camera, const T: usize>(
                 &constant_jacobians,
                 &mut runtime_memory.full_jacobian,
             );
+
+            weight_residuals_sparse(&mut runtime_memory.residuals, &runtime_memory.weights_vec);
             weight_jacobian_sparse(&mut runtime_memory.full_jacobian, &runtime_memory.weights_vec);
 
             let v: Float = 1.0 / 3.0;

@@ -1,7 +1,7 @@
 extern crate nalgebra as na;
 extern crate vision;
 
-use na::{Vector3,Point3, UnitQuaternion, Isometry3};
+use na::{Point3, UnitQuaternion, Isometry3};
 use std::boxed::Box;
 use vision::io::{image_loading_parameters::ImageLoadingParameters,d455_loader};
 use vision::image::pyramid::gd::{GDPyramid,gd_octave::GDOctave, build_rgbd_pyramid,gd_runtime_parameters::GDRuntimeParameters};
@@ -14,15 +14,15 @@ use vision::visualize::plot;
 fn main() {
 
 
-    let dataset_name = "z";
+    let dataset_name = "y";
 
     let root_path = format!("D:/Workspace/Datasets/D455/{}",dataset_name);
     let out_folder = "D:/Workspace/Rust/Vision/output";
 
     let loading_parameters = ImageLoadingParameters {
-        starting_index: 5,
+        starting_index: 220,
         step: 1,
-        count: 150,
+        count: 100,
         image_height: 480,
         image_width: 640,
         negate_depth_values :true,
@@ -44,8 +44,8 @@ fn main() {
     println!("{:?}",loaded_data.intensity_camera.projection);
 
     let pyramid_parameters = GDRuntimeParameters{
-        pyramid_scale: 2.0,
-        sigma: 1.0,
+        pyramid_scale: 1.2,
+        sigma: 0.8,
         use_blur: true,
         blur_radius: 1.0,
         octave_count: 3,
@@ -63,20 +63,20 @@ fn main() {
 
     let vo_parameters = RuntimeParameters{
         pyramid_scale: pyramid_parameters.pyramid_scale,
-        max_iterations: vec![800;3],
+        max_iterations: vec![50;3],
         eps: vec!(1e-3,1e-3,1e-3),
         step_sizes: vec!(1e-8,1e-8,1e-8), 
-        max_norm_eps: 1e-10,
-        delta_eps: 1e-10,
+        max_norm_eps: 1e0,
+        delta_eps: 1e0,
         taus: vec!(1e-3,1e-3,1e0), 
         lm: true,
         weighting: true,
         debug: false,
 
         show_octave_result: true,
-        loss_function: Box::new(loss::SoftOneLoss {eps: 1e-16, approximate_gauss_newton_matrices: true}),
-        //loss_function: Box::new(loss::TrivialLoss {eps: 1e-16, approximate_gauss_newton_matrices: true}),
-        intensity_weighting_function:  Box::new(weighting::HuberWeightForPos {delta: 0.1})
+        //loss_function: Box::new(loss::SoftOneLoss {eps: 1e-16, approximate_gauss_newton_matrices: true}),
+        loss_function: Box::new(loss::TrivialLoss {eps: 1e-16, approximate_gauss_newton_matrices: true}),
+        intensity_weighting_function:  Box::new(weighting::HuberWeightForPos {delta: 1.0})
     };
 
     let mut se3_est = vec!(Isometry3::<Float>::identity());

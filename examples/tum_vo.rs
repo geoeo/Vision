@@ -46,10 +46,10 @@ fn main() {
 
 
     let pyramid_parameters = GDRuntimeParameters{
-        pyramid_scale: 2.0,
-        sigma: 0.8,
+        pyramid_scale: 1.2,
+        sigma: 1.8,
         use_blur: true,
-        blur_radius: 2.0,
+        blur_radius: 1.0,
         octave_count: 3,
         min_image_dimensions: (50,50),
         invert_grad_x : false,
@@ -77,19 +77,19 @@ fn main() {
 
     let vo_parameters = RuntimeParameters{
         pyramid_scale: pyramid_parameters.pyramid_scale,
-        max_iterations: vec![800;3],
+        max_iterations: vec![100;3],
         eps: vec!(1e-5,9e-4,9e-4),
         step_sizes: vec!(1e-0,1e-1,1e-1), 
-        max_norm_eps: 1e-20,
-        delta_eps: 1e-20,
-        taus: vec!(1e-3,1e-3,1e0), 
+        max_norm_eps: 0.0,
+        delta_eps: 0.0,
+        taus: vec!(1e-3,1e0,1e0), 
         lm: true,
         weighting: true,
         debug: false,
 
         show_octave_result: true,
-        loss_function: Box::new(loss::SoftOneLoss {eps: 1e-16, approximate_gauss_newton_matrices: true}),
-        //loss_function: Box::new(loss::TrivialLoss {eps: 1e-16, approximate_gauss_newton_matrices: false}),
+        //loss_function: Box::new(loss::SoftOneLoss {eps: 1e-16, approximate_gauss_newton_matrices: true}),
+        loss_function: Box::new(loss::TrivialLoss {eps: 1e-16, approximate_gauss_newton_matrices: false}),
         intensity_weighting_function:  Box::new(weighting::HuberWeightForPos {delta:1.0})
     };
 
