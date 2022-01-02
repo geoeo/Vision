@@ -45,7 +45,7 @@ fn main() {
 
     let pyramid_parameters = GDRuntimeParameters{
         pyramid_scale: 2.0,
-        sigma: 0.01,
+        sigma: 1.0,
         use_blur: true,
         blur_radius: 1.0,
         octave_count: 3,
@@ -75,7 +75,8 @@ fn main() {
 
         show_octave_result: true,
         loss_function: Box::new(loss::SoftOneLoss {eps: 1e-16, approximate_gauss_newton_matrices: true}),
-        intensity_weighting_function:  Box::new(weighting::HuberWeightForPos {delta: 1.0})
+        //loss_function: Box::new(loss::TrivialLoss {eps: 1e-16, approximate_gauss_newton_matrices: true}),
+        intensity_weighting_function:  Box::new(weighting::HuberWeightForPos {delta: 0.1})
     };
 
     let mut se3_est = vec!(Isometry3::<Float>::identity());

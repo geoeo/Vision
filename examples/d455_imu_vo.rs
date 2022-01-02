@@ -19,7 +19,7 @@ use vision::Float;
 use vision::numerics;
 
 fn main() {
-    let dataset_name = "y";
+    let dataset_name = "simple_trans_imu";
 
     let root_path = format!("D:/Workspace/Datasets/D455/{}", dataset_name);
     let out_folder = "D:/Workspace/Rust/Vision/output";
