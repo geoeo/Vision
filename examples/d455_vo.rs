@@ -14,7 +14,7 @@ use vision::visualize::plot;
 fn main() {
 
 
-    let dataset_name = "z";
+    let dataset_name = "y";
 
     let root_path = format!("D:/Workspace/Datasets/D455/{}",dataset_name);
     let out_folder = "D:/Workspace/Rust/Vision/output";
@@ -22,7 +22,7 @@ fn main() {
     let loading_parameters = ImageLoadingParameters {
         starting_index: 5,
         step: 1,
-        count: 100,
+        count: 70,
         image_height: 480,
         image_width: 640,
         negate_depth_values :true,
@@ -45,13 +45,13 @@ fn main() {
 
     let pyramid_parameters = GDRuntimeParameters{
         pyramid_scale: 1.2,
-        sigma: 0.8,
+        sigma: 0.1,
         use_blur: true,
         blur_radius: 1.0,
         octave_count: 3,
         min_image_dimensions: (50,50),
-        invert_grad_x : false,
-        invert_grad_y : false,
+        invert_grad_x : true,
+        invert_grad_y : true,
         blur_grad_x : false,
         blur_grad_y: false,
         normalize_gray: true,
@@ -66,17 +66,16 @@ fn main() {
         max_iterations: vec![50;3],
         eps: vec!(1e-3,1e-3,1e-3),
         step_sizes: vec!(1e-8,1e-8,1e-8), 
-        max_norm_eps: 1e-5,
-        delta_eps: 1e-5,
-        taus: vec!(1e-3,1e-3,1e0), 
+        max_norm_eps: 1e-10,
+        delta_eps: 1e-10,
+        taus: vec!(1e-6,1e-3,1e0), 
         lm: true,
         weighting: true,
         debug: false,
 
         show_octave_result: true,
-        //loss_function: Box::new(loss::SoftOneLoss {eps: 1e-16, approximate_gauss_newton_matrices: true}),
-        loss_function: Box::new(loss::TrivialLoss {eps: 1e-16, approximate_gauss_newton_matrices: false}),
-        intensity_weighting_function:  Box::new(weighting::HuberWeightForPos {delta: 1.0})
+        loss_function: Box::new(loss::TrivialLoss {eps: 1e-16, approximate_gauss_newton_matrices: true}),
+        intensity_weighting_function:  Box::new(weighting::HuberWeightForPos {delta:1.0})
     };
 
     let mut se3_est = vec!(Isometry3::<Float>::identity());

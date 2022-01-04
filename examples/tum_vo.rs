@@ -38,22 +38,19 @@ fn main() {
         invert_y :true,
         set_default_depth: true,
         gt_alignment_rot:UnitQuaternion::<Float>::from_axis_angle(&Vector3::x_axis(),float::consts::FRAC_PI_2)* UnitQuaternion::<Float>::from_axis_angle(&Vector3::y_axis(),float::consts::PI)
-        //gt_alignment_rot:UnitQuaternion::<Float>::from_axis_angle(&Vector3::y_axis(),0.0) // TODO maybe negate y aswell
-        //gt_alignment_rot:UnitQuaternion::<Float>::from_axis_angle(&Vector3::y_axis(),float::consts::PI) 
-        //gt_alignment_rot:UnitQuaternion::<Float>::from_axis_angle(&Vector3::x_axis(),float::consts::FRAC_PI_2) 
     };
 
 
 
     let pyramid_parameters = GDRuntimeParameters{
-        pyramid_scale: 1.2,
-        sigma: 0.8,
+        pyramid_scale: 2.0,
+        sigma: 0.1,
         use_blur: true,
         blur_radius: 1.0,
-        octave_count: 3,
+        octave_count: 4,
         min_image_dimensions: (50,50),
-        invert_grad_x : false,
-        invert_grad_y : false,
+        invert_grad_x : true,
+        invert_grad_y : true,
         blur_grad_x : false, //TODO: make bluring gradient cleaner
         blur_grad_y: false,
         normalize_gray: true,
@@ -77,20 +74,20 @@ fn main() {
 
     let vo_parameters = RuntimeParameters{
         pyramid_scale: pyramid_parameters.pyramid_scale,
-        max_iterations: vec![100;3],
-        eps: vec!(1e-5,9e-4,9e-4),
-        step_sizes: vec!(1e-0,1e-1,1e-1), 
+        max_iterations: vec![200;4],
+        eps: vec!(1e-5,9e-4,9e-4,9e-4),
+        step_sizes: vec!(1e-0,1e-1,1e-1,1e-1), 
         max_norm_eps: 1e-10,
         delta_eps: 1e-10,
-        taus: vec!(1e-3,1e0,1e0), 
+        taus: vec!(1e-6,1e-3,1e-3,1e0), 
         lm: true,
         weighting: true,
         debug: false,
 
         show_octave_result: true,
-        //loss_function: Box::new(loss::SoftOneLoss {eps: 1e-16, approximate_gauss_newton_matrices: true}),
-        loss_function: Box::new(loss::TrivialLoss {eps: 1e-16, approximate_gauss_newton_matrices: false}),
-        intensity_weighting_function:  Box::new(weighting::HuberWeightForPos {delta:1.0})
+        loss_function: Box::new(loss::SoftOneLoss {eps: 1e-3, approximate_gauss_newton_matrices: true}),
+        //loss_function: Box::new(loss::TrivialLoss {eps: 1e-16, approximate_gauss_newton_matrices: true}),
+        intensity_weighting_function:  Box::new(weighting::HuberWeightForPos {delta:1.0}) // unused -  refactor t-dist
     };
 
     let mut se3_est = vec!(Isometry3::<Float>::identity());
@@ -101,7 +98,9 @@ fn main() {
     se3_gt_targetory.extend(tum_data.source_gt_poses.unwrap().iter().zip(tum_data.target_gt_poses.unwrap().iter()).map(|(s,t)| {
         let se3_s = numerics::pose::se3(&s.0, &s.1);
         let se3_t = numerics::pose::se3(&t.0, &t.1);
-        numerics::pose::pose_difference(&se3_s, &se3_t)
+        let mut p = numerics::pose::pose_difference(&se3_s, &se3_t);
+        p.translation.vector[2]*=-1.0;
+        p
     }).collect::<Vec<Isometry3<Float>>>());
 
     let est_points = numerics::pose::apply_pose_deltas_to_point(Point3::<Float>::new(0.0,0.0,0.0), &se3_est);

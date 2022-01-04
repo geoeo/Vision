@@ -146,7 +146,6 @@ fn estimate<C : Camera, const T: usize>(
         &mut runtime_memory.image_gradient_points,
     );
 
-
     let mut cost = compute_cost(&runtime_memory.residuals, &runtime_parameters.loss_function);
 
     let mut max_norm_delta = float::MAX;
@@ -227,16 +226,16 @@ fn estimate<C : Camera, const T: usize>(
             &mut runtime_memory.new_image_gradient_points,
         );
 
+        //TODO: refactor t-dist into weight
         if runtime_parameters.weighting {
-            // calc_weight_vec(
-            //     &runtime_memory.new_residuals,
-            //     &runtime_parameters.intensity_weighting_function,
-            //     &mut runtime_memory.weights_vec,
-            // );
-            compute_t_dist_weights(&runtime_memory.new_residuals, &mut runtime_memory.weights_vec, 5.0, 10, 1e-6);
-            
+                // calc_weight_vec(
+                //     &runtime_memory.new_residuals,
+                //     &runtime_parameters.intensity_weighting_function,
+                //     &mut runtime_memory.weights_vec,
+                // );
+            compute_t_dist_weights(&runtime_memory.new_residuals, &mut runtime_memory.weights_vec, 5.0, 20, 1e-12);
+                
             weight_residuals_sparse(&mut runtime_memory.new_residuals, &runtime_memory.weights_vec);
-
         }
 
 
@@ -273,7 +272,10 @@ fn estimate<C : Camera, const T: usize>(
                 &mut runtime_memory.full_jacobian,
             );
 
-            weight_jacobian_sparse(&mut runtime_memory.full_jacobian, &runtime_memory.weights_vec);
+            if runtime_parameters.weighting {
+                weight_jacobian_sparse(&mut runtime_memory.full_jacobian, &runtime_memory.weights_vec);
+            }
+
 
             let v: Float = 1.0 / 3.0;
             mu = Some(mu.unwrap() * v.max(1.0 - (2.0 * gain_ratio - 1.0).powi(3)));

@@ -187,21 +187,24 @@ pub fn compute_residuals<C>(target_image_buffer: &DMatrix<Float>,source_image_bu
 
     let (rows,cols) = source_image_buffer.shape();
     for i in 0..number_of_points {
-        let target_point = linear_to_image_index(i,image_width);
+        //let target_point = linear_to_image_index(i,image_width);
+        let target_point = camera.project(&backprojected_points.fixed_slice::<3,1>(0,i)); 
         let transformed_point = camera.project(&transformed_points.fixed_slice::<3,1>(0,i)); 
+        let target_point_y = target_point.y.trunc() as usize;
+        let target_point_x = target_point.x.trunc() as usize;
         let transformed_point_y = transformed_point.y.trunc() as usize;
         let transformed_point_x = transformed_point.x.trunc() as usize;
         let target_linear_idx = image_to_linear_index(transformed_point_y, image_width, transformed_point_x);
 
         // We only want to compare pixels where both values are valid i.e. has depth estimate
-        if target_point.y < rows && transformed_point_y < rows && 
-        target_point.x < cols && transformed_point_x < cols && 
+        if target_point_y < rows && transformed_point_y < rows && 
+        target_point_x < cols && transformed_point_x < cols && 
            backprojected_points_flags[i] &&
            backprojected_points_flags[target_linear_idx]{ 
             image_gradient_points.push(Point::<usize>::new(transformed_point_x,transformed_point_y));
-            let source_sample = source_image_buffer[(transformed_point_y,transformed_point_x)];
-            let target_sample = target_image_buffer[(target_point.y,target_point.x)];
-            residual_target[i] = source_sample - target_sample;
+            let source_sample = source_image_buffer[(target_point_y,target_point_x)];
+            let target_sample = target_image_buffer[(transformed_point_y,transformed_point_x)];
+            residual_target[i] = target_sample - source_sample; // we set invert gradient to true in runtime params
            }
         else {
             residual_target[i] = 0.0; 
