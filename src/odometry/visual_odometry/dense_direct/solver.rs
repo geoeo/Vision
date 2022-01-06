@@ -228,11 +228,11 @@ fn estimate<C : Camera, const T: usize>(
 
         //TODO: refactor t-dist into weight
         if runtime_parameters.weighting {
-                // calc_weight_vec(
-                //     &runtime_memory.new_residuals,
-                //     &runtime_parameters.intensity_weighting_function,
-                //     &mut runtime_memory.weights_vec,
-                // );
+            // calc_weight_vec(
+            //     &runtime_memory.new_residuals,
+            //     &runtime_parameters.intensity_weighting_function,
+            //     &mut runtime_memory.weights_vec,
+            // );
             compute_t_dist_weights(&runtime_memory.new_residuals, &mut runtime_memory.weights_vec, 5.0, 20, 1e-12);
                 
             weight_residuals_sparse(&mut runtime_memory.new_residuals, &runtime_memory.weights_vec);
