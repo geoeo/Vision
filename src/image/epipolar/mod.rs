@@ -8,8 +8,9 @@ use crate::image::features::{Feature,Match};
 pub type Fundamental =  Matrix3<Float>;
 pub type Essential =  Matrix3<Float>;
 
-pub fn exatct_matches<T: Feature>(matches: &Vec<Match<T>>, pyramid_scale: Float, normalize: bool) -> Vec<(Vector2<Float>,Vector2<Float>)> {
+pub fn extract_matches<T: Feature>(matches: &Vec<Match<T>>, pyramid_scale: Float, normalize: bool) -> Vec<(Vector2<Float>,Vector2<Float>)> {
 
+    // Seems to amplify errors when mismatches are present
     match normalize {
         true => {
             let number_of_matches = matches.len() as Float;

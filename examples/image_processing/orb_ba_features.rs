@@ -15,8 +15,11 @@ fn main() ->Result<()> {
 
     color_eyre::install()?;
 
-    let image_name_1 = "ba_slow_4";
-    let image_name_2 = "ba_slow_1";
+    // let image_name_1 = "cereal_1_scaled_25";
+    // let image_name_2 = "cereal_2_scaled_25";
+
+    let image_name_1 = "ba_slow_1";
+    let image_name_2 = "ba_slow_3";
 
     //let image_name_2 = "ba_slow_3";
     //let image_name_2 = "ba_slow_4";
@@ -35,8 +38,8 @@ fn main() ->Result<()> {
     // let gray_image_3 = image_rs::open(&Path::new(&image_path_3)).unwrap().to_luma8();
     // let gray_image_4 = image_rs::open(&Path::new(&image_path_4)).unwrap().to_luma8();
 
-    let image_1 = Image::from_gray_image(&gray_image_1, false, false, Some(image_name_1.to_string()));
-    let image_2 = Image::from_gray_image(&gray_image_2, false, false, Some(image_name_2.to_string()));
+    let image_1 = Image::from_gray_image(&gray_image_1, true, false, Some(image_name_1.to_string()));
+    let image_2 = Image::from_gray_image(&gray_image_2, true, false, Some(image_name_2.to_string()));
     // let image_3 = Image::from_gray_image(&gray_image_3, false, false, Some(image_name_3.to_string()));
     // let image_4 = Image::from_gray_image(&gray_image_4, false, false, Some(image_name_4.to_string()));
 

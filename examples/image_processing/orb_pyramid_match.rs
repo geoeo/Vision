@@ -40,8 +40,8 @@ fn main() -> Result<()> {
     //let image_name = "cereal_1_scaled_25";
     //let image_name_2 = "cereal_far_scaled_25";
 
-    let image_name = "ba_slow_3";
-    let image_name_2 = "ba_slow_4";
+    let image_name = "ba_slow_1";
+    let image_name_2 = "ba_slow_3";
 
     //let image_name = "ba_slow_4";
     //let image_name_2 = "ba_slow_5";
