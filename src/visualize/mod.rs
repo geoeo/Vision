@@ -84,14 +84,6 @@ pub fn display_matches_for_pyramid<T>(image_a_original: &Image, image_b_original
 
 //TODO: better drawing solution
 fn draw_match<T>(image: &mut Image,  (feature_a,feature_b): &(T,T), (radius_a, radius_b): (Float,Float), draw_lines: bool, intensity: Float)-> ()  where T: Feature + Oriented {
-
-    let intensity_min = intensity/2.0;
-    let intensity_max = 3.0*intensity/4.0;
-
-    let range = Uniform::from(intensity_min..intensity_max);
-    let mut rng = rand::thread_rng();
-
-
     draw_circle_with_orientation(image, feature_a.get_x_image(), feature_a.get_y_image(),  feature_a.get_orientation(), radius_a, 0.0);
     draw_circle_with_orientation(image, feature_b.get_x_image(), feature_b.get_y_image(),  feature_b.get_orientation(), radius_b, 0.0);
 
@@ -100,7 +92,6 @@ fn draw_match<T>(image: &mut Image,  (feature_a,feature_b): &(T,T), (radius_a, r
         draw_points(image, &line.points,0.0);
     }
 
-    
 
 }
 

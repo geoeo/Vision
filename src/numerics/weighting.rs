@@ -27,8 +27,8 @@ impl Display for dyn WeightingFunction {
 
 }
 
-//TODO: revisit these and include references
-
+//TODO: revisit these and include references for M-estimators
+//TODO: make delta changeable at runtime
 pub struct HuberWeightForPos {
     pub delta: Float
 }

@@ -41,7 +41,7 @@ fn main() -> Result<()> {
 
     let image_id_pairs = vec!((0,1),(0,2),(1,3));
     let mut feature_map = CameraFeatureMap::new(&all_matches,4, (480,640));
-    feature_map.add_cameras(vec!(0,1,2,3), all_matches.len(),1);
+    feature_map.add_cameras(vec!(0,1,2,3));
     feature_map.add_matches(&image_id_pairs,&all_matches, 1.0);
     let initial_motions = vec!((Vector3::<Float>::new(0.0,0.0,0.0),Matrix3::<Float>::identity()),(Vector3::<Float>::new(0.0,0.0,0.0),Matrix3::<Float>::identity()));
 

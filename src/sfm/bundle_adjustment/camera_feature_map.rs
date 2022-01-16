@@ -37,7 +37,7 @@ impl CameraFeatureMap {
         }
     }
 
-    pub fn add_cameras(&mut self, ids: Vec<u64>, features_per_octave: usize, octave_count: usize) -> () {
+    pub fn add_cameras(&mut self, ids: Vec<u64>) -> () {
         for i in 0..ids.len(){
             let id = ids[i];
             self.camera_map.insert(id,(i,HashMap::new()));

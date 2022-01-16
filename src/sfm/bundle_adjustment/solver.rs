@@ -124,8 +124,15 @@ pub fn optimize<C : Camera,L: Landmark<T> + Copy + Clone, const T: usize>(state:
 
     get_estimated_features(state, cameras,observed_features, &mut estimated_features);
     compute_residual(&estimated_features, observed_features, &mut residuals);
-
     compute_jacobian(&state,&cameras,&mut jacobian);
+
+    if runtime_parameters.weighting {
+        calc_weight_vec(
+            &residuals,
+            &runtime_parameters.intensity_weighting_function,
+            &mut weights_vec,
+        );
+    }
 
     weight_residuals_sparse(&mut residuals, &weights_vec); 
     weight_jacobian_sparse(&mut jacobian, &weights_vec);

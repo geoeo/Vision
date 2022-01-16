@@ -1,6 +1,6 @@
 extern crate nalgebra as na;
 
-use na::{Matrix2,Matrix3,Matrix1x2,Matrix3x1, Vector,Dim, storage::Storage};
+use na::{Matrix2,Matrix3,Matrix1x2,Matrix3x1, Vector,Dim, storage::Storage,DVector };
 use crate::image::Image;
 use crate::{Float,float};
 
@@ -24,6 +24,13 @@ pub fn quadratic_roots(a: Float, b: Float, c: Float) -> (Float,Float) {
         }
 
     }
+}
+
+pub fn median(vector: &DVector<Float>) -> Float {
+    let mut local_vec = vector.data.as_vec().clone();
+    local_vec.sort_unstable_by(|a, b| a.partial_cmp(b).unwrap());
+    let middle = local_vec.len()/2;
+    local_vec[middle]
 }
 
 pub fn round(number: Float, dp: i32) -> Float {

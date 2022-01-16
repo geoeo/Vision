@@ -82,9 +82,9 @@ fn main() -> Result<()> {
 
     let mut feature_map = CameraFeatureMap::new(&matches,2,(image_1.buffer.nrows(),image_1.buffer.ncols()));
 
-    feature_map.add_cameras(vec!(image_1.id.unwrap(),image_2.id.unwrap()), orb_params_1_2.max_features_per_octave,orb_params_1_2.octave_count);
-    //feature_map.add_camera(vec!(image_1.id.unwrap(),image_3.id.unwrap()), orb_params_1_2.max_features_per_octave,orb_params_1_2.octave_count);
-    //feature_map.add_camera(vec!(image_1.id.unwrap(),image_4.id.unwrap()), orb_params_1_2.max_features_per_octave,orb_params_1_2.octave_count);
+    feature_map.add_cameras(vec!(image_1.id.unwrap(),image_2.id.unwrap()));
+    //feature_map.add_camera(vec!(image_1.id.unwrap(),image_3.id.unwrap()));
+    //feature_map.add_camera(vec!(image_1.id.unwrap(),image_4.id.unwrap()));
     //feature_map.add_camera(vec!(image_1.id.unwrap(),image_2.id.unwrap(),image_3.id.unwrap()), orb_params_1_2.max_features_per_octave,orb_params_1_2.octave_count);
 
     feature_map.add_matches(&image_id_pairs,&matches, orb_params_1_2.pyramid_scale);
@@ -116,6 +116,7 @@ fn main() -> Result<()> {
         show_octave_result: true,
         loss_function: Box::new(loss::TrivialLoss { eps: 1e-16, approximate_gauss_newton_matrices: false }), 
         intensity_weighting_function:  Box::new(weighting::TrivialWeight {})
+        //intensity_weighting_function:  Box::new(weighting::HuberWeightForPos {delta:1.0})
     };
 
     let some_debug_state_list = optimize(&mut state, &cameras, &observed_features, &runtime_parameters);

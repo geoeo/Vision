@@ -196,7 +196,18 @@ fn estimate<Cam: Camera, const R: usize, const C: usize>(
         &mut runtime_memory.residuals,
         &mut runtime_memory.image_gradient_points,
     );
-    weight_residuals_sparse(&mut runtime_memory.residuals, &runtime_memory.weights_vec);
+
+    if runtime_parameters.weighting {
+        // calc_weight_vec(
+        //     & runtime_memory.new_residuals,
+        //     &runtime_parameters.intensity_weighting_function,
+        //     &mut runtime_memory.weights_vec,
+        // );
+        compute_t_dist_weights(&runtime_memory.new_residuals, &mut runtime_memory.weights_vec, 5.0, 10, 1e-6);
+        weight_residuals_sparse(&mut runtime_memory.residuals, &runtime_memory.weights_vec);
+    }
+
+
 
     let mut estimate = ImuDelta::empty();
     //let mut bias_estimate = BiasDelta::empty();
@@ -269,7 +280,10 @@ fn estimate<Cam: Camera, const R: usize, const C: usize>(
         &mut runtime_memory.full_jacobian,
     );
 
-    weight_jacobian_sparse(&mut runtime_memory.full_jacobian, &runtime_memory.weights_vec);
+    if runtime_parameters.weighting {
+        weight_jacobian_sparse(&mut runtime_memory.full_jacobian, &runtime_memory.weights_vec);
+    }
+
 
     let mut iteration_count = 0;
     while ((!runtime_parameters.lm && (cost.sqrt() > runtime_parameters.eps[octave_index]))
@@ -323,7 +337,15 @@ fn estimate<Cam: Camera, const R: usize, const C: usize>(
             &mut runtime_memory.new_image_gradient_points,
         );
 
-
+        if runtime_parameters.weighting {
+            // calc_weight_vec(
+            //     & runtime_memory.new_residuals,
+            //     &runtime_parameters.intensity_weighting_function,
+            //     &mut runtime_memory.weights_vec,
+            // );
+            compute_t_dist_weights(&runtime_memory.new_residuals, &mut runtime_memory.weights_vec, 5.0, 10, 1e-6);
+            weight_residuals_sparse(&mut runtime_memory.new_residuals, &runtime_memory.weights_vec);
+        }
         
         percentage_of_valid_pixels =
             (runtime_memory.new_image_gradient_points.len() as Float / number_of_pixels_float) * 100.0;
@@ -387,15 +409,12 @@ fn estimate<Cam: Camera, const R: usize, const C: usize>(
                 &mut runtime_memory.full_jacobian,
             );
 
-            // calc_weight_vec(
-            //     &runtime_memory.new_residuals,
-            //     &runtime_parameters.intensity_weighting_function,
-            //     &mut runtime_memory.weights_vec,
-            // );
     
-            compute_t_dist_weights(&runtime_memory.new_residuals, &mut runtime_memory.weights_vec, 5.0, 10, 1e-6);
-            weight_residuals_sparse(&mut runtime_memory.new_residuals, &runtime_memory.weights_vec);
-            weight_jacobian_sparse(&mut runtime_memory.full_jacobian, &runtime_memory.weights_vec);
+
+            if runtime_parameters.weighting {
+                weight_jacobian_sparse(&mut runtime_memory.full_jacobian, &runtime_memory.weights_vec);
+            }
+
 
             imu_jacobian = imu_odometry::generate_jacobian(&estimate.rotation_lie(), delta_t);
             weight_jacobian::<9,9>(&mut imu_jacobian, &imu_weight_l_upper);
