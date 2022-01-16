@@ -26,11 +26,19 @@ pub fn quadratic_roots(a: Float, b: Float, c: Float) -> (Float,Float) {
     }
 }
 
-pub fn median(vector: &DVector<Float>) -> Float {
-    let mut local_vec = vector.data.as_vec().clone();
-    local_vec.sort_unstable_by(|a, b| a.partial_cmp(b).unwrap());
-    let middle = local_vec.len()/2;
-    local_vec[middle]
+pub fn median_absolute_deviation(data: &DVector<Float>) -> Float {
+    let (median_value, sorted_data) = median(data.data.as_vec().clone(), true);
+    let absolute_deviation: Vec<Float> = sorted_data.iter().map(|x| (x-median_value).abs()).collect();
+    median(absolute_deviation,false).0
+}
+
+pub fn median(data: Vec<Float>, sort_data: bool) -> (Float, Vec<Float>) {
+    let mut mut_data = data;
+    if sort_data {
+        mut_data.sort_unstable_by(|a, b| a.partial_cmp(b).unwrap());
+    }
+    let middle = mut_data.len()/2;
+    (mut_data[middle], mut_data)
 }
 
 pub fn round(number: Float, dp: i32) -> Float {
