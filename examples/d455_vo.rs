@@ -14,7 +14,7 @@ use vision::visualize::plot;
 fn main() {
 
 
-    let dataset_name = "y";
+    let dataset_name = "x";
 
     let root_path = format!("D:/Workspace/Datasets/D455/{}",dataset_name);
     let out_folder = "D:/Workspace/Rust/Vision/output";
@@ -75,7 +75,7 @@ fn main() {
 
         show_octave_result: true,
         loss_function: Box::new(loss::TrivialLoss {eps: 1e-16, approximate_gauss_newton_matrices: true}),
-        intensity_weighting_function:  Box::new(weighting::TDistWeight { t_dist_nu: 5.0, max_it: 20, eps: 1e-10 })
+        intensity_weighting_function:  Box::new(weighting::HuberWeightForPos {})
     };
 
     let mut se3_est = vec!(Isometry3::<Float>::identity());
