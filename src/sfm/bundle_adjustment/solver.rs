@@ -132,10 +132,11 @@ pub fn optimize<C : Camera,L: Landmark<T> + Copy + Clone, const T: usize>(state:
             &runtime_parameters.intensity_weighting_function,
             &mut weights_vec,
         );
+        weight_residuals_sparse(&mut residuals, &weights_vec); 
+        weight_jacobian_sparse(&mut jacobian, &weights_vec);
     }
 
-    weight_residuals_sparse(&mut residuals, &weights_vec); 
-    weight_jacobian_sparse(&mut jacobian, &weights_vec);
+
 
 
     let mut max_norm_delta = float::MAX;
@@ -156,7 +157,8 @@ pub fn optimize<C : Camera,L: Landmark<T> + Copy + Clone, const T: usize>(state:
     
     let mut cost = compute_cost(&residuals,&runtime_parameters.loss_function);
     let mut iteration_count = 0;
-    while ((!runtime_parameters.lm && (cost.sqrt() > runtime_parameters.eps[0])) || (runtime_parameters.lm && (delta_norm > delta_thresh && max_norm_delta > runtime_parameters.max_norm_eps)))  && iteration_count < max_iterations  {
+    while ((!runtime_parameters.lm && (cost.sqrt() > runtime_parameters.eps[0])) || 
+    (runtime_parameters.lm && delta_norm > delta_thresh && max_norm_delta > runtime_parameters.max_norm_eps && cost.sqrt() > runtime_parameters.eps[0] ))  && iteration_count < max_iterations  {
         if runtime_parameters.debug {
             debug_state_list.as_mut().expect("Debug is true but state list is None!. This should not happen").push(state.to_serial());
             println!("it: {}, avg_rmse: {}",iteration_count,cost.sqrt());
@@ -223,7 +225,9 @@ pub fn optimize<C : Camera,L: Landmark<T> + Copy + Clone, const T: usize>(state:
 
             jacobian.fill(0.0);
             compute_jacobian(&state,&cameras,&mut jacobian);
-            weight_jacobian_sparse(&mut jacobian, &weights_vec);
+            if runtime_parameters.weighting {
+                weight_jacobian_sparse(&mut jacobian, &weights_vec);
+            }
 
             let v: Float = 1.0 / 3.0;
             mu = Some(mu.unwrap() * v.max(1.0 - (2.0 * gain_ratio - 1.0).powi(3)));

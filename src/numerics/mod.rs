@@ -31,18 +31,18 @@ pub fn estimate_std(data: &DVector<Float>) -> Float {
 }
 
 pub fn median_absolute_deviation(data: &DVector<Float>) -> Float {
-    let (median_value, sorted_data) = median(data.data.as_vec().clone(), true);
-    let absolute_deviation: Vec<Float> = sorted_data.iter().map(|x| (x-median_value).abs()).collect();
-    median(absolute_deviation,false).0
+    let median_value = median(data.data.as_vec().clone(), true);
+    let absolute_deviation: Vec<Float> = data.iter().map(|x| (x-median_value).abs()).collect();
+    median(absolute_deviation,false)
 }
 
-pub fn median(data: Vec<Float>, sort_data: bool) -> (Float, Vec<Float>) {
+pub fn median(data: Vec<Float>, sort_data: bool) -> Float {
     let mut mut_data = data;
     if sort_data {
         mut_data.sort_unstable_by(|a, b| a.partial_cmp(b).unwrap());
     }
     let middle = mut_data.len()/2;
-    (mut_data[middle], mut_data)
+    mut_data[middle]
 }
 
 pub fn round(number: Float, dp: i32) -> Float {
