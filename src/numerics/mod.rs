@@ -26,6 +26,10 @@ pub fn quadratic_roots(a: Float, b: Float, c: Float) -> (Float,Float) {
     }
 }
 
+pub fn estimate_std(data: &DVector<Float>) -> Float {
+    median_absolute_deviation(data)/0.67449 
+}
+
 pub fn median_absolute_deviation(data: &DVector<Float>) -> Float {
     let (median_value, sorted_data) = median(data.data.as_vec().clone(), true);
     let absolute_deviation: Vec<Float> = sorted_data.iter().map(|x| (x-median_value).abs()).collect();

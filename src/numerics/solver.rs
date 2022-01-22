@@ -10,16 +10,15 @@ use crate::numerics::{loss::LossFunction, weighting::WeightingFunction};
 use crate::Float;
 
 
-pub fn calc_weight_vec<D, S1,S2>(
-    residuals: &Vector<Float,D,S2>,
+pub fn calc_weight_vec<D, S1>(
+    residuals: &DVector<Float>,
     weight_function: &Box<dyn WeightingFunction>,
     weights_vec: &mut Vector<Float,D,S1>) -> () where 
         D: Dim,
-        S1: StorageMut<Float, D>,
-        S2: Storage<Float, D>{
+        S1: StorageMut<Float, D>{
+    let variance = weight_function.estimate_variance(residuals);
     for i in 0..residuals.len() {
-        let res = residuals[i];
-        weights_vec[i] = weight_function.cost(res).sqrt();
+        weights_vec[i] = weight_function.cost(residuals,i,variance);
 
 
     }
@@ -240,7 +239,6 @@ pub fn gauss_newton_step<R, C,S1, S2, S3>(
     (h,g,gain_ratio_denom[0], mu_val)
 }
 
-//TODO: somewhat hardcoded for the BA case -> remove hardcoded size 6
 #[allow(non_snake_case)]
 fn compute_arrow_head_and_residuals<R, C,StorageTargetArrow, StorageTargetResidual, StorageJacobian, StorageResidual, const LANDMARK_PARAM_SIZE: usize, const CAM_PARAM_SIZE: usize>
     (
@@ -261,23 +259,20 @@ fn compute_arrow_head_and_residuals<R, C,StorageTargetArrow, StorageTargetResidu
     StorageResidual: Storage<Float, R, U1>,
     StorageJacobian: Storage<Float, R, C> {
 
-        //TODO: inverse depth
         let number_of_cam_params = CAM_PARAM_SIZE*n_cams;
         let number_of_measurement_rows = 2*n_cams*n_points;
         let mut diag_max: Float = 0.0;
     
-        //TODO: inverse depth
         for j in (0..number_of_cam_params).step_by(CAM_PARAM_SIZE) {
             let mut U_j = SMatrix::<Float,CAM_PARAM_SIZE,CAM_PARAM_SIZE>::zeros();
             let u_idx = j;
-            //TODO: inverse depth
+
             let cam_id = j/CAM_PARAM_SIZE;
             let row_start = 2*cam_id;
             let row_end = number_of_measurement_rows;
             for i in (row_start..row_end).step_by(2*n_cams){
                 let feature_id = i/(2*n_cams);
 
-                //TODO: inverse depth
                 let slice_a = jacobian.fixed_slice::<2,CAM_PARAM_SIZE>(i,j);
                 let slice_a_transpose = slice_a.transpose();
                 U_j += slice_a_transpose*slice_a;
@@ -291,7 +286,7 @@ fn compute_arrow_head_and_residuals<R, C,StorageTargetArrow, StorageTargetResidu
 
                 let W_j = slice_a_transpose*slice_b;
                 let W_j_transpose = W_j.transpose();
-                //TODO: inverse depth
+
                 target_arrowhead.fixed_slice_mut::<CAM_PARAM_SIZE,CAM_PARAM_SIZE>(j,j).copy_from(&U_j);
                 target_arrowhead.fixed_slice_mut::<CAM_PARAM_SIZE,LANDMARK_PARAM_SIZE>(u_idx,v_idx).copy_from(&W_j);
                 target_arrowhead.fixed_slice_mut::<LANDMARK_PARAM_SIZE,CAM_PARAM_SIZE>(v_idx,u_idx).copy_from(&W_j_transpose);

@@ -12,8 +12,7 @@ use crate::image::Image;
 use crate::numerics::{lie, loss::LossFunction, max_norm, solver::{calc_weight_vec,weight_jacobian_sparse,weight_residuals_sparse,weight_jacobian,weight_residuals}};
 use crate::odometry::runtime_parameters::RuntimeParameters;
 use crate::odometry::visual_odometry::dense_direct::{ RuntimeMemory,
-    backproject_points, compute_full_jacobian, compute_image_gradients, compute_residuals,compute_t_dist_weights,
-    precompute_jacobians
+    backproject_points, compute_full_jacobian, compute_image_gradients, compute_residuals, precompute_jacobians
 };
 use crate::odometry::{
     imu_odometry,
@@ -198,12 +197,11 @@ fn estimate<Cam: Camera, const R: usize, const C: usize>(
     );
 
     if runtime_parameters.weighting {
-        // calc_weight_vec(
-        //     & runtime_memory.new_residuals,
-        //     &runtime_parameters.intensity_weighting_function,
-        //     &mut runtime_memory.weights_vec,
-        // );
-        compute_t_dist_weights(&runtime_memory.new_residuals, &mut runtime_memory.weights_vec, 5.0, 10, 1e-6);
+        calc_weight_vec(
+            & runtime_memory.new_residuals,
+            &runtime_parameters.intensity_weighting_function,
+            &mut runtime_memory.weights_vec,
+        );
         weight_residuals_sparse(&mut runtime_memory.residuals, &runtime_memory.weights_vec);
     }
 
@@ -338,12 +336,11 @@ fn estimate<Cam: Camera, const R: usize, const C: usize>(
         );
 
         if runtime_parameters.weighting {
-            // calc_weight_vec(
-            //     & runtime_memory.new_residuals,
-            //     &runtime_parameters.intensity_weighting_function,
-            //     &mut runtime_memory.weights_vec,
-            // );
-            compute_t_dist_weights(&runtime_memory.new_residuals, &mut runtime_memory.weights_vec, 5.0, 10, 1e-6);
+            calc_weight_vec(
+                & runtime_memory.new_residuals,
+                &runtime_parameters.intensity_weighting_function,
+                &mut runtime_memory.weights_vec,
+            );
             weight_residuals_sparse(&mut runtime_memory.new_residuals, &runtime_memory.weights_vec);
         }
         

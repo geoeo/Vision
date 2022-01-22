@@ -54,48 +54,6 @@ impl<const T: usize> RuntimeMemory<T> {
     }
 }
 
-
-pub fn compute_t_dist_weights(residuals: &DVector<Float>, weights_vec: &mut DVector<Float>, t_dist_nu: Float, max_it: usize, eps: Float) -> () {
-
-    let variance = estimate_t_dist_variance(residuals,t_dist_nu,max_it,eps);
-    for i in 0..residuals.len() {
-        let res = residuals[i];
-        weights_vec[i] = compute_t_dist_weight(res,variance,t_dist_nu).sqrt();
-    }
-    
-}
-
-
-pub fn compute_t_dist_weight(residual: Float, variance: Float, t_dist_nu: Float) -> Float{
-    (t_dist_nu + 1.0) / (t_dist_nu + residual.powi(2)/variance)
-}
-
-pub fn estimate_t_dist_variance( residuals: &DVector<Float>, t_dist_nu: Float, max_it: usize, eps: Float) -> Float {
-    let mut it = 0;
-    let mut err = float::MAX;
-    let mut variance = float::MAX; 
-    let mut n = 0.0;
-
-    while it < max_it && err > eps {
-        let mut acc = 0.0;
-        for r in residuals {
-            if *r == 0.0 {
-                continue;
-            }
-            let r_sqrd = r.powi(2);
-            acc += r_sqrd*(t_dist_nu +1.0)/(t_dist_nu + r_sqrd/variance);
-            n+=1.0;
-        }
-
-        let var_old = variance;
-        variance = acc/n;
-        err = (variance-var_old).abs();
-        it += 1;
-    }
-
-    variance
-}
-
 fn image_to_linear_index(r: usize, cols: usize, c: usize) -> usize {
     r*cols+c
 }

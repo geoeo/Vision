@@ -10,8 +10,7 @@ use crate::image::Image;
 use crate::numerics::{lie, loss::LossFunction, max_norm, solver::{calc_weight_vec, weight_jacobian_sparse, weight_residuals_sparse, compute_cost}};
 use crate::odometry::runtime_parameters::RuntimeParameters;
 use crate::odometry::visual_odometry::dense_direct::{
-    RuntimeMemory,backproject_points, compute_full_jacobian, compute_image_gradients, compute_residuals,compute_t_dist_weights,
-    precompute_jacobians
+    RuntimeMemory,backproject_points, compute_full_jacobian, compute_image_gradients, compute_residuals, precompute_jacobians
 };
 use crate::image::pyramid::gd::{gd_octave::GDOctave, GDPyramid};
 use crate::sensors::camera::Camera;
@@ -147,12 +146,11 @@ fn estimate<C : Camera, const T: usize>(
     );
 
     if runtime_parameters.weighting {
-        // calc_weight_vec(
-        //     &runtime_memory.new_residuals,
-        //     &runtime_parameters.intensity_weighting_function,
-        //     &mut runtime_memory.weights_vec,
-        // );
-        compute_t_dist_weights(&runtime_memory.new_residuals, &mut runtime_memory.weights_vec, 5.0, 20, 1e-12);
+        calc_weight_vec(
+            &runtime_memory.new_residuals,
+            &runtime_parameters.intensity_weighting_function,
+            &mut runtime_memory.weights_vec,
+        );
         weight_residuals_sparse(&mut runtime_memory.new_residuals, &runtime_memory.weights_vec);
     }
 
@@ -189,9 +187,9 @@ fn estimate<C : Camera, const T: usize>(
 
 
     let mut iteration_count = 0;
-    while ((!runtime_parameters.lm && (cost.sqrt() > runtime_parameters.eps[octave_index]))
+    while ((!runtime_parameters.lm && cost.sqrt() > runtime_parameters.eps[octave_index])
         || (runtime_parameters.lm
-            && (delta_norm > delta_thresh && max_norm_delta > runtime_parameters.max_norm_eps)))
+            && delta_norm > delta_thresh && max_norm_delta > runtime_parameters.max_norm_eps && cost.sqrt() > runtime_parameters.eps[octave_index]))
         && iteration_count < max_iterations
     {
 
@@ -237,14 +235,13 @@ fn estimate<C : Camera, const T: usize>(
             &mut runtime_memory.new_image_gradient_points,
         );
 
-        //TODO: refactor t-dist into weight
+
         if runtime_parameters.weighting {
-            // calc_weight_vec(
-            //     &runtime_memory.new_residuals,
-            //     &runtime_parameters.intensity_weighting_function,
-            //     &mut runtime_memory.weights_vec,
-            // );
-            compute_t_dist_weights(&runtime_memory.new_residuals, &mut runtime_memory.weights_vec, 5.0, 20, 1e-12);
+            calc_weight_vec(
+                &runtime_memory.new_residuals,
+                &runtime_parameters.intensity_weighting_function,
+                &mut runtime_memory.weights_vec,
+            );
             weight_residuals_sparse(&mut runtime_memory.new_residuals, &runtime_memory.weights_vec);
         }
 

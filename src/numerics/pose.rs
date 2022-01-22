@@ -29,5 +29,3 @@ pub fn rsme(data: &Vec<Isometry3<Float>>) -> Float {
     let norm_sum = data.iter().fold(0.0, |acc, x| acc + x.translation.vector.norm_squared());
     (norm_sum/(data.len() as Float)).sqrt()
 }
-
-//TODO: inverse depth param conversion 
