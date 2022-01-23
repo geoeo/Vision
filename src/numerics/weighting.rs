@@ -7,7 +7,7 @@ use crate::numerics::estimate_std;
 
 
 pub trait WeightingFunction {
-    fn cost(&self, residuals: &DVector<Float>, index: usize, variance: Option<Float>) -> Float;
+    fn weight(&self, residuals: &DVector<Float>, index: usize, variance: Option<Float>) -> Float;
     fn estimate_variance(&self, residuals: &DVector<Float>) -> Option<Float>;
     fn name(&self) -> &str;
 }
@@ -38,7 +38,7 @@ pub struct HuberWeightForPos {
 
 impl WeightingFunction for HuberWeightForPos {
 
-    fn cost(&self, residuals: &DVector<Float>, index: usize,  variance: Option<Float>) -> Float {
+    fn weight(&self, residuals: &DVector<Float>, index: usize,  variance: Option<Float>) -> Float {
         let res_abs = residuals[index].abs();
         let k = variance.expect("k has to have been computed for Huber Weight");
         match res_abs {
@@ -63,7 +63,7 @@ pub struct CauchyWeight {
 
 impl WeightingFunction for CauchyWeight {
 
-    fn cost(&self, residuals: &DVector<Float>, index: usize,  variance : Option<Float>) -> Float {
+    fn weight(&self, residuals: &DVector<Float>, index: usize,  variance : Option<Float>) -> Float {
         let res = residuals[index];
         (1.0 + res.powi(2)/self.sigma_sqrd).ln()
     }
@@ -84,11 +84,11 @@ pub struct TrivialWeight {
 
 impl WeightingFunction for TrivialWeight {
 
-    fn cost(&self, residuals: &DVector<Float>, index: usize,  variance: Option<Float>) -> Float {
+    fn weight(&self,_residuals: &DVector<Float>, _index: usize,  _variance: Option<Float>) -> Float {
         1.0
     }
 
-    fn estimate_variance(&self, residuals: &DVector<Float>) -> Option<Float> {
+    fn estimate_variance(&self, _residuals: &DVector<Float>) -> Option<Float> {
         None
     }
 
@@ -137,7 +137,7 @@ impl TDistWeight {
 }
 
 impl WeightingFunction for TDistWeight {
-    fn cost(&self, residuals: &DVector<Float>, index: usize,  variance: Option<Float>) -> Float {
+    fn weight(&self, residuals: &DVector<Float>, index: usize,  variance: Option<Float>) -> Float {
         let variance = variance.expect("Variance should have been computed for T-Dist weighting!");
         self.compute_t_dist_weight(residuals[index],variance, self.t_dist_nu).sqrt()
     }

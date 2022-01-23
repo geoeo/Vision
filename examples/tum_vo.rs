@@ -30,7 +30,7 @@ fn main() {
     let loading_parameters = ImageLoadingParameters {
         starting_index: 0,
         step :1,
-        count :50,
+        count :300,
         image_height: 480,
         image_width: 640,
         negate_depth_values :true,
@@ -47,7 +47,7 @@ fn main() {
         sigma: 1.2,
         use_blur: true,
         blur_radius: 1.0,
-        octave_count: 3,
+        octave_count: 4,
         min_image_dimensions: (50,50),
         invert_grad_x : true,
         invert_grad_y : true,
@@ -79,15 +79,15 @@ fn main() {
         step_sizes: vec![1.0;pyramid_parameters.octave_count], 
         max_norm_eps: 1e-15,
         delta_eps: 1e-15,
-        taus: vec!(1e-3,1e-3,1e0), 
+        taus: vec!(1e-3,1e-3,1e-0,1e-0), 
         lm: true,
         weighting: true,
-        debug: true,
+        debug: false,
 
         show_octave_result: true,
         loss_function: Box::new(loss::TrivialLoss {eps: 1e-16, approximate_gauss_newton_matrices: true}),
-        //intensity_weighting_function:  Box::new(weighting::TDistWeight {t_dist_nu: 5.0, max_it: 20, eps: 1e-12})
-        intensity_weighting_function:  Box::new(weighting::HuberWeightForPos {})
+        intensity_weighting_function:  Box::new(weighting::TDistWeight {t_dist_nu: 5.0, max_it: 20, eps: 1e-12})
+        //intensity_weighting_function:  Box::new(weighting::HuberWeightForPos {})
     };
 
     let mut se3_est = vec!(Isometry3::<Float>::identity());

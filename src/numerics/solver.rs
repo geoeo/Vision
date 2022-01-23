@@ -18,7 +18,7 @@ pub fn calc_weight_vec<D, S1>(
         S1: StorageMut<Float, D>{
     let variance = weight_function.estimate_variance(residuals);
     for i in 0..residuals.len() {
-        weights_vec[i] = weight_function.cost(residuals,i,variance);
+        weights_vec[i] = weight_function.weight(residuals,i,variance);
 
 
     }
