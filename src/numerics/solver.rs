@@ -84,8 +84,6 @@ pub fn weight_jacobian<const M: usize, const N: usize>(jacobian: &mut SMatrix<Fl
     weights.mul_to(&jacobian.clone(),jacobian);
 }
 
-//TODO: use schur compliment
-//TODO: only schur version
 #[allow(non_snake_case)]
 pub fn gauss_newton_step_with_loss_and_schur(
     residuals: &DVector<Float>,

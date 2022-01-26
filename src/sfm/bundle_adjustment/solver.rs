@@ -136,9 +136,6 @@ pub fn optimize<C : Camera,L: Landmark<T> + Copy + Clone, const T: usize>(state:
         weight_jacobian_sparse(&mut jacobian, &weights_vec);
     }
 
-
-
-
     let mut max_norm_delta = float::MAX;
     let mut delta_thresh = float::MIN;
     let mut delta_norm = float::MAX;

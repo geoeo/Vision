@@ -13,6 +13,8 @@ Sparse Bundle Adjustment http://users.ics.forth.gr/~lourakis/sba/sba-toms.pdf
 
 Inverse Depth Parameterization https://www.doc.ic.ac.uk/~ajd/Publications/civera_etal_tro2008.pdf
 
+Primal-Dual Convex For L1 Norm https://candes.su.domains/software/l1magic/downloads/l1magic.pdf (Based on: Convex Optimization – Boyd and Vandenberghe) (WIP)
+
 ## Orb
 ![billa_cereal_far](doc/cereal_far.png)![billa_cereal_tilted](doc/cereal_tilted.png)
 
