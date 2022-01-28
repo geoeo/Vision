@@ -61,6 +61,7 @@ pub fn extract_matches<T: Feature>(matches: &Vec<Match<T>>, pyramid_scale: Float
 /**
  * Photogrammetric Computer Vision p.570
  */
+#[allow(non_snake_case)]
 pub fn eight_point(matches: &Vec<(Vector2<Float>,Vector2<Float>)>) -> Fundamental {
     let number_of_matches = matches.len() as Float;
     assert!(number_of_matches >= 8.0);
@@ -123,10 +124,12 @@ pub fn eight_point(matches: &Vec<(Vector2<Float>,Vector2<Float>)>) -> Fundamenta
     svd_f.recompose().ok().expect("SVD recomposition failed")
 }
 
+#[allow(non_snake_case)]
 pub fn compute_essential(F: &Fundamental, projection_left: &Matrix3<Float>, projection_right: &Matrix3<Float>) -> Essential {
     projection_left.transpose()*F*projection_right
 }
 
+#[allow(non_snake_case)]
 pub fn filter_matches(F: &Fundamental,matches: &Vec<(Vector2<Float>,Vector2<Float>)>) -> Vec<(Vector3<Float>,Vector3<Float>)> {
     matches.iter().map(|(l,r)| {
     
@@ -141,12 +144,13 @@ pub fn filter_matches(F: &Fundamental,matches: &Vec<(Vector2<Float>,Vector2<Floa
 /**
  * Photogrammetric Computer Vision p.583
  */
+#[allow(non_snake_case)]
 pub fn decompose_essential_förstner(E: &Essential,matches: &Vec<(Vector3<Float>,Vector3<Float>)>) -> (Vector3<Float>, Matrix3<Float>) {
     let svd = E.svd(true,true);
     let min_idx = svd.singular_values.imin();
     let u = &svd.u.expect("SVD failed on E");
     let v_t = &svd.v_t.expect("SVD failed on E");
-    let mut h = Vector3::<Float>::from_columns(&[u.column(min_idx)]);
+    let h = Vector3::<Float>::from_columns(&[u.column(min_idx)]);
 
     let W = Matrix3::<Float>::new(0.0, 1.0, 0.0,
                                  -1.0, 0.0 ,0.0,
@@ -205,6 +209,7 @@ pub fn decompose_essential_förstner(E: &Essential,matches: &Vec<(Vector3<Float>
 /**
  * Statistical Optimization for Geometric Computation p.338
  */
+#[allow(non_snake_case)]
 pub fn decompose_essential_kanatani(E: &Essential, matches: &Vec<(Vector3<Float>,Vector3<Float>)>) -> (Vector3<Float>, Matrix3<Float>) {
     let mut translation = Vector3::<Float>::zeros();
     let mut R = Matrix3::<Float>::identity();
