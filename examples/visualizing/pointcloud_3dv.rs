@@ -7,8 +7,15 @@ use std::fs::File;
 use std::io::{BufReader,BufRead};
 use std::{result::Result};
 
-use kiss3d::window::Window;
-use na::{Point2, Point3, Translation3, Matrix4, Vector3, Rotation3,Isometry3};
+use kiss3d::{
+    window::Window,
+    nalgebra::{
+        Point3,
+        Point2,
+        Translation3
+    }
+};
+use na::{Vector3, Rotation3,Isometry3};
 use kiss3d::text::Font;
 use vision::Float;
 use vision::io;
@@ -18,8 +25,6 @@ use rand::random;
 
 fn main() -> Result<(),()> {
     let mut window = Window::new("BA: Pointcloud");
-
-
 
     let file_path_str = format!("D:/Workspace/Cpp/3dv_tutorial/bin/bundle_adjustment_global(point)_neg_z_lm.xyz");
     let file_cam_path_str = format!("D:/Workspace/Cpp/3dv_tutorial/bin/bundle_adjustment_global(camera)_neg_z_lm.xyz");

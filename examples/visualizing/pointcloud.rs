@@ -7,8 +7,10 @@ use std::{fs,result::Result};
 use std::path::Path;
 use kiss3d::event::{WindowEvent , Key};
 use kiss3d::window::Window;
-use na::{Point2, Point3, Translation3, Vector3, Isometry3};
 use kiss3d::text::Font;
+use kiss3d::nalgebra::{Point2,Point3,Translation3};
+use na::{Vector3, Isometry3};
+
 use vision::Float;
 use vision::sfm::{bundle_adjustment::state,euclidean_landmark::EuclideanLandmark, inverse_depth_landmark::InverseLandmark};
 use rand::random;
