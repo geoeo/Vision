@@ -1,6 +1,6 @@
 extern crate nalgebra as na;
 
-use na::{Matrix,Vector, OMatrix, OVector, DVector, DMatrix, Const, ArrayStorage};
+use na::{Vector, OMatrix, OVector, DVector, DMatrix, Const, ArrayStorage};
 use crate::Float;
 
 /**
@@ -55,6 +55,8 @@ pub fn l1_norm_approx<const N: usize, const M: usize>(measurements: &OVector<Flo
         let dc = w2 - (sigma_2.component_mul(&Adx)).component_mul(&sigma_1_recip);
         let (du1,du2) = du(&u_vec, &h_recip, &Adx, &dc, tau);
         let Adtv = A_t*(du1-du2);
+
+        let s = s(&u_vec,&du1,&du2,&Adx,&dc,&h);
 
 
 
@@ -165,18 +167,17 @@ fn du<const M :usize>(u_vec: &DVector<Float>, h_recip: &DVector<Float>, Adx: &OV
 
 }
 
-fn s(u_vec: &DVector<Float>, du1: &DVector<Float>, du2: &DVector<Float>, Adx: &DVector<Float>, dc: &DVector<Float>, h: &DVector<Float>) -> Float {
-    let subproblem_size = u_vec.nrows()/2;
-    let u1 = u_vec.rows(0,subproblem_size);
-    let u2 = u_vec.rows(subproblem_size,subproblem_size);
-    let h1 = h.rows(0,subproblem_size);
-    let h2 = h.rows(subproblem_size,subproblem_size);
+fn s<const M: usize>(u_vec: &DVector<Float>, du1: &OVector<Float, Const<M>>, du2: &OVector<Float, Const<M>>, Adx: &OVector<Float, Const<M>>, dc: &OVector<Float, Const<M>>, h: &DVector<Float>) -> Float {
+    let u1 = u_vec.fixed_rows::<M>(0);
+    let u2 = u_vec.fixed_rows::<M>(M);
+    let h1 = h.fixed_rows::<M>(0);
+    let h2 = h.fixed_rows::<M>(M);
 
-    let min_u1 = ((-u1).transpose().component_mul(du1)).min();
-    let min_u2 = ((-u2).transpose().component_mul(du2)).min();
+    let min_u1 = ((-u1).component_mul(&du1)).min();
+    let min_u2 = ((-u2).component_mul(&du2)).min();
     let min_s1 = vec!(1.0,min_u1,min_u2).iter().min_by(|a,b| a.partial_cmp(b).unwrap()).expect("min s1 failed").clone();
-    let min_h1 = (-h1).transpose().component_mul(&(Adx-dc)).min();
-    let min_h2 = (-h2).transpose().component_mul(&(-Adx-dc)).min();
+    let min_h1 = (-h1).component_mul(&(Adx-dc)).min();
+    let min_h2 = (-h2).component_mul(&(-Adx-dc)).min();
     0.99*vec![min_s1,min_h1,min_h2].iter().min_by(|a,b|a.partial_cmp(b).unwrap()).expect("min s failed").clone()
 
 }
