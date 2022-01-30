@@ -32,6 +32,7 @@ pub fn l1_norm_approx<const N: usize, const M: usize>(measurements: &OVector<Flo
     let mut c = f_0(measurements,A,state);
     let mut h = h(measurements,A,state,&c);
     let mut h_recip = h.map(|v| v.recip());
+    //TODO: refactor this into returning u1,u2 explicitly
     let mut u_vec = u(&h_recip,1.0); //lamu in l1magic 
 
     let eta = eta(&h,&u_vec); //sdg (surrogate duality gap)
@@ -54,6 +55,8 @@ pub fn l1_norm_approx<const N: usize, const M: usize>(measurements: &OVector<Flo
         let dc = w2 - (sigma_2.component_mul(&Adx)).component_mul(&sigma_1_recip);
         let (du1,du2) = du(&u_vec, &h_recip, &Adx, &dc, tau);
         let Adtv = A_t*(du1-du2);
+
+
 
 
     }
@@ -159,6 +162,22 @@ fn du<const M :usize>(u_vec: &DVector<Float>, h_recip: &DVector<Float>, Adx: &OV
         -(u_1.component_mul(&h_recip_1)).component_mul(&(Adx-dc))-u_1 -(1.0/tau)*h_recip_1,
         (u_2.component_mul(&h_recip_2)).component_mul(&(Adx+dc))-u_2 -(1.0/tau)*h_recip_2
     )
+
+}
+
+fn s(u_vec: &DVector<Float>, du1: &DVector<Float>, du2: &DVector<Float>, Adx: &DVector<Float>, dc: &DVector<Float>, h: &DVector<Float>) -> Float {
+    let subproblem_size = u_vec.nrows()/2;
+    let u1 = u_vec.rows(0,subproblem_size);
+    let u2 = u_vec.rows(subproblem_size,subproblem_size);
+    let h1 = h.rows(0,subproblem_size);
+    let h2 = h.rows(subproblem_size,subproblem_size);
+
+    let min_u1 = ((-u1).transpose().component_mul(du1)).min();
+    let min_u2 = ((-u2).transpose().component_mul(du2)).min();
+    let min_s1 = vec!(1.0,min_u1,min_u2).iter().min_by(|a,b| a.partial_cmp(b).unwrap()).expect("min s1 failed").clone();
+    let min_h1 = (-h1).transpose().component_mul(&(Adx-dc)).min();
+    let min_h2 = (-h2).transpose().component_mul(&(-Adx-dc)).min();
+    0.99*vec![min_s1,min_h1,min_h2].iter().min_by(|a,b|a.partial_cmp(b).unwrap()).expect("min s failed").clone()
 
 }
 
