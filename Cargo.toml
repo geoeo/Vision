@@ -56,3 +56,4 @@ path = "examples/visualizing/pointcloud_3dv.rs"
 name = "ba_3dv"
 path = "examples/image_processing/ba_3dv.rs"
 
+

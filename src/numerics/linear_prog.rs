@@ -8,10 +8,7 @@ use crate::Float;
  */
 
 #[allow(non_snake_case)]
-pub fn l1_norm_approx<const N: usize, const M: usize>(measurements: &OVector<Float,Const<M>>, A: &OMatrix<Float, Const<M>,Const<N>>,  x: &mut OVector<Float,Const<N>>) -> () {
-
-    let max_iter = 200;
-    let tol = 1e-3;
+pub fn l1_norm_approx<const N: usize, const M: usize>(measurements: &OVector<Float,Const<M>>, A: &OMatrix<Float, Const<M>,Const<N>>,  x: &mut OVector<Float,Const<N>>, max_iter: usize, tol: Float) -> () {
 
     let alpha = 0.01;
     let beta = 0.5;
@@ -46,8 +43,6 @@ pub fn l1_norm_approx<const N: usize, const M: usize>(measurements: &OVector<Flo
     let mut iter = 0;
 
     while iter < max_iter && eta < tol {
-
-
         let w1 = w1(&h_recip,&A_t, tau);
         let w2 = w2(&u_vec,&ones, tau);
         let (sigma_1_recip,sigma_2,sigma_x) = sigmas(&u_vec, &h_recip);
