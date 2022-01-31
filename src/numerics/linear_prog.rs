@@ -9,7 +9,7 @@ use crate::Float;
 
 #[allow(non_snake_case)]
 pub fn l1_norm_approx(measurements: &DVector<Float>, A: &DMatrix<Float>,  x: &mut DVector<Float>, max_iter: usize, tol: Float) -> () {
-
+    println!("WARNING: DOESNT COVERGE; STILL BUGGY");
     let M = measurements.nrows();
     let N = x.nrows();
 
@@ -43,6 +43,7 @@ pub fn l1_norm_approx(measurements: &DVector<Float>, A: &DMatrix<Float>,  x: &mu
 
     let mut iter = 0;
 
+    //TODO: doesnt converge
     while iter < max_iter && eta >= tol {
         let w1 = w1(&h_recip,&A_t, tau);
         let w2 = w2(&u_vec,&ones, tau);
@@ -75,6 +76,8 @@ pub fn l1_norm_approx(measurements: &DVector<Float>, A: &DMatrix<Float>,  x: &mu
         dual_residuals.rows_mut(0,N+M).copy_from(&res_dual);
         dual_residuals.rows_mut(N+M,2*M).copy_from(&res_center);
 
+        println!("eta: {}", eta);
+
         iter+=1;
 
     }
@@ -103,9 +106,7 @@ fn dual_residual(f_0_grad: &DVector<Float>,  A_t: &DMatrix<Float>, u_vec: &DVect
 
 #[allow(non_snake_case)]
 fn center_residual(h: &DVector<Float>, u_vec: &DVector<Float>, tau: Float) -> DVector<Float> {
-    let mut diag = DMatrix::<Float>::zeros(u_vec.nrows(),u_vec.nrows());
-    diag.set_diagonal(u_vec);
-    let mut center_residual = -diag*h;
+    let mut center_residual = (-u_vec).component_mul(&h);
     center_residual.add_scalar_mut(-1.0/tau);
     center_residual
 }
@@ -255,7 +256,8 @@ fn backtrack_line_search(
     let mut u2p =  DVector::zeros(M);
     let mut h1p =  DVector::zeros(M);
     let mut h2p =  DVector::zeros(M);
-
+    
+    //println!("backtracking start");
     while !suff_dec && backiter <= 32 {
         xp.copy_from(&(x+s*dx));
         cp.copy_from(&(c+s*dc));
@@ -274,13 +276,16 @@ fn backtrack_line_search(
         rcp.rows_mut(M,M).copy_from(&(-(&u2p).component_mul(&h2p)));
         rcp.add_scalar_mut(-1.0/tau);
         resp.rows_mut(N+M,2*M).copy_from(&rcp);
-        suff_dec = resp.norm() <= (1.0-alpha*s)*res_norm;
+        let resp_norm = resp.norm();
+        //println!("resp: {}",resp_norm);
+        suff_dec = resp_norm <= (1.0-alpha*s)*res_norm;
         s *= beta;
         backiter+=1;
         if backiter == 32 {
             xp.copy_from(x);
         }
     }
+    //println!("backtracking end");
 
     (xp,cp,u1p,u2p,h1p,h2p,resp.rows(0,N+M).into_owned())
 }
