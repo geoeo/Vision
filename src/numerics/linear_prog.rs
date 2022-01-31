@@ -1,6 +1,6 @@
 extern crate nalgebra as na;
 
-use na::{Vector, OMatrix,SVector, OVector, DVector, DMatrix, Const, ArrayStorage, Storage};
+use na::{DVector, DMatrix};
 use crate::Float;
 
 /**
@@ -8,7 +8,10 @@ use crate::Float;
  */
 
 #[allow(non_snake_case)]
-pub fn l1_norm_approx<const N: usize, const M: usize>(measurements: &OVector<Float,Const<M>>, A: &OMatrix<Float, Const<M>,Const<N>>,  x: &mut OVector<Float,Const<N>>, max_iter: usize, tol: Float) -> () {
+pub fn l1_norm_approx(measurements: &DVector<Float>, A: &DMatrix<Float>,  x: &mut DVector<Float>, max_iter: usize, tol: Float) -> () {
+
+    let M = measurements.nrows();
+    let N = x.nrows();
 
     let alpha = 0.01;
     let beta = 0.5;
@@ -19,13 +22,11 @@ pub fn l1_norm_approx<const N: usize, const M: usize>(measurements: &OVector<Flo
     let f_0_grad_x = DVector::<Float>::zeros(N);
     let f_0_grad_u = DVector::<Float>::zeros(M);
     let mut f_0_grad = DVector::<Float>::zeros(N+M);
-    f_0_grad.fixed_rows_mut::<N>(0).copy_from(&f_0_grad_x);
-    f_0_grad.fixed_rows_mut::<M>(N).copy_from(&f_0_grad_u);
+    f_0_grad.rows_mut(0,N).copy_from(&f_0_grad_x);
+    f_0_grad.rows_mut(N,M).copy_from(&f_0_grad_u);
     let A_t = A.transpose();
-    let ones = DVector::<Float>::repeat(N*2,1.0);
+    let ones = DVector::<Float>::repeat(M,1.0);
     let mut dual_residuals = DVector::<Float>::zeros(N+M+2*M);
-
-
 
     let mut c = f_0(measurements,A,x);
     let mut h = h(measurements,A,x,&c);
@@ -42,29 +43,29 @@ pub fn l1_norm_approx<const N: usize, const M: usize>(measurements: &OVector<Flo
 
     let mut iter = 0;
 
-    while iter < max_iter && eta < tol {
+    while iter < max_iter && eta >= tol {
         let w1 = w1(&h_recip,&A_t, tau);
         let w2 = w2(&u_vec,&ones, tau);
         let (sigma_1_recip,sigma_2,sigma_x) = sigmas(&u_vec, &h_recip);
 
-        let w1p = w1 - A_t*(sigma_2.component_mul(&sigma_1_recip)).component_mul(&w2);
-        let H11p = A_t*DMatrix::<Float>::from_diagonal(&sigma_x)*A;
+        let w1p = w1 - (&A_t)*(sigma_2.component_mul(&sigma_1_recip)).component_mul(&w2);
+        let H11p = &A_t*DMatrix::<Float>::from_diagonal(&sigma_x)*A;
         let dx = H11p.cholesky().expect("H11p cholesky failed").solve(&w1p);
-        let Adx = A*dx;
+        let Adx = A*(&dx);
         let dc = w2 - (sigma_2.component_mul(&Adx)).component_mul(&sigma_1_recip);
         let (du1,du2) = du(&u_vec, &h_recip, &Adx, &dc, tau);
-        let Ax = A*(x as &OVector<Float,Const<N>>);
+        let Ax = A*(x as &DVector<Float>);
         let s = s(&u_vec,&du1,&du2,&Adx,&dc,&h);
-        let u1 = u_vec.fixed_rows::<M>(0);
-        let u2 = u_vec.fixed_rows::<M>(M);
+        let u1 = u_vec.rows(0,M).into_owned();
+        let u2 = u_vec.rows(M,M).into_owned();
         let (xp,cp,u1p,u2p,h1p,h2p,rdp) = backtrack_line_search(x,&dx,&c,&dc,&Ax,&Adx,&A_t,&u1,&u2,&du1,&du2,measurements,&f_0_grad, dual_residuals.norm(),alpha,beta,s, tau);
 
         x.copy_from(&xp);
         c.copy_from(&cp);
-        u_vec.fixed_rows_mut::<M>(0).copy_from(&u1p);
-        u_vec.fixed_rows_mut::<M>(M).copy_from(&u2p);
-        h.fixed_rows_mut::<M>(0).copy_from(&h1p);
-        h.fixed_rows_mut::<M>(M).copy_from(&h2p);
+        u_vec.rows_mut(0,M).copy_from(&u1p);
+        u_vec.rows_mut(M,M).copy_from(&u2p);
+        h.rows_mut(0,M).copy_from(&h1p);
+        h.rows_mut(M,M).copy_from(&h2p);
         h_recip = h.map(|v| v.recip());
 
         eta = compute_eta(&h,&u_vec); 
@@ -84,13 +85,18 @@ pub fn l1_norm_approx<const N: usize, const M: usize>(measurements: &OVector<Flo
 
 //Since we dont have an equality constraint we do not have a nu term
 #[allow(non_snake_case)]
-fn dual_residual<const N: usize, const M: usize>(f_0_grad: &DVector<Float>,  A_t: &OMatrix<Float, Const<N>,Const<M>>, u_vec: &DVector<Float>) -> DVector<Float> {
-    let mut dh_u = DVector::<Float>::zeros(N+M);
-    let lamu_1 = u_vec.fixed_rows::<M>(0);
-    let lamu_2 = u_vec.fixed_rows::<M>(M);
+fn dual_residual(f_0_grad: &DVector<Float>,  A_t: &DMatrix<Float>, u_vec: &DVector<Float>) -> DVector<Float> {
 
-    dh_u.fixed_rows_mut::<N>(0).copy_from(&(A_t*(lamu_1-lamu_2)));
-    dh_u.fixed_rows_mut::<M>(N).copy_from(&(-lamu_1-lamu_2));
+    let M = A_t.ncols();
+    let N = A_t.nrows();
+
+
+    let mut dh_u = DVector::<Float>::zeros(N+M);
+    let lamu_1 = u_vec.rows(0,M);
+    let lamu_2 = u_vec.rows(M,M);
+
+    dh_u.rows_mut(0,N).copy_from(&(A_t*(lamu_1-lamu_2)));
+    dh_u.rows_mut(N,M).copy_from(&(-lamu_1-lamu_2));
 
     f_0_grad+dh_u
 }
@@ -105,18 +111,20 @@ fn center_residual(h: &DVector<Float>, u_vec: &DVector<Float>, tau: Float) -> DV
 }
 
 #[allow(non_snake_case)]
-fn f_0<const N: usize, const M: usize>(measurements: &OVector<Float,Const<M>>, A: &OMatrix<Float, Const<M>,Const<N>>,  state: &OVector<Float,Const<N>>) -> OVector<Float,Const<M>> {
+fn f_0(measurements: &DVector<Float>, A: &DMatrix<Float>,  state: &DVector<Float>) -> DVector<Float> {
     let res_abs = (A*state-measurements).abs();
-    (0.95*res_abs).add_scalar(0.1*res_abs.max())
+    (0.95*(&res_abs)).add_scalar(0.1*(&res_abs).max())
 }
 
 #[allow(non_snake_case)]
-fn h<const N: usize, const M: usize>(measurements: &OVector<Float,Const<M>>, A: &OMatrix<Float, Const<M>,Const<N>>, state: &OVector<Float,Const<N>>, residual: &OVector<Float,Const<M>>) -> DVector<Float> {
+fn h(measurements: &DVector<Float>, A: &DMatrix<Float>, state: &DVector<Float>, residual: &DVector<Float>) -> DVector<Float> {
+    let M = measurements.nrows();
+
     let f_1 = A*state-measurements - residual;
     let f_2 = -A*state+measurements -residual;
     let mut h = DVector::<Float>::zeros(M*2);
-    h.fixed_rows_mut::<M>(0).copy_from(&f_1);
-    h.fixed_rows_mut::<M>(M).copy_from(&f_2);
+    h.rows_mut(0,M).copy_from(&f_1);
+    h.rows_mut(M,M).copy_from(&f_2);
     h
 }
 
@@ -133,7 +141,7 @@ fn u(h_recip: &DVector<Float>, tau: Float) -> DVector<Float> {
 }
 
 #[allow(non_snake_case)]
-fn w1<const M: usize, const N: usize>(h_recip: &DVector<Float>, A_t: &OMatrix<Float, Const<N>,Const<M>>, tau: Float) -> Vector<Float, Const<N>, ArrayStorage<Float,N, 1>> {
+fn w1(h_recip: &DVector<Float>, A_t: &DMatrix<Float>, tau: Float) -> DVector<Float> {
     let subproblem_size = h_recip.nrows()/2;
     let h_1 = h_recip.rows(0,subproblem_size);
     let h_2 = h_recip.rows(subproblem_size,subproblem_size);
@@ -144,7 +152,10 @@ fn w1<const M: usize, const N: usize>(h_recip: &DVector<Float>, A_t: &OMatrix<Fl
 }
 
 fn w2(h_recip: &DVector<Float>,ones: &DVector<Float>, tau: Float) -> DVector<Float> {
-    -ones-h_recip*1.0/tau
+    let subproblem_size = h_recip.nrows()/2;
+    let h_1 = h_recip.rows(0,subproblem_size);
+    let h_2 = h_recip.rows(subproblem_size,subproblem_size);
+    -ones-(h_1+h_2)*1.0/tau
 }
 
 /**
@@ -152,7 +163,7 @@ fn w2(h_recip: &DVector<Float>,ones: &DVector<Float>, tau: Float) -> DVector<Flo
  */
 fn sigmas(u: &DVector<Float>, h_recip: &DVector<Float>) -> (DVector<Float>,DVector<Float>,DVector<Float>) {
     let subproblem_size = h_recip.nrows()/2;
-    let uh = u*h_recip;
+    let uh = u.component_mul(&h_recip);
     let uh_1 = uh.rows(0,subproblem_size);
     let uh_2 = uh.rows(subproblem_size,subproblem_size);
 
@@ -164,12 +175,11 @@ fn sigmas(u: &DVector<Float>, h_recip: &DVector<Float>) -> (DVector<Float>,DVect
     let sigma_x = &sigma_1 - sigma_2_squared.component_mul(&sigma_1_recip);
     (sigma_1_recip,sigma_2,sigma_x)
 }
-
 /**
  * (du1,du2)
  */
 #[allow(non_snake_case)]
-fn du<const M :usize>(u_vec: &DVector<Float>, h_recip: &DVector<Float>, Adx: &OVector<Float, Const<M>>, dc: &OVector<Float, Const<M>>, tau: Float) -> (OVector<Float, Const<M>>,OVector<Float, Const<M>>) {
+fn du(u_vec: &DVector<Float>, h_recip: &DVector<Float>, Adx: &DVector<Float>, dc: &DVector<Float>, tau: Float) -> (DVector<Float>,DVector<Float>) {
     let subproblem_size = h_recip.nrows()/2;
     let h_recip_1 = h_recip.rows(0,subproblem_size);
     let h_recip_2 = h_recip.rows(subproblem_size,subproblem_size);
@@ -184,11 +194,12 @@ fn du<const M :usize>(u_vec: &DVector<Float>, h_recip: &DVector<Float>, Adx: &OV
 }
 
 #[allow(non_snake_case)]
-fn s<const M: usize>(u_vec: &DVector<Float>, du1: &OVector<Float, Const<M>>, du2: &OVector<Float, Const<M>>, Adx: &OVector<Float, Const<M>>, dc: &OVector<Float, Const<M>>, h: &DVector<Float>) -> Float {
-    let u1 = u_vec.fixed_rows::<M>(0);
-    let u2 = u_vec.fixed_rows::<M>(M);
-    let h1 = h.fixed_rows::<M>(0);
-    let h2 = h.fixed_rows::<M>(M);
+fn s(u_vec: &DVector<Float>, du1: &DVector<Float>, du2: &DVector<Float>, Adx: &DVector<Float>, dc: &DVector<Float>, h: &DVector<Float>) -> Float {
+    let M = dc.nrows();
+    let u1 = u_vec.rows(0,M);
+    let u2 = u_vec.rows(M,M);
+    let h1 = h.rows(0,M);
+    let h2 = h.rows(M,M);
 
     let min_u1 = ((-u1).component_mul(&du1)).min();
     let min_u2 = ((-u2).component_mul(&du2)).min();
@@ -200,29 +211,32 @@ fn s<const M: usize>(u_vec: &DVector<Float>, du1: &OVector<Float, Const<M>>, du2
 }
 
 #[allow(non_snake_case)]
-fn backtrack_line_search<S: Storage<Float,Const<M>,Const<1>>, const N: usize,const M: usize>(
-    x: &OVector<Float,Const<N>>, 
-    dx: &OVector<Float,Const<N>>,
-    c:  &OVector<Float,Const<M>>,
-    dc: &OVector<Float,Const<M>>,
-    Ax: &OVector<Float,Const<M>>,
-    Adx: &OVector<Float,Const<M>>,
-    A_t: &OMatrix<Float, Const<N>, Const<M>>,
-    u1: &Vector<Float, Const<M>,S>,
-    u2: &Vector<Float, Const<M>,S>,
-    du1: &OVector<Float, Const<M>>,
-    du2: &OVector<Float, Const<M>>,
-    measurements: &OVector<Float,Const<M>>,
+fn backtrack_line_search(
+    x: &DVector<Float>, 
+    dx: &DVector<Float>,
+    c:  &DVector<Float>,
+    dc: &DVector<Float>,
+    Ax: &DVector<Float>,
+    Adx: &DVector<Float>,
+    A_t: &DMatrix<Float>,
+    u1: &DVector<Float>,
+    u2: &DVector<Float>,
+    du1: &DVector<Float>,
+    du2: &DVector<Float>,
+    measurements: &DVector<Float>,
     f_0_grad: &DVector<Float>,
     res_norm: Float,
     alpha: Float, beta : Float, s_init: Float,tau: Float) -> (
-        OVector<Float,Const<N>>,
-        OVector<Float,Const<M>>,
-        OVector<Float, Const<M>>,
-        OVector<Float, Const<M>>,
-        OVector<Float, Const<M>>,
-        OVector<Float, Const<M>>,
+        DVector<Float>,
+        DVector<Float>,
+        DVector<Float>,
+        DVector<Float>,
+        DVector<Float>,
+        DVector<Float>,
         DVector<Float>) {
+    let M = dc.nrows();
+    let N = x.nrows();
+
     let mut s = s_init;
     let mut suff_dec = false;
     let mut backiter = 0;
@@ -233,31 +247,31 @@ fn backtrack_line_search<S: Storage<Float,Const<M>,Const<1>>, const N: usize,con
     let mut rcp = DVector::<Float>::zeros(2*M);
     let mut resp = DVector::<Float>::zeros(N+M+2*M);
 
-    let mut xp = SVector::<Float, N>::zeros();
-    let mut cp = SVector::<Float, M>::zeros();
-    let mut Axp = SVector::<Float, M>::zeros();
-    let mut Atvp =  SVector::<Float, N>::zeros();
-    let mut u1p =  SVector::<Float, M>::zeros();
-    let mut u2p =  SVector::<Float, M>::zeros();
-    let mut h1p =  SVector::<Float, M>::zeros();
-    let mut h2p =  SVector::<Float, M>::zeros();
+    let mut xp = DVector::zeros(N);
+    let mut cp = DVector::zeros(M);
+    let mut Axp = DVector::zeros(M);
+    let mut Atvp =  DVector::zeros(N);
+    let mut u1p =  DVector::zeros(M);
+    let mut u2p =  DVector::zeros(M);
+    let mut h1p =  DVector::zeros(M);
+    let mut h2p =  DVector::zeros(M);
 
     while !suff_dec && backiter <= 32 {
         xp.copy_from(&(x+s*dx));
         cp.copy_from(&(c+s*dc));
         Axp.copy_from(&(Ax+s*Adx));
-        Atvp.copy_from(&(Atv+s*Atdv));
+        Atvp.copy_from(&((&Atv)+s*(&Atdv)));
         u1p.copy_from(&(u1+s*du1));
         u2p.copy_from(&(u2+s*du2));
-        h1p.copy_from(&(Axp - measurements - cp));
-        h2p.copy_from(&(-Axp + measurements - cp));
+        h1p.copy_from(&(&Axp - measurements - &cp));
+        h2p.copy_from(&(-(&Axp) + measurements - &cp));
 
-        rdp_temp.fixed_rows_mut::<N>(0).copy_from(&Atvp);
-        rdp_temp.fixed_rows_mut::<M>(N).copy_from(&(-u1p-u2p));
+        rdp_temp.rows_mut(0,N).copy_from(&Atvp);
+        rdp_temp.rows_mut(N,M).copy_from(&(-(&u1p)-(&u2p)));
         resp.rows_mut(0,N+M).copy_from(&(f_0_grad + &rdp_temp));
 
-        rcp.fixed_rows_mut::<M>(0).copy_from(&(-u1p.component_mul(&h1p)));
-        rcp.fixed_rows_mut::<M>(M).copy_from(&(-u2p.component_mul(&h2p)));
+        rcp.rows_mut(0,M).copy_from(&(-(&u1p).component_mul(&h1p)));
+        rcp.rows_mut(M,M).copy_from(&(-(&u2p).component_mul(&h2p)));
         rcp.add_scalar_mut(-1.0/tau);
         resp.rows_mut(N+M,2*M).copy_from(&rcp);
         suff_dec = resp.norm() <= (1.0-alpha*s)*res_norm;
