@@ -9,7 +9,6 @@ use crate::Float;
 
 #[allow(non_snake_case)]
 pub fn l1_norm_approx(measurements: &DVector<Float>, A: &DMatrix<Float>,  x: &mut DVector<Float>, max_iter: usize, tol: Float) -> () {
-    println!("WARNING: DOESNT COVERGE; STILL BUGGY");
     let M = measurements.nrows();
     let N = x.nrows();
 
@@ -20,7 +19,7 @@ pub fn l1_norm_approx(measurements: &DVector<Float>, A: &DMatrix<Float>,  x: &mu
 
     // Since f_0 = u => du/dx = 0, du/du = 1
     let f_0_grad_x = DVector::<Float>::zeros(N);
-    let f_0_grad_u = DVector::<Float>::zeros(M);
+    let f_0_grad_u = DVector::<Float>::from_element(M,1.0);
     let mut f_0_grad = DVector::<Float>::zeros(N+M);
     f_0_grad.rows_mut(0,N).copy_from(&f_0_grad_x);
     f_0_grad.rows_mut(N,M).copy_from(&f_0_grad_u);
@@ -43,17 +42,16 @@ pub fn l1_norm_approx(measurements: &DVector<Float>, A: &DMatrix<Float>,  x: &mu
 
     let mut iter = 0;
 
-    //TODO: doesnt converge
     while iter < max_iter && eta >= tol {
         let w1 = w1(&h_recip,&A_t, tau);
-        let w2 = w2(&u_vec,&ones, tau);
+        let w2 = w2(&h_recip,&ones, tau);
         let (sigma_1_recip,sigma_2,sigma_x) = sigmas(&u_vec, &h_recip);
 
         let w1p = w1 - (&A_t)*(sigma_2.component_mul(&sigma_1_recip)).component_mul(&w2);
         let H11p = &A_t*DMatrix::<Float>::from_diagonal(&sigma_x)*A;
         let dx = H11p.cholesky().expect("H11p cholesky failed").solve(&w1p);
         let Adx = A*(&dx);
-        let dc = w2 - (sigma_2.component_mul(&Adx)).component_mul(&sigma_1_recip);
+        let dc = (w2 - sigma_2.component_mul(&Adx)).component_mul(&sigma_1_recip);
         let (du1,du2) = du(&u_vec, &h_recip, &Adx, &dc, tau);
         let Ax = A*(x as &DVector<Float>);
         let s = s(&u_vec,&du1,&du2,&Adx,&dc,&h);
@@ -73,16 +71,12 @@ pub fn l1_norm_approx(measurements: &DVector<Float>, A: &DMatrix<Float>,  x: &mu
         tau = compute_tau(mu,dual_dim as Float,eta);
         res_dual = rdp;
         res_center = center_residual(&h,&u_vec, tau);
+
         dual_residuals.rows_mut(0,N+M).copy_from(&res_dual);
         dual_residuals.rows_mut(N+M,2*M).copy_from(&res_center);
 
-        println!("eta: {}", eta);
-
-        iter+=1;
-
-        //TODO: wrap in debug mode
-        println!("Iterations: {}, tau = {} Primal = {}, PDGap = {}, Dual res = {}", iter,tau, u_vec.sum(), eta, res_dual.norm());
-
+        println!("Iterations: {}, tau = {} Primal = {}, PDGap = {}, Dual res = {}", iter,tau, c.sum(), eta,dual_residuals.norm());
+        iter+= 1;
     }
 
 
@@ -204,11 +198,74 @@ fn s(u_vec: &DVector<Float>, du1: &DVector<Float>, du2: &DVector<Float>, Adx: &D
     let h1 = h.rows(0,M);
     let h2 = h.rows(M,M);
 
-    let min_u1 = ((-u1).component_mul(&du1)).min();
-    let min_u2 = ((-u2).component_mul(&du2)).min();
+    let mut inu1 = Vec::<usize>::with_capacity(M);
+    let mut inu2 = Vec::<usize>::with_capacity(M);
+
+    for i in 0..M{
+        match du1[i] {
+            v if v < 0.0 => inu1.push(i),
+            _ => ()
+        };
+
+        match du2[i] {
+            v if v < 0.0 => inu2.push(i),
+            _ => ()
+        };
+    }
+
+    let mut ratio_u1 = DVector::<Float>::zeros(inu1.len());
+    let mut ratio_u2 = DVector::<Float>::zeros(inu2.len());
+
+    let mut ru1_counter = 0;
+    for idx in inu1 {
+        ratio_u1[ru1_counter] = -u1[idx]/du1[idx];
+        ru1_counter+=1;
+    }
+
+    let mut ru2_counter = 0;
+    for idx in inu2 {
+        ratio_u2[ru2_counter] = -u2[idx]/du2[idx];
+        ru2_counter+=1;
+    }
+
+    let min_u1 = ratio_u1.min();
+    let min_u2 = ratio_u2.min();
     let min_s1 = vec!(1.0,min_u1,min_u2).iter().min_by(|a,b| a.partial_cmp(b).unwrap()).expect("min s1 failed").clone();
-    let min_h1 = (-h1).component_mul(&(Adx-dc)).min();
-    let min_h2 = (-h2).component_mul(&(-Adx-dc)).min();
+
+    let mut inh1 = Vec::<usize>::with_capacity(M);
+    let mut inh2 = Vec::<usize>::with_capacity(M);
+
+    for i in 0..M{
+        match Adx[i] - dc[i] {
+            v if v > 0.0 => inh1.push(i),
+            _ => ()
+        };
+
+        match -Adx[i] - dc[i] {
+            v if v > 0.0 => inh2.push(i),
+            _ => ()
+        };
+    }
+
+    let mut ratio_h1 = DVector::<Float>::zeros(inh1.len());
+    let mut ratio_h2 = DVector::<Float>::zeros(inh2.len());
+
+    let mut rh1_counter = 0;
+    for idx in inh1 {
+        ratio_h1[rh1_counter] = -h1[idx]/(Adx[idx] - dc[idx]);
+        rh1_counter+=1;
+    }
+
+    let mut rh2_counter = 0;
+    for idx in inh2 {
+        ratio_h2[rh2_counter] = -h2[idx]/(-Adx[idx] - dc[idx]);
+        rh2_counter+=1;
+    }
+
+
+    let min_h1 = ratio_h1.min();
+    let min_h2 = ratio_h2.min();
+
     0.99*vec![min_s1,min_h1,min_h2].iter().min_by(|a,b|a.partial_cmp(b).unwrap()).expect("min s failed").clone()
 
 }

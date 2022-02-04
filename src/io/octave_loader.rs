@@ -50,7 +50,7 @@ pub fn load_matrix(file_path: &str) -> DMatrix<Float> {
         vec_data.extend_from_slice(&column_entries);
     }
 
-    DMatrix::<Float>::from_vec(rows,columns, vec_data)
+    DMatrix::<Float>::from_row_slice(rows,columns, &vec_data)
 }
 
 pub fn load_vector(file_path: &str) -> DVector<Float> {
