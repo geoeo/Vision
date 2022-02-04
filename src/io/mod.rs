@@ -18,10 +18,11 @@ pub mod tum_loader;
 pub mod d455_loader;
 pub mod image_loading_parameters;
 pub mod imu_loading_parameters;
+pub mod octave_loader;
 
 
 pub fn parse_to_float(string: &str, negate_value: bool) -> Float {
-    let parts = string.split("e").collect::<Vec<&str>>();
+    let parts = string.trim().split("e").collect::<Vec<&str>>();
     let factor = match negate_value {
         true => -1.0,
         false => 1.0

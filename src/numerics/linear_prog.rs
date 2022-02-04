@@ -80,10 +80,12 @@ pub fn l1_norm_approx(measurements: &DVector<Float>, A: &DMatrix<Float>,  x: &mu
 
         iter+=1;
 
+        //TODO: wrap in debug mode
+        println!("Iterations: {}, tau = {} Primal = {}, PDGap = {}, Dual res = {}", iter,tau, u_vec.sum(), eta, res_dual.norm());
+
     }
 
-    //TODO: wrap in debug mode
-    println!("Iterations: {}, tau = {} Primal = {}, PDGap = {}, Dual res = {}", iter,tau, u_vec.sum(), eta, res_dual.norm());
+
 }
 
 //Since we dont have an equality constraint we do not have a nu term
@@ -282,7 +284,9 @@ fn backtrack_line_search(
         s *= beta;
         backiter+=1;
         if backiter == 32 {
+            println!("backtracking max, copy x");
             xp.copy_from(x);
+            // original impl just returns completely
         }
     }
     //println!("backtracking end");
