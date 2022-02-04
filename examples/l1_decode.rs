@@ -3,6 +3,7 @@ extern crate nalgebra as na;
 
 use vision::Float;
 use vision::numerics::linear_prog::l1_norm_approx;
+use vision::io::octave_loader::{load_matrix,load_vector};
 use na::{DMatrix, DVector};
 
 
@@ -43,8 +44,13 @@ for i in 0..T {
 
 //recover
 let R = G_t*(&G);
-let mut x = R.cholesky().expect("l1 decode example cholesky failed").solve(&(G_t*(&y)));
-l1_norm_approx(&y,&G,&mut x, 200, 1e-4);
+//let mut x = R.cholesky().expect("l1 decode example cholesky failed").solve(&(G_t*(&y)));
+
+let mut x = load_vector("D:/Workspace/Datasets/Octave/x0.txt");
+let y = load_vector("D:/Workspace/Datasets/Octave/y.txt");
+let G = load_matrix("D:/Workspace/Datasets/Octave/G.txt");
+
+//l1_norm_approx(&y,&G,&mut x, 200, 1e-4);
 
 
 }

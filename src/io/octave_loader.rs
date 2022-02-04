@@ -42,7 +42,10 @@ pub fn load_matrix(file_path: &str) -> DMatrix<Float> {
     let mut vec_data: Vec<Float> = Vec::with_capacity(rows*columns);
     for line in lines {
         let row_as_string = line.unwrap();
-        let column_entries_as_string = row_as_string.split(" ").collect::<Vec<&str>>();
+        if row_as_string.trim().is_empty(){
+            break;
+        }
+        let column_entries_as_string = row_as_string.trim().split(' ').collect::<Vec<&str>>();
         let column_entries = column_entries_as_string.iter().map(|x| parse_to_float(x, false)).collect::<Vec<Float>>();
         vec_data.extend_from_slice(&column_entries);
     }
@@ -85,6 +88,9 @@ pub fn load_vector(file_path: &str) -> DVector<Float> {
     let mut vec_data: Vec<Float> = Vec::with_capacity(rows);
     for line in lines {
         let row_as_string = line.unwrap();
+        if row_as_string.trim().is_empty(){
+            break;
+        }
         let v = parse_to_float(&row_as_string, false);
         vec_data.push(v);
     }
