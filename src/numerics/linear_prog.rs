@@ -57,8 +57,12 @@ pub fn l1_norm_approx(measurements: &DVector<Float>, A: &DMatrix<Float>,  x: &mu
         let s = s(&u_vec,&du1,&du2,&Adx,&dc,&h);
         let u1 = u_vec.rows(0,M).into_owned();
         let u2 = u_vec.rows(M,M).into_owned();
-        let (xp,cp,u1p,u2p,h1p,h2p,rdp) = backtrack_line_search(x,&dx,&c,&dc,&Ax,&Adx,&A_t,&u1,&u2,&du1,&du2,measurements,&f_0_grad, dual_residuals.norm(),alpha,beta,s, tau);
+        let (xp,cp,u1p,u2p,h1p,h2p,rdp, backiter) = backtrack_line_search(x,&dx,&c,&dc,&Ax,&Adx,&A_t,&u1,&u2,&du1,&du2,measurements,&f_0_grad, dual_residuals.norm(),alpha,beta,s, tau);
 
+        if backiter == 32 {
+            break;
+        }
+    
         x.copy_from(&xp);
         c.copy_from(&cp);
         u_vec.rows_mut(0,M).copy_from(&u1p);
@@ -144,8 +148,6 @@ fn w1(h_recip: &DVector<Float>, A_t: &DMatrix<Float>, tau: Float) -> DVector<Flo
     let h_2 = h_recip.rows(subproblem_size,subproblem_size);
 
     (-1.0/tau)*A_t*(-h_1+h_2)
-
-
 }
 
 fn w2(h_recip: &DVector<Float>,ones: &DVector<Float>, tau: Float) -> DVector<Float> {
@@ -293,7 +295,8 @@ fn backtrack_line_search(
         DVector<Float>,
         DVector<Float>,
         DVector<Float>,
-        DVector<Float>) {
+        DVector<Float>,
+        usize) {
     let M = dc.nrows();
     let N = x.nrows();
 
@@ -316,7 +319,6 @@ fn backtrack_line_search(
     let mut h1p =  DVector::zeros(M);
     let mut h2p =  DVector::zeros(M);
     
-    //println!("backtracking start");
     while !suff_dec && backiter <= 32 {
         xp.copy_from(&(x+s*dx));
         cp.copy_from(&(c+s*dc));
@@ -336,7 +338,6 @@ fn backtrack_line_search(
         rcp.add_scalar_mut(-1.0/tau);
         resp.rows_mut(N+M,2*M).copy_from(&rcp);
         let resp_norm = resp.norm();
-        //println!("resp: {}",resp_norm);
         suff_dec = resp_norm <= (1.0-alpha*s)*res_norm;
         s *= beta;
         backiter+=1;
@@ -346,8 +347,7 @@ fn backtrack_line_search(
             // original impl just returns completely
         }
     }
-    //println!("backtracking end");
 
-    (xp,cp,u1p,u2p,h1p,h2p,resp.rows(0,N+M).into_owned())
+    (xp,cp,u1p,u2p,h1p,h2p,resp.rows(0,N+M).into_owned(),backiter)
 }
 

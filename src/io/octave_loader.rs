@@ -1,7 +1,6 @@
 extern crate nalgebra as na;
 
 use na::{DVector,DMatrix};
-use std::path::Path;
 use std::fs::File;
 use std::io::{BufReader,Read,BufRead};
 use crate::io::{parse_to_float};
