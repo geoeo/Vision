@@ -7,7 +7,7 @@ use na::{
 use std::boxed::Box;
 
 use crate::image::Image;
-use crate::numerics::{lie, loss::LossFunction, max_norm, solver::{calc_weight_vec, weight_jacobian_sparse, weight_residuals_sparse, compute_cost}};
+use crate::numerics::{lie, loss::LossFunction, max_norm, least_squares::{calc_weight_vec, weight_jacobian_sparse, weight_residuals_sparse, compute_cost}};
 use crate::odometry::runtime_parameters::RuntimeParameters;
 use crate::odometry::visual_odometry::dense_direct::{
     RuntimeMemory,backproject_points, compute_full_jacobian, compute_image_gradients, compute_residuals, precompute_jacobians

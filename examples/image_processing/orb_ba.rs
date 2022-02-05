@@ -11,7 +11,7 @@ use vision::Float;
 use vision::image::pyramid::orb::{orb_runtime_parameters::OrbRuntimeParameters};
 use vision::image::features::{Match,orb_feature::OrbFeature};
 use vision::image::Image;
-use vision::sfm::{bundle_adjustment::{camera_feature_map::CameraFeatureMap, solver::optimize},euclidean_landmark::EuclideanLandmark};
+use vision::sfm::{bundle_adjustment::{camera_feature_map::CameraFeatureMap, solver::optimize}};
 use vision::sensors::camera::{Camera,pinhole::Pinhole};
 use vision::odometry::runtime_parameters::RuntimeParameters;
 use vision::numerics::{loss, weighting};

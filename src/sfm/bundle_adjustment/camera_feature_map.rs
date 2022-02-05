@@ -6,7 +6,7 @@ use crate::image::{
     features::{Feature,Match},
     features::geometry::point::Point
 };
-use crate::sfm::{bundle_adjustment::state::State, landmark::Landmark, euclidean_landmark::EuclideanLandmark, inverse_depth_landmark::InverseLandmark};
+use crate::sfm::{bundle_adjustment::state::State, landmark::{Landmark, euclidean_landmark::EuclideanLandmark, inverse_depth_landmark::InverseLandmark}};
 use crate::sensors::camera::Camera;
 use crate::{Float, reconstruct_original_coordiantes_for_float};
 

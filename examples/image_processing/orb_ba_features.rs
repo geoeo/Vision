@@ -7,7 +7,6 @@ use color_eyre::eyre::Result;
 use std::path::Path;
 use vision::image::pyramid::orb::{orb_runtime_parameters::OrbRuntimeParameters, generate_matches};
 use vision::image::Image;
-use vision::sensors::camera::pinhole::Pinhole;
 use vision::visualize::display_matches_for_pyramid;
 
 

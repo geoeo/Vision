@@ -7,7 +7,7 @@ use crate::{Float,float};
 pub mod lie;
 pub mod pose;
 pub mod loss;
-pub mod solver;
+pub mod least_squares;
 pub mod weighting;
 pub mod linear_prog;
 

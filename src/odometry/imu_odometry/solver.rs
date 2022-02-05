@@ -5,7 +5,7 @@ use na::{Vector3,Matrix4,Isometry3,Rotation3,SMatrix,SVector, Const, DimMin};
 use crate::odometry::runtime_parameters::RuntimeParameters;
 use crate::odometry::{imu_odometry, imu_odometry::imu_delta::ImuDelta,imu_odometry::bias, imu_odometry::bias::{BiasDelta,BiasPreintegrated}, imu_odometry::{ImuResidual, ImuCovariance}};
 use crate::sensors::imu::imu_data_frame::ImuDataFrame;
-use crate::numerics::{max_norm, solver::{weight_residuals,weight_jacobian, gauss_newton_step}};
+use crate::numerics::{max_norm, least_squares::{weight_residuals,weight_jacobian, gauss_newton_step}};
 use crate::{Float,float};
 
 const OBSERVATIONS_DIM: usize = 9;

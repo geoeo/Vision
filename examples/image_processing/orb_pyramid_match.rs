@@ -4,12 +4,8 @@ extern crate color_eyre;
 
 use color_eyre::eyre::Result;
 use std::path::Path;
-use vision::image::pyramid::orb::{
-    build_orb_pyramid,generate_feature_pyramid,generate_feature_descriptor_pyramid,  orb_runtime_parameters::OrbRuntimeParameters, generate_matches,generate_matches_between_pyramid
-
-};
-use vision::visualize::{visualize_pyramid_feature_with_orientation, display_matches_for_pyramid};
-use vision::image::descriptors::brief_descriptor::BriefDescriptor;
+use vision::image::pyramid::orb::{orb_runtime_parameters::OrbRuntimeParameters, generate_matches};
+use vision::visualize::display_matches_for_pyramid;
 use vision::image::Image;
 
 fn main() -> Result<()> {

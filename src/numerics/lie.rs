@@ -13,6 +13,9 @@ pub fn vector_from_skew_symmetric(w_x: &Matrix3<Float>) -> Vector3<Float> {
     Vector3::<Float>::new(w_x[(2,1)],w_x[(0,2)],w_x[(1,0)])
 }
 
+/**
+ * This is the jacobian with respect to a transformed point 
+ */
 pub fn left_jacobian_around_identity<T>(transformed_position: &Vector<Float,U3,T>) -> Matrix3x6<Float> where T: Storage<Float,U3,U1> {
     let skew_symmetrix = skew_symmetric(&(-1.0*transformed_position));
     let mut jacobian = Matrix3x6::<Float>::new(1.0, 0.0, 0.0, 0.0, 0.0, 0.0,
@@ -27,22 +30,7 @@ pub fn left_jacobian_around_identity<T>(transformed_position: &Vector<Float,U3,T
 
 }
 
-//TODO: check this
-pub fn right_jacobian_around_identity<T>(position: &Vector<Float,U3,T>, rotation: &Matrix3<Float>) -> Matrix3x6<Float> where T: Storage<Float,U3,U1> {
-    let skew_symmetrix = skew_symmetric(&(-1.0*rotation*position))*rotation;
-    let mut jacobian = Matrix3x6::<Float>::new(1.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                                               0.0, 1.0, 0.0, 0.0, 0.0, 0.0,
-                                               0.0, 0.0, 1.0, 0.0, 0.0, 0.0);
-
-    for i in 3..6 {
-        jacobian.set_column(i, &skew_symmetrix.column(i-3));
-    }
-
-    jacobian
-
-} 
-
-//TODO: taylor expansion
+//Improvement: taylor expansion
 #[allow(non_snake_case)]
 pub fn exp_se3<T>(u: &Vector<Float,U3,T>, w: &Vector<Float,U3,T>) -> Matrix4<Float> where T: Storage<Float,U3,U1> {
     let omega = (w.transpose()*w)[0].sqrt();
@@ -95,7 +83,7 @@ pub fn exp_so3<T>(w: &Vector<Float,U3,T>) -> Matrix3<Float> where T: Storage<Flo
 }
 
 
-// TODO: taylor expansion, check this
+// Improvement: taylor expansion
 #[allow(non_snake_case)]
 pub fn ln_SO3<T>(R: &Matrix<Float,U3,U3,T>) -> Matrix3<Float> where T: Storage<Float,U3,U3> {
     let omega = ((R.trace() -1.0)/2.0).acos();
@@ -132,7 +120,9 @@ pub fn ln(se3: &Matrix4<Float>) -> Vector6<Float> {
     res
 }
 
-
+/**
+ * This is the jacobian of the rotation without a specific point being transformed
+ */
 #[allow(non_snake_case)]
 pub fn right_jacobian<T>(w: &Vector<Float,U3,T>) -> Matrix3<Float> where T: Storage<Float,U3,U1> {
     let w_x = skew_symmetric(&w);

@@ -3,6 +3,9 @@ extern crate nalgebra as na;
 use na::{Isometry3, Point3, SVector, SMatrix};
 use crate::Float;
 
+pub mod euclidean_landmark;
+pub mod inverse_depth_landmark;
+
 pub trait Landmark<const T: usize> {
     const LANDMARK_PARAM_SIZE: usize = T;
 

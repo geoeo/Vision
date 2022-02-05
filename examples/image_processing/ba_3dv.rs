@@ -8,11 +8,10 @@ use na::{Vector3,Matrix3};
 use color_eyre::eyre::Result;
 use vision::Float;
 use vision::image::features::{Match,ImageFeature};
-use vision::sfm::{bundle_adjustment::{camera_feature_map::CameraFeatureMap, solver::optimize},euclidean_landmark::EuclideanLandmark};
+use vision::sfm::{bundle_adjustment::{camera_feature_map::CameraFeatureMap, solver::optimize}};
 use vision::sensors::camera::pinhole::Pinhole;
 use vision::odometry::runtime_parameters::RuntimeParameters;
 use vision::numerics::{loss, weighting};
-use vision::image::epipolar;
 use vision::io::three_dv_loader;
 
 fn main() -> Result<()> {

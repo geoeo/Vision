@@ -4,7 +4,7 @@ use na::{DVector,DMatrix,Matrix, Dynamic, U4, VecStorage,Point3, Vector4};
 use crate::{float,Float};
 use crate::sensors::camera::Camera;
 use crate::numerics::lie::left_jacobian_around_identity;
-use crate::numerics::{max_norm, solver::{compute_cost,weight_jacobian_sparse,weight_residuals_sparse, calc_weight_vec, gauss_newton_step_with_schur}};
+use crate::numerics::{max_norm, least_squares::{compute_cost,weight_jacobian_sparse,weight_residuals_sparse, calc_weight_vec, gauss_newton_step_with_schur}};
 use crate::sfm::{landmark::Landmark,bundle_adjustment::{state::State, camera_feature_map::CameraFeatureMap}};
 use crate::odometry::runtime_parameters::RuntimeParameters; //TODO remove dependency on odometry module
 
