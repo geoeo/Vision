@@ -359,6 +359,19 @@
             "externalConsole": false,
             "env": {"RUST_BACKTRACE":"1", "RUST_BACKTRACE":"full"},
             "preLaunchTask": "build examples"
+        },
+        {
+            "name": "Olsen",
+            "type": "lldb",
+            "request": "launch",
+            "program": "${workspaceRoot}/target/debug/examples/olsen",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "env": {"RUST_BACKTRACE":"1", "RUST_BACKTRACE":"full"},
+            "preLaunchTask": "build examples"
         }
     ]
 }

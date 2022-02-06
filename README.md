@@ -28,11 +28,4 @@ Primal-Dual Convex For L1 Norm https://candes.su.domains/software/l1magic/downlo
 
 ![dense](doc/freiburg2_desk_0_max_its_800_w_true_l_SoftOneLoss_+1e-16_lm_max_norm_eps_+1e-10_delta_eps_+1e-10_t_+1e-6_t_+1e-3_t_+1e-3_t_+1e0_s_0.01_o_4_b_true_br_1_neg_d_false.png)
 
-## Visual-Interial Odometry - Realsense D455
-
-### With Bias Estimation
-![vi_bias](doc/d455_all_simple_trans_imu_max_its_100_w_true_HuberLossForPos_+1e-16_l_SoftOneLoss_+1e-16_lm_max_norm_eps_+1e-10_delta_eps_+1e-10_t_+1e-6_t_+1e-3_t_+1e-3_convert_to_cam_coords_true_bias_30e4.png)
-
-### Without Bias Estimation
-![vi](doc/d455_all_simple_trans_imu_max_its_800_w_true_HuberLossForPos_+1e-16_l_SoftOneLoss_+1e-16_lm_max_norm_eps_+1e-10_delta_eps_+1e-10_t_+1e-6_t_+1e-3_t_+1e-3_convert_to_cam_coords_true.png)
 

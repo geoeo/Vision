@@ -22,7 +22,7 @@ serde_yaml = "0.8"
 
 [[example]]
 name = "orb_ba"
-path = "examples/image_processing/orb_ba.rs"
+path = "examples/sfm/orb_ba.rs"
 
 [[example]]
 name = "orb_ba_features"
@@ -54,6 +54,10 @@ path = "examples/visualizing/pointcloud_3dv.rs"
 
 [[example]]
 name = "ba_3dv"
-path = "examples/image_processing/ba_3dv.rs"
+path = "examples/sfm/ba_3dv.rs"
+
+[[example]]
+name = "olsen"
+path = "examples/sfm/olsen.rs"
 
 

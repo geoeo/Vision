@@ -18,7 +18,6 @@ use vision::numerics::{loss, weighting};
 use vision::image::epipolar;
 
 
-
 fn main() -> Result<()> {
 
     color_eyre::install()?;
