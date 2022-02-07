@@ -91,9 +91,6 @@ pub fn load_depth_image_from_csv(file_path: &Path, negate_values: bool, invert_y
     if set_default_depth {
         fill_matrix_with_default_depth(&mut matrix,negate_values);
     }
-
-
-
     Image::from_matrix(&matrix, ImageEncoding::F64, normalize)
 }
 
@@ -150,4 +147,16 @@ pub fn closest_ts_index(ts: Float, list: &Vec<Float>) -> usize {
     }
 
     min_idx
+}
+
+pub fn load_images(dir_path: &str, extension: &str) -> Vec<Image> {
+
+    let paths = std::fs::read_dir(dir_path).unwrap();
+
+    paths.map(|x| x.unwrap().path()).filter(|x| {
+        match x.extension() {
+            Some(v) => v.to_str().unwrap().ends_with(extension),
+            _ => false
+        }
+    }).map(|x| load_image_as_gray(x.as_path(),false,false)).collect()
 }
