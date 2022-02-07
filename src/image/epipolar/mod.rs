@@ -63,7 +63,7 @@ pub fn extract_matches<T: Feature>(matches: &Vec<Match<T>>, pyramid_scale: Float
  */
 #[allow(non_snake_case)]
 pub fn eight_point(matches: &Vec<(Vector2<Float>,Vector2<Float>)>) -> Fundamental {
-    let number_of_matches = matches.len() as Float;
+    let number_of_matches = matches.len() as Float; 
     assert!(number_of_matches >= 8.0);
 
 
@@ -93,9 +93,8 @@ pub fn eight_point(matches: &Vec<(Vector2<Float>,Vector2<Float>)>) -> Fundamenta
 
 
     let svd = A.svd(false,true);
-    let mut min_idx = svd.singular_values.imin();
     let v_t =  &svd.v_t.expect("SVD failed on A");
-    let f = &v_t.row(min_idx);
+    let f = &v_t.row(v_t.nrows()-1);
     let mut F = Matrix3::<Float>::zeros();
     F[(0,0)] = f[0];
     F[(1,0)] = f[1];
@@ -109,17 +108,8 @@ pub fn eight_point(matches: &Vec<(Vector2<Float>,Vector2<Float>)>) -> Fundamenta
 
 
     let mut svd_f = F.svd(true,true);
-    min_idx = svd_f.singular_values.imin();
-    let mut acc = 0.0;
-    for i in 0..2 {
-        if i == min_idx{
-            svd_f.singular_values[i] = 0.0;
-        } else {
-            acc += svd_f.singular_values[i].powi(2);
-        }
-
-    }
-    svd_f.singular_values[min_idx] = 0.0;
+    let acc = svd_f.singular_values[0].powi(2) + svd_f.singular_values[1].powi(2);
+    svd_f.singular_values[2] = 0.0;
     svd_f.singular_values /= acc.sqrt();
     svd_f.recompose().ok().expect("SVD recomposition failed")
 }

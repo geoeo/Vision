@@ -103,7 +103,7 @@ fn main() -> Result<()> {
     let runtime_parameters = RuntimeParameters {
         pyramid_scale: orb_params_1_2.pyramid_scale,
         max_iterations: vec![400; 1],
-        eps: vec![1e0],
+        eps: vec![1e-3],
         step_sizes: vec![1e-8],
         max_norm_eps: 1e-30, 
         delta_eps: 1e-30,

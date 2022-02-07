@@ -59,7 +59,7 @@ fn main() -> Result<()> {
     let runtime_parameters = RuntimeParameters {
         pyramid_scale: 1.0,
         max_iterations: vec![200; 1],
-        eps: vec![1e0],
+        eps: vec![1e-3],
         step_sizes: vec![1e0],
         max_norm_eps: 1e-30, 
         delta_eps: 1e-30,
