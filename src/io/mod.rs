@@ -150,8 +150,8 @@ pub fn closest_ts_index(ts: Float, list: &Vec<Float>) -> usize {
 }
 
 pub fn load_images(dir_path: &str, extension: &str) -> Vec<Image> {
-
-    let paths = std::fs::read_dir(dir_path).unwrap();
+    assert_eq!(dir_path.chars().last().unwrap(),'/');
+    let paths = std::fs::read_dir(format!("{}images",dir_path).as_str()).unwrap();
 
     paths.map(|x| x.unwrap().path()).filter(|x| {
         match x.extension() {
