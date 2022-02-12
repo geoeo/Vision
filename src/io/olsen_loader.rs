@@ -45,28 +45,28 @@ impl OlsenData {
         let features_img_one = &self.image_points[first_index];
         let features_img_two = &self.image_points[second_index];
 
-        let points_indices_image_one = &self.image_points[first_index];
-        let points_indices_image_two = &self.image_points[second_index];
+        let points_indices_image_one = &self.point_indices[first_index];
+        let points_indices_image_two = &self.point_indices[second_index];
 
-        let mut tmp_map = vec![(false,false);self.U.len()];
+        let mut point_correspondence_map: Vec<(Option<usize>,Option<usize>)> = vec![(None,None);self.U.len()];
 
         for i in 0..points_indices_image_one.ncols() {
             let point_idx = points_indices_image_one[(0,i)];
             assert_eq!(point_idx.fract(),0.0);
-            tmp_map[point_idx as usize].0 = true
+            point_correspondence_map[point_idx as usize].0 = Some(i);
         }
 
         for i in 0..points_indices_image_two.ncols() {
             let point_idx = points_indices_image_two[(0,i)];
             assert_eq!(point_idx.fract(),0.0);
-            tmp_map[point_idx as usize].1 = true
+            point_correspondence_map[point_idx as usize].1 = Some(i);
         }
 
         //TODO: check this
-        tmp_map.iter().enumerate().filter(|(_,&(a,b))| a && b).map(|(i,_)| {
-            let coords_one = features_img_one.column(i);
+        point_correspondence_map.iter().filter(|&(v1,v2)| v1.is_some() && v2.is_some()).map(|&(v1,v2)| {
+            let coords_one = features_img_one.column(v1.unwrap());
             let feature_one = ImageFeature::new(coords_one[0],coords_one[1]);
-            let coords_two = features_img_two.column(i);
+            let coords_two = features_img_two.column(v2.unwrap());
             let feature_two = ImageFeature::new(coords_two[0],coords_two[1]);
 
             Match{feature_one,feature_two}
