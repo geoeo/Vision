@@ -13,6 +13,7 @@ fn main() -> Result<()> {
 
     let matches_0_1 = olsen_data.get_matches_between_images(0, 1);
     println!("matches between 0 and 1 are: #{}", matches_0_1.len());
+    let cam0 = olsen_data.get_camera(0);
 
     let matches_0_5 = olsen_data.get_matches_between_images(0, 5);
     println!("matches between 0 and 5 are: #{}", matches_0_5.len());

@@ -3,6 +3,7 @@ extern crate nalgebra as na;
 use na::DMatrix;
 use crate::io::{ octave_loader::{load_matrices,load_matrix},load_images};
 use crate::image::{Image,features::{Match,ImageFeature}};
+use crate::sensors::camera::{Camera,pinhole::Pinhole};
 
 use crate::Float;
 
@@ -62,7 +63,6 @@ impl OlsenData {
             point_correspondence_map[point_idx as usize].1 = Some(i);
         }
 
-        //TODO: check this
         point_correspondence_map.iter().filter(|&(v1,v2)| v1.is_some() && v2.is_some()).map(|&(v1,v2)| {
             let coords_one = features_img_one.column(v1.unwrap());
             let feature_one = ImageFeature::new(coords_one[0],coords_one[1]);
@@ -73,6 +73,15 @@ impl OlsenData {
         }).collect::<Vec<Match<ImageFeature>>>()
     }
 
+    pub fn get_camera(&self, image_index: usize) -> Pinhole {
+
+        let camera_matrix = &self.P[image_index];
+        let fx = camera_matrix[(0,0)];
+        let fy = camera_matrix[(1,1)];
+        let cx = camera_matrix[(0,2)];
+        let cy = camera_matrix[(1,2)];
+        Pinhole::new(fx, fy, cx, cy, true)
+    }
 
 }
 
