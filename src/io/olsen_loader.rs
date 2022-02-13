@@ -80,7 +80,13 @@ impl OlsenData {
         let fy = camera_matrix[(1,1)];
         let cx = camera_matrix[(0,2)];
         let cy = camera_matrix[(1,2)];
+        //TODO: add option to explicitly invert both focal length
         Pinhole::new(fx, fy, cx, cy, true)
+    }
+
+    //TODO: load matches and cameras and adjust coordinates/intrinsics so that they are in a RHS with z < 0
+    pub fn load_data_for_ba(&self) -> () {
+
     }
 
 }

@@ -8,8 +8,10 @@ use vision::io::{olsen_loader::OlsenData};
 fn main() -> Result<()> {
     color_eyre::install()?;
 
+    let data_set_door_path = "D:/Workspace/Datasets/Olsen/Door_Lund/";
+    let data_set_ahlströmer_path = "D:/Workspace/Datasets/Olsen/Jonas_Ahlströmer/";
 
-    let olsen_data = OlsenData::new("D:/Workspace/Datasets/Olsen/Jonas_Ahlströmer/");
+    let olsen_data = OlsenData::new(data_set_ahlströmer_path);
 
     let matches_0_1 = olsen_data.get_matches_between_images(0, 1);
     println!("matches between 0 and 1 are: #{}", matches_0_1.len());
