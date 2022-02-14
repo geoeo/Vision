@@ -84,7 +84,7 @@ impl OlsenData {
         Pinhole::new(fx, fy, cx, cy, true)
     }
 
-    //TODO: load matches and cameras and adjust coordinates/intrinsics so that they are in a RHS with z < 0
+    //TODO: load matches and cameras. Decompose projection and adjust coordinates so that they are in a RHS with z < 0
     pub fn load_data_for_ba(&self) -> () {
 
     }
