@@ -1,11 +1,19 @@
 extern crate nalgebra as na;
 
-use na::{Vector3,Point3,Quaternion,UnitQuaternion, Isometry3, Translation3};
+use na::{Vector3,Matrix4,Matrix3,Point3,UnitQuaternion, Isometry3, Translation3};
 use crate::Float;
 
-pub fn se3(t: &Vector3<Float>, quat: &Quaternion<Float>) -> Isometry3<Float> {
-    let unit_quat = UnitQuaternion::<Float>::from_quaternion(*quat); 
-    Isometry3::<Float>::from_parts(Translation3::from(*t), unit_quat)
+pub fn from_matrix(mat: &Matrix4<Float>) -> Isometry3<Float> {
+    let vec = Vector3::<Float>::new(mat[(0,3)],mat[(1,3)],mat[(2,3)]);
+    let rot = Matrix3::<Float>::new(mat[(0,0)],mat[(0,1)],mat[(0,2)],
+                                    mat[(1,0)],mat[(1,1)],mat[(1,2)],
+                                    mat[(2,0)],mat[(2,1)],mat[(2,2)]);
+
+    Isometry3::<Float>::from_parts(Translation3::from(vec), UnitQuaternion::<Float>::from_matrix(&rot))
+}
+
+pub fn se3(t: &Vector3<Float>, quat: &UnitQuaternion<Float>) -> Isometry3<Float> {
+    Isometry3::<Float>::from_parts(Translation3::from(*t), *quat)
 }
 
 // From a to b

@@ -1,9 +1,9 @@
 extern crate nalgebra as na;
 
-use na::DMatrix;
+use na::{DMatrix,Matrix4,Matrix3,Matrix3x4};
 use crate::io::{ octave_loader::{load_matrices,load_matrix},load_images};
 use crate::image::{Image,features::{Match,ImageFeature}};
-use crate::sensors::camera::{Camera,pinhole::Pinhole};
+use crate::sensors::camera::{decompose_projection,Camera,pinhole::Pinhole};
 
 use crate::Float;
 
@@ -73,21 +73,17 @@ impl OlsenData {
         }).collect::<Vec<Match<ImageFeature>>>()
     }
 
-    pub fn get_camera(&self, image_index: usize) -> Pinhole {
+    pub fn get_camera_intrinsics_extrinsics(&self, image_index: usize,  positive_principal_distance: bool) -> (Matrix3<Float>, Matrix4<Float>){
+        let projection = &self.P[image_index];
+        assert_eq!(projection.nrows(),3);
+        assert_eq!(projection.ncols(),4);
+        let mut projection_static = Matrix3x4::<Float>::zeros();  
+        projection_static.fixed_columns_mut::<4>(0).copy_from(&projection.fixed_columns::<4>(0));
 
-        let camera_matrix = &self.P[image_index];
-        let fx = camera_matrix[(0,0)];
-        let fy = camera_matrix[(1,1)];
-        let cx = camera_matrix[(0,2)];
-        let cy = camera_matrix[(1,2)];
-        //TODO: add option to explicitly invert both focal length
-        Pinhole::new(fx, fy, cx, cy, true)
+        decompose_projection(&projection_static,positive_principal_distance)
     }
 
-    //TODO: load matches and cameras. Decompose projection and adjust coordinates so that they are in a RHS with z < 0
-    pub fn load_data_for_ba(&self) -> () {
 
-    }
 
 }
 
