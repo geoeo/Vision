@@ -5,6 +5,7 @@ extern crate vision;
 use color_eyre::eyre::Result;
 use na::Vector3;
 
+use std::fs;
 use vision::io::{olsen_loader::OlsenData};
 use vision::sensors::camera::{Camera,pinhole::Pinhole};
 use vision::image::features::{Match,ImageFeature};
@@ -88,6 +89,16 @@ fn main() -> Result<()> {
     };
 
     let some_debug_state_list = optimize(&mut state, &cameras, &observed_features, &runtime_parameters);
+
+    
+    let (cam_positions,points) = state.as_matrix_point();
+
+    let s = serde_yaml::to_string(&state.to_serial())?;
+    fs::write(format!("D:/Workspace/Rust/Vision/output/olsen.txt"), s).expect("Unable to write file");
+    if runtime_parameters.debug {
+        let debug_states_serialized = serde_yaml::to_string(&some_debug_state_list)?;
+        fs::write(format!("D:/Workspace/Rust/Vision/output/olsen_debug.txt"), debug_states_serialized).expect("Unable to write file");
+    }
 
 
 
