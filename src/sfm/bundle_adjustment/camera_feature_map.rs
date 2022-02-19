@@ -27,22 +27,22 @@ impl CameraFeatureMap {
 
     pub const NO_FEATURE_FLAG : Float = -1.0;
 
-    pub fn new<T: Feature>(matches: & Vec<Vec<Match<T>>>, n_cams: usize, image_row_col: (usize,usize)) -> CameraFeatureMap {
+    pub fn new<T: Feature>(matches: & Vec<Vec<Match<T>>>, cam_ids: Vec<u64>, image_row_col: (usize,usize)) -> CameraFeatureMap {
         let max_number_of_points = matches.iter().fold(0,|acc,x| acc + x.len());
-        CameraFeatureMap{
+        let n_cams = cam_ids.len();
+        let mut camera_feature_map = CameraFeatureMap{
             camera_map:  HashMap::new(),
             number_of_unique_points: 0,
             point_cam_map: vec![vec![None;n_cams]; max_number_of_points],
             image_row_col
-        }
-    }
+        };
 
-    pub fn add_cameras(&mut self, ids: Vec<u64>) -> () {
-        for i in 0..ids.len(){
-            let id = ids[i];
-            self.camera_map.insert(id,(i,HashMap::new()));
+        for i in 0..cam_ids.len(){
+            let id = cam_ids[i];
+            camera_feature_map.camera_map.insert(id,(i,HashMap::new()));
         }
 
+        camera_feature_map
     }
 
     fn linear_image_idx(&self, p: &Point<Float>) -> usize {

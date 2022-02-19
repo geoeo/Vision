@@ -57,16 +57,25 @@ fn main() -> Result<(),()> {
 
     //let final_state_as_string = fs::read_to_string("D:/Workspace/Rust/Vision/output/orb_ba.txt").expect("Unable to read file");
     //let all_states_as_string = fs::read_to_string("D:/Workspace/Rust/Vision/output/orb_ba_debug.txt").expect("Unable to read file");
+
     let final_state_as_string = fs::read_to_string("D:/Workspace/Rust/Vision/output/3dv.txt").expect("Unable to read file");
     let all_states_as_string = fs::read_to_string("D:/Workspace/Rust/Vision/output/3dv_debug.txt").expect("Unable to read file");
-    // let loaded: (Vec<[Float;6]>,Vec<[Float;3]>) = serde_yaml::from_str(&orb_matches_as_string).unwrap();
-    // let ba_state = state::State::<EuclideanLandmark,3>::from_serial(&loaded);
-    let loaded_state: (Vec<[Float;6]>,Vec<[Float;6]>) = serde_yaml::from_str(&final_state_as_string).unwrap();
-    let ba_state = state::State::<InverseLandmark,6>::from_serial(&loaded_state);
+
+    let loaded_state: (Vec<[Float;6]>,Vec<[Float;3]>) = serde_yaml::from_str(&final_state_as_string).unwrap();
+    let ba_state = state::State::<EuclideanLandmark,3>::from_serial(&loaded_state);
+    let loaded_all_states: Vec<(Vec<[Float;6]>,Vec<[Float;3]>)> = serde_yaml::from_str(&all_states_as_string).unwrap();
+    let all_ba_states = loaded_all_states.iter().map(|x|  state::State::<EuclideanLandmark,3>::from_serial(x)).collect::<Vec< state::State::<EuclideanLandmark,3>>>();
+
+    // let loaded_state: (Vec<[Float;6]>,Vec<[Float;6]>) = serde_yaml::from_str(&final_state_as_string).unwrap();
+    // let ba_state = state::State::<InverseLandmark,6>::from_serial(&loaded_state);
+    //let loaded_all_states: Vec<(Vec<[Float;6]>,Vec<[Float;6]>)> = serde_yaml::from_str(&all_states_as_string).unwrap();
+    //let all_ba_states = loaded_all_states.iter().map(|x|  state::State::<InverseLandmark,6>::from_serial(x)).collect::<Vec< state::State::<InverseLandmark,6>>>();
+
     let (cams,points) = ba_state.as_matrix_point();
 
-    let loaded_all_states: Vec<(Vec<[Float;6]>,Vec<[Float;6]>)> = serde_yaml::from_str(&all_states_as_string).unwrap();
-    let all_ba_states = loaded_all_states.iter().map(|x|  state::State::<InverseLandmark,6>::from_serial(x)).collect::<Vec< state::State::<InverseLandmark,6>>>();
+
+
+
     let mut scene_nodes = Vec::<kiss3d::scene::SceneNode>::with_capacity(300);
 
     let mut recording_scene = false;

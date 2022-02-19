@@ -42,6 +42,7 @@ pub fn orientation(source_images: &Vec<Image>, feature: &dyn Feature) -> Float {
 
 }
 
+#[derive(Clone)]
 pub struct ImageFeature {
     pub location: Point<Float>
 }
@@ -62,7 +63,7 @@ impl Feature for ImageFeature {
 
 
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Match<T : Feature> {
     pub feature_one: T,
     pub feature_two: T

@@ -29,6 +29,11 @@ impl Pinhole {
       Pinhole{projection,inverse_projection}
     }
 
+
+    pub fn from_matrix(mat: &Matrix3<Float>, invert_focal_length: bool) -> Pinhole {
+        Pinhole::new(mat[(0,0)],mat[(1,1)],mat[(0,2)],mat[(1,2)],invert_focal_length)
+    }
+
     pub fn get_fx(&self) -> Float {
         self.projection[(0,0)]
     }

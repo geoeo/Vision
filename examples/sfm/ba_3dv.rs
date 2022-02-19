@@ -39,8 +39,7 @@ fn main() -> Result<()> {
     all_matches.push(matches_1_3);
 
     let image_id_pairs = vec!((0,1),(0,2),(1,3));
-    let mut feature_map = CameraFeatureMap::new(&all_matches,4, (480,640));
-    feature_map.add_cameras(vec!(0,1,2,3));
+    let mut feature_map = CameraFeatureMap::new(&all_matches,vec!(0,1,2,3), (480,640));
     feature_map.add_matches(&image_id_pairs,&all_matches, 1.0);
     let initial_motions = vec!((Vector3::<Float>::new(0.0,0.0,0.0),Matrix3::<Float>::identity()),(Vector3::<Float>::new(0.0,0.0,0.0),Matrix3::<Float>::identity()));
 
@@ -51,8 +50,8 @@ fn main() -> Result<()> {
     // let initial_motions = vec!((Vector3::<Float>::new(0.0,0.0,0.0),Matrix3::<Float>::identity()));
 
 
-    //let mut state = feature_map.get_euclidean_landmark_state(None, Vector3::<Float>::new(0.0,0.0,-2.0));
-    let mut state = feature_map.get_inverse_depth_landmark_state(None, 0.5, &cameras);
+    let mut state = feature_map.get_euclidean_landmark_state(None, Vector3::<Float>::new(0.0,0.0,-1.0));
+    //let mut state = feature_map.get_inverse_depth_landmark_state(None, 0.5, &cameras);
     let observed_features = feature_map.get_observed_features(false);
 
 
