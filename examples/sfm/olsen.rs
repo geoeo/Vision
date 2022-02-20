@@ -3,13 +3,12 @@ extern crate color_eyre;
 extern crate vision;
 
 use color_eyre::eyre::Result;
-use na::{Vector3,Vector2,Matrix3};
 
 use std::fs;
 use vision::io::{olsen_loader::OlsenData};
-use vision::sensors::camera::{Camera,pinhole::Pinhole};
-use vision::image::{epipolar,features::{Match,ImageFeature}};
-use vision::sfm::{bundle_adjustment::{camera_feature_map::CameraFeatureMap, solver::optimize}};
+use vision::sensors::camera::{pinhole::Pinhole};
+use vision::image::{features::{Match,ImageFeature}};
+use vision::sfm::{bundle_adjustment:: run_ba};
 use vision::numerics::pose;
 use vision::odometry::runtime_parameters::RuntimeParameters;
 use vision::numerics::{loss, weighting};
@@ -63,7 +62,7 @@ fn main() -> Result<()> {
     let matches_7_8 = olsen_data.get_matches_between_images(7, 8);
 
 
-    let feature_skip_count = 20;
+    let feature_skip_count = 4;
 
     println!("matches between 0 and 1 are: #{}", matches_0_1.len());
     let matches_0_1_subvec = matches_0_1.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
@@ -93,37 +92,12 @@ fn main() -> Result<()> {
     let pinhole_cam_7 = Pinhole::from_matrix(&cam_intrinsics_7, false);
     let pinhole_cam_8 = Pinhole::from_matrix(&cam_intrinsics_8, false);
 
-    //let cameras = vec!(pinhole_cam_0,pinhole_cam_1,pinhole_cam_2,pinhole_cam_3);
-    let cameras = vec!(pinhole_cam_6,pinhole_cam_7,pinhole_cam_8);
+
 
     let mut all_matches = Vec::<Vec<Match<ImageFeature>>>::with_capacity(2);
-    all_matches.push(matches_6_7_subvec);
-    all_matches.push(matches_7_8_subvec);
-    //all_matches.push(matches_1_2_subvec);
-    //all_matches.push(matches_0_3_subvec);
-    // This depends on matches
-    let image_id_pairs = vec!((6,7),(7,8));
-    // has to match cameras list
-    let mut feature_map = CameraFeatureMap::new(&all_matches,vec!(6,7,8), (1296,1936));
-    feature_map.add_matches(&image_id_pairs,&all_matches, 1.0);
-
-    //Slightly buggy
-    // let feature_machtes = all_matches.iter().map(|m| epipolar::extract_matches(m, 1.0, false)).collect::<Vec<Vec<(Vector2<Float>,Vector2<Float>)>>>();
-    // let fundamental_matrices = feature_machtes.iter().map(|m| epipolar::eight_point(m)).collect::<Vec<epipolar::Fundamental>>();
-    // let essential_matrices = fundamental_matrices.iter().enumerate().map(|(i,f)| {
-    //     let (id_1,id_2) = image_id_pairs[i];
-    //     let (c_1, _ ) = feature_map.camera_map[&id_1];
-    //     let (c_2, _ ) = feature_map.camera_map[&id_2];
-    //     epipolar::compute_essential(f, &cameras[c_1].get_projection(), &cameras[c_2].get_projection())
-    // }).collect::<Vec<epipolar::Essential>>();
-    // let normalized_matches = fundamental_matrices.iter().zip(feature_machtes.iter()).map(|(f,m)| epipolar::filter_matches(f, m)).collect::<Vec<Vec<(Vector3<Float>,Vector3<Float>)>>>();
-    // let initial_motion_decomp = essential_matrices.iter().enumerate().map(|(i,e)| epipolar::decompose_essential_förstner(e,&normalized_matches[i])).collect::<Vec<(Vector3<Float>,Matrix3<Float>)>>();
-    // for (h,R) in &initial_motion_decomp {
-    //     println!("{}", h);
-    // }
-
-    let mut state = feature_map.get_euclidean_landmark_state(None, Vector3::<Float>::new(0.0,0.0,-1.0));
-    let observed_features = feature_map.get_observed_features(false);
+    all_matches.push(matches_0_1_subvec);
+    all_matches.push(matches_1_2_subvec);
+    let camera_data = vec!(((0,pinhole_cam_0),(1,pinhole_cam_1)),((1,pinhole_cam_1),(2,pinhole_cam_2)));
 
 
     let runtime_parameters = RuntimeParameters {
@@ -143,18 +117,13 @@ fn main() -> Result<()> {
         intensity_weighting_function:  Box::new(weighting::HuberWeightForPos {})
     };
 
-    let some_debug_state_list = optimize(&mut state, &cameras, &observed_features, &runtime_parameters);
 
-    
-    let (cam_positions,points) = state.as_matrix_point();
 
-    let s = serde_yaml::to_string(&state.to_serial())?;
-    fs::write(format!("D:/Workspace/Rust/Vision/output/olsen.txt"), s).expect("Unable to write file");
+    let ((cam_positions,points),(s,debug_states_serialized)) = run_ba(&all_matches, &camera_data, (1296,1936), &runtime_parameters, 1.0, false);
+    fs::write(format!("D:/Workspace/Rust/Vision/output/olsen.txt"), s?).expect("Unable to write file");
     if runtime_parameters.debug {
-        let debug_states_serialized = serde_yaml::to_string(&some_debug_state_list)?;
-        fs::write(format!("D:/Workspace/Rust/Vision/output/olsen_debug.txt"), debug_states_serialized).expect("Unable to write file");
+        fs::write(format!("D:/Workspace/Rust/Vision/output/olsen_debug.txt"), debug_states_serialized?).expect("Unable to write file");
     }
-
 
 
 
