@@ -119,7 +119,7 @@ fn main() -> Result<()> {
 
 
 
-    let ((cam_positions,points),(s,debug_states_serialized)) = run_ba(&all_matches, &camera_data, (1296,1936), &runtime_parameters, 1.0, false);
+    let ((cam_positions,points),(s,debug_states_serialized)) = run_ba(&all_matches, &camera_data, (1296,1936), &runtime_parameters, 1.0, true);
     fs::write(format!("D:/Workspace/Rust/Vision/output/olsen.txt"), s?).expect("Unable to write file");
     if runtime_parameters.debug {
         fs::write(format!("D:/Workspace/Rust/Vision/output/olsen_debug.txt"), debug_states_serialized?).expect("Unable to write file");

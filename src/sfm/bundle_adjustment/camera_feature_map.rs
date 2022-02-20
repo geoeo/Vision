@@ -116,7 +116,7 @@ impl CameraFeatureMap {
     /**
      * initial_motion should all be with respect to the first camera
      */
-    pub fn get_inverse_depth_landmark_state<C: Camera>(&self, initial_motions : Option<&Vec<(Vector3<Float>,Matrix3<Float>)>>, inverse_depth_prior: Float, cameras: &Vec<C>) -> State<InverseLandmark,6> {
+    pub fn get_inverse_depth_landmark_state<C: Camera>(&self, initial_motions : Option<Vec<(u64,(Vector3<Float>,Matrix3<Float>))>>, inverse_depth_prior: Float, cameras: &Vec<C>) -> State<InverseLandmark,6> {
 
         let number_of_cameras = self.camera_map.keys().len();
         let number_of_unqiue_landmarks = self.number_of_unique_points;
@@ -145,7 +145,7 @@ impl CameraFeatureMap {
     /**
      * initial_motion should all be with respect to the first camera
      */
-    pub fn get_euclidean_landmark_state(&self, initial_motions : Option<&Vec<(Vector3<Float>,Matrix3<Float>)>>, initial_landmark: Vector3<Float>) -> State<EuclideanLandmark,3> {
+    pub fn get_euclidean_landmark_state(&self, initial_motions : Option<Vec<(u64,(Vector3<Float>,Matrix3<Float>))>>, initial_landmark: Vector3<Float>) -> State<EuclideanLandmark,3> {
 
         let number_of_cameras = self.camera_map.keys().len();
         let number_of_unqiue_landmarks = self.number_of_unique_points;
@@ -155,29 +155,23 @@ impl CameraFeatureMap {
         State::new(camera_positions,landmarks , number_of_cameras, number_of_unqiue_landmarks)
     }
 
-    //TODO: this seems buggy with more than 2 cam pairs
-    fn get_initial_camera_positions(&self,initial_motions : Option<&Vec<(Vector3<Float>,Matrix3<Float>)>> ) -> DVector::<Float> {
+    //TODO: Assumes decomposition is relative to reference cam i.e. first cam!
+    fn get_initial_camera_positions(&self,initial_motions : Option<Vec<(u64,(Vector3<Float>,Matrix3<Float>))>> ) -> DVector::<Float> {
 
         let number_of_cameras = self.camera_map.keys().len();
         let number_of_cam_parameters = 6*number_of_cameras;
         let mut camera_positions = DVector::<Float>::zeros(number_of_cam_parameters);
         if initial_motions.is_some() {
             let value = initial_motions.unwrap();
-            assert_eq!(value.len(),number_of_cameras-1); 
-            let mut counter = 0;
-            for i in (6..number_of_cam_parameters).step_by(2*6){
-                let idx = match i {
-                    v if v == 0 => 0,
-                    _ => i/6-1-counter
-                };
-                let (h,rotation_matrix) = value[idx];
+            for (cam_id,(h,rotation_matrix)) in value {
+                let (cam_idx,_) = self.camera_map[&cam_id];
+                let cam_state_idx = 6*cam_idx;
                 let rotation = na::Rotation3::from_matrix(&rotation_matrix);
                 let rotation_transpose = rotation.transpose();
                 let translation = rotation_transpose*(-h);
 
-                camera_positions.fixed_slice_mut::<3,1>(i,0).copy_from(&translation);
-                camera_positions.fixed_slice_mut::<3,1>(i,0).copy_from(&rotation_transpose.scaled_axis());
-                counter += 1;
+                camera_positions.fixed_slice_mut::<3,1>(cam_state_idx,0).copy_from(&translation);
+                camera_positions.fixed_slice_mut::<3,1>(cam_state_idx+3,0).copy_from(&rotation_transpose.scaled_axis());
             }
 
         }
