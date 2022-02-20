@@ -33,6 +33,10 @@ impl Image {
         self.buffer.ncols()*self.buffer.nrows()
     }
 
+    pub fn get_rows_columns(&self) -> (usize,usize) {
+        (self.buffer.nrows(),self.buffer.ncols())
+    }
+
     pub fn empty(width: usize, height: usize, image_encoding: ImageEncoding) -> Image {
         let buffer =  DMatrix::<Float>::from_element(height,width,255.0);
         Image{buffer, original_encoding: image_encoding, name: None, id: None}

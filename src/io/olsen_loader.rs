@@ -83,6 +83,16 @@ impl OlsenData {
         decompose_projection(&projection_static,positive_principal_distance)
     }
 
+    pub fn get_image_dim(&self) -> (usize,usize) {
+        assert!(self.images.len() > 0);
+        let (r,c) = self.images[0].get_rows_columns();
+        for im in &self.images {
+            assert_eq!((r,c), im.get_rows_columns());
+        }
+        (r,c)
+
+    }
+
 
 
 }

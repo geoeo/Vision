@@ -20,7 +20,10 @@ serde = { version = "*", features = ["derive"] }
 serde_yaml = "0.8"
 
 [profile.dev]
-debug = 1
+debug = true
+
+[profile.release] 
+debug = true
 
 
 [[example]]

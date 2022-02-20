@@ -155,7 +155,7 @@ pub fn load_images(dir_path: &str, extension: &str) -> Vec<Image> {
 
     paths.map(|x| x.unwrap().path()).filter(|x| {
         match x.extension() {
-            Some(v) => v.to_str().unwrap().ends_with(extension),
+            Some(v) => v.to_str().unwrap().ends_with(&extension.to_uppercase()) || v.to_str().unwrap().ends_with(&extension.to_lowercase()),
             _ => false
         }
     }).map(|x| load_image_as_gray(x.as_path(),false,false)).collect()
