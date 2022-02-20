@@ -155,6 +155,7 @@ impl CameraFeatureMap {
         State::new(camera_positions,landmarks , number_of_cameras, number_of_unqiue_landmarks)
     }
 
+    //TODO: this seems buggy with more than 2 cam pairs
     fn get_initial_camera_positions(&self,initial_motions : Option<&Vec<(Vector3<Float>,Matrix3<Float>)>> ) -> DVector::<Float> {
 
         let number_of_cameras = self.camera_map.keys().len();

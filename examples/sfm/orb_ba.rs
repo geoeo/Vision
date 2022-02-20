@@ -88,7 +88,12 @@ fn main() -> Result<()> {
 
     let feature_machtes = matches.iter().map(|m| epipolar::extract_matches(m, orb_params_1_2.pyramid_scale, false)).collect::<Vec<Vec<(Vector2<Float>,Vector2<Float>)>>>();
     let fundamental_matrices = feature_machtes.iter().map(|m| epipolar::eight_point(m)).collect::<Vec<epipolar::Fundamental>>();
-    let essential_matrices = fundamental_matrices.iter().enumerate().map(|(i,f)| epipolar::compute_essential(f, &cameras[2*i].get_projection(), &cameras[2*i+1].get_projection())).collect::<Vec<epipolar::Essential>>();
+    let essential_matrices = fundamental_matrices.iter().enumerate().map(|(i,f)| {
+        let (id_1,id_2) = image_id_pairs[i];
+        let (c_1, _ ) = feature_map.camera_map[&id_1];
+        let (c_2, _ ) = feature_map.camera_map[&id_2];
+        epipolar::compute_essential(f, &cameras[c_1].get_projection(), &cameras[c_2].get_projection())
+    }).collect::<Vec<epipolar::Essential>>();
 
     let normalized_matches = fundamental_matrices.iter().zip(feature_machtes.iter()).map(|(f,m)| epipolar::filter_matches(f, m)).collect::<Vec<Vec<(Vector3<Float>,Vector3<Float>)>>>();
     //let initial_motion_decomp = essential_matrices.iter().enumerate().map(|(i,e)| epipolar::decompose_essential_förstner(e,&normalized_matches[i])).collect::<Vec<(Vector3<Float>,Matrix3<Float>)>>();
