@@ -7,7 +7,7 @@ use color_eyre::eyre::Result;
 use std::path::Path;
 use vision::image::pyramid::orb::{orb_runtime_parameters::OrbRuntimeParameters, generate_matches};
 use vision::image::Image;
-use vision::visualize::display_matches_for_pyramid;
+use vision::visualize::display_oriented_matches_for_pyramid;
 
 
 fn main() ->Result<()> {
@@ -95,7 +95,7 @@ fn main() ->Result<()> {
     // let display_4 = Image::from_gray_image(&gray_image_4, false, false, None); 
 
 
-    let match_display_1_2 = display_matches_for_pyramid(&display_1, &display_2, &matches[0], true, display_1.buffer.max()/2.0, runtime_params.pyramid_scale);
+    let match_display_1_2 = display_oriented_matches_for_pyramid(&display_1, &display_2, &matches[0], true, display_1.buffer.max()/2.0, runtime_params.pyramid_scale);
     //let match_display_3_4 = display_matches_for_pyramid(&display_3, &display_4, &matches[1], true, display_1.buffer.max()/2.0, runtime_params.pyramid_scale);
 
 

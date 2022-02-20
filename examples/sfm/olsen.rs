@@ -9,10 +9,10 @@ use vision::io::{olsen_loader::OlsenData};
 use vision::sensors::camera::{pinhole::Pinhole};
 use vision::image::{features::{Match,ImageFeature}};
 use vision::sfm::{bundle_adjustment:: run_ba};
-use vision::numerics::pose;
 use vision::odometry::runtime_parameters::RuntimeParameters;
 use vision::numerics::{loss, weighting};
 use vision::Float;
+use vision::visualize;
 
 
 fn main() -> Result<()> {
@@ -30,9 +30,12 @@ fn main() -> Result<()> {
     let data_set_de_guerre_path = "D:/Workspace/Datasets/Olsen/de_guerre/";
     let data_set_fort_channing_path = "D:/Workspace/Datasets/Olsen/Fort_Channing_gate/";
 
-    let olsen_data = OlsenData::new(data_set_door_path);
+    let olsen_data_path = data_set_fountain_path;
+
+    let olsen_data = OlsenData::new(olsen_data_path);
     let positive_principal_distance = false;
-    let feature_skip_count = 4;
+    let feature_skip_count = 1;
+    let use_essential_decomp_for_initial_guess = true;
 
 
     let (cam_intrinsics_0,cam_extrinsics_0) = olsen_data.get_camera_intrinsics_extrinsics(0,positive_principal_distance);
@@ -62,14 +65,14 @@ fn main() -> Result<()> {
     let matches_0_2 = olsen_data.get_matches_between_images(0, 2);
     let matches_1_2 = olsen_data.get_matches_between_images(1, 2);
     let matches_2_3 = olsen_data.get_matches_between_images(2, 3);
+    let matches_3_2 = olsen_data.get_matches_between_images(3, 2);
     let matches_3_4 = olsen_data.get_matches_between_images(3, 4);
+    let matches_3_5 = olsen_data.get_matches_between_images(3, 5);
     let matches_4_5 = olsen_data.get_matches_between_images(4, 5);
     let matches_5_6 = olsen_data.get_matches_between_images(5, 6);
 
     let matches_6_7 = olsen_data.get_matches_between_images(6, 7);
     let matches_7_8 = olsen_data.get_matches_between_images(7, 8);
-
-    //TODO use display_matches_for_pyramid to display matches
 
 
 
@@ -81,7 +84,9 @@ fn main() -> Result<()> {
     let matches_0_2_subvec = matches_0_2.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
     let matches_1_2_subvec = matches_1_2.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
     let matches_2_3_subvec = matches_2_3.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
+    let matches_3_2_subvec = matches_2_3.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
     let matches_3_4_subvec = matches_3_4.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
+    let matches_3_5_subvec = matches_3_4.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
     let matches_4_5_subvec = matches_4_5.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
     let matches_5_6_subvec = matches_5_6.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
 
@@ -111,20 +116,33 @@ fn main() -> Result<()> {
 
 
     let mut all_matches = Vec::<Vec<Match<ImageFeature>>>::with_capacity(10);
-    all_matches.push(matches_0_1_subvec);
-    all_matches.push(matches_1_2_subvec);
+    //all_matches.push(matches_0_1_subvec);
+    //all_matches.push(matches_1_2_subvec);
     //all_matches.push(matches_2_3_subvec);
-    //all_matches.push(matches_2_3_subvec);
+    all_matches.push(matches_3_4_subvec);
+    //all_matches.push(matches_3_2_subvec);
+    //all_matches.push(matches_3_5_subvec);
+    //all_matches.push(matches_5_6_subvec);
 
     for m in &all_matches {
         assert!(m.len() > 0);
     }
     
     let mut camera_data = Vec::<((usize,Pinhole),(usize,Pinhole))>::with_capacity(10); 
-    camera_data.push(((0,pinhole_cam_0),(1,pinhole_cam_1)));
-    camera_data.push(((1,pinhole_cam_1),(2,pinhole_cam_2)));
+    //camera_data.push(((0,pinhole_cam_0),(1,pinhole_cam_1)));
+    //camera_data.push(((1,pinhole_cam_1),(2,pinhole_cam_2)));
     //camera_data.push(((2,pinhole_cam_2),(3,pinhole_cam_3)));
-    //camera_data.push(((3,pinhole_cam_3),(4,pinhole_cam_4)));
+    camera_data.push(((3,pinhole_cam_3),(4,pinhole_cam_4)));
+    //camera_data.push(((3,pinhole_cam_3),(2,pinhole_cam_2)));
+    //camera_data.push(((3,pinhole_cam_3),(5,pinhole_cam_5)));
+    //camera_data.push(((5,pinhole_cam_5),(6,pinhole_cam_6)));
+
+    for i in 0..camera_data.len() {
+        let ((id_a,_),(id_b,_)) = camera_data[i];
+        let intensity = 3.0*(olsen_data.images[id_a].buffer.max() as Float)/4.0;
+        let matches_vis = visualize::display_matches_for_pyramid(&olsen_data.images[id_a],&olsen_data.images[id_b],&all_matches[i],true,intensity ,1.0);
+        matches_vis.to_image().save(format!("{}match_disp_{}_{}_orb_ba.jpg",olsen_data_path,id_a,id_b)).unwrap();
+    }
 
 
     let runtime_parameters = RuntimeParameters {
@@ -132,9 +150,9 @@ fn main() -> Result<()> {
         max_iterations: vec![120; 1],
         eps: vec![1e-3],
         step_sizes: vec![1e0],
-        max_norm_eps: 1e-15, 
-        delta_eps: 1e-15,
-        taus: vec![1e-3],
+        max_norm_eps: 1e-30, 
+        delta_eps: 1e-30,
+        taus: vec![1e0],
         lm: true,
         weighting: true,
         debug: true,
@@ -146,7 +164,7 @@ fn main() -> Result<()> {
 
 
 
-    let ((cam_positions,points),(s,debug_states_serialized)) = run_ba(&all_matches, &camera_data, olsen_data.get_image_dim(), &runtime_parameters, 1.0, true);
+    let ((cam_positions,points),(s,debug_states_serialized)) = run_ba(&all_matches, &camera_data, olsen_data.get_image_dim(), &runtime_parameters, 1.0, use_essential_decomp_for_initial_guess);
     fs::write(format!("D:/Workspace/Rust/Vision/output/olsen.txt"), s?).expect("Unable to write file");
     if runtime_parameters.debug {
         fs::write(format!("D:/Workspace/Rust/Vision/output/olsen_debug.txt"), debug_states_serialized?).expect("Unable to write file");

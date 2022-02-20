@@ -15,7 +15,7 @@ pub mod state;
 
 
 pub fn run_ba<C : Camera + Copy, T : Feature>(all_matches: &Vec<Vec<Match<T>>>, camera_data: &Vec<((usize, C),(usize,C))>, 
-                                img_dim : (usize,usize) ,runtime_parameters: &RuntimeParameters, pyramid_scale: Float, use_esstial_decomp_for_initial_guess: bool ) 
+                                img_dim : (usize,usize) ,runtime_parameters: &RuntimeParameters, pyramid_scale: Float, use_essential_decomp_for_initial_guess: bool ) 
                                 -> ((Vec<Isometry3<Float>>, Vec<Vector3<Float>>), (serde_yaml::Result<String>, serde_yaml::Result<String>)){
 
 
@@ -37,7 +37,7 @@ pub fn run_ba<C : Camera + Copy, T : Feature>(all_matches: &Vec<Vec<Match<T>>>, 
     feature_map.add_matches(&unique_camera_id_pairs,all_matches, pyramid_scale);
 
     // This currently only works for pairs with the initial cam
-    let initial_cam_pos_guess: Option<Vec<(u64,(Vector3<Float>,Matrix3<Float>))>> = match use_esstial_decomp_for_initial_guess {
+    let initial_cam_pos_guess: Option<Vec<(u64,(Vector3<Float>,Matrix3<Float>))>> = match use_essential_decomp_for_initial_guess {
         false => None,
         true => {
             let feature_machtes = all_matches.iter().filter(|m| m.len() >= 8).map(|m| epipolar::extract_matches(m, pyramid_scale, false)).collect::<Vec<Vec<(Vector2<Float>,Vector2<Float>)>>>();
@@ -60,7 +60,7 @@ pub fn run_ba<C : Camera + Copy, T : Feature>(all_matches: &Vec<Vec<Match<T>>>, 
     //TODO filter features with epipolar check
 
     //TODO: switch impl
-    let mut state = feature_map.get_euclidean_landmark_state(initial_cam_pos_guess, Vector3::<Float>::new(0.0,0.0,-1.0));
+    let mut state = feature_map.get_euclidean_landmark_state(initial_cam_pos_guess, Vector3::<Float>::new(0.0,0.0,-5.0));
     //let mut state = feature_map.get_inverse_depth_landmark_state(Some(&initial_motion_decomp), 1.0,&cameras);
 
     let observed_features = feature_map.get_observed_features(false);

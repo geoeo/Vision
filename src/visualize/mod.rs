@@ -1,7 +1,7 @@
 extern crate image as image_rs;
 
 use rand::distributions::{Distribution, Uniform};
-use crate::image::features::{Feature,Match, Oriented,orb_feature::OrbFeature, geometry::{point::Point,shape::circle::circle_bresenham,line::line_bresenham}};
+use crate::image::features::{ImageFeature,Feature,Match, Oriented,orb_feature::OrbFeature, geometry::{point::Point,shape::circle::circle_bresenham,line::line_bresenham}};
 use crate::image::{Image,image_encoding::ImageEncoding};
 use crate::image::descriptors::sift_descriptor::{orientation_histogram::OrientationHistogram};
 use crate::{Float,float,reconstruct_original_coordiantes_for_float};
@@ -42,7 +42,7 @@ pub fn display_histogram(histogram: &OrientationHistogram, width_scaling:usize, 
 }
 
 //TODO: Remove OrbFeature dependency or make OrbFeature a more basic feature
-pub fn display_matches_for_pyramid<T>(image_a_original: &Image, image_b_original: &Image, match_pyramid: &Vec<Match<T>>, draw_lines: bool, intensity: Float, pyramid_scale: Float) -> Image where T: Feature + Oriented {
+pub fn display_oriented_matches_for_pyramid<T>(image_a_original: &Image, image_b_original: &Image, match_pyramid: &Vec<Match<T>>, draw_lines: bool, intensity: Float, pyramid_scale: Float) -> Image where T: Feature + Oriented {
     let height = image_a_original.buffer.nrows();
     let width = image_a_original.buffer.ncols() + image_b_original.buffer.ncols();
 
@@ -72,6 +72,45 @@ pub fn display_matches_for_pyramid<T>(image_a_original: &Image, image_b_original
         let radius_a = (level_a+1) as Float *10.0; 
         let radius_b = (level_b+1) as Float *10.0; 
     
+        draw_match_with_orientation(&mut target_image, &match_tuple, (radius_a,radius_b),draw_lines, intensity);
+    }
+
+
+
+    target_image
+
+}
+
+pub fn display_matches_for_pyramid<T>(image_a_original: &Image, image_b_original: &Image, match_pyramid: &Vec<Match<T>>, draw_lines: bool, intensity: Float, pyramid_scale: Float) -> Image where T: Feature {
+    let height = image_a_original.buffer.nrows();
+    let width = image_a_original.buffer.ncols() + image_b_original.buffer.ncols();
+
+    let mut target_image = Image::empty(width, height, image_b_original.original_encoding);
+
+    for x in 0..image_a_original.buffer.ncols() {
+        for y in 0..image_a_original.buffer.nrows() {
+            target_image.buffer[(y,x)] = image_a_original.buffer[(y,x)];
+        }
+    }
+
+    for x in 0..image_b_original.buffer.ncols() {
+        for y in 0..image_b_original.buffer.nrows() {
+            target_image.buffer[(y,x+image_a_original.buffer.ncols())] = image_b_original.buffer[(y,x)];
+        }
+    }
+
+    for i in 0..match_pyramid.len() {
+        let a= &match_pyramid[i].feature_one;
+        let b = &match_pyramid[i].feature_two;
+        let level_a = a.get_closest_sigma_level();
+        let level_b = b.get_closest_sigma_level();
+        let (a_x_orig,a_y_orig) = reconstruct_original_coordiantes_for_float(a.get_x_image() as Float,a.get_y_image() as Float, pyramid_scale,level_a as i32);
+        let (b_x_orig,b_y_orig) = reconstruct_original_coordiantes_for_float(b.get_x_image() as Float,b.get_y_image() as Float, pyramid_scale,level_b as i32);
+        let match_tuple = (ImageFeature{location: Point::new(a_x_orig.trunc() , a_y_orig.trunc())},
+        ImageFeature{location: Point::new((image_a_original.buffer.ncols() + (b_x_orig.trunc() as usize)) as Float, b_y_orig.trunc())} );
+        let radius_a = (level_a+1) as Float *10.0; 
+        let radius_b = (level_b+1) as Float *10.0; 
+    
         draw_match(&mut target_image, &match_tuple, (radius_a,radius_b),draw_lines, intensity);
     }
 
@@ -81,18 +120,24 @@ pub fn display_matches_for_pyramid<T>(image_a_original: &Image, image_b_original
 
 }
 
-
-//TODO: better drawing solution
-fn draw_match<T>(image: &mut Image,  (feature_a,feature_b): &(T,T), (radius_a, radius_b): (Float,Float), draw_lines: bool, intensity: Float)-> ()  where T: Feature + Oriented {
-    draw_circle_with_orientation(image, feature_a.get_x_image(), feature_a.get_y_image(),  feature_a.get_orientation(), radius_a, 0.0);
-    draw_circle_with_orientation(image, feature_b.get_x_image(), feature_b.get_y_image(),  feature_b.get_orientation(), radius_b, 0.0);
+fn draw_match<T>(image: &mut Image,  (feature_a,feature_b): &(T,T), (radius_a, radius_b): (Float,Float), draw_lines: bool, intensity: Float)-> ()  where T: Feature {
+    draw_circle(image, feature_a.get_x_image(), feature_a.get_y_image(), radius_a, intensity);
+    draw_circle(image, feature_b.get_x_image(), feature_b.get_y_image(), radius_b, intensity);
 
     if draw_lines {
         let line = line_bresenham(&Point::new(feature_a.get_x_image(), feature_a.get_y_image()), &Point::new(feature_b.get_x_image(), feature_b.get_y_image()));
-        draw_points(image, &line.points,0.0);
+        draw_points(image, &line.points,intensity);
     }
+}
 
+fn draw_match_with_orientation<T>(image: &mut Image,  (feature_a,feature_b): &(T,T), (radius_a, radius_b): (Float,Float), draw_lines: bool, intensity: Float)-> ()  where T: Feature + Oriented {
+    draw_circle_with_orientation(image, feature_a.get_x_image(), feature_a.get_y_image(),  feature_a.get_orientation(), radius_a, intensity);
+    draw_circle_with_orientation(image, feature_b.get_x_image(), feature_b.get_y_image(),  feature_b.get_orientation(), radius_b, intensity);
 
+    if draw_lines {
+        let line = line_bresenham(&Point::new(feature_a.get_x_image(), feature_a.get_y_image()), &Point::new(feature_b.get_x_image(), feature_b.get_y_image()));
+        draw_points(image, &line.points,intensity);
+    }
 }
 
 fn draw_matches<T>(image: &mut Image,  matches: &Vec<(T,T)>, (radius_a, radius_b): (Float,Float), draw_lines: bool, intensity: Float)-> ()  where T: Feature + Oriented {
@@ -150,6 +195,7 @@ pub fn draw_circle_with_orientation(image: &mut Image, x: usize, y: usize, orien
     draw_circle(image,x,y, radius, intensity);
     draw_line(image, x, y, radius, orientation,intensity);
 }
+
 
 
 pub fn draw_square(image: &mut Image, x_center: usize, y_center: usize, side_length: usize) -> () {
