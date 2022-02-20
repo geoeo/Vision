@@ -1,7 +1,7 @@
 extern crate nalgebra as na;
 
 use na::{Matrix3, Vector3, Isometry3};
-use crate::image::{epipolar,features::{Match,ImageFeature}};
+use crate::image::{epipolar,features::{Match,Feature}};
 use crate::sensors::camera::Camera;
 use crate::odometry::runtime_parameters::RuntimeParameters;
 use crate::sfm::{landmark::Landmark,bundle_adjustment::{camera_feature_map::CameraFeatureMap}};
@@ -14,7 +14,7 @@ pub mod state;
 
 
 
-pub fn run_ba<C : Camera + Copy>(all_matches: &Vec<Vec<Match<ImageFeature>>>, camera_data: &Vec<((usize, C),(usize,C))>, 
+pub fn run_ba<C : Camera + Copy, T : Feature>(all_matches: &Vec<Vec<Match<T>>>, camera_data: &Vec<((usize, C),(usize,C))>, 
                                 img_dim : (usize,usize) ,runtime_parameters: &RuntimeParameters, pyramid_scale: Float, use_esstial_decomp_for_initial_guess: bool ) 
                                 -> ((Vec<Isometry3<Float>>, Vec<Vector3<Float>>), (serde_yaml::Result<String>, serde_yaml::Result<String>)){
     let mut unique_cameras_sorted = Vec::<(usize, C)>::with_capacity(camera_data.len());
@@ -35,7 +35,22 @@ pub fn run_ba<C : Camera + Copy>(all_matches: &Vec<Vec<Match<ImageFeature>>>, ca
 
     let initial_cam_pos_guess: Option<&Vec<(Vector3<Float>,Matrix3<Float>)>> = match use_esstial_decomp_for_initial_guess {
         false => None,
-        true => None //TODO
+        true => {
+            // let feature_machtes = matches.iter().map(|m| epipolar::extract_matches(m, orb_params_1_2.pyramid_scale, false)).collect::<Vec<Vec<(Vector2<Float>,Vector2<Float>)>>>();
+            // let fundamental_matrices = feature_machtes.iter().map(|m| epipolar::eight_point(m)).collect::<Vec<epipolar::Fundamental>>();
+            // let essential_matrices = fundamental_matrices.iter().enumerate().map(|(i,f)| {
+            //     let (id_1,id_2) = image_id_pairs[i];
+            //     let (c_1, _ ) = feature_map.camera_map[&id_1];
+            //     let (c_2, _ ) = feature_map.camera_map[&id_2];
+            //     epipolar::compute_essential(f, &cameras[c_1].get_projection(), &cameras[c_2].get_projection())
+            // }).collect::<Vec<epipolar::Essential>>();
+        
+            // let normalized_matches = fundamental_matrices.iter().zip(feature_machtes.iter()).map(|(f,m)| epipolar::filter_matches(f, m)).collect::<Vec<Vec<(Vector3<Float>,Vector3<Float>)>>>();
+            // //let initial_motion_decomp = essential_matrices.iter().enumerate().map(|(i,e)| epipolar::decompose_essential_förstner(e,&normalized_matches[i])).collect::<Vec<(Vector3<Float>,Matrix3<Float>)>>();
+            // let initial_motion_decomp = essential_matrices.iter().enumerate().map(|(i,e)| epipolar::decompose_essential_kanatani(e,&normalized_matches[i])).collect::<Vec<(Vector3<Float>,Matrix3<Float>)>>();
+            None
+        
+        } //TODO
     };
 
     //TODO: switch impl
