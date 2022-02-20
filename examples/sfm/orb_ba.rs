@@ -4,18 +4,15 @@ extern crate color_eyre;
 extern crate nalgebra as na;
 
 use std::fs;
-use na::{Vector2,Vector3,Matrix3};
 use color_eyre::eyre::Result;
 use std::path::Path;
-use vision::Float;
 use vision::image::pyramid::orb::{orb_runtime_parameters::OrbRuntimeParameters};
-use vision::image::features::{Match,orb_feature::OrbFeature, ImageFeature};
+use vision::image::features::{Match,orb_feature::OrbFeature};
 use vision::image::Image;
-use vision::sfm::{bundle_adjustment::{camera_feature_map::CameraFeatureMap, solver::optimize, run_ba}};
-use vision::sensors::camera::{Camera,pinhole::Pinhole};
+use vision::sfm::{bundle_adjustment::run_ba};
+use vision::sensors::camera::{pinhole::Pinhole};
 use vision::odometry::runtime_parameters::RuntimeParameters;
 use vision::numerics::{loss, weighting};
-use vision::image::epipolar;
 
 
 fn main() -> Result<()> {
@@ -94,9 +91,9 @@ fn main() -> Result<()> {
 
 
     let ((cam_positions,points),(s,debug_states_serialized)) = run_ba(&all_matches, &camera_data, (image_1.buffer.nrows(),image_1.buffer.ncols()), &runtime_parameters, 1.0, false);
-    fs::write(format!("D:/Workspace/Rust/Vision/output/3dv.txt"), s?).expect("Unable to write file");
+    fs::write(format!("D:/Workspace/Rust/Vision/output/orb_ba.txt"), s?).expect("Unable to write file");
     if runtime_parameters.debug {
-        fs::write(format!("D:/Workspace/Rust/Vision/output/3dv_debug.txt"), debug_states_serialized?).expect("Unable to write file");
+        fs::write(format!("D:/Workspace/Rust/Vision/output/orb_ba_debug.txt"), debug_states_serialized?).expect("Unable to write file");
     }
 
 
