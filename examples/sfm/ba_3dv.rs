@@ -4,11 +4,9 @@ extern crate color_eyre;
 extern crate nalgebra as na;
 
 use std::fs;
-use na::{Vector3,Matrix3};
 use color_eyre::eyre::Result;
-use vision::Float;
 use vision::image::features::{Match,ImageFeature};
-use vision::sfm::{bundle_adjustment::{camera_feature_map::CameraFeatureMap, solver::optimize, solver::run_ba}};
+use vision::sfm::bundle_adjustment::run_ba;
 use vision::sensors::camera::pinhole::Pinhole;
 use vision::odometry::runtime_parameters::RuntimeParameters;
 use vision::numerics::{loss, weighting};

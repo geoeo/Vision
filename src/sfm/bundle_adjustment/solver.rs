@@ -1,13 +1,12 @@
 extern crate nalgebra as na;
 
-use na::{DVector,DMatrix,Matrix,Matrix3, Dynamic, U4, VecStorage,Point3, Vector4, Vector3, Isometry3};
+use na::{DVector,DMatrix,Matrix, Dynamic, U4, VecStorage,Point3, Vector4};
 use crate::{float,Float};
 use crate::sensors::camera::Camera;
 use crate::numerics::lie::left_jacobian_around_identity;
 use crate::numerics::{max_norm, least_squares::{compute_cost,weight_jacobian_sparse,weight_residuals_sparse, calc_weight_vec, gauss_newton_step_with_schur}};
 use crate::sfm::{landmark::Landmark,bundle_adjustment::{state::State, camera_feature_map::CameraFeatureMap}};
 use crate::odometry::runtime_parameters::RuntimeParameters; //TODO remove dependency on odometry module
-use crate::image::{Image,epipolar,features::{Match,ImageFeature}};
 
 pub fn get_feature_index_in_residual(cam_id: usize, feature_id: usize, n_cams: usize) -> usize {
     2*(cam_id + feature_id*n_cams)
@@ -247,41 +246,4 @@ pub fn optimize<C : Camera,L: Landmark<T> + Copy + Clone, const T: usize>(state:
     debug_state_list
 }
 
-pub fn run_ba<C : Camera + Copy>(all_matches: &Vec<Vec<Match<ImageFeature>>>, camera_data: &Vec<((usize, C),(usize,C))>, 
-                                img_dim : (usize,usize) ,runtime_parameters: &RuntimeParameters, pyramid_scale: Float, use_esstial_decomp_for_initial_guess: bool ) 
-                                -> ((Vec<Isometry3<Float>>, Vec<Vector3<Float>>), (serde_yaml::Result<String>, serde_yaml::Result<String>)){
-    let mut unique_cameras_sorted = Vec::<(usize, C)>::with_capacity(camera_data.len());
-    for (a,b) in camera_data {
-        unique_cameras_sorted.push(*a);
-        unique_cameras_sorted.push(*b);
-    }
-
-    unique_cameras_sorted.sort_unstable_by(|(v1,_),(v2,_)| v1.partial_cmp(v2).unwrap());
-    unique_cameras_sorted.dedup_by(|(v1,_),(v2,_)| v1==v2);
-
-    let unique_camera_ids_sorted = unique_cameras_sorted.iter().map(|(id,_)| *id as u64).collect();
-    let unique_camera_id_pairs = camera_data.iter().map(|((v1,_),(v2,_))| (*v1 as u64,*v2 as u64)).collect();
-    let unique_cameras_sorted_by_id = unique_cameras_sorted.iter().map(|(_,cam)| *cam).collect::<Vec<C>>();
-
-    let mut feature_map = CameraFeatureMap::new(all_matches,unique_camera_ids_sorted, img_dim);
-    feature_map.add_matches(&unique_camera_id_pairs,all_matches, pyramid_scale);
-
-    let initial_cam_pos_guess: Option<&Vec<(Vector3<Float>,Matrix3<Float>)>> = match use_esstial_decomp_for_initial_guess {
-        false => None,
-        true => None //TODO
-    };
-
-    let mut state = feature_map.get_euclidean_landmark_state(None, Vector3::<Float>::new(0.0,0.0,-1.0));
-    let observed_features = feature_map.get_observed_features(false);
-
-    
-    let some_debug_state_list = optimize(&mut state, &unique_cameras_sorted_by_id, &observed_features, &runtime_parameters);
-    let state_serialized = serde_yaml::to_string(&state.to_serial());
-    let debug_states_serialized = serde_yaml::to_string(&some_debug_state_list);
-
-    
-    (state.as_matrix_point(), (state_serialized,debug_states_serialized))
-
-
-}
 
