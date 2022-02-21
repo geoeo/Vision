@@ -177,10 +177,18 @@ pub fn gauss_newton_step_with_schur<R, C,S1, S2,StorageTargetArrow,StorageTarget
 
         let U_star = target_arrowhead.slice((0,0),(u_span,u_span));
         let V_star = target_arrowhead.slice((u_span,u_span),(v_span,v_span));
+
+        //TODO: preallocate this
+        let mut V_star_inv = DMatrix::<Float>::zeros(v_span,v_span);
+        for i in (0..v_span).step_by(LANDMARK_PARAM_SIZE) {
+            let local_inv = V_star.fixed_slice::<LANDMARK_PARAM_SIZE,LANDMARK_PARAM_SIZE>(i,i).try_inverse().expect("local inverse failed");
+            V_star_inv.fixed_slice_mut::<LANDMARK_PARAM_SIZE,LANDMARK_PARAM_SIZE>(i,i).copy_from(&local_inv);
+        }
         let W = target_arrowhead.slice((0,u_span),(u_span,v_span));
         let W_t = target_arrowhead.slice((u_span,0),(v_span,u_span));
         let V_star_cholesky = V_star.cholesky().expect("v_star cholesky failed");
-        let V_star_inv = V_star_cholesky.inverse();
+        
+
         let res_a = target_arrowhead_residual.slice((0,0),(u_span,1));
         let res_b = target_arrowhead_residual.slice((u_span,0),(v_span,1));
 

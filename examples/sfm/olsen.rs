@@ -32,9 +32,9 @@ fn main() -> Result<()> {
 
     let olsen_data_path = data_set_fountain_path;
 
-    let olsen_data = OlsenData::new(data_set_door_path);
+    let olsen_data = OlsenData::new(data_set_fountain_path);
     let positive_principal_distance = false;
-    let feature_skip_count = 6;
+    let feature_skip_count = 1;
     let use_essential_decomp_for_initial_guess = true;
 
 
@@ -121,6 +121,7 @@ fn main() -> Result<()> {
     //all_matches.push(matches_2_3_subvec);
     all_matches.push(matches_3_4_subvec);
     //all_matches.push(matches_3_2_subvec);
+    all_matches.push(matches_4_5_subvec);
     //all_matches.push(matches_3_5_subvec);
     //all_matches.push(matches_5_6_subvec);
 
@@ -134,6 +135,7 @@ fn main() -> Result<()> {
     //camera_data.push(((2,pinhole_cam_2),(3,pinhole_cam_3)));
     camera_data.push(((3,pinhole_cam_3),(4,pinhole_cam_4)));
     //camera_data.push(((3,pinhole_cam_3),(2,pinhole_cam_2)));
+    camera_data.push(((4,pinhole_cam_4),(5,pinhole_cam_5)));
     //camera_data.push(((3,pinhole_cam_3),(5,pinhole_cam_5)));
     //camera_data.push(((5,pinhole_cam_5),(6,pinhole_cam_6)));
 
