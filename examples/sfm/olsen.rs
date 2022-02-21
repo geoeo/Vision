@@ -6,7 +6,7 @@ use color_eyre::eyre::Result;
 
 use std::fs;
 use vision::io::{olsen_loader::OlsenData};
-use vision::sensors::camera::{pinhole::Pinhole};
+use vision::sensors::camera::{pinhole::Pinhole, perspective::Perspective};
 use vision::image::{features::{Match,ImageFeature}};
 use vision::sfm::{bundle_adjustment:: run_ba};
 use vision::odometry::runtime_parameters::RuntimeParameters;
@@ -32,9 +32,9 @@ fn main() -> Result<()> {
 
     let olsen_data_path = data_set_fountain_path;
 
-    let olsen_data = OlsenData::new(olsen_data_path);
+    let olsen_data = OlsenData::new(data_set_door_path);
     let positive_principal_distance = false;
-    let feature_skip_count = 1;
+    let feature_skip_count = 6;
     let use_essential_decomp_for_initial_guess = true;
 
 
@@ -103,15 +103,15 @@ fn main() -> Result<()> {
     // let matches_0_20 = olsen_data.get_matches_between_images(0, 20);
     // println!("matches between 0 and 20 are: #{}", matches_0_20.len());
 
-    let pinhole_cam_0 = Pinhole::from_matrix(&cam_intrinsics_0, false);
-    let pinhole_cam_1 = Pinhole::from_matrix(&cam_intrinsics_1, false);
-    let pinhole_cam_2 = Pinhole::from_matrix(&cam_intrinsics_2, false);
-    let pinhole_cam_3 = Pinhole::from_matrix(&cam_intrinsics_3, false);
-    let pinhole_cam_4 = Pinhole::from_matrix(&cam_intrinsics_4, false);
-    let pinhole_cam_5 = Pinhole::from_matrix(&cam_intrinsics_5, false);
-    let pinhole_cam_6 = Pinhole::from_matrix(&cam_intrinsics_6, false);
-    let pinhole_cam_7 = Pinhole::from_matrix(&cam_intrinsics_7, false);
-    let pinhole_cam_8 = Pinhole::from_matrix(&cam_intrinsics_8, false);
+    let pinhole_cam_0 = Perspective::from_matrix(&cam_intrinsics_0, false);
+    let pinhole_cam_1 = Perspective::from_matrix(&cam_intrinsics_1, false);
+    let pinhole_cam_2 = Perspective::from_matrix(&cam_intrinsics_2, false);
+    let pinhole_cam_3 = Perspective::from_matrix(&cam_intrinsics_3, false);
+    let pinhole_cam_4 = Perspective::from_matrix(&cam_intrinsics_4, false);
+    let pinhole_cam_5 = Perspective::from_matrix(&cam_intrinsics_5, false);
+    let pinhole_cam_6 = Perspective::from_matrix(&cam_intrinsics_6, false);
+    let pinhole_cam_7 = Perspective::from_matrix(&cam_intrinsics_7, false);
+    let pinhole_cam_8 = Perspective::from_matrix(&cam_intrinsics_8, false);
 
 
 
@@ -128,7 +128,7 @@ fn main() -> Result<()> {
         assert!(m.len() > 0);
     }
     
-    let mut camera_data = Vec::<((usize,Pinhole),(usize,Pinhole))>::with_capacity(10); 
+    let mut camera_data = Vec::<((usize,Perspective),(usize,Perspective))>::with_capacity(10); 
     //camera_data.push(((0,pinhole_cam_0),(1,pinhole_cam_1)));
     //camera_data.push(((1,pinhole_cam_1),(2,pinhole_cam_2)));
     //camera_data.push(((2,pinhole_cam_2),(3,pinhole_cam_3)));
