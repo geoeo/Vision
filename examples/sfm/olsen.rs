@@ -30,11 +30,11 @@ fn main() -> Result<()> {
     let data_set_de_guerre_path = "D:/Workspace/Datasets/Olsen/de_guerre/";
     let data_set_fort_channing_path = "D:/Workspace/Datasets/Olsen/Fort_Channing_gate/";
 
-    let olsen_data_path = data_set_fountain_path;
+    let olsen_data_path = data_set_door_path;
 
-    let olsen_data = OlsenData::new(data_set_fountain_path);
+    let olsen_data = OlsenData::new(data_set_door_path);
     let positive_principal_distance = false;
-    let feature_skip_count = 1;
+    let feature_skip_count = 4;
     let use_essential_decomp_for_initial_guess = true;
 
 
@@ -70,6 +70,8 @@ fn main() -> Result<()> {
     let matches_3_5 = olsen_data.get_matches_between_images(3, 5);
     let matches_4_5 = olsen_data.get_matches_between_images(4, 5);
     let matches_5_6 = olsen_data.get_matches_between_images(5, 6);
+    let matches_5_7 = olsen_data.get_matches_between_images(5, 7);
+    let matches_5_8 = olsen_data.get_matches_between_images(5, 8);
 
     let matches_6_7 = olsen_data.get_matches_between_images(6, 7);
     let matches_7_8 = olsen_data.get_matches_between_images(7, 8);
@@ -89,6 +91,8 @@ fn main() -> Result<()> {
     let matches_3_5_subvec = matches_3_4.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
     let matches_4_5_subvec = matches_4_5.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
     let matches_5_6_subvec = matches_5_6.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
+    let matches_5_7_subvec = matches_5_7.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
+    let matches_5_8_subvec = matches_5_8.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
 
     let matches_6_7_subvec = matches_6_7.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
     let matches_7_8_subvec = matches_7_8.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
@@ -119,11 +123,12 @@ fn main() -> Result<()> {
     //all_matches.push(matches_0_1_subvec);
     //all_matches.push(matches_1_2_subvec);
     //all_matches.push(matches_2_3_subvec);
-    all_matches.push(matches_3_4_subvec);
+    //all_matches.push(matches_3_4_subvec);
     //all_matches.push(matches_3_2_subvec);
-    all_matches.push(matches_4_5_subvec);
+    //all_matches.push(matches_4_5_subvec);
     //all_matches.push(matches_3_5_subvec);
     //all_matches.push(matches_5_6_subvec);
+    all_matches.push(matches_5_7_subvec);
 
     for m in &all_matches {
         assert!(m.len() > 0);
@@ -133,11 +138,12 @@ fn main() -> Result<()> {
     //camera_data.push(((0,pinhole_cam_0),(1,pinhole_cam_1)));
     //camera_data.push(((1,pinhole_cam_1),(2,pinhole_cam_2)));
     //camera_data.push(((2,pinhole_cam_2),(3,pinhole_cam_3)));
-    camera_data.push(((3,pinhole_cam_3),(4,pinhole_cam_4)));
+    //camera_data.push(((3,pinhole_cam_3),(4,pinhole_cam_4)));
     //camera_data.push(((3,pinhole_cam_3),(2,pinhole_cam_2)));
-    camera_data.push(((4,pinhole_cam_4),(5,pinhole_cam_5)));
+    //camera_data.push(((4,pinhole_cam_4),(5,pinhole_cam_5)));
     //camera_data.push(((3,pinhole_cam_3),(5,pinhole_cam_5)));
     //camera_data.push(((5,pinhole_cam_5),(6,pinhole_cam_6)));
+    camera_data.push(((5,pinhole_cam_5),(7,pinhole_cam_7)));
 
     for i in 0..camera_data.len() {
         let ((id_a,_),(id_b,_)) = camera_data[i];

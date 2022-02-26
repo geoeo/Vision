@@ -159,7 +159,7 @@ pub fn gauss_newton_step_with_schur<R, C,S1, S2,StorageTargetArrow,StorageTarget
     mu: Option<Float>, 
     tau: Float,
     n_cams: usize, 
-    n_points: usize)-> (Float,Float) 
+    n_points: usize)-> Option<(Float,Float)>
      where 
         R: Dim, 
         C: Dim + DimMin<C, Output = C>,
@@ -186,36 +186,42 @@ pub fn gauss_newton_step_with_schur<R, C,S1, S2,StorageTargetArrow,StorageTarget
         }
         let W = target_arrowhead.slice((0,u_span),(u_span,v_span));
         let W_t = target_arrowhead.slice((u_span,0),(v_span,u_span));
-        let V_star_cholesky = V_star.cholesky().expect("v_star cholesky failed");
-        
 
         let res_a = target_arrowhead_residual.slice((0,0),(u_span,1));
         let res_b = target_arrowhead_residual.slice((u_span,0),(v_span,1));
 
-
         let schur_compliment = U_star - W*(&V_star_inv)*W_t;
         let res_a_augment = res_a-W*V_star_inv*res_b;
-        let h_a = schur_compliment.cholesky().expect("h_a schur cholesky failed").solve(&res_a_augment);
-        let h_b = V_star_cholesky.solve(&(res_b-W_t*(&h_a)));
 
-
-        target_perturb.slice_mut((0,0),(u_span,1)).copy_from(&h_a);
-        target_perturb.slice_mut((u_span,0),(v_span,1)).copy_from(&h_b);
-
-    
-        let mu_val = match mu {
-            None => tau*diag_max,
-            Some(v) => v
-        };
-        let scaled_target_res = target_perturb.scale(mu_val);
-
-
-
-        let g_1 = (&target_perturb).transpose()*(&scaled_target_res);
-        let g_2 = (&target_perturb).transpose()*(target_arrowhead_residual as  &Vector<Float,C,StorageTargetResidual>);
-        let gain_ratio_denom = g_1+g_2;
+        let h_a_option = schur_compliment.cholesky();//.expect("h_a schur cholesky failed").solve(&res_a_augment);
+        let V_star_cholesky_option = V_star.cholesky();//.expect("v_star cholesky failed");
         
-        (gain_ratio_denom[0], mu_val)
+
+        match (h_a_option,V_star_cholesky_option) {
+            (Some(h_a_cholesky), Some(V_star_cholesky)) => {
+                let h_a = h_a_cholesky.solve(&res_a_augment);
+                let h_b = V_star_cholesky.solve(&(res_b-W_t*(&h_a)));
+
+
+                target_perturb.slice_mut((0,0),(u_span,1)).copy_from(&h_a);
+                target_perturb.slice_mut((u_span,0),(v_span,1)).copy_from(&h_b);
+        
+            
+                let mu_val = match mu {
+                    None => tau*diag_max,
+                    Some(v) => v
+                };
+                let scaled_target_res = target_perturb.scale(mu_val);
+        
+
+                let g_1 = (&target_perturb).transpose()*(&scaled_target_res);
+                let g_2 = (&target_perturb).transpose()*(target_arrowhead_residual as  &Vector<Float,C,StorageTargetResidual>);
+                let gain_ratio_denom = g_1+g_2;
+                
+                Some((gain_ratio_denom[0], mu_val))
+            }
+            _ => None
+        }
 
 
 }

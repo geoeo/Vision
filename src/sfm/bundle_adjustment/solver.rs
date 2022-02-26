@@ -164,7 +164,7 @@ pub fn optimize<C : Camera,L: Landmark<T> + Copy + Clone, const T: usize>(state:
         target_arrowhead.fill(0.0);
         g.fill(0.0);
         delta.fill(0.0);
-        let (gain_ratio_denom, mu_val) 
+        let gauss_newton_result 
             = gauss_newton_step_with_schur::<_,_,_,_,_,_,T, 6>(
                 &mut target_arrowhead,
                 &mut g,
@@ -184,6 +184,13 @@ pub fn optimize<C : Camera,L: Landmark<T> + Copy + Clone, const T: usize>(state:
         //          &identity,
         //          mu,
         //          tau); 
+
+        if gauss_newton_result.is_none(){
+            println!("Sover failed at it: {}, avg_rmse: {}",iteration_count,cost.sqrt());
+            break;
+        }
+
+        let (gain_ratio_denom, mu_val) = gauss_newton_result.unwrap();
 
         mu = Some(mu_val);
         let pertb = step*(&delta);
