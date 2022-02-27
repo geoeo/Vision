@@ -5,7 +5,8 @@ extern crate vision;
 use color_eyre::eyre::Result;
 
 use std::fs;
-use vision::io::{olsen_loader::OlsenData};
+use na::Matrix4;
+use vision::io::{olsen_loader::OlssenData};
 use vision::sensors::camera::perspective::Perspective;
 use vision::image::{features::{Match,ImageFeature}, epipolar::{compute_initial_cam_motions, EssentialDecomposition}};
 use vision::sfm::{bundle_adjustment:: run_ba};
@@ -32,9 +33,9 @@ fn main() -> Result<()> {
 
     let olsen_data_path = data_set_door_path;
 
-    let olsen_data = OlsenData::new(olsen_data_path);
+    let olsen_data = OlssenData::new(olsen_data_path);
     let positive_principal_distance = false;
-    let feature_skip_count = 1;
+    let feature_skip_count = 16;
     let use_essential_decomp_for_initial_guess = true;
 
 
@@ -75,13 +76,6 @@ fn main() -> Result<()> {
     let matches_6_11 = olsen_data.get_matches_between_images(6, 11);
     //let matches_6_17 = olsen_data.get_matches_between_images(6, 17);
     //let matches_17_20 = olsen_data.get_matches_between_images(17, 20);
-
-
-
-
-    println!("matches between 0 and 1 are: #{}", matches_0_1.len());
-    let matches_0_1_subvec = matches_0_1.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
-    println!("sub set of matches between 0 and 1 are: #{}", matches_0_1_subvec.len());
 
     let matches_0_2_subvec = matches_0_2.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
     let matches_1_2_subvec = matches_1_2.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
@@ -171,6 +165,11 @@ fn main() -> Result<()> {
     //camera_data.push(((6,pinhole_cam_6),(17,pinhole_cam_17)));
     //camera_data.push(((17,pinhole_cam_17),(20,pinhole_cam_20)));
 
+    let mut motion_list =  Vec::<((usize,Matrix4<Float>),(usize,Matrix4<Float>))>::with_capacity(10); 
+    motion_list.push(((6,cam_extrinsics_6),(4,cam_extrinsics_4)));
+
+
+
     for i in 0..camera_data.len() {
         let ((id_a,_),(id_b,_)) = camera_data[i];
         let intensity = 3.0*(olsen_data.images[id_a].buffer.max() as Float)/4.0;
@@ -198,6 +197,7 @@ fn main() -> Result<()> {
 
 
     let initial_cam_poses = compute_initial_cam_motions(&all_matches, &camera_data, 1.0, EssentialDecomposition::KANATANI);
+    //let initial_cam_poses = Some(OlssenData::get_relative_motions(&motion_list));
     let ((cam_positions,points),(s,debug_states_serialized)) = run_ba(&all_matches, &camera_data,&initial_cam_poses, olsen_data.get_image_dim(), &runtime_parameters, 1.0,-1.0);
     fs::write(format!("D:/Workspace/Rust/Vision/output/olsen.txt"), s?).expect("Unable to write file");
     if runtime_parameters.debug {

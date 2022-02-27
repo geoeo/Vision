@@ -167,11 +167,9 @@ impl CameraFeatureMap {
                 let (cam_idx,_) = self.camera_map[&cam_id];
                 let cam_state_idx = 6*cam_idx;
                 let rotation = na::Rotation3::from_matrix(&rotation_matrix);
-                let rotation_transpose = rotation.transpose();
-                let translation = rotation_transpose*(-h);
 
-                camera_positions.fixed_slice_mut::<3,1>(cam_state_idx,0).copy_from(&translation);
-                camera_positions.fixed_slice_mut::<3,1>(cam_state_idx+3,0).copy_from(&rotation_transpose.scaled_axis());
+                camera_positions.fixed_slice_mut::<3,1>(cam_state_idx,0).copy_from(&h);
+                camera_positions.fixed_slice_mut::<3,1>(cam_state_idx+3,0).copy_from(&rotation.scaled_axis());
             }
 
         }

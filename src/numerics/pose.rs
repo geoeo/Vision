@@ -16,9 +16,15 @@ pub fn se3(t: &Vector3<Float>, quat: &UnitQuaternion<Float>) -> Isometry3<Float>
     Isometry3::<Float>::from_parts(Translation3::from(*t), *quat)
 }
 
-// From a to b
+/**
+ * Transform from a to b
+ */
 pub fn pose_difference(a: &Isometry3<Float>, b:&Isometry3<Float>) -> Isometry3<Float> {
     b*a.inverse()
+}
+
+pub fn decomp(pose:&Isometry3<Float>) -> (Vector3<Float>,Matrix3<Float>) {
+    (pose.translation.vector,pose.rotation.to_rotation_matrix().matrix().into_owned())
 }
 
 pub fn apply_pose_deltas_to_point(point: Point3<Float>, pose_deltas: &Vec<Isometry3<Float>>) -> Vec<Point3<Float>> {

@@ -1,9 +1,10 @@
 extern crate nalgebra as na;
 
-use na::{DMatrix,Matrix4,Matrix3,Matrix3x4};
+use na::{DMatrix,Matrix4,Matrix3,Matrix3x4, Vector3};
 use crate::io::{ octave_loader::{load_matrices,load_matrix},load_images};
 use crate::image::{Image,features::{Match,ImageFeature}};
 use crate::sensors::camera::decompose_projection;
+use crate::numerics::pose;
 
 use crate::Float;
 
@@ -93,6 +94,17 @@ impl OlssenData {
 
     }
 
+    pub fn get_relative_motions(camera_pairs: &Vec<((usize,Matrix4<Float>),(usize,Matrix4<Float>))>) -> Vec<(u64,(Vector3<Float>,Matrix3<Float>))> {
+        camera_pairs.iter().map(|((_,m1),(id2,m2))| {
+            let p1 = pose::from_matrix(&m1);
+            let p2 = pose::from_matrix(&m2);
+            let p12 = pose::pose_difference(&p1, &p2);
+            let decomp = pose::decomp(&p12);
+            (*id2 as u64,decomp)
+        }).collect()
+
+
+    }
 
 
 }
