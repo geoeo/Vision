@@ -3,12 +3,12 @@ extern crate nalgebra as na;
 use na::{DMatrix,Matrix4,Matrix3,Matrix3x4};
 use crate::io::{ octave_loader::{load_matrices,load_matrix},load_images};
 use crate::image::{Image,features::{Match,ImageFeature}};
-use crate::sensors::camera::{decompose_projection,Camera,pinhole::Pinhole};
+use crate::sensors::camera::decompose_projection;
 
 use crate::Float;
 
 #[allow(non_snake_case)]
-pub struct OlsenData {
+pub struct OlssenData {
     pub P: Vec<DMatrix<Float>>,
     pub images: Vec<Image>,
     pub U: DMatrix<Float>,
@@ -16,10 +16,10 @@ pub struct OlsenData {
     pub image_points: Vec<DMatrix<Float>>
 }
 
-impl OlsenData {
+impl OlssenData {
 
     #[allow(non_snake_case)]
-    pub fn new(folder_path: &str) -> OlsenData {
+    pub fn new(folder_path: &str) -> OlssenData {
         assert_eq!(folder_path.chars().last().unwrap(),'/');
         // Cameras - images and cameras are implicitly aligned via index
         let P = load_matrices(format!("{}{}",folder_path,"P.txt").as_str());
@@ -38,7 +38,7 @@ impl OlsenData {
         assert_eq!(image_points.len(),number_of_images);
         assert_eq!(point_indices.len(),number_of_images);
     
-        OlsenData{P,images,U,point_indices,image_points}
+        OlssenData{P,images,U,point_indices,image_points}
     }
 
     pub fn get_matches_between_images(&self, first_index: usize, second_index: usize) -> Vec<Match<ImageFeature>> {
