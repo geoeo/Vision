@@ -14,8 +14,8 @@ pub mod state;
 
 
 
-pub fn run_ba<C : Camera + Copy, T : Feature>(all_matches: &Vec<Vec<Match<T>>>, camera_data: &Vec<((usize, C),(usize,C))>, 
-                                img_dim : (usize,usize) ,runtime_parameters: &RuntimeParameters, pyramid_scale: Float, use_essential_decomp_for_initial_guess: bool ) 
+pub fn run_ba<C : Camera + Copy, T : Feature>(all_matches: &Vec<Vec<Match<T>>>, camera_data: &Vec<((usize, C),(usize,C))>, initial_cam_poses: &Option<Vec<(u64,(Vector3<Float>,Matrix3<Float>))>>,
+                                img_dim : (usize,usize) ,runtime_parameters: &RuntimeParameters, pyramid_scale: Float, depth_prior: Float) 
                                 -> ((Vec<Isometry3<Float>>, Vec<Vector3<Float>>), (serde_yaml::Result<String>, serde_yaml::Result<String>)){
 
 
@@ -36,31 +36,8 @@ pub fn run_ba<C : Camera + Copy, T : Feature>(all_matches: &Vec<Vec<Match<T>>>, 
     let mut feature_map = CameraFeatureMap::new(all_matches,unique_camera_ids_sorted, img_dim);
     feature_map.add_matches(&unique_camera_id_pairs,all_matches, pyramid_scale);
 
-    // This currently only works for pairs with the initial cam
-    let initial_cam_pos_guess: Option<Vec<(u64,(Vector3<Float>,Matrix3<Float>))>> = match use_essential_decomp_for_initial_guess {
-        false => None,
-        true => {
-            let feature_machtes = all_matches.iter().filter(|m| m.len() >= 8).map(|m| epipolar::extract_matches(m, pyramid_scale, false)).collect::<Vec<Vec<(Vector2<Float>,Vector2<Float>)>>>();
-            let fundamental_matrices = feature_machtes.iter().map(|m| epipolar::eight_point(m)).collect::<Vec<epipolar::Fundamental>>();
-            let normalized_matches = fundamental_matrices.iter().zip(feature_machtes.iter()).map(|(f,m)| epipolar::filter_matches(f, m)).collect::<Vec<Vec<(Vector3<Float>,Vector3<Float>)>>>();
-            let essential_matrices = fundamental_matrices.iter().enumerate().map(|(i,f)| {
-                let ((id1,c1),(id2,c2)) = camera_data[i];
-                (id1,id2,epipolar::compute_essential(f, &c1.get_projection(), &c2.get_projection()))
-                
-            }).collect::<Vec<(usize,usize,epipolar::Essential)>>();
-        
-
-            //let initial_motion_decomp = essential_matrices.iter().filter(|(id1,id2,e)| *id1 == camera_data[0].0.0).enumerate().map(|(i,e)| epipolar::decompose_essential_förstner(e,&normalized_matches[i])).collect::<Vec<(Vector3<Float>,Matrix3<Float>)>>();
-            let initial_motion_decomp = essential_matrices.iter().filter(|(id1,_,_)| *id1 == camera_data[0].0.0).enumerate().map(|(i,(_,id2,e))| (*id2 as u64,epipolar::decompose_essential_kanatani(e,&normalized_matches[i]))).collect::<Vec<(u64,(Vector3<Float>,Matrix3<Float>))>>();
-            Some(initial_motion_decomp)
-        
-        } 
-    };
-
-    //TODO filter features with epipolar check
-
     //TODO: switch impl
-    let mut state = feature_map.get_euclidean_landmark_state(initial_cam_pos_guess, Vector3::<Float>::new(0.0,0.0,-5.0));
+    let mut state = feature_map.get_euclidean_landmark_state(initial_cam_poses.as_ref(), Vector3::<Float>::new(0.0,0.0,depth_prior));
     //let mut state = feature_map.get_inverse_depth_landmark_state(Some(&initial_motion_decomp), 1.0,&cameras);
 
     let observed_features = feature_map.get_observed_features(false);

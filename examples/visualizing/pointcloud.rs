@@ -42,9 +42,9 @@ fn populate_scene(window: &mut Window, scene_nodes: &mut Vec::<kiss3d::scene::Sc
         scene_nodes.push(s);
     }
 
-    let factor = 1.0;
+    let factor = 3.0;
     for point in points {
-        let mut s = window.add_sphere(0.006);
+        let mut s = window.add_sphere(0.003);
         s.set_color(random(), random(), random());
         s.append_translation(&Translation3::new(factor*(point[0] as f32), factor*(point[1] as f32),  factor*(point[2] as f32)));
         scene_nodes.push(s);
@@ -58,11 +58,11 @@ fn main() -> Result<(),()> {
     //let final_state_as_string = fs::read_to_string("D:/Workspace/Rust/Vision/output/orb_ba.txt").expect("Unable to read file");
     //let all_states_as_string = fs::read_to_string("D:/Workspace/Rust/Vision/output/orb_ba_debug.txt").expect("Unable to read file");
 
-    let final_state_as_string = fs::read_to_string("D:/Workspace/Rust/Vision/output/3dv.txt").expect("Unable to read file");
-    let all_states_as_string = fs::read_to_string("D:/Workspace/Rust/Vision/output/3dv_debug.txt").expect("Unable to read file");
+    //let final_state_as_string = fs::read_to_string("D:/Workspace/Rust/Vision/output/3dv.txt").expect("Unable to read file");
+    //let all_states_as_string = fs::read_to_string("D:/Workspace/Rust/Vision/output/3dv_debug.txt").expect("Unable to read file");
 
-    // let final_state_as_string = fs::read_to_string("D:/Workspace/Rust/Vision/output/olsen.txt").expect("Unable to read file");
-    // let all_states_as_string = fs::read_to_string("D:/Workspace/Rust/Vision/output/olsen_debug.txt").expect("Unable to read file");
+    let final_state_as_string = fs::read_to_string("D:/Workspace/Rust/Vision/output/olsen.txt").expect("Unable to read file");
+    let all_states_as_string = fs::read_to_string("D:/Workspace/Rust/Vision/output/olsen_debug.txt").expect("Unable to read file");
 
 
     let loaded_state: (Vec<[Float;6]>,Vec<[Float;3]>) = serde_yaml::from_str(&final_state_as_string).unwrap();

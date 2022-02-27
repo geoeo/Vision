@@ -92,7 +92,7 @@ impl CameraFeatureMap {
 
     }
 
-    pub fn add_matches<T: Feature>(&mut self, image_id_pairs: &Vec<(u64, u64)>, matches: & Vec<Vec<Match<T>>>, pyramid_scale: Float) -> () {
+    pub fn add_matches<T: Feature>(&mut self, image_id_pairs: &Vec<(u64, u64)>, matches: &Vec<Vec<Match<T>>>, pyramid_scale: Float) -> () {
         assert_eq!(image_id_pairs.len(), matches.len());
         for i in 0..image_id_pairs.len(){
             let (id_a,id_b) = image_id_pairs[i];
@@ -116,7 +116,7 @@ impl CameraFeatureMap {
     /**
      * initial_motion should all be with respect to the first camera
      */
-    pub fn get_inverse_depth_landmark_state<C: Camera>(&self, initial_motions : Option<Vec<(u64,(Vector3<Float>,Matrix3<Float>))>>, inverse_depth_prior: Float, cameras: &Vec<C>) -> State<InverseLandmark,6> {
+    pub fn get_inverse_depth_landmark_state<C: Camera>(&self, initial_motions : Option<&Vec<(u64,(Vector3<Float>,Matrix3<Float>))>>, inverse_depth_prior: Float, cameras: &Vec<C>) -> State<InverseLandmark,6> {
 
         let number_of_cameras = self.camera_map.keys().len();
         let number_of_unqiue_landmarks = self.number_of_unique_points;
@@ -145,7 +145,7 @@ impl CameraFeatureMap {
     /**
      * initial_motion should all be with respect to the first camera
      */
-    pub fn get_euclidean_landmark_state(&self, initial_motions : Option<Vec<(u64,(Vector3<Float>,Matrix3<Float>))>>, initial_landmark: Vector3<Float>) -> State<EuclideanLandmark,3> {
+    pub fn get_euclidean_landmark_state(&self, initial_motions : Option<&Vec<(u64,(Vector3<Float>,Matrix3<Float>))>>, initial_landmark: Vector3<Float>) -> State<EuclideanLandmark,3> {
 
         let number_of_cameras = self.camera_map.keys().len();
         let number_of_unqiue_landmarks = self.number_of_unique_points;
@@ -156,7 +156,7 @@ impl CameraFeatureMap {
     }
 
     //TODO: Assumes decomposition is relative to reference cam i.e. first cam!
-    fn get_initial_camera_positions(&self,initial_motions : Option<Vec<(u64,(Vector3<Float>,Matrix3<Float>))>> ) -> DVector::<Float> {
+    fn get_initial_camera_positions(&self,initial_motions : Option<&Vec<(u64,(Vector3<Float>,Matrix3<Float>))>> ) -> DVector::<Float> {
 
         let number_of_cameras = self.camera_map.keys().len();
         let number_of_cam_parameters = 6*number_of_cameras;

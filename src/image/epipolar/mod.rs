@@ -2,11 +2,16 @@ extern crate nalgebra as na;
 
 
 use na::{Vector2,Vector3, Matrix3,Matrix,Dynamic, U9, VecStorage};
+use crate::sensors::camera::Camera;
 use crate::Float;
 use crate::image::features::{Feature,Match};
 
 pub type Fundamental =  Matrix3<Float>;
 pub type Essential =  Matrix3<Float>;
+pub enum EssentialDecomposition {
+    FÖRSNTER,
+    KANATANI
+} 
 
 pub fn extract_matches<T: Feature>(matches: &Vec<Match<T>>, pyramid_scale: Float, normalize: bool) -> Vec<(Vector2<Float>,Vector2<Float>)> {
 
@@ -239,5 +244,27 @@ pub fn decompose_essential_kanatani(E: &Essential, matches: &Vec<(Vector3<Float>
     }
 
     (translation,R.transpose())
+
+}
+
+pub fn compute_initial_cam_motions<C : Camera + Copy,T : Feature>(all_matches: &Vec<Vec<Match<T>>>,camera_data: &Vec<((usize, C),(usize,C))>,pyramid_scale:Float, decomp_alg: EssentialDecomposition) ->  Option<Vec<(u64,(Vector3<Float>,Matrix3<Float>))>> {
+    let feature_machtes = all_matches.iter().filter(|m| m.len() >= 8).map(|m| extract_matches(m, pyramid_scale, false)).collect::<Vec<Vec<(Vector2<Float>,Vector2<Float>)>>>();
+    let fundamental_matrices = feature_machtes.iter().map(|m| eight_point(m)).collect::<Vec<Fundamental>>();
+    let normalized_matches = fundamental_matrices.iter().zip(feature_machtes.iter()).map(|(f,m)| filter_matches(f, m)).collect::<Vec<Vec<(Vector3<Float>,Vector3<Float>)>>>();
+    let essential_matrices = fundamental_matrices.iter().enumerate().map(|(i,f)| {
+        let ((id1,c1),(id2,c2)) = camera_data[i];
+        (id1,id2,compute_essential(f, &c1.get_projection(), &c2.get_projection()))
+        
+    }).collect::<Vec<(usize,usize,Essential)>>();
+
+    let initial_motion_decomp = essential_matrices.iter().filter(|(id1,_,_)| *id1 == camera_data[0].0.0).enumerate().map(|(i,(_,id2,e))| {
+        let decomp = match decomp_alg {
+            EssentialDecomposition::FÖRSNTER => decompose_essential_förstner(e,&normalized_matches[i]),
+            EssentialDecomposition::KANATANI => decompose_essential_kanatani(e,&normalized_matches[i])
+        };
+        (*id2 as u64,decomp)
+    }).collect::<Vec<(u64,(Vector3<Float>,Matrix3<Float>))>>();
+
+    Some(initial_motion_decomp)
 
 }

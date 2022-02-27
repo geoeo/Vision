@@ -53,7 +53,7 @@ fn main() -> Result<()> {
 
     let camera_data = vec!(((0,intensity_camera_0),(1,intensity_camera_1)),((0,intensity_camera_0),(2,intensity_camera_2)),((1,intensity_camera_0),(3,intensity_camera_3)));
 
-    let ((cam_positions,points),(s,debug_states_serialized)) = run_ba(&all_matches, &camera_data, (480,640), &runtime_parameters, 1.0, false);
+    let ((cam_positions,points),(s,debug_states_serialized)) = run_ba(&all_matches, &camera_data,&None, (480,640), &runtime_parameters, 1.0,-1.0);
     fs::write(format!("D:/Workspace/Rust/Vision/output/3dv.txt"), s?).expect("Unable to write file");
     if runtime_parameters.debug {
         fs::write(format!("D:/Workspace/Rust/Vision/output/3dv_debug.txt"), debug_states_serialized?).expect("Unable to write file");

@@ -53,8 +53,6 @@ fn main() -> Result<()> {
     let intensity_camera_3 = intensity_camera_1.clone();
     let intensity_camera_4 = intensity_camera_1.clone();
 
-
-
     let orb_matches_as_string_1_2 = fs::read_to_string(format!("D:/Workspace/Rust/Vision/output/orb_ba_matches_ba_slow_{}_ba_slow_{}_images.txt",id_1,id_2)).expect("Unable to read file");
     let orb_matches_as_string_1_3 = fs::read_to_string(format!("D:/Workspace/Rust/Vision/output/orb_ba_matches_ba_slow_{}_ba_slow_{}_images.txt",id_1,id_3)).expect("Unable to read file");
     let orb_matches_as_string_1_4 = fs::read_to_string(format!("D:/Workspace/Rust/Vision/output/orb_ba_matches_ba_slow_{}_ba_slow_{}_images.txt",id_1,id_4)).expect("Unable to read file");
@@ -90,7 +88,7 @@ fn main() -> Result<()> {
 
 
 
-    let ((cam_positions,points),(s,debug_states_serialized)) = run_ba(&all_matches, &camera_data, (image_1.buffer.nrows(),image_1.buffer.ncols()), &runtime_parameters, 1.0, false);
+    let ((cam_positions,points),(s,debug_states_serialized)) = run_ba(&all_matches, &camera_data,&None, (image_1.buffer.nrows(),image_1.buffer.ncols()), &runtime_parameters, 1.0,-1.0);
     fs::write(format!("D:/Workspace/Rust/Vision/output/orb_ba.txt"), s?).expect("Unable to write file");
     if runtime_parameters.debug {
         fs::write(format!("D:/Workspace/Rust/Vision/output/orb_ba_debug.txt"), debug_states_serialized?).expect("Unable to write file");
