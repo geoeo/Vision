@@ -35,7 +35,7 @@ fn main() -> Result<()> {
 
     let olsen_data = OlssenData::new(olsen_data_path);
     let positive_principal_distance = false;
-    let feature_skip_count = 16;
+    let feature_skip_count = 1;
     let use_essential_decomp_for_initial_guess = true;
 
 
@@ -136,7 +136,7 @@ fn main() -> Result<()> {
     //all_matches.push(matches_5_6_subvec);
     //all_matches.push(matches_5_7_subvec);
     all_matches.push(matches_6_4_subvec);
-    //all_matches.push(matches_6_5_subvec);
+    all_matches.push(matches_6_5_subvec);
     //all_matches.push(matches_6_7_subvec);
     //all_matches.push(matches_6_8_subvec);
     //all_matches.push(matches_6_9_subvec);
@@ -158,7 +158,7 @@ fn main() -> Result<()> {
     //camera_data.push(((5,pinhole_cam_5),(6,pinhole_cam_6)));
     //camera_data.push(((5,pinhole_cam_5),(7,pinhole_cam_7)));
     camera_data.push(((6,pinhole_cam_6),(4,pinhole_cam_4)));
-    //camera_data.push(((6,pinhole_cam_6),(5,pinhole_cam_5)));
+    camera_data.push(((6,pinhole_cam_6),(5,pinhole_cam_5)));
     //camera_data.push(((6,pinhole_cam_6),(7,pinhole_cam_7)));
     //camera_data.push(((6,pinhole_cam_6),(8,pinhole_cam_8)));
     //camera_data.push(((6,pinhole_cam_6),(9,pinhole_cam_9)));
@@ -167,6 +167,8 @@ fn main() -> Result<()> {
 
     let mut motion_list =  Vec::<((usize,Matrix4<Float>),(usize,Matrix4<Float>))>::with_capacity(10); 
     motion_list.push(((6,cam_extrinsics_6),(4,cam_extrinsics_4)));
+    motion_list.push(((6,cam_extrinsics_6),(5,cam_extrinsics_5)));
+    //motion_list.push(((6,cam_extrinsics_6),(7,cam_extrinsics_7)));
 
 
 
@@ -180,14 +182,14 @@ fn main() -> Result<()> {
 
     let runtime_parameters = RuntimeParameters {
         pyramid_scale: 1.0,
-        max_iterations: vec![120; 1],
+        max_iterations: vec![180; 1],
         eps: vec![1e-6],
         step_sizes: vec![1e0],
         max_norm_eps: 1e-30, 
         delta_eps: 1e-30,
-        taus: vec![1e0],
+        taus: vec![1e-3],
         lm: true,
-        weighting: true,
+        weighting: false,
         debug: true,
 
         show_octave_result: true,
@@ -195,9 +197,19 @@ fn main() -> Result<()> {
         intensity_weighting_function:  Box::new(weighting::HuberWeightForPos {})
     };
 
-
-    let initial_cam_poses = compute_initial_cam_motions(&all_matches, &camera_data, 1.0, EssentialDecomposition::KANATANI);
+    //let initial_cam_poses = compute_initial_cam_motions(&all_matches, &camera_data, 1.0, EssentialDecomposition::KANATANI);
     //let initial_cam_poses = Some(OlssenData::get_relative_motions(&motion_list));
+    let initial_cam_poses = None;
+
+    if initial_cam_poses.is_some(){
+        // for (_,(t,r)) in initial_cam_poses.as_ref().unwrap() {
+        //     println!("t : {}",t);
+        //     println!("r : {}",r);
+        //     println!("-------");
+
+        // }
+    }
+
     let ((cam_positions,points),(s,debug_states_serialized)) = run_ba(&all_matches, &camera_data,&initial_cam_poses, olsen_data.get_image_dim(), &runtime_parameters, 1.0,-1.0);
     fs::write(format!("D:/Workspace/Rust/Vision/output/olsen.txt"), s?).expect("Unable to write file");
     if runtime_parameters.debug {

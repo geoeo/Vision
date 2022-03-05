@@ -9,8 +9,9 @@ edition = '2018'
 [dependencies]
 image = "*"
 nalgebra = {version="*", features=["rand"]}
-kiss3d = "*"
 nalgebra-lapack = {version ="*", default-features=false}
+nalgebra-sparse = {version ="*"}
+kiss3d = "*"
 rand = {version = "*", features = ["small_rng"] }
 rand_distr = "*"
 optimization_engine = "*"

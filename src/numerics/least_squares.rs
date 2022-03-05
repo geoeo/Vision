@@ -1,5 +1,6 @@
 extern crate nalgebra as na;
 
+use nalgebra_sparse::{coo::CooMatrix, csr::CsrMatrix, csc::CscMatrix, factorization::CscCholesky};
 use na::{ DMatrix, DVector , OVector, Dynamic, Matrix, SMatrix, SVector,Vector,Dim,storage::{Storage,StorageMut},base::{default_allocator::DefaultAllocator, allocator::Allocator},
     VecStorage, Const, DimMin, U1
 };
@@ -19,9 +20,9 @@ pub fn calc_weight_vec<D, S1>(
     let variance = weight_function.estimate_variance(residuals);
     for i in 0..residuals.len() {
         weights_vec[i] = weight_function.weight(residuals,i,variance);
-
-
     }
+    
+
 }
 
 /**
@@ -184,6 +185,8 @@ pub fn gauss_newton_step_with_schur<R, C,S1, S2,StorageTargetArrow,StorageTarget
             let local_inv = V_star.fixed_slice::<LANDMARK_PARAM_SIZE,LANDMARK_PARAM_SIZE>(i,i).try_inverse().expect("local inverse failed");
             V_star_inv.fixed_slice_mut::<LANDMARK_PARAM_SIZE,LANDMARK_PARAM_SIZE>(i,i).copy_from(&local_inv);
         }
+
+        
         let W = target_arrowhead.slice((0,u_span),(u_span,v_span));
         let W_t = target_arrowhead.slice((u_span,0),(v_span,u_span));
 
@@ -193,19 +196,19 @@ pub fn gauss_newton_step_with_schur<R, C,S1, S2,StorageTargetArrow,StorageTarget
         let schur_compliment = U_star - W*(&V_star_inv)*W_t;
         let res_a_augment = res_a-W*V_star_inv*res_b;
 
-        let h_a_option = schur_compliment.cholesky();//.expect("h_a schur cholesky failed").solve(&res_a_augment);
-        let V_star_cholesky_option = V_star.cholesky();//.expect("v_star cholesky failed");
-        
+        let V_star_csc = CscMatrix::<Float>::from(&V_star);
+        let V_star_csc_cholseky_result = CscCholesky::factor(&V_star_csc);
 
-        match (h_a_option,V_star_cholesky_option) {
-            (Some(h_a_cholesky), Some(V_star_cholesky)) => {
+        let h_a_option = schur_compliment.cholesky();
+        
+        match (h_a_option,V_star_csc_cholseky_result) {
+            (Some(h_a_cholesky), Ok(V_star_cholesky)) => {
                 let h_a = h_a_cholesky.solve(&res_a_augment);
                 let h_b = V_star_cholesky.solve(&(res_b-W_t*(&h_a)));
 
 
                 target_perturb.slice_mut((0,0),(u_span,1)).copy_from(&h_a);
                 target_perturb.slice_mut((u_span,0),(v_span,1)).copy_from(&h_b);
-        
             
                 let mu_val = match mu {
                     None => tau*diag_max,

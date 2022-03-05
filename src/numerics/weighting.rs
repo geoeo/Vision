@@ -42,7 +42,7 @@ impl WeightingFunction for HuberWeightForPos {
         let res_abs = residuals[index].abs();
         let k = variance.expect("k has to have been computed for Huber Weight");
         match res_abs {
-            res_abs if res_abs <= k => 1.0,
+            res_abs if (res_abs <= k || k == 0.0) => 1.0,
             _ => k/res_abs
         }
     }
