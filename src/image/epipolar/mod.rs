@@ -197,11 +197,7 @@ pub fn decompose_essential_förstner(E: &Essential,matches: &Vec<(Vector3<Float>
         }
     }
 
-    //TODO: This should not be neccessary? Find reason
-    let r = rotation.transpose();
-    let t = rotation.transpose()*(-translation);
-
-    (t,r)
+    (translation,rotation)
 
 }
 
@@ -247,7 +243,8 @@ pub fn decompose_essential_kanatani(E: &Essential, matches: &Vec<(Vector3<Float>
 
     }
 
-    (translation,R)
+    //TODO: This should not be neccessary? Find reason
+    (-R.transpose()*translation,R.transpose())
 
 }
 

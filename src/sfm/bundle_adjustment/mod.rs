@@ -33,6 +33,8 @@ pub fn run_ba<C : Camera + Copy, T : Feature>(all_matches: &Vec<Vec<Match<T>>>, 
     let unique_camera_id_pairs = camera_data.iter().map(|((v1,_),(v2,_))| (*v1 as u64,*v2 as u64)).collect();
     let unique_cameras_sorted_by_id = unique_cameras_sorted.iter().map(|(_,cam)| *cam).collect::<Vec<C>>();
 
+    
+    //TODO: filtering of features based on initial motions
     let mut feature_map = CameraFeatureMap::new(all_matches,unique_camera_ids_sorted, img_dim);
     feature_map.add_matches(&unique_camera_id_pairs,all_matches, pyramid_scale);
 
