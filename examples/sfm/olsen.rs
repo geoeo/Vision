@@ -230,9 +230,9 @@ fn main() -> Result<()> {
         intensity_weighting_function:  Box::new(weighting::HuberWeightForPos {})
     };
 
-    //let initial_cam_poses = compute_initial_cam_motions(&all_matches, &camera_data, 1.0, EssentialDecomposition::KANATANI);
+    let initial_cam_poses = compute_initial_cam_motions(&all_matches, &camera_data, 1.0,-1.0, EssentialDecomposition::FÖRSNTER);
     //let initial_cam_poses = Some(OlssenData::get_relative_motions(&motion_list));
-    let initial_cam_poses = None;
+    //let initial_cam_poses = None;
 
     if initial_cam_poses.is_some(){
         // for (_,(t,r)) in initial_cam_poses.as_ref().unwrap() {

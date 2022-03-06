@@ -28,7 +28,7 @@ fn main() -> Result<()> {
     let fundamental_matrix = epipolar::eight_point(&feature_matches);
 
     let essential_matrix = epipolar::compute_essential(&fundamental_matrix, &intensity_camera_1.get_projection(), &intensity_camera_2.get_projection());
-    let normalized_matches = epipolar::filter_matches(&fundamental_matrix, &feature_matches);
+    let normalized_matches = epipolar::filter_matches(&fundamental_matrix, &feature_matches, -1.0);
     for (l,r) in &normalized_matches {
         let t = l.transpose()*fundamental_matrix*r;
         println!("{}",t);

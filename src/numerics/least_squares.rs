@@ -1,6 +1,6 @@
 extern crate nalgebra as na;
 
-use nalgebra_sparse::{coo::CooMatrix, csr::CsrMatrix, csc::CscMatrix, factorization::CscCholesky};
+use nalgebra_sparse::{csc::CscMatrix, factorization::CscCholesky};
 use na::{ DMatrix, DVector , OVector, Dynamic, Matrix, SMatrix, SVector,Vector,Dim,storage::{Storage,StorageMut},base::{default_allocator::DefaultAllocator, allocator::Allocator},
     VecStorage, Const, DimMin, U1
 };
