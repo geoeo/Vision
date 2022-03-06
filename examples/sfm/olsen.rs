@@ -12,7 +12,7 @@ use vision::image::{features::{Match,ImageFeature}, epipolar::{compute_initial_c
 use vision::sfm::{bundle_adjustment:: run_ba};
 use vision::odometry::runtime_parameters::RuntimeParameters;
 use vision::numerics::{loss, weighting};
-use vision::Float;
+use vision::{float,Float};
 use vision::visualize;
 
 
@@ -199,9 +199,14 @@ fn main() -> Result<()> {
     //camera_data.push(((17,pinhole_cam_17),(20,pinhole_cam_20)));
 
     let mut motion_list =  Vec::<((usize,Matrix4<Float>),(usize,Matrix4<Float>))>::with_capacity(10); 
+    motion_list.push(((6,cam_extrinsics_6),(1,cam_extrinsics_1)));
+    motion_list.push(((6,cam_extrinsics_6),(2,cam_extrinsics_2)));
+    motion_list.push(((6,cam_extrinsics_6),(3,cam_extrinsics_3)));
     motion_list.push(((6,cam_extrinsics_6),(4,cam_extrinsics_4)));
     motion_list.push(((6,cam_extrinsics_6),(5,cam_extrinsics_5)));
     motion_list.push(((6,cam_extrinsics_6),(7,cam_extrinsics_7)));
+    motion_list.push(((6,cam_extrinsics_6),(8,cam_extrinsics_8)));
+    motion_list.push(((6,cam_extrinsics_6),(9,cam_extrinsics_9)));
 
 
 
@@ -223,17 +228,18 @@ fn main() -> Result<()> {
         intensity_weighting_function:  Box::new(weighting::HuberWeightForPos {})
     };
 
-    let initial_cam_poses = compute_initial_cam_motions(&all_matches, &camera_data, 1.0,-1.0, EssentialDecomposition::KANATANI);
+    let (initial_cam_motions,filtered_matches) = compute_initial_cam_motions(&all_matches, &camera_data, 1.0,-1.0,1.0, EssentialDecomposition::FÖRSNTER);
+    let initial_cam_poses = Some(initial_cam_motions);
     //let initial_cam_poses = Some(OlssenData::get_relative_motions(&motion_list));
     //let initial_cam_poses = None;
 
     if initial_cam_poses.is_some(){
-        // for (_,(t,r)) in initial_cam_poses.as_ref().unwrap() {
-        //     println!("t : {}",t);
-        //     println!("r : {}",r);
-        //     println!("-------");
+        //for (_,(t,r)) in initial_cam_poses.as_ref().unwrap() {
+            // println!("t : {}",t);
+            // println!("r : {}",r);
+            // println!("-------");
 
-        // }
+        //}
     }
 
     for i in 0..camera_data.len() {

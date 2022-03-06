@@ -49,7 +49,6 @@ pub fn extract_matches<T: Feature>(matches: &Vec<Match<T>>, pyramid_scale: Float
         
             //Scale so that the average distance from the origin is sqrt(2)
             centered_features.iter().map(|((left_x_c,left_y_c),(right_x_c,right_y_c))| 
-            //(Vector2::<Float>::new(left_x_c*scale_left,left_y_c*scale_left),Vector2::<Float>::new(right_x_c*scale_right,right_y_c*scale_right))
             Match { feature_one: ImageFeature::new(left_x_c*scale_left,left_y_c*scale_left), feature_two: ImageFeature::new(right_x_c*scale_right,right_y_c*scale_right)}
             ).collect::<Vec<Match<ImageFeature>>>()
     
@@ -58,7 +57,6 @@ pub fn extract_matches<T: Feature>(matches: &Vec<Match<T>>, pyramid_scale: Float
                 matches.iter().map(|feature| {
                     let (r_x, r_y) = feature.feature_two.reconstruct_original_coordiantes_for_float(pyramid_scale);
                     let (l_x, l_y) = feature.feature_one.reconstruct_original_coordiantes_for_float(pyramid_scale);
-                    //(Vector2::<Float>::new(l_x,l_y),Vector2::<Float>::new(r_x,r_y))
                     Match { feature_one: ImageFeature::new(l_x,l_y), feature_two: ImageFeature::new(r_x,r_y)}
                 }).collect()
 
@@ -129,11 +127,11 @@ pub fn compute_essential(F: &Fundamental, projection_left: &Matrix3<Float>, proj
 }
 
 #[allow(non_snake_case)]
-pub fn filter_matches<T: Feature + Clone>(F: &Fundamental,matches: &Vec<Match<T>>, depth_prior: Float) -> Vec<Match<T>> {
+pub fn filter_matches<T: Feature + Clone>(F: &Fundamental,matches: &Vec<Match<T>>, depth_prior: Float, epipiolar_thresh: Float) -> Vec<Match<T>> {
     matches.iter().filter(|m| {
             let l = m.feature_one.get_as_3d_point(depth_prior);
             let r = m.feature_two.get_as_3d_point(depth_prior);
-            (l.transpose()*F*r)[0].abs() < 1.0
+            (l.transpose()*F*r)[0].abs() < epipiolar_thresh
         }).cloned().collect::<Vec<Match<T>>>()
 }
 
@@ -260,11 +258,11 @@ pub fn decompose_essential_kanatani<T: Feature>(E: &Essential, matches: &Vec<Mat
 
 }
 
-pub fn compute_initial_cam_motions<C : Camera + Copy,T : Feature + Clone>(all_matches: &Vec<Vec<Match<T>>>,camera_data: &Vec<((usize, C),(usize,C))>,pyramid_scale:Float,depth_prior: Float, decomp_alg: EssentialDecomposition) 
-    ->  Option<Vec<(u64,(Vector3<Float>,Matrix3<Float>))>> {
+pub fn compute_initial_cam_motions<C : Camera + Copy,T : Feature + Clone>(all_matches: &Vec<Vec<Match<T>>>,camera_data: &Vec<((usize, C),(usize,C))>,pyramid_scale:Float,depth_prior: Float, epipiolar_thresh: Float, decomp_alg: EssentialDecomposition) 
+    ->  (Vec<(u64,(Vector3<Float>,Matrix3<Float>))>,Vec<Vec<Match<ImageFeature>>>) {
     let feature_machtes = all_matches.iter().filter(|m| m.len() >= 8).map(|m| extract_matches(m, pyramid_scale, false)).collect::<Vec<Vec<Match<ImageFeature>>>>();
     let fundamental_matrices = feature_machtes.iter().map(|m| eight_point(m)).collect::<Vec<Fundamental>>();
-    let accepted_matches = fundamental_matrices.iter().zip(feature_machtes.iter()).map(|(f,m)| filter_matches(f, m, depth_prior)).collect::<Vec<Vec<Match<ImageFeature>>>>();
+    let accepted_matches = fundamental_matrices.iter().zip(feature_machtes.iter()).map(|(f,m)| filter_matches(f, m, depth_prior,epipiolar_thresh)).collect::<Vec<Vec<Match<ImageFeature>>>>();
     let essential_matrices = fundamental_matrices.iter().enumerate().map(|(i,f)| {
         let ((id1,c1),(id2,c2)) = camera_data[i];
         (id1,id2,compute_essential(f, &c1.get_projection(), &c2.get_projection()))
@@ -283,6 +281,9 @@ pub fn compute_initial_cam_motions<C : Camera + Copy,T : Feature + Clone>(all_ma
         (*id2 as u64,(h,rotation))
     }).collect::<Vec<(u64,(Vector3<Float>,Matrix3<Float>))>>();
 
-    Some(initial_motion_decomp)
+    (initial_motion_decomp,accepted_matches)
+}
 
+pub fn filter_matches_from_motion<T : Feature + Clone>(all_matches: &Vec<Vec<Match<T>>>, cam_motions: &Vec<(u64,(Vector3<Float>,Matrix3<Float>))>) -> Vec<Vec<Match<ImageFeature>>> {
+    panic!("TODO")
 }
