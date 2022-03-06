@@ -1,3 +1,6 @@
+use nalgebra as na;
+
+use na::{Vector2,Vector3};
 use serde::{Serialize, Deserialize};
 use crate::{Float,float};
 use crate::image::Image;
@@ -24,6 +27,12 @@ pub trait Feature {
         let factor = pyramid_scaling.powi(self.get_closest_sigma_level() as i32);
         ((self.get_x_image() as Float)*factor, (self.get_y_image() as Float)*factor)
     }
+    fn get_as_3d_point(&self, depth: Float) -> Vector3<Float> {
+       Vector3::<Float>::new(self.get_x_image_float(), self.get_y_image_float(), depth)
+    }
+    fn get_as_2d_point(&self) -> Vector2<Float> {
+        Vector2::<Float>::new(self.get_x_image_float(), self.get_y_image_float())
+     }
 }
 
 pub trait Oriented {

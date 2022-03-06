@@ -205,13 +205,6 @@ fn main() -> Result<()> {
 
 
 
-    for i in 0..camera_data.len() {
-        let ((id_a,_),(id_b,_)) = camera_data[i];
-        let intensity = 3.0*(olsen_data.images[id_a].buffer.max() as Float)/4.0;
-        let matches_vis = visualize::display_matches_for_pyramid(&olsen_data.images[id_a],&olsen_data.images[id_b],&all_matches[i],true,intensity ,1.0);
-        matches_vis.to_image().save(format!("{}match_disp_{}_{}_orb_ba.jpg",olsen_data_path,id_a,id_b)).unwrap();
-    }
-
 
     let runtime_parameters = RuntimeParameters {
         pyramid_scale: 1.0,
@@ -230,7 +223,7 @@ fn main() -> Result<()> {
         intensity_weighting_function:  Box::new(weighting::HuberWeightForPos {})
     };
 
-    let initial_cam_poses = compute_initial_cam_motions(&all_matches, &camera_data, 1.0,-1.0, EssentialDecomposition::FÖRSNTER);
+    let initial_cam_poses = compute_initial_cam_motions(&all_matches, &camera_data, 1.0,-1.0, EssentialDecomposition::KANATANI);
     //let initial_cam_poses = Some(OlssenData::get_relative_motions(&motion_list));
     //let initial_cam_poses = None;
 
@@ -241,6 +234,13 @@ fn main() -> Result<()> {
         //     println!("-------");
 
         // }
+    }
+
+    for i in 0..camera_data.len() {
+        let ((id_a,_),(id_b,_)) = camera_data[i];
+        let intensity = 3.0*(olsen_data.images[id_a].buffer.max() as Float)/4.0;
+        let matches_vis = visualize::display_matches_for_pyramid(&olsen_data.images[id_a],&olsen_data.images[id_b],&all_matches[i],true,intensity ,1.0);
+        matches_vis.to_image().save(format!("{}match_disp_{}_{}_orb_ba.jpg",olsen_data_path,id_a,id_b)).unwrap();
     }
 
     let ((cam_positions,points),(s,debug_states_serialized)) = run_ba(&all_matches, &camera_data,&initial_cam_poses, olsen_data.get_image_dim(), &runtime_parameters, 1.0,-1.0);

@@ -4,7 +4,7 @@ extern crate nalgebra as na;
 use na::{Vector2,Vector3, Matrix3,Matrix,Dynamic, U9, VecStorage};
 use crate::sensors::camera::Camera;
 use crate::Float;
-use crate::image::features::{Feature,Match};
+use crate::image::features::{Feature,Match, ImageFeature};
 
 pub type Fundamental =  Matrix3<Float>;
 pub type Essential =  Matrix3<Float>;
@@ -15,7 +15,7 @@ pub enum EssentialDecomposition {
     KANATANI
 } 
 
-pub fn extract_matches<T: Feature>(matches: &Vec<Match<T>>, pyramid_scale: Float, normalize: bool) -> Vec<(Vector2<Float>,Vector2<Float>)> {
+pub fn extract_matches<T: Feature>(matches: &Vec<Match<T>>, pyramid_scale: Float, normalize: bool) -> Vec<Match<ImageFeature>> {
 
     // Seems to amplify errors when mismatches are present
     match normalize {
@@ -49,15 +49,17 @@ pub fn extract_matches<T: Feature>(matches: &Vec<Match<T>>, pyramid_scale: Float
         
             //Scale so that the average distance from the origin is sqrt(2)
             centered_features.iter().map(|((left_x_c,left_y_c),(right_x_c,right_y_c))| 
-            (Vector2::<Float>::new(left_x_c*scale_left,left_y_c*scale_left),Vector2::<Float>::new(right_x_c*scale_right,right_y_c*scale_right))
-            ).collect::<Vec<(Vector2<Float>,Vector2<Float>)>>()
+            //(Vector2::<Float>::new(left_x_c*scale_left,left_y_c*scale_left),Vector2::<Float>::new(right_x_c*scale_right,right_y_c*scale_right))
+            Match { feature_one: ImageFeature::new(left_x_c*scale_left,left_y_c*scale_left), feature_two: ImageFeature::new(right_x_c*scale_right,right_y_c*scale_right)}
+            ).collect::<Vec<Match<ImageFeature>>>()
     
         },
         false => {
                 matches.iter().map(|feature| {
                     let (r_x, r_y) = feature.feature_two.reconstruct_original_coordiantes_for_float(pyramid_scale);
                     let (l_x, l_y) = feature.feature_one.reconstruct_original_coordiantes_for_float(pyramid_scale);
-                    (Vector2::<Float>::new(l_x,l_y),Vector2::<Float>::new(r_x,r_y))
+                    //(Vector2::<Float>::new(l_x,l_y),Vector2::<Float>::new(r_x,r_y))
+                    Match { feature_one: ImageFeature::new(l_x,l_y), feature_two: ImageFeature::new(r_x,r_y)}
                 }).collect()
 
         }
@@ -69,7 +71,7 @@ pub fn extract_matches<T: Feature>(matches: &Vec<Match<T>>, pyramid_scale: Float
  * Photogrammetric Computer Vision p.570
  */
 #[allow(non_snake_case)]
-pub fn eight_point(matches: &Vec<(Vector2<Float>,Vector2<Float>)>) -> Fundamental {
+pub fn eight_point<T : Feature>(matches: &Vec<Match<T>>) -> Fundamental {
     let number_of_matches = matches.len() as Float; 
     assert!(number_of_matches >= 8.0);
 
@@ -77,8 +79,8 @@ pub fn eight_point(matches: &Vec<(Vector2<Float>,Vector2<Float>)>) -> Fundamenta
     let mut A = Matrix::<Float,Dynamic, U9, VecStorage<Float,Dynamic,U9>>::zeros(matches.len());
     for i in 0..A.nrows() {
 
-        let feature_right = matches[i].1;
-        let feature_left = matches[i].0;
+        let feature_right = matches[i].feature_two.get_as_2d_point();
+        let feature_left = matches[i].feature_one.get_as_2d_point();
 
         let l_x =  feature_left[0];
         let l_y =  feature_left[1];
@@ -127,22 +129,20 @@ pub fn compute_essential(F: &Fundamental, projection_left: &Matrix3<Float>, proj
 }
 
 #[allow(non_snake_case)]
-pub fn filter_matches(F: &Fundamental,matches: &Vec<(Vector2<Float>,Vector2<Float>)>, depth_prior: Float) -> Vec<(Vector3<Float>,Vector3<Float>)> {
-    matches.iter().map(|(l,r)| {
-    
-            let feature_left = Vector3::new(l[0],l[1],depth_prior);
-            let feature_right = Vector3::new(r[0],r[1],depth_prior);
-            (feature_left,feature_right)
-        }).filter(|(l,r)| 
+pub fn filter_matches<T: Feature + Clone>(F: &Fundamental,matches: &Vec<Match<T>>, depth_prior: Float) -> Vec<Match<T>> {
+    matches.iter().filter(|m| {
+            let l = m.feature_one.get_as_3d_point(depth_prior);
+            let r = m.feature_two.get_as_3d_point(depth_prior);
             (l.transpose()*F*r)[0].abs() < 1.0
-        ).collect::<Vec<(Vector3<Float>,Vector3<Float>)>>()
+        }).cloned().collect::<Vec<Match<T>>>()
 }
 
 /**
  * Photogrammetric Computer Vision p.583
  */
 #[allow(non_snake_case)]
-pub fn decompose_essential_förstner(E: &Essential,matches: &Vec<(Vector3<Float>,Vector3<Float>)>) -> (Vector3<Float>, Matrix3<Float>) {
+pub fn decompose_essential_förstner<T : Feature>(E: &Essential,matches: &Vec<Match<T>>, depth: Float) -> (Vector3<Float>, Matrix3<Float>) {
+    assert!(matches.len() > 0);
     let svd = E.svd(true,true);
     let min_idx = svd.singular_values.imin();
     let u = &svd.u.expect("SVD failed on E");
@@ -166,10 +166,10 @@ pub fn decompose_essential_förstner(E: &Essential,matches: &Vec<(Vector3<Float>
         let R = R_matrices[i];
         let mut v_sign = 0.0;
         let mut u_sign = 0.0;
-        for (feature_left,feature_right) in matches {
+        for m in matches {
             
-            let fl = Vector3::<Float>::new(feature_left[0],feature_left[1],feature_left[2]);
-            let fr = Vector3::<Float>::new(feature_right[0],feature_right[1],feature_left[2]);
+            let fl = m.feature_one.get_as_3d_point(depth);
+            let fr = m.feature_two.get_as_3d_point(depth);
 
             let binormal = ((h.cross_matrix()*fl).cross_matrix()*h).normalize();
             let mat = Matrix3::<Float>::from_columns(&[h,binormal,fl.cross_matrix()*R.transpose()*fr]);
@@ -206,53 +206,52 @@ pub fn decompose_essential_förstner(E: &Essential,matches: &Vec<(Vector3<Float>
  * Statistical Optimization for Geometric Computation p.338
  */
 #[allow(non_snake_case)]
-pub fn decompose_essential_kanatani(E: &Essential, matches: &Vec<(Vector3<Float>,Vector3<Float>)>) -> (Vector3<Float>, Matrix3<Float>) {
-    let mut translation = Vector3::<Float>::zeros();
-    let mut R = Matrix3::<Float>::identity();
-    let depth_positive = match matches[0].0[2] {
+pub fn decompose_essential_kanatani<T: Feature>(E: &Essential, matches: &Vec<Match<T>>, depth: Float) -> (Vector3<Float>, Matrix3<Float>) {
+    assert!(matches.len() > 0);
+    let depth_positive = match depth {
         d if d > 0.0 => true,
         _ => false
     };
 
-    if matches.len() > 0 {
-        let svd = (E*E.transpose()).svd(true,false);
-        let min_idx = svd.singular_values.imin();
-        let u = &svd.u.expect("SVD failed on E");
-        let mut h = u.column(min_idx).normalize();
-        let sum_of_determinants = matches.iter().fold(0.0, |acc,(l,r)| {
 
-            let (l_new,r_new) = match depth_positive {
-                true => (*l,*r),
-                false => (Vector3::<Float>::new(l[0],l[1],-l[2]),Vector3::<Float>::new(r[0],r[1],-r[2]))
-            };
+    let svd = (E*E.transpose()).svd(true,false);
+    let min_idx = svd.singular_values.imin();
+    let u = &svd.u.expect("SVD failed on E");
+    let mut h = u.column(min_idx).normalize();
+    let sum_of_determinants = matches.iter().fold(0.0, |acc,m| {
 
-            let mat = Matrix3::from_columns(&[h,l_new,E*r_new]);
-            match mat.determinant() {
-                v if v > 0.0 => acc+1.0,
-                v if v < 0.0 => acc-1.0,
-                _ => acc
-            }
-        });
-        if sum_of_determinants < 0.0 {
-            h  *= -1.0; 
+        let (l_new,r_new) = match depth_positive {
+            true => (m.feature_one.get_as_3d_point(depth),m.feature_one.get_as_3d_point(depth)),
+            false => (m.feature_one.get_as_3d_point(-depth),m.feature_one.get_as_3d_point(-depth))
+        };
+
+        let mat = Matrix3::from_columns(&[h,l_new,E*r_new]);
+        match mat.determinant() {
+            v if v > 0.0 => acc+1.0,
+            v if v < 0.0 => acc-1.0,
+            _ => acc
         }
-    
-        let K = (-h).cross_matrix()*E;
-        let mut svd_k = K.svd(true,true);
-        let u_k = svd_k.u.expect("SVD U failed on K");
-        let v_t_k = svd_k.v_t.expect("SVD V_t failed on K");
-        let min_idx = svd_k.singular_values.imin();
-        for i in 0..svd_k.singular_values.nrows(){
-            if i == min_idx {
-                svd_k.singular_values[i] = (u_k*v_t_k).determinant();
-            } else {
-                svd_k.singular_values[i] = 1.0;
-            }
-        }
-        R = svd_k.recompose().ok().expect("SVD recomposition failed on K");
-        translation = h;
-
+    });
+    if sum_of_determinants < 0.0 {
+        h  *= -1.0; 
     }
+
+    let K = (-h).cross_matrix()*E;
+    let mut svd_k = K.svd(true,true);
+    let u_k = svd_k.u.expect("SVD U failed on K");
+    let v_t_k = svd_k.v_t.expect("SVD V_t failed on K");
+    let min_idx = svd_k.singular_values.imin();
+    for i in 0..svd_k.singular_values.nrows(){
+        if i == min_idx {
+            svd_k.singular_values[i] = (u_k*v_t_k).determinant();
+        } else {
+            svd_k.singular_values[i] = 1.0;
+        }
+    }
+    let R = svd_k.recompose().ok().expect("SVD recomposition failed on K");
+    let translation = h;
+
+    
     match depth_positive {
         false => (-R.transpose()*translation,R.transpose()),
         true => (translation,R)
@@ -261,11 +260,11 @@ pub fn decompose_essential_kanatani(E: &Essential, matches: &Vec<(Vector3<Float>
 
 }
 
-pub fn compute_initial_cam_motions<C : Camera + Copy,T : Feature>(all_matches: &Vec<Vec<Match<T>>>,camera_data: &Vec<((usize, C),(usize,C))>,pyramid_scale:Float,depth_prior: Float, decomp_alg: EssentialDecomposition) 
+pub fn compute_initial_cam_motions<C : Camera + Copy,T : Feature + Clone>(all_matches: &Vec<Vec<Match<T>>>,camera_data: &Vec<((usize, C),(usize,C))>,pyramid_scale:Float,depth_prior: Float, decomp_alg: EssentialDecomposition) 
     ->  Option<Vec<(u64,(Vector3<Float>,Matrix3<Float>))>> {
-    let feature_machtes = all_matches.iter().filter(|m| m.len() >= 8).map(|m| extract_matches(m, pyramid_scale, false)).collect::<Vec<Vec<(Vector2<Float>,Vector2<Float>)>>>();
+    let feature_machtes = all_matches.iter().filter(|m| m.len() >= 8).map(|m| extract_matches(m, pyramid_scale, false)).collect::<Vec<Vec<Match<ImageFeature>>>>();
     let fundamental_matrices = feature_machtes.iter().map(|m| eight_point(m)).collect::<Vec<Fundamental>>();
-    let accepted_matches = fundamental_matrices.iter().zip(feature_machtes.iter()).map(|(f,m)| filter_matches(f, m, depth_prior)).collect::<Vec<Vec<(Vector3<Float>,Vector3<Float>)>>>();
+    let accepted_matches = fundamental_matrices.iter().zip(feature_machtes.iter()).map(|(f,m)| filter_matches(f, m, depth_prior)).collect::<Vec<Vec<Match<ImageFeature>>>>();
     let essential_matrices = fundamental_matrices.iter().enumerate().map(|(i,f)| {
         let ((id1,c1),(id2,c2)) = camera_data[i];
         (id1,id2,compute_essential(f, &c1.get_projection(), &c2.get_projection()))
@@ -277,8 +276,8 @@ pub fn compute_initial_cam_motions<C : Camera + Copy,T : Feature>(all_matches: &
 
         let (h,rotation) = match (decomp_alg,matches.len()) {
             (_,count) if count < 8 => (Vector3::<Float>::zeros(), Matrix3::<Float>::identity()),
-            (EssentialDecomposition::FÖRSNTER,_) => decompose_essential_förstner(e,matches),
-            (EssentialDecomposition::KANATANI,_) => decompose_essential_kanatani(e,matches)
+            (EssentialDecomposition::FÖRSNTER,_) => decompose_essential_förstner(e,matches, depth_prior),
+            (EssentialDecomposition::KANATANI,_) => decompose_essential_kanatani(e,matches, depth_prior)
         };
 
         (*id2 as u64,(h,rotation))
