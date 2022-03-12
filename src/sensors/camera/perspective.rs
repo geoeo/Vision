@@ -28,7 +28,7 @@ impl Perspective {
         //TODO: check this
        let inverse_projection = match projection.try_inverse() {
            Some(v) => v,
-           None => Matrix3::<Float>::zeros()
+           None => panic!("Could not invert projection matrix")
        };
 
         Perspective{projection,inverse_projection}

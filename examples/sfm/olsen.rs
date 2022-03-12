@@ -8,7 +8,7 @@ use std::fs;
 use na::Matrix4;
 use vision::io::{olsen_loader::OlssenData};
 use vision::sensors::camera::perspective::Perspective;
-use vision::image::{features::{Match,ImageFeature}, epipolar::{compute_initial_cam_motions, EssentialDecomposition}};
+use vision::image::{features::{Match,ImageFeature}, epipolar::{compute_initial_cam_motions, EssentialDecomposition,filter_matches_from_motion}};
 use vision::sfm::{bundle_adjustment:: run_ba};
 use vision::odometry::runtime_parameters::RuntimeParameters;
 use vision::numerics::{loss, weighting};
@@ -30,8 +30,10 @@ fn main() -> Result<()> {
     let data_set_ninjo_path = "D:/Workspace/Datasets/Olsen/nijo/";
     let data_set_de_guerre_path = "D:/Workspace/Datasets/Olsen/de_guerre/";
     let data_set_fort_channing_path = "D:/Workspace/Datasets/Olsen/Fort_Channing_gate/";
-
-    let olsen_data_path = data_set_fountain_path;
+    
+    let olsen_data_path = data_set_fort_channing_path;
+    let depth_prior = -1.0;
+    let epipolar_thresh = 0.5;
 
     let olsen_data = OlssenData::new(olsen_data_path);
     let positive_principal_distance = false;
@@ -228,10 +230,26 @@ fn main() -> Result<()> {
         intensity_weighting_function:  Box::new(weighting::HuberWeightForPos {})
     };
 
-    let (initial_cam_motions,filtered_matches) = compute_initial_cam_motions(&all_matches, &camera_data, 1.0,-1.0,1.0, EssentialDecomposition::FÖRSNTER);
-    let initial_cam_poses = Some(initial_cam_motions);
-    //let initial_cam_poses = Some(OlssenData::get_relative_motions(&motion_list));
-    //let initial_cam_poses = None;
+    let (initial_cam_motions,filtered_matches) = compute_initial_cam_motions(&all_matches, &camera_data, 1.0,epipolar_thresh,false, EssentialDecomposition::FÖRSNTER);
+    //let initial_cam_poses = Some(initial_cam_motions);
+
+    let relative_motions = OlssenData::get_relative_motions(&motion_list);
+
+    let mut olsson_filtered_matches = Vec::<Vec<Match<ImageFeature>>>::with_capacity(all_matches.len());
+    for i in 0..all_matches.len(){
+        let matches = &all_matches[i];
+        let (_,relative_motion) = &relative_motions[i];
+        let ((_,cs),(_,cf)) = camera_data[i];
+        let filtered_matches_by_motion = filter_matches_from_motion(matches,relative_motion,&(cs,cf),epipolar_thresh);
+        println!("orig matches: {}, filtered matches: {}", matches.len(), &filtered_matches_by_motion.len());
+        olsson_filtered_matches.push(filtered_matches_by_motion);
+    }
+
+    
+    //let initial_cam_poses = Some(relative_motions);
+
+
+    let initial_cam_poses = None;
 
     if initial_cam_poses.is_some(){
         //for (_,(t,r)) in initial_cam_poses.as_ref().unwrap() {
@@ -242,14 +260,15 @@ fn main() -> Result<()> {
         //}
     }
 
+    let used_matches = &olsson_filtered_matches;
     for i in 0..camera_data.len() {
         let ((id_a,_),(id_b,_)) = camera_data[i];
         let intensity = 3.0*(olsen_data.images[id_a].buffer.max() as Float)/4.0;
-        let matches_vis = visualize::display_matches_for_pyramid(&olsen_data.images[id_a],&olsen_data.images[id_b],&all_matches[i],true,intensity ,1.0);
+        let matches_vis = visualize::display_matches_for_pyramid(&olsen_data.images[id_a],&olsen_data.images[id_b],&used_matches[i],true,intensity ,1.0);
         matches_vis.to_image().save(format!("{}match_disp_{}_{}_orb_ba.jpg",olsen_data_path,id_a,id_b)).unwrap();
     }
 
-    let ((cam_positions,points),(s,debug_states_serialized)) = run_ba(&all_matches, &camera_data,&initial_cam_poses, olsen_data.get_image_dim(), &runtime_parameters, 1.0,-1.0);
+    let ((cam_positions,points),(s,debug_states_serialized)) = run_ba(used_matches, &camera_data,&initial_cam_poses, olsen_data.get_image_dim(), &runtime_parameters, 1.0,depth_prior);
     fs::write(format!("D:/Workspace/Rust/Vision/output/olsen.txt"), s?).expect("Unable to write file");
     if runtime_parameters.debug {
         fs::write(format!("D:/Workspace/Rust/Vision/output/olsen_debug.txt"), debug_states_serialized?).expect("Unable to write file");
