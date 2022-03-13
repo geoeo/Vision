@@ -33,7 +33,7 @@ fn main() -> Result<()> {
     
     let olsen_data_path = data_set_fountain_path;
     let depth_prior = -1.0;
-    let epipolar_thresh = 1.0;
+    let epipolar_thresh = 0.4;
 
     let olsen_data = OlssenData::new(olsen_data_path);
     let positive_principal_distance = false;
@@ -214,14 +214,21 @@ fn main() -> Result<()> {
 
 
 
-
-    //all_matches = vec![vec![Match{feature_one:ImageFeature::new(10.0,10.0), feature_two: ImageFeature::new(200.0,300.0)}]];
+    // all_matches = Vec::<Vec<Match<ImageFeature>>>::with_capacity(10);
+    // all_matches.push(vec![Match{feature_one:ImageFeature::new(10.0,10.0), feature_two: ImageFeature::new(300.0,400.0)}]);
+    // all_matches.push(vec![Match{feature_one:ImageFeature::new(10.0,10.0), feature_two: ImageFeature::new(300.0,400.0)}]);
+    // all_matches.push(vec![Match{feature_one:ImageFeature::new(10.0,10.0), feature_two: ImageFeature::new(300.0,400.0)}]);
+    // all_matches.push(vec![Match{feature_one:ImageFeature::new(10.0,10.0), feature_two: ImageFeature::new(300.0,400.0)}]);
+    // all_matches.push(vec![Match{feature_one:ImageFeature::new(10.0,10.0), feature_two: ImageFeature::new(300.0,400.0)}]);
+    // all_matches.push(vec![Match{feature_one:ImageFeature::new(10.0,10.0), feature_two: ImageFeature::new(300.0,400.0)}]);
+    // all_matches.push(vec![Match{feature_one:ImageFeature::new(10.0,10.0), feature_two: ImageFeature::new(300.0,400.0)}]);
+    // all_matches.push(vec![Match{feature_one:ImageFeature::new(10.0,10.0), feature_two: ImageFeature::new(300.0,400.0)}]);
 
     let (initial_cam_motions,filtered_matches) = compute_initial_cam_motions(&all_matches, &camera_data, 1.0,epipolar_thresh,false, EssentialDecomposition::KANATANI);
     for i in 0..all_matches.len(){
-        let matches = &all_matches[i];
-        let filtered_matches_epipolar = &filtered_matches[i];
-        println!("orig matches: {}, epipolar filtered matches: {}", matches.len(), &filtered_matches_epipolar.len());
+        // let matches = &all_matches[i];
+        // let filtered_matches_epipolar = &filtered_matches[i];
+        // println!("orig matches: {}, epipolar filtered matches: {}", matches.len(), &filtered_matches_epipolar.len());
     }
     //let initial_cam_poses = Some(initial_cam_motions);
 
@@ -251,7 +258,7 @@ fn main() -> Result<()> {
         // }
     }
 
-    let used_matches = &all_matches;
+    let used_matches = &olsson_filtered_matches;
 
     for i in 0..camera_data.len() {
         let ((id_a,_),(id_b,_)) = camera_data[i];

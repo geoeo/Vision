@@ -24,12 +24,10 @@ impl Perspective {
                                               0.0, 0.0, 1.0);
         
 
-        println!("WARNING: inverse projection of Perspective probably not correct!");
-        //TODO: check this
-       let inverse_projection = match projection.try_inverse() {
-           Some(v) => v,
-           None => panic!("Could not invert projection matrix")
-       };
+       let k = -cx/fx_scaled + s*cy*fx_scaled/fy_scaled;
+       let inverse_projection = Matrix3::<Float>::new(1.0/fx_scaled, -s*fx_scaled/fy_scaled, k,
+                                                      0.0, 1.0/fy_scaled, -cy/fy_scaled,
+                                                      0.0, 0.0, 1.0);
 
         Perspective{projection,inverse_projection}
     }

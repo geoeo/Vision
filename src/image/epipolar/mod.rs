@@ -122,7 +122,7 @@ pub fn eight_point<T : Feature>(matches: &Vec<Match<T>>) -> Fundamental {
 }
 
 pub fn essential_matrix_from_motion(translation: &Vector3<Float>, rotation: &Matrix3<Float>) -> Matrix3<Float> {
-    skew_symmetric(translation)*rotation.transpose()
+    skew_symmetric(translation)*rotation
 
 }
 
@@ -150,7 +150,6 @@ pub fn filter_matches_from_motion<T: Feature + Clone, C: Camera>(matches: &Vec<M
     let (cam_s,cam_f) = &camera_pair;
     let (t,R) = &relative_motion;
     let essential = essential_matrix_from_motion(t, R);
-    //TODO: this is wrong
     let cam_s_inv = cam_s.get_inverse_projection();
     let cam_f_inv = cam_f.get_inverse_projection();
     let fundamental = compute_fundamental(&essential, &cam_s_inv, &cam_f_inv);
