@@ -31,9 +31,9 @@ fn main() -> Result<()> {
     let data_set_de_guerre_path = "D:/Workspace/Datasets/Olsen/de_guerre/";
     let data_set_fort_channing_path = "D:/Workspace/Datasets/Olsen/Fort_Channing_gate/";
     
-    let olsen_data_path = data_set_fountain_path;
+    let olsen_data_path = data_set_ninjo_path;
     let depth_prior = -1.0;
-    let epipolar_thresh = 0.4;
+    let epipolar_thresh = 0.25;
 
     let olsen_data = OlssenData::new(olsen_data_path);
     let positive_principal_distance = false;
@@ -153,7 +153,7 @@ fn main() -> Result<()> {
     //all_matches.push(matches_5_6_subvec);
     //all_matches.push(matches_5_7_subvec);
     //all_matches.push(matches_6_0_subvec);
-    all_matches.push(matches_6_1_subvec);
+    //all_matches.push(matches_6_1_subvec);
     all_matches.push(matches_6_2_subvec);
     all_matches.push(matches_6_3_subvec);
     all_matches.push(matches_6_4_subvec);
@@ -184,7 +184,7 @@ fn main() -> Result<()> {
     //camera_data.push(((5,pinhole_cam_5),(6,pinhole_cam_6)));
     //camera_data.push(((5,pinhole_cam_5),(7,pinhole_cam_7)));
     //camera_data.push(((6,pinhole_cam_6),(0,pinhole_cam_0)));
-    camera_data.push(((6,pinhole_cam_6),(1,pinhole_cam_1)));
+    //camera_data.push(((6,pinhole_cam_6),(1,pinhole_cam_1)));
     camera_data.push(((6,pinhole_cam_6),(2,pinhole_cam_2)));
     camera_data.push(((6,pinhole_cam_6),(3,pinhole_cam_3)));
     camera_data.push(((6,pinhole_cam_6),(4,pinhole_cam_4)));
@@ -201,7 +201,7 @@ fn main() -> Result<()> {
     //camera_data.push(((17,pinhole_cam_17),(20,pinhole_cam_20)));
 
     let mut motion_list =  Vec::<((usize,Matrix4<Float>),(usize,Matrix4<Float>))>::with_capacity(10); 
-    motion_list.push(((6,cam_extrinsics_6),(1,cam_extrinsics_1)));
+    //motion_list.push(((6,cam_extrinsics_6),(1,cam_extrinsics_1)));
     motion_list.push(((6,cam_extrinsics_6),(2,cam_extrinsics_2)));
     motion_list.push(((6,cam_extrinsics_6),(3,cam_extrinsics_3)));
     motion_list.push(((6,cam_extrinsics_6),(4,cam_extrinsics_4)));
@@ -238,6 +238,7 @@ fn main() -> Result<()> {
         let matches = &all_matches[i];
         let (_,relative_motion) = &relative_motions[i];
         let ((_,cs),(_,cf)) = camera_data[i];
+        //TODO:if empty dont add
         let filtered_matches_by_motion = filter_matches_from_motion(matches,relative_motion,&(cs,cf),epipolar_thresh);
         println!("orig matches: {}, olsson filtered matches: {}", matches.len(), &filtered_matches_by_motion.len());
         olsson_filtered_matches.push(filtered_matches_by_motion);

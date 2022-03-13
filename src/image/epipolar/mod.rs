@@ -121,9 +121,9 @@ pub fn eight_point<T : Feature>(matches: &Vec<Match<T>>) -> Fundamental {
     svd_f.recompose().ok().expect("SVD recomposition failed")
 }
 
+//TODO: write a test for this
 pub fn essential_matrix_from_motion(translation: &Vector3<Float>, rotation: &Matrix3<Float>) -> Matrix3<Float> {
-    skew_symmetric(translation)*rotation
-
+    skew_symmetric(translation)*rotation.transpose()
 }
 
 #[allow(non_snake_case)]
