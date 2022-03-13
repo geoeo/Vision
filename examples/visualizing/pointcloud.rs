@@ -38,7 +38,8 @@ fn populate_scene(window: &mut Window, scene_nodes: &mut Vec::<kiss3d::scene::Sc
         let cam_world = cam.inverse();
         let mut s = window.add_sphere(0.01);
         s.set_color(random(), random(), random());
-        s.append_translation(&Translation3::new(cam_world.translation.vector[0] as f32,cam_world.translation.vector[1] as f32,cam_world.translation.vector[2] as f32));
+        let factor = 1.0;
+        s.append_translation(&Translation3::new(factor*(cam_world.translation.vector[0] as f32),factor*(cam_world.translation.vector[1] as f32),factor*(cam_world.translation.vector[2] as f32)));
         scene_nodes.push(s);
     }
 

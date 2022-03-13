@@ -31,9 +31,9 @@ fn main() -> Result<()> {
     let data_set_de_guerre_path = "D:/Workspace/Datasets/Olsen/de_guerre/";
     let data_set_fort_channing_path = "D:/Workspace/Datasets/Olsen/Fort_Channing_gate/";
     
-    let olsen_data_path = data_set_fort_channing_path;
+    let olsen_data_path = data_set_fountain_path;
     let depth_prior = -1.0;
-    let epipolar_thresh = 0.5;
+    let epipolar_thresh = 1.0;
 
     let olsen_data = OlssenData::new(olsen_data_path);
     let positive_principal_distance = false;
@@ -52,8 +52,8 @@ fn main() -> Result<()> {
     let (cam_intrinsics_9,cam_extrinsics_9) = olsen_data.get_camera_intrinsics_extrinsics(9,positive_principal_distance);
     let (cam_intrinsics_10,cam_extrinsics_10) = olsen_data.get_camera_intrinsics_extrinsics(10,positive_principal_distance);
     let (cam_intrinsics_11,cam_extrinsics_11) = olsen_data.get_camera_intrinsics_extrinsics(11,positive_principal_distance);
-    let (cam_intrinsics_12,cam_extrinsics_12) = olsen_data.get_camera_intrinsics_extrinsics(12,positive_principal_distance);
-    let (cam_intrinsics_13,cam_extrinsics_13) = olsen_data.get_camera_intrinsics_extrinsics(13,positive_principal_distance);
+    //let (cam_intrinsics_12,cam_extrinsics_12) = olsen_data.get_camera_intrinsics_extrinsics(12,positive_principal_distance);
+    //let (cam_intrinsics_13,cam_extrinsics_13) = olsen_data.get_camera_intrinsics_extrinsics(13,positive_principal_distance);
     //let (cam_intrinsics_17,cam_extrinsics_17) = olsen_data.get_camera_intrinsics_extrinsics(17,positive_principal_distance);
     //let (cam_intrinsics_20,cam_extrinsics_20) = olsen_data.get_camera_intrinsics_extrinsics(20,positive_principal_distance);
 
@@ -81,8 +81,8 @@ fn main() -> Result<()> {
     let matches_6_9 = olsen_data.get_matches_between_images(6, 9);
     let matches_6_10 = olsen_data.get_matches_between_images(6, 10);
     let matches_6_11 = olsen_data.get_matches_between_images(6, 11);
-    let matches_6_12 = olsen_data.get_matches_between_images(6, 12);
-    let matches_6_13 = olsen_data.get_matches_between_images(6, 13);
+    //let matches_6_12 = olsen_data.get_matches_between_images(6, 12);
+    //let matches_6_13 = olsen_data.get_matches_between_images(6, 13);
     //let matches_6_17 = olsen_data.get_matches_between_images(6, 17);
     //let matches_17_20 = olsen_data.get_matches_between_images(17, 20);
 
@@ -108,8 +108,8 @@ fn main() -> Result<()> {
     let matches_6_9_subvec = matches_6_9.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
     let matches_6_10_subvec = matches_6_10.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
     let matches_6_11_subvec = matches_6_11.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
-    let matches_6_12_subvec = matches_6_12.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
-    let matches_6_13_subvec = matches_6_13.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
+    //let matches_6_12_subvec = matches_6_12.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
+    //let matches_6_13_subvec = matches_6_13.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
     //let matches_6_17_subvec = matches_6_17.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
     //let matches_17_20_subvec = matches_6_17.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
 
@@ -135,8 +135,8 @@ fn main() -> Result<()> {
     let pinhole_cam_9 = Perspective::from_matrix(&cam_intrinsics_9, false);
     let pinhole_cam_10 = Perspective::from_matrix(&cam_intrinsics_10, false);
     let pinhole_cam_11 = Perspective::from_matrix(&cam_intrinsics_11, false);
-    let pinhole_cam_12 = Perspective::from_matrix(&cam_intrinsics_12, false);
-    let pinhole_cam_13 = Perspective::from_matrix(&cam_intrinsics_13, false);
+    //let pinhole_cam_12 = Perspective::from_matrix(&cam_intrinsics_12, false);
+    //let pinhole_cam_13 = Perspective::from_matrix(&cam_intrinsics_13, false);
     //let pinhole_cam_17 = Perspective::from_matrix(&cam_intrinsics_17, false);
     //let pinhole_cam_20 = Perspective::from_matrix(&cam_intrinsics_17, false);
 
@@ -213,35 +213,26 @@ fn main() -> Result<()> {
 
 
 
-    let runtime_parameters = RuntimeParameters {
-        pyramid_scale: 1.0,
-        max_iterations: vec![180; 1],
-        eps: vec![1e-6],
-        step_sizes: vec![1e0],
-        max_norm_eps: 1e-30, 
-        delta_eps: 1e-30,
-        taus: vec![1e0],
-        lm: true,
-        weighting: false,
-        debug: true,
 
-        show_octave_result: true,
-        loss_function: Box::new(loss::TrivialLoss { eps: 1e-16, approximate_gauss_newton_matrices: false }), 
-        intensity_weighting_function:  Box::new(weighting::HuberWeightForPos {})
-    };
 
-    let (initial_cam_motions,filtered_matches) = compute_initial_cam_motions(&all_matches, &camera_data, 1.0,epipolar_thresh,false, EssentialDecomposition::FÖRSNTER);
+    //all_matches = vec![vec![Match{feature_one:ImageFeature::new(10.0,10.0), feature_two: ImageFeature::new(200.0,300.0)}]];
+
+    let (initial_cam_motions,filtered_matches) = compute_initial_cam_motions(&all_matches, &camera_data, 1.0,epipolar_thresh,false, EssentialDecomposition::KANATANI);
+    for i in 0..all_matches.len(){
+        let matches = &all_matches[i];
+        let filtered_matches_epipolar = &filtered_matches[i];
+        println!("orig matches: {}, epipolar filtered matches: {}", matches.len(), &filtered_matches_epipolar.len());
+    }
     //let initial_cam_poses = Some(initial_cam_motions);
 
     let relative_motions = OlssenData::get_relative_motions(&motion_list);
-
     let mut olsson_filtered_matches = Vec::<Vec<Match<ImageFeature>>>::with_capacity(all_matches.len());
     for i in 0..all_matches.len(){
         let matches = &all_matches[i];
         let (_,relative_motion) = &relative_motions[i];
         let ((_,cs),(_,cf)) = camera_data[i];
         let filtered_matches_by_motion = filter_matches_from_motion(matches,relative_motion,&(cs,cf),epipolar_thresh);
-        println!("orig matches: {}, filtered matches: {}", matches.len(), &filtered_matches_by_motion.len());
+        println!("orig matches: {}, olsson filtered matches: {}", matches.len(), &filtered_matches_by_motion.len());
         olsson_filtered_matches.push(filtered_matches_by_motion);
     }
 
@@ -252,29 +243,57 @@ fn main() -> Result<()> {
     let initial_cam_poses = None;
 
     if initial_cam_poses.is_some(){
-        //for (_,(t,r)) in initial_cam_poses.as_ref().unwrap() {
-            // println!("t : {}",t);
-            // println!("r : {}",r);
-            // println!("-------");
+        // for (_,(t,r)) in initial_cam_poses.as_ref().unwrap() {
+        //     println!("t : {}",t);
+        //     println!("r : {}",r);
+        //     println!("-------");
 
-        //}
+        // }
     }
 
-    let used_matches = &olsson_filtered_matches;
+    let used_matches = &all_matches;
+
     for i in 0..camera_data.len() {
         let ((id_a,_),(id_b,_)) = camera_data[i];
         let intensity = 3.0*(olsen_data.images[id_a].buffer.max() as Float)/4.0;
-        let matches_vis = visualize::display_matches_for_pyramid(&olsen_data.images[id_a],&olsen_data.images[id_b],&used_matches[i],true,intensity ,1.0);
+        let matches_vis = match used_matches.len() {
+            0 => visualize::display_matches_for_pyramid(&olsen_data.images[id_a],&olsen_data.images[id_b],&Vec::<Match<ImageFeature>>::new(),true,intensity ,1.0),
+            _ => visualize::display_matches_for_pyramid(&olsen_data.images[id_a],&olsen_data.images[id_b],&used_matches[i],true,intensity ,1.0)
+        };
         matches_vis.to_image().save(format!("{}match_disp_{}_{}_orb_ba.jpg",olsen_data_path,id_a,id_b)).unwrap();
     }
 
-    let ((cam_positions,points),(s,debug_states_serialized)) = run_ba(used_matches, &camera_data,&initial_cam_poses, olsen_data.get_image_dim(), &runtime_parameters, 1.0,depth_prior);
-    fs::write(format!("D:/Workspace/Rust/Vision/output/olsen.txt"), s?).expect("Unable to write file");
-    if runtime_parameters.debug {
-        fs::write(format!("D:/Workspace/Rust/Vision/output/olsen_debug.txt"), debug_states_serialized?).expect("Unable to write file");
+
+
+
+
+    if used_matches.len() > 0 {
+
+        let runtime_parameters = RuntimeParameters {
+            pyramid_scale: 1.0,
+            max_iterations: vec![180; 1],
+            eps: vec![1e-6],
+            step_sizes: vec![1e0],
+            max_norm_eps: 1e-30, 
+            delta_eps: 1e-30,
+            taus: vec![1e0],
+            lm: true,
+            weighting: false,
+            debug: true,
+    
+            show_octave_result: true,
+            loss_function: Box::new(loss::TrivialLoss { eps: 1e-16, approximate_gauss_newton_matrices: false }), 
+            intensity_weighting_function:  Box::new(weighting::HuberWeightForPos {})
+        };
+
+
+
+        let ((cam_positions,points),(s,debug_states_serialized)) = run_ba(used_matches, &camera_data,&initial_cam_poses, olsen_data.get_image_dim(), &runtime_parameters, 1.0,depth_prior);
+        fs::write(format!("D:/Workspace/Rust/Vision/output/olsen.txt"), s?).expect("Unable to write file");
+        if runtime_parameters.debug {
+            fs::write(format!("D:/Workspace/Rust/Vision/output/olsen_debug.txt"), debug_states_serialized?).expect("Unable to write file");
+        }
     }
-
-
 
 
     Ok(())
