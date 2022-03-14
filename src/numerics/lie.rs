@@ -3,12 +3,6 @@ extern crate nalgebra as na;
 use na::{Vector,Vector3,Vector6,Matrix3,Matrix3x6,Matrix, Matrix4,U3,U1,base::storage::Storage};
 use crate::Float;
 
-pub fn skew_symmetric<T>(w: &Vector<Float,U3,T>) -> Matrix3<Float> where T: Storage<Float,U3,U1>  {
-    Matrix3::<Float>::new(0.0, -w[2], w[1],
-                          w[2], 0.0, -w[0],
-                          -w[1], w[0], 0.0)
-}
-
 pub fn vector_from_skew_symmetric(w_x: &Matrix3<Float>) -> Vector3<Float> {
     Vector3::<Float>::new(w_x[(2,1)],w_x[(0,2)],w_x[(1,0)])
 }
@@ -17,7 +11,7 @@ pub fn vector_from_skew_symmetric(w_x: &Matrix3<Float>) -> Vector3<Float> {
  * This is the jacobian with respect to a transformed point 
  */
 pub fn left_jacobian_around_identity<T>(transformed_position: &Vector<Float,U3,T>) -> Matrix3x6<Float> where T: Storage<Float,U3,U1> {
-    let skew_symmetrix = skew_symmetric(&(-1.0*transformed_position));
+    let skew_symmetrix = &(-1.0*transformed_position).cross_matrix();
     let mut jacobian = Matrix3x6::<Float>::new(1.0, 0.0, 0.0, 0.0, 0.0, 0.0,
                                                0.0, 1.0, 0.0, 0.0, 0.0, 0.0,
                                                0.0, 0.0, 1.0, 0.0, 0.0, 0.0);
@@ -44,7 +38,7 @@ pub fn exp_se3<T>(u: &Vector<Float,U3,T>, w: &Vector<Float,U3,T>) -> Matrix4<Flo
         _ => (1.0,1.0,1.0)
     };
 
-    let w_x = skew_symmetric(w);
+    let w_x = w.cross_matrix();
     let w_x_sqr = w_x*w_x;
     let I = Matrix3::<Float>::identity();
     let R = I + A*w_x + B*w_x_sqr;
@@ -73,7 +67,7 @@ pub fn exp_so3<T>(w: &Vector<Float,U3,T>) -> Matrix3<Float> where T: Storage<Flo
             let B = (1.0 - omega.cos())/omega_sqr;
             //let C = (1.0 - A)/omega_sqr;
         
-            let w_x = skew_symmetric(w);
+            let w_x = w.cross_matrix();
             let w_x_sqr = w_x*w_x;
             let I = Matrix3::<Float>::identity();
             I + A*w_x + B*w_x_sqr
@@ -125,7 +119,7 @@ pub fn ln(se3: &Matrix4<Float>) -> Vector6<Float> {
  */
 #[allow(non_snake_case)]
 pub fn right_jacobian<T>(w: &Vector<Float,U3,T>) -> Matrix3<Float> where T: Storage<Float,U3,U1> {
-    let w_x = skew_symmetric(&w);
+    let w_x = w.cross_matrix();
     let w_x_sqr = w_x*w_x;
     let w_norm = w.norm();
     let I = Matrix3::<Float>::identity();
@@ -149,7 +143,7 @@ pub fn right_jacobian<T>(w: &Vector<Float,U3,T>) -> Matrix3<Float> where T: Stor
 
 #[allow(non_snake_case)]
 pub fn right_inverse_jacobian<T>(w: &Vector<Float,U3,T>) -> Matrix3<Float> where T: Storage<Float,U3,U1> {
-    let w_x = skew_symmetric(&w);
+    let w_x = w.cross_matrix();
     let w_x_sqr = w_x*w_x;
     let w_norm = w.norm();
     let I = Matrix3::<Float>::identity();

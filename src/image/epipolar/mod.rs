@@ -5,7 +5,6 @@ use na::{Vector3, Matrix3,Matrix,Dynamic, U9, VecStorage};
 use crate::sensors::camera::Camera;
 use crate::Float;
 use crate::image::features::{Feature,Match, ImageFeature};
-use crate::numerics::lie::skew_symmetric;
 
 pub type Fundamental =  Matrix3<Float>;
 pub type Essential =  Matrix3<Float>;
@@ -123,7 +122,7 @@ pub fn eight_point<T : Feature>(matches: &Vec<Match<T>>) -> Fundamental {
 
 //TODO: write a test for this
 pub fn essential_matrix_from_motion(translation: &Vector3<Float>, rotation: &Matrix3<Float>) -> Matrix3<Float> {
-    skew_symmetric(translation)*rotation.transpose()
+    translation.cross_matrix()*rotation.transpose()
 }
 
 #[allow(non_snake_case)]

@@ -4,7 +4,7 @@ use na::{Const, Matrix3,SMatrix,SVector,Vector,Vector3,base::storage::Storage};
 use crate::Float;
 use crate::sensors::{DataFrame, imu::imu_data_frame::ImuDataFrame};
 use crate::odometry::imu_odometry::{imu_delta::ImuDelta, bias::{BiasPreintegrated, BiasDelta}};
-use crate::numerics::lie::{skew_symmetric, right_jacobian, right_inverse_jacobian, ln_SO3, vector_from_skew_symmetric, exp_so3};
+use crate::numerics::lie::{right_jacobian, right_inverse_jacobian, ln_SO3, vector_from_skew_symmetric, exp_so3};
 
 pub mod imu_delta;
 pub mod solver;
@@ -94,7 +94,7 @@ pub fn pre_integration(imu_data: &ImuDataFrame, gravity_body: &Vector3<Float>) -
 
 fn generate_linear_model_matrices(accelerometer_k: &Vector3<Float>,gyrpscope_k: &Vector3<Float> ,a_delta_t_i_k: Float, g_delta_t_k: Float , delta_rotation_i_k: &Matrix3<Float>, delta_rotation_k: &Matrix3<Float>, gravity_body: &Vector3<Float>) -> (SMatrix<Float,9,9>,SMatrix<Float,9,6>) {
     let a_delta_t_i_k_squared = a_delta_t_i_k.powi(2);
-    let accelerometer_skew_symmetric = skew_symmetric(&(accelerometer_k + gravity_body));
+    let accelerometer_skew_symmetric = (accelerometer_k + gravity_body).cross_matrix();
 
     let right_jacobian = right_jacobian(&gyrpscope_k);
 

@@ -3,7 +3,7 @@ extern crate nalgebra as na;
 use na::{Vector,Vector3,Matrix3,SMatrix,storage::Storage, Const};
 
 use crate::odometry::imu_odometry::ImuResidual;
-use crate::numerics::lie::{exp_so3,right_jacobian,skew_symmetric, right_inverse_jacobian};
+use crate::numerics::lie::{exp_so3,right_jacobian, right_inverse_jacobian};
 use crate::Float;
 
 #[derive(Clone,Copy)]
@@ -74,7 +74,7 @@ impl BiasPreintegrated {
         }).collect::<Vec<Float>>();
 
         let acc_rotations_i_k_delta_times = acc_rotations_i_k.iter().zip(acc_delta_times_i_k.iter()).map(|(&dr,&dt)| dr*dt).collect::<Vec<Matrix3<Float>>>();
-        let acceleration_skew_symmetric_matrices = acceleration_data.iter().map(|x| skew_symmetric(&(x - bias_accelerometer))).collect::<Vec<Matrix3<Float>>>();
+        let acceleration_skew_symmetric_matrices = acceleration_data.iter().map(|x| (x - bias_accelerometer).cross_matrix()).collect::<Vec<Matrix3<Float>>>();
 
         
         let acc_delta_times_k_plus_1_j_rev = gyro_delta_times[1..].iter().rev().scan(0.0, |acc,dt| {

@@ -31,7 +31,7 @@ fn main() -> Result<()> {
     let data_set_de_guerre_path = "D:/Workspace/Datasets/Olsen/de_guerre/";
     let data_set_fort_channing_path = "D:/Workspace/Datasets/Olsen/Fort_Channing_gate/";
     
-    let olsen_data_path = data_set_ninjo_path;
+    let olsen_data_path = data_set_fountain_path;
     let depth_prior = -1.0;
     let epipolar_thresh = 0.25;
 
