@@ -5,7 +5,7 @@ extern crate vision;
 use color_eyre::eyre::Result;
 
 use std::fs;
-use na::Matrix4;
+use na::{Vector3,Matrix3,Matrix4};
 use vision::io::{olsen_loader::OlssenData};
 use vision::sensors::camera::perspective::Perspective;
 use vision::image::{features::{Match,ImageFeature}, epipolar::{compute_initial_cam_motions, EssentialDecomposition,filter_matches_from_motion}};
@@ -224,30 +224,24 @@ fn main() -> Result<()> {
     // all_matches.push(vec![Match{feature_one:ImageFeature::new(10.0,10.0), feature_two: ImageFeature::new(300.0,400.0)}]);
     // all_matches.push(vec![Match{feature_one:ImageFeature::new(10.0,10.0), feature_two: ImageFeature::new(300.0,400.0)}]);
 
-    let (initial_cam_motions,filtered_matches) = compute_initial_cam_motions(&all_matches, &camera_data, 1.0,epipolar_thresh,false, EssentialDecomposition::KANATANI);
-    for i in 0..all_matches.len(){
-        // let matches = &all_matches[i];
-        // let filtered_matches_epipolar = &filtered_matches[i];
-        // println!("orig matches: {}, epipolar filtered matches: {}", matches.len(), &filtered_matches_epipolar.len());
-    }
-    //let initial_cam_poses = Some(initial_cam_motions);
-
+    let initial_cam_motions = compute_initial_cam_motions(&all_matches, &camera_data, 1.0,epipolar_thresh,false, EssentialDecomposition::KANATANI);
     let relative_motions = OlssenData::get_relative_motions(&motion_list);
-    let mut olsson_filtered_matches = Vec::<Vec<Match<ImageFeature>>>::with_capacity(all_matches.len());
+
+    let used_motions_for_filtering = relative_motions.iter().map(|&(_,r)| r).collect::<Vec<(Vector3<Float>,Matrix3<Float>)>>();
+    //let used_motions_for_filtering = initial_cam_motions.iter().map(|&(_,r)| r).collect::<Vec<(Vector3<Float>,Matrix3<Float>)>>();
+    let mut filtered_matches = Vec::<Vec<Match<ImageFeature>>>::with_capacity(all_matches.len());
     for i in 0..all_matches.len(){
         let matches = &all_matches[i];
-        let (_,relative_motion) = &relative_motions[i];
+        let relative_motion = &used_motions_for_filtering[i];
         let ((_,cs),(_,cf)) = camera_data[i];
         //TODO:if empty dont add
         let filtered_matches_by_motion = filter_matches_from_motion(matches,relative_motion,&(cs,cf),epipolar_thresh);
         println!("orig matches: {}, olsson filtered matches: {}", matches.len(), &filtered_matches_by_motion.len());
-        olsson_filtered_matches.push(filtered_matches_by_motion);
+        filtered_matches.push(filtered_matches_by_motion);
     }
 
-    
+    //let initial_cam_poses = Some(initial_cam_motions);
     //let initial_cam_poses = Some(relative_motions);
-
-
     let initial_cam_poses = None;
 
     if initial_cam_poses.is_some(){
@@ -255,11 +249,11 @@ fn main() -> Result<()> {
         //     println!("t : {}",t);
         //     println!("r : {}",r);
         //     println!("-------");
-
         // }
     }
 
-    let used_matches = &olsson_filtered_matches;
+    let used_matches = &filtered_matches;
+    //let used_matches = &all_matches;
 
     for i in 0..camera_data.len() {
         let ((id_a,_),(id_b,_)) = camera_data[i];
