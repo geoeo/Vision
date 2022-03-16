@@ -4,7 +4,7 @@ extern crate nalgebra as na;
 use na::{Vector3, Matrix3,Matrix,Dynamic, U9, VecStorage};
 use crate::sensors::camera::Camera;
 use crate::Float;
-use crate::image::features::{Feature,Match, ImageFeature};
+use crate::image::features::{Feature,Match, ImageFeature, condition_matches};
 
 pub type Fundamental =  Matrix3<Float>;
 pub type Essential =  Matrix3<Float>;
@@ -17,41 +17,9 @@ pub enum EssentialDecomposition {
 
 pub fn extract_matches<T: Feature>(matches: &Vec<Match<T>>, pyramid_scale: Float, normalize: bool) -> Vec<Match<ImageFeature>> {
 
-    // Seems to amplify errors when mismatches are present
     match normalize {
         true => {
-            let number_of_matches = matches.len() as Float;
-            let (left_x_acc,left_y_acc,right_x_acc,right_y_acc) = matches.iter().fold((0.0,0.0,0.0,0.0), | (u_x,u_y,v_x,v_y), f| {
-                let (x_left, y_left) = f.feature_one.reconstruct_original_coordiantes_for_float(pyramid_scale);
-                let (x_right, y_right) = f.feature_two.reconstruct_original_coordiantes_for_float(pyramid_scale);
-                (u_x + x_left,u_y + y_left, v_x + x_right, v_y + y_right)
-            });
-        
-            let left_x_center  = left_x_acc/ number_of_matches;
-            let left_y_center  = left_y_acc/ number_of_matches;
-            let right_x_center  = right_x_acc/ number_of_matches;
-            let right_y_center  = right_y_acc/ number_of_matches;
-        
-            //Transform points so that centroid is at the origin
-            let centered_features = matches.iter().map(|f| {
-                let (x_left, y_left) = f.feature_one.reconstruct_original_coordiantes_for_float(pyramid_scale);
-                let (x_right, y_right) = f.feature_two.reconstruct_original_coordiantes_for_float(pyramid_scale);
-                ((x_left - left_x_center, y_left - left_y_center),(x_right - right_x_center, y_right - right_y_center))
-            }
-            ).collect::<Vec<((Float,Float),(Float,Float))>>();
-        
-            let (avg_distance_left,avg_distance_right) = centered_features.iter().fold((0.0,0.0), | (one_avg,two_avg), ((one_x_c,one_y_c),(two_x_c,two_y_c))| 
-                (one_avg + (one_x_c.powi(2)+one_y_c.powi(2)).sqrt(), two_avg + (two_x_c.powi(2)+two_y_c.powi(2)).sqrt())
-            );
-        
-            let scale_left = number_of_matches*(2.0 as Float).sqrt()/avg_distance_left;
-            let scale_right = number_of_matches*(2.0 as Float).sqrt()/avg_distance_right;
-        
-            //Scale so that the average distance from the origin is sqrt(2)
-            centered_features.iter().map(|((left_x_c,left_y_c),(right_x_c,right_y_c))| 
-            Match { feature_one: ImageFeature::new(left_x_c*scale_left,left_y_c*scale_left), feature_two: ImageFeature::new(right_x_c*scale_right,right_y_c*scale_right)}
-            ).collect::<Vec<Match<ImageFeature>>>()
-    
+            condition_matches(matches)
         },
         false => {
                 matches.iter().map(|feature| {

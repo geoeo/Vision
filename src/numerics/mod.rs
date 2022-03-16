@@ -180,3 +180,4 @@ pub fn max_norm<D,S>(vector: &Vector<Float,D,S>) -> Float where D: Dim, S: Stora
 
 
 
+

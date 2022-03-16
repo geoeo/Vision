@@ -33,7 +33,7 @@ fn main() -> Result<()> {
     
     let olsen_data_path = data_set_fountain_path;
     let depth_prior = -1.0;
-    let epipolar_thresh = 0.25;
+    let epipolar_thresh = 0.5;
 
     let olsen_data = OlssenData::new(olsen_data_path);
     let positive_principal_distance = false;
@@ -227,8 +227,8 @@ fn main() -> Result<()> {
     let initial_cam_motions = compute_initial_cam_motions(&all_matches, &camera_data, 1.0,epipolar_thresh,false, EssentialDecomposition::KANATANI);
     let relative_motions = OlssenData::get_relative_motions(&motion_list);
 
-    let used_motions_for_filtering = relative_motions.iter().map(|&(_,r)| r).collect::<Vec<(Vector3<Float>,Matrix3<Float>)>>();
     //let used_motions_for_filtering = initial_cam_motions.iter().map(|&(_,r)| r).collect::<Vec<(Vector3<Float>,Matrix3<Float>)>>();
+    let used_motions_for_filtering = relative_motions.iter().map(|&(_,r)| r).collect::<Vec<(Vector3<Float>,Matrix3<Float>)>>();
     let mut filtered_matches = Vec::<Vec<Match<ImageFeature>>>::with_capacity(all_matches.len());
     for i in 0..all_matches.len(){
         let matches = &all_matches[i];
@@ -273,7 +273,7 @@ fn main() -> Result<()> {
 
         let runtime_parameters = RuntimeParameters {
             pyramid_scale: 1.0,
-            max_iterations: vec![180; 1],
+            max_iterations: vec![600; 1],
             eps: vec![1e-6],
             step_sizes: vec![1e0],
             max_norm_eps: 1e-30, 
