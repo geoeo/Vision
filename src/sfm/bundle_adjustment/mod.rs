@@ -1,7 +1,7 @@
 extern crate nalgebra as na;
 
-use na::{Matrix3, Vector3,Vector2, Isometry3};
-use crate::image::{epipolar,features::{Match,Feature}};
+use na::{Matrix3, Vector3, Isometry3};
+use crate::image::features::{Match,Feature};
 use crate::sensors::camera::Camera;
 use crate::odometry::runtime_parameters::RuntimeParameters;
 use crate::sfm::{landmark::Landmark,bundle_adjustment::{camera_feature_map::CameraFeatureMap}};

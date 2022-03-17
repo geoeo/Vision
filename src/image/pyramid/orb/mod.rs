@@ -50,7 +50,6 @@ pub fn generate_feature_descriptor_pyramid(octave_pyramid: &Pyramid<OrbOctave>, 
     let mut feature_descriptor_pyramid = Pyramid::<Vec<(OrbFeature,BriefDescriptor)>>::empty(octave_len);
 
     for i in 0..octave_len {
-        //let image = &octave_pyramid.octaves[i].images[0];
         let original_image = &octave_pyramid.octaves[0].images[0];
         let feature_octave = &feature_pyramid.octaves[i];
         let n = std::cmp::min(runtime_parameters.brief_features_to_descriptors,feature_octave.len());
@@ -112,8 +111,8 @@ pub fn generate_matches_between_pyramid(feature_descriptor_pyramid_a: &Pyramid<V
     let features_descriptors_a_with_octave_idx = features_descriptors_a_per_octave.into_iter().enumerate().map(|(i,list)| list.into_iter().map(|x| (i,x)).collect::<Vec<(usize,(OrbFeature,BriefDescriptor))>>()).flatten().collect::<Vec<(usize,(OrbFeature,BriefDescriptor))>>();
     let features_descriptors_b_with_octave_idx = features_descriptors_b_per_octave.into_iter().enumerate().map(|(i,list)| list.into_iter().map(|x| (i,x)).collect::<Vec<(usize,(OrbFeature,BriefDescriptor))>>()).flatten().collect::<Vec<(usize,(OrbFeature,BriefDescriptor))>>();
 
-    let (octave_indices_a, features_descriptors_a): (Vec<usize>, Vec<(OrbFeature,BriefDescriptor)>) = features_descriptors_a_with_octave_idx.into_iter().unzip();
-    let (octave_indices_b, features_descriptors_b): (Vec<usize>, Vec<(OrbFeature,BriefDescriptor)>) = features_descriptors_b_with_octave_idx.into_iter().unzip();
+    let (_, features_descriptors_a): (Vec<usize>, Vec<(OrbFeature,BriefDescriptor)>) = features_descriptors_a_with_octave_idx.into_iter().unzip();
+    let (_, features_descriptors_b): (Vec<usize>, Vec<(OrbFeature,BriefDescriptor)>) = features_descriptors_b_with_octave_idx.into_iter().unzip();
 
     let (all_features_a, all_descriptors_a): (Vec<OrbFeature>, Vec<BriefDescriptor>) = features_descriptors_a.clone().into_iter().unzip();
     let (all_features_b, all_descriptors_b):  (Vec<OrbFeature>, Vec<BriefDescriptor>) = features_descriptors_b.clone().into_iter().unzip();

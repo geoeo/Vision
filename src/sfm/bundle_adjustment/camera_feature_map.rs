@@ -184,13 +184,14 @@ impl CameraFeatureMap {
     pub fn get_observed_features(&self, invert_feature_y: bool) -> DVector<Float> {
         let n_points = self.number_of_unique_points;
         let n_cams = self.camera_map.keys().len();
-        let mut observed_features = DVector::<Float>::zeros(n_points*n_cams*2); // some entries might be zero
-        let c_y = self.image_row_col.0 as Float /2.0; 
+        let mut observed_features = DVector::<Float>::zeros(n_points*n_cams*2); // some entries might be invalid
+        let c_y = self.image_row_col.0 as Float; 
 
         for landmark_idx in 0..n_points {
             let observing_cams = &self.point_cam_map[landmark_idx];
+            let offset =  2*landmark_idx*n_cams;
             for c in 0..n_cams {
-                let feat_id = 2*c + 2*landmark_idx*n_cams;
+                let feat_id = 2*c + offset;
                 let elem = observing_cams[c];
                 let (x_val, y_val) = match elem {
                     Some(v) => v,
@@ -198,7 +199,7 @@ impl CameraFeatureMap {
                 };
                 observed_features[feat_id] = x_val;
                 observed_features[feat_id+1] = match invert_feature_y {
-                    true => 2.0*c_y - y_val,
+                    true => c_y - y_val,
                     false => y_val
                 };
             }

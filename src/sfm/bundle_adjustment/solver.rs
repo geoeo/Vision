@@ -35,7 +35,8 @@ pub fn get_estimated_features<C : Camera, L: Landmark<T> + Copy + Clone, const T
             let estimated_feature = camera.project(&transformed_points.fixed_slice::<3,1>(0,j));  
             
             let feat_id = get_feature_index_in_residual(i, j, n_cams);
-            if !(observed_features[feat_id] == CameraFeatureMap::NO_FEATURE_FLAG && observed_features[feat_id+1] == CameraFeatureMap::NO_FEATURE_FLAG){
+            // If at least one camera has no match, skip
+            if !(observed_features[feat_id] == CameraFeatureMap::NO_FEATURE_FLAG || observed_features[feat_id+1] == CameraFeatureMap::NO_FEATURE_FLAG){
                 estimated_features[feat_id] = estimated_feature.x;
                 estimated_features[feat_id+1] = estimated_feature.y;
             }
@@ -49,7 +50,11 @@ pub fn get_estimated_features<C : Camera, L: Landmark<T> + Copy + Clone, const T
 pub fn compute_residual(estimated_features: &DVector<Float>, observed_features: &DVector<Float>, residual_vector: &mut DVector<Float>) -> () {
     assert_eq!(residual_vector.nrows(), estimated_features.nrows());
     for i in 0..residual_vector.nrows() {
-        residual_vector[i] =  estimated_features[i] - observed_features[i];
+        if observed_features[i] != CameraFeatureMap::NO_FEATURE_FLAG {
+            residual_vector[i] =  estimated_features[i] - observed_features[i];
+        } else {
+            residual_vector[i] = 0.0;
+        }
     }
 }
 
