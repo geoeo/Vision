@@ -9,7 +9,6 @@ pub mod pose;
 pub mod loss;
 pub mod least_squares;
 pub mod weighting;
-pub mod linear_prog;
 
 pub fn quadratic_roots(a: Float, b: Float, c: Float) -> (Float,Float) {
     let det = b.powi(2)-4.0*a*c;
