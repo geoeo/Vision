@@ -1,13 +1,15 @@
 extern crate nalgebra as na;
 
 
-use na::{Vector3, Matrix3,Matrix,Dynamic, U9, VecStorage};
+use na::{Vector3, Matrix3,Matrix,Dynamic, VecStorage, dimension::U9};
 use crate::sensors::camera::Camera;
 use crate::Float;
 use crate::image::features::{Feature,Match, ImageFeature, condition_matches};
 
 pub type Fundamental =  Matrix3<Float>;
 pub type Essential =  Matrix3<Float>;
+
+pub mod five_point;
 
 #[derive(Clone,Copy)]
 pub enum EssentialDecomposition {
@@ -89,13 +91,6 @@ pub fn eight_point<T : Feature>(matches: &Vec<Match<T>>) -> Fundamental {
     svd_f.recompose().ok().expect("SVD recomposition failed")
 }
 
-/**
- * Photogrammetric Computer Vision p.575
- * Points may be planar
- */
-pub fn five_point_essential() -> Essential {
-    panic!("TODO");
-}
 
 //TODO: write a test for this
 pub fn essential_matrix_from_motion(translation: &Vector3<Float>, rotation: &Matrix3<Float>) -> Matrix3<Float> {
