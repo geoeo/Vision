@@ -203,14 +203,15 @@ pub fn decompose_essential_förstner<T : Feature>(E: &Essential,matches: &Vec<Ma
 #[allow(non_snake_case)]
 pub fn decompose_essential_kanatani<T: Feature>(E: &Essential, matches: &Vec<Match<T>>, is_depth_positive: bool) -> (Vector3<Float>, Matrix3<Float>) {
     assert!(matches.len() > 0);
-
+    assert!(!is_depth_positive);
     let svd = (E*E.transpose()).svd(true,false);
     let min_idx = svd.singular_values.imin();
     let u = &svd.u.expect("SVD failed on E");
     let mut h = u.column(min_idx).normalize();
+
     let sum_of_determinants = matches.iter().fold(0.0, |acc,m| {
 
-        let (start_new,finish_new) = (m.feature_one.get_as_3d_point(1.0),m.feature_one.get_as_3d_point(1.0));
+        let (start_new,finish_new) = (m.feature_one.get_as_3d_point(-1.0),m.feature_one.get_as_3d_point(-1.0));
 
         let mat = Matrix3::from_columns(&[h,start_new,E*finish_new]);
         match mat.determinant() {
@@ -238,12 +239,7 @@ pub fn decompose_essential_kanatani<T: Feature>(E: &Essential, matches: &Vec<Mat
     let R = svd_k.recompose().ok().expect("SVD recomposition failed on K");
     let translation = h;
 
-    
-    match is_depth_positive {
-        false => (-R.transpose()*translation,R.transpose()),
-        true => (translation,R)
-    }
-    
+    (translation,R)
 
 }
 

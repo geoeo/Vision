@@ -34,8 +34,8 @@ fn main() -> Result<()> {
         let t = start.transpose()*fundamental_matrix*finish;
         println!("{}",t);
     }
-    let (h,R) = epipolar::decompose_essential_kanatani(&essential_matrix,&normalized_matches, false);
-    //let (h,R) = epipolar::decompose_essential_förstner(&essential_matrix,&normalized_matches);
+    //let (h,R) = epipolar::decompose_essential_kanatani(&essential_matrix,&normalized_matches, false);
+    let (h,R) = epipolar::decompose_essential_förstner(&essential_matrix,&normalized_matches, false);
 
     println!("{}",h);
     println!("{}",R);
