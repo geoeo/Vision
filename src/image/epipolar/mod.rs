@@ -133,7 +133,7 @@ pub fn filter_matches_from_motion<T: Feature + Clone, C: Camera>(matches: &Vec<M
  * Photogrammetric Computer Vision p.583
  */
 #[allow(non_snake_case)]
-pub fn decompose_essential_förstner<T : Feature>(E: &Essential,matches: &Vec<Match<T>>) -> (Vector3<Float>, Matrix3<Float>) {
+pub fn decompose_essential_förstner<T : Feature>(E: &Essential,matches: &Vec<Match<T>>,is_depth_positive: bool) -> (Vector3<Float>, Matrix3<Float>) {
     assert!(matches.len() > 0);
     let svd = E.svd(true,true);
     let min_idx = svd.singular_values.imin();
@@ -150,6 +150,10 @@ pub fn decompose_essential_förstner<T : Feature>(E: &Essential,matches: &Vec<Ma
     let w_matrices = vec!(W,W.transpose(), -W, (-W).transpose());
     let h_vecs = vec!(h,h, -h, -h);
     let R_matrices = vec!(V_norm*w_matrices[0]*U_norm.transpose(),V_norm*w_matrices[1]*U_norm.transpose(), V_norm*w_matrices[0]*U_norm.transpose(), V_norm*w_matrices[1]*U_norm.transpose());
+    let depth_direction = match is_depth_positive {
+        true => 1.0,
+        _ => -1.0
+    };
 
     let mut translation = Vector3::<Float>::zeros();
     let mut rotation = Matrix3::<Float>::identity();
@@ -160,8 +164,8 @@ pub fn decompose_essential_förstner<T : Feature>(E: &Essential,matches: &Vec<Ma
         let mut u_sign = 0.0;
         for m in matches {
             
-            let f_start = m.feature_one.get_as_3d_point(1.0);
-            let f_finish = m.feature_two.get_as_3d_point(1.0);
+            let f_start = m.feature_one.get_as_3d_point(depth_direction);
+            let f_finish = m.feature_two.get_as_3d_point(depth_direction);
 
             let binormal = ((h.cross_matrix()*f_start).cross_matrix()*h).normalize();
             let mat = Matrix3::<Float>::from_columns(&[h,binormal,f_start.cross_matrix()*R.transpose()*f_finish]);
@@ -261,7 +265,7 @@ pub fn compute_initial_cam_motions<C : Camera + Copy,T : Feature + Clone>(all_ma
 
         let (h,rotation) = match (decomp_alg,matches.len()) {
             (_,count) if count < 8 => (Vector3::<Float>::zeros(), Matrix3::<Float>::identity()),
-            (EssentialDecomposition::FÖRSNTER,_) => decompose_essential_förstner(e,matches),
+            (EssentialDecomposition::FÖRSNTER,_) => decompose_essential_förstner(e,matches,is_depth_positive),
             (EssentialDecomposition::KANATANI,_) => decompose_essential_kanatani(e,matches, is_depth_positive)
         };
 

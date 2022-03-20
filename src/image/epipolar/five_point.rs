@@ -1,14 +1,49 @@
 extern crate nalgebra as na;
-use na::{RowOVector,Matrix3,OMatrix, dimension::{U10,U20}};
+use na::{RowOVector,Matrix3,OMatrix, dimension::{U10,U20,U5,U9,U3}};
 use crate::Float;
+use crate::sensors::camera::Camera;
 use crate::image::epipolar::Essential;
+use crate::image::features::{Feature,Match};
 
 
 /**
  * Photogrammetric Computer Vision p.575
  * Points may be planar
  */
-pub fn five_point_essential() -> Essential {
+#[allow(non_snake_case)]
+pub fn five_point_essential<T: Feature, C: Camera>(matches: [Match<T>; 5], camera_one: &C, camera_two: &C, depth_positive: bool) -> Essential {
+    let mut features_one = OMatrix::<Float, U3,U5>::zeros();
+    let mut features_two = OMatrix::<Float, U3,U5>::zeros();
+    let mut A = OMatrix::<Float,U5,U9>::zeros();
+    let normalized_depth = match depth_positive {
+        true => 1.0,
+        _ => -1.0
+    };
+
+    let inverse_projection_one = camera_one.get_inverse_projection();
+    let inverse_projection_two = camera_two.get_inverse_projection();
+
+    for i in 0..5 {
+        let m = &matches[i];
+        let f_1 = m.feature_one.get_as_3d_point(normalized_depth);
+        let f_2 = m.feature_two.get_as_3d_point(normalized_depth);
+
+        features_one.column_mut(i).copy_from(&f_1);
+        features_two.column_mut(i).copy_from(&f_2);
+    }
+
+    let camera_rays_one = inverse_projection_one*features_one;
+    let camera_rays_two = inverse_projection_two*features_two;
+
+    //TODO: check this construction
+    for i in 0..5 {
+        let c_x_1 = &camera_rays_one.column(i);
+        let c_x_2 = &camera_rays_two.column(i);
+
+        let kroenecker_product = c_x_1.kronecker(&c_x_2).transpose();
+        A.row_mut(i).copy_from(&kroenecker_product);
+    }
+
     panic!("TODO");
 }
 
