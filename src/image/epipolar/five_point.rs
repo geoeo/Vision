@@ -2,8 +2,8 @@ extern crate nalgebra as na;
 use na::{RowOVector,Matrix3,OMatrix, dimension::{U10,U20,U5,U9,U3}};
 use crate::Float;
 use crate::sensors::camera::Camera;
-use crate::image::epipolar::Essential;
-use crate::image::features::{Feature,Match};
+use crate::image::{features::{Feature,Match},epipolar::Essential};
+use crate::numerics::to_matrix;
 
 
 /**
@@ -35,7 +35,6 @@ pub fn five_point_essential<T: Feature, C: Camera>(matches: [Match<T>; 5], camer
     let camera_rays_one = inverse_projection_one*features_one;
     let camera_rays_two = inverse_projection_two*features_two;
 
-    //TODO: check this construction
     for i in 0..5 {
         let c_x_1 = &camera_rays_one.column(i);
         let c_x_2 = &camera_rays_two.column(i);
@@ -43,6 +42,21 @@ pub fn five_point_essential<T: Feature, C: Camera>(matches: [Match<T>; 5], camer
         let kroenecker_product = c_x_1.kronecker(&c_x_2).transpose();
         A.row_mut(i).copy_from(&kroenecker_product);
     }
+
+    let A_svd = A.svd(false,true);
+    let v_t = A_svd.v_t.expect("Five Point: SVD failed on A");
+    let v1 = v_t.row(5).transpose();
+    let v2 = v_t.row(6).transpose();
+    let v3 = v_t.row(7).transpose();
+    let v4 = v_t.row(8).transpose();
+
+    let E1 = to_matrix::<3,3,9>(&v1);
+    let E2 = to_matrix::<3,3,9>(&v2);
+    let E3 = to_matrix::<3,3,9>(&v3);
+    let E4 = to_matrix::<3,3,9>(&v4);
+
+    let M = generate_five_point_constrait_matrix(&E1,&E2,&E3,&E4);
+
 
     panic!("TODO");
 }

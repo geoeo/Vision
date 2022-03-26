@@ -1,6 +1,6 @@
 extern crate nalgebra as na;
 
-use na::{Matrix2,Matrix3,Matrix1x2,Matrix3x1, Vector,Dim, storage::Storage,DVector };
+use na::{Matrix2,Matrix3,Matrix1x2,Matrix3x1,SMatrix, Vector,SVector,Dim, storage::Storage,DVector };
 use crate::image::Image;
 use crate::{Float,float};
 
@@ -9,6 +9,19 @@ pub mod pose;
 pub mod loss;
 pub mod least_squares;
 pub mod weighting;
+
+pub fn to_matrix<const N: usize, const M: usize,const D: usize>(vec: &SVector<Float,D>) -> SMatrix<Float,N,M> {
+    assert_eq!(D,N*M);
+
+    let mut m = SMatrix::<Float,N,M>::zeros();
+
+    for c in 0..M {
+        let column = vec.fixed_rows::<N>(c*N);
+        m.column_mut(c).copy_from(&column);
+    }
+
+    m
+}
 
 pub fn quadratic_roots(a: Float, b: Float, c: Float) -> (Float,Float) {
     let det = b.powi(2)-4.0*a*c;

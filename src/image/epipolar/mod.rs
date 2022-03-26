@@ -1,6 +1,5 @@
 extern crate nalgebra as na;
 
-
 use na::{Vector3, Matrix3,Matrix,Dynamic, VecStorage, dimension::U9};
 use crate::sensors::camera::Camera;
 use crate::Float;
@@ -9,7 +8,7 @@ use crate::image::features::{Feature,Match, ImageFeature, condition_matches};
 pub type Fundamental =  Matrix3<Float>;
 pub type Essential =  Matrix3<Float>;
 
-pub mod five_point;
+mod five_point;
 
 #[derive(Clone,Copy)]
 pub enum EssentialDecomposition {
