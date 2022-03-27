@@ -1,5 +1,5 @@
 extern crate nalgebra as na;
-use na::{RowOVector,Matrix3,OMatrix, dimension::{U10,U20,U5,U9,U3}};
+use na::{RowOVector,Vector3,Matrix3,OMatrix, dimension::{U10,U20,U5,U9,U3}};
 use crate::Float;
 use crate::sensors::camera::Camera;
 use crate::image::{features::{Feature,Match},epipolar::Essential};
@@ -44,7 +44,7 @@ pub fn five_point_essential<T: Feature, C: Camera>(matches: [Match<T>; 5], camer
     }
 
     let A_svd = A.svd(false,true);
-    let v_t = A_svd.v_t.expect("Five Point: SVD failed on A");
+    let v_t = A_svd.v_t.expect("Five Point: SVD failed on A!");
     let v1 = v_t.row(5).transpose();
     let v2 = v_t.row(6).transpose();
     let v3 = v_t.row(7).transpose();
@@ -56,6 +56,26 @@ pub fn five_point_essential<T: Feature, C: Camera>(matches: [Match<T>; 5], camer
     let E4 = to_matrix::<3,3,9>(&v4);
 
     let M = generate_five_point_constrait_matrix(&E1,&E2,&E3,&E4);
+
+    let C = M.fixed_columns::<10>(0);
+    let D = M.fixed_columns::<10>(10);
+    let B = -C.try_inverse().expect("Five Point: Inverse of C failed!")*D;
+
+    let mut action_matrix = OMatrix::<Float,U10,U10>::zeros();
+    let zero_mat = Matrix3::<Float>::zeros();
+    let zero_vec = Vector3::<Float>::zeros();
+    let zero_vec_transposed = zero_vec.transpose();
+    action_matrix.fixed_rows_mut::<6>(0).copy_from(&B.fixed_rows::<6>(0));
+    action_matrix.fixed_slice_mut::<3,3>(6,0).copy_from(&Matrix3::<Float>::identity());
+    action_matrix.fixed_slice_mut::<3,3>(6,3).copy_from(&zero_mat);
+    action_matrix.fixed_slice_mut::<3,1>(6,6).copy_from(&zero_vec);
+    action_matrix.fixed_slice_mut::<3,3>(6,7).copy_from(&zero_mat);
+    
+    action_matrix.fixed_slice_mut::<1,3>(9,0).copy_from(&zero_vec_transposed);
+    action_matrix.fixed_slice_mut::<1,3>(9,3).copy_from(&zero_vec_transposed);
+    action_matrix[(9,6)] = 1.0;
+    action_matrix.fixed_slice_mut::<1,3>(9,7).copy_from(&zero_vec_transposed);
+
 
 
     panic!("TODO");
