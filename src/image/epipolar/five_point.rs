@@ -83,7 +83,7 @@ pub fn five_point_essential<T: Feature, C: Camera>(matches: [Match<T>; 5], camer
     let z = eigenvalues[8]/eigenvalues[9];
     
 
-    x*E1+y*E2+z*E2+E4
+    x*E1+y*E2+z*E3+E4
 }
 
 #[allow(non_snake_case)]
