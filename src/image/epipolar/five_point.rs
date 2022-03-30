@@ -9,6 +9,7 @@ use crate::numerics::to_matrix;
 /**
  * Photogrammetric Computer Vision p.575
  * Points may be planar
+ * TODO: check this
  */
 #[allow(non_snake_case)]
 pub fn five_point_essential<T: Feature, C: Camera>(matches: [Match<T>; 5], camera_one: &C, camera_two: &C, depth_positive: bool) -> Essential {
@@ -76,9 +77,13 @@ pub fn five_point_essential<T: Feature, C: Camera>(matches: [Match<T>; 5], camer
     action_matrix[(9,6)] = 1.0;
     action_matrix.fixed_slice_mut::<1,3>(9,7).copy_from(&zero_vec_transposed);
 
+    let eigenvalues = action_matrix.eigenvalues().expect("Five Points: No Eigenvalues found!");
+    let x = eigenvalues[6]/eigenvalues[9];
+    let y = eigenvalues[7]/eigenvalues[9];
+    let z = eigenvalues[8]/eigenvalues[9];
+    
 
-
-    panic!("TODO");
+    x*E1+y*E2+z*E2+E4
 }
 
 #[allow(non_snake_case)]
