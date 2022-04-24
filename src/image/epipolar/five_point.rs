@@ -48,13 +48,16 @@ pub fn five_point_essential<T: Feature, C: Camera>(matches: &[Match<T>; 5], came
 
 
     // This only work on ubuntu. assert build version or something
-    let A_svd = nalgebra_lapack::SVD::new(A.transpose());
-    let u = &A_svd.expect("Five Point: SVD failed on A!").u;
-    println!("{}, {}", u.nrows(), u.ncols());
-    let u1 = u.column(5).into_owned(); 
-    let u2 = u.column(6).into_owned();
-    let u3 = u.column(7).into_owned();
-    let u4 = u.column(8).into_owned();
+    let A_svd = nalgebra_lapack::SVD::new(A);
+    let vt = &A_svd.expect("Five Point: SVD failed on A!").vt;
+    let u1 = vt.row(5).transpose(); 
+    let u2 = vt.row(6).transpose();
+    let u3 = vt.row(7).transpose();
+    let u4 = vt.row(8).transpose();
+    // let u1 = vt.column(5).into_owned(); 
+    // let u2 = vt.column(6).into_owned();
+    // let u3 = vt.column(7).into_owned();
+    // let u4 = vt.column(8).into_owned();
     let E1 = to_matrix::<3,3,9>(&u1);
     let E2 = to_matrix::<3,3,9>(&u2);
     let E3 = to_matrix::<3,3,9>(&u3);
@@ -67,29 +70,34 @@ pub fn five_point_essential<T: Feature, C: Camera>(matches: &[Match<T>; 5], came
     let B = -C.try_inverse().expect("Five Point: Inverse of C failed!")*D;
 
     let mut action_matrix = OMatrix::<Float,U10,U10>::zeros();
-    let zero_mat = Matrix3::<Float>::zeros();
-    let zero_vec = Vector3::<Float>::zeros();
-    let zero_vec_transposed = zero_vec.transpose();
+    //let zero_mat = Matrix3::<Float>::zeros();
+    //let zero_vec = Vector3::<Float>::zeros();
+    //let zero_vec_transposed = zero_vec.transpose();
 
     action_matrix.fixed_rows_mut::<6>(0).copy_from(&B.fixed_rows::<6>(0));
     action_matrix.fixed_slice_mut::<3,3>(6,0).copy_from(&Matrix3::<Float>::identity());
-    action_matrix.fixed_slice_mut::<3,3>(6,3).copy_from(&zero_mat);
-    action_matrix.fixed_slice_mut::<3,1>(6,6).copy_from(&zero_vec);
-    action_matrix.fixed_slice_mut::<3,3>(6,7).copy_from(&zero_mat);
+    //action_matrix.fixed_slice_mut::<3,3>(6,3).copy_from(&zero_mat);
+    //action_matrix.fixed_slice_mut::<3,1>(6,6).copy_from(&zero_vec);
+    //action_matrix.fixed_slice_mut::<3,3>(6,7).copy_from(&zero_mat);
     
-    action_matrix.fixed_slice_mut::<1,3>(9,0).copy_from(&zero_vec_transposed);
-    action_matrix.fixed_slice_mut::<1,3>(9,3).copy_from(&zero_vec_transposed);
+    //action_matrix.fixed_slice_mut::<1,3>(9,0).copy_from(&zero_vec_transposed);
+    //action_matrix.fixed_slice_mut::<1,3>(9,3).copy_from(&zero_vec_transposed);
     action_matrix[(9,6)] = 1.0;
-    action_matrix.fixed_slice_mut::<1,3>(9,7).copy_from(&zero_vec_transposed);
+    //action_matrix.fixed_slice_mut::<1,3>(9,7).copy_from(&zero_vec_transposed);
 
+    // TODO: This crashes
     //let eigenvalues = action_matrix.transpose().eigenvalues().expect("Five Points: No Eigenvalues found!");
-    let eigenvalues = nalgebra_lapack::Eigen::new(action_matrix.transpose(),false,false).expect("Five Points: No Eigenvalues found!").eigenvalues;
-    let x = eigenvalues[6]/eigenvalues[9];
-    let y = eigenvalues[7]/eigenvalues[9];
-    let z = eigenvalues[8]/eigenvalues[9];
+
+    let eigenvalues = nalgebra_lapack::Eigen::complex_eigenvalues(action_matrix);
+    //let schur = nalgebra_lapack::Schur::new(action_matrix);
+
+    //let x = eigenvalues[6]/eigenvalues[9];
+    //let y = eigenvalues[7]/eigenvalues[9];
+    //et z = eigenvalues[8]/eigenvalues[9];
     
 
-    x*E1+y*E2+z*E3+E4
+    //x*E1+y*E2+z*E3+E4
+    E1 // satisfy compiler
 }
 
 #[allow(non_snake_case)]

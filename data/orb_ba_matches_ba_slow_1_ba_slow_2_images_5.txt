@@ -1,0 +1,92 @@
+---
+- pyramid_scale: 1.2
+  sigma: 1.2
+  blur_radius: 5.0
+  octave_count: 8
+  max_features_per_octave: 8
+  max_features_per_octave_scale: 1.2
+  min_image_dimensions:
+    - 20
+    - 20
+  harris_k: 0.04
+  harris_window_size: 5
+  fast_circle_radius: 3
+  fast_threshold_factor: 0.2
+  fast_consecutive_pixels: 12
+  fast_features_per_grid: 3
+  fast_grid_size:
+    - 15
+    - 15
+  fast_grid_size_scale_base: 1.2
+  fast_offsets:
+    - 20
+    - 20
+  fast_offset_scale_base: 1.2
+  brief_features_to_descriptors: 128
+  brief_n: 256
+  brief_s: 31
+  brief_s_scale_base: 1.2
+  brief_matching_min_threshold: 128
+  brief_lookup_table_step: 30.0
+  brief_sampling_pattern_seed: 998420736839081709
+  brief_use_opencv_sampling_pattern: true
+- - - feature_one:
+        location:
+          x: 287
+          y: 531
+        orientation: 2.457447452201048
+        sigma_level: 0
+      feature_two:
+        location:
+          x: 292
+          y: 528
+        orientation: 2.3963620429265258
+        sigma_level: 0
+    - feature_one:
+        location:
+          x: 474
+          y: 318
+        orientation: 2.5834274503358583
+        sigma_level: 2
+      feature_two:
+        location:
+          x: 473
+          y: 318
+        orientation: 2.5568610899105106
+        sigma_level: 2
+    - feature_one:
+        location:
+          x: 285
+          y: 80
+        orientation: 4.1410240856119405
+        sigma_level: 5
+      feature_two:
+        location:
+          x: 284
+          y: 80
+        orientation: 4.15542687598126
+        sigma_level: 5
+    - feature_one:
+        location:
+          x: 267
+          y: 266
+        orientation: 2.761353972731545
+        sigma_level: 5
+      feature_two:
+        location:
+          x: 267
+          y: 266
+        orientation: 2.764225999702464
+        sigma_level: 5
+    - feature_one:
+        location:
+          x: 441
+          y: 46
+        orientation: 1.056784625538056
+        sigma_level: 3
+      feature_two:
+        location:
+          x: 439
+          y: 46
+        orientation: 1.0672101065322894
+        sigma_level: 3
