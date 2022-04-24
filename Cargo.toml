@@ -8,8 +8,9 @@ edition = '2018'
 
 [dependencies]
 image = "*"
+openblas-src = {version = "*", features = ["static"]}
 nalgebra = {version="*", features=["rand"]}
-nalgebra-lapack = {version ="*", default-features=false}
+nalgebra-lapack = {version ="*", default-features=false, features = ["openblas"]}
 nalgebra-sparse = {version ="*"}
 kiss3d = "*"
 rand = {version = "*", features = ["small_rng"] }

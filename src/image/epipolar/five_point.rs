@@ -1,4 +1,5 @@
 extern crate nalgebra as na;
+extern crate nalgebra_lapack;
 use na::{RowOVector,Vector3,Matrix3,OMatrix, dimension::{U10,U20,U5,U9,U3}};
 use crate::Float;
 use crate::sensors::camera::Camera;
@@ -44,8 +45,8 @@ pub fn five_point_essential<T: Feature, C: Camera>(matches: [Match<T>; 5], camer
         A.row_mut(i).copy_from(&kroenecker_product);
     }
 
-    let A_svd = A.svd(false,true);
-    let v_t = A_svd.v_t.expect("Five Point: SVD failed on A!");
+    let A_svd = nalgebra_lapack::SVD::new(A);
+    let v_t = A_svd.expect("Five Point: SVD failed on A!").vt;
     let v1 = v_t.row(5).transpose();
     let v2 = v_t.row(6).transpose();
     let v3 = v_t.row(7).transpose();
