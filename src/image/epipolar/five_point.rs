@@ -1,5 +1,6 @@
 extern crate nalgebra as na;
 extern crate nalgebra_lapack;
+
 use na::{RowOVector,Vector3,Matrix3,OMatrix, dimension::{U10,U20,U5,U9,U3}};
 use crate::Float;
 use crate::sensors::camera::Camera;
@@ -13,7 +14,7 @@ use crate::numerics::to_matrix;
  * TODO: check this
  */
 #[allow(non_snake_case)]
-pub fn five_point_essential<T: Feature, C: Camera>(matches: [Match<T>; 5], camera_one: &C, camera_two: &C, depth_positive: bool) -> Essential {
+pub fn five_point_essential<T: Feature, C: Camera>(matches: &[Match<T>; 5], camera_one: &C, camera_two: &C, depth_positive: bool) -> Essential {
     let mut features_one = OMatrix::<Float, U3,U5>::zeros();
     let mut features_two = OMatrix::<Float, U3,U5>::zeros();
     let mut A = OMatrix::<Float,U5,U9>::zeros();
@@ -45,17 +46,19 @@ pub fn five_point_essential<T: Feature, C: Camera>(matches: [Match<T>; 5], camer
         A.row_mut(i).copy_from(&kroenecker_product);
     }
 
-    let A_svd = nalgebra_lapack::SVD::new(A);
-    let v_t = A_svd.expect("Five Point: SVD failed on A!").vt;
-    let v1 = v_t.row(5).transpose();
-    let v2 = v_t.row(6).transpose();
-    let v3 = v_t.row(7).transpose();
-    let v4 = v_t.row(8).transpose();
 
-    let E1 = to_matrix::<3,3,9>(&v1);
-    let E2 = to_matrix::<3,3,9>(&v2);
-    let E3 = to_matrix::<3,3,9>(&v3);
-    let E4 = to_matrix::<3,3,9>(&v4);
+    // This only work on ubuntu. assert build version or something
+    let A_svd = nalgebra_lapack::SVD::new(A.transpose());
+    let u = &A_svd.expect("Five Point: SVD failed on A!").u;
+    println!("{}, {}", u.nrows(), u.ncols());
+    let u1 = u.column(5).into_owned(); 
+    let u2 = u.column(6).into_owned();
+    let u3 = u.column(7).into_owned();
+    let u4 = u.column(8).into_owned();
+    let E1 = to_matrix::<3,3,9>(&u1);
+    let E2 = to_matrix::<3,3,9>(&u2);
+    let E3 = to_matrix::<3,3,9>(&u3);
+    let E4 = to_matrix::<3,3,9>(&u4);
 
     let M = generate_five_point_constrait_matrix(&E1,&E2,&E3,&E4);
 
@@ -67,6 +70,7 @@ pub fn five_point_essential<T: Feature, C: Camera>(matches: [Match<T>; 5], camer
     let zero_mat = Matrix3::<Float>::zeros();
     let zero_vec = Vector3::<Float>::zeros();
     let zero_vec_transposed = zero_vec.transpose();
+
     action_matrix.fixed_rows_mut::<6>(0).copy_from(&B.fixed_rows::<6>(0));
     action_matrix.fixed_slice_mut::<3,3>(6,0).copy_from(&Matrix3::<Float>::identity());
     action_matrix.fixed_slice_mut::<3,3>(6,3).copy_from(&zero_mat);
@@ -78,7 +82,8 @@ pub fn five_point_essential<T: Feature, C: Camera>(matches: [Match<T>; 5], camer
     action_matrix[(9,6)] = 1.0;
     action_matrix.fixed_slice_mut::<1,3>(9,7).copy_from(&zero_vec_transposed);
 
-    let eigenvalues = action_matrix.eigenvalues().expect("Five Points: No Eigenvalues found!");
+    //let eigenvalues = action_matrix.transpose().eigenvalues().expect("Five Points: No Eigenvalues found!");
+    let eigenvalues = nalgebra_lapack::Eigen::new(action_matrix.transpose(),false,false).expect("Five Points: No Eigenvalues found!").eigenvalues;
     let x = eigenvalues[6]/eigenvalues[9];
     let y = eigenvalues[7]/eigenvalues[9];
     let z = eigenvalues[8]/eigenvalues[9];

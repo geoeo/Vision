@@ -1,0 +1,128 @@
+---
+- pyramid_scale: 1.2
+  sigma: 1.2
+  blur_radius: 5.0
+  octave_count: 8
+  max_features_per_octave: 8
+  max_features_per_octave_scale: 1.2
+  min_image_dimensions:
+    - 20
+    - 20
+  harris_k: 0.04
+  harris_window_size: 5
+  fast_circle_radius: 3
+  fast_threshold_factor: 0.2
+  fast_consecutive_pixels: 12
+  fast_features_per_grid: 3
+  fast_grid_size:
+    - 15
+    - 15
+  fast_grid_size_scale_base: 1.2
+  fast_offsets:
+    - 20
+    - 20
+  fast_offset_scale_base: 1.2
+  brief_features_to_descriptors: 128
+  brief_n: 256
+  brief_s: 31
+  brief_s_scale_base: 1.2
+  brief_matching_min_threshold: 128
+  brief_lookup_table_step: 30.0
+  brief_sampling_pattern_seed: 998420736839081709
+  brief_use_opencv_sampling_pattern: true
+- - - feature_one:
+        location:
+          x: 337
+          y: 79
+        orientation: 2.4727385784371814
+        sigma_level: 5
+      feature_two:
+        location:
+          x: 226
+          y: 71
+        orientation: 2.424637237996875
+        sigma_level: 6
+    - feature_one:
+        location:
+          x: 337
+          y: 78
+        orientation: 2.4835952979392797
+        sigma_level: 5
+      feature_two:
+        location:
+          x: 272
+          y: 81
+        orientation: 2.4813877142357508
+        sigma_level: 5
+    - feature_one:
+        location:
+          x: 341
+          y: 70
+        orientation: 2.629046283827412
+        sigma_level: 5
+      feature_two:
+        location:
+          x: 350
+          y: 43
+        orientation: 2.628349305289845
+        sigma_level: 4
+    - feature_one:
+        location:
+          x: 477
+          y: 315
+        orientation: 2.4893528045006166
+        sigma_level: 2
+      feature_two:
+        location:
+          x: 369
+          y: 318
+        orientation: 2.4746449625720226
+        sigma_level: 2
+    - feature_one:
+        location:
+          x: 414
+          y: 69
+        orientation: 2.684140228004517
+        sigma_level: 4
+      feature_two:
+        location:
+          x: 339
+          y: 68
+        orientation: 2.684609523893872
+        sigma_level: 4
+    - feature_one:
+        location:
+          x: 341
+          y: 69
+        orientation: 2.642369492203689
+        sigma_level: 5
+      feature_two:
+        location:
+          x: 235
+          y: 49
+        orientation: 2.6558112715583553
+        sigma_level: 6
+    - feature_one:
+        location:
+          x: 572
+          y: 376
+        orientation: 2.4810189451512237
+        sigma_level: 1
+      feature_two:
+        location:
+          x: 444
+          y: 379
+        orientation: 2.43499143375365
+        sigma_level: 1
+    - feature_one:
+        location:
+          x: 688
+          y: 449
+        orientation: 2.4714898410991735
+        sigma_level: 0
+      feature_two:
+        location:
+          x: 534
+          y: 453
+        orientation: 2.443231028625688
+        sigma_level: 0

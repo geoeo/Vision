@@ -24,10 +24,6 @@ serde_yaml = "0.8"
 [profile.dev]
 debug = true
 
-[profile.release] 
-debug = true
-
-
 [[example]]
 name = "orb_ba"
 path = "examples/sfm/orb_ba.rs"
@@ -67,5 +63,7 @@ path = "examples/sfm/ba_3dv.rs"
 [[example]]
 name = "olsen"
 path = "examples/sfm/olsen.rs"
+
+
 
 

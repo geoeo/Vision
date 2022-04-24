@@ -1,14 +1,15 @@
 extern crate nalgebra as na;
 
+mod five_point;
+
 use na::{Vector3, Matrix3,Matrix,Dynamic, VecStorage, dimension::U9};
 use crate::sensors::camera::Camera;
 use crate::Float;
 use crate::image::features::{Feature,Match, ImageFeature, condition_matches};
-
 pub type Fundamental =  Matrix3<Float>;
 pub type Essential =  Matrix3<Float>;
 
-mod five_point;
+
 
 #[derive(Clone,Copy)]
 pub enum EssentialDecomposition {
@@ -32,6 +33,10 @@ pub fn extract_matches<T: Feature>(matches: &Vec<Match<T>>, pyramid_scale: Float
         }
     }
 
+}
+#[allow(non_snake_case)]
+pub fn five_point_essential<T: Feature, C: Camera>(matches: &[Match<T>; 5], camera_one: &C, camera_two: &C, depth_positive: bool) -> Essential {
+    five_point::five_point_essential(matches,camera_one,camera_two,depth_positive)
 }
 
 /**

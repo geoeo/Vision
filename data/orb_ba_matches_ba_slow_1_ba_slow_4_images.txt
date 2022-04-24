@@ -1,0 +1,128 @@
+---
+- pyramid_scale: 1.2
+  sigma: 1.2
+  blur_radius: 5.0
+  octave_count: 8
+  max_features_per_octave: 8
+  max_features_per_octave_scale: 1.2
+  min_image_dimensions:
+    - 20
+    - 20
+  harris_k: 0.04
+  harris_window_size: 5
+  fast_circle_radius: 3
+  fast_threshold_factor: 0.2
+  fast_consecutive_pixels: 12
+  fast_features_per_grid: 3
+  fast_grid_size:
+    - 15
+    - 15
+  fast_grid_size_scale_base: 1.2
+  fast_offsets:
+    - 20
+    - 20
+  fast_offset_scale_base: 1.2
+  brief_features_to_descriptors: 128
+  brief_n: 256
+  brief_s: 31
+  brief_s_scale_base: 1.2
+  brief_matching_min_threshold: 128
+  brief_lookup_table_step: 30.0
+  brief_sampling_pattern_seed: 998420736839081709
+  brief_use_opencv_sampling_pattern: true
+- - - feature_one:
+        location:
+          x: 337
+          y: 78
+        orientation: 2.4835952979392794
+        sigma_level: 5
+      feature_two:
+        location:
+          x: 327
+          y: 99
+        orientation: 2.470174384998984
+        sigma_level: 4
+    - feature_one:
+        location:
+          x: 201
+          y: 110
+        orientation: 3.3021991285266529
+        sigma_level: 7
+      feature_two:
+        location:
+          x: 159
+          y: 110
+        orientation: 3.288321714362688
+        sigma_level: 7
+    - feature_one:
+        location:
+          x: 279
+          y: 68
+        orientation: 2.4864736986550448
+        sigma_level: 6
+      feature_two:
+        location:
+          x: 225
+          y: 73
+        orientation: 2.485988762573573
+        sigma_level: 6
+    - feature_one:
+        location:
+          x: 42
+          y: 203
+        orientation: 3.8535056936157
+        sigma_level: 1
+      feature_two:
+        location:
+          x: 34
+          y: 536
+        orientation: 3.978055929000379
+        sigma_level: 0
+    - feature_one:
+        location:
+          x: 687
+          y: 450
+        orientation: 2.4685413121263419
+        sigma_level: 0
+      feature_two:
+        location:
+          x: 536
+          y: 452
+        orientation: 2.455315763737663
+        sigma_level: 0
+    - feature_one:
+        location:
+          x: 326
+          y: 272
+        orientation: 0.819264843403178
+        sigma_level: 5
+      feature_two:
+        location:
+          x: 266
+          y: 267
+        orientation: 0.823998845145012
+        sigma_level: 5
+    - feature_one:
+        location:
+          x: 337
+          y: 79
+        orientation: 2.472738578437181
+        sigma_level: 5
+      feature_two:
+        location:
+          x: 274
+          y: 80
+        orientation: 2.4886699273455377
+        sigma_level: 5
+    - feature_one:
+        location:
+          x: 474
+          y: 319
+        orientation: 2.6475339672707429
+        sigma_level: 2
+      feature_two:
+        location:
+          x: 369
+          y: 321
+        orientation: 2.6882541877176009
+        sigma_level: 2
