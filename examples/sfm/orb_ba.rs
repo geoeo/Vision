@@ -53,9 +53,9 @@ fn main() -> Result<()> {
     let intensity_camera_3 = intensity_camera_1.clone();
     let intensity_camera_4 = intensity_camera_1.clone();
 
-    let orb_matches_as_string_1_2 = fs::read_to_string(format!("D:/Workspace/Rust/Vision/output/orb_ba_matches_ba_slow_{}_ba_slow_{}_images.txt",id_1,id_2)).expect("Unable to read file");
-    let orb_matches_as_string_1_3 = fs::read_to_string(format!("D:/Workspace/Rust/Vision/output/orb_ba_matches_ba_slow_{}_ba_slow_{}_images.txt",id_1,id_3)).expect("Unable to read file");
-    let orb_matches_as_string_1_4 = fs::read_to_string(format!("D:/Workspace/Rust/Vision/output/orb_ba_matches_ba_slow_{}_ba_slow_{}_images.txt",id_1,id_4)).expect("Unable to read file");
+    let orb_matches_as_string_1_2 = fs::read_to_string(format!("D:/Workspace/Rust/Vision/data/orb_ba_matches_ba_slow_{}_ba_slow_{}_images.txt",id_1,id_2)).expect("Unable to read file");
+    let orb_matches_as_string_1_3 = fs::read_to_string(format!("D:/Workspace/Rust/Vision/data/orb_ba_matches_ba_slow_{}_ba_slow_{}_images.txt",id_1,id_3)).expect("Unable to read file");
+    let orb_matches_as_string_1_4 = fs::read_to_string(format!("D:/Workspace/Rust/Vision/data/orb_ba_matches_ba_slow_{}_ba_slow_{}_images.txt",id_1,id_4)).expect("Unable to read file");
     let (orb_params_1_2,matches_1_2): (OrbRuntimeParameters,Vec<Vec<Match<OrbFeature>>>) = serde_yaml::from_str(&orb_matches_as_string_1_2)?;
     let (orb_params_1_3,matches_1_3): (OrbRuntimeParameters,Vec<Vec<Match<OrbFeature>>>) = serde_yaml::from_str(&orb_matches_as_string_1_3)?;
     let (orb_params_1_4,matches_1_4): (OrbRuntimeParameters,Vec<Vec<Match<OrbFeature>>>) = serde_yaml::from_str(&orb_matches_as_string_1_4)?;

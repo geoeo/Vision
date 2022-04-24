@@ -1,4 +1,6 @@
 extern crate nalgebra as na;
+//extern crate nalgebra_lapack;
+
 use na::{RowOVector,Vector3,Matrix3,OMatrix, dimension::{U10,U20,U5,U9,U3}};
 use crate::Float;
 use crate::sensors::camera::Camera;
@@ -12,7 +14,7 @@ use crate::numerics::to_matrix;
  * TODO: check this
  */
 #[allow(non_snake_case)]
-pub fn five_point_essential<T: Feature, C: Camera>(matches: [Match<T>; 5], camera_one: &C, camera_two: &C, depth_positive: bool) -> Essential {
+pub fn five_point_essential<T: Feature, C: Camera>(matches: &[Match<T>; 5], camera_one: &C, camera_two: &C, depth_positive: bool) -> Essential {
     let mut features_one = OMatrix::<Float, U3,U5>::zeros();
     let mut features_two = OMatrix::<Float, U3,U5>::zeros();
     let mut A = OMatrix::<Float,U5,U9>::zeros();
@@ -44,17 +46,19 @@ pub fn five_point_essential<T: Feature, C: Camera>(matches: [Match<T>; 5], camer
         A.row_mut(i).copy_from(&kroenecker_product);
     }
 
-    let A_svd = A.svd(false,true);
-    let v_t = A_svd.v_t.expect("Five Point: SVD failed on A!");
-    let v1 = v_t.row(5).transpose();
-    let v2 = v_t.row(6).transpose();
-    let v3 = v_t.row(7).transpose();
-    let v4 = v_t.row(8).transpose();
+    let A_svd = A.transpose().try_svd_unordered(true,false,1e-12,0);
+    //let A_svd = nalgebra_lapack::SVD::new(A);
+    let u = &A_svd.expect("Five Point: SVD failed on A!").u.expect("No u");
+    println!("{}, {}", u.nrows(), u.ncols());
+    let u1 = u.column(5).into_owned(); // currently will crash
+    let u2 = u.column(6).into_owned();
+    let u3 = u.column(7).into_owned();
+    let u4 = u.column(8).into_owned();
 
-    let E1 = to_matrix::<3,3,9>(&v1);
-    let E2 = to_matrix::<3,3,9>(&v2);
-    let E3 = to_matrix::<3,3,9>(&v3);
-    let E4 = to_matrix::<3,3,9>(&v4);
+    let E1 = to_matrix::<3,3,9>(&u1);
+    let E2 = to_matrix::<3,3,9>(&u2);
+    let E3 = to_matrix::<3,3,9>(&u3);
+    let E4 = to_matrix::<3,3,9>(&u4);
 
     let M = generate_five_point_constrait_matrix(&E1,&E2,&E3,&E4);
 

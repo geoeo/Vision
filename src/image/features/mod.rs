@@ -1,5 +1,6 @@
 use nalgebra as na;
 
+use std::convert::{TryFrom,TryInto};
 use na::{Vector2,Vector3,Matrix3, OMatrix, base::dimension::U3, base::dimension::Dynamic};
 use serde::{Serialize, Deserialize};
 use crate::{Float,float};
