@@ -9,7 +9,7 @@ use crate::Float;
 
 pub fn load_matrix(file_path: &str) -> DMatrix<Float> {
 
-    let file = File::open(file_path).expect("load_ground_truths failed");
+    let file = File::open(file_path).expect("loading octave file failed!");
     let reader = BufReader::new(file);
     let mut lines = reader.lines();
 
@@ -65,7 +65,12 @@ pub fn parse_header(lines: &mut Lines<BufReader<File>>) -> (usize,usize, bool) {
 
         match type_name {
             "rows" => rows = parts[1].trim().parse::<usize>().expect("Could not parse row count in octave file!"),
-            "type" => next_matrix_found = parts[1].trim().eq("matrix"),
+            "type" => {
+                match parts[1].trim() {
+                    "matrix" => next_matrix_found = true,
+                    t => panic!("type: {} not parseable", t)
+                }
+            },
             "columns" => {
                 columns = parts[1].trim().parse::<usize>().expect("Could not parse column count in octave file!");
                 // column is always the last entry before data
