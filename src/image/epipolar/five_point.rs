@@ -1,11 +1,11 @@
 extern crate nalgebra as na;
 extern crate nalgebra_lapack;
 
-use na::{RowOVector,Vector3,Matrix3,OMatrix, dimension::{U10,U20,U5,U9,U3}};
+use na::{RowOVector,Vector3,Matrix3,OMatrix,SVector, dimension::{U10,U20,U5,U9,U3}};
 use crate::Float;
 use crate::sensors::camera::Camera;
 use crate::image::{features::{Feature,Match},epipolar::Essential};
-use crate::numerics::to_matrix;
+use crate::numerics::{to_matrix,compute_eigenvector};
 
 
 /**
@@ -77,14 +77,32 @@ pub fn five_point_essential<T: Feature, C: Camera>(matches: &[Match<T>; 5], came
     let eigenvalues = action_matrix.complex_eigenvalues();
     //let eigenvalues = nalgebra_lapack::Eigen::complex_eigenvalues(action_matrix);
 
+    let mut real_eigenvalues =  Vec::<Float>::with_capacity(10);
+    let mut real_eigenvectors = Vec::<SVector::<Float,10>>::with_capacity(10);
+    for i in 0..10 {
+        let c = eigenvalues[i];
+        println!("{:?}",c);
+        if c.im == 0.0 {
+            let real_value = c.re;
+            real_eigenvalues.push(real_value);
+            real_eigenvectors.push(compute_eigenvector(real_value,&action_matrix))
+        }
+    }
 
-    //let x = eigenvalues[6]/eigenvalues[9];
-    //let y = eigenvalues[7]/eigenvalues[9];
-    //et z = eigenvalues[8]/eigenvalues[9];
+    //TODO: cheirality check
+    let best_eigenvector = cheirality_check(&real_eigenvectors);
+
+    let x = best_eigenvector[6]/best_eigenvector[9];
+    let y = best_eigenvector[7]/best_eigenvector[9];
+    let z = best_eigenvector[8]/best_eigenvector[9];
     
+    x*E1+y*E2+z*E3+E4
+}
 
-    //x*E1+y*E2+z*E3+E4
-    E1 // satisfy compiler
+//TODO
+pub fn cheirality_check(eigenvectors: &Vec::<SVector::<Float,10>>) -> SVector::<Float,10> {
+    println!("WARN: Implement cheirality_check!");
+    eigenvectors.first().copied().expect("cheirality_check: eigenvectors was empty!")
 }
 
 #[allow(non_snake_case)]
