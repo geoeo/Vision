@@ -25,33 +25,6 @@ pub fn to_matrix<const N: usize, const M: usize, const D: usize>(vec: &SVector<F
     m 
 }
 
-//TODO make this generic!
-// pub fn compute_eigenvector<const M: usize>(eigenvalue: Float, A: &SMatrix<Float,M,M>) -> SVector<Float,M>  where 
-//     Const<M> : ToTypenum, 
-//     Const<M>: DimMin<Const<M>>,
-//     DefaultAllocator: Allocator<Float, Const<M>, Const<M>> + Allocator<(usize, usize), DimMinimum<Const<M>, Const<M>>>{
-
-//     let I = eigenvalue*SMatrix::<Float,M,M>::identity();
-//     let zeros = SVector::<Float,M>::zeros();
-
-//     let temp : SMatrix::<Float,M,M>  = A-I;
-//     let lu_decomp = LU::new(temp);
-
-//     lu_decomp.solve(&zeros).expect("compute_eigenvector: LU failed to solve!")
-// }
-
-//TODO: code always returns 0 since its the trivial solution
-pub fn compute_eigenvector(eigenvalue: Float, A: &SMatrix<Float,10,10>) -> SVector<Float,10> {
-    println!("WARN: This function should be generic. FIX ASAP!");
-    let I = eigenvalue*SMatrix::<Float,10,10>::identity();
-    let zeros = SVector::<Float,10>::zeros();
-
-    let temp : SMatrix::<Float,10,10>  = A-I;
-    let lu_decomp = LU::new(temp);
-
-    lu_decomp.solve(&zeros).expect("compute_eigenvector: LU failed to solve!")
-}
-
 pub fn quadratic_roots(a: Float, b: Float, c: Float) -> (Float,Float) {
     let det = b.powi(2)-4.0*a*c;
     match det {

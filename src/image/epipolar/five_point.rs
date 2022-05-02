@@ -5,7 +5,7 @@ use na::{RowOVector,Vector3,Matrix3,OMatrix,SVector, dimension::{U10,U20,U5,U9,U
 use crate::Float;
 use crate::sensors::camera::Camera;
 use crate::image::{features::{Feature,Match},epipolar::Essential};
-use crate::numerics::{to_matrix,compute_eigenvector};
+use crate::numerics::to_matrix;
 
 
 /**
@@ -74,8 +74,9 @@ pub fn five_point_essential<T: Feature, C: Camera>(matches: &[Match<T>; 5], came
     action_matrix.fixed_slice_mut::<3,3>(6,0).copy_from(&Matrix3::<Float>::identity());
     action_matrix[(9,6)] = 1.0;
 
-    let eigenvalues = action_matrix.complex_eigenvalues();
-    //let eigenvalues = nalgebra_lapack::Eigen::complex_eigenvalues(action_matrix);
+    //let eigenvalues = action_matrix.complex_eigenvalues();
+    let (eigenvalues, option_vl, option_vr) = nalgebra_lapack::Eigen::complex_eigenvalues(action_matrix, false, true);
+    let vr = option_vr.expect("Five Point: right eigenvector computation failed!");
 
     let mut real_eigenvalues =  Vec::<Float>::with_capacity(10);
     let mut real_eigenvectors = Vec::<SVector::<Float,10>>::with_capacity(10);
@@ -85,7 +86,7 @@ pub fn five_point_essential<T: Feature, C: Camera>(matches: &[Match<T>; 5], came
         if c.im == 0.0 {
             let real_value = c.re;
             real_eigenvalues.push(real_value);
-            real_eigenvectors.push(compute_eigenvector(real_value,&action_matrix))
+            real_eigenvectors.push(vr.column(i).into_owned())
         }
     }
 

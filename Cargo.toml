@@ -9,9 +9,9 @@ edition = '2018'
 [dependencies]
 image = "*"
 openblas-src = {version = "*", features = ["static"]}
-nalgebra = {version="*", features=["rand"]}
-nalgebra-lapack = {version ="*", default-features=false, features = ["openblas"]}
-nalgebra-sparse = {version ="*"}
+nalgebra = {version="*", features=["rand"], path="/home/marc/Rust/nalgebra"}
+nalgebra-lapack = {version ="*", default-features=false, features = ["openblas"], path="/home/marc/Rust/nalgebra/nalgebra-lapack"}
+nalgebra-sparse = {version ="*", path="/home/marc/Rust/nalgebra/nalgebra-sparse"}
 kiss3d = "*"
 rand = {version = "*", features = ["small_rng"] }
 rand_distr = "*"
