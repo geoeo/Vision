@@ -6,11 +6,13 @@ extern crate nalgebra as na;
 use std::fs;
 use std::convert::TryInto;
 use color_eyre::eyre::Result;
+use na::SVector;
 use vision::image::features::{Match,orb_feature::OrbFeature,Feature, ImageFeature};
 use vision::image::pyramid::orb::orb_runtime_parameters::OrbRuntimeParameters;
 use vision::image::epipolar;
 use vision::sensors::camera::{pinhole::Pinhole, Camera};
 use vision::io::octave_loader;
+use vision::Float;
 
 
 fn main() -> Result<()> {
@@ -22,7 +24,8 @@ fn main() -> Result<()> {
 
     let K = octave_loader::load_matrix("/home/marc/Workspace/Vision/data/5_point_synthetic/intrinsics.txt");
     let R = octave_loader::load_matrix("/home/marc/Workspace/Vision/data/5_point_synthetic/rotation.txt");
-    let t = octave_loader::load_vector("/home/marc/Workspace/Vision/data/5_point_synthetic/translation.txt");
+    let t_raw = octave_loader::load_vector("/home/marc/Workspace/Vision/data/5_point_synthetic/translation.txt");
+    let t = SVector::<Float,3>::new(t_raw[(0,0)],t_raw[(1,0)],t_raw[(2,0)]);
     let x1h = octave_loader::load_matrix("/home/marc/Workspace/Vision/data/5_point_synthetic/cam1_features.txt");
     let x2h = octave_loader::load_matrix("/home/marc/Workspace/Vision/data/5_point_synthetic/cam2_features.txt");
 
@@ -38,6 +41,13 @@ fn main() -> Result<()> {
         synth_matches.push(m);
     }
     let feature_matches = epipolar::extract_matches(&synth_matches, 1.0, false); 
+    let gt = t.cross_matrix()*R;
+    let factor = gt[(2,2)];
+    let gt_norm = gt.map(|x| x/factor);
+    println!("------ GT -------");
+    println!("{}",gt_norm);
+    println!("----------------");
+
 
 
     //let intensity_camera_1 = Pinhole::new(389.2685546875, 389.2685546875, 319.049255371094, 241.347015380859, true);

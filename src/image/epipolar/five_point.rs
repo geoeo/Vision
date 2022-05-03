@@ -41,29 +41,28 @@ pub fn five_point_essential<T: Feature, C: Camera>(matches: &[Match<T>; 5], came
         let c_x_1 = &camera_rays_one.column(i);
         let c_x_2 = &camera_rays_two.column(i);
 
-        let kroenecker_product = c_x_1.kronecker(&c_x_2).transpose();
+        let kroenecker_product = c_x_2.kronecker(&c_x_1).transpose();
         A.row_mut(i).copy_from(&kroenecker_product);
     }
 
 
     // This only work on ubuntu. assert build version or something
     let A_svd = nalgebra_lapack::SVD::new(A);
+
     let vt = &A_svd.expect("Five Point: SVD failed on A!").vt;
     let u1 = vt.row(5).transpose(); 
     let u2 = vt.row(6).transpose();
     let u3 = vt.row(7).transpose();
     let u4 = vt.row(8).transpose();
-    // let u1 = vt.column(5).into_owned(); 
-    // let u2 = vt.column(6).into_owned();
-    // let u3 = vt.column(7).into_owned();
-    // let u4 = vt.column(8).into_owned();
+
     let E1 = to_matrix::<3,3,9>(&u1);
     let E2 = to_matrix::<3,3,9>(&u2);
     let E3 = to_matrix::<3,3,9>(&u3);
     let E4 = to_matrix::<3,3,9>(&u4);
 
+    println!("{}",E1);
+    println!("----");
     let M = generate_five_point_constrait_matrix(&E1,&E2,&E3,&E4);
-
 
     let C = M.fixed_columns::<10>(0);
     let D = M.fixed_columns::<10>(10);
@@ -74,8 +73,7 @@ pub fn five_point_essential<T: Feature, C: Camera>(matches: &[Match<T>; 5], came
     action_matrix.fixed_slice_mut::<3,3>(6,0).copy_from(&Matrix3::<Float>::identity());
     action_matrix[(9,6)] = 1.0;
 
-    //let eigenvalues = action_matrix.complex_eigenvalues();
-    let (eigenvalues, option_vl, option_vr) = nalgebra_lapack::Eigen::complex_eigenvalues(action_matrix, false, true);
+    let (eigenvalues, option_vl, option_vr) = nalgebra_lapack::Eigen::complex_eigenvalues(action_matrix, true, true);
     let vr = option_vr.expect("Five Point: right eigenvector computation failed!");
 
     let mut real_eigenvalues =  Vec::<Float>::with_capacity(10);
@@ -90,20 +88,30 @@ pub fn five_point_essential<T: Feature, C: Camera>(matches: &[Match<T>; 5], came
         }
     }
 
+    let all_essential_matricies = real_eigenvectors.iter().map(|v| {
+        let x = v[6]/v[9];
+        let y = v[7]/v[9];
+        let z = v[8]/v[9];
+        
+        x*E1+y*E2+z*E3+E4
+    }).collect::<Vec<Essential>>();
     //TODO: cheirality check
-    let best_eigenvector = cheirality_check(&real_eigenvectors);
-
-    let x = best_eigenvector[6]/best_eigenvector[9];
-    let y = best_eigenvector[7]/best_eigenvector[9];
-    let z = best_eigenvector[8]/best_eigenvector[9];
+    let best_essential = cheirality_check(&all_essential_matricies);
     
-    x*E1+y*E2+z*E3+E4
+    best_essential
 }
 
 //TODO
-pub fn cheirality_check(eigenvectors: &Vec::<SVector::<Float,10>>) -> SVector::<Float,10> {
+pub fn cheirality_check(essential_matricies: &Vec<Essential>) -> Essential {
     println!("WARN: Implement cheirality_check!");
-    eigenvectors.first().copied().expect("cheirality_check: eigenvectors was empty!")
+    for &e in essential_matricies {
+        let factor = e[(2,2)];
+        let e_norm = e.map(|x| x/factor);
+        println!("{}",e_norm);
+        println!("------");
+    }
+
+    essential_matricies.first().copied().expect("cheirality_check: essential matrix list was empty!")
 }
 
 #[allow(non_snake_case)]
