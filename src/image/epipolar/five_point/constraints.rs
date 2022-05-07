@@ -1,170 +1,12 @@
 extern crate nalgebra as na;
-extern crate nalgebra_lapack;
 
-use na::{RowOVector,Vector3,Matrix2,Matrix3,OMatrix,SVector, dimension::{U10,U20,U5,U9,U3}};
+use na::{RowOVector,OMatrix,Matrix3, dimension::{U10,U20}};
 use crate::Float;
-use crate::sensors::camera::Camera;
-use crate::image::{features::{Feature,Match},epipolar::Essential};
-use crate::numerics::to_matrix;
 
-
-/**
- * Photogrammetric Computer Vision p.575
- * Points may be planar
- */
-#[allow(non_snake_case)]
-pub fn five_point_essential<T: Feature, C: Camera>(matches: &[Match<T>; 5], camera_one: &C, camera_two: &C, depth_positive: bool) -> Essential {
-    let mut features_one = OMatrix::<Float, U3,U5>::zeros();
-    let mut features_two = OMatrix::<Float, U3,U5>::zeros();
-    let mut A = OMatrix::<Float,U5,U9>::zeros();
-    let normalized_depth = match depth_positive {
-        true => 1.0,
-        _ => -1.0
-    };
-
-    let inverse_projection_one = camera_one.get_inverse_projection();
-    let inverse_projection_two = camera_two.get_inverse_projection();
-
-    for i in 0..5 {
-        let m = &matches[i];
-        let f_1 = m.feature_one.get_as_3d_point(normalized_depth);
-        let f_2 = m.feature_two.get_as_3d_point(normalized_depth);
-
-        features_one.column_mut(i).copy_from(&f_1);
-        features_two.column_mut(i).copy_from(&f_2);
-    }
-
-    let camera_rays_one = inverse_projection_one*features_one;
-    let camera_rays_two = inverse_projection_two*features_two;
-
-    for i in 0..5 {
-        let c_x_1 = &camera_rays_one.column(i);
-        let c_x_2 = &camera_rays_two.column(i);
-
-        let kroenecker_product = c_x_2.kronecker(&c_x_1).transpose();
-        A.row_mut(i).copy_from(&kroenecker_product);
-    }
-
-
-    // This only work on ubuntu. assert build version or something
-    let A_svd = nalgebra_lapack::SVD::new(A); // TODO nalgebra svd
-
-    let vt = &A_svd.expect("Five Point: SVD failed on A!").vt;
-    let u1 = vt.row(5).transpose(); 
-    let u2 = vt.row(6).transpose();
-    let u3 = vt.row(7).transpose();
-    let u4 = vt.row(8).transpose();
-
-    let E1 = to_matrix::<3,3,9>(&u1);
-    let E2 = to_matrix::<3,3,9>(&u2);
-    let E3 = to_matrix::<3,3,9>(&u3);
-    let E4 = to_matrix::<3,3,9>(&u4);
-
-    let M = generate_five_point_constrait_matrix(&E1,&E2,&E3,&E4);
-
-    let C = M.fixed_columns::<10>(0);
-    let D = M.fixed_columns::<10>(10);
-    
-    let B = -C.try_inverse().expect("Five Point: Inverse of C failed!")*D;
-
-    let mut action_matrix = OMatrix::<Float,U10,U10>::zeros();
-    action_matrix.fixed_rows_mut::<3>(0).copy_from(&B.fixed_rows::<3>(0));
-    action_matrix.fixed_rows_mut::<1>(3).copy_from(&B.fixed_rows::<1>(4));
-    action_matrix.fixed_rows_mut::<1>(4).copy_from(&B.fixed_rows::<1>(5));
-    action_matrix.fixed_rows_mut::<1>(5).copy_from(&B.fixed_rows::<1>(7));
-    action_matrix.fixed_slice_mut::<2,2>(6,0).copy_from(&Matrix2::<Float>::identity());
-    action_matrix[(8,3)] = 1.0;
-    action_matrix[(9,6)] = 1.0;
-
-    let (eigenvalues, option_vl, option_vr) = nalgebra_lapack::Eigen::complex_eigenvalues(action_matrix, false, true);
-    let eigen_v = option_vr.expect("Five Point: eigenvector computation failed!");
-
-
-    let mut real_eigenvalues =  Vec::<Float>::with_capacity(10);
-    let mut real_eigenvectors = Vec::<SVector::<Float,10>>::with_capacity(10);
-    for i in 0..10 {
-        let c = eigenvalues[i];
-        println!("{:?}",c);
-        if c.im == 0.0 {
-            let real_value = c.re;
-            real_eigenvalues.push(real_value);
-            real_eigenvectors.push(eigen_v.column(i).into_owned())
-        }
-    }
-
-    let all_essential_matricies = real_eigenvectors.iter().map(|vec| {
-
-        let u = vec[6];
-        let v = vec[7];
-        let w = vec[8];
-        let t = vec[9];
-
-        let x = vec[6]/vec[9];
-        let y = vec[7]/vec[9];
-        let z = vec[8]/vec[9];
-
-        
-        let E_est = x*E1+y*E2+z*E3+E4;
-        E_est
-
-
-    }).collect::<Vec<Essential>>();
-    //TODO: cheirality check - with transpose
-
-    for e in &all_essential_matricies {
-        let factor = e[(2,2)];
-        let e_norm = e.map(|x| x/factor);
-        let test = camera_rays_one.transpose()*e*camera_rays_two;
-        println!("{}",e_norm);
-        println!("{}",e);
-        println!("{}",e.determinant());
-        println!("{}",test);
-        println!("------");
-    }
-
-    let best_essential = cheirality_check(&all_essential_matricies);
-    
-    best_essential
-}
-
-//TODO
-pub fn cheirality_check(essential_matricies: &Vec<Essential>) -> Essential {
-    println!("WARN: Implement cheirality_check!");
-    essential_matricies.first().copied().expect("cheirality_check: essential matrix list was empty!")
-}
-
-#[allow(non_snake_case)]
-pub fn generate_five_point_constrait_matrix(E1: &Matrix3<Float>, E2: &Matrix3<Float>, E3: &Matrix3<Float>, E4: &Matrix3<Float>) -> OMatrix<Float,U10,U20> {
-
-    let c_det_coeffs = get_determinant_constraints_coeffs(E1, E2, E3, E4);
-    let c_1_coeffs = get_c1_constraints_coeffs(E1, E2, E3, E4);
-    let c_2_coeffs = get_c2_constraints_coeffs(E1, E2, E3, E4);
-    let c_3_coeffs = get_c3_constraints_coeffs(E1, E2, E3, E4);
-    let c_4_coeffs = get_c4_constraints_coeffs(E1, E2, E3, E4);
-    let c_5_coeffs = get_c5_constraints_coeffs(E1, E2, E3, E4);
-    let c_6_coeffs = get_c6_constraints_coeffs(E1, E2, E3, E4);
-    let c_7_coeffs = get_c7_constraints_coeffs(E1, E2, E3, E4);
-    let c_8_coeffs = get_c8_constraints_coeffs(E1, E2, E3, E4);
-    let c_9_coeffs = get_c9_constraints_coeffs(E1, E2, E3, E4);
-
-    OMatrix::<Float,U10,U20>::from_rows(
-        &[
-        c_det_coeffs,
-        c_1_coeffs,
-        c_2_coeffs,
-        c_3_coeffs,
-        c_4_coeffs,
-        c_5_coeffs,
-        c_6_coeffs,
-        c_7_coeffs,
-        c_8_coeffs,
-        c_9_coeffs
-        ])
-}
 // These matricies were generated by https://github.com/geoeo/five_point_constraints via sympy
 
 #[allow(non_snake_case)]
-fn get_determinant_constraints_coeffs(E1: &Matrix3<Float>, E2: &Matrix3<Float>, E3: &Matrix3<Float>, E4: &Matrix3<Float>) -> RowOVector<Float,U20> {
+pub fn get_determinant_constraints_coeffs(E1: &Matrix3<Float>, E2: &Matrix3<Float>, E3: &Matrix3<Float>, E4: &Matrix3<Float>) -> RowOVector<Float,U20> {
     RowOVector::<Float,U20>::from_vec(vec![
         E1[(0,0)]*E1[(1,1)]*E1[(2,2)] - E1[(0,0)]*E1[(1,2)]*E1[(2,1)] - E1[(0,1)]*E1[(1,0)]*E1[(2,2)] + E1[(0,1)]*E1[(1,2)]*E1[(2,0)] + E1[(0,2)]*E1[(1,0)]*E1[(2,1)] - E1[(0,2)]*E1[(1,1)]*E1[(2,0)],
         E1[(0,0)]*E1[(1,1)]*E2[(2,2)] - E1[(0,0)]*E1[(1,2)]*E2[(2,1)] - E1[(0,0)]*E1[(2,1)]*E2[(1,2)] + E1[(0,0)]*E1[(2,2)]*E2[(1,1)] - E1[(0,1)]*E1[(1,0)]*E2[(2,2)] + E1[(0,1)]*E1[(1,2)]*E2[(2,0)] + E1[(0,1)]*E1[(2,0)]*E2[(1,2)] - E1[(0,1)]*E1[(2,2)]*E2[(1,0)] + E1[(0,2)]*E1[(1,0)]*E2[(2,1)] - E1[(0,2)]*E1[(1,1)]*E2[(2,0)] - E1[(0,2)]*E1[(2,0)]*E2[(1,1)] + E1[(0,2)]*E1[(2,1)]*E2[(1,0)] + E1[(1,0)]*E1[(2,1)]*E2[(0,2)] - E1[(1,0)]*E1[(2,2)]*E2[(0,1)] - E1[(1,1)]*E1[(2,0)]*E2[(0,2)] + E1[(1,1)]*E1[(2,2)]*E2[(0,0)] + E1[(1,2)]*E1[(2,0)]*E2[(0,1)] - E1[(1,2)]*E1[(2,1)]*E2[(0,0)],
@@ -190,7 +32,7 @@ fn get_determinant_constraints_coeffs(E1: &Matrix3<Float>, E2: &Matrix3<Float>, 
 }
 
 #[allow(non_snake_case)]
-fn get_c1_constraints_coeffs(E1: &Matrix3<Float>, E2: &Matrix3<Float>, E3: &Matrix3<Float>, E4: &Matrix3<Float>) -> RowOVector<Float,U20> {
+pub fn get_c1_constraints_coeffs(E1: &Matrix3<Float>, E2: &Matrix3<Float>, E3: &Matrix3<Float>, E4: &Matrix3<Float>) -> RowOVector<Float,U20> {
     RowOVector::<Float,U20>::from_vec(vec![
         E1[(0,0)].powi(3) + E1[(0,0)]*E1[(0,1)].powi(2) + E1[(0,0)]*E1[(0,2)].powi(2) + E1[(0,0)]*E1[(1,0)].powi(2) - E1[(0,0)]*E1[(1,1)].powi(2) - E1[(0,0)]*E1[(1,2)].powi(2) + E1[(0,0)]*E1[(2,0)].powi(2) - E1[(0,0)]*E1[(2,1)].powi(2) - E1[(0,0)]*E1[(2,2)].powi(2) + 2.0*E1[(0,1)]*E1[(1,0)]*E1[(1,1)] + 2.0*E1[(0,1)]*E1[(2,0)]*E1[(2,1)] + 2.0*E1[(0,2)]*E1[(1,0)]*E1[(1,2)] + 2.0*E1[(0,2)]*E1[(2,0)]*E1[(2,2)],
         3.0*E1[(0,0)].powi(2)*E2[(0,0)] + 2.0*E1[(0,0)]*E1[(0,1)]*E2[(0,1)] + 2.0*E1[(0,0)]*E1[(0,2)]*E2[(0,2)] + 2.0*E1[(0,0)]*E1[(1,0)]*E2[(1,0)] - 2.0*E1[(0,0)]*E1[(1,1)]*E2[(1,1)] - 2.0*E1[(0,0)]*E1[(1,2)]*E2[(1,2)] + 2.0*E1[(0,0)]*E1[(2,0)]*E2[(2,0)] - 2.0*E1[(0,0)]*E1[(2,1)]*E2[(2,1)] - 2.0*E1[(0,0)]*E1[(2,2)]*E2[(2,2)] + E1[(0,1)].powi(2)*E2[(0,0)] + 2.0*E1[(0,1)]*E1[(1,0)]*E2[(1,1)] + 2.0*E1[(0,1)]*E1[(1,1)]*E2[(1,0)] + 2.0*E1[(0,1)]*E1[(2,0)]*E2[(2,1)] + 2.0*E1[(0,1)]*E1[(2,1)]*E2[(2,0)] + E1[(0,2)].powi(2)*E2[(0,0)] + 2.0*E1[(0,2)]*E1[(1,0)]*E2[(1,2)] + 2.0*E1[(0,2)]*E1[(1,2)]*E2[(1,0)] + 2.0*E1[(0,2)]*E1[(2,0)]*E2[(2,2)] + 2.0*E1[(0,2)]*E1[(2,2)]*E2[(2,0)] + E1[(1,0)].powi(2)*E2[(0,0)] + 2.0*E1[(1,0)]*E1[(1,1)]*E2[(0,1)] + 2.0*E1[(1,0)]*E1[(1,2)]*E2[(0,2)] - E1[(1,1)].powi(2)*E2[(0,0)] - E1[(1,2)].powi(2)*E2[(0,0)] + E1[(2,0)].powi(2)*E2[(0,0)] + 2.0*E1[(2,0)]*E1[(2,1)]*E2[(0,1)] + 2.0*E1[(2,0)]*E1[(2,2)]*E2[(0,2)] - E1[(2,1)].powi(2)*E2[(0,0)] - E1[(2,2)].powi(2)*E2[(0,0)],
@@ -216,7 +58,7 @@ fn get_c1_constraints_coeffs(E1: &Matrix3<Float>, E2: &Matrix3<Float>, E3: &Matr
 }
 
 #[allow(non_snake_case)]
-fn get_c2_constraints_coeffs(E1: &Matrix3<Float>, E2: &Matrix3<Float>, E3: &Matrix3<Float>, E4: &Matrix3<Float>) -> RowOVector<Float,U20> {
+pub fn get_c2_constraints_coeffs(E1: &Matrix3<Float>, E2: &Matrix3<Float>, E3: &Matrix3<Float>, E4: &Matrix3<Float>) -> RowOVector<Float,U20> {
     RowOVector::<Float,U20>::from_vec(vec![
         E1[(0,0)].powi(2)*E1[(1,0)] + 2.0*E1[(0,0)]*E1[(0,1)]*E1[(1,1)] + 2.0*E1[(0,0)]*E1[(0,2)]*E1[(1,2)] - E1[(0,1)].powi(2)*E1[(1,0)] - E1[(0,2)].powi(2)*E1[(1,0)] + E1[(1,0)].powi(3) + E1[(1,0)]*E1[(1,1)].powi(2) + E1[(1,0)]*E1[(1,2)].powi(2) + E1[(1,0)]*E1[(2,0)].powi(2) - E1[(1,0)]*E1[(2,1)].powi(2) - E1[(1,0)]*E1[(2,2)].powi(2) + 2.0*E1[(1,1)]*E1[(2,0)]*E1[(2,1)] + 2.0*E1[(1,2)]*E1[(2,0)]*E1[(2,2)],
         E1[(0,0)].powi(2)*E2[(1,0)] + 2.0*E1[(0,0)]*E1[(0,1)]*E2[(1,1)] + 2.0*E1[(0,0)]*E1[(0,2)]*E2[(1,2)] + 2.0*E1[(0,0)]*E1[(1,0)]*E2[(0,0)] + 2.0*E1[(0,0)]*E1[(1,1)]*E2[(0,1)] + 2.0*E1[(0,0)]*E1[(1,2)]*E2[(0,2)] - E1[(0,1)].powi(2)*E2[(1,0)] - 2.0*E1[(0,1)]*E1[(1,0)]*E2[(0,1)] + 2.0*E1[(0,1)]*E1[(1,1)]*E2[(0,0)] - E1[(0,2)].powi(2)*E2[(1,0)] - 2.0*E1[(0,2)]*E1[(1,0)]*E2[(0,2)] + 2.0*E1[(0,2)]*E1[(1,2)]*E2[(0,0)] + 3.0*E1[(1,0)].powi(2)*E2[(1,0)] + 2.0*E1[(1,0)]*E1[(1,1)]*E2[(1,1)] + 2.0*E1[(1,0)]*E1[(1,2)]*E2[(1,2)] + 2.0*E1[(1,0)]*E1[(2,0)]*E2[(2,0)] - 2.0*E1[(1,0)]*E1[(2,1)]*E2[(2,1)] - 2.0*E1[(1,0)]*E1[(2,2)]*E2[(2,2)] + E1[(1,1)].powi(2)*E2[(1,0)] + 2.0*E1[(1,1)]*E1[(2,0)]*E2[(2,1)] + 2.0*E1[(1,1)]*E1[(2,1)]*E2[(2,0)] + E1[(1,2)].powi(2)*E2[(1,0)] + 2.0*E1[(1,2)]*E1[(2,0)]*E2[(2,2)] + 2.0*E1[(1,2)]*E1[(2,2)]*E2[(2,0)] + E1[(2,0)].powi(2)*E2[(1,0)] + 2.0*E1[(2,0)]*E1[(2,1)]*E2[(1,1)] + 2.0*E1[(2,0)]*E1[(2,2)]*E2[(1,2)] - E1[(2,1)].powi(2)*E2[(1,0)] - E1[(2,2)].powi(2)*E2[(1,0)],
@@ -242,7 +84,7 @@ fn get_c2_constraints_coeffs(E1: &Matrix3<Float>, E2: &Matrix3<Float>, E3: &Matr
 }
 
 #[allow(non_snake_case)]
-fn get_c3_constraints_coeffs(E1: &Matrix3<Float>, E2: &Matrix3<Float>, E3: &Matrix3<Float>, E4: &Matrix3<Float>) -> RowOVector<Float,U20> {
+pub fn get_c3_constraints_coeffs(E1: &Matrix3<Float>, E2: &Matrix3<Float>, E3: &Matrix3<Float>, E4: &Matrix3<Float>) -> RowOVector<Float,U20> {
     RowOVector::<Float,U20>::from_vec(vec![
         E1[(0,0)].powi(2)*E1[(2,0)] + 2.0*E1[(0,0)]*E1[(0,1)]*E1[(2,1)] + 2.0*E1[(0,0)]*E1[(0,2)]*E1[(2,2)] - E1[(0,1)].powi(2)*E1[(2,0)] - E1[(0,2)].powi(2)*E1[(2,0)] + E1[(1,0)].powi(2)*E1[(2,0)] + 2.0*E1[(1,0)]*E1[(1,1)]*E1[(2,1)] + 2.0*E1[(1,0)]*E1[(1,2)]*E1[(2,2)] - E1[(1,1)].powi(2)*E1[(2,0)] - E1[(1,2)].powi(2)*E1[(2,0)] + E1[(2,0)].powi(3) + E1[(2,0)]*E1[(2,1)].powi(2) + E1[(2,0)]*E1[(2,2)].powi(2),
         E1[(0,0)].powi(2)*E2[(2,0)] + 2.0*E1[(0,0)]*E1[(0,1)]*E2[(2,1)] + 2.0*E1[(0,0)]*E1[(0,2)]*E2[(2,2)] + 2.0*E1[(0,0)]*E1[(2,0)]*E2[(0,0)] + 2.0*E1[(0,0)]*E1[(2,1)]*E2[(0,1)] + 2.0*E1[(0,0)]*E1[(2,2)]*E2[(0,2)] - E1[(0,1)].powi(2)*E2[(2,0)] - 2.0*E1[(0,1)]*E1[(2,0)]*E2[(0,1)] + 2.0*E1[(0,1)]*E1[(2,1)]*E2[(0,0)] - E1[(0,2)].powi(2)*E2[(2,0)] - 2.0*E1[(0,2)]*E1[(2,0)]*E2[(0,2)] + 2.0*E1[(0,2)]*E1[(2,2)]*E2[(0,0)] + E1[(1,0)].powi(2)*E2[(2,0)] + 2.0*E1[(1,0)]*E1[(1,1)]*E2[(2,1)] + 2.0*E1[(1,0)]*E1[(1,2)]*E2[(2,2)] + 2.0*E1[(1,0)]*E1[(2,0)]*E2[(1,0)] + 2.0*E1[(1,0)]*E1[(2,1)]*E2[(1,1)] + 2.0*E1[(1,0)]*E1[(2,2)]*E2[(1,2)] - E1[(1,1)].powi(2)*E2[(2,0)] - 2.0*E1[(1,1)]*E1[(2,0)]*E2[(1,1)] + 2.0*E1[(1,1)]*E1[(2,1)]*E2[(1,0)] - E1[(1,2)].powi(2)*E2[(2,0)] - 2.0*E1[(1,2)]*E1[(2,0)]*E2[(1,2)] + 2.0*E1[(1,2)]*E1[(2,2)]*E2[(1,0)] + 3.0*E1[(2,0)].powi(2)*E2[(2,0)] + 2.0*E1[(2,0)]*E1[(2,1)]*E2[(2,1)] + 2.0*E1[(2,0)]*E1[(2,2)]*E2[(2,2)] + E1[(2,1)].powi(2)*E2[(2,0)] + E1[(2,2)].powi(2)*E2[(2,0)],
@@ -268,7 +110,7 @@ fn get_c3_constraints_coeffs(E1: &Matrix3<Float>, E2: &Matrix3<Float>, E3: &Matr
 }
 
 #[allow(non_snake_case)]
-fn get_c4_constraints_coeffs(E1: &Matrix3<Float>, E2: &Matrix3<Float>, E3: &Matrix3<Float>, E4: &Matrix3<Float>) -> RowOVector<Float,U20> {
+pub fn get_c4_constraints_coeffs(E1: &Matrix3<Float>, E2: &Matrix3<Float>, E3: &Matrix3<Float>, E4: &Matrix3<Float>) -> RowOVector<Float,U20> {
     RowOVector::<Float,U20>::from_vec(vec![
         E1[(0,0)].powi(2)*E1[(0,1)] + 2.0*E1[(0,0)]*E1[(1,0)]*E1[(1,1)] + 2.0*E1[(0,0)]*E1[(2,0)]*E1[(2,1)] + E1[(0,1)].powi(3) + E1[(0,1)]*E1[(0,2)].powi(2) - E1[(0,1)]*E1[(1,0)].powi(2) + E1[(0,1)]*E1[(1,1)].powi(2) - E1[(0,1)]*E1[(1,2)].powi(2) - E1[(0,1)]*E1[(2,0)].powi(2) + E1[(0,1)]*E1[(2,1)].powi(2) - E1[(0,1)]*E1[(2,2)].powi(2) + 2.0*E1[(0,2)]*E1[(1,1)]*E1[(1,2)] + 2.0*E1[(0,2)]*E1[(2,1)]*E1[(2,2)],
         E1[(0,0)].powi(2)*E2[(0,1)] + 2.0*E1[(0,0)]*E1[(0,1)]*E2[(0,0)] + 2.0*E1[(0,0)]*E1[(1,0)]*E2[(1,1)] + 2.0*E1[(0,0)]*E1[(1,1)]*E2[(1,0)] + 2.0*E1[(0,0)]*E1[(2,0)]*E2[(2,1)] + 2.0*E1[(0,0)]*E1[(2,1)]*E2[(2,0)] + 3.0*E1[(0,1)].powi(2)*E2[(0,1)] + 2.0*E1[(0,1)]*E1[(0,2)]*E2[(0,2)] - 2.0*E1[(0,1)]*E1[(1,0)]*E2[(1,0)] + 2.0*E1[(0,1)]*E1[(1,1)]*E2[(1,1)] - 2.0*E1[(0,1)]*E1[(1,2)]*E2[(1,2)] - 2.0*E1[(0,1)]*E1[(2,0)]*E2[(2,0)] + 2.0*E1[(0,1)]*E1[(2,1)]*E2[(2,1)] - 2.0*E1[(0,1)]*E1[(2,2)]*E2[(2,2)] + E1[(0,2)].powi(2)*E2[(0,1)] + 2.0*E1[(0,2)]*E1[(1,1)]*E2[(1,2)] + 2.0*E1[(0,2)]*E1[(1,2)]*E2[(1,1)] + 2.0*E1[(0,2)]*E1[(2,1)]*E2[(2,2)] + 2.0*E1[(0,2)]*E1[(2,2)]*E2[(2,1)] - E1[(1,0)].powi(2)*E2[(0,1)] + 2.0*E1[(1,0)]*E1[(1,1)]*E2[(0,0)] + E1[(1,1)].powi(2)*E2[(0,1)] + 2.0*E1[(1,1)]*E1[(1,2)]*E2[(0,2)] - E1[(1,2)].powi(2)*E2[(0,1)] - E1[(2,0)].powi(2)*E2[(0,1)] + 2.0*E1[(2,0)]*E1[(2,1)]*E2[(0,0)] + E1[(2,1)].powi(2)*E2[(0,1)] + 2.0*E1[(2,1)]*E1[(2,2)]*E2[(0,2)] - E1[(2,2)].powi(2)*E2[(0,1)],
@@ -294,7 +136,7 @@ fn get_c4_constraints_coeffs(E1: &Matrix3<Float>, E2: &Matrix3<Float>, E3: &Matr
 }
 
 #[allow(non_snake_case)]
-fn get_c5_constraints_coeffs(E1: &Matrix3<Float>, E2: &Matrix3<Float>, E3: &Matrix3<Float>, E4: &Matrix3<Float>) -> RowOVector<Float,U20> {
+pub fn get_c5_constraints_coeffs(E1: &Matrix3<Float>, E2: &Matrix3<Float>, E3: &Matrix3<Float>, E4: &Matrix3<Float>) -> RowOVector<Float,U20> {
     RowOVector::<Float,U20>::from_vec(vec![
         -E1[(0,0)].powi(2)*E1[(1,1)] + 2.0*E1[(0,0)]*E1[(0,1)]*E1[(1,0)] + E1[(0,1)].powi(2)*E1[(1,1)] + 2.0*E1[(0,1)]*E1[(0,2)]*E1[(1,2)] - E1[(0,2)].powi(2)*E1[(1,1)] + E1[(1,0)].powi(2)*E1[(1,1)] + 2.0*E1[(1,0)]*E1[(2,0)]*E1[(2,1)] + E1[(1,1)].powi(3) + E1[(1,1)]*E1[(1,2)].powi(2) - E1[(1,1)]*E1[(2,0)].powi(2) + E1[(1,1)]*E1[(2,1)].powi(2) - E1[(1,1)]*E1[(2,2)].powi(2) + 2.0*E1[(1,2)]*E1[(2,1)]*E1[(2,2)],
         -E1[(0,0)].powi(2)*E2[(1,1)] + 2.0*E1[(0,0)]*E1[(0,1)]*E2[(1,0)] + 2.0*E1[(0,0)]*E1[(1,0)]*E2[(0,1)] - 2.0*E1[(0,0)]*E1[(1,1)]*E2[(0,0)] + E1[(0,1)].powi(2)*E2[(1,1)] + 2.0*E1[(0,1)]*E1[(0,2)]*E2[(1,2)] + 2.0*E1[(0,1)]*E1[(1,0)]*E2[(0,0)] + 2.0*E1[(0,1)]*E1[(1,1)]*E2[(0,1)] + 2.0*E1[(0,1)]*E1[(1,2)]*E2[(0,2)] - E1[(0,2)].powi(2)*E2[(1,1)] - 2.0*E1[(0,2)]*E1[(1,1)]*E2[(0,2)] + 2.0*E1[(0,2)]*E1[(1,2)]*E2[(0,1)] + E1[(1,0)].powi(2)*E2[(1,1)] + 2.0*E1[(1,0)]*E1[(1,1)]*E2[(1,0)] + 2.0*E1[(1,0)]*E1[(2,0)]*E2[(2,1)] + 2.0*E1[(1,0)]*E1[(2,1)]*E2[(2,0)] + 3.0*E1[(1,1)].powi(2)*E2[(1,1)] + 2.0*E1[(1,1)]*E1[(1,2)]*E2[(1,2)] - 2.0*E1[(1,1)]*E1[(2,0)]*E2[(2,0)] + 2.0*E1[(1,1)]*E1[(2,1)]*E2[(2,1)] - 2.0*E1[(1,1)]*E1[(2,2)]*E2[(2,2)] + E1[(1,2)].powi(2)*E2[(1,1)] + 2.0*E1[(1,2)]*E1[(2,1)]*E2[(2,2)] + 2.0*E1[(1,2)]*E1[(2,2)]*E2[(2,1)] - E1[(2,0)].powi(2)*E2[(1,1)] + 2.0*E1[(2,0)]*E1[(2,1)]*E2[(1,0)] + E1[(2,1)].powi(2)*E2[(1,1)] + 2.0*E1[(2,1)]*E1[(2,2)]*E2[(1,2)] - E1[(2,2)].powi(2)*E2[(1,1)],
@@ -320,7 +162,7 @@ fn get_c5_constraints_coeffs(E1: &Matrix3<Float>, E2: &Matrix3<Float>, E3: &Matr
 }
 
 #[allow(non_snake_case)]
-fn get_c6_constraints_coeffs(E1: &Matrix3<Float>, E2: &Matrix3<Float>, E3: &Matrix3<Float>, E4: &Matrix3<Float>) -> RowOVector<Float,U20> {
+pub fn get_c6_constraints_coeffs(E1: &Matrix3<Float>, E2: &Matrix3<Float>, E3: &Matrix3<Float>, E4: &Matrix3<Float>) -> RowOVector<Float,U20> {
     RowOVector::<Float,U20>::from_vec(vec![
         -E1[(0,0)].powi(2)*E1[(2,1)] + 2.0*E1[(0,0)]*E1[(0,1)]*E1[(2,0)] + E1[(0,1)].powi(2)*E1[(2,1)] + 2.0*E1[(0,1)]*E1[(0,2)]*E1[(2,2)] - E1[(0,2)].powi(2)*E1[(2,1)] - E1[(1,0)].powi(2)*E1[(2,1)] + 2.0*E1[(1,0)]*E1[(1,1)]*E1[(2,0)] + E1[(1,1)].powi(2)*E1[(2,1)] + 2.0*E1[(1,1)]*E1[(1,2)]*E1[(2,2)] - E1[(1,2)].powi(2)*E1[(2,1)] + E1[(2,0)].powi(2)*E1[(2,1)] + E1[(2,1)].powi(3) + E1[(2,1)]*E1[(2,2)].powi(2),
         -E1[(0,0)].powi(2)*E2[(2,1)] + 2.0*E1[(0,0)]*E1[(0,1)]*E2[(2,0)] + 2.0*E1[(0,0)]*E1[(2,0)]*E2[(0,1)] - 2.0*E1[(0,0)]*E1[(2,1)]*E2[(0,0)] + E1[(0,1)].powi(2)*E2[(2,1)] + 2.0*E1[(0,1)]*E1[(0,2)]*E2[(2,2)] + 2.0*E1[(0,1)]*E1[(2,0)]*E2[(0,0)] + 2.0*E1[(0,1)]*E1[(2,1)]*E2[(0,1)] + 2.0*E1[(0,1)]*E1[(2,2)]*E2[(0,2)] - E1[(0,2)].powi(2)*E2[(2,1)] - 2.0*E1[(0,2)]*E1[(2,1)]*E2[(0,2)] + 2.0*E1[(0,2)]*E1[(2,2)]*E2[(0,1)] - E1[(1,0)].powi(2)*E2[(2,1)] + 2.0*E1[(1,0)]*E1[(1,1)]*E2[(2,0)] + 2.0*E1[(1,0)]*E1[(2,0)]*E2[(1,1)] - 2.0*E1[(1,0)]*E1[(2,1)]*E2[(1,0)] + E1[(1,1)].powi(2)*E2[(2,1)] + 2.0*E1[(1,1)]*E1[(1,2)]*E2[(2,2)] + 2.0*E1[(1,1)]*E1[(2,0)]*E2[(1,0)] + 2.0*E1[(1,1)]*E1[(2,1)]*E2[(1,1)] + 2.0*E1[(1,1)]*E1[(2,2)]*E2[(1,2)] - E1[(1,2)].powi(2)*E2[(2,1)] - 2.0*E1[(1,2)]*E1[(2,1)]*E2[(1,2)] + 2.0*E1[(1,2)]*E1[(2,2)]*E2[(1,1)] + E1[(2,0)].powi(2)*E2[(2,1)] + 2.0*E1[(2,0)]*E1[(2,1)]*E2[(2,0)] + 3.0*E1[(2,1)].powi(2)*E2[(2,1)] + 2.0*E1[(2,1)]*E1[(2,2)]*E2[(2,2)] + E1[(2,2)].powi(2)*E2[(2,1)],
@@ -346,7 +188,7 @@ fn get_c6_constraints_coeffs(E1: &Matrix3<Float>, E2: &Matrix3<Float>, E3: &Matr
 }
 
 #[allow(non_snake_case)]
-fn get_c7_constraints_coeffs(E1: &Matrix3<Float>, E2: &Matrix3<Float>, E3: &Matrix3<Float>, E4: &Matrix3<Float>) -> RowOVector<Float,U20> {
+pub fn get_c7_constraints_coeffs(E1: &Matrix3<Float>, E2: &Matrix3<Float>, E3: &Matrix3<Float>, E4: &Matrix3<Float>) -> RowOVector<Float,U20> {
     RowOVector::<Float,U20>::from_vec(vec![
         E1[(0,0)].powi(2)*E1[(0,2)] + 2.0*E1[(0,0)]*E1[(1,0)]*E1[(1,2)] + 2.0*E1[(0,0)]*E1[(2,0)]*E1[(2,2)] + E1[(0,1)].powi(2)*E1[(0,2)] + 2.0*E1[(0,1)]*E1[(1,1)]*E1[(1,2)] + 2.0*E1[(0,1)]*E1[(2,1)]*E1[(2,2)] + E1[(0,2)].powi(3) - E1[(0,2)]*E1[(1,0)].powi(2) - E1[(0,2)]*E1[(1,1)].powi(2) + E1[(0,2)]*E1[(1,2)].powi(2) - E1[(0,2)]*E1[(2,0)].powi(2) - E1[(0,2)]*E1[(2,1)].powi(2) + E1[(0,2)]*E1[(2,2)].powi(2),
         E1[(0,0)].powi(2)*E2[(0,2)] + 2.0*E1[(0,0)]*E1[(0,2)]*E2[(0,0)] + 2.0*E1[(0,0)]*E1[(1,0)]*E2[(1,2)] + 2.0*E1[(0,0)]*E1[(1,2)]*E2[(1,0)] + 2.0*E1[(0,0)]*E1[(2,0)]*E2[(2,2)] + 2.0*E1[(0,0)]*E1[(2,2)]*E2[(2,0)] + E1[(0,1)].powi(2)*E2[(0,2)] + 2.0*E1[(0,1)]*E1[(0,2)]*E2[(0,1)] + 2.0*E1[(0,1)]*E1[(1,1)]*E2[(1,2)] + 2.0*E1[(0,1)]*E1[(1,2)]*E2[(1,1)] + 2.0*E1[(0,1)]*E1[(2,1)]*E2[(2,2)] + 2.0*E1[(0,1)]*E1[(2,2)]*E2[(2,1)] + 3.0*E1[(0,2)].powi(2)*E2[(0,2)] - 2.0*E1[(0,2)]*E1[(1,0)]*E2[(1,0)] - 2.0*E1[(0,2)]*E1[(1,1)]*E2[(1,1)] + 2.0*E1[(0,2)]*E1[(1,2)]*E2[(1,2)] - 2.0*E1[(0,2)]*E1[(2,0)]*E2[(2,0)] - 2.0*E1[(0,2)]*E1[(2,1)]*E2[(2,1)] + 2.0*E1[(0,2)]*E1[(2,2)]*E2[(2,2)] - E1[(1,0)].powi(2)*E2[(0,2)] + 2.0*E1[(1,0)]*E1[(1,2)]*E2[(0,0)] - E1[(1,1)].powi(2)*E2[(0,2)] + 2.0*E1[(1,1)]*E1[(1,2)]*E2[(0,1)] + E1[(1,2)].powi(2)*E2[(0,2)] - E1[(2,0)].powi(2)*E2[(0,2)] + 2.0*E1[(2,0)]*E1[(2,2)]*E2[(0,0)] - E1[(2,1)].powi(2)*E2[(0,2)] + 2.0*E1[(2,1)]*E1[(2,2)]*E2[(0,1)] + E1[(2,2)].powi(2)*E2[(0,2)],
@@ -372,7 +214,7 @@ fn get_c7_constraints_coeffs(E1: &Matrix3<Float>, E2: &Matrix3<Float>, E3: &Matr
 }
 
 #[allow(non_snake_case)]
-fn get_c8_constraints_coeffs(E1: &Matrix3<Float>, E2: &Matrix3<Float>, E3: &Matrix3<Float>, E4: &Matrix3<Float>) -> RowOVector<Float,U20> {
+pub fn get_c8_constraints_coeffs(E1: &Matrix3<Float>, E2: &Matrix3<Float>, E3: &Matrix3<Float>, E4: &Matrix3<Float>) -> RowOVector<Float,U20> {
     RowOVector::<Float,U20>::from_vec(vec![
         -E1[(0,0)].powi(2)*E1[(1,2)] + 2.0*E1[(0,0)]*E1[(0,2)]*E1[(1,0)] - E1[(0,1)].powi(2)*E1[(1,2)] + 2.0*E1[(0,1)]*E1[(0,2)]*E1[(1,1)] + E1[(0,2)].powi(2)*E1[(1,2)] + E1[(1,0)].powi(2)*E1[(1,2)] + 2.0*E1[(1,0)]*E1[(2,0)]*E1[(2,2)] + E1[(1,1)].powi(2)*E1[(1,2)] + 2.0*E1[(1,1)]*E1[(2,1)]*E1[(2,2)] + E1[(1,2)].powi(3) - E1[(1,2)]*E1[(2,0)].powi(2) - E1[(1,2)]*E1[(2,1)].powi(2) + E1[(1,2)]*E1[(2,2)].powi(2),
         -E1[(0,0)].powi(2)*E2[(1,2)] + 2.0*E1[(0,0)]*E1[(0,2)]*E2[(1,0)] + 2.0*E1[(0,0)]*E1[(1,0)]*E2[(0,2)] - 2.0*E1[(0,0)]*E1[(1,2)]*E2[(0,0)] - E1[(0,1)].powi(2)*E2[(1,2)] + 2.0*E1[(0,1)]*E1[(0,2)]*E2[(1,1)] + 2.0*E1[(0,1)]*E1[(1,1)]*E2[(0,2)] - 2.0*E1[(0,1)]*E1[(1,2)]*E2[(0,1)] + E1[(0,2)].powi(2)*E2[(1,2)] + 2.0*E1[(0,2)]*E1[(1,0)]*E2[(0,0)] + 2.0*E1[(0,2)]*E1[(1,1)]*E2[(0,1)] + 2.0*E1[(0,2)]*E1[(1,2)]*E2[(0,2)] + E1[(1,0)].powi(2)*E2[(1,2)] + 2.0*E1[(1,0)]*E1[(1,2)]*E2[(1,0)] + 2.0*E1[(1,0)]*E1[(2,0)]*E2[(2,2)] + 2.0*E1[(1,0)]*E1[(2,2)]*E2[(2,0)] + E1[(1,1)].powi(2)*E2[(1,2)] + 2.0*E1[(1,1)]*E1[(1,2)]*E2[(1,1)] + 2.0*E1[(1,1)]*E1[(2,1)]*E2[(2,2)] + 2.0*E1[(1,1)]*E1[(2,2)]*E2[(2,1)] + 3.0*E1[(1,2)].powi(2)*E2[(1,2)] - 2.0*E1[(1,2)]*E1[(2,0)]*E2[(2,0)] - 2.0*E1[(1,2)]*E1[(2,1)]*E2[(2,1)] + 2.0*E1[(1,2)]*E1[(2,2)]*E2[(2,2)] - E1[(2,0)].powi(2)*E2[(1,2)] + 2.0*E1[(2,0)]*E1[(2,2)]*E2[(1,0)] - E1[(2,1)].powi(2)*E2[(1,2)] + 2.0*E1[(2,1)]*E1[(2,2)]*E2[(1,1)] + E1[(2,2)].powi(2)*E2[(1,2)],
@@ -398,7 +240,7 @@ fn get_c8_constraints_coeffs(E1: &Matrix3<Float>, E2: &Matrix3<Float>, E3: &Matr
 }
 
 #[allow(non_snake_case)]
-fn get_c9_constraints_coeffs(E1: &Matrix3<Float>, E2: &Matrix3<Float>, E3: &Matrix3<Float>, E4: &Matrix3<Float>) -> RowOVector<Float,U20> {
+pub fn get_c9_constraints_coeffs(E1: &Matrix3<Float>, E2: &Matrix3<Float>, E3: &Matrix3<Float>, E4: &Matrix3<Float>) -> RowOVector<Float,U20> {
     RowOVector::<Float,U20>::from_vec(vec![
         -E1[(0,0)].powi(2)*E1[(2,2)] + 2.0*E1[(0,0)]*E1[(0,2)]*E1[(2,0)] - E1[(0,1)].powi(2)*E1[(2,2)] + 2.0*E1[(0,1)]*E1[(0,2)]*E1[(2,1)] + E1[(0,2)].powi(2)*E1[(2,2)] - E1[(1,0)].powi(2)*E1[(2,2)] + 2.0*E1[(1,0)]*E1[(1,2)]*E1[(2,0)] - E1[(1,1)].powi(2)*E1[(2,2)] + 2.0*E1[(1,1)]*E1[(1,2)]*E1[(2,1)] + E1[(1,2)].powi(2)*E1[(2,2)] + E1[(2,0)].powi(2)*E1[(2,2)] + E1[(2,1)].powi(2)*E1[(2,2)] + E1[(2,2)].powi(3),
         -E1[(0,0)].powi(2)*E2[(2,2)] + 2.0*E1[(0,0)]*E1[(0,2)]*E2[(2,0)] + 2.0*E1[(0,0)]*E1[(2,0)]*E2[(0,2)] - 2.0*E1[(0,0)]*E1[(2,2)]*E2[(0,0)] - E1[(0,1)].powi(2)*E2[(2,2)] + 2.0*E1[(0,1)]*E1[(0,2)]*E2[(2,1)] + 2.0*E1[(0,1)]*E1[(2,1)]*E2[(0,2)] - 2.0*E1[(0,1)]*E1[(2,2)]*E2[(0,1)] + E1[(0,2)].powi(2)*E2[(2,2)] + 2.0*E1[(0,2)]*E1[(2,0)]*E2[(0,0)] + 2.0*E1[(0,2)]*E1[(2,1)]*E2[(0,1)] + 2.0*E1[(0,2)]*E1[(2,2)]*E2[(0,2)] - E1[(1,0)].powi(2)*E2[(2,2)] + 2.0*E1[(1,0)]*E1[(1,2)]*E2[(2,0)] + 2.0*E1[(1,0)]*E1[(2,0)]*E2[(1,2)] - 2.0*E1[(1,0)]*E1[(2,2)]*E2[(1,0)] - E1[(1,1)].powi(2)*E2[(2,2)] + 2.0*E1[(1,1)]*E1[(1,2)]*E2[(2,1)] + 2.0*E1[(1,1)]*E1[(2,1)]*E2[(1,2)] - 2.0*E1[(1,1)]*E1[(2,2)]*E2[(1,1)] + E1[(1,2)].powi(2)*E2[(2,2)] + 2.0*E1[(1,2)]*E1[(2,0)]*E2[(1,0)] + 2.0*E1[(1,2)]*E1[(2,1)]*E2[(1,1)] + 2.0*E1[(1,2)]*E1[(2,2)]*E2[(1,2)] + E1[(2,0)].powi(2)*E2[(2,2)] + 2.0*E1[(2,0)]*E1[(2,2)]*E2[(2,0)] + E1[(2,1)].powi(2)*E2[(2,2)] + 2.0*E1[(2,1)]*E1[(2,2)]*E2[(2,1)] + 3.0*E1[(2,2)].powi(2)*E2[(2,2)],
