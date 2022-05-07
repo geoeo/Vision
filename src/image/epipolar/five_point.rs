@@ -62,10 +62,6 @@ pub fn five_point_essential<T: Feature, C: Camera>(matches: &[Match<T>; 5], came
 
     let M = generate_five_point_constrait_matrix(&E1,&E2,&E3,&E4);
 
-    println!("-- M --");
-    println!("{}",M);
-    println!("----");
-
     let C = M.fixed_columns::<10>(0);
     let D = M.fixed_columns::<10>(10);
     
