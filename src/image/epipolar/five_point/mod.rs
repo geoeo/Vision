@@ -112,7 +112,6 @@ pub fn five_point_essential<T: Feature + Clone, C: Camera>(matches: &[Match<T>; 
     best_essential
 }
 
-//TODO still buggy
 pub fn cheirality_check<T: Feature + Clone>(all_essential_matricies: &Vec<Essential>,matches_as_vec: &Vec<Match<T>>,depth_positive: bool, points_cam_1: (&OMatrix<Float, U3,U5>,&Matrix3<Float>), points_cam_2: (&OMatrix<Float, U3,U5>, &Matrix3<Float>)) -> Essential {
     println!("WARN: Implement cheirality_check!");
 
@@ -123,7 +122,7 @@ pub fn cheirality_check<T: Feature + Clone>(all_essential_matricies: &Vec<Essent
         let e_norm = e.map(|x| x/factor);
         let (t,R) = decompose_essential_förstner(&e_norm,matches_as_vec,depth_positive);
         let R_corr = optimal_correction_of_rotation(&R);
-        let se3 = pose::se3(&t,&R_corr));
+        let se3 = pose::se3(&t,&R_corr);
         let camera_matrix_1 = points_cam_1.1.into_owned();
         let camera_matrix_2 = points_cam_2.1.into_owned();
         let projection_1 = camera_matrix_1*(Matrix4::<Float>::identity().fixed_slice::<3,4>(0,0));
@@ -144,18 +143,8 @@ pub fn cheirality_check<T: Feature + Clone>(all_essential_matricies: &Vec<Essent
             let d1 = p1X[(2,i)];
             let d2 = p2X[(2,i)];
 
-            if d1 * d2 > 0.0 {
-                match (depth_positive, d1) {
-                    (true, v) if v > 0.0 => accepted_cheirality_count += 2, 
-                    (false, v) if v < 0.0 => accepted_cheirality_count += 2,
-                    (_, _) => ()
-                };
-    
-                // match (depth_positive, d2) {
-                //     (true, v) if v > 0.0 => accepted_cheirality_count += 1, 
-                //     (false, v) if v < 0.0 => accepted_cheirality_count += 1,
-                //     (_, _) => ()
-                // }; 
+            if depth_positive && d1 > 0.0 && d2 > 0.0 || !depth_positive && d1 < 0.0 && d2 < 0.0 {
+                accepted_cheirality_count += 1 
             }
         }
 
@@ -166,8 +155,14 @@ pub fn cheirality_check<T: Feature + Clone>(all_essential_matricies: &Vec<Essent
             max_accepted_cheirality_count = accepted_cheirality_count;
         }
 
+        println!("------");
         println!("{}",e_norm);
+        println!("{}",Xs);
+        println!("{}",p1X);
+        println!("{}",p2X);
         println!("{}",accepted_cheirality_count);
+        println!("{}",R_corr);
+        println!("{}",t);
         println!("------");
     }
     //all_essential_matricies.first().copied().expect("cheirality_check: essential matrix list was empty!")

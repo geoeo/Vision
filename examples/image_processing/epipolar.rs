@@ -60,6 +60,7 @@ fn main() -> Result<()> {
 
     let five_feature_slice : &[Match<ImageFeature>;5] = feature_matches[..5].try_into().unwrap();
     let five_point_essential_matrix = epipolar::five_point_essential(five_feature_slice,&intensity_camera_1,&intensity_camera_2,true);
+    println!("best five point: ");
     println!("{}",five_point_essential_matrix);
     let fundamental_matrix = epipolar::eight_point(&feature_matches);
     let essential_matrix = epipolar::compute_essential(&fundamental_matrix, &intensity_camera_1.get_projection(), &intensity_camera_2.get_projection());

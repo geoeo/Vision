@@ -2,9 +2,9 @@ extern crate nalgebra as na;
 
 mod five_point;
 
-use na::{Vector3, Matrix3,Matrix,Dynamic, VecStorage, dimension::U9};
+use na::{Vector3, Matrix3,Matrix,Dynamic,Rotation3, VecStorage, dimension::U9};
 use crate::sensors::camera::Camera;
-use crate::Float;
+use crate::{Float,float};
 use crate::image::features::{Feature,Match, ImageFeature, condition_matches};
 pub type Fundamental =  Matrix3<Float>;
 pub type Essential =  Matrix3<Float>;
@@ -135,25 +135,43 @@ pub fn filter_matches_from_motion<T: Feature + Clone, C: Camera>(matches: &Vec<M
 /**
  * Photogrammetric Computer Vision p.583
  */
+//TODO: matches should be without intrinsics
 #[allow(non_snake_case)]
 pub fn decompose_essential_förstner<T : Feature>(E: &Essential, matches: &Vec<Match<T>>, is_depth_positive: bool) -> (Vector3<Float>, Matrix3<Float>) {
     assert!(matches.len() > 0);
-    let svd = E.svd(true,true);
-    let min_idx = svd.singular_values.imin();
+    // This is defined with matches being along negative Z so we need to align the features.
+    let r_align = match is_depth_positive {
+        true => Rotation3::from_axis_angle(&Vector3::x_axis(),float::consts::PI).matrix().into_owned(),
+        false => Matrix3::<Float>::identity()
+    };
+    let mut svd = E.svd(true,true);
+
+
     let u = &svd.u.expect("SVD failed on E");
     let v_t = &svd.v_t.expect("SVD failed on E");
-    let h = Vector3::<Float>::from_columns(&[u.column(min_idx)]);
+
 
     let W = Matrix3::<Float>::new(0.0, 1.0, 0.0,
                                  -1.0, 0.0 ,0.0,
                                   0.0, 0.0, 1.0);
 
-    let U_norm = u*u.determinant();
-    let V_norm = v_t.transpose()*v_t.transpose().determinant();
-    let w_matrices = vec!(W,W.transpose(), -W, (-W).transpose());
-    let h_vecs = vec!(h,h, -h, -h);
-    let R_matrices = vec!(V_norm*w_matrices[0]*U_norm.transpose(),V_norm*w_matrices[1]*U_norm.transpose(), V_norm*w_matrices[0]*U_norm.transpose(), V_norm*w_matrices[1]*U_norm.transpose());
+    let Z = Matrix3::<Float>::new(0.0, 1.0, 0.0,
+                                 -1.0, 0.0 ,0.0,
+                                  0.0, 0.0, 0.0);
 
+    let U_norm = u*u.determinant();
+    let V =  v_t.transpose();
+    let V_norm = V*V.determinant();
+
+    let Sb = u * Z * u.transpose();
+    let b = Vector3::<Float>::new(Sb[(2, 1)],Sb[(0, 2)], Sb[(1,0)]);
+
+    let R_matrices = vec!(V_norm*W*U_norm.transpose(),V_norm*W.transpose()*U_norm.transpose(), V_norm*W*U_norm.transpose(), V_norm*W.transpose()*U_norm.transpose());
+    let h_vecs = vec!(b,b, -b, -b);
+    let depth_dir = match is_depth_positive {
+        true => 1.0,
+        false => -1.0
+    };
 
     let mut translation = Vector3::<Float>::zeros();
     let mut rotation = Matrix3::<Float>::identity();
@@ -163,8 +181,8 @@ pub fn decompose_essential_förstner<T : Feature>(E: &Essential, matches: &Vec<M
         let mut v_sign = 0.0;
         let mut u_sign = 0.0;
         for m in matches {
-            let f_start = m.feature_one.get_as_3d_point(-1.0);
-            let f_finish = m.feature_two.get_as_3d_point(-1.0);
+            let f_start = r_align*m.feature_one.get_as_3d_point(depth_dir);
+            let f_finish = r_align*m.feature_two.get_as_3d_point(depth_dir);
 
             let binormal = ((h.cross_matrix()*f_start).cross_matrix()*h).normalize();
             let mat = Matrix3::<Float>::from_columns(&[h,binormal,f_start.cross_matrix()*R.transpose()*f_finish]);
@@ -176,14 +194,19 @@ pub fn decompose_essential_förstner<T : Feature>(E: &Essential, matches: &Vec<M
             };
             v_sign += s_i_sign;
             let s_r = (binormal.transpose()*R.transpose()*f_finish)[0];
-            u_sign += match s_i_sign*s_r {
+            let s_r_sign = match s_r {
                 s if s > 0.0 => 1.0,
                 s if s < 0.0 => -1.0,
                 _ => 0.0
-            }
+            };
+            u_sign += match s_i_sign*s_r_sign {
+                s if s > 0.0 => 1.0,
+                s if s < 0.0 => -1.0,
+                _ => 0.0
+            };
         }
 
-        let u_sign_avg = u_sign /matches.len() as Float;
+        let u_sign_avg = u_sign /matches.len() as Float; 
         let v_sign_avg = v_sign /matches.len() as Float;
 
         if u_sign_avg > 0.0 && v_sign_avg > 0.0 {
@@ -191,7 +214,17 @@ pub fn decompose_essential_förstner<T : Feature>(E: &Essential, matches: &Vec<M
             rotation = R;
             break;
         }
+
+
     }
+
+    if is_depth_positive {
+        // translation was computed from the correct essential matrix so we dont have to change anything
+        // due to alignment to negative depth, the rotation is actually form f_finish to f_start so we have to transpose.
+        rotation = rotation.transpose();
+    }
+
+   
 
     (translation,rotation)
 
