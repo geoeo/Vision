@@ -107,8 +107,6 @@ pub fn five_point_essential<T: Feature + Clone, C: Camera>(matches: &[Match<T>; 
     let matches_as_vec = matches.to_vec();
     let best_essential = cheirality_check(&all_essential_matricies, &matches_as_vec,depth_positive , (&camera_rays_one, &camera_one.get_projection()), (&camera_rays_two, &camera_two.get_projection()));
     
-    println!("{}", best_essential);
-
     best_essential
 }
 
@@ -118,9 +116,7 @@ pub fn cheirality_check<T: Feature + Clone>(all_essential_matricies: &Vec<Essent
     let mut max_accepted_cheirality_count = 0;
     let mut best_e = None;
     for e in all_essential_matricies {
-        let factor = e[(2,2)];
-        let e_norm = e.map(|x| x/factor);
-        let (t,R) = decompose_essential_förstner(&e_norm,matches_as_vec,depth_positive);
+        let (t,R,e_corrected) = decompose_essential_förstner(&e,matches_as_vec,depth_positive);
         let R_corr = optimal_correction_of_rotation(&R);
         let se3 = pose::se3(&t,&R_corr);
         let camera_matrix_1 = points_cam_1.1.into_owned();
@@ -136,36 +132,24 @@ pub fn cheirality_check<T: Feature + Clone>(all_essential_matricies: &Vec<Essent
         p2_dynamic.fixed_columns_mut::<5>(0).copy_from(&p2_static.columns(0,5));
 
         let Xs = linear_triangulation(&vec!((&p1_dynamic,&projection_1),(&p2_dynamic,&projection_2)));
-        let p1X = projection_1*&Xs;
-        let p2X = projection_2*&Xs;
+        let p1_x = projection_1*&Xs;
+        let p2_x = projection_2*&Xs;
         let mut accepted_cheirality_count = 0;
         for i in 0..5 {
-            let d1 = p1X[(2,i)];
-            let d2 = p2X[(2,i)];
+            let d1 = p1_x[(2,i)];
+            let d2 = p2_x[(2,i)];
 
             if depth_positive && d1 > 0.0 && d2 > 0.0 || !depth_positive && d1 < 0.0 && d2 < 0.0 {
                 accepted_cheirality_count += 1 
             }
         }
-
-
-
         if accepted_cheirality_count > max_accepted_cheirality_count {
+            let factor = e_corrected[(2,2)];
+            let e_norm = e_corrected.map(|x| x/factor);
             best_e = Some(e_norm);
             max_accepted_cheirality_count = accepted_cheirality_count;
         }
-
-        println!("------");
-        println!("{}",e_norm);
-        println!("{}",Xs);
-        println!("{}",p1X);
-        println!("{}",p2X);
-        println!("{}",accepted_cheirality_count);
-        println!("{}",R_corr);
-        println!("{}",t);
-        println!("------");
     }
-    //all_essential_matricies.first().copied().expect("cheirality_check: essential matrix list was empty!")
     best_e.expect("cheirality_check: no best essential matrix found!").clone()
 }
 

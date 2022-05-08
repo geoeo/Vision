@@ -72,7 +72,7 @@ fn main() -> Result<()> {
         println!("{}",t);
     }
     //let (h,R) = epipolar::decompose_essential_kanatani(&essential_matrix,&normalized_matches, false);
-    let (h,R) = epipolar::decompose_essential_förstner(&essential_matrix,&normalized_matches, false);
+    let (h,R, e_corrected) = epipolar::decompose_essential_förstner(&essential_matrix,&normalized_matches, false);
 
     println!("{}",h);
     println!("{}",R);

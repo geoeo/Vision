@@ -137,7 +137,7 @@ pub fn filter_matches_from_motion<T: Feature + Clone, C: Camera>(matches: &Vec<M
  */
 //TODO: matches should be without intrinsics
 #[allow(non_snake_case)]
-pub fn decompose_essential_förstner<T : Feature>(E: &Essential, matches: &Vec<Match<T>>, is_depth_positive: bool) -> (Vector3<Float>, Matrix3<Float>) {
+pub fn decompose_essential_förstner<T : Feature>(E: &Essential, matches: &Vec<Match<T>>, is_depth_positive: bool) -> (Vector3<Float>, Matrix3<Float>,Matrix3<Float> ) {
     assert!(matches.len() > 0);
     // This is defined with matches being along negative Z so we need to align the features.
     let r_align = match is_depth_positive {
@@ -162,6 +162,12 @@ pub fn decompose_essential_förstner<T : Feature>(E: &Essential, matches: &Vec<M
     let U_norm = u*u.determinant();
     let V =  v_t.transpose();
     let V_norm = V*V.determinant();
+
+    let e_corrected = U_norm* Matrix3::<Float>::new(1.0, 0.0, 0.0,
+                                            0.0, 1.0 ,0.0,
+                                            0.0, 0.0, 0.0)*V_norm.transpose();
+
+
 
     let Sb = u * Z * u.transpose();
     let b = Vector3::<Float>::new(Sb[(2, 1)],Sb[(0, 2)], Sb[(1,0)]);
@@ -224,9 +230,7 @@ pub fn decompose_essential_förstner<T : Feature>(E: &Essential, matches: &Vec<M
         rotation = rotation.transpose();
     }
 
-   
-
-    (translation,rotation)
+    (translation,rotation,e_corrected)
 
 }
 
@@ -235,9 +239,10 @@ pub fn decompose_essential_förstner<T : Feature>(E: &Essential, matches: &Vec<M
  * Statistical Optimization for Geometric Computation p.338
  */
 #[allow(non_snake_case)]
-pub fn decompose_essential_kanatani<T: Feature>(E: &Essential, matches: &Vec<Match<T>>, is_depth_positive: bool) -> (Vector3<Float>, Matrix3<Float>) {
+pub fn decompose_essential_kanatani<T: Feature>(E: &Essential, matches: &Vec<Match<T>>, is_depth_positive: bool) -> (Vector3<Float>, Matrix3<Float>, Matrix3<Float>) {
     assert!(matches.len() > 0);
     assert!(!is_depth_positive);
+    println!("WARN: decompose_essential_kanatani is buggy");
     let svd = (E*E.transpose()).svd(true,false);
     let min_idx = svd.singular_values.imin();
     let u = &svd.u.expect("SVD failed on E");
@@ -273,7 +278,8 @@ pub fn decompose_essential_kanatani<T: Feature>(E: &Essential, matches: &Vec<Mat
     let R = svd_k.recompose().ok().expect("SVD recomposition failed on K");
     let translation = h;
 
-    (translation,R)
+    //TODO: corrected E
+    (translation,R, Matrix3::<Float>::identity())
 
 }
 
@@ -291,9 +297,9 @@ pub fn compute_initial_cam_motions<C : Camera + Copy,T : Feature + Clone>(all_ma
     let initial_motion_decomp = essential_matrices.iter().filter(|(id1,_,_)| *id1 == camera_data[0].0.0).enumerate().map(|(i,(_,id2,e))| {
         let matches = &accepted_matches[i];
 
-        let (h,rotation) = match (decomp_alg,matches.len()) {
-            (_,count) if count < 8 => (Vector3::<Float>::zeros(), Matrix3::<Float>::identity()),
-            (EssentialDecomposition::FÖRSNTER,_) => decompose_essential_förstner(e,matches,is_depth_positive),
+        let (h,rotation,_) = match (decomp_alg,matches.len()) {
+            (_,count) if count < 8 => (Vector3::<Float>::zeros(), Matrix3::<Float>::identity(),Matrix3::<Float>::identity()),
+            (EssentialDecomposition::FÖRSNTER,_) => decompose_essential_förstner(e,matches, is_depth_positive),
             (EssentialDecomposition::KANATANI,_) => decompose_essential_kanatani(e,matches, is_depth_positive)
         };
 
