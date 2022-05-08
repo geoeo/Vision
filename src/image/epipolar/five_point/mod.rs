@@ -14,6 +14,7 @@ mod constraints;
  * Photogrammetric Computer Vision p.575; Recent Developments on Direct Relative Orientation Nister, Stewenius et al.
  * Points may be planar
  * This only work on ubuntu. assert build version or something
+ * TODO: check with negative depth points and real data
  */
 #[allow(non_snake_case)]
 pub fn five_point_essential<T: Feature + Clone, C: Camera>(matches: &[Match<T>; 5], camera_one: &C, camera_two: &C, depth_positive: bool) -> Essential {
