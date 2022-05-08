@@ -137,19 +137,21 @@ pub fn filter_matches_from_motion<T: Feature + Clone, C: Camera>(matches: &Vec<M
  */
 //TODO: matches should be without intrinsics
 #[allow(non_snake_case)]
-pub fn decompose_essential_förstner<T : Feature>(E: &Essential, matches: &Vec<Match<T>>, is_depth_positive: bool) -> (Vector3<Float>, Matrix3<Float>,Matrix3<Float> ) {
+pub fn decompose_essential_förstner<T : Feature>(
+    E: &Essential, matches: &Vec<Match<T>>,
+    inverse_camera_matrix_start: &Matrix3::<Float>,
+    inverse_camera_matrix_finish: &Matrix3::<Float>, 
+    is_depth_positive: bool) -> (Vector3<Float>, Matrix3<Float>,Matrix3<Float> ) {
     assert!(matches.len() > 0);
-    // This is defined with matches being along negative Z so we need to align the features.
+    // This decomposition is defined with matches being along negative Z so we need to align the features.
     let r_align = match is_depth_positive {
         true => Rotation3::from_axis_angle(&Vector3::x_axis(),float::consts::PI).matrix().into_owned(),
         false => Matrix3::<Float>::identity()
     };
     let mut svd = E.svd(true,true);
 
-
     let u = &svd.u.expect("SVD failed on E");
     let v_t = &svd.v_t.expect("SVD failed on E");
-
 
     let W = Matrix3::<Float>::new(0.0, 1.0, 0.0,
                                  -1.0, 0.0 ,0.0,
@@ -187,8 +189,8 @@ pub fn decompose_essential_förstner<T : Feature>(E: &Essential, matches: &Vec<M
         let mut v_sign = 0.0;
         let mut u_sign = 0.0;
         for m in matches {
-            let f_start = r_align*m.feature_one.get_as_3d_point(depth_dir);
-            let f_finish = r_align*m.feature_two.get_as_3d_point(depth_dir);
+            let f_start = r_align*inverse_camera_matrix_start*m.feature_one.get_as_3d_point(depth_dir);
+            let f_finish = r_align*inverse_camera_matrix_finish*m.feature_two.get_as_3d_point(depth_dir);
 
             let binormal = ((h.cross_matrix()*f_start).cross_matrix()*h).normalize();
             let mat = Matrix3::<Float>::from_columns(&[h,binormal,f_start.cross_matrix()*R.transpose()*f_finish]);
@@ -220,8 +222,6 @@ pub fn decompose_essential_förstner<T : Feature>(E: &Essential, matches: &Vec<M
             rotation = R;
             break;
         }
-
-
     }
 
     if is_depth_positive {
@@ -288,18 +288,16 @@ pub fn compute_initial_cam_motions<C : Camera + Copy,T : Feature + Clone>(all_ma
     let feature_machtes = all_matches.iter().filter(|m| m.len() >= 8).map(|m| extract_matches(m, pyramid_scale, true)).collect::<Vec<Vec<Match<ImageFeature>>>>();
     let fundamental_matrices = feature_machtes.iter().map(|m| eight_point(m)).collect::<Vec<Fundamental>>();
     let accepted_matches = fundamental_matrices.iter().zip(feature_machtes.iter()).map(|(f,m)| filter_matches_from_fundamental(f, m,epipiolar_thresh)).collect::<Vec<Vec<Match<ImageFeature>>>>();
-    let essential_matrices = fundamental_matrices.iter().enumerate().map(|(i,f)| {
+    let essential_matrices_with_cameras = fundamental_matrices.iter().enumerate().map(|(i,f)| {
         let ((id1,c1),(id2,c2)) = camera_data[i];
-        (id1,id2,compute_essential(f, &c1.get_projection(), &c2.get_projection()))
-        
-    }).collect::<Vec<(usize,usize,Essential)>>();
+        (id1,id2,compute_essential(f, &c1.get_projection(), &c2.get_projection()),c1,c2)
+    }).collect::<Vec<(usize,usize,Essential, C, C)>>();
 
-    let initial_motion_decomp = essential_matrices.iter().filter(|(id1,_,_)| *id1 == camera_data[0].0.0).enumerate().map(|(i,(_,id2,e))| {
+    let initial_motion_decomp = essential_matrices_with_cameras.iter().filter(|(id1,_,_,_,_)| *id1 == camera_data[0].0.0).enumerate().map(|(i,(_,id2,e,c1,c2))| {
         let matches = &accepted_matches[i];
-
         let (h,rotation,_) = match (decomp_alg,matches.len()) {
             (_,count) if count < 8 => (Vector3::<Float>::zeros(), Matrix3::<Float>::identity(),Matrix3::<Float>::identity()),
-            (EssentialDecomposition::FÖRSNTER,_) => decompose_essential_förstner(e,matches, is_depth_positive),
+            (EssentialDecomposition::FÖRSNTER,_) => decompose_essential_förstner(e,matches,&c1.get_inverse_projection(),&c2.get_inverse_projection(), is_depth_positive),
             (EssentialDecomposition::KANATANI,_) => decompose_essential_kanatani(e,matches, is_depth_positive)
         };
 

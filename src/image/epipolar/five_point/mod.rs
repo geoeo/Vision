@@ -105,22 +105,28 @@ pub fn five_point_essential<T: Feature + Clone, C: Camera>(matches: &[Match<T>; 
         E_est
     }).collect::<Vec<Essential>>();
     let matches_as_vec = matches.to_vec();
-    let best_essential = cheirality_check(&all_essential_matricies, &matches_as_vec,depth_positive , (&camera_rays_one, &camera_one.get_projection()), (&camera_rays_two, &camera_two.get_projection()));
+    let best_essential = cheirality_check(&all_essential_matricies, &matches_as_vec,depth_positive , (&camera_rays_one, &camera_one.get_projection(),&inverse_projection_one), (&camera_rays_two, &camera_two.get_projection(),&inverse_projection_two));
     
     best_essential
 }
 
-pub fn cheirality_check<T: Feature + Clone>(all_essential_matricies: &Vec<Essential>,matches_as_vec: &Vec<Match<T>>,depth_positive: bool, points_cam_1: (&OMatrix<Float, U3,U5>,&Matrix3<Float>), points_cam_2: (&OMatrix<Float, U3,U5>, &Matrix3<Float>)) -> Essential {
-    println!("WARN: Implement cheirality_check!");
-
+pub fn cheirality_check<T: Feature + Clone>(
+        all_essential_matricies: &Vec<Essential>,
+        matches_as_vec: &Vec<Match<T>>,
+        depth_positive: bool,
+         points_cam_1: (&OMatrix<Float, U3,U5>, &Matrix3<Float>,&Matrix3<Float>), 
+         points_cam_2: (&OMatrix<Float, U3,U5>, &Matrix3<Float>,&Matrix3<Float>)) -> Essential {
     let mut max_accepted_cheirality_count = 0;
     let mut best_e = None;
+    let camera_matrix_1 = points_cam_1.1;
+    let camera_matrix_2 = points_cam_2.1;
+    let inverse_camera_matrix_1 = points_cam_1.2;
+    let inverse_camera_matrix_2 = points_cam_2.2;
     for e in all_essential_matricies {
-        let (t,R,e_corrected) = decompose_essential_förstner(&e,matches_as_vec,depth_positive);
+        let (t,R,e_corrected) = decompose_essential_förstner(&e,matches_as_vec,inverse_camera_matrix_1,inverse_camera_matrix_2,depth_positive);
         let R_corr = optimal_correction_of_rotation(&R);
         let se3 = pose::se3(&t,&R_corr);
-        let camera_matrix_1 = points_cam_1.1.into_owned();
-        let camera_matrix_2 = points_cam_2.1.into_owned();
+
         let projection_1 = camera_matrix_1*(Matrix4::<Float>::identity().fixed_slice::<3,4>(0,0));
         let projection_2 = camera_matrix_2*(se3.fixed_slice::<3,4>(0,0));
 
