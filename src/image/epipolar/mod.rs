@@ -283,7 +283,7 @@ pub fn decompose_essential_kanatani<T: Feature>(E: &Essential, matches: &Vec<Mat
 
 }
 
-pub fn compute_initial_cam_motions<C : Camera + Copy,T : Feature + Clone>(all_matches: &Vec<Vec<Match<T>>>,camera_data: &Vec<((usize, C),(usize,C))>,pyramid_scale:Float, epipiolar_thresh: Float, is_depth_positive: bool,decomp_alg: EssentialDecomposition) 
+pub fn compute_initial_cam_motions<C : Camera + Copy,T : Feature + Clone>(all_matches: &Vec<Vec<Match<T>>>,camera_data: &Vec<((usize, C),(usize,C))>,pyramid_scale:Float, epipiolar_thresh: Float, is_depth_positive: bool, decomp_alg: EssentialDecomposition) 
     ->  Vec<(u64,(Vector3<Float>,Matrix3<Float>))> {
     let feature_machtes = all_matches.iter().filter(|m| m.len() >= 8).map(|m| extract_matches(m, pyramid_scale, true)).collect::<Vec<Vec<Match<ImageFeature>>>>();
     let fundamental_matrices = feature_machtes.iter().map(|m| eight_point(m)).collect::<Vec<Fundamental>>();

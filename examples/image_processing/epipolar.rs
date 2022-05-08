@@ -19,15 +19,22 @@ fn main() -> Result<()> {
 
     color_eyre::install()?;
 
-
     let K = octave_loader::load_matrix("/home/marc/Workspace/Vision/data/5_point_synthetic/intrinsics.txt");
     let R = octave_loader::load_matrix("/home/marc/Workspace/Vision/data/5_point_synthetic/rotation.txt");
     let t_raw = octave_loader::load_vector("/home/marc/Workspace/Vision/data/5_point_synthetic/translation.txt");
-    let t = SVector::<Float,3>::new(t_raw[(0,0)],t_raw[(1,0)],t_raw[(2,0)]);
     let x1h = octave_loader::load_matrix("/home/marc/Workspace/Vision/data/5_point_synthetic/cam1_features.txt");
     let x2h = octave_loader::load_matrix("/home/marc/Workspace/Vision/data/5_point_synthetic/cam2_features.txt");
+    let depth_positive = true;
 
-    let intensity_camera_1 = Pinhole::new(K[(0,0)],K[(1,1)],K[(0,2)],K[(1,2)], false);
+    // let K = octave_loader::load_matrix("/home/marc/Workspace/Vision/data/5_point_synthetic/intrinsics_neg.txt");
+    // let R = octave_loader::load_matrix("/home/marc/Workspace/Vision/data/5_point_synthetic/rotation_neg.txt");
+    // let t_raw = octave_loader::load_vector("/home/marc/Workspace/Vision/data/5_point_synthetic/translation_neg.txt");
+    // let x1h = octave_loader::load_matrix("/home/marc/Workspace/Vision/data/5_point_synthetic/cam1_features_neg.txt");
+    // let x2h = octave_loader::load_matrix("/home/marc/Workspace/Vision/data/5_point_synthetic/cam2_features_neg.txt");
+    // let depth_positive = false;
+
+    let t = SVector::<Float,3>::new(t_raw[(0,0)],t_raw[(1,0)],t_raw[(2,0)]);
+    let intensity_camera_1 = Pinhole::new(K[(0,0)],K[(1,1)],K[(0,2)],K[(1,2)], !depth_positive);
     let intensity_camera_2 = intensity_camera_1.clone();
     let mut synth_matches = Vec::<Match::<ImageFeature>>::with_capacity(5);
     for i in 0..5 {
@@ -59,9 +66,12 @@ fn main() -> Result<()> {
 
 
     let five_feature_slice : &[Match<ImageFeature>;5] = feature_matches[..5].try_into().unwrap();
-    let five_point_essential_matrix = epipolar::five_point_essential(five_feature_slice,&intensity_camera_1,&intensity_camera_2,true);
+    let five_point_essential_matrix = epipolar::five_point_essential(five_feature_slice,&intensity_camera_1,&intensity_camera_2,depth_positive);
+    let factor = five_point_essential_matrix[(2,2)];
+    let five_point_essential_matrix_norm = five_point_essential_matrix.map(|x| x/factor);
     println!("best five point: ");
     println!("{}",five_point_essential_matrix);
+    println!("{}",five_point_essential_matrix_norm);
     let fundamental_matrix = epipolar::eight_point(&feature_matches);
     let essential_matrix = epipolar::compute_essential(&fundamental_matrix, &intensity_camera_1.get_projection(), &intensity_camera_2.get_projection());
     let normalized_matches = epipolar::filter_matches_from_fundamental(&fundamental_matrix, &feature_matches,1.0);
@@ -77,7 +87,6 @@ fn main() -> Result<()> {
     println!("{}",h);
     println!("{}",R);
     println!("{}", R*h);
-
 
     Ok(())
 }

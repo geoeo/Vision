@@ -4,6 +4,10 @@ use na::{Matrix3xX,Matrix4xX,MatrixXx4,OMatrix,RowOVector, DMatrix,Dynamic,U3,U4
 use crate::Float;
 
 //TODO: conditioning
+/**
+ * Linear Triangulartion up to scale. Assuming norm(X) = 1, where X is in homogeneous space.
+ * See Triangulation by Hartley et al.
+ */
 pub fn linear_triangulation(image_points_and_projections: &Vec<(&Matrix3xX<Float>, &OMatrix<Float,U3,U4>)>) -> Matrix4xX<Float> {
     let n_cams = image_points_and_projections.len();
     let points_per_cam = image_points_and_projections.first().expect("linear_triangulation: no points!").0.ncols();
@@ -36,6 +40,7 @@ pub fn linear_triangulation(image_points_and_projections: &Vec<(&Matrix3xX<Float
         let eigen_vectors = svd.v_t.expect("linear_triangulation: svd failed");
 
         let p = eigen_vectors.row((2*n_cams)-1);
+
         triangulated_points[(0,i)] = p[0]/p[3];
         triangulated_points[(1,i)] = p[1]/p[3];
         triangulated_points[(2,i)] = p[2]/p[3];

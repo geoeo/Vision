@@ -2,7 +2,7 @@ extern crate nalgebra as na;
 extern crate nalgebra_lapack;
 
 use na::{RowOVector,Vector3,Matrix2,Matrix3, Matrix4,Matrix3x4,OMatrix,Matrix3xX,SVector,Rotation3, dimension::{U10,U20,U5,U9,U3}};
-use crate::Float;
+use crate::{Float,float};
 use crate::sensors::camera::Camera;
 use crate::image::{features::{Feature,Match},epipolar::{Essential,decompose_essential_förstner},triangulation::linear_triangulation};
 use crate::numerics::{to_matrix, pose,pose::{optimal_correction_of_rotation}};
@@ -119,6 +119,7 @@ pub fn cheirality_check<T: Feature + Clone>(
          points_cam_2: (&OMatrix<Float, U3,U5>, &Matrix3<Float>,&Matrix3<Float>)) -> Essential {
     let mut max_accepted_cheirality_count = 0;
     let mut best_e = None;
+    let mut smallest_det = float::MAX;
     let camera_matrix_1 = points_cam_1.1;
     let camera_matrix_2 = points_cam_2.1;
     let inverse_camera_matrix_1 = points_cam_1.2;
@@ -150,10 +151,12 @@ pub fn cheirality_check<T: Feature + Clone>(
                 accepted_cheirality_count += 1 
             }
         }
-        if accepted_cheirality_count > max_accepted_cheirality_count {
-            let factor = e_corrected[(2,2)];
-            let e_norm = e_corrected.map(|x| x/factor);
-            best_e = Some(e_norm);
+
+        let det = e_corrected.determinant().abs();
+        if (accepted_cheirality_count > max_accepted_cheirality_count) ||
+            ((accepted_cheirality_count == max_accepted_cheirality_count) && det < smallest_det) {
+            best_e = Some(e_corrected);
+            smallest_det = det;
             max_accepted_cheirality_count = accepted_cheirality_count;
         }
     }
