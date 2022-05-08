@@ -35,7 +35,7 @@ pub fn extract_matches<T: Feature>(matches: &Vec<Match<T>>, pyramid_scale: Float
 
 }
 #[allow(non_snake_case)]
-pub fn five_point_essential<T: Feature, C: Camera>(matches: &[Match<T>; 5], camera_one: &C, camera_two: &C, depth_positive: bool) -> Essential {
+pub fn five_point_essential<T: Feature + Clone, C: Camera>(matches: &[Match<T>; 5], camera_one: &C, camera_two: &C, depth_positive: bool) -> Essential {
     five_point::five_point_essential(matches,camera_one,camera_two,depth_positive)
 }
 
@@ -132,14 +132,12 @@ pub fn filter_matches_from_motion<T: Feature + Clone, C: Camera>(matches: &Vec<M
     filter_matches_from_fundamental(&fundamental,matches,epipiolar_thresh)
 }
 
-
 /**
  * Photogrammetric Computer Vision p.583
  */
 #[allow(non_snake_case)]
-pub fn decompose_essential_förstner<T : Feature>(E: &Essential,matches: &Vec<Match<T>>,is_depth_positive: bool) -> (Vector3<Float>, Matrix3<Float>) {
+pub fn decompose_essential_förstner<T : Feature>(E: &Essential, matches: &Vec<Match<T>>, is_depth_positive: bool) -> (Vector3<Float>, Matrix3<Float>) {
     assert!(matches.len() > 0);
-    assert!(!is_depth_positive);
     let svd = E.svd(true,true);
     let min_idx = svd.singular_values.imin();
     let u = &svd.u.expect("SVD failed on E");
@@ -165,7 +163,6 @@ pub fn decompose_essential_förstner<T : Feature>(E: &Essential,matches: &Vec<Ma
         let mut v_sign = 0.0;
         let mut u_sign = 0.0;
         for m in matches {
-            
             let f_start = m.feature_one.get_as_3d_point(-1.0);
             let f_finish = m.feature_two.get_as_3d_point(-1.0);
 

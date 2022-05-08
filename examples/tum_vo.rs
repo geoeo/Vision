@@ -96,8 +96,8 @@ fn main() {
 
     se3_est.extend(dense_direct::solver::run_trajectory(&source_pyramids, &target_pyramids, &intensity_cam, &depth_cam, &vo_parameters));
     se3_gt_targetory.extend(tum_data.source_gt_poses.unwrap().iter().zip(tum_data.target_gt_poses.unwrap().iter()).map(|(s,t)| {
-        let se3_s = numerics::pose::se3(&s.0, &UnitQuaternion::<Float>::from_quaternion(s.1));
-        let se3_t = numerics::pose::se3(&t.0, &UnitQuaternion::<Float>::from_quaternion(t.1));
+        let se3_s = numerics::pose::from_parts(&s.0, &UnitQuaternion::<Float>::from_quaternion(s.1));
+        let se3_t = numerics::pose::from_parts(&t.0, &UnitQuaternion::<Float>::from_quaternion(t.1));
         let mut p = numerics::pose::pose_difference(&se3_s, &se3_t);
         p.translation.vector[2]*=-1.0;
         p

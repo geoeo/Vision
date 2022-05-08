@@ -1,6 +1,6 @@
 extern crate nalgebra as na;
 
-use na::{Vector3,Matrix4,Matrix3,Point3,UnitQuaternion, Isometry3, Translation3};
+use na::{Vector3,Matrix4,Matrix3,Point3,UnitQuaternion,Isometry ,Isometry3, Translation3,Rotation, Rotation3};
 use crate::Float;
 
 pub fn from_matrix(mat: &Matrix4<Float>) -> Isometry3<Float> {
@@ -12,7 +12,11 @@ pub fn from_matrix(mat: &Matrix4<Float>) -> Isometry3<Float> {
     Isometry3::<Float>::from_parts(Translation3::from(vec), UnitQuaternion::<Float>::from_matrix(&rot))
 }
 
-pub fn se3(t: &Vector3<Float>, quat: &UnitQuaternion<Float>) -> Isometry3<Float> {
+pub fn se3(t: &Vector3<Float>, rotation: &Matrix3<Float>) -> Matrix4<Float> {
+    Isometry::<Float, Rotation3<Float>,3>::from_parts(Translation3::from(*t), Rotation3::from_matrix(rotation)).to_homogeneous()
+}
+
+pub fn from_parts(t: &Vector3<Float>, quat: &UnitQuaternion<Float>) -> Isometry3<Float> {
     Isometry3::<Float>::from_parts(Translation3::from(*t), *quat)
 }
 
@@ -42,4 +46,17 @@ pub fn error(q_1: &Isometry3<Float>,q_2: &Isometry3<Float>,p_1: &Isometry3<Float
 pub fn rsme(data: &Vec<Isometry3<Float>>) -> Float {
     let norm_sum = data.iter().fold(0.0, |acc, x| acc + x.translation.vector.norm_squared());
     (norm_sum/(data.len() as Float)).sqrt()
+}
+
+/**
+ * 3D Rotations - Kanatani p.35
+ */
+pub fn optimal_correction_of_rotation(rotation: &Matrix3<Float>) -> Matrix3<Float> {
+    let mut svd = rotation.svd(true,true);
+    let u = &svd.u.expect("optimal_correction_of_rotation: SVD failed on u");
+    let v_t = &svd.v_t.expect("optimal_correction_of_rotation: SVD failed on v_t");
+    svd.singular_values[0] = 1.0;
+    svd.singular_values[1] = 1.0;
+    svd.singular_values[2] = (u*v_t.transpose()).determinant();
+    svd.recompose().expect("optimal_correction_of_rotation: SVD failed on recompose")
 }

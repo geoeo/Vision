@@ -1,20 +1,22 @@
 extern crate nalgebra as na;
 extern crate nalgebra_lapack;
 
-use na::{RowOVector,Vector3,Matrix2,Matrix3,OMatrix,SVector, dimension::{U10,U20,U5,U9,U3}};
+use na::{RowOVector,Vector3,Matrix2,Matrix3, Matrix4,Matrix3x4,OMatrix,Matrix3xX,SVector,Rotation3, dimension::{U10,U20,U5,U9,U3}};
 use crate::Float;
 use crate::sensors::camera::Camera;
-use crate::image::{features::{Feature,Match},epipolar::Essential};
-use crate::numerics::to_matrix;
+use crate::image::{features::{Feature,Match},epipolar::{Essential,decompose_essential_förstner},triangulation::linear_triangulation};
+use crate::numerics::{to_matrix, pose,pose::{optimal_correction_of_rotation}};
+
 
 mod constraints;
 
 /**
  * Photogrammetric Computer Vision p.575
  * Points may be planar
+ * This only work on ubuntu. assert build version or something
  */
 #[allow(non_snake_case)]
-pub fn five_point_essential<T: Feature, C: Camera>(matches: &[Match<T>; 5], camera_one: &C, camera_two: &C, depth_positive: bool) -> Essential {
+pub fn five_point_essential<T: Feature + Clone, C: Camera>(matches: &[Match<T>; 5], camera_one: &C, camera_two: &C, depth_positive: bool) -> Essential {
     let mut features_one = OMatrix::<Float, U3,U5>::zeros();
     let mut features_two = OMatrix::<Float, U3,U5>::zeros();
     let mut A = OMatrix::<Float,U5,U9>::zeros();
@@ -46,10 +48,8 @@ pub fn five_point_essential<T: Feature, C: Camera>(matches: &[Match<T>; 5], came
         A.row_mut(i).copy_from(&kroenecker_product);
     }
 
-
-    // This only work on ubuntu. assert build version or something
-    let A_svd = nalgebra_lapack::SVD::new(A); // TODO nalgebra svd
-
+    // nalgebra wont do full SVD
+    let A_svd = nalgebra_lapack::SVD::new(A);
     let vt = &A_svd.expect("Five Point: SVD failed on A!").vt;
     let u1 = vt.row(5).transpose(); 
     let u2 = vt.row(6).transpose();
@@ -80,12 +80,10 @@ pub fn five_point_essential<T: Feature, C: Camera>(matches: &[Match<T>; 5], came
     let (eigenvalues, option_vl, option_vr) = nalgebra_lapack::Eigen::complex_eigenvalues(action_matrix, false, true);
     let eigen_v = option_vr.expect("Five Point: eigenvector computation failed!");
 
-
     let mut real_eigenvalues =  Vec::<Float>::with_capacity(10);
     let mut real_eigenvectors = Vec::<SVector::<Float,10>>::with_capacity(10);
     for i in 0..10 {
         let c = eigenvalues[i];
-        println!("{:?}",c);
         if c.im == 0.0 {
             let real_value = c.re;
             real_eigenvalues.push(real_value);
@@ -94,7 +92,6 @@ pub fn five_point_essential<T: Feature, C: Camera>(matches: &[Match<T>; 5], came
     }
 
     let all_essential_matricies = real_eigenvectors.iter().map(|vec| {
-
         let u = vec[6];
         let v = vec[7];
         let w = vec[8];
@@ -104,34 +101,77 @@ pub fn five_point_essential<T: Feature, C: Camera>(matches: &[Match<T>; 5], came
         let y = vec[7]/vec[9];
         let z = vec[8]/vec[9];
 
-        
         let E_est = x*E1+y*E2+z*E3+E4;
         E_est
-
-
     }).collect::<Vec<Essential>>();
-    //TODO: cheirality check - with transpose
-
-    for e in &all_essential_matricies {
-        let factor = e[(2,2)];
-        let e_norm = e.map(|x| x/factor);
-        let test = camera_rays_one.transpose()*e*camera_rays_two;
-        println!("{}",e_norm);
-        println!("{}",e);
-        println!("{}",e.determinant());
-        println!("{}",test);
-        println!("------");
-    }
-
-    let best_essential = cheirality_check(&all_essential_matricies);
+    let matches_as_vec = matches.to_vec();
+    let best_essential = cheirality_check(&all_essential_matricies, &matches_as_vec,depth_positive , (&camera_rays_one, &camera_one.get_projection()), (&camera_rays_two, &camera_two.get_projection()));
     
+    println!("{}", best_essential);
+
     best_essential
 }
 
-//TODO
-pub fn cheirality_check(essential_matricies: &Vec<Essential>) -> Essential {
+//TODO still buggy
+pub fn cheirality_check<T: Feature + Clone>(all_essential_matricies: &Vec<Essential>,matches_as_vec: &Vec<Match<T>>,depth_positive: bool, points_cam_1: (&OMatrix<Float, U3,U5>,&Matrix3<Float>), points_cam_2: (&OMatrix<Float, U3,U5>, &Matrix3<Float>)) -> Essential {
     println!("WARN: Implement cheirality_check!");
-    essential_matricies.first().copied().expect("cheirality_check: essential matrix list was empty!")
+
+    let mut max_accepted_cheirality_count = 0;
+    let mut best_e = None;
+    for e in all_essential_matricies {
+        let factor = e[(2,2)];
+        let e_norm = e.map(|x| x/factor);
+        let (t,R) = decompose_essential_förstner(&e_norm,matches_as_vec,depth_positive);
+        let R_corr = optimal_correction_of_rotation(&R);
+        let se3 = pose::se3(&t,&R_corr));
+        let camera_matrix_1 = points_cam_1.1.into_owned();
+        let camera_matrix_2 = points_cam_2.1.into_owned();
+        let projection_1 = camera_matrix_1*(Matrix4::<Float>::identity().fixed_slice::<3,4>(0,0));
+        let projection_2 = camera_matrix_2*(se3.fixed_slice::<3,4>(0,0));
+
+        let p1_static = points_cam_1.0;
+        let p2_static = points_cam_2.0;
+        let mut p1_dynamic = Matrix3xX::<Float>::zeros(5);
+        let mut p2_dynamic = Matrix3xX::<Float>::zeros(5);
+        p1_dynamic.fixed_columns_mut::<5>(0).copy_from(&p1_static.columns(0,5));
+        p2_dynamic.fixed_columns_mut::<5>(0).copy_from(&p2_static.columns(0,5));
+
+        let Xs = linear_triangulation(&vec!((&p1_dynamic,&projection_1),(&p2_dynamic,&projection_2)));
+        let p1X = projection_1*&Xs;
+        let p2X = projection_2*&Xs;
+        let mut accepted_cheirality_count = 0;
+        for i in 0..5 {
+            let d1 = p1X[(2,i)];
+            let d2 = p2X[(2,i)];
+
+            if d1 * d2 > 0.0 {
+                match (depth_positive, d1) {
+                    (true, v) if v > 0.0 => accepted_cheirality_count += 2, 
+                    (false, v) if v < 0.0 => accepted_cheirality_count += 2,
+                    (_, _) => ()
+                };
+    
+                // match (depth_positive, d2) {
+                //     (true, v) if v > 0.0 => accepted_cheirality_count += 1, 
+                //     (false, v) if v < 0.0 => accepted_cheirality_count += 1,
+                //     (_, _) => ()
+                // }; 
+            }
+        }
+
+
+
+        if accepted_cheirality_count > max_accepted_cheirality_count {
+            best_e = Some(e_norm);
+            max_accepted_cheirality_count = accepted_cheirality_count;
+        }
+
+        println!("{}",e_norm);
+        println!("{}",accepted_cheirality_count);
+        println!("------");
+    }
+    //all_essential_matricies.first().copied().expect("cheirality_check: essential matrix list was empty!")
+    best_e.expect("cheirality_check: no best essential matrix found!").clone()
 }
 
 #[allow(non_snake_case)]

@@ -153,7 +153,5 @@ pub fn condition_matches<T: Feature>(matches: &Vec<Match<T>>) -> Vec<Match<Image
         let m = Match { feature_one: ImageFeature::new(c_one[0]*scale_one,c_one[1]*scale_one), feature_two: ImageFeature::new(c_two[0]*scale_two,c_two[1]*scale_two)};
         conditioned_matches.push(m);
     }
-
-
     conditioned_matches
 }

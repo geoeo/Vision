@@ -10,7 +10,7 @@ pub mod camera_data_frame;
 
 pub trait Camera {
     fn get_projection(&self) -> Matrix3<Float>;
-    fn get_inverse_projection(&self) -> Matrix3<Float>;
+    fn get_inverse_projection(&self) -> Matrix3<Float>; //@TODO: rename to camera/intrinsic matrix
     fn get_jacobian_with_respect_to_position_in_camera_frame<T>(&self, position: &Vector<Float,U3,T>) -> Matrix2x3<Float> where T: Storage<Float,U3,U1>;
     fn project<T>(&self, position: &Vector<Float,U3,T>) -> Point<Float> where T: Storage<Float,U3,U1>;
     fn backproject(&self, point: &Point<Float>, depth: Float) -> Vector3<Float>;
