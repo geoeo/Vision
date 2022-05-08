@@ -1,6 +1,6 @@
 extern crate nalgebra as na;
 
-use na::{Matrix3xX,Matrix4xX,OMatrix,RowOVector, DMatrix,Dynamic,U3,U4,VecStorage};
+use na::{Matrix3xX,Matrix4xX,MatrixXx4,OMatrix,RowOVector, DMatrix,Dynamic,U3,U4,VecStorage};
 use crate::Float;
 
 //TODO: conditioning
@@ -10,7 +10,7 @@ pub fn linear_triangulation(image_points_and_projections: &Vec<(&Matrix3xX<Float
     let mut triangulated_points = Matrix4xX::<Float>::zeros(points_per_cam);
 
     for i in 0..points_per_cam {
-        let mut A = DMatrix::<Float>::zeros(2*n_cams,4);
+        let mut A = MatrixXx4::<Float>::zeros(2*n_cams);
         for j in 0..n_cams {
             let (points, projection) = image_points_and_projections[j];
             let p_1_1 = projection[(0,0)];
