@@ -11,7 +11,7 @@ use crate::numerics::{to_matrix, pose,pose::{optimal_correction_of_rotation}};
 mod constraints;
 
 /**
- * Photogrammetric Computer Vision p.575
+ * Photogrammetric Computer Vision p.575; Recent Developments on Direct Relative Orientation Nister, Stewenius et al.
  * Points may be planar
  * This only work on ubuntu. assert build version or something
  */
