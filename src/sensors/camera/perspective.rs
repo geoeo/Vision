@@ -11,6 +11,7 @@ pub struct Perspective {
     pub inverse_projection: Matrix3<Float>
 }
 
+ //@TODO: unify principal distance into enum
 impl Perspective {
     pub fn new(fx: Float, fy: Float, cx: Float, cy: Float, s: Float, invert_focal_length: bool) -> Perspective {
        let factor = match invert_focal_length {

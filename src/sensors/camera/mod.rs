@@ -8,6 +8,7 @@ pub mod pinhole;
 pub mod perspective;
 pub mod camera_data_frame;
 
+ //@TODO: unify principal distance into enum
 pub trait Camera {
     fn get_projection(&self) -> Matrix3<Float>;
     fn get_inverse_projection(&self) -> Matrix3<Float>; //@TODO: rename to camera/intrinsic matrix
@@ -22,6 +23,7 @@ pub trait Camera {
  * Where K is the camera intrinsics and R|t are the extrinsics.
  * 
  * Covariance propagation is not implemented.
+ * @TODO: unify principal distance into enum
  */
 #[allow(non_snake_case)]
 pub fn decompose_projection(projection_matrix: &Matrix3x4<Float>, positive_principal_distance: bool) -> (Matrix3<Float>, Matrix4<Float>) {

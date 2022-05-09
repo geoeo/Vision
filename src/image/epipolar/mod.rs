@@ -132,8 +132,8 @@ pub fn filter_matches_from_motion<T: Feature + Clone, C: Camera>(matches: &Vec<M
 
 /**
  * Photogrammetric Computer Vision p.583
+ * @TODO: unify principal distance into enum
  */
-//TODO: matches should be without intrinsics
 #[allow(non_snake_case)]
 pub fn decompose_essential_förstner<T : Feature>(
     E: &Essential, matches: &Vec<Match<T>>,
