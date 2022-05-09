@@ -51,7 +51,6 @@ pub fn eight_point<T : Feature>(matches: &Vec<Match<T>>) -> Fundamental {
 
     let mut A = Matrix::<Float,Dynamic, U9, VecStorage<Float,Dynamic,U9>>::zeros(matches.len());
     for i in 0..A.nrows() {
-
         let feature_right = matches[i].feature_two.get_as_2d_point();
         let feature_left = matches[i].feature_one.get_as_2d_point();
 
@@ -60,7 +59,6 @@ pub fn eight_point<T : Feature>(matches: &Vec<Match<T>>) -> Fundamental {
 
         let r_x =  feature_right[0];
         let r_y =  feature_right[1];
-
 
         A[(i,0)] = r_x*l_x;
         A[(i,1)] = r_x*l_y;
@@ -114,14 +112,14 @@ pub fn compute_fundamental(E: &Essential, inverse_projection_start: &Matrix3<Flo
 #[allow(non_snake_case)]
 pub fn filter_matches_from_fundamental<T: Feature + Clone>(F: &Fundamental,matches: &Vec<Match<T>>, epipiolar_thresh: Float) -> Vec<Match<T>> {
     matches.iter().filter(|m| {
-            let start = m.feature_one.get_as_3d_point(1.0);
-            let finish = m.feature_two.get_as_3d_point(1.0);
+            let start = m.feature_one.get_as_2d_homogeneous();
+            let finish = m.feature_two.get_as_2d_homogeneous();
             (start.transpose()*F*finish)[0].abs() < epipiolar_thresh
         }).cloned().collect::<Vec<Match<T>>>()
 }
 
 #[allow(non_snake_case)]
-pub fn filter_matches_from_motion<T: Feature + Clone, C: Camera>(matches: &Vec<Match<T>>, relative_motion: &(Vector3<Float>,Matrix3<Float>),camera_pair: &(C,C), epipiolar_thresh: Float) -> Vec<Match<T>> {
+pub fn filter_matches_from_motion<T: Feature + Clone, C: Camera>(matches: &Vec<Match<T>>, relative_motion: &(Vector3<Float>,Matrix3<Float>),camera_pair: &(C,C),is_depth_positive: bool , epipiolar_thresh: Float) -> Vec<Match<T>> {
     let (cam_s,cam_f) = &camera_pair;
     let (t,R) = &relative_motion;
     let essential = essential_matrix_from_motion(t, R);
@@ -129,7 +127,7 @@ pub fn filter_matches_from_motion<T: Feature + Clone, C: Camera>(matches: &Vec<M
     let cam_f_inv = cam_f.get_inverse_projection();
     let fundamental = compute_fundamental(&essential, &cam_s_inv, &cam_f_inv);
 
-    filter_matches_from_fundamental(&fundamental,matches,epipiolar_thresh)
+    filter_matches_from_fundamental(&fundamental,matches ,epipiolar_thresh)
 }
 
 /**
@@ -143,11 +141,6 @@ pub fn decompose_essential_förstner<T : Feature>(
     inverse_camera_matrix_finish: &Matrix3::<Float>, 
     is_depth_positive: bool) -> (Vector3<Float>, Matrix3<Float>,Matrix3<Float> ) {
     assert!(matches.len() > 0);
-    // This decomposition is defined with matches being along negative Z so we need to align the features.
-    let r_align = match is_depth_positive {
-        true => Rotation3::from_axis_angle(&Vector3::x_axis(),float::consts::PI).matrix().into_owned(),
-        false => Matrix3::<Float>::identity()
-    };
     let mut svd = E.svd(true,true);
 
     let u = &svd.u.expect("SVD failed on E");
@@ -162,7 +155,7 @@ pub fn decompose_essential_förstner<T : Feature>(
                                   0.0, 0.0, 0.0);
 
     let U_norm = u*u.determinant();
-    let V =  v_t.transpose();
+    let V = v_t.transpose();
     let V_norm = V*V.determinant();
 
     let e_corrected = U_norm* Matrix3::<Float>::new(1.0, 0.0, 0.0,
@@ -176,10 +169,6 @@ pub fn decompose_essential_förstner<T : Feature>(
 
     let R_matrices = vec!(V_norm*W*U_norm.transpose(),V_norm*W.transpose()*U_norm.transpose(), V_norm*W*U_norm.transpose(), V_norm*W.transpose()*U_norm.transpose());
     let h_vecs = vec!(b,b, -b, -b);
-    let depth_dir = match is_depth_positive {
-        true => 1.0,
-        false => -1.0
-    };
 
     let mut translation = Vector3::<Float>::zeros();
     let mut rotation = Matrix3::<Float>::identity();
@@ -189,8 +178,8 @@ pub fn decompose_essential_förstner<T : Feature>(
         let mut v_sign = 0.0;
         let mut u_sign = 0.0;
         for m in matches {
-            let f_start = r_align*inverse_camera_matrix_start*m.feature_one.get_as_3d_point(depth_dir);
-            let f_finish = r_align*inverse_camera_matrix_finish*m.feature_two.get_as_3d_point(depth_dir);
+            let f_start = inverse_camera_matrix_start*m.feature_one.get_as_camera_ray();
+            let f_finish = inverse_camera_matrix_finish*m.feature_two.get_as_camera_ray();
 
             let binormal = ((h.cross_matrix()*f_start).cross_matrix()*h).normalize();
             let mat = Matrix3::<Float>::from_columns(&[h,binormal,f_start.cross_matrix()*R.transpose()*f_finish]);

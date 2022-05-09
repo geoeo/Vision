@@ -21,18 +21,14 @@ pub fn five_point_essential<T: Feature + Clone, C: Camera>(matches: &[Match<T>; 
     let mut features_one = OMatrix::<Float, U3,U5>::zeros();
     let mut features_two = OMatrix::<Float, U3,U5>::zeros();
     let mut A = OMatrix::<Float,U5,U9>::zeros();
-    let normalized_depth = match depth_positive {
-        true => 1.0,
-        _ => -1.0
-    };
 
     let inverse_projection_one = camera_one.get_inverse_projection();
     let inverse_projection_two = camera_two.get_inverse_projection();
 
     for i in 0..5 {
         let m = &matches[i];
-        let f_1 = m.feature_one.get_as_3d_point(normalized_depth);
-        let f_2 = m.feature_two.get_as_3d_point(normalized_depth);
+        let f_1 = m.feature_one.get_as_camera_ray();
+        let f_2 = m.feature_two.get_as_camera_ray();
 
         features_one.column_mut(i).copy_from(&f_1);
         features_two.column_mut(i).copy_from(&f_2);

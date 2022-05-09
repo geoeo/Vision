@@ -45,8 +45,12 @@ name = "fast_descriptor"
 path = "examples/image_processing/fast_descriptor.rs"
 
 [[example]]
-name = "epipolar"
-path = "examples/image_processing/epipolar.rs"
+name = "epipolar_five_point"
+path = "examples/image_processing/epipolar_five_point.rs"
+
+[[example]]
+name = "epipolar_eight_point"
+path = "examples/image_processing/epipolar_eight_point.rs"
 
 [[example]]
 name = "pointcloud"

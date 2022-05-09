@@ -309,10 +309,23 @@
             "preLaunchTask": "build examples"
         },
         {
-            "name": "Epipolar",
+            "name": "Epipolar 5P",
             "type": "lldb",
             "request": "launch",
-            "program": "${workspaceRoot}/target/debug/examples/epipolar",
+            "program": "${workspaceRoot}/target/debug/examples/epipolar_five_point",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "env": {"RUST_BACKTRACE":"1", "RUST_BACKTRACE":"full"},
+            "preLaunchTask": "build examples"
+        },
+        {
+            "name": "Epipolar 8P",
+            "type": "lldb",
+            "request": "launch",
+            "program": "${workspaceRoot}/target/debug/examples/epipolar_eight_point",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
