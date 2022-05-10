@@ -167,8 +167,8 @@ pub fn decompose_essential_förstner<T : Feature>(
     let Sb = u * Z * u.transpose();
     let b = Vector3::<Float>::new(Sb[(2, 1)],Sb[(0, 2)], Sb[(1,0)]);
 
-    let R_matrices = vec!(V_norm*W*U_norm.transpose(),V_norm*W.transpose()*U_norm.transpose(), V_norm*W*U_norm.transpose(), V_norm*W.transpose()*U_norm.transpose());
-    let h_vecs = vec!(b,b, -b, -b);
+    let R_matrices = vec!(V_norm*W*U_norm.transpose(), V_norm*W*U_norm.transpose(),V_norm*W.transpose()*U_norm.transpose(), V_norm*W.transpose()*U_norm.transpose());
+    let h_vecs = vec!(b,-b, b, -b);
 
     let mut translation = Vector3::<Float>::zeros();
     let mut rotation = Matrix3::<Float>::identity();
