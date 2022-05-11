@@ -210,15 +210,13 @@ pub fn decompose_essential_förstner<T : Feature>(
             translation = h;
             rotation = R;
             break;
-        }
+        } 
     }
 
-    if is_depth_positive {
-        // translation was computed from the correct essential matrix so we dont have to change anything
-        // due to alignment to negative depth, the rotation is actually form f_finish to f_start so we have to transpose.
-        rotation = rotation.transpose();
-    }
 
+    // Might be this method five r_t after all
+    rotation = rotation.transpose();
+    
     (translation,rotation,e_corrected)
 
 }

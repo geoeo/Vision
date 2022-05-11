@@ -1,0 +1,10 @@
+# Created by Octave 5.2.0, Wed May 11 23:37:54 2022 CEST <marc@DESKTOP-JV68U8A>
+# name: K
+# type: matrix
+# rows: 3
+# columns: 3
+ 1 0 0
+ 0 1 0
+ 0 0 1
+
+

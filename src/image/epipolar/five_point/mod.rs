@@ -147,8 +147,13 @@ pub fn cheirality_check<T: Feature + Clone>(
                 accepted_cheirality_count += 1 
             }
         }
-
         let det = e_corrected.determinant().abs();
+
+        // println!("{}",e_corrected);
+        // println!("{}",accepted_cheirality_count);
+        // println!("{}",det);
+        // println!("------");
+
         if (accepted_cheirality_count > max_accepted_cheirality_count) ||
             ((accepted_cheirality_count == max_accepted_cheirality_count) && det < smallest_det) {
             best_e = Some(e_corrected);

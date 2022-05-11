@@ -19,22 +19,22 @@ fn main() -> Result<()> {
 
     color_eyre::install()?;
 
-    let K = octave_loader::load_matrix("/home/marc/Workspace/Vision/data/5_point_synthetic/intrinsics.txt");
-    let R = octave_loader::load_matrix("/home/marc/Workspace/Vision/data/5_point_synthetic/rotation.txt");
-    let t_raw = octave_loader::load_vector("/home/marc/Workspace/Vision/data/5_point_synthetic/translation.txt");
-    let x1h = octave_loader::load_matrix("/home/marc/Workspace/Vision/data/5_point_synthetic/cam1_features.txt");
-    let x2h = octave_loader::load_matrix("/home/marc/Workspace/Vision/data/5_point_synthetic/cam2_features.txt");
-    let depth_positive = true;
-    let invert_focal_length = false;
-
-
-    // let K = octave_loader::load_matrix("/home/marc/Workspace/Vision/data/5_point_synthetic/intrinsics_neg.txt");
-    // let R = octave_loader::load_matrix("/home/marc/Workspace/Vision/data/5_point_synthetic/rotation_neg.txt");
-    // let t_raw = octave_loader::load_vector("/home/marc/Workspace/Vision/data/5_point_synthetic/translation_neg.txt");
-    // let x1h = octave_loader::load_matrix("/home/marc/Workspace/Vision/data/5_point_synthetic/cam1_features_neg.txt");
-    // let x2h = octave_loader::load_matrix("/home/marc/Workspace/Vision/data/5_point_synthetic/cam2_features_neg.txt");
-    // let depth_positive = false; 
+    // let K = octave_loader::load_matrix("/home/marc/Workspace/Vision/data/5_point_synthetic/intrinsics.txt");
+    // let R = octave_loader::load_matrix("/home/marc/Workspace/Vision/data/5_point_synthetic/rotation.txt");
+    // let t_raw = octave_loader::load_vector("/home/marc/Workspace/Vision/data/5_point_synthetic/translation.txt");
+    // let x1h = octave_loader::load_matrix("/home/marc/Workspace/Vision/data/5_point_synthetic/cam1_features.txt");
+    // let x2h = octave_loader::load_matrix("/home/marc/Workspace/Vision/data/5_point_synthetic/cam2_features.txt");
+    // let depth_positive = true;
     // let invert_focal_length = false;
+
+
+    let K = octave_loader::load_matrix("/home/marc/Workspace/Vision/data/5_point_synthetic/intrinsics_neg.txt");
+    let R = octave_loader::load_matrix("/home/marc/Workspace/Vision/data/5_point_synthetic/rotation_neg.txt");
+    let t_raw = octave_loader::load_vector("/home/marc/Workspace/Vision/data/5_point_synthetic/translation_neg.txt");
+    let x1h = octave_loader::load_matrix("/home/marc/Workspace/Vision/data/5_point_synthetic/cam1_features_neg.txt");
+    let x2h = octave_loader::load_matrix("/home/marc/Workspace/Vision/data/5_point_synthetic/cam2_features_neg.txt");
+    let depth_positive = false; 
+    let invert_focal_length = false;
 
     let t = SVector::<Float,3>::new(t_raw[(0,0)],t_raw[(1,0)],t_raw[(2,0)]);
     let intensity_camera_1 = Pinhole::new(K[(0,0)],K[(1,1)],K[(0,2)],K[(1,2)], invert_focal_length);
@@ -49,11 +49,14 @@ fn main() -> Result<()> {
         synth_matches.push(m);
     }
     let feature_matches = epipolar::extract_matches(&synth_matches, 1.0, false); 
-    let gt = t.cross_matrix()*R;
+    let gt = t.cross_matrix()*(&R.transpose());
     let factor = gt[(2,2)];
     let gt_norm = gt.map(|x| x/factor);
     println!("------ GT -------");
+    println!("{}",gt);
     println!("{}",gt_norm);
+
+
     println!("----------------");
 
 
@@ -67,11 +70,18 @@ fn main() -> Result<()> {
     //TODO investigate tranposition issue 
     let five_feature_slice : &[Match<ImageFeature>;5] = feature_matches[..5].try_into().unwrap();
     let five_point_essential_matrix = epipolar::five_point_essential(five_feature_slice,&intensity_camera_1,&intensity_camera_2,depth_positive);
+    let (t_est,R_est,_) = epipolar::decompose_essential_förstner(&five_point_essential_matrix,&feature_matches,&intensity_camera_1.get_inverse_projection(),&intensity_camera_2.get_inverse_projection(), depth_positive);
     let factor = five_point_essential_matrix[(2,2)];
     let five_point_essential_matrix_norm = five_point_essential_matrix.map(|x| x/factor);
     println!("best five point: ");
     println!("{}",five_point_essential_matrix);
     println!("{}",five_point_essential_matrix_norm);
+    
+    println!("----------------");
+    println!("{}",t_raw);
+    println!("{}",t_est);
+    println!("{}",&R);
+    println!("{}",R_est);
     
     Ok(())
 }

@@ -20,11 +20,11 @@ fn main() -> Result<()> {
     color_eyre::install()?;
 
 
-    let K = octave_loader::load_matrix("/home/marc/Workspace/Vision/data/8_point_synthetic/intrinsics.txt");
-    let R = octave_loader::load_matrix("/home/marc/Workspace/Vision/data/8_point_synthetic/rotation.txt");
-    let t_raw = octave_loader::load_vector("/home/marc/Workspace/Vision/data/8_point_synthetic/translation.txt");
-    let x1h = octave_loader::load_matrix("/home/marc/Workspace/Vision/data/8_point_synthetic/cam1_features.txt");
-    let x2h = octave_loader::load_matrix("/home/marc/Workspace/Vision/data/8_point_synthetic/cam2_features.txt");
+    let K = octave_loader::load_matrix("/home/marc/Workspace/Vision/data/8_point_synthetic/eight_point_intrinsics.txt");
+    let R = octave_loader::load_matrix("/home/marc/Workspace/Vision/data/8_point_synthetic/eight_point_rotation.txt");
+    let t_raw = octave_loader::load_vector("/home/marc/Workspace/Vision/data/8_point_synthetic/eight_point_translation.txt");
+    let x1h = octave_loader::load_matrix("/home/marc/Workspace/Vision/data/8_point_synthetic/eight_point_cam1_features.txt");
+    let x2h = octave_loader::load_matrix("/home/marc/Workspace/Vision/data/8_point_synthetic/eight_point_cam2_features.txt");
     let depth_positive = true;
     let invert_focal_length = false;
 
@@ -49,7 +49,7 @@ fn main() -> Result<()> {
         synth_matches.push(m);
     }
     let feature_matches = epipolar::extract_matches(&synth_matches, 1.0, false); 
-    let gt = (intensity_camera_1.get_projection().transpose())*t.cross_matrix()*(&R)*intensity_camera_2.get_projection();
+    let gt = (intensity_camera_1.get_projection().transpose())*t.cross_matrix()*(&R.transpose())*intensity_camera_2.get_projection();
     let factor = gt[(2,2)];
     let gt_norm = gt.map(|x| x/factor);
     println!("------ GT -------");
