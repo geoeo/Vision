@@ -114,7 +114,8 @@ pub fn filter_matches_from_fundamental<T: Feature + Clone>(F: &Fundamental,match
     matches.iter().filter(|m| {
             let start = m.feature_one.get_as_2d_homogeneous();
             let finish = m.feature_two.get_as_2d_homogeneous();
-            (start.transpose()*F*finish)[0].abs() < epipiolar_thresh
+            let val = (start.transpose()*F*finish)[0].abs();
+            val < epipiolar_thresh
         }).cloned().collect::<Vec<Match<T>>>()
 }
 
@@ -150,9 +151,9 @@ pub fn decompose_essential_förstner<T : Feature>(
                                  -1.0, 0.0 ,0.0,
                                   0.0, 0.0, 1.0);
 
-    let Z = Matrix3::<Float>::new(0.0, 1.0, 0.0,
-                                 -1.0, 0.0 ,0.0,
-                                  0.0, 0.0, 0.0);
+    // let Z = Matrix3::<Float>::new(0.0, 1.0, 0.0,
+    //                              -1.0, 0.0 ,0.0,
+    //                               0.0, 0.0, 0.0);
 
     let U_norm = u*u.determinant();
     let V = v_t.transpose();
@@ -164,8 +165,9 @@ pub fn decompose_essential_förstner<T : Feature>(
 
 
 
-    let Sb = u * Z * u.transpose();
-    let b = Vector3::<Float>::new(Sb[(2, 1)],Sb[(0, 2)], Sb[(1,0)]);
+    // let Sb = u * Z * u.transpose();
+    //let b = Vector3::<Float>::new(Sb[(2, 1)],Sb[(0, 2)], Sb[(1,0)]);
+    let b = u.column(2).into_owned() / u.column(2).norm();
 
     let R_matrices = vec!(V_norm*W*U_norm.transpose(), V_norm*W*U_norm.transpose(),V_norm*W.transpose()*U_norm.transpose(), V_norm*W.transpose()*U_norm.transpose());
     let h_vecs = vec!(b,-b, b, -b);
