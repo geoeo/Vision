@@ -63,11 +63,13 @@ fn main() -> Result<()> {
     // println!("----------------");
 
 
+    let image_name_1 = "ba_slow_1";
+    let image_name_2 = "ba_slow_2";
     let depth_positive = false;
     let invert_focal_length = true;        
     let intensity_camera_1 = Pinhole::new(389.2685546875, 389.2685546875, 319.049255371094, 241.347015380859, invert_focal_length);
     let intensity_camera_2 = intensity_camera_1.clone();
-    let orb_matches_as_string = fs::read_to_string("/home/marc/Workspace/Vision/data/orb_ba_matches_ba_slow_1_ba_slow_2_images_5.txt").expect("Unable to read file");
+    let orb_matches_as_string = fs::read_to_string(format!("/home/marc/Workspace/Vision/data/orb_ba_matches_{}_{}_images_5.txt",image_name_1,image_name_2)).expect("Unable to read file");
     //let orb_matches_as_string = fs::read_to_string("/home/marc/Workspace/Vision/data/orb_ba_matches_ba_slow_1_ba_slow_3_images.txt").expect("Unable to read file");
     let (orb_params,matches): (OrbRuntimeParameters,Vec<Vec<Match<OrbFeature>>>) = serde_yaml::from_str(&orb_matches_as_string)?;
     let feature_matches = epipolar::extract_matches(&matches[0], orb_params.pyramid_scale, false); 
@@ -80,7 +82,6 @@ fn main() -> Result<()> {
     let fundamental_matrix = epipolar::compute_fundamental(&five_point_essential_matrix,&intensity_camera_1.get_inverse_projection(), &intensity_camera_2.get_inverse_projection());
     let epipolar_lines: Vec<(Vector3<Float>, Vector3<Float>)> = five_feature_slice.iter().map(|m| epipolar::epipolar_lines(&fundamental_matrix, m)).collect();
 
-
     println!("best five point: ");
     println!("{}",five_point_essential_matrix);
     println!("{}",five_point_essential_matrix_norm);
@@ -88,9 +89,6 @@ fn main() -> Result<()> {
     println!("----------------");
     println!("{}",t_est);
     println!("{}",R_est);
-
-    let image_name_1 = "ba_slow_1";
-    let image_name_2 = "ba_slow_2";
 
     let image_format = "png";
     let image_folder = "images";
