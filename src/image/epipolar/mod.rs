@@ -132,6 +132,17 @@ pub fn filter_matches_from_motion<T: Feature + Clone, C: Camera>(matches: &Vec<M
 }
 
 /**
+ * Computes the epipolar lines of a match.
+ * Returns (line of first feature in second image, line of second feature in first image)
+ */
+pub fn epipolar_lines<T: Feature>(bifocal_tensor: &Matrix3<Float>, feature_match: &Match<T>) -> (Vector3<Float>, Vector3<Float>) {
+    let f_from = feature_match.feature_one.get_as_camera_ray();
+    let f_to = feature_match.feature_two.get_as_camera_ray();
+
+    ((f_from.transpose()*bifocal_tensor).transpose(), bifocal_tensor*f_to)
+}
+
+/**
  * Photogrammetric Computer Vision p.583
  * @TODO: unify principal distance into enum
  */
