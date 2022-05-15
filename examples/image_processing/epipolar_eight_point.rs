@@ -86,12 +86,9 @@ fn main() -> Result<()> {
     let image_path_1 = format!("{}/images/{}.{}",data_set_door_path,image_name_1, image_format);
     let image_path_2 = format!("{}/images/{}.{}",data_set_door_path,image_name_2, image_format);
     let olsen_data_path = data_set_door_path;
-    let epipolar_thresh = 0.5;
-
     let olsen_data = OlssenData::new(olsen_data_path);
     let depth_positive = false;
     let feature_skip_count = 1;
-
     let (cam_intrinsics_0,cam_extrinsics_0) = olsen_data.get_camera_intrinsics_extrinsics(0,depth_positive);
     let (cam_intrinsics_1,cam_extrinsics_1) = olsen_data.get_camera_intrinsics_extrinsics(1,depth_positive);
     let feature_matches = olsen_data.get_matches_between_images(0, 1);
@@ -112,7 +109,7 @@ fn main() -> Result<()> {
     println!("----------------");
 
 
-    let fundamental_matrix = epipolar::eight_point(&feature_matches);
+    let fundamental_matrix = epipolar::eight_point(&feature_matches, depth_positive);
     let factor = fundamental_matrix[(2,2)];
     let fundamental_matrix_norm = fundamental_matrix.map(|x| x/factor);
     println!("best 8 point: ");
@@ -130,7 +127,7 @@ fn main() -> Result<()> {
     //let (h,R) = epipolar::decompose_essential_kanatani(&essential_matrix,&normalized_matches, false);
     let (h,R_est, e_corrected) = epipolar::decompose_essential_förstner(&essential_matrix,&feature_matches,&intensity_camera_1.get_inverse_projection(),&intensity_camera_2.get_inverse_projection(),depth_positive);
     //let feature_matches_vis = &feature_matches[0..20];
-    let feature_matches_vis = epipolar::filter_matches_from_fundamental(&fundamental_matrix, &feature_matches,0.0001); 
+    let feature_matches_vis = epipolar::filter_matches_from_fundamental(&fundamental_matrix, &feature_matches,0.00001); 
     let epipolar_lines: Vec<(Vector3<Float>, Vector3<Float>)> = feature_matches_vis.iter().map(|m| epipolar::epipolar_lines(&fundamental_matrix_norm, m)).collect();
 
     println!("{}",h);
@@ -157,9 +154,6 @@ fn main() -> Result<()> {
     
     image_1.to_image().save(format!("{}/{}_epipolar_lines_8p.{}",image_out_folder,image_name_1,image_format)).unwrap();
     image_2.to_image().save(format!("{}/{}_epipolar_lines_8p.{}",image_out_folder,image_name_2,image_format)).unwrap();
-
-
-
 
     Ok(())
 }

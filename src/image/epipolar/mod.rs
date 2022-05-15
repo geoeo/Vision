@@ -42,7 +42,7 @@ pub fn five_point_essential<T: Feature + Clone, C: Camera>(matches: &Vec<Match<T
  * Fails if points are coplanar!
  */
 #[allow(non_snake_case)]
-pub fn eight_point<T : Feature>(matches: &Vec<Match<T>>) -> Fundamental {
+pub fn eight_point<T : Feature>(matches: &Vec<Match<T>>, positive_principal_distance: bool) -> Fundamental {
     let number_of_matches = matches.len() as Float; 
     assert!(number_of_matches >= 8.0);
 
@@ -88,7 +88,11 @@ pub fn eight_point<T : Feature>(matches: &Vec<Match<T>>) -> Fundamental {
     let acc = svd_f.singular_values[0].powi(2) + svd_f.singular_values[1].powi(2);
     svd_f.singular_values[2] = 0.0;
     svd_f.singular_values /= acc.sqrt();
-    svd_f.recompose().ok().expect("SVD recomposition failed")
+    match positive_principal_distance {
+        true => svd_f.recompose().ok().expect("SVD recomposition failed").transpose(),
+        false => svd_f.recompose().ok().expect("SVD recomposition failed")
+    }
+    
 }
 
 
@@ -223,8 +227,7 @@ pub fn decompose_essential_förstner<T : Feature>(
             break;
         } 
     }
-
-
+    
     // Might be this method five r_t after all
     rotation = rotation.transpose();
     
@@ -281,10 +284,10 @@ pub fn decompose_essential_kanatani<T: Feature>(E: &Essential, matches: &Vec<Mat
 
 }
 
-pub fn compute_initial_cam_motions<C : Camera + Copy,T : Feature + Clone>(all_matches: &Vec<Vec<Match<T>>>,camera_data: &Vec<((usize, C),(usize,C))>,pyramid_scale:Float, epipiolar_thresh: Float, is_depth_positive: bool, decomp_alg: EssentialDecomposition) 
+pub fn compute_initial_cam_motions<C : Camera + Copy,T : Feature + Clone>(all_matches: &Vec<Vec<Match<T>>>,camera_data: &Vec<((usize, C),(usize,C))>,pyramid_scale:Float, epipiolar_thresh: Float, positive_principal_distance: bool, decomp_alg: EssentialDecomposition) 
     ->  Vec<(u64,(Vector3<Float>,Matrix3<Float>))> {
     let feature_machtes = all_matches.iter().filter(|m| m.len() >= 8).map(|m| extract_matches(m, pyramid_scale, true)).collect::<Vec<Vec<Match<ImageFeature>>>>();
-    let fundamental_matrices = feature_machtes.iter().map(|m| eight_point(m)).collect::<Vec<Fundamental>>();
+    let fundamental_matrices = feature_machtes.iter().map(|m| eight_point(m, positive_principal_distance)).collect::<Vec<Fundamental>>();
     let accepted_matches = fundamental_matrices.iter().zip(feature_machtes.iter()).map(|(f,m)| filter_matches_from_fundamental(f, m,epipiolar_thresh)).collect::<Vec<Vec<Match<ImageFeature>>>>();
     let essential_matrices_with_cameras = fundamental_matrices.iter().enumerate().map(|(i,f)| {
         let ((id1,c1),(id2,c2)) = camera_data[i];
@@ -295,8 +298,8 @@ pub fn compute_initial_cam_motions<C : Camera + Copy,T : Feature + Clone>(all_ma
         let matches = &accepted_matches[i];
         let (h,rotation,_) = match (decomp_alg,matches.len()) {
             (_,count) if count < 8 => (Vector3::<Float>::zeros(), Matrix3::<Float>::identity(),Matrix3::<Float>::identity()),
-            (EssentialDecomposition::FÖRSNTER,_) => decompose_essential_förstner(e,matches,&c1.get_inverse_projection(),&c2.get_inverse_projection(), is_depth_positive),
-            (EssentialDecomposition::KANATANI,_) => decompose_essential_kanatani(e,matches, is_depth_positive)
+            (EssentialDecomposition::FÖRSNTER,_) => decompose_essential_förstner(e,matches,&c1.get_inverse_projection(),&c2.get_inverse_projection(), positive_principal_distance),
+            (EssentialDecomposition::KANATANI,_) => decompose_essential_kanatani(e,matches, positive_principal_distance)
         };
 
         (*id2 as u64,(h,rotation))
