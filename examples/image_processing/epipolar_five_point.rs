@@ -81,11 +81,6 @@ fn main() -> Result<()> {
 
 
     let image_format = "jpg";
-    let data_set_nijo_path = "/mnt/d/Workspace/Datasets/Olsen/nijo/";
-    let image_name_1 = "Kyoto_469";
-    let image_name_2 = "Kyoto_470";
-    let s_idx = 8;
-    let f_idx = 9;
     // let data_set_de_guerre_path = "/mnt/d/Workspace/Datasets/Olsen/de_guerre/";
     // let image_name_1 = "DSC_0520";
     // let image_name_2 = "DSC_0521";
@@ -96,17 +91,12 @@ fn main() -> Result<()> {
     // let image_name_2 = "DSC_0162";
     // let s_idx = 3;
     // let f_idx = 4;
-    // let data_set_door_path = "/mnt/d/Workspace/Datasets/Olsen/Door_Lund/";
-    // let image_name_1 = "DSC_0006";
-    // let image_name_2 = "DSC_0005";
-    // let s_idx = 5;
-    // let f_idx = 4;
-    // let data_set_fountain_path = "/mnt/d/Workspace/Datasets/Olsen/fountain/";
-    // let image_name_1 = "DSC_0483";
-    // let image_name_2 = "DSC_0484";
-    // let s_idx = 3;
-    // let f_idx = 4;
-    let olsen_data_path = data_set_nijo_path;
+    let data_set_door_path = "/mnt/d/Workspace/Datasets/Olsen/Door_Lund/";
+    let image_name_1 = "DSC_0006";
+    let image_name_2 = "DSC_0005";
+    let s_idx = 5;
+    let f_idx = 4;
+    let olsen_data_path = data_set_door_path;
     let image_path_1 = format!("{}/images/{}.{}",olsen_data_path,image_name_1, image_format);
     let image_path_2 = format!("{}/images/{}.{}",olsen_data_path,image_name_2, image_format);
     let epipolar_thresh = 0.001;
