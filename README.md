@@ -26,6 +26,10 @@ Primal-Dual Convex For L1 Norm https://candes.su.domains/software/l1magic/downlo
 ## Sparse BA (Euclidean + Inverse Depth Param)
 ![ba](doc/ba_3dv_50.gif)
 
+
+## Five Point (Data from Carl Olsson: https://www.maths.lth.se/matematiklth/personal/calle/)
+![5p_l](doc/DSC_0001_epipolar_lines_5p.jpg) ![5p_r](doc/DSC_0002_epipolar_lines_5p.jpg)
+
 ## Dense VO (LM + SoftOneLoss) - Tum Dataset Freiburg2 Desk
 
 ![dense](doc/freiburg2_desk_0_max_its_800_w_true_l_SoftOneLoss_+1e-16_lm_max_norm_eps_+1e-10_delta_eps_+1e-10_t_+1e-6_t_+1e-3_t_+1e-3_t_+1e0_s_0.01_o_4_b_true_br_1_neg_d_false.png)
