@@ -9,8 +9,6 @@ use crate::image::features::{Feature,Match, ImageFeature, condition_matches};
 pub type Fundamental =  Matrix3<Float>;
 pub type Essential =  Matrix3<Float>;
 
-
-
 #[derive(Clone,Copy)]
 pub enum EssentialDecomposition {
     FÖRSNTER,
@@ -35,7 +33,7 @@ pub fn extract_matches<T: Feature>(matches: &Vec<Match<T>>, pyramid_scale: Float
 
 }
 #[allow(non_snake_case)]
-pub fn five_point_essential<T: Feature + Clone, C: Camera>(matches: &[Match<T>; 5], camera_one: &C, camera_two: &C, depth_positive: bool) -> Essential {
+pub fn five_point_essential<T: Feature + Clone, C: Camera>(matches: &Vec<Match<T>>, camera_one: &C, camera_two: &C, depth_positive: bool) -> Essential {
     five_point::five_point_essential(matches,camera_one,camera_two,depth_positive)
 }
 

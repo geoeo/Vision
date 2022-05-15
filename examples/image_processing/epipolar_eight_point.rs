@@ -95,8 +95,8 @@ fn main() -> Result<()> {
     let (cam_intrinsics_0,cam_extrinsics_0) = olsen_data.get_camera_intrinsics_extrinsics(0,depth_positive);
     let (cam_intrinsics_1,cam_extrinsics_1) = olsen_data.get_camera_intrinsics_extrinsics(1,depth_positive);
     let feature_matches = olsen_data.get_matches_between_images(0, 1);
-    let intensity_camera_1 = Perspective::from_matrix(&cam_intrinsics_0, false);
-    let intensity_camera_2 = Perspective::from_matrix(&cam_intrinsics_1, false);
+    let intensity_camera_1 = Perspective::from_matrix(&cam_intrinsics_0, true);
+    let intensity_camera_2 = Perspective::from_matrix(&cam_intrinsics_1, true);
     let p0 = pose::from_matrix(&cam_extrinsics_0);
     let p1 = pose::from_matrix(&cam_extrinsics_1);
     let p01 = pose::pose_difference(&p0, &p1);
@@ -129,7 +129,8 @@ fn main() -> Result<()> {
     let essential_matrix = epipolar::compute_essential(&fundamental_matrix, &intensity_camera_1.get_inverse_projection(), &intensity_camera_2.get_inverse_projection());
     //let (h,R) = epipolar::decompose_essential_kanatani(&essential_matrix,&normalized_matches, false);
     let (h,R_est, e_corrected) = epipolar::decompose_essential_förstner(&essential_matrix,&feature_matches,&intensity_camera_1.get_inverse_projection(),&intensity_camera_2.get_inverse_projection(),depth_positive);
-    let feature_matches_vis = &feature_matches[0..20];
+    //let feature_matches_vis = &feature_matches[0..20];
+    let feature_matches_vis = epipolar::filter_matches_from_fundamental(&fundamental_matrix, &feature_matches,0.0001); 
     let epipolar_lines: Vec<(Vector3<Float>, Vector3<Float>)> = feature_matches_vis.iter().map(|m| epipolar::epipolar_lines(&fundamental_matrix_norm, m)).collect();
 
     println!("{}",h);
@@ -152,10 +153,10 @@ fn main() -> Result<()> {
         visualize::draw_circle(&mut image_2,f2.get_x_image(), f2.get_y_image(), 5.0, 255.0);
 
     }
-    visualize::draw_epipolar_lines(&mut image_1, &mut image_2,255.0, &epipolar_lines);
+    visualize::draw_epipolar_lines(&mut image_1, &mut image_2,25.0, &epipolar_lines);
     
-    image_1.to_image().save(format!("{}/{}_epipolar_lines.{}",image_out_folder,image_name_1,image_format)).unwrap();
-    image_2.to_image().save(format!("{}/{}_epipolar_lines.{}",image_out_folder,image_name_2,image_format)).unwrap();
+    image_1.to_image().save(format!("{}/{}_epipolar_lines_8p.{}",image_out_folder,image_name_1,image_format)).unwrap();
+    image_2.to_image().save(format!("{}/{}_epipolar_lines_8p.{}",image_out_folder,image_name_2,image_format)).unwrap();
 
 
 

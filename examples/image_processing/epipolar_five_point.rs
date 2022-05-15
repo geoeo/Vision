@@ -79,7 +79,6 @@ fn main() -> Result<()> {
     // let image_path_1 = format!("{}/{}.{}",image_folder,image_name_1, image_format);
     // let image_path_2 = format!("{}/{}.{}",image_folder,image_name_2, image_format);
 
-
     let image_name_1 = "DSC_0001";
     let image_name_2 = "DSC_0002";
     let image_format = "jpg";
@@ -87,18 +86,15 @@ fn main() -> Result<()> {
     let image_path_1 = format!("{}/images/{}.{}",data_set_door_path,image_name_1, image_format);
     let image_path_2 = format!("{}/images/{}.{}",data_set_door_path,image_name_2, image_format);
     let olsen_data_path = data_set_door_path;
-    let depth_prior = -1.0;
     let epipolar_thresh = 0.5;
-
     let olsen_data = OlssenData::new(olsen_data_path);
     let depth_positive = false;
     let feature_skip_count = 1;
-
     let (cam_intrinsics_0,cam_extrinsics_0) = olsen_data.get_camera_intrinsics_extrinsics(0,depth_positive);
     let (cam_intrinsics_1,cam_extrinsics_1) = olsen_data.get_camera_intrinsics_extrinsics(1,depth_positive);
-    let feature_matches = olsen_data.get_matches_between_images(0, 1);
-    let intensity_camera_1 = Perspective::from_matrix(&cam_intrinsics_0, false);
-    let intensity_camera_2 = Perspective::from_matrix(&cam_intrinsics_1, false);
+    let all_feature_matches = olsen_data.get_matches_between_images(0, 1);
+    let intensity_camera_1 = Perspective::from_matrix(&cam_intrinsics_0, true);
+    let intensity_camera_2 = Perspective::from_matrix(&cam_intrinsics_1, true);
     let p0 = pose::from_matrix(&cam_extrinsics_0);
     let p1 = pose::from_matrix(&cam_extrinsics_1);
     let p01 = pose::pose_difference(&p0, &p1);
@@ -112,18 +108,19 @@ fn main() -> Result<()> {
     println!("{}",t_raw);
     println!("{}",&R);
     println!("----------------");
-
-    let mut five_feature_vec = Vec::<Match<ImageFeature>>::with_capacity(5);
-    for i in (0..1000).step_by(100) {
-        five_feature_vec.push(feature_matches[i].clone());
+    let mut feature_matches = Vec::<Match<ImageFeature>>::with_capacity(all_feature_matches.len());
+    for i in (0..all_feature_matches.len()).step_by(1) {
+        feature_matches.push(all_feature_matches[i].clone());
     }
-    let five_feature_slice : &[Match<ImageFeature>;5] = five_feature_vec[..5].try_into().unwrap();
-    let five_point_essential_matrix = epipolar::five_point_essential(five_feature_slice,&intensity_camera_1,&intensity_camera_2,depth_positive);
+
+    let five_point_essential_matrix = epipolar::five_point_essential(&feature_matches,&intensity_camera_1,&intensity_camera_2,depth_positive);
     let (t_est,R_est,_) = epipolar::decompose_essential_förstner(&five_point_essential_matrix,&feature_matches,&intensity_camera_1.get_inverse_projection(),&intensity_camera_2.get_inverse_projection(), depth_positive);
     let factor = five_point_essential_matrix[(2,2)];
     let five_point_essential_matrix_norm = five_point_essential_matrix.map(|x| x/factor);
-    let fundamental_matrix = epipolar::compute_fundamental(&five_point_essential_matrix,&intensity_camera_1.get_inverse_projection(), &intensity_camera_2.get_inverse_projection());
-    let epipolar_lines: Vec<(Vector3<Float>, Vector3<Float>)> = five_feature_slice.iter().map(|m| epipolar::epipolar_lines(&fundamental_matrix, m)).collect();
+    let fundamental_matrix = epipolar::compute_fundamental(&five_point_essential_matrix, &intensity_camera_1.get_inverse_projection(), &intensity_camera_2.get_inverse_projection());
+    //let feature_matches_vis = &feature_matches[200..220];
+    let feature_matches_vis = epipolar::filter_matches_from_fundamental(&fundamental_matrix, &feature_matches,0.001); 
+    let epipolar_lines: Vec<(Vector3<Float>, Vector3<Float>)> = feature_matches_vis.iter().map(|m| epipolar::epipolar_lines(&fundamental_matrix, m)).collect();
 
     println!("best five point: ");
     println!("{}",five_point_essential_matrix);
@@ -133,8 +130,6 @@ fn main() -> Result<()> {
     println!("{}",t_est);
     println!("{}",R_est);
 
-
-
     let image_out_folder = "output";
     let gray_image_1 = image_rs::open(&Path::new(&image_path_1)).unwrap().to_luma8();
     let gray_image_2 = image_rs::open(&Path::new(&image_path_2)).unwrap().to_luma8();
@@ -142,7 +137,7 @@ fn main() -> Result<()> {
     let mut image_1 = Image::from_gray_image(&gray_image_1, false, false, Some(image_name_1.to_string()));
     let mut image_2 = Image::from_gray_image(&gray_image_2, false, false, Some(image_name_2.to_string()));
 
-    for m in  five_feature_slice.iter() {
+    for m in feature_matches_vis.iter() {
         let f1 = &m.feature_one;
         let f2 = &m.feature_two;
 
@@ -152,9 +147,9 @@ fn main() -> Result<()> {
     }
     visualize::draw_epipolar_lines(&mut image_1, &mut image_2,255.0, &epipolar_lines);
     
-    image_1.to_image().save(format!("{}/{}_epipolar_lines.{}",image_out_folder,image_name_1,image_format)).unwrap();
-    image_2.to_image().save(format!("{}/{}_epipolar_lines.{}",image_out_folder,image_name_2,image_format)).unwrap();
+    image_1.to_image().save(format!("{}/{}_epipolar_lines_5p.{}",image_out_folder,image_name_1,image_format)).unwrap();
+    image_2.to_image().save(format!("{}/{}_epipolar_lines_5p.{}",image_out_folder,image_name_2,image_format)).unwrap();
 
-    
+
     Ok(())
 }

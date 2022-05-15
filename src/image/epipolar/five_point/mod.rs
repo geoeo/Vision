@@ -1,12 +1,11 @@
 extern crate nalgebra as na;
 extern crate nalgebra_lapack;
 
-use na::{RowOVector,Vector3,Matrix2,Matrix3, Matrix4,Matrix3x4,OMatrix,Matrix3xX,SVector,Rotation3, dimension::{U10,U20,U5,U9,U3}};
+use na::{RowOVector,Vector3,Matrix2,Matrix3,Matrix4, Matrix3x4, OMatrix, Matrix3xX, SVector, Dynamic,Rotation3, dimension::{U10,U20,U5,U9,U3},base::VecStorage };
 use crate::{Float,float};
 use crate::sensors::camera::Camera;
 use crate::image::{features::{Feature,Match},epipolar::{Essential,decompose_essential_förstner},triangulation::linear_triangulation};
 use crate::numerics::{to_matrix, pose,pose::{optimal_correction_of_rotation}};
-
 
 mod constraints;
 
@@ -14,18 +13,18 @@ mod constraints;
  * Photogrammetric Computer Vision p.575; Recent Developments on Direct Relative Orientation Nister, Stewenius et al.
  * Points may be planar
  * This only work on ubuntu. assert build version or something
- * TODO: check with negative depth points and real data
  */
 #[allow(non_snake_case)]
-pub fn five_point_essential<T: Feature + Clone, C: Camera>(matches: &[Match<T>; 5], camera_one: &C, camera_two: &C, depth_positive: bool) -> Essential {
-    let mut features_one = OMatrix::<Float, U3,U5>::zeros();
-    let mut features_two = OMatrix::<Float, U3,U5>::zeros();
-    let mut A = OMatrix::<Float,U5,U9>::zeros();
-
+pub fn five_point_essential<T: Feature + Clone, C: Camera>(matches: &Vec<Match<T>>, camera_one: &C, camera_two: &C, depth_positive: bool) -> Essential {
     let inverse_projection_one = camera_one.get_inverse_projection();
     let inverse_projection_two = camera_two.get_inverse_projection();
+    let l = matches.len();
 
-    for i in 0..5 {
+    let mut features_one = Matrix3xX::<Float>::zeros(l);
+    let mut features_two = Matrix3xX::<Float>::zeros(l);
+    let mut A = OMatrix::<Float, Dynamic,U9>::zeros(l);
+
+    for i in 0..l {
         let m = &matches[i];
         let f_1 = m.feature_one.get_as_camera_ray();
         let f_2 = m.feature_two.get_as_camera_ray();
@@ -37,7 +36,7 @@ pub fn five_point_essential<T: Feature + Clone, C: Camera>(matches: &[Match<T>; 
     let camera_rays_one = inverse_projection_one*features_one;
     let camera_rays_two = inverse_projection_two*features_two;
 
-    for i in 0..5 {
+    for i in 0..l {
         let c_x_1 = &camera_rays_one.column(i);
         let c_x_2 = &camera_rays_two.column(i);
 
@@ -45,9 +44,12 @@ pub fn five_point_essential<T: Feature + Clone, C: Camera>(matches: &[Match<T>; 
         A.row_mut(i).copy_from(&kroenecker_product);
     }
 
-    // nalgebra wont do full SVD
-    let A_svd = nalgebra_lapack::SVD::new(A);
-    let vt = &A_svd.expect("Five Point: SVD failed on A!").vt;
+    let vt = match l {
+        l if l < 5 => panic!("Five Point: Less than 5 features given!"),
+        5 => nalgebra_lapack::SVD::new(A).expect("Five Point: SVD failed on A!").vt,
+        _ => nalgebra_lapack::SVD::new(A.transpose()*A).expect("Five Point: SVD failed on A!").vt
+    };
+
     let u1 = vt.row(5).transpose(); 
     let u2 = vt.row(6).transpose();
     let u3 = vt.row(7).transpose();
@@ -101,18 +103,17 @@ pub fn five_point_essential<T: Feature + Clone, C: Camera>(matches: &[Match<T>; 
         let E_est = x*E1+y*E2+z*E3+E4;
         E_est
     }).collect::<Vec<Essential>>();
-    let matches_as_vec = matches.to_vec();
-    let best_essential = cheirality_check(&all_essential_matricies, &matches_as_vec,depth_positive , (&camera_rays_one, &camera_one.get_projection(),&inverse_projection_one), (&camera_rays_two, &camera_two.get_projection(),&inverse_projection_two));
+    let best_essential = cheirality_check(&all_essential_matricies, matches,depth_positive, (&camera_rays_one, &camera_one.get_projection(),&inverse_projection_one), (&camera_rays_two, &camera_two.get_projection(),&inverse_projection_two));
     
     best_essential
 }
 
 pub fn cheirality_check<T: Feature + Clone>(
         all_essential_matricies: &Vec<Essential>,
-        matches_as_vec: &Vec<Match<T>>,
+        matches: &Vec<Match<T>>,
         depth_positive: bool,
-         points_cam_1: (&OMatrix<Float, U3,U5>, &Matrix3<Float>,&Matrix3<Float>), 
-         points_cam_2: (&OMatrix<Float, U3,U5>, &Matrix3<Float>,&Matrix3<Float>)) -> Essential {
+         points_cam_1: (&OMatrix<Float, U3,Dynamic>, &Matrix3<Float>,&Matrix3<Float>), 
+         points_cam_2: (&OMatrix<Float, U3,Dynamic>, &Matrix3<Float>,&Matrix3<Float>)) -> Essential {
     let mut max_accepted_cheirality_count = 0;
     let mut best_e = None;
     let mut smallest_det = float::MAX;
@@ -121,7 +122,7 @@ pub fn cheirality_check<T: Feature + Clone>(
     let inverse_camera_matrix_1 = points_cam_1.2;
     let inverse_camera_matrix_2 = points_cam_2.2;
     for e in all_essential_matricies {
-        let (t,R,e_corrected) = decompose_essential_förstner(&e,matches_as_vec,inverse_camera_matrix_1,inverse_camera_matrix_2,depth_positive);
+        let (t,R,e_corrected) = decompose_essential_förstner(&e,matches,inverse_camera_matrix_1,inverse_camera_matrix_2,depth_positive);
         let R_corr = optimal_correction_of_rotation(&R);
         let se3 = pose::se3(&t,&R_corr);
 
