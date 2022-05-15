@@ -23,7 +23,6 @@ fn main() -> Result<()> {
 
     color_eyre::install()?;
 
-
     // let K = octave_loader::load_matrix("/home/marc/Workspace/Vision/data/8_point_synthetic/eight_point_intrinsics.txt");
     // let R = octave_loader::load_matrix("/home/marc/Workspace/Vision/data/8_point_synthetic/eight_point_rotation.txt");
     // let t_raw = octave_loader::load_vector("/home/marc/Workspace/Vision/data/8_point_synthetic/eight_point_translation.txt");
@@ -32,11 +31,11 @@ fn main() -> Result<()> {
     // let depth_positive = true;
     // let invert_focal_length = false;
 
-    // let K = octave_loader::load_matrix("/home/marc/Workspace/Vision/data/8_point_synthetic/intrinsics_neg.txt");
-    // let R = octave_loader::load_matrix("/home/marc/Workspace/Vision/data/8_point_synthetic/rotation_neg.txt");
-    // let t_raw = octave_loader::load_vector("/home/marc/Workspace/Vision/data/8_point_synthetic/translation_neg.txt");
-    // let x1h = octave_loader::load_matrix("/home/marc/Workspace/Vision/data/8_point_synthetic/cam1_features_neg.txt");
-    // let x2h = octave_loader::load_matrix("/home/marc/Workspace/Vision/data/8_point_synthetic/cam2_features_neg.txt");
+    // let K = octave_loader::load_matrix("/home/marc/Workspace/Vision/data/8_point_synthetic/eight_point_intrinsics_neg.txt");
+    // let R = octave_loader::load_matrix("/home/marc/Workspace/Vision/data/8_point_synthetic/eight_point_rotation_neg.txt");
+    // let t_raw = octave_loader::load_vector("/home/marc/Workspace/Vision/data/8_point_synthetic/eight_point_translation_neg.txt");
+    // let x1h = octave_loader::load_matrix("/home/marc/Workspace/Vision/data/8_point_synthetic/eight_point_cam1_features_neg.txt");
+    // let x2h = octave_loader::load_matrix("/home/marc/Workspace/Vision/data/8_point_synthetic/eight_point_cam2_features_neg.txt");
     // let depth_positive = false;
     // let invert_focal_length = false;
 
@@ -133,7 +132,6 @@ fn main() -> Result<()> {
     println!("{}",h);
     println!("-------");
     println!("{}",R_est);
-
 
     let image_out_folder = "output";
     let gray_image_1 = image_rs::open(&Path::new(&image_path_1)).unwrap().to_luma8();

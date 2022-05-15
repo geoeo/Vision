@@ -119,7 +119,7 @@ fn main() -> Result<()> {
     let five_point_essential_matrix_norm = five_point_essential_matrix.map(|x| x/factor);
     let fundamental_matrix = epipolar::compute_fundamental(&five_point_essential_matrix, &intensity_camera_1.get_inverse_projection(), &intensity_camera_2.get_inverse_projection());
     //let feature_matches_vis = &feature_matches[200..220];
-    let feature_matches_vis = epipolar::filter_matches_from_fundamental(&fundamental_matrix, &feature_matches,0.001); 
+    let feature_matches_vis = epipolar::filter_matches_from_fundamental(&fundamental_matrix, &feature_matches,0.0001); 
     let epipolar_lines: Vec<(Vector3<Float>, Vector3<Float>)> = feature_matches_vis.iter().map(|m| epipolar::epipolar_lines(&fundamental_matrix, m)).collect();
 
     println!("best five point: ");
@@ -145,7 +145,7 @@ fn main() -> Result<()> {
         visualize::draw_circle(&mut image_2,f2.get_x_image(), f2.get_y_image(), 5.0, 255.0);
 
     }
-    visualize::draw_epipolar_lines(&mut image_1, &mut image_2,255.0, &epipolar_lines);
+    visualize::draw_epipolar_lines(&mut image_1, &mut image_2,25.0, &epipolar_lines);
     
     image_1.to_image().save(format!("{}/{}_epipolar_lines_5p.{}",image_out_folder,image_name_1,image_format)).unwrap();
     image_2.to_image().save(format!("{}/{}_epipolar_lines_5p.{}",image_out_folder,image_name_2,image_format)).unwrap();
