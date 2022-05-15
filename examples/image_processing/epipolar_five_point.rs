@@ -13,22 +13,24 @@ use vision::image::{
     pyramid::orb::orb_runtime_parameters::OrbRuntimeParameters,
     epipolar
 };
-use vision::sensors::camera::{pinhole::Pinhole, Camera};
-use vision::io::octave_loader;
+use vision::sensors::camera::{pinhole::Pinhole, Camera, perspective::Perspective};
+use vision::io::{octave_loader,olsen_loader::OlssenData};
 use vision::Float;
 use vision::visualize;
+use vision::numerics::pose;
+
 
 
 fn main() -> Result<()> {
     color_eyre::install()?;
 
-    let K = octave_loader::load_matrix("/home/marc/Workspace/Vision/data/5_point_synthetic/intrinsics.txt");
-    let R = octave_loader::load_matrix("/home/marc/Workspace/Vision/data/5_point_synthetic/rotation.txt");
-    let t_raw = octave_loader::load_vector("/home/marc/Workspace/Vision/data/5_point_synthetic/translation.txt");
-    let x1h = octave_loader::load_matrix("/home/marc/Workspace/Vision/data/5_point_synthetic/cam1_features.txt");
-    let x2h = octave_loader::load_matrix("/home/marc/Workspace/Vision/data/5_point_synthetic/cam2_features.txt");
-    let depth_positive = true;
-    let invert_focal_length = false;
+    // let K = octave_loader::load_matrix("/home/marc/Workspace/Vision/data/5_point_synthetic/intrinsics.txt");
+    // let R = octave_loader::load_matrix("/home/marc/Workspace/Vision/data/5_point_synthetic/rotation.txt");
+    // let t_raw = octave_loader::load_vector("/home/marc/Workspace/Vision/data/5_point_synthetic/translation.txt");
+    // let x1h = octave_loader::load_matrix("/home/marc/Workspace/Vision/data/5_point_synthetic/cam1_features.txt");
+    // let x2h = octave_loader::load_matrix("/home/marc/Workspace/Vision/data/5_point_synthetic/cam2_features.txt");
+    // let depth_positive = true;
+    // let invert_focal_length = false;
 
 
     // let K = octave_loader::load_matrix("/home/marc/Workspace/Vision/data/5_point_synthetic/intrinsics_neg.txt");
@@ -62,19 +64,60 @@ fn main() -> Result<()> {
     // println!("{}",&R);
     // println!("----------------");
 
+    // let image_name_1 = "ba_slow_1";
+    // let image_name_2 = "ba_slow_2";
+    // let depth_positive = false;
+    // let invert_focal_length = true;        
+    // let intensity_camera_1 = Pinhole::new(389.2685546875, 389.2685546875, 319.049255371094, 241.347015380859, invert_focal_length);
+    // let intensity_camera_2 = intensity_camera_1.clone();
+    // let orb_matches_as_string = fs::read_to_string(format!("/home/marc/Workspace/Vision/data/orb_ba_matches_{}_{}_images_5.txt",image_name_1,image_name_2)).expect("Unable to read file");
+    // //let orb_matches_as_string = fs::read_to_string("/home/marc/Workspace/Vision/data/orb_ba_matches_ba_slow_1_ba_slow_3_images.txt").expect("Unable to read file");
+    // let (orb_params,matches): (OrbRuntimeParameters,Vec<Vec<Match<OrbFeature>>>) = serde_yaml::from_str(&orb_matches_as_string)?;
+    // let feature_matches = epipolar::extract_matches(&matches[0], orb_params.pyramid_scale, false); 
+    // let image_format = "png";
+    // let image_folder = "images";
+    // let image_path_1 = format!("{}/{}.{}",image_folder,image_name_1, image_format);
+    // let image_path_2 = format!("{}/{}.{}",image_folder,image_name_2, image_format);
 
-    let image_name_1 = "ba_slow_1";
-    let image_name_2 = "ba_slow_2";
+
+    let image_name_1 = "DSC_0001";
+    let image_name_2 = "DSC_0002";
+    let image_format = "jpg";
+    let data_set_door_path = "/mnt/d/Workspace/Datasets/Olsen/Door_Lund/";
+    let image_path_1 = format!("{}/images/{}.{}",data_set_door_path,image_name_1, image_format);
+    let image_path_2 = format!("{}/images/{}.{}",data_set_door_path,image_name_2, image_format);
+    let olsen_data_path = data_set_door_path;
+    let depth_prior = -1.0;
+    let epipolar_thresh = 0.5;
+
+    let olsen_data = OlssenData::new(olsen_data_path);
     let depth_positive = false;
-    let invert_focal_length = true;        
-    let intensity_camera_1 = Pinhole::new(389.2685546875, 389.2685546875, 319.049255371094, 241.347015380859, invert_focal_length);
-    let intensity_camera_2 = intensity_camera_1.clone();
-    let orb_matches_as_string = fs::read_to_string(format!("/home/marc/Workspace/Vision/data/orb_ba_matches_{}_{}_images_5.txt",image_name_1,image_name_2)).expect("Unable to read file");
-    //let orb_matches_as_string = fs::read_to_string("/home/marc/Workspace/Vision/data/orb_ba_matches_ba_slow_1_ba_slow_3_images.txt").expect("Unable to read file");
-    let (orb_params,matches): (OrbRuntimeParameters,Vec<Vec<Match<OrbFeature>>>) = serde_yaml::from_str(&orb_matches_as_string)?;
-    let feature_matches = epipolar::extract_matches(&matches[0], orb_params.pyramid_scale, false); 
+    let feature_skip_count = 1;
 
-    let five_feature_slice : &[Match<ImageFeature>;5] = feature_matches[..5].try_into().unwrap();
+    let (cam_intrinsics_0,cam_extrinsics_0) = olsen_data.get_camera_intrinsics_extrinsics(0,depth_positive);
+    let (cam_intrinsics_1,cam_extrinsics_1) = olsen_data.get_camera_intrinsics_extrinsics(1,depth_positive);
+    let feature_matches = olsen_data.get_matches_between_images(0, 1);
+    let intensity_camera_1 = Perspective::from_matrix(&cam_intrinsics_0, false);
+    let intensity_camera_2 = Perspective::from_matrix(&cam_intrinsics_1, false);
+    let p0 = pose::from_matrix(&cam_extrinsics_0);
+    let p1 = pose::from_matrix(&cam_extrinsics_1);
+    let p01 = pose::pose_difference(&p0, &p1);
+    let (t_raw, R) = pose::decomp(&p01);
+    let gt = t_raw.cross_matrix()*(&R.transpose());
+    let factor = gt[(2,2)];
+    let gt_norm = gt.map(|x| x/factor);
+    println!("------ GT -------");
+    println!("{}",gt);
+    println!("{}",gt_norm);
+    println!("{}",t_raw);
+    println!("{}",&R);
+    println!("----------------");
+
+    let mut five_feature_vec = Vec::<Match<ImageFeature>>::with_capacity(5);
+    for i in (0..1000).step_by(100) {
+        five_feature_vec.push(feature_matches[i].clone());
+    }
+    let five_feature_slice : &[Match<ImageFeature>;5] = five_feature_vec[..5].try_into().unwrap();
     let five_point_essential_matrix = epipolar::five_point_essential(five_feature_slice,&intensity_camera_1,&intensity_camera_2,depth_positive);
     let (t_est,R_est,_) = epipolar::decompose_essential_förstner(&five_point_essential_matrix,&feature_matches,&intensity_camera_1.get_inverse_projection(),&intensity_camera_2.get_inverse_projection(), depth_positive);
     let factor = five_point_essential_matrix[(2,2)];
@@ -90,20 +133,18 @@ fn main() -> Result<()> {
     println!("{}",t_est);
     println!("{}",R_est);
 
-    let image_format = "png";
-    let image_folder = "images";
+
+
     let image_out_folder = "output";
-    let image_path_1 = format!("{}/{}.{}",image_folder,image_name_1, image_format);
-    let image_path_2 = format!("{}/{}.{}",image_folder,image_name_2, image_format);
     let gray_image_1 = image_rs::open(&Path::new(&image_path_1)).unwrap().to_luma8();
     let gray_image_2 = image_rs::open(&Path::new(&image_path_2)).unwrap().to_luma8();
 
     let mut image_1 = Image::from_gray_image(&gray_image_1, false, false, Some(image_name_1.to_string()));
     let mut image_2 = Image::from_gray_image(&gray_image_2, false, false, Some(image_name_2.to_string()));
 
-    for m in feature_matches {
-        let f1 = m.feature_one;
-        let f2 = m.feature_two;
+    for m in  five_feature_slice.iter() {
+        let f1 = &m.feature_one;
+        let f2 = &m.feature_two;
 
         visualize::draw_circle(&mut image_1,f1.get_x_image(), f1.get_y_image(), 5.0, 255.0);
         visualize::draw_circle(&mut image_2,f2.get_x_image(), f2.get_y_image(), 5.0, 255.0);

@@ -68,7 +68,7 @@ pub fn parse_header(lines: &mut Lines<BufReader<File>>) -> (usize,usize, bool) {
             "type" => {
                 match parts[1].trim() {
                     "matrix" => next_matrix_found = true,
-                    t => panic!("type: {} not parseable", t)
+                    t => ()
                 }
             },
             "columns" => {

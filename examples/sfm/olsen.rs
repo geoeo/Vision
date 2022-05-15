@@ -6,7 +6,7 @@ use color_eyre::eyre::Result;
 
 use std::fs;
 use na::{Vector3,Matrix3,Matrix4};
-use vision::io::{olsen_loader::OlssenData};
+use vision::io::olsen_loader::OlssenData;
 use vision::sensors::camera::perspective::Perspective;
 use vision::image::{features::{Match,ImageFeature}, epipolar::{compute_initial_cam_motions, EssentialDecomposition,filter_matches_from_motion}};
 use vision::sfm::{bundle_adjustment:: run_ba};
@@ -20,7 +20,6 @@ fn main() -> Result<()> {
     color_eyre::install()?;
 
     println!("--------");
-
 
     let data_ceiling_barcelona_path = "D:/Workspace/Datasets/Olsen/Ceiling_Barcelona/";
     let data_set_door_path = "D:/Workspace/Datasets/Olsen/Door_Lund/";
@@ -38,7 +37,6 @@ fn main() -> Result<()> {
     let olsen_data = OlssenData::new(olsen_data_path);
     let positive_principal_distance = false;
     let feature_skip_count = 1;
-
 
     let (cam_intrinsics_0,cam_extrinsics_0) = olsen_data.get_camera_intrinsics_extrinsics(0,positive_principal_distance);
     let (cam_intrinsics_1,cam_extrinsics_1) = olsen_data.get_camera_intrinsics_extrinsics(1,positive_principal_distance);
