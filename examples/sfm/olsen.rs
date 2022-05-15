@@ -225,8 +225,10 @@ fn main() -> Result<()> {
     // all_matches.push(vec![Match{feature_one:ImageFeature::new(10.0,10.0), feature_two: ImageFeature::new(300.0,400.0)}]);
     // all_matches.push(vec![Match{feature_one:ImageFeature::new(10.0,10.0), feature_two: ImageFeature::new(300.0,400.0)}]);
 
+    //TODO: investigate pose chaining
     let initial_cam_motions = compute_initial_cam_motions(&all_matches, &camera_data, 1.0,epipolar_thresh,positive_principal_distance,BifocalType::ESSENTIAL, EssentialDecomposition::FÖRSNTER);
     //let initial_cam_motions = compute_initial_cam_motions(&all_matches, &camera_data, 1.0,epipolar_thresh,false, EssentialDecomposition::FÖRSNTER); //check this
+    // TODO: Cordiante system different from what we expect
     let relative_motions = OlssenData::get_relative_motions(&motion_list);
 
     let used_motions_for_filtering = initial_cam_motions.iter().map(|&(_,r)| r).collect::<Vec<(Vector3<Float>,Matrix3<Float>)>>();
