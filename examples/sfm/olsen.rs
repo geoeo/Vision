@@ -30,14 +30,14 @@ fn main() -> Result<()> {
     let data_set_de_guerre_path = "/home/marc/Datasets/Olsen/de_guerre/";
     let data_set_fort_channing_path = "/home/marc/Datasets/Olsen/Fort_Channing_gate/";
     
-    let olsen_data_path = data_set_fountain_path;
+    let olsen_data_path = data_set_door_path;
     let depth_prior = -1.0;
-    let epipolar_thresh = 1.0;
+    let epipolar_thresh = 0.02;
 
     let olsen_data = OlssenData::new(olsen_data_path);
     let positive_principal_distance = false;
     let invert_intrinsics = true;
-    let feature_skip_count = 1;
+    let feature_skip_count = 3;
 
     let (cam_intrinsics_0,cam_extrinsics_0) = olsen_data.get_camera_intrinsics_extrinsics(0,positive_principal_distance);
     let (cam_intrinsics_1,cam_extrinsics_1) = olsen_data.get_camera_intrinsics_extrinsics(1,positive_principal_distance);
@@ -95,12 +95,7 @@ fn main() -> Result<()> {
     let matches_5_6_subvec = matches_5_6.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
     let matches_5_7_subvec = matches_5_7.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
     let matches_5_8_subvec = matches_5_8.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
-
-    let matches_6_0_subvec = matches_6_0.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
-    let matches_6_1_subvec = matches_6_1.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
-    let matches_6_2_subvec = matches_6_2.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
-    let matches_6_3_subvec = matches_6_3.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
-    let matches_6_4_subvec = matches_6_4.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
+        //TODO: there is a bug with using initial positions in the ba6_4.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
     let matches_6_5_subvec = matches_6_5.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
     let matches_6_7_subvec = matches_6_7.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
     let matches_6_8_subvec = matches_6_8.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
@@ -158,7 +153,7 @@ fn main() -> Result<()> {
     //all_matches.push(matches_6_4_subvec);
     //all_matches.push(matches_6_5_subvec);
     all_matches.push(matches_6_7_subvec);
-    // all_matches.push(matches_6_8_subvec);
+    //all_matches.push(matches_6_8_subvec);
     // all_matches.push(matches_6_9_subvec);
     // all_matches.push(matches_6_10_subvec);
     // all_matches.push(matches_6_11_subvec);
@@ -189,7 +184,7 @@ fn main() -> Result<()> {
     //camera_data.push(((6,pinhole_cam_6),(4,pinhole_cam_4)));
     //camera_data.push(((6,pinhole_cam_6),(5,pinhole_cam_5)));
     camera_data.push(((6,pinhole_cam_6),(7,pinhole_cam_7)));
-    // camera_data.push(((6,pinhole_cam_6),(8,pinhole_cam_8)));
+    //camera_data.push(((6,pinhole_cam_6),(8,pinhole_cam_8)));
     // camera_data.push(((6,pinhole_cam_6),(9,pinhole_cam_9)));
     // camera_data.push(((6,pinhole_cam_6),(10,pinhole_cam_10)));
     // camera_data.push(((6,pinhole_cam_6),(11,pinhole_cam_11)));
@@ -206,7 +201,7 @@ fn main() -> Result<()> {
     //motion_list.push(((6,cam_extrinsics_6),(4,cam_extrinsics_4)));
     //motion_list.push(((6,cam_extrinsics_6),(5,cam_extrinsics_5)));
     motion_list.push(((6,cam_extrinsics_6),(7,cam_extrinsics_7)));
-    // motion_list.push(((6,cam_extrinsics_6),(8,cam_extrinsics_8)));
+    //motion_list.push(((6,cam_extrinsics_6),(8,cam_extrinsics_8)));
     // motion_list.push(((6,cam_extrinsics_6),(9,cam_extrinsics_9)));
     // motion_list.push(((6,cam_extrinsics_6),(10,cam_extrinsics_10)));
     // motion_list.push(((6,cam_extrinsics_6),(11,cam_extrinsics_11)));
@@ -244,9 +239,10 @@ fn main() -> Result<()> {
         filtered_matches.push(filtered_matches_by_motion);
     }
 
-    //let initial_cam_poses = Some(initial_cam_motions);
+    //TODO: there is a bug with using multiple initial positions in the ba. Im guessing they get added wrong to the state vector
+    let initial_cam_poses = Some(initial_cam_motions);
     //let initial_cam_poses = Some(relative_motions);
-    let initial_cam_poses = None;
+    //let initial_cam_poses = None;
 
     if initial_cam_poses.is_some(){
         // for (_,(t,r)) in initial_cam_poses.as_ref().unwrap() {
@@ -256,8 +252,8 @@ fn main() -> Result<()> {
         // }
     }
 
-    //let used_matches = &filtered_matches;
-    let used_matches = &all_matches;
+    let used_matches = &filtered_matches;
+    //let used_matches = &all_matches;
 
     for i in 0..camera_data.len() {
         let ((id_a,_),(id_b,_)) = camera_data[i];
