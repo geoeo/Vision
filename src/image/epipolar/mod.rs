@@ -13,10 +13,15 @@ pub type Essential =  Matrix3<Float>;
 pub enum EssentialDecomposition {
     FÖRSNTER,
     KANATANI
+}
+
+#[derive(Clone,Copy)]
+pub enum BifocalType {
+    ESSENTIAL,
+    FUNDAMENTAL
 } 
 
 pub fn extract_matches<T: Feature>(matches: &Vec<Match<T>>, pyramid_scale: Float, normalize: bool) -> Vec<Match<ImageFeature>> {
-
     match normalize {
         true => {
             condition_matches(matches)
@@ -96,7 +101,6 @@ pub fn eight_point<T : Feature>(matches: &Vec<Match<T>>, positive_principal_dist
 }
 
 
-//TODO: write a test for this
 pub fn essential_matrix_from_motion(translation: &Vector3<Float>, rotation: &Matrix3<Float>) -> Matrix3<Float> {
     translation.cross_matrix()*rotation.transpose()
 }
@@ -284,18 +288,38 @@ pub fn decompose_essential_kanatani<T: Feature>(E: &Essential, matches: &Vec<Mat
 
 }
 
-pub fn compute_initial_cam_motions<C : Camera + Copy,T : Feature + Clone>(all_matches: &Vec<Vec<Match<T>>>,camera_data: &Vec<((usize, C),(usize,C))>,pyramid_scale:Float, epipiolar_thresh: Float, positive_principal_distance: bool, decomp_alg: EssentialDecomposition) 
+pub fn compute_initial_cam_motions<C : Camera + Copy,T : Feature + Clone>(
+        all_matches: &Vec<Vec<Match<T>>>,
+        camera_data: &Vec<((usize, C),(usize,C))>,
+        pyramid_scale:Float, 
+        epipiolar_thresh: Float, 
+        positive_principal_distance: bool,
+        epipolar_alg: BifocalType,
+        decomp_alg: EssentialDecomposition) 
     ->  Vec<(u64,(Vector3<Float>,Matrix3<Float>))> {
     let feature_machtes = all_matches.iter().filter(|m| m.len() >= 8).map(|m| extract_matches(m, pyramid_scale, true)).collect::<Vec<Vec<Match<ImageFeature>>>>();
-    let fundamental_matrices = feature_machtes.iter().map(|m| eight_point(m, positive_principal_distance)).collect::<Vec<Fundamental>>();
-    let accepted_matches = fundamental_matrices.iter().zip(feature_machtes.iter()).map(|(f,m)| filter_matches_from_fundamental(f, m,epipiolar_thresh)).collect::<Vec<Vec<Match<ImageFeature>>>>();
-    let essential_matrices_with_cameras = fundamental_matrices.iter().enumerate().map(|(i,f)| {
-        let ((id1,c1),(id2,c2)) = camera_data[i];
-        (id1,id2,compute_essential(f, &c1.get_projection(), &c2.get_projection()),c1,c2)
-    }).collect::<Vec<(usize,usize,Essential, C, C)>>();
 
-    let initial_motion_decomp = essential_matrices_with_cameras.iter().filter(|(id1,_,_,_,_)| *id1 == camera_data[0].0.0).enumerate().map(|(i,(_,id2,e,c1,c2))| {
-        let matches = &accepted_matches[i];
+    let essential_matrices_with_cameras = match epipolar_alg {
+        BifocalType::FUNDAMENTAL => {
+            feature_machtes.iter().enumerate().map(|(i,m)| {
+                let f = eight_point(m, positive_principal_distance);
+                let ((id1,c1),(id2,c2)) = camera_data[i];
+                (id1,id2,compute_essential(&f, &c1.get_projection(), &c2.get_projection()),c1,c2, filter_matches_from_fundamental(&f,m,epipiolar_thresh))
+            }).collect::<Vec<(usize,usize,Essential, C, C, Vec<Match<ImageFeature>>)>>()
+        },
+        BifocalType::ESSENTIAL => {
+            feature_machtes.iter().enumerate().map(|(i,m)| {
+                let ((id1,c1),(id2,c2)) = camera_data[i];
+                let e = five_point_essential(m, &c1, &c2, positive_principal_distance);
+                let f = compute_fundamental(&e, &c1.get_inverse_projection(), &c2.get_inverse_projection());
+                (id1, id2, e, c1,c2, filter_matches_from_fundamental(&f,m,epipiolar_thresh))
+            }).collect::<Vec<(usize,usize,Essential, C, C, Vec<Match<ImageFeature>>)>>()
+        }
+    };
+
+    //let accepted_matches = fundamental_matrices.iter().zip(feature_machtes.iter()).map(|(f,m)| filter_matches_from_fundamental(f, m,epipiolar_thresh)).collect::<Vec<Vec<Match<ImageFeature>>>>();
+    let initial_motion_decomp = essential_matrices_with_cameras.iter().filter(|(id1,_,_,_,_,_)| *id1 == camera_data[0].0.0).enumerate().map(|(i,(_,id2,e,c1,c2, matches))| {
+        //let matches = &accepted_matches[i];
         let (h,rotation,_) = match (decomp_alg,matches.len()) {
             (_,count) if count < 8 => (Vector3::<Float>::zeros(), Matrix3::<Float>::identity(),Matrix3::<Float>::identity()),
             (EssentialDecomposition::FÖRSNTER,_) => decompose_essential_förstner(e,matches,&c1.get_inverse_projection(),&c2.get_inverse_projection(), positive_principal_distance),

@@ -62,8 +62,8 @@ fn main() -> Result<(),()> {
     //let final_state_as_string = fs::read_to_string("D:/Workspace/Rust/Vision/output/3dv.txt").expect("Unable to read file");
     //let all_states_as_string = fs::read_to_string("D:/Workspace/Rust/Vision/output/3dv_debug.txt").expect("Unable to read file");
 
-    let final_state_as_string = fs::read_to_string("D:/Workspace/Rust/Vision/output/olsen.txt").expect("Unable to read file");
-    let all_states_as_string = fs::read_to_string("D:/Workspace/Rust/Vision/output/olsen_debug.txt").expect("Unable to read file");
+    let final_state_as_string = fs::read_to_string("/mnt/d/Workspace/Rust/Vision/output/olsen.txt").expect("Unable to read file");
+    let all_states_as_string = fs::read_to_string("/mnt/d/Workspace/Rust/Vision/output/olsen_debug.txt").expect("Unable to read file");
 
 
     let loaded_state: (Vec<[Float;6]>,Vec<[Float;3]>) = serde_yaml::from_str(&final_state_as_string).unwrap();
@@ -109,7 +109,7 @@ fn main() -> Result<(),()> {
 
         if recording_scene {
             // the previously populated scene
-            let file_name = format!("D:/Workspace/Rust/Vision/images/ba_pointcloud/screenshot_{}.png",record_counter);
+            let file_name = format!("/mnt/d/Workspace/Rust/Vision/images/ba_pointcloud/screenshot_{}.png",record_counter);
             make_screenshot(file_name.as_str(), &window);
             record_counter += 1;
 
@@ -124,7 +124,7 @@ fn main() -> Result<(),()> {
 
         for event in window.events().iter() {
             match event.value {
-                WindowEvent::Key(Key::P, _, _) => make_screenshot("D:/Workspace/Rust/Vision/output/screenshot.png", &window),
+                WindowEvent::Key(Key::P, _, _) => make_screenshot("/mnt/d/Workspace/Rust/Vision/output/screenshot.png", &window),
                 WindowEvent::Key(Key::R, _, _) => {
                     clear_scene(&mut window, &mut scene_nodes);
                     populate_scene(&mut window,&mut scene_nodes,&cams,&points);

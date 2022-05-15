@@ -54,7 +54,7 @@ fn main() -> Result<()> {
     //     synth_matches.push(m);
     // }
     // let feature_matches = epipolar::extract_matches(&synth_matches, 1.0, false); 
-    // let gt = t.cross_matrix()*(&R.transpose());
+    // let gt = epipolar::essential_matrix_from_motion(&t_raw,&R);
     // let factor = gt[(2,2)];
     // let gt_norm = gt.map(|x| x/factor);
     // println!("------ GT -------");
@@ -99,7 +99,7 @@ fn main() -> Result<()> {
     let p1 = pose::from_matrix(&cam_extrinsics_1);
     let p01 = pose::pose_difference(&p0, &p1);
     let (t_raw, R) = pose::decomp(&p01);
-    let gt = t_raw.cross_matrix()*(&R.transpose());
+    let gt = epipolar::essential_matrix_from_motion(&t_raw,&R);
     let factor = gt[(2,2)];
     let gt_norm = gt.map(|x| x/factor);
     println!("------ GT -------");

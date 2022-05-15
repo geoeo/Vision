@@ -8,7 +8,7 @@ use std::fs;
 use na::{Vector3,Matrix3,Matrix4};
 use vision::io::olsen_loader::OlssenData;
 use vision::sensors::camera::perspective::Perspective;
-use vision::image::{features::{Match,ImageFeature}, epipolar::{compute_initial_cam_motions, EssentialDecomposition,filter_matches_from_motion}};
+use vision::image::{features::{Match,ImageFeature}, epipolar::{compute_initial_cam_motions, BifocalType,EssentialDecomposition,filter_matches_from_motion}};
 use vision::sfm::{bundle_adjustment:: run_ba};
 use vision::odometry::runtime_parameters::RuntimeParameters;
 use vision::numerics::{loss, weighting};
@@ -21,21 +21,22 @@ fn main() -> Result<()> {
 
     println!("--------");
 
-    let data_ceiling_barcelona_path = "D:/Workspace/Datasets/Olsen/Ceiling_Barcelona/";
-    let data_set_door_path = "D:/Workspace/Datasets/Olsen/Door_Lund/";
-    let data_set_ahlströmer_path = "D:/Workspace/Datasets/Olsen/Jonas_Ahlströmer/";
-    let data_set_fountain_path = "D:/Workspace/Datasets/Olsen/fountain/";
-    let data_set_vasa_path = "D:/Workspace/Datasets/Olsen/vasa_statue/";
-    let data_set_ninjo_path = "D:/Workspace/Datasets/Olsen/nijo/";
-    let data_set_de_guerre_path = "D:/Workspace/Datasets/Olsen/de_guerre/";
-    let data_set_fort_channing_path = "D:/Workspace/Datasets/Olsen/Fort_Channing_gate/";
+    let data_ceiling_barcelona_path = "/mnt/d/Workspace/Datasets/Olsen/Ceiling_Barcelona/";
+    let data_set_door_path = "/mnt/d/Workspace/Datasets/Olsen/Door_Lund/";
+    let data_set_ahlströmer_path = "/mnt/d/Workspace/Datasets/Olsen/Jonas_Ahlströmer/";
+    let data_set_fountain_path = "/mnt/d/Workspace/Datasets/Olsen/fountain/";
+    let data_set_vasa_path = "/mnt/d/Workspace/Datasets/Olsen/vasa_statue/";
+    let data_set_ninjo_path = "/mnt/d/Workspace/Datasets/Olsen/nijo/";
+    let data_set_de_guerre_path = "/mnt/d/Workspace/Datasets/Olsen/de_guerre/";
+    let data_set_fort_channing_path = "/mnt/d/Workspace/Datasets/Olsen/Fort_Channing_gate/";
     
     let olsen_data_path = data_set_fountain_path;
     let depth_prior = -1.0;
-    let epipolar_thresh = 0.5;
+    let epipolar_thresh = 0.1;
 
     let olsen_data = OlssenData::new(olsen_data_path);
     let positive_principal_distance = false;
+    let invert_intrinsics = true;
     let feature_skip_count = 1;
 
     let (cam_intrinsics_0,cam_extrinsics_0) = olsen_data.get_camera_intrinsics_extrinsics(0,positive_principal_distance);
@@ -121,18 +122,18 @@ fn main() -> Result<()> {
     // let matches_0_20 = olsen_data.get_matches_between_images(0, 20);
     // println!("matches between 0 and 20 are: #{}", matches_0_20.len());
 
-    let pinhole_cam_0 = Perspective::from_matrix(&cam_intrinsics_0, false);
-    let pinhole_cam_1 = Perspective::from_matrix(&cam_intrinsics_1, false);
-    let pinhole_cam_2 = Perspective::from_matrix(&cam_intrinsics_2, false);
-    let pinhole_cam_3 = Perspective::from_matrix(&cam_intrinsics_3, false);
-    let pinhole_cam_4 = Perspective::from_matrix(&cam_intrinsics_4, false);
-    let pinhole_cam_5 = Perspective::from_matrix(&cam_intrinsics_5, false);
-    let pinhole_cam_6 = Perspective::from_matrix(&cam_intrinsics_6, false);
-    let pinhole_cam_7 = Perspective::from_matrix(&cam_intrinsics_7, false);
-    let pinhole_cam_8 = Perspective::from_matrix(&cam_intrinsics_8, false);
-    let pinhole_cam_9 = Perspective::from_matrix(&cam_intrinsics_9, false);
-    let pinhole_cam_10 = Perspective::from_matrix(&cam_intrinsics_10, false);
-    let pinhole_cam_11 = Perspective::from_matrix(&cam_intrinsics_11, false);
+    let pinhole_cam_0 = Perspective::from_matrix(&cam_intrinsics_0, invert_intrinsics);
+    let pinhole_cam_1 = Perspective::from_matrix(&cam_intrinsics_1, invert_intrinsics);
+    let pinhole_cam_2 = Perspective::from_matrix(&cam_intrinsics_2, invert_intrinsics);
+    let pinhole_cam_3 = Perspective::from_matrix(&cam_intrinsics_3, invert_intrinsics);
+    let pinhole_cam_4 = Perspective::from_matrix(&cam_intrinsics_4, invert_intrinsics);
+    let pinhole_cam_5 = Perspective::from_matrix(&cam_intrinsics_5, invert_intrinsics);
+    let pinhole_cam_6 = Perspective::from_matrix(&cam_intrinsics_6, invert_intrinsics);
+    let pinhole_cam_7 = Perspective::from_matrix(&cam_intrinsics_7, invert_intrinsics);
+    let pinhole_cam_8 = Perspective::from_matrix(&cam_intrinsics_8, invert_intrinsics);
+    let pinhole_cam_9 = Perspective::from_matrix(&cam_intrinsics_9, invert_intrinsics);
+    let pinhole_cam_10 = Perspective::from_matrix(&cam_intrinsics_10, invert_intrinsics);
+    let pinhole_cam_11 = Perspective::from_matrix(&cam_intrinsics_11, invert_intrinsics);
     //let pinhole_cam_12 = Perspective::from_matrix(&cam_intrinsics_12, false);
     //let pinhole_cam_13 = Perspective::from_matrix(&cam_intrinsics_13, false);
     //let pinhole_cam_17 = Perspective::from_matrix(&cam_intrinsics_17, false);
@@ -222,12 +223,12 @@ fn main() -> Result<()> {
     // all_matches.push(vec![Match{feature_one:ImageFeature::new(10.0,10.0), feature_two: ImageFeature::new(300.0,400.0)}]);
     // all_matches.push(vec![Match{feature_one:ImageFeature::new(10.0,10.0), feature_two: ImageFeature::new(300.0,400.0)}]);
 
-    let initial_cam_motions = compute_initial_cam_motions(&all_matches, &camera_data, 1.0,epipolar_thresh,positive_principal_distance, EssentialDecomposition::FÖRSNTER);
+    let initial_cam_motions = compute_initial_cam_motions(&all_matches, &camera_data, 1.0,epipolar_thresh,positive_principal_distance,BifocalType::ESSENTIAL, EssentialDecomposition::FÖRSNTER);
     //let initial_cam_motions = compute_initial_cam_motions(&all_matches, &camera_data, 1.0,epipolar_thresh,false, EssentialDecomposition::FÖRSNTER); //check this
     let relative_motions = OlssenData::get_relative_motions(&motion_list);
 
-    //let used_motions_for_filtering = initial_cam_motions.iter().map(|&(_,r)| r).collect::<Vec<(Vector3<Float>,Matrix3<Float>)>>();
-    let used_motions_for_filtering = relative_motions.iter().map(|&(_,r)| r).collect::<Vec<(Vector3<Float>,Matrix3<Float>)>>();
+    let used_motions_for_filtering = initial_cam_motions.iter().map(|&(_,r)| r).collect::<Vec<(Vector3<Float>,Matrix3<Float>)>>();
+    //let used_motions_for_filtering = relative_motions.iter().map(|&(_,r)| r).collect::<Vec<(Vector3<Float>,Matrix3<Float>)>>();
     let mut filtered_matches = Vec::<Vec<Match<ImageFeature>>>::with_capacity(all_matches.len());
     for i in 0..all_matches.len(){
         let matches = &all_matches[i];
@@ -239,9 +240,9 @@ fn main() -> Result<()> {
         filtered_matches.push(filtered_matches_by_motion);
     }
 
-    //let initial_cam_poses = Some(initial_cam_motions);
+    let initial_cam_poses = Some(initial_cam_motions);
     //let initial_cam_poses = Some(relative_motions);
-    let initial_cam_poses = None;
+    //let initial_cam_poses = None;
 
     if initial_cam_poses.is_some(){
         // for (_,(t,r)) in initial_cam_poses.as_ref().unwrap() {
@@ -263,8 +264,6 @@ fn main() -> Result<()> {
         };
         matches_vis.to_image().save(format!("{}match_disp_{}_{}_orb_ba.jpg",olsen_data_path,id_a,id_b)).unwrap();
     }
-
-
 
 
 
@@ -290,9 +289,9 @@ fn main() -> Result<()> {
 
 
         let ((cam_positions,points),(s,debug_states_serialized)) = run_ba(used_matches, &camera_data,&initial_cam_poses, olsen_data.get_image_dim(), &runtime_parameters, 1.0,depth_prior);
-        fs::write(format!("D:/Workspace/Rust/Vision/output/olsen.txt"), s?).expect("Unable to write file");
+        fs::write(format!("/mnt/d/Workspace/Rust/Vision/output/olsen.txt"), s?).expect("Unable to write file");
         if runtime_parameters.debug {
-            fs::write(format!("D:/Workspace/Rust/Vision/output/olsen_debug.txt"), debug_states_serialized?).expect("Unable to write file");
+            fs::write(format!("/mnt/d/Workspace/Rust/Vision/output/olsen_debug.txt"), debug_states_serialized?).expect("Unable to write file");
         }
     }
 
