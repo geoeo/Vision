@@ -122,7 +122,7 @@ pub fn cheirality_check<T: Feature + Clone>(
     let inverse_camera_matrix_1 = points_cam_1.2;
     let inverse_camera_matrix_2 = points_cam_2.2;
     for e in all_essential_matricies {
-        let (t,R,e_corrected) = decompose_essential_förstner(&e,matches,inverse_camera_matrix_1,inverse_camera_matrix_2,depth_positive);
+        let (t,R,e_corrected) = decompose_essential_förstner(&e,matches,inverse_camera_matrix_1,inverse_camera_matrix_2);
         let R_corr = optimal_correction_of_rotation(&R);
         let se3 = pose::se3(&t,&R_corr);
 
