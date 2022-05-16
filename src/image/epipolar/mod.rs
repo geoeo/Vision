@@ -287,44 +287,45 @@ pub fn decompose_essential_kanatani<T: Feature>(E: &Essential, matches: &Vec<Mat
 
 }
 
+//TODO: refactor to only take initial cam and then list of other cams
 pub fn compute_initial_cam_motions<C : Camera + Copy,T : Feature + Clone>(
         all_matches: &Vec<Vec<Match<T>>>,
         camera_data: &Vec<((usize, C),(usize,C))>,
         pyramid_scale:Float, 
         epipiolar_thresh: Float, 
         positive_principal_distance: bool,
+        normalize_features: bool,
         epipolar_alg: BifocalType,
         decomp_alg: EssentialDecomposition) 
     ->  Vec<(u64,(Vector3<Float>,Matrix3<Float>))> {
-    let feature_machtes = all_matches.iter().filter(|m| m.len() >= 8).map(|m| extract_matches(m, pyramid_scale, true)).collect::<Vec<Vec<Match<ImageFeature>>>>();
+    let feature_machtes =  all_matches.iter().map(|m| extract_matches(m, pyramid_scale, normalize_features)).collect::<Vec<Vec<Match<ImageFeature>>>>();
+    let c_init = camera_data[0].0.1;
+    let initial_motion_decomp = feature_machtes.iter().enumerate().map(|(i,m)| (m,camera_data[i])).scan((0,c_init,(Vector3::<Float>::zeros(),Matrix3::<Float>::identity())),|state, (m, (_,(id2,c2)))| {
+        let (_,c_curr,(t_curr,R_curr)) = *state;
 
-    let essential_matrices_with_cameras = match epipolar_alg {
-        BifocalType::FUNDAMENTAL => {
-            feature_machtes.iter().enumerate().map(|(i,m)| {
+        let (e,f_m) = match epipolar_alg {
+            BifocalType::FUNDAMENTAL => {
                 let f = eight_point(m, positive_principal_distance);
-                let ((id1,c1),(id2,c2)) = camera_data[i];
-                (id1,id2,compute_essential(&f, &c1.get_projection(), &c2.get_projection()),c1,c2, filter_matches_from_fundamental(&f,m,epipiolar_thresh))
-            }).collect::<Vec<(usize,usize,Essential, C, C, Vec<Match<ImageFeature>>)>>()
-        },
-        BifocalType::ESSENTIAL => {
-            feature_machtes.iter().enumerate().map(|(i,m)| {
-                let ((id1,c1),(id2,c2)) = camera_data[i];
-                let e = five_point_essential(m, &c1, &c2, positive_principal_distance);
-                let f = compute_fundamental(&e, &c1.get_inverse_projection(), &c2.get_inverse_projection());
-                (id1, id2, e, c1,c2, filter_matches_from_fundamental(&f,m,epipiolar_thresh))
-            }).collect::<Vec<(usize,usize,Essential, C, C, Vec<Match<ImageFeature>>)>>()
-        }
-    };
-
-    let initial_motion_decomp = essential_matrices_with_cameras.iter().filter(|(id1,_,_,_,_,_)| *id1 == camera_data[0].0.0).enumerate().map(|(i,(_,id2,e,c1,c2, matches))| {
-        let (h,rotation,_) = match (decomp_alg,matches.len()) {
-            (_,count) if count < 8 => (Vector3::<Float>::zeros(), Matrix3::<Float>::identity(),Matrix3::<Float>::identity()),
-            (EssentialDecomposition::FÖRSNTER,_) => decompose_essential_förstner(e,matches,&c1.get_inverse_projection(),&c2.get_inverse_projection()),
-            (EssentialDecomposition::KANATANI,_) => decompose_essential_kanatani(e,matches, positive_principal_distance)
+                let filtered =  filter_matches_from_fundamental(&f,m,epipiolar_thresh);
+                (compute_essential(&f,&c_curr.get_projection(),&c2.get_projection()), filtered)
+            },
+            BifocalType::ESSENTIAL => {
+                let e = five_point_essential(m, &c_curr, &c2, positive_principal_distance);
+                let f = compute_fundamental(&e, &c_curr.get_inverse_projection(), &c2.get_inverse_projection());
+                let filtered =  filter_matches_from_fundamental(&f,m,epipiolar_thresh);
+                (e, filtered)
+            }
         };
 
-        (*id2 as u64,(h,rotation))
-    }).collect::<Vec<(u64,(Vector3<Float>,Matrix3<Float>))>>();
+        
+        let (h,rotation,_) = match decomp_alg {
+            EssentialDecomposition::FÖRSNTER => decompose_essential_förstner(&e,&f_m,&c_curr.get_inverse_projection(),&c2.get_inverse_projection()),
+            EssentialDecomposition::KANATANI => decompose_essential_kanatani(&e,&f_m, positive_principal_distance)
+        };
+
+
+        Some((id2 as u64, c2,(rotation*t_curr + h,rotation*R_curr)))
+    }).map(|(id,_,motion)|(id,motion)).collect::<Vec<(u64,(Vector3<Float>,Matrix3<Float>))>>();
 
     initial_motion_decomp
 }
