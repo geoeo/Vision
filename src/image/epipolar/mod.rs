@@ -156,8 +156,7 @@ pub fn epipolar_lines<T: Feature>(bifocal_tensor: &Matrix3<Float>, feature_match
 pub fn decompose_essential_förstner<T : Feature>(
     E: &Essential, matches: &Vec<Match<T>>,
     inverse_camera_matrix_start: &Matrix3::<Float>,
-    inverse_camera_matrix_finish: &Matrix3::<Float>, 
-    is_depth_positive: bool) -> (Vector3<Float>, Matrix3<Float>,Matrix3<Float> ) {
+    inverse_camera_matrix_finish: &Matrix3::<Float>) -> (Vector3<Float>, Matrix3<Float>,Matrix3<Float> ) {
     assert!(matches.len() > 0);
     let mut svd = E.svd(true,true);
 
@@ -317,12 +316,10 @@ pub fn compute_initial_cam_motions<C : Camera + Copy,T : Feature + Clone>(
         }
     };
 
-    //let accepted_matches = fundamental_matrices.iter().zip(feature_machtes.iter()).map(|(f,m)| filter_matches_from_fundamental(f, m,epipiolar_thresh)).collect::<Vec<Vec<Match<ImageFeature>>>>();
     let initial_motion_decomp = essential_matrices_with_cameras.iter().filter(|(id1,_,_,_,_,_)| *id1 == camera_data[0].0.0).enumerate().map(|(i,(_,id2,e,c1,c2, matches))| {
-        //let matches = &accepted_matches[i];
         let (h,rotation,_) = match (decomp_alg,matches.len()) {
             (_,count) if count < 8 => (Vector3::<Float>::zeros(), Matrix3::<Float>::identity(),Matrix3::<Float>::identity()),
-            (EssentialDecomposition::FÖRSNTER,_) => decompose_essential_förstner(e,matches,&c1.get_inverse_projection(),&c2.get_inverse_projection(), positive_principal_distance),
+            (EssentialDecomposition::FÖRSNTER,_) => decompose_essential_förstner(e,matches,&c1.get_inverse_projection(),&c2.get_inverse_projection()),
             (EssentialDecomposition::KANATANI,_) => decompose_essential_kanatani(e,matches, positive_principal_distance)
         };
 
