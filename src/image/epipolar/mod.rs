@@ -317,12 +317,10 @@ pub fn compute_initial_cam_motions<C : Camera + Copy,T : Feature + Clone>(
             }
         };
 
-        
         let (h,rotation,_) = match decomp_alg {
             EssentialDecomposition::FÖRSNTER => decompose_essential_förstner(&e,&f_m,&c_curr.get_inverse_projection(),&c2.get_inverse_projection()),
             EssentialDecomposition::KANATANI => decompose_essential_kanatani(&e,&f_m, positive_principal_distance)
         };
-
 
         Some((id2 as u64, c2,(rotation*t_curr + h,rotation*R_curr)))
     }).map(|(id,_,motion)|(id,motion)).collect::<Vec<(u64,(Vector3<Float>,Matrix3<Float>))>>();
