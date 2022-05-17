@@ -126,8 +126,8 @@ fn main() -> Result<()> {
         feature_matches.push(all_feature_matches[i].clone());
     }
 
-    let five_point_essential_matrix = epipolar::five_point_essential(&feature_matches,&intensity_camera_1,&intensity_camera_2,depth_positive);
-    let (t_est,R_est,_) = epipolar::decompose_essential_förstner(&five_point_essential_matrix,&feature_matches,&intensity_camera_1.get_inverse_projection(),&intensity_camera_2.get_inverse_projection(), depth_positive);
+    let five_point_essential_matrix = epipolar::five_point_essential(&feature_matches,&intensity_camera_1,&intensity_camera_2, depth_positive);
+    let (t_est,R_est,_) = epipolar::decompose_essential_förstner(&five_point_essential_matrix,&feature_matches,&intensity_camera_1.get_inverse_projection(),&intensity_camera_2.get_inverse_projection());
     let factor = five_point_essential_matrix[(2,2)];
     let five_point_essential_matrix_norm = five_point_essential_matrix.map(|x| x/factor);
     let fundamental_matrix = epipolar::compute_fundamental(&five_point_essential_matrix, &intensity_camera_1.get_inverse_projection(), &intensity_camera_2.get_inverse_projection());

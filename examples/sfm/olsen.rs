@@ -32,12 +32,13 @@ fn main() -> Result<()> {
     
     let olsen_data_path = data_set_door_path;
     let depth_prior = -1.0;
-    let epipolar_thresh = 0.02;
+    let epipolar_thresh = 0.001;
 
     let olsen_data = OlssenData::new(olsen_data_path);
     let positive_principal_distance = false;
     let invert_intrinsics = true;
-    let feature_skip_count = 3;
+    let normalize_features = false;
+    let feature_skip_count = 2;
 
     let (cam_intrinsics_0,cam_extrinsics_0) = olsen_data.get_camera_intrinsics_extrinsics(0,positive_principal_distance);
     let (cam_intrinsics_1,cam_extrinsics_1) = olsen_data.get_camera_intrinsics_extrinsics(1,positive_principal_distance);
@@ -148,15 +149,15 @@ fn main() -> Result<()> {
     //all_matches.push(matches_5_7_subvec);
     //all_matches.push(matches_6_0_subvec);
     //all_matches.push(matches_6_1_subvec);
-    //all_matches.push(matches_6_2_subvec);
-    //all_matches.push(matches_6_3_subvec);
-    //all_matches.push(matches_6_4_subvec);
-    //all_matches.push(matches_6_5_subvec);
+    // all_matches.push(matches_6_2_subvec);
+    // all_matches.push(matches_6_3_subvec);
+    // all_matches.push(matches_6_4_subvec);
+    // all_matches.push(matches_6_5_subvec);
     all_matches.push(matches_6_7_subvec);
-    //all_matches.push(matches_6_8_subvec);
+    all_matches.push(matches_6_8_subvec);
     // all_matches.push(matches_6_9_subvec);
-    // all_matches.push(matches_6_10_subvec);
-    // all_matches.push(matches_6_11_subvec);
+    //all_matches.push(matches_6_10_subvec);
+    //all_matches.push(matches_6_11_subvec);
     //all_matches.push(matches_6_12_subvec);
     //all_matches.push(matches_6_13_subvec);
     //all_matches.push(matches_6_9_subvec);
@@ -179,15 +180,15 @@ fn main() -> Result<()> {
     //camera_data.push(((5,pinhole_cam_5),(7,pinhole_cam_7)));
     //camera_data.push(((6,pinhole_cam_6),(0,pinhole_cam_0)));
     //camera_data.push(((6,pinhole_cam_6),(1,pinhole_cam_1)));
-    //camera_data.push(((6,pinhole_cam_6),(2,pinhole_cam_2)));
-    //camera_data.push(((6,pinhole_cam_6),(3,pinhole_cam_3)));
-    //camera_data.push(((6,pinhole_cam_6),(4,pinhole_cam_4)));
-    //camera_data.push(((6,pinhole_cam_6),(5,pinhole_cam_5)));
+    // camera_data.push(((6,pinhole_cam_6),(2,pinhole_cam_2)));
+    // camera_data.push(((6,pinhole_cam_6),(3,pinhole_cam_3)));
+    // camera_data.push(((6,pinhole_cam_6),(4,pinhole_cam_4)));
+    // camera_data.push(((6,pinhole_cam_6),(5,pinhole_cam_5)));
     camera_data.push(((6,pinhole_cam_6),(7,pinhole_cam_7)));
-    //camera_data.push(((6,pinhole_cam_6),(8,pinhole_cam_8)));
+    camera_data.push(((6,pinhole_cam_6),(8,pinhole_cam_8)));
     // camera_data.push(((6,pinhole_cam_6),(9,pinhole_cam_9)));
-    // camera_data.push(((6,pinhole_cam_6),(10,pinhole_cam_10)));
-    // camera_data.push(((6,pinhole_cam_6),(11,pinhole_cam_11)));
+    //camera_data.push(((6,pinhole_cam_6),(10,pinhole_cam_10)));
+    //camera_data.push(((6,pinhole_cam_6),(11,pinhole_cam_11)));
     //camera_data.push(((6,pinhole_cam_6),(12,pinhole_cam_12)));
     //camera_data.push(((6,pinhole_cam_6),(13,pinhole_cam_13)));
     //camera_data.push(((6,pinhole_cam_6),(9,pinhole_cam_9)));
@@ -196,15 +197,13 @@ fn main() -> Result<()> {
 
     let mut motion_list =  Vec::<((usize,Matrix4<Float>),(usize,Matrix4<Float>))>::with_capacity(10); 
     //motion_list.push(((6,cam_extrinsics_6),(1,cam_extrinsics_1)));
-    //motion_list.push(((6,cam_extrinsics_6),(2,cam_extrinsics_2)));
-    //motion_list.push(((6,cam_extrinsics_6),(3,cam_extrinsics_3)));
-    //motion_list.push(((6,cam_extrinsics_6),(4,cam_extrinsics_4)));
-    //motion_list.push(((6,cam_extrinsics_6),(5,cam_extrinsics_5)));
+    // motion_list.push(((6,cam_extrinsics_6),(2,cam_extrinsics_2)));
+    // motion_list.push(((6,cam_extrinsics_6),(3,cam_extrinsics_3)));
+    // motion_list.push(((6,cam_extrinsics_6),(4,cam_extrinsics_4)));
+    // motion_list.push(((6,cam_extrinsics_6),(5,cam_extrinsics_5)));
     motion_list.push(((6,cam_extrinsics_6),(7,cam_extrinsics_7)));
-    //motion_list.push(((6,cam_extrinsics_6),(8,cam_extrinsics_8)));
+    motion_list.push(((6,cam_extrinsics_6),(8,cam_extrinsics_8)));
     // motion_list.push(((6,cam_extrinsics_6),(9,cam_extrinsics_9)));
-    // motion_list.push(((6,cam_extrinsics_6),(10,cam_extrinsics_10)));
-    // motion_list.push(((6,cam_extrinsics_6),(11,cam_extrinsics_11)));
 
 
 
@@ -221,7 +220,7 @@ fn main() -> Result<()> {
     // all_matches.push(vec![Match{feature_one:ImageFeature::new(10.0,10.0), feature_two: ImageFeature::new(300.0,400.0)}]);
 
     //TODO: investigate pose chaining
-    let initial_cam_motions = compute_initial_cam_motions(&all_matches, &camera_data, 1.0,epipolar_thresh,positive_principal_distance,BifocalType::ESSENTIAL, EssentialDecomposition::FÖRSNTER);
+    let initial_cam_motions = compute_initial_cam_motions(&all_matches, &camera_data, 1.0,epipolar_thresh,positive_principal_distance,normalize_features ,BifocalType::ESSENTIAL, EssentialDecomposition::FÖRSNTER);
     //let initial_cam_motions = compute_initial_cam_motions(&all_matches, &camera_data, 1.0,epipolar_thresh,false, EssentialDecomposition::FÖRSNTER); //check this
     // TODO: Cordiante system different from what we expect
     let relative_motions = OlssenData::get_relative_motions(&motion_list);
