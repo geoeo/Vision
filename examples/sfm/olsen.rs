@@ -21,24 +21,24 @@ fn main() -> Result<()> {
 
     println!("--------");
 
-    let data_ceiling_barcelona_path = "/mnt/d/Workspace/Datasets/Olsen/Ceiling_Barcelona/";
-    let data_set_door_path = "/mnt/d/Workspace/Datasets/Olsen/Door_Lund/";
-    let data_set_ahlströmer_path = "/mnt/d/Workspace/Datasets/Olsen/Jonas_Ahlströmer/";
-    let data_set_fountain_path = "/mnt/d/Workspace/Datasets/Olsen/fountain/";
-    let data_set_vasa_path = "/mnt/d/Workspace/Datasets/Olsen/vasa_statue/";
-    let data_set_ninjo_path = "/mnt/d/Workspace/Datasets/Olsen/nijo/";
-    let data_set_de_guerre_path = "/mnt/d/Workspace/Datasets/Olsen/de_guerre/";
-    let data_set_fort_channing_path = "/mnt/d/Workspace/Datasets/Olsen/Fort_Channing_gate/";
+    let data_ceiling_barcelona_path = "/home/marc/Datasets/Olsen/Ceiling_Barcelona/";
+    let data_set_door_path = "/home/marc/Datasets/Olsen/Door_Lund/";
+    let data_set_ahlströmer_path = "/home/marc/Datasets/Olsen/Jonas_Ahlströmer/";
+    let data_set_fountain_path = "/home/marc/Datasets/Olsen/fountain/";
+    let data_set_vasa_path = "/home/marc/Datasets/Olsen/vasa_statue/";
+    let data_set_ninjo_path = "/home/marc/Datasets/Olsen/nijo/";
+    let data_set_de_guerre_path = "/home/marc/Datasets/Olsen/de_guerre/";
+    let data_set_fort_channing_path = "/home/marc/Datasets/Olsen/Fort_Channing_gate/";
     
     let olsen_data_path = data_set_door_path;
     let depth_prior = -1.0;
-    let epipolar_thresh = 0.001;
+    let epipolar_thresh = 0.1;
 
     let olsen_data = OlssenData::new(olsen_data_path);
     let positive_principal_distance = false;
     let invert_intrinsics = true;
     let normalize_features = false;
-    let feature_skip_count = 2;
+    let feature_skip_count = 3;
 
     let (cam_intrinsics_0,cam_extrinsics_0) = olsen_data.get_camera_intrinsics_extrinsics(0,positive_principal_distance);
     let (cam_intrinsics_1,cam_extrinsics_1) = olsen_data.get_camera_intrinsics_extrinsics(1,positive_principal_distance);
@@ -96,12 +96,7 @@ fn main() -> Result<()> {
     let matches_5_6_subvec = matches_5_6.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
     let matches_5_7_subvec = matches_5_7.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
     let matches_5_8_subvec = matches_5_8.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
-
-    let matches_6_0_subvec = matches_6_0.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
-    let matches_6_1_subvec = matches_6_1.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
-    let matches_6_2_subvec = matches_6_2.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
-    let matches_6_3_subvec = matches_6_3.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
-    let matches_6_4_subvec = matches_6_4.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
+        //TODO: there is a bug with using initial positions in the ba6_4.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
     let matches_6_5_subvec = matches_6_5.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
     let matches_6_7_subvec = matches_6_7.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
     let matches_6_8_subvec = matches_6_8.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
@@ -159,7 +154,7 @@ fn main() -> Result<()> {
     // all_matches.push(matches_6_4_subvec);
     // all_matches.push(matches_6_5_subvec);
     all_matches.push(matches_6_7_subvec);
-    all_matches.push(matches_6_8_subvec);
+    //all_matches.push(matches_6_8_subvec);
     // all_matches.push(matches_6_9_subvec);
     //all_matches.push(matches_6_10_subvec);
     //all_matches.push(matches_6_11_subvec);
@@ -190,7 +185,7 @@ fn main() -> Result<()> {
     // camera_data.push(((6,pinhole_cam_6),(4,pinhole_cam_4)));
     // camera_data.push(((6,pinhole_cam_6),(5,pinhole_cam_5)));
     camera_data.push(((6,pinhole_cam_6),(7,pinhole_cam_7)));
-    camera_data.push(((6,pinhole_cam_6),(8,pinhole_cam_8)));
+    //camera_data.push(((6,pinhole_cam_6),(8,pinhole_cam_8)));
     // camera_data.push(((6,pinhole_cam_6),(9,pinhole_cam_9)));
     //camera_data.push(((6,pinhole_cam_6),(10,pinhole_cam_10)));
     //camera_data.push(((6,pinhole_cam_6),(11,pinhole_cam_11)));
@@ -207,7 +202,7 @@ fn main() -> Result<()> {
     // motion_list.push(((6,cam_extrinsics_6),(4,cam_extrinsics_4)));
     // motion_list.push(((6,cam_extrinsics_6),(5,cam_extrinsics_5)));
     motion_list.push(((6,cam_extrinsics_6),(7,cam_extrinsics_7)));
-    motion_list.push(((6,cam_extrinsics_6),(8,cam_extrinsics_8)));
+    //motion_list.push(((6,cam_extrinsics_6),(8,cam_extrinsics_8)));
     // motion_list.push(((6,cam_extrinsics_6),(9,cam_extrinsics_9)));
 
 
@@ -243,6 +238,7 @@ fn main() -> Result<()> {
         filtered_matches.push(filtered_matches_by_motion);
     }
 
+    //TODO: there is a bug with using multiple initial positions in the ba. Im guessing they get added wrong to the state vector
     let initial_cam_poses = Some(initial_cam_motions);
     //let initial_cam_poses = Some(relative_motions);
     //let initial_cam_poses = None;
@@ -279,7 +275,7 @@ fn main() -> Result<()> {
             step_sizes: vec![1e0],
             max_norm_eps: 1e-30, 
             delta_eps: 1e-30,
-            taus: vec![1e0],
+            taus: vec![1e-6],
             lm: true,
             weighting: false,
             debug: true,
@@ -290,11 +286,11 @@ fn main() -> Result<()> {
         };
 
 
-
+        //TODO: compute initial point positions from essential matrix!
         let ((cam_positions,points),(s,debug_states_serialized)) = run_ba(used_matches, &camera_data,&initial_cam_poses, olsen_data.get_image_dim(), &runtime_parameters, 1.0,depth_prior);
-        fs::write(format!("/mnt/d/Workspace/Rust/Vision/output/olsen.txt"), s?).expect("Unable to write file");
+        fs::write(format!("/home/marc/Workspace/Rust/Vision/output/olsen.txt"), s?).expect("Unable to write file");
         if runtime_parameters.debug {
-            fs::write(format!("/mnt/d/Workspace/Rust/Vision/output/olsen_debug.txt"), debug_states_serialized?).expect("Unable to write file");
+            fs::write(format!("/home/marc/Workspace/Rust/Vision/output/olsen_debug.txt"), debug_states_serialized?).expect("Unable to write file");
         }
     }
 

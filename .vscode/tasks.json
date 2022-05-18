@@ -2,7 +2,7 @@
     "version": "2.0.0",
     "tasks": [{
         "label": "build examples",
-        "command": "/usr/bin/cargo",
+        "command": "/home/marc/.cargo/bin/cargo",
         "args": ["build", "--examples"],
         "type": "shell"
     }]
