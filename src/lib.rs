@@ -1,3 +1,5 @@
+use serde::Deserialize;
+
 pub mod image;
 pub mod visualize;
 pub mod odometry;
@@ -28,6 +30,15 @@ pub fn reconstruct_original_coordiantes_for_float(x: Float, y: Float, pyramid_sc
     let factor = pyramid_scaling.powi(octave_index);
     (x*factor,y*factor)
 }
+
+#[derive(Deserialize, Debug)]
+struct Conf {
+    dataset_path: String,
+    local_data_path: String,
+    output_path: String
+}
+
+
 
 
 
