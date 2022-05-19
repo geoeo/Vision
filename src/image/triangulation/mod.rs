@@ -8,6 +8,7 @@ use crate::Float;
  * Linear Triangulartion up to scale. Assuming norm(X) = 1, where X is in homogeneous space.
  * See Triangulation by Hartley et al.
  */
+#[allow(non_snake_case)]
 pub fn linear_triangulation(image_points_and_projections: &Vec<(&Matrix3xX<Float>, &OMatrix<Float,U3,U4>)>) -> Matrix4xX<Float> {
     let n_cams = image_points_and_projections.len();
     let points_per_cam = image_points_and_projections.first().expect("linear_triangulation: no points!").0.ncols();

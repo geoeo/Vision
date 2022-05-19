@@ -108,6 +108,7 @@ pub fn five_point_essential<T: Feature + Clone, C: Camera>(matches: &Vec<Match<T
     best_essential
 }
 
+#[allow(non_snake_case)]
 pub fn cheirality_check<T: Feature + Clone>(
         all_essential_matricies: &Vec<Essential>,
         matches: &Vec<Match<T>>,

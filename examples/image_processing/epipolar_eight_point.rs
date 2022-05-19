@@ -15,13 +15,14 @@ use vision::image::{
 };
 use vision::sensors::camera::{pinhole::Pinhole, Camera, perspective::Perspective};
 use vision::io::{octave_loader,olsen_loader::OlssenData};
-use vision::Float;
+use vision::{Float,load_runtime_conf};
 use vision::visualize;
 use vision::numerics::pose;
 
 fn main() -> Result<()> {
 
     color_eyre::install()?;
+    let runtime_conf = load_runtime_conf();
 
     // let K = octave_loader::load_matrix("/home/marc/Workspace/Vision/data/8_point_synthetic/eight_point_intrinsics.txt");
     // let R = octave_loader::load_matrix("/home/marc/Workspace/Vision/data/8_point_synthetic/eight_point_rotation.txt");
@@ -81,11 +82,11 @@ fn main() -> Result<()> {
     let image_name_1 = "DSC_0001";
     let image_name_2 = "DSC_0002";
     let image_format = "jpg";
-    let data_set_door_path = "/mnt/d/Workspace/Datasets/Olsen/Door_Lund/";
+    let data_set_door_path = format!("{}/Olsen/Door_Lund/",runtime_conf.dataset_path);
     let image_path_1 = format!("{}/images/{}.{}",data_set_door_path,image_name_1, image_format);
     let image_path_2 = format!("{}/images/{}.{}",data_set_door_path,image_name_2, image_format);
     let olsen_data_path = data_set_door_path;
-    let olsen_data = OlssenData::new(olsen_data_path);
+    let olsen_data = OlssenData::new(&olsen_data_path);
     let depth_positive = false;
     let feature_skip_count = 1;
     let (cam_intrinsics_0,cam_extrinsics_0) = olsen_data.get_camera_intrinsics_extrinsics(0,depth_positive);

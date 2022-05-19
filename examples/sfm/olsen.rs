@@ -12,29 +12,30 @@ use vision::image::{features::{Match,ImageFeature}, epipolar::{compute_initial_c
 use vision::sfm::{bundle_adjustment:: run_ba};
 use vision::odometry::runtime_parameters::RuntimeParameters;
 use vision::numerics::{loss, weighting};
-use vision::{float,Float};
+use vision::{float,Float,load_runtime_conf};
 use vision::visualize;
 
 
 fn main() -> Result<()> {
     color_eyre::install()?;
+    let runtime_conf = load_runtime_conf();
 
     println!("--------");
 
-    let data_ceiling_barcelona_path = "/home/marc/Datasets/Olsen/Ceiling_Barcelona/";
-    let data_set_door_path = "/home/marc/Datasets/Olsen/Door_Lund/";
-    let data_set_ahlströmer_path = "/home/marc/Datasets/Olsen/Jonas_Ahlströmer/";
-    let data_set_fountain_path = "/home/marc/Datasets/Olsen/fountain/";
-    let data_set_vasa_path = "/home/marc/Datasets/Olsen/vasa_statue/";
-    let data_set_ninjo_path = "/home/marc/Datasets/Olsen/nijo/";
-    let data_set_de_guerre_path = "/home/marc/Datasets/Olsen/de_guerre/";
-    let data_set_fort_channing_path = "/home/marc/Datasets/Olsen/Fort_Channing_gate/";
+    let data_ceiling_barcelona_path = format!("{}/Olsen/Ceiling_Barcelona/",runtime_conf.dataset_path);
+    let data_set_door_path = format!("{}/Olsen/Door_Lund/",runtime_conf.dataset_path);
+    let data_set_ahlströmer_path =  format!("{}/Olsen/Jonas_Ahlströmer/",runtime_conf.dataset_path);
+    let data_set_fountain_path =  format!("{}/Olsen/fountain/",runtime_conf.dataset_path);
+    let data_set_vasa_path =  format!("{}/Olsen/vasa_statue/",runtime_conf.dataset_path);
+    let data_set_ninjo_path =  format!("{}/Olsen/nijo/",runtime_conf.dataset_path);
+    let data_set_de_guerre_path =  format!("{}/Olsen/de_guerre/",runtime_conf.dataset_path);
+    let data_set_fort_channing_path = format!("{}/Olsen/Fort_Channing_gate/",runtime_conf.dataset_path);
     
     let olsen_data_path = data_set_door_path;
     let depth_prior = -1.0;
     let epipolar_thresh = 0.1;
 
-    let olsen_data = OlssenData::new(olsen_data_path);
+    let olsen_data = OlssenData::new(&olsen_data_path);
     let positive_principal_distance = false;
     let invert_intrinsics = true;
     let normalize_features = false;
@@ -288,9 +289,9 @@ fn main() -> Result<()> {
 
         //TODO: compute initial point positions from essential matrix!
         let ((cam_positions,points),(s,debug_states_serialized)) = run_ba(used_matches, &camera_data,&initial_cam_poses, olsen_data.get_image_dim(), &runtime_parameters, 1.0,depth_prior);
-        fs::write(format!("/home/marc/Workspace/Rust/Vision/output/olsen.txt"), s?).expect("Unable to write file");
+        fs::write(format!("{}/olsen.txt",runtime_conf.local_data_path), s?).expect("Unable to write file");
         if runtime_parameters.debug {
-            fs::write(format!("/home/marc/Workspace/Rust/Vision/output/olsen_debug.txt"), debug_states_serialized?).expect("Unable to write file");
+            fs::write(format!("{}/olsen_debug.txt",runtime_conf.local_data_path), debug_states_serialized?).expect("Unable to write file");
         }
     }
 

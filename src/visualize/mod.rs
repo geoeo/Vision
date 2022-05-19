@@ -240,28 +240,24 @@ pub fn draw_epipolar_lines(image_from: &mut Image, image_to: &mut Image, line_in
 
         let x_from_start = 0;
         let y_from_start = match (-l_from[2]/l_from[1]).floor() as usize {
-            v if v < 0 => 0,
             v if v > height_from => height_from-1,
             v => v
         };
 
         let x_from_end = width_from-1;
         let y_from_end = match (-(l_from[2] + (x_from_end as Float)*l_from[0])/l_from[1]).floor() as usize {
-            v if v < 0 => 0,
             v if v > height_from => height_from-1,
             v => v
         };
 
         let x_to_start = 0;
         let y_to_start = match (-l_to[2]/l_to[1]).floor() as usize {
-            v if v < 0 => 0,
             v if v > height_to => height_to-1,
             v =>  v
         };
 
         let x_to_end = width_to-1;
         let y_to_end = match (-(l_to[2] + (x_to_end as Float)*l_to[0])/l_to[1]).floor() as usize {
-            v if v < 0 => 0,
             v if v > height_to => height_to-1,
             v => v
         };

@@ -1,4 +1,5 @@
 use serde::Deserialize;
+use std::fs;
 
 pub mod image;
 pub mod visualize;
@@ -31,15 +32,15 @@ pub fn reconstruct_original_coordiantes_for_float(x: Float, y: Float, pyramid_sc
     (x*factor,y*factor)
 }
 
-pub fn load_runtime_conf() -> RuntimeConf{
-    serde_yaml::from_str(&fs::read_to_string("config.yaml"))?;
+pub fn load_runtime_conf() -> RuntimeConf {
+    serde_yaml::from_str(&fs::read_to_string("config.yaml").expect("No RuntimeConf found!")).expect("RuntimeConf Parsing failed!")
 }
 
 #[derive(Deserialize, Debug)]
-struct RuntimeConf {
-    dataset_path: String,
-    local_data_path: String,
-    output_path: String
+pub struct RuntimeConf {
+    pub dataset_path: String,
+    pub local_data_path: String,
+    pub output_path: String
 }
 
 

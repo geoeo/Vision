@@ -92,7 +92,7 @@ fn main() -> Result<()> {
     // let image_name_2 = "DSC_0162";
     // let s_idx = 3;
     // let f_idx = 4;
-    let data_set_door_path = "/mnt/d/Workspace/Datasets/Olsen/Door_Lund/";
+    let data_set_door_path = format!("{}/Olsen/Door_Lund/",runtime_conf.dataset_path);
     let image_name_1 = "DSC_0006";
     let image_name_2 = "DSC_0005";
     let s_idx = 5;
@@ -101,7 +101,7 @@ fn main() -> Result<()> {
     let image_path_1 = format!("{}/images/{}.{}",olsen_data_path,image_name_1, image_format);
     let image_path_2 = format!("{}/images/{}.{}",olsen_data_path,image_name_2, image_format);
     let epipolar_thresh = 0.001;
-    let olsen_data = OlssenData::new(olsen_data_path);
+    let olsen_data = OlssenData::new(&olsen_data_path);
     let depth_positive = false;
     let feature_skip_count = 1;
     let (cam_intrinsics_0,cam_extrinsics_0) = olsen_data.get_camera_intrinsics_extrinsics(s_idx,depth_positive);
