@@ -31,8 +31,12 @@ pub fn reconstruct_original_coordiantes_for_float(x: Float, y: Float, pyramid_sc
     (x*factor,y*factor)
 }
 
+pub fn load_runtime_conf() -> RuntimeConf{
+    serde_yaml::from_str(&fs::read_to_string("config.yaml"))?;
+}
+
 #[derive(Deserialize, Debug)]
-struct Conf {
+struct RuntimeConf {
     dataset_path: String,
     local_data_path: String,
     output_path: String

@@ -15,7 +15,7 @@ use vision::image::{
 };
 use vision::sensors::camera::{pinhole::Pinhole, Camera, perspective::Perspective};
 use vision::io::{octave_loader,olsen_loader::OlssenData};
-use vision::Float;
+use vision::{Float,load_runtime_conf};
 use vision::visualize;
 use vision::numerics::pose;
 
@@ -23,6 +23,7 @@ use vision::numerics::pose;
 
 fn main() -> Result<()> {
     color_eyre::install()?;
+    let runtime_conf = load_runtime_conf();
 
     // let K = octave_loader::load_matrix("/home/marc/Workspace/Vision/data/5_point_synthetic/intrinsics.txt");
     // let R = octave_loader::load_matrix("/home/marc/Workspace/Vision/data/5_point_synthetic/rotation.txt");

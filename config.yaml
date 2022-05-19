@@ -1,2 +1,4 @@
 ---
-workspace_path: ""
+dataset_path: "/mnt/d/Workspace/Datasets/"
+local_data_path: "/home/marc/Workspace/Vision/data"
+output_path: "/mnt/d/Workspace/Rust/Vision/output"
