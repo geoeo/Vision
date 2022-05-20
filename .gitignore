@@ -13,6 +13,7 @@ output/*
 
 
 .vscode/tasks.json 
+config.yaml
 
 2021-04-07-19_33_01.log
 2021-04-07-19_53_04.log
