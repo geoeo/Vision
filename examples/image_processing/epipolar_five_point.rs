@@ -81,7 +81,7 @@ fn main() -> Result<()> {
     // let image_path_2 = format!("{}/{}.{}",image_folder,image_name_2, image_format);
 
 
-    let image_format = "jpg";
+    let image_format = "JPG";
     // let data_set_de_guerre_path = "/mnt/d/Workspace/Datasets/Olsen/de_guerre/";
     // let image_name_1 = "DSC_0520";
     // let image_name_2 = "DSC_0521";

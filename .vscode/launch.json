@@ -15,7 +15,8 @@
             "cwd": "${workspaceFolder}",
             "environment": [],
             "externalConsole": false,
-            "env": {"RUST_BACKTRACE":"1", "RUST_BACKTRACE":"full"}
+            "env": {"RUST_BACKTRACE":"1", "RUST_BACKTRACE":"full"},
+            "preLaunchTask": "build examples"
         },
         {
             "name": "Sift Pyramid Launch",
@@ -27,7 +28,8 @@
             "cwd": "${workspaceFolder}",
             "environment": [],
             "externalConsole": false,
-            "env": {"RUST_BACKTRACE":"1", "RUST_BACKTRACE":"full"}
+            "env": {"RUST_BACKTRACE":"1", "RUST_BACKTRACE":"full"},
+            "preLaunchTask": "build examples"
         },
         {
             "name": "Orb Pyramid Launch",
@@ -78,7 +80,8 @@
             "cwd": "${workspaceFolder}",
             "environment": [],
             "externalConsole": false,
-            "env": {"RUST_BACKTRACE":"1", "RUST_BACKTRACE":"full"}
+            "env": {"RUST_BACKTRACE":"1", "RUST_BACKTRACE":"full"},
+            "preLaunchTask": "build examples"
         },
         {
             "name": "Features Launch",
@@ -90,7 +93,8 @@
             "cwd": "${workspaceFolder}",
             "environment": [],
             "externalConsole": false,
-            "env": {"RUST_BACKTRACE":"1", "RUST_BACKTRACE":"full"}
+            "env": {"RUST_BACKTRACE":"1", "RUST_BACKTRACE":"full"},
+            "preLaunchTask": "build examples"
         },
         {
             "name": "All Features Launch",
@@ -102,7 +106,8 @@
             "cwd": "${workspaceFolder}",
             "environment": [],
             "externalConsole": false,
-            "env": {"RUST_BACKTRACE":"1", "RUST_BACKTRACE":"full"}
+            "env": {"RUST_BACKTRACE":"1", "RUST_BACKTRACE":"full"},
+            "preLaunchTask": "build examples"
         },
         {
             "name": "All Keypoints Launch",
@@ -114,7 +119,8 @@
             "cwd": "${workspaceFolder}",
             "environment": [],
             "externalConsole": false,
-            "env": {"RUST_BACKTRACE":"1", "RUST_BACKTRACE":"full"}
+            "env": {"RUST_BACKTRACE":"1", "RUST_BACKTRACE":"full"},
+            "preLaunchTask": "build examples"
         },
         {
             "name": "Keypoints Multi Launch",
@@ -126,7 +132,8 @@
             "cwd": "${workspaceFolder}",
             "environment": [],
             "externalConsole": false,
-            "env": {"RUST_BACKTRACE":"1", "RUST_BACKTRACE":"full"}
+            "env": {"RUST_BACKTRACE":"1", "RUST_BACKTRACE":"full"},
+            "preLaunchTask": "build examples"
         },
         {
             "name": "Load Save Launch",
@@ -138,7 +145,8 @@
             "cwd": "${workspaceFolder}",
             "environment": [],
             "externalConsole": false,
-            "env": {"RUST_BACKTRACE":"1", "RUST_BACKTRACE":"full"}
+            "env": {"RUST_BACKTRACE":"1", "RUST_BACKTRACE":"full"},
+            "preLaunchTask": "build examples"
         },
         {
             "name": "Edges Launch",
@@ -150,7 +158,8 @@
             "cwd": "${workspaceFolder}",
             "environment": [],
             "externalConsole": false,
-            "env": {"RUST_BACKTRACE":"1", "RUST_BACKTRACE":"full"}
+            "env": {"RUST_BACKTRACE":"1", "RUST_BACKTRACE":"full"},
+            "preLaunchTask": "build examples"
         },
         {
             "name": "Load ETH",

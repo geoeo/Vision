@@ -81,7 +81,7 @@ fn main() -> Result<()> {
 
     let image_name_1 = "DSC_0001";
     let image_name_2 = "DSC_0002";
-    let image_format = "jpg";
+    let image_format = "JPG";
     let data_set_door_path = format!("{}/Olsen/Door_Lund/",runtime_conf.dataset_path);
     let image_path_1 = format!("{}/images/{}.{}",data_set_door_path,image_name_1, image_format);
     let image_path_2 = format!("{}/images/{}.{}",data_set_door_path,image_name_2, image_format);
