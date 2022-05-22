@@ -1,10 +1,11 @@
 extern crate nalgebra as na;
 
-use na::{Vector3,Matrix3,DVector, Isometry3};
+use na::{Vector3, Vector4, Matrix3, Matrix4xX, Matrix3xX, DVector, Isometry3};
 use std::collections::HashMap;
 use crate::image::{
-    features::{Feature,Match},
-    features::geometry::point::Point
+    features::{Feature, Match},
+    features::geometry::point::Point,
+    triangulation::linear_triangulation
 };
 use crate::sfm::{bundle_adjustment::state::State, landmark::{Landmark, euclidean_landmark::EuclideanLandmark, inverse_depth_landmark::InverseLandmark}};
 use crate::sensors::camera::Camera;
@@ -16,7 +17,7 @@ pub struct CameraFeatureMap {
     pub camera_map: HashMap<u64, (usize, HashMap<usize,usize>)>,
     pub number_of_unique_points: usize,
     /**
-     * 2d Vector of dim rows: point, dim : cam. Where the values are in (x,y) tuples
+     * 2d Vector of rows: point, cols: cam. Where the matrix elements are in (x,y) tuples
      */
     pub point_cam_map: Vec<Vec<Option<(Float,Float)>>>,
     pub image_row_col: (usize,usize)
@@ -139,20 +140,71 @@ impl CameraFeatureMap {
             landmarks.push(initial_inverse_landmark);
         }
         
-        State::new(camera_positions,landmarks , number_of_cameras, number_of_unqiue_landmarks)
+        State::new(camera_positions,landmarks, number_of_cameras, number_of_unqiue_landmarks)
     }
 
     /**
      * initial_motion should all be with respect to the first camera
      */
-    pub fn get_euclidean_landmark_state(&self, initial_motions : Option<&Vec<(u64,(Vector3<Float>,Matrix3<Float>))>>, initial_landmark: Vector3<Float>) -> State<EuclideanLandmark,3> {
+    pub fn get_euclidean_landmark_state(&self, initial_motions : Option<&Vec<(u64,(Vector3<Float>,Matrix3<Float>))>>, depth_prior: Float) -> State<EuclideanLandmark,3> {
 
         let number_of_cameras = self.camera_map.keys().len();
         let number_of_unqiue_landmarks = self.number_of_unique_points;
-        let camera_positions = self.get_initial_camera_positions(initial_motions);
+
         
-        let landmarks = vec![EuclideanLandmark::from_state(initial_landmark);number_of_unqiue_landmarks];
-        State::new(camera_positions,landmarks , number_of_cameras, number_of_unqiue_landmarks)
+        let landmarks = match initial_motions {
+            Some(motions) => {
+
+                for (cam_id,(h,rotation_matrix)) in motions {
+                    let cam_idx_s = 0;
+                    let (cam_idx_f, _) = self.camera_map[&cam_id];
+
+                    let (im_s, im_f) = self.get_features_for_cam_pair(cam_idx_s, cam_idx_f);
+                    assert_eq!(im_s.len(), im_f.len());
+                    let local_landmarks = im_s.len();
+                    let mut normalized_image_points_s = Matrix3xX::<Float>::zeros(local_landmarks);
+                    let mut normalized_image_points_f = Matrix3xX::<Float>::zeros(local_landmarks);
+
+                    for i in 0..local_landmarks {
+                        let (x_s, y_s) = im_s[i];
+                        let (x_f, y_f) = im_f[i];
+                        normalized_image_points_s.column_mut(i).copy_from(&Vector3::<Float>::new(x_s,y_s,depth_prior));
+                        normalized_image_points_f.column_mut(i).copy_from(&Vector3::<Float>::new(x_f,y_f,depth_prior));
+                    }
+
+                    //TODO projections matrix setup + triangualtion
+                }
+
+
+                // Boilerplate for now
+                let mut landmarks_raw = Matrix4xX::<Float>::zeros(number_of_unqiue_landmarks);
+                for mut c in landmarks_raw.column_iter_mut() {
+                    let l = Vector4::<Float>::new(0.0, 0.0, depth_prior, 1.0);
+                    c.copy_from(&l);
+                }
+        
+                landmarks_raw.column_iter().map(|x| {
+                    let l = Vector3::<Float>::new(x[(0,0)],x[(1,0)],x[(2,0)]);
+                    EuclideanLandmark::from_state(l)
+                }).collect::<Vec<EuclideanLandmark>>()
+            },
+            None => {
+                let mut landmarks_raw = Matrix4xX::<Float>::zeros(number_of_unqiue_landmarks);
+                for mut c in landmarks_raw.column_iter_mut() {
+                    let l = Vector4::<Float>::new(0.0, 0.0, depth_prior, 1.0);
+                    c.copy_from(&l);
+                }
+        
+                landmarks_raw.column_iter().map(|x| {
+                    let l = Vector3::<Float>::new(x[(0,0)],x[(1,0)],x[(2,0)]);
+                    EuclideanLandmark::from_state(l)
+                }).collect::<Vec<EuclideanLandmark>>()
+        
+            }
+        };
+
+        let camera_positions = self.get_initial_camera_positions(initial_motions);
+        State::new(camera_positions, landmarks, number_of_cameras, number_of_unqiue_landmarks)
     }
 
     //TODO: Assumes decomposition is relative to reference cam i.e. first cam!
@@ -205,5 +257,22 @@ impl CameraFeatureMap {
             }
         }
         observed_features
+    }
+
+    pub fn get_features_for_cam_pair(&self, cam_idx_a: usize, cam_idx_b: usize) -> (Vec<(Float,Float)>, Vec<(Float,Float)>) {
+        let mut image_coords_a = Vec::<(Float,Float)>::with_capacity(self.point_cam_map.len());
+        let mut image_coords_b = Vec::<(Float,Float)>::with_capacity(self.point_cam_map.len());
+
+        for cam_list in &self.point_cam_map {
+            let im_a = cam_list[cam_idx_a];
+            let im_b = cam_list[cam_idx_b];
+
+            if im_a.is_some() && im_b.is_some() {
+                image_coords_a.push(im_a.unwrap());
+                image_coords_b.push(im_b.unwrap());
+            }
+        }
+
+        (image_coords_a,image_coords_b)
     }
 }
