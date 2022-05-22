@@ -37,7 +37,11 @@ fn main() -> Result<()> {
 
     let olsen_data = OlssenData::new(&olsen_data_path);
     let positive_principal_distance = false;
-    let invert_intrinsics = true;
+    let principal_distance_sign = match positive_principal_distance {
+        true => 1.0,
+        false => -1.0
+    };
+    let invert_intrinsics = false;
     let normalize_features = false;
     let feature_skip_count = 3;
 
@@ -234,7 +238,7 @@ fn main() -> Result<()> {
         let relative_motion = &used_motions_for_filtering[i];
         let ((_,cs),(_,cf)) = camera_data[i];
         //TODO:if empty dont add
-        let filtered_matches_by_motion = filter_matches_from_motion(matches,relative_motion,&(cs,cf),positive_principal_distance,epipolar_thresh);
+        let filtered_matches_by_motion = filter_matches_from_motion(matches,relative_motion,&(cs,cf),principal_distance_sign,epipolar_thresh);
         println!("orig matches: {}, olsson filtered matches: {}", matches.len(), &filtered_matches_by_motion.len());
         filtered_matches.push(filtered_matches_by_motion);
     }
