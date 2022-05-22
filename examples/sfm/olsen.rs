@@ -41,7 +41,7 @@ fn main() -> Result<()> {
         true => 1.0,
         false => -1.0
     };
-    let invert_intrinsics = false;
+    let invert_intrinsics = false; // they are already negative from decomp
     let normalize_features = false;
     let feature_skip_count = 3;
 
