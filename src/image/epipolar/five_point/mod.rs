@@ -1,11 +1,11 @@
 extern crate nalgebra as na;
 extern crate nalgebra_lapack;
 
-use na::{RowOVector,Vector3,Matrix2,Matrix3,Matrix4, Matrix3x4, OMatrix, Matrix3xX, SVector, Dynamic,Rotation3, dimension::{U10,U20,U5,U9,U3},base::VecStorage };
+use na::{Matrix2,Matrix3,Matrix4, OMatrix, Matrix3xX, SVector, Dynamic, dimension::{U10,U20,U9,U3}};
 use crate::{Float,float};
 use crate::sensors::camera::Camera;
 use crate::image::{features::{Feature,Match},epipolar::{Essential,decompose_essential_förstner},triangulation::linear_triangulation};
-use crate::numerics::{to_matrix, pose,pose::{optimal_correction_of_rotation}};
+use crate::numerics::{to_matrix, pose};
 
 mod constraints;
 
@@ -124,8 +124,7 @@ pub fn cheirality_check<T: Feature + Clone>(
     let inverse_camera_matrix_2 = points_cam_2.2;
     for e in all_essential_matricies {
         let (t,R,e_corrected) = decompose_essential_förstner(&e,matches,inverse_camera_matrix_1,inverse_camera_matrix_2);
-        let R_corr = optimal_correction_of_rotation(&R);
-        let se3 = pose::se3(&t,&R_corr);
+        let se3 = pose::se3(&t,&R);
 
         let projection_1 = camera_matrix_1*(Matrix4::<Float>::identity().fixed_slice::<3,4>(0,0));
         let projection_2 = camera_matrix_2*(se3.fixed_slice::<3,4>(0,0));

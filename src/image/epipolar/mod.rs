@@ -2,10 +2,12 @@ extern crate nalgebra as na;
 
 mod five_point;
 
-use na::{Vector3, Matrix3,Matrix,Dynamic,Rotation3, VecStorage, dimension::U9};
+use na::{Vector3, Matrix3,Matrix,Dynamic, VecStorage, dimension::U9};
 use crate::sensors::camera::Camera;
-use crate::{Float,float};
+use crate::Float;
 use crate::image::features::{Feature,Match, ImageFeature, condition_matches};
+use crate::numerics::pose::optimal_correction_of_rotation;
+
 pub type Fundamental =  Matrix3<Float>;
 pub type Essential =  Matrix3<Float>;
 
@@ -235,7 +237,7 @@ pub fn decompose_essential_förstner<T : Feature>(
     }
     
     // Might be this method five r_t after all
-    rotation = rotation.transpose();
+    rotation = optimal_correction_of_rotation(&rotation.transpose());
     
     (translation,rotation,e_corrected)
 

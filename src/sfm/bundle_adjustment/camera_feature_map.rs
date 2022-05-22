@@ -1,6 +1,6 @@
 extern crate nalgebra as na;
 
-use na::{Vector3, Vector4, Matrix3, Matrix4xX, Matrix3xX, DVector, Isometry3};
+use na::{Vector3, Vector4, Matrix3, Matrix4, Matrix4xX, Matrix3xX, DVector, Isometry3};
 use std::collections::HashMap;
 use crate::image::{
     features::{Feature, Match},
@@ -9,6 +9,7 @@ use crate::image::{
 };
 use crate::sfm::{bundle_adjustment::state::State, landmark::{Landmark, euclidean_landmark::EuclideanLandmark, inverse_depth_landmark::InverseLandmark}};
 use crate::sensors::camera::Camera;
+use crate::numerics::pose;
 use crate::{Float, reconstruct_original_coordiantes_for_float};
 
 
@@ -146,18 +147,23 @@ impl CameraFeatureMap {
     /**
      * initial_motion should all be with respect to the first camera
      */
-    pub fn get_euclidean_landmark_state(&self, initial_motions : Option<&Vec<(u64,(Vector3<Float>,Matrix3<Float>))>>, depth_prior: Float) -> State<EuclideanLandmark,3> {
-
+    pub fn get_euclidean_landmark_state<C : Camera>(&self, initial_motions : Option<&Vec<(u64,(Vector3<Float>,Matrix3<Float>))>>, camera_data: &Vec<((usize, C),(usize,C))>, depth_prior: Float) -> State<EuclideanLandmark,3> {
         let number_of_cameras = self.camera_map.keys().len();
         let number_of_unqiue_landmarks = self.number_of_unique_points;
 
-        
         let landmarks = match initial_motions {
             Some(motions) => {
+                assert_eq!(motions.len(), camera_data.len());
+                let number_of_camera_pairs = motions.len();
+                for i in 0..number_of_camera_pairs {
+                    let (cam_id,(b,rotation_matrix)) = &motions[i];
+                    let ((id_s,camear_matrix_s), (id_f,camera_matrix_f)) = &camera_data[i];
 
-                for (cam_id,(h,rotation_matrix)) in motions {
-                    let cam_idx_s = 0;
+                    let (cam_idx_s, _) = self.camera_map[&(*id_s as u64)];
                     let (cam_idx_f, _) = self.camera_map[&cam_id];
+
+                    assert_eq!(cam_idx_s, 0);
+                    assert_eq!(*id_f as u64, *cam_id);
 
                     let (im_s, im_f) = self.get_features_for_cam_pair(cam_idx_s, cam_idx_f);
                     assert_eq!(im_s.len(), im_f.len());
@@ -172,9 +178,14 @@ impl CameraFeatureMap {
                         normalized_image_points_f.column_mut(i).copy_from(&Vector3::<Float>::new(x_f,y_f,depth_prior));
                     }
 
-                    //TODO projections matrix setup + triangualtion
-                }
+                    let se3 = pose::se3(&b,&rotation_matrix);
+                    let projection_1 = camear_matrix_s.get_projection()*(Matrix4::<Float>::identity().fixed_slice::<3,4>(0,0));
+                    let projection_2 = camera_matrix_f.get_projection()*(se3.fixed_slice::<3,4>(0,0));
 
+
+                    //TODO integration into state vector -> 1) How do have consistentt ordering of Points crated from feature pairs 2) how to deal with points visible in multiple images
+                    let Xs = linear_triangulation(&vec!((&normalized_image_points_s,&projection_1),(&normalized_image_points_f,&projection_2)));
+                }
 
                 // Boilerplate for now
                 let mut landmarks_raw = Matrix4xX::<Float>::zeros(number_of_unqiue_landmarks);

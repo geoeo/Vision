@@ -122,15 +122,7 @@ fn main() -> Result<()> {
         true => 1.0,
         false => -1.0
     };
-    // let normalized_matches = epipolar::filter_matches_from_fundamental(&fundamental_matrix, &feature_matches,1.0, principal_distance_sign); 
-    // for m in &normalized_matches {
-    //     let start = m.feature_one.get_reduced_image_coordiantes(principal_distance_sign);
-    //     let finish = m.feature_two.get_reduced_image_coordiantes(principal_distance_sign);
-    //     let t = start.transpose()*fundamental_matrix*finish;
-    //     //println!("{}",t);
-    // }
     let essential_matrix = epipolar::compute_essential(&fundamental_matrix, &intensity_camera_1.get_inverse_projection(), &intensity_camera_2.get_inverse_projection());
-    //let (h,R) = epipolar::decompose_essential_kanatani(&essential_matrix,&normalized_matches, false);
     let (h, R_est, e_corrected) = epipolar::decompose_essential_förstner(&essential_matrix,&feature_matches,&intensity_camera_1.get_inverse_projection(),&intensity_camera_2.get_inverse_projection());
     //let feature_matches_vis = &feature_matches[0..20];
     let feature_matches_vis = epipolar::filter_matches_from_fundamental(&fundamental_matrix, &feature_matches,0.00001, principal_distance_sign); 

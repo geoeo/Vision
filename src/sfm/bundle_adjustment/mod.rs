@@ -34,7 +34,7 @@ pub fn run_ba<C : Camera + Copy, T : Feature>(all_matches: &Vec<Vec<Match<T>>>, 
     feature_map.add_matches(&unique_camera_id_pairs,all_matches, pyramid_scale);
 
     //TODO: switch impl
-    let mut state = feature_map.get_euclidean_landmark_state(initial_cam_poses.as_ref(), depth_prior);
+    let mut state = feature_map.get_euclidean_landmark_state(initial_cam_poses.as_ref(), camera_data, depth_prior);
     //let mut state = feature_map.get_inverse_depth_landmark_state(Some(&initial_motion_decomp), 1.0,&cameras);
 
     let observed_features = feature_map.get_observed_features(false);

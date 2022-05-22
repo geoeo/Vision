@@ -1,6 +1,6 @@
 extern crate nalgebra as na;
 
-use na::{Matrix3xX,Matrix4xX,MatrixXx4,OMatrix,RowOVector, DMatrix,Dynamic,U3,U4,VecStorage};
+use na::{Matrix3xX,Matrix4xX,MatrixXx4,OMatrix,RowOVector,U3,U4};
 use crate::Float;
 
 //TODO: conditioning

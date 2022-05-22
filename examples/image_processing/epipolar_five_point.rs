@@ -100,7 +100,7 @@ fn main() -> Result<()> {
     let olsen_data_path = data_set_door_path;
     let image_path_1 = format!("{}/images/{}.{}",olsen_data_path,image_name_1, image_format);
     let image_path_2 = format!("{}/images/{}.{}",olsen_data_path,image_name_2, image_format);
-    let epipolar_thresh = 0.0001;
+    let epipolar_thresh = 0.00005;
     let olsen_data = OlssenData::new(&olsen_data_path);
     let depth_positive = false;
     let feature_skip_count = 1;
