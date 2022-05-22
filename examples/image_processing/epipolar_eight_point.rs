@@ -94,7 +94,7 @@ fn main() -> Result<()> {
     let (cam_intrinsics_0,cam_extrinsics_0) = olsen_data.get_camera_intrinsics_extrinsics(s_idx,depth_positive);
     let (cam_intrinsics_1,cam_extrinsics_1) = olsen_data.get_camera_intrinsics_extrinsics(f_idx,depth_positive);
     let feature_matches = olsen_data.get_matches_between_images(s_idx, f_idx);
-    let intensity_camera_1 = Perspective::from_matrix(&cam_intrinsics_0, false);
+    let intensity_camera_1 = Perspective::from_matrix(&cam_intrinsics_0, false); // they are already negative from decomp
     let intensity_camera_2 = Perspective::from_matrix(&cam_intrinsics_1, false);
     let p0 = pose::from_matrix(&cam_extrinsics_0);
     let p1 = pose::from_matrix(&cam_extrinsics_1);
