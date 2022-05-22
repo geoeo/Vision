@@ -79,9 +79,11 @@ fn main() -> Result<()> {
     // let (orb_params,matches): (OrbRuntimeParameters,Vec<Vec<Match<OrbFeature>>>) = serde_yaml::from_str(&orb_matches_as_string)?;
     // let feature_matches = epipolar::extract_matches(&matches[0], orb_params.pyramid_scale, false); 
 
-    let image_name_1 = "DSC_0001";
-    let image_name_2 = "DSC_0002";
+    let image_name_1 = "DSC_0005";
+    let image_name_2 = "DSC_0006";
     let image_format = "jpg";
+    let s_idx = 4;
+    let f_idx = 5;
     let data_set_door_path = format!("{}/Olsen/Door_Lund/",runtime_conf.dataset_path);
     let image_path_1 = format!("{}/images/{}.{}",data_set_door_path,image_name_1, image_format);
     let image_path_2 = format!("{}/images/{}.{}",data_set_door_path,image_name_2, image_format);
@@ -89,11 +91,11 @@ fn main() -> Result<()> {
     let olsen_data = OlssenData::new(&olsen_data_path);
     let depth_positive = false;
     let feature_skip_count = 1;
-    let (cam_intrinsics_0,cam_extrinsics_0) = olsen_data.get_camera_intrinsics_extrinsics(0,depth_positive);
-    let (cam_intrinsics_1,cam_extrinsics_1) = olsen_data.get_camera_intrinsics_extrinsics(1,depth_positive);
-    let feature_matches = olsen_data.get_matches_between_images(0, 1);
-    let intensity_camera_1 = Perspective::from_matrix(&cam_intrinsics_0, true);
-    let intensity_camera_2 = Perspective::from_matrix(&cam_intrinsics_1, true);
+    let (cam_intrinsics_0,cam_extrinsics_0) = olsen_data.get_camera_intrinsics_extrinsics(s_idx,depth_positive);
+    let (cam_intrinsics_1,cam_extrinsics_1) = olsen_data.get_camera_intrinsics_extrinsics(f_idx,depth_positive);
+    let feature_matches = olsen_data.get_matches_between_images(s_idx, f_idx);
+    let intensity_camera_1 = Perspective::from_matrix(&cam_intrinsics_0, false);
+    let intensity_camera_2 = Perspective::from_matrix(&cam_intrinsics_1, false);
     let p0 = pose::from_matrix(&cam_extrinsics_0);
     let p1 = pose::from_matrix(&cam_extrinsics_1);
     let p01 = pose::pose_difference(&p0, &p1);
@@ -116,19 +118,23 @@ fn main() -> Result<()> {
     println!("{}",fundamental_matrix);
     println!("{}",fundamental_matrix_norm);
 
-    let normalized_matches = epipolar::filter_matches_from_fundamental(&fundamental_matrix, &feature_matches,1.0); 
-    for m in &normalized_matches {
-        let start =m.feature_one.get_as_2d_homogeneous();
-        let finish = m.feature_two.get_as_2d_homogeneous();
-        let t = start.transpose()*fundamental_matrix*finish;
-        //println!("{}",t);
-    }
+    let principal_distance_sign = match depth_positive { 
+        true => 1.0,
+        false => -1.0
+    };
+    // let normalized_matches = epipolar::filter_matches_from_fundamental(&fundamental_matrix, &feature_matches,1.0, principal_distance_sign); 
+    // for m in &normalized_matches {
+    //     let start = m.feature_one.get_reduced_image_coordiantes(principal_distance_sign);
+    //     let finish = m.feature_two.get_reduced_image_coordiantes(principal_distance_sign);
+    //     let t = start.transpose()*fundamental_matrix*finish;
+    //     //println!("{}",t);
+    // }
     let essential_matrix = epipolar::compute_essential(&fundamental_matrix, &intensity_camera_1.get_inverse_projection(), &intensity_camera_2.get_inverse_projection());
     //let (h,R) = epipolar::decompose_essential_kanatani(&essential_matrix,&normalized_matches, false);
-    let (h,R_est, e_corrected) = epipolar::decompose_essential_förstner(&essential_matrix,&feature_matches,&intensity_camera_1.get_inverse_projection(),&intensity_camera_2.get_inverse_projection());
+    let (h, R_est, e_corrected) = epipolar::decompose_essential_förstner(&essential_matrix,&feature_matches,&intensity_camera_1.get_inverse_projection(),&intensity_camera_2.get_inverse_projection());
     //let feature_matches_vis = &feature_matches[0..20];
-    let feature_matches_vis = epipolar::filter_matches_from_fundamental(&fundamental_matrix, &feature_matches,0.00001); 
-    let epipolar_lines: Vec<(Vector3<Float>, Vector3<Float>)> = feature_matches_vis.iter().map(|m| epipolar::epipolar_lines(&fundamental_matrix_norm, m)).collect();
+    let feature_matches_vis = epipolar::filter_matches_from_fundamental(&fundamental_matrix, &feature_matches,0.00001, principal_distance_sign); 
+    let epipolar_lines: Vec<(Vector3<Float>, Vector3<Float>)> = feature_matches_vis.iter().map(|m| epipolar::epipolar_lines(&fundamental_matrix_norm, m, -1.0)).collect();
 
     println!("{}",h);
     println!("-------");

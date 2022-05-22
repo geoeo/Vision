@@ -1,8 +1,6 @@
 extern crate nalgebra as na;
 
-use na::{Matrix2,Matrix3,Matrix1x2,Matrix3x1,SMatrix,OMatrix, Vector,SVector,Dim, 
-    storage::Storage,DVector, base::{default_allocator::DefaultAllocator, allocator::Allocator,
-    dimension::{Const,ToTypenum, DimMin, DimMinimum}}, linalg::LU};
+use na::{Matrix2,Matrix3,Matrix1x2,Matrix3x1,SMatrix, Vector,SVector,Dim, storage::Storage,DVector};
 use crate::image::Image;
 use crate::{Float,float};
 

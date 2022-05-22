@@ -19,15 +19,20 @@ pub fn five_point_essential<T: Feature + Clone, C: Camera>(matches: &Vec<Match<T
     let inverse_projection_one = camera_one.get_inverse_projection();
     let inverse_projection_two = camera_two.get_inverse_projection();
     let l = matches.len();
+    let principal_distance_sign = match depth_positive {
+        true => 1.0,
+        false => -1.0
+    };
 
     let mut features_one = Matrix3xX::<Float>::zeros(l);
     let mut features_two = Matrix3xX::<Float>::zeros(l);
     let mut A = OMatrix::<Float, Dynamic,U9>::zeros(l);
 
+
     for i in 0..l {
         let m = &matches[i];
-        let f_1 = m.feature_one.get_as_camera_ray();
-        let f_2 = m.feature_two.get_as_camera_ray();
+        let f_1 = m.feature_one.get_reduced_image_coordiantes(principal_distance_sign);
+        let f_2 = m.feature_two.get_reduced_image_coordiantes(principal_distance_sign);
 
         features_one.column_mut(i).copy_from(&f_1);
         features_two.column_mut(i).copy_from(&f_2);
@@ -91,11 +96,6 @@ pub fn five_point_essential<T: Feature + Clone, C: Camera>(matches: &Vec<Match<T
     }
 
     let all_essential_matricies = real_eigenvectors.iter().map(|vec| {
-        let u = vec[6];
-        let v = vec[7];
-        let w = vec[8];
-        let t = vec[9];
-
         let x = vec[6]/vec[9];
         let y = vec[7]/vec[9];
         let z = vec[8]/vec[9];
@@ -151,6 +151,9 @@ pub fn cheirality_check<T: Feature + Clone>(
         }
         let det = e_corrected.determinant().abs();
 
+        // let factor = e_corrected[(2,2)];
+        // let e_corrected_norm = e_corrected.map(|x| x/factor);
+        // println!("{}",e_corrected);
         // println!("{}",e_corrected);
         // println!("{}",accepted_cheirality_count);
         // println!("{}",det);

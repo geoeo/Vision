@@ -93,22 +93,24 @@ fn main() -> Result<()> {
     // let s_idx = 3;
     // let f_idx = 4;
     let data_set_door_path = format!("{}/Olsen/Door_Lund/",runtime_conf.dataset_path);
-    let image_name_1 = "DSC_0006";
-    let image_name_2 = "DSC_0005";
-    let s_idx = 5;
-    let f_idx = 4;
+    let image_name_1 = "DSC_0005";
+    let image_name_2 = "DSC_0006";
+    let s_idx = 4;
+    let f_idx = 5;
     let olsen_data_path = data_set_door_path;
     let image_path_1 = format!("{}/images/{}.{}",olsen_data_path,image_name_1, image_format);
     let image_path_2 = format!("{}/images/{}.{}",olsen_data_path,image_name_2, image_format);
-    let epipolar_thresh = 0.001;
+    let epipolar_thresh = 0.0001;
     let olsen_data = OlssenData::new(&olsen_data_path);
     let depth_positive = false;
     let feature_skip_count = 1;
     let (cam_intrinsics_0,cam_extrinsics_0) = olsen_data.get_camera_intrinsics_extrinsics(s_idx,depth_positive);
     let (cam_intrinsics_1,cam_extrinsics_1) = olsen_data.get_camera_intrinsics_extrinsics(f_idx,depth_positive);
     let all_feature_matches = olsen_data.get_matches_between_images(s_idx, f_idx);
-    let intensity_camera_1 = Perspective::from_matrix(&cam_intrinsics_0, true);
-    let intensity_camera_2 = Perspective::from_matrix(&cam_intrinsics_1, true);
+    let intensity_camera_1 = Perspective::from_matrix(&cam_intrinsics_0, false);
+    let intensity_camera_2 = Perspective::from_matrix(&cam_intrinsics_1, false);
+    let intensity_camera_1_t = Perspective::from_matrix(&cam_intrinsics_0, true);
+    let intensity_camera_2_t = Perspective::from_matrix(&cam_intrinsics_1, true);
     let p0 = pose::from_matrix(&cam_extrinsics_0);
     let p1 = pose::from_matrix(&cam_extrinsics_1);
     let p01 = pose::pose_difference(&p0, &p1);
@@ -127,14 +129,18 @@ fn main() -> Result<()> {
         feature_matches.push(all_feature_matches[i].clone());
     }
 
+    let principal_distance_sign = match depth_positive { 
+        true => 1.0,
+        false => -1.0
+    };
     let five_point_essential_matrix = epipolar::five_point_essential(&feature_matches,&intensity_camera_1,&intensity_camera_2, depth_positive);
     let (t_est,R_est,_) = epipolar::decompose_essential_förstner(&five_point_essential_matrix,&feature_matches,&intensity_camera_1.get_inverse_projection(),&intensity_camera_2.get_inverse_projection());
     let factor = five_point_essential_matrix[(2,2)];
     let five_point_essential_matrix_norm = five_point_essential_matrix.map(|x| x/factor);
     let fundamental_matrix = epipolar::compute_fundamental(&five_point_essential_matrix, &intensity_camera_1.get_inverse_projection(), &intensity_camera_2.get_inverse_projection());
     //let feature_matches_vis = &feature_matches[200..220];
-    let feature_matches_vis = epipolar::filter_matches_from_fundamental(&fundamental_matrix, &feature_matches,epipolar_thresh); 
-    let epipolar_lines: Vec<(Vector3<Float>, Vector3<Float>)> = feature_matches_vis.iter().map(|m| epipolar::epipolar_lines(&fundamental_matrix, m)).collect();
+    let feature_matches_vis = epipolar::filter_matches_from_fundamental(&fundamental_matrix, &feature_matches,epipolar_thresh, principal_distance_sign); 
+    let epipolar_lines: Vec<(Vector3<Float>, Vector3<Float>)> = feature_matches_vis.iter().map(|m| epipolar::epipolar_lines(&fundamental_matrix, m, principal_distance_sign)).collect();
 
     println!("best five point: ");
     println!("{}",five_point_essential_matrix);

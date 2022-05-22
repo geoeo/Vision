@@ -1,6 +1,6 @@
 extern crate nalgebra as na;
 
-use na::{Vector3,Matrix4,Matrix3,Point3,UnitQuaternion,Isometry ,Isometry3, Translation3,Rotation, Rotation3};
+use na::{Vector3,Matrix4,Matrix3,Point3,UnitQuaternion,Isometry ,Isometry3, Translation3, Rotation3};
 use crate::Float;
 
 pub fn from_matrix(mat: &Matrix4<Float>) -> Isometry3<Float> {

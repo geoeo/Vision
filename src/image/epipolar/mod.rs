@@ -116,17 +116,17 @@ pub fn compute_fundamental(E: &Essential, inverse_projection_start: &Matrix3<Flo
 }
 
 #[allow(non_snake_case)]
-pub fn filter_matches_from_fundamental<T: Feature + Clone>(F: &Fundamental,matches: &Vec<Match<T>>, epipiolar_thresh: Float) -> Vec<Match<T>> {
+pub fn filter_matches_from_fundamental<T: Feature + Clone>(F: &Fundamental,matches: &Vec<Match<T>>, epipiolar_thresh: Float, principal_distance_sign: Float) -> Vec<Match<T>> {
     matches.iter().filter(|m| {
-            let start = m.feature_one.get_as_2d_homogeneous();
-            let finish = m.feature_two.get_as_2d_homogeneous();
+            let start = m.feature_one.get_reduced_image_coordiantes(principal_distance_sign);
+            let finish = m.feature_two.get_reduced_image_coordiantes(principal_distance_sign);
             let val = (start.transpose()*F*finish)[0].abs();
             val < epipiolar_thresh
         }).cloned().collect::<Vec<Match<T>>>()
 }
 
 #[allow(non_snake_case)]
-pub fn filter_matches_from_motion<T: Feature + Clone, C: Camera>(matches: &Vec<Match<T>>, relative_motion: &(Vector3<Float>,Matrix3<Float>),camera_pair: &(C,C),is_depth_positive: bool , epipiolar_thresh: Float) -> Vec<Match<T>> {
+pub fn filter_matches_from_motion<T: Feature + Clone, C: Camera>(matches: &Vec<Match<T>>, relative_motion: &(Vector3<Float>,Matrix3<Float>),camera_pair: &(C,C), principal_distance_sign: Float, epipiolar_thresh: Float) -> Vec<Match<T>> {
     let (cam_s,cam_f) = &camera_pair;
     let (t,R) = &relative_motion;
     let essential = essential_matrix_from_motion(t, R);
@@ -134,16 +134,16 @@ pub fn filter_matches_from_motion<T: Feature + Clone, C: Camera>(matches: &Vec<M
     let cam_f_inv = cam_f.get_inverse_projection();
     let fundamental = compute_fundamental(&essential, &cam_s_inv, &cam_f_inv);
 
-    filter_matches_from_fundamental(&fundamental,matches ,epipiolar_thresh)
+    filter_matches_from_fundamental(&fundamental,matches, epipiolar_thresh, principal_distance_sign)
 }
 
 /**
  * Computes the epipolar lines of a match.
  * Returns (line of first feature in second image, line of second feature in first image)
  */
-pub fn epipolar_lines<T: Feature>(bifocal_tensor: &Matrix3<Float>, feature_match: &Match<T>) -> (Vector3<Float>, Vector3<Float>) {
-    let f_from = feature_match.feature_one.get_as_camera_ray();
-    let f_to = feature_match.feature_two.get_as_camera_ray();
+pub fn epipolar_lines<T: Feature>(bifocal_tensor: &Matrix3<Float>, feature_match: &Match<T>, principal_distance_sign: Float) -> (Vector3<Float>, Vector3<Float>) {
+    let f_from = feature_match.feature_one.get_reduced_image_coordiantes(principal_distance_sign);
+    let f_to = feature_match.feature_two.get_reduced_image_coordiantes(principal_distance_sign);
 
     ((f_from.transpose()*bifocal_tensor).transpose(), bifocal_tensor*f_to)
 }
@@ -158,7 +158,7 @@ pub fn decompose_essential_förstner<T : Feature>(
     inverse_camera_matrix_start: &Matrix3::<Float>,
     inverse_camera_matrix_finish: &Matrix3::<Float>) -> (Vector3<Float>, Matrix3<Float>,Matrix3<Float> ) {
     assert!(matches.len() > 0);
-    let mut svd = E.svd(true,true);
+    let svd = E.svd(true,true);
 
     let u = &svd.u.expect("SVD failed on E");
     let v_t = &svd.v_t.expect("SVD failed on E");
@@ -182,9 +182,12 @@ pub fn decompose_essential_förstner<T : Feature>(
 
 
     // let Sb = u * Z * u.transpose();
-    //let b = Vector3::<Float>::new(Sb[(2, 1)],Sb[(0, 2)], Sb[(1,0)]);
+    // let b = Vector3::<Float>::new(Sb[(2, 1)],Sb[(0, 2)], Sb[(1,0)]);
     let b = u.column(2).into_owned(); // / u.column(2).norm();
-
+    let principal_distance_sign = match inverse_camera_matrix_start[(0,0)] {
+        v if v < 0.0 => -1.0,
+        _ => 1.0
+    };
     let R_matrices = vec!(V_norm*W*U_norm.transpose(), V_norm*W*U_norm.transpose(),V_norm*W.transpose()*U_norm.transpose(), V_norm*W.transpose()*U_norm.transpose());
     let h_vecs = vec!(b,-b, b, -b);
 
@@ -196,8 +199,8 @@ pub fn decompose_essential_förstner<T : Feature>(
         let mut v_sign = 0.0;
         let mut u_sign = 0.0;
         for m in matches {
-            let f_start = inverse_camera_matrix_start*m.feature_one.get_as_camera_ray();
-            let f_finish = inverse_camera_matrix_finish*m.feature_two.get_as_camera_ray();
+            let f_start = inverse_camera_matrix_start*m.feature_one.get_reduced_image_coordiantes(principal_distance_sign);
+            let f_finish = inverse_camera_matrix_finish*m.feature_two.get_reduced_image_coordiantes(principal_distance_sign);
 
             let binormal = ((h.cross_matrix()*f_start).cross_matrix()*h).normalize();
             let mat = Matrix3::<Float>::from_columns(&[h,binormal,f_start.cross_matrix()*R.transpose()*f_finish]);
@@ -302,17 +305,20 @@ pub fn compute_initial_cam_motions<C : Camera + Copy,T : Feature + Clone>(
     let c_init = camera_data[0].0.1;
     let initial_motion_decomp = feature_machtes.iter().enumerate().map(|(i,m)| (m,camera_data[i])).scan((0,c_init,(Vector3::<Float>::zeros(),Matrix3::<Float>::identity())),|state, (m, (_,(id2,c2)))| {
         let (_,c_curr,(t_curr,R_curr)) = *state;
-
+        let principal_distance_sign = match positive_principal_distance {
+            true => 1.0,
+            _ => -1.0
+        };
         let (e,f_m) = match epipolar_alg {
             BifocalType::FUNDAMENTAL => {
                 let f = eight_point(m, positive_principal_distance);
-                let filtered =  filter_matches_from_fundamental(&f,m,epipiolar_thresh);
+                let filtered =  filter_matches_from_fundamental(&f,m,epipiolar_thresh, principal_distance_sign);
                 (compute_essential(&f,&c_curr.get_projection(),&c2.get_projection()), filtered)
             },
             BifocalType::ESSENTIAL => {
                 let e = five_point_essential(m, &c_curr, &c2, positive_principal_distance);
                 let f = compute_fundamental(&e, &c_curr.get_inverse_projection(), &c2.get_inverse_projection());
-                let filtered =  filter_matches_from_fundamental(&f,m,epipiolar_thresh);
+                let filtered =  filter_matches_from_fundamental(&f,m,epipiolar_thresh, principal_distance_sign);
                 (e, filtered)
             }
         };
