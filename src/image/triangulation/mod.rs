@@ -3,7 +3,7 @@ extern crate nalgebra as na;
 use na::{Matrix3xX,Matrix4xX,MatrixXx4,OMatrix,RowOVector,U3,U4};
 use crate::Float;
 
-//TODO: conditioning
+//TODO: conditioning, also check what happens to zero entries more thoroughly
 /**
  * Linear Triangulartion up to scale. Assuming norm(X) = 1, where X is in homogeneous space.
  * See Triangulation by Hartley et al.

@@ -12,13 +12,15 @@ use crate::sensors::camera::Camera;
 use crate::numerics::pose;
 use crate::{Float, reconstruct_original_coordiantes_for_float};
 
-
-
+/**
+ * For only feature pairs between cams is assumed. Feature triplets etc. are not correctly supported
+ */
 pub struct CameraFeatureMap {
     pub camera_map: HashMap<u64, (usize, HashMap<usize,usize>)>,
     pub number_of_unique_points: usize,
     /**
-     * 2d Vector of rows: point, cols: cam. Where the matrix elements are in (x,y) tuples
+     * 2d Vector of rows: point, cols: cam. Where the matrix elements are in (x,y) tuples. 
+     * First entry is the all the cams assocaited with a point.
      */
     pub point_cam_map: Vec<Vec<Option<(Float,Float)>>>,
     pub image_row_col: (usize,usize)
@@ -147,7 +149,7 @@ impl CameraFeatureMap {
     /**
      * initial_motion should all be with respect to the first camera
      */
-    pub fn get_euclidean_landmark_state<C : Camera>(&self, initial_motions : Option<&Vec<(u64,(Vector3<Float>,Matrix3<Float>))>>, camera_data: &Vec<((usize, C),(usize,C))>, depth_prior: Float) -> State<EuclideanLandmark,3> {
+    pub fn get_euclidean_landmark_state<C : Camera + Copy>(&self, initial_motions : Option<&Vec<(u64,(Vector3<Float>,Matrix3<Float>))>>, camera_data: &Vec<((usize, C),(usize,C))>, depth_prior: Float) -> State<EuclideanLandmark,3> {
         let number_of_cameras = self.camera_map.keys().len();
         let number_of_unqiue_landmarks = self.number_of_unique_points;
 
@@ -155,6 +157,8 @@ impl CameraFeatureMap {
             Some(motions) => {
                 assert_eq!(motions.len(), camera_data.len());
                 let number_of_camera_pairs = motions.len();
+                let mut triangualted_landmarks = vec![EuclideanLandmark::from_state(Vector3::<Float>::zeros()); number_of_unqiue_landmarks];         
+
                 for i in 0..number_of_camera_pairs {
                     let (cam_id,(b,rotation_matrix)) = &motions[i];
                     let ((id_s,camear_matrix_s), (id_f,camera_matrix_f)) = &camera_data[i];
@@ -165,7 +169,7 @@ impl CameraFeatureMap {
                     assert_eq!(cam_idx_s, 0);
                     assert_eq!(*id_f as u64, *cam_id);
 
-                    let (im_s, im_f) = self.get_features_for_cam_pair(cam_idx_s, cam_idx_f);
+                    let (point_ids, im_s, im_f) = self.get_features_for_cam_pair(cam_idx_s, cam_idx_f);
                     assert_eq!(im_s.len(), im_f.len());
                     let local_landmarks = im_s.len();
                     let mut normalized_image_points_s = Matrix3xX::<Float>::zeros(local_landmarks);
@@ -182,22 +186,30 @@ impl CameraFeatureMap {
                     let projection_1 = camear_matrix_s.get_projection()*(Matrix4::<Float>::identity().fixed_slice::<3,4>(0,0));
                     let projection_2 = camera_matrix_f.get_projection()*(se3.fixed_slice::<3,4>(0,0));
 
-
-                    //TODO integration into state vector -> 1) How do have consistentt ordering of Points crated from feature pairs 2) how to deal with points visible in multiple images
                     let Xs = linear_triangulation(&vec!((&normalized_image_points_s,&projection_1),(&normalized_image_points_f,&projection_2)));
+                    assert_eq!(Xs.ncols(), point_ids.len());
+
+                    for j in 0..point_ids.len() {
+                        let point_id = point_ids[j];
+                        let point = Xs.fixed_slice::<3, 1>(0, j).into_owned();
+                        triangualted_landmarks[point_id] = EuclideanLandmark::from_state(point);
+
+                    }
+
                 }
 
                 // Boilerplate for now
-                let mut landmarks_raw = Matrix4xX::<Float>::zeros(number_of_unqiue_landmarks);
-                for mut c in landmarks_raw.column_iter_mut() {
-                    let l = Vector4::<Float>::new(0.0, 0.0, depth_prior, 1.0);
-                    c.copy_from(&l);
-                }
+                // let mut landmarks_raw = Matrix4xX::<Float>::zeros(number_of_unqiue_landmarks);
+                // for mut c in landmarks_raw.column_iter_mut() {
+                //     let l = Vector4::<Float>::new(0.0, 0.0, depth_prior, 1.0);
+                //     c.copy_from(&l);
+                // }
         
-                landmarks_raw.column_iter().map(|x| {
-                    let l = Vector3::<Float>::new(x[(0,0)],x[(1,0)],x[(2,0)]);
-                    EuclideanLandmark::from_state(l)
-                }).collect::<Vec<EuclideanLandmark>>()
+                // landmarks_raw.column_iter().map(|x| {
+                //     let l = Vector3::<Float>::new(x[(0,0)],x[(1,0)],x[(2,0)]);
+                //     EuclideanLandmark::from_state(l)
+                // }).collect::<Vec<EuclideanLandmark>>()
+                triangualted_landmarks
             },
             None => {
                 let mut landmarks_raw = Matrix4xX::<Float>::zeros(number_of_unqiue_landmarks);
@@ -270,20 +282,23 @@ impl CameraFeatureMap {
         observed_features
     }
 
-    pub fn get_features_for_cam_pair(&self, cam_idx_a: usize, cam_idx_b: usize) -> (Vec<(Float,Float)>, Vec<(Float,Float)>) {
-        let mut image_coords_a = Vec::<(Float,Float)>::with_capacity(self.point_cam_map.len());
-        let mut image_coords_b = Vec::<(Float,Float)>::with_capacity(self.point_cam_map.len());
+    pub fn get_features_for_cam_pair(&self, cam_idx_a: usize, cam_idx_b: usize) -> (Vec<usize>, Vec<(Float,Float)>, Vec<(Float,Float)>) {
+        let mut image_coords_a = Vec::<(Float,Float)>::with_capacity(self.number_of_unique_points);
+        let mut image_coords_b = Vec::<(Float,Float)>::with_capacity(self.number_of_unique_points);
+        let mut point_ids = Vec::<usize>::with_capacity(self.number_of_unique_points);
 
-        for cam_list in &self.point_cam_map {
+        for point_idx in 0..self.number_of_unique_points {
+            let cam_list = &self.point_cam_map[point_idx];
             let im_a = cam_list[cam_idx_a];
             let im_b = cam_list[cam_idx_b];
 
             if im_a.is_some() && im_b.is_some() {
                 image_coords_a.push(im_a.unwrap());
                 image_coords_b.push(im_b.unwrap());
+                point_ids.push(point_idx);
             }
         }
 
-        (image_coords_a,image_coords_b)
+        (point_ids, image_coords_a,image_coords_b)
     }
 }
