@@ -33,7 +33,7 @@ fn main() -> Result<()> {
     
     let olsen_data_path = data_set_door_path;
     let depth_prior = -1.0;
-    let epipolar_thresh = 0.1;
+    let epipolar_thresh = 0.001;
 
     let olsen_data = OlssenData::new(&olsen_data_path);
     let positive_principal_distance = false;
@@ -159,7 +159,7 @@ fn main() -> Result<()> {
     // all_matches.push(matches_6_4_subvec);
     // all_matches.push(matches_6_5_subvec);
     all_matches.push(matches_6_7_subvec);
-    //all_matches.push(matches_6_8_subvec);
+    all_matches.push(matches_6_8_subvec);
     // all_matches.push(matches_6_9_subvec);
     //all_matches.push(matches_6_10_subvec);
     //all_matches.push(matches_6_11_subvec);
@@ -190,7 +190,7 @@ fn main() -> Result<()> {
     // camera_data.push(((6,pinhole_cam_6),(4,pinhole_cam_4)));
     // camera_data.push(((6,pinhole_cam_6),(5,pinhole_cam_5)));
     camera_data.push(((6,pinhole_cam_6),(7,pinhole_cam_7)));
-    //camera_data.push(((6,pinhole_cam_6),(8,pinhole_cam_8)));
+    camera_data.push(((6,pinhole_cam_6),(8,pinhole_cam_8)));
     // camera_data.push(((6,pinhole_cam_6),(9,pinhole_cam_9)));
     //camera_data.push(((6,pinhole_cam_6),(10,pinhole_cam_10)));
     //camera_data.push(((6,pinhole_cam_6),(11,pinhole_cam_11)));
@@ -207,7 +207,7 @@ fn main() -> Result<()> {
     // motion_list.push(((6,cam_extrinsics_6),(4,cam_extrinsics_4)));
     // motion_list.push(((6,cam_extrinsics_6),(5,cam_extrinsics_5)));
     motion_list.push(((6,cam_extrinsics_6),(7,cam_extrinsics_7)));
-    //motion_list.push(((6,cam_extrinsics_6),(8,cam_extrinsics_8)));
+    motion_list.push(((6,cam_extrinsics_6),(8,cam_extrinsics_8)));
     // motion_list.push(((6,cam_extrinsics_6),(9,cam_extrinsics_9)));
 
 
@@ -280,7 +280,7 @@ fn main() -> Result<()> {
             step_sizes: vec![1e0],
             max_norm_eps: 1e-30, 
             delta_eps: 1e-30,
-            taus: vec![1e-6],
+            taus: vec![1e-3],
             lm: true,
             weighting: false,
             debug: true,

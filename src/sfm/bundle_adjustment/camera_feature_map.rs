@@ -178,6 +178,7 @@ impl CameraFeatureMap {
                     for i in 0..local_landmarks {
                         let (x_s, y_s) = im_s[i];
                         let (x_f, y_f) = im_f[i];
+                        //TODO use reduced image coordinates
                         normalized_image_points_s.column_mut(i).copy_from(&Vector3::<Float>::new(x_s,y_s,depth_prior));
                         normalized_image_points_f.column_mut(i).copy_from(&Vector3::<Float>::new(x_f,y_f,depth_prior));
                     }
