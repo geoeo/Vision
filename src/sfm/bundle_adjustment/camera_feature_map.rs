@@ -150,6 +150,7 @@ impl CameraFeatureMap {
      * initial_motion should all be with respect to the first camera
      */
     pub fn get_euclidean_landmark_state<C : Camera + Copy>(&self, initial_motions : Option<&Vec<(u64,(Vector3<Float>,Matrix3<Float>))>>, camera_data: &Vec<((usize, C),(usize,C))>, depth_prior: Float) -> State<EuclideanLandmark,3> {
+        
         let number_of_cameras = self.camera_map.keys().len();
         let number_of_unqiue_landmarks = self.number_of_unique_points;
 
@@ -179,37 +180,28 @@ impl CameraFeatureMap {
                         let (x_s, y_s) = im_s[i];
                         let (x_f, y_f) = im_f[i];
                         //TODO use reduced image coordinates
-                        normalized_image_points_s.column_mut(i).copy_from(&Vector3::<Float>::new(x_s,y_s,depth_prior));
-                        normalized_image_points_f.column_mut(i).copy_from(&Vector3::<Float>::new(x_f,y_f,depth_prior));
+                        let feat_s = Vector3::<Float>::new(x_s,y_s,depth_prior);
+                        let feat_f = Vector3::<Float>::new(x_f,y_f,depth_prior);
+                        normalized_image_points_s.column_mut(i).copy_from(&feat_s);
+                        normalized_image_points_f.column_mut(i).copy_from(&feat_f);
                     }
 
                     let se3 = pose::se3(&b,&rotation_matrix);
                     let projection_1 = camear_matrix_s.get_projection()*(Matrix4::<Float>::identity().fixed_slice::<3,4>(0,0));
                     let projection_2 = camera_matrix_f.get_projection()*(se3.fixed_slice::<3,4>(0,0));
-
+                    
+                    //TODO: this has to be normalized in some way
                     let Xs = linear_triangulation(&vec!((&normalized_image_points_s,&projection_1),(&normalized_image_points_f,&projection_2)));
                     assert_eq!(Xs.ncols(), point_ids.len());
 
                     for j in 0..point_ids.len() {
                         let point_id = point_ids[j];
-                        let point = Xs.fixed_slice::<3, 1>(0, j).into_owned();
+                        let mut point = Xs.fixed_slice::<3, 1>(0, j).into_owned();
+                        point /= point[2]*depth_prior;
                         triangualted_landmarks[point_id] = EuclideanLandmark::from_state(point);
-
                     }
 
                 }
-
-                // Boilerplate for now
-                // let mut landmarks_raw = Matrix4xX::<Float>::zeros(number_of_unqiue_landmarks);
-                // for mut c in landmarks_raw.column_iter_mut() {
-                //     let l = Vector4::<Float>::new(0.0, 0.0, depth_prior, 1.0);
-                //     c.copy_from(&l);
-                // }
-        
-                // landmarks_raw.column_iter().map(|x| {
-                //     let l = Vector3::<Float>::new(x[(0,0)],x[(1,0)],x[(2,0)]);
-                //     EuclideanLandmark::from_state(l)
-                // }).collect::<Vec<EuclideanLandmark>>()
                 triangualted_landmarks
             },
             None => {
