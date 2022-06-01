@@ -34,7 +34,9 @@ fn main() -> Result<()> {
     let olsen_data_path = data_set_door_path;
     let depth_prior = -1.0;
     let epipolar_thresh = 0.0005;
+    //let epipolar_thresh = 0.02;
 
+    //Todo: Issue with depth prior + positive_principal_distance
     let olsen_data = OlssenData::new(&olsen_data_path);
     let positive_principal_distance = false;
     let principal_distance_sign = match positive_principal_distance {
@@ -160,7 +162,7 @@ fn main() -> Result<()> {
     // all_matches.push(matches_6_5_subvec);
     all_matches.push(matches_6_7_subvec);
     //all_matches.push(matches_6_8_subvec);
-    // all_matches.push(matches_6_9_subvec);
+    //all_matches.push(matches_6_9_subvec);
     //all_matches.push(matches_6_10_subvec);
     //all_matches.push(matches_6_11_subvec);
     //all_matches.push(matches_6_12_subvec);
@@ -187,11 +189,11 @@ fn main() -> Result<()> {
     //camera_data.push(((6,pinhole_cam_6),(1,pinhole_cam_1)));
     // camera_data.push(((6,pinhole_cam_6),(2,pinhole_cam_2)));
     // camera_data.push(((6,pinhole_cam_6),(3,pinhole_cam_3)));
-    // camera_data.push(((6,pinhole_cam_6),(4,pinhole_cam_4)));
+    //camera_data.push(((6,pinhole_cam_6),(4,pinhole_cam_4)));
     // camera_data.push(((6,pinhole_cam_6),(5,pinhole_cam_5)));
     camera_data.push(((6,pinhole_cam_6),(7,pinhole_cam_7)));
     //camera_data.push(((6,pinhole_cam_6),(8,pinhole_cam_8)));
-    // camera_data.push(((6,pinhole_cam_6),(9,pinhole_cam_9)));
+    //camera_data.push(((6,pinhole_cam_6),(9,pinhole_cam_9)));
     //camera_data.push(((6,pinhole_cam_6),(10,pinhole_cam_10)));
     //camera_data.push(((6,pinhole_cam_6),(11,pinhole_cam_11)));
     //camera_data.push(((6,pinhole_cam_6),(12,pinhole_cam_12)));
@@ -201,6 +203,7 @@ fn main() -> Result<()> {
     //camera_data.push(((17,pinhole_cam_17),(20,pinhole_cam_20)));
 
     let mut motion_list =  Vec::<((usize,Matrix4<Float>),(usize,Matrix4<Float>))>::with_capacity(10); 
+    //motion_list.push(((4,cam_extrinsics_4),(5,cam_extrinsics_5)));
     //motion_list.push(((6,cam_extrinsics_6),(1,cam_extrinsics_1)));
     // motion_list.push(((6,cam_extrinsics_6),(2,cam_extrinsics_2)));
     // motion_list.push(((6,cam_extrinsics_6),(3,cam_extrinsics_3)));
@@ -208,7 +211,7 @@ fn main() -> Result<()> {
     // motion_list.push(((6,cam_extrinsics_6),(5,cam_extrinsics_5)));
     motion_list.push(((6,cam_extrinsics_6),(7,cam_extrinsics_7)));
     //motion_list.push(((6,cam_extrinsics_6),(8,cam_extrinsics_8)));
-    // motion_list.push(((6,cam_extrinsics_6),(9,cam_extrinsics_9)));
+    //motion_list.push(((6,cam_extrinsics_6),(9,cam_extrinsics_9)));
 
 
 

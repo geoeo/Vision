@@ -154,6 +154,7 @@ impl CameraFeatureMap {
         let number_of_cameras = self.camera_map.keys().len();
         let number_of_unqiue_landmarks = self.number_of_unique_points;
 
+        //TODO: seems to be a bug with > 1 image pair!
         let landmarks = match initial_motions {
             Some(motions) => {
                 assert_eq!(motions.len(), camera_data.len());
@@ -197,7 +198,11 @@ impl CameraFeatureMap {
                     for j in 0..point_ids.len() {
                         let point_id = point_ids[j];
                         let mut point = Xs.fixed_slice::<3, 1>(0, j).into_owned();
-                        point /= point[2]*depth_prior;
+                        //TODO: make is consistent with depth prior
+                        match point[2] {
+                            v if v != 0.0 => point /= point[2]*depth_prior,
+                            _ => ()
+                        }
                         triangualted_landmarks[point_id] = EuclideanLandmark::from_state(point);
                     }
 

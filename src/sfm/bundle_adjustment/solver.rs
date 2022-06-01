@@ -182,14 +182,6 @@ pub fn optimize<C : Camera,L: Landmark<T> + Copy + Clone, const T: usize>(state:
                 state.n_points
             ); 
 
-        // let identity = DMatrix::<Float>::identity(state_size, state_size);
-        // let (delta,g,gain_ratio_denom, mu_val) 
-        //     = crate::numerics::solver::gauss_newton_step(&residuals,
-        //          &(jacobian),
-        //          &identity,
-        //          mu,
-        //          tau); 
-
         if gauss_newton_result.is_none(){
             println!("Sover failed at it: {}, avg_rmse: {}",iteration_count,cost.sqrt());
             break;
