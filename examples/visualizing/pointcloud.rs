@@ -125,7 +125,7 @@ fn main() -> Result<(),()> {
 
         for event in window.events().iter() {
             match event.value {
-                WindowEvent::Key(Key::P, _, _) => make_screenshot(format!("{}/screenshot.png",runtime_conf.output_path), &window),
+                WindowEvent::Key(Key::P, _, _) => make_screenshot(&format!("{}/screenshot.png",runtime_conf.output_path).as_str(), &window),
                 WindowEvent::Key(Key::R, _, _) => {
                     clear_scene(&mut window, &mut scene_nodes);
                     populate_scene(&mut window,&mut scene_nodes,&cams,&points);

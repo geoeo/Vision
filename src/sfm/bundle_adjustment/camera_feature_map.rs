@@ -198,13 +198,21 @@ impl CameraFeatureMap {
                     for j in 0..point_ids.len() {
                         let point_id = point_ids[j];
                         let mut point = Xs.fixed_slice::<3, 1>(0, j).into_owned();
-                        point /= point[2].abs();
-                        match (point[2], depth_prior) {
-                            (z, p) if z*p >= 0.0 => (),
-                            (z, p) if z*p < 0.0 => point[2]*= p,
-                            (_,_) => ()                
-                        };
+                        point /= point[2]*depth_prior;
                         triangualted_landmarks[point_id] = EuclideanLandmark::from_state(point);
+                        // point /= point[2].abs();
+                        // match (point[2], depth_prior) {
+                        //     (z, p) if z*p >= 0.0 => (),
+                        //     (z, p) if z*p < 0.0 => point[2]*= p,
+                        //     (_,_) => ()                
+                        // };
+                        // point /= point[2].abs();
+                        // if point[2] * depth_prior > 0.0 {
+                        //     triangualted_landmarks[point_id] = EuclideanLandmark::from_state(point);
+                        // } else {
+                        //     triangualted_landmarks[point_id] = EuclideanLandmark::from_state(Vector3::<Float>::new(0.0,0.0,depth_prior));
+                        // }
+
                     }
 
                 }

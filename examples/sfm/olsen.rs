@@ -33,7 +33,7 @@ fn main() -> Result<()> {
     
     let olsen_data_path = data_set_door_path;
     let depth_prior = -1.0;
-    let epipolar_thresh = 0.0005;
+    let epipolar_thresh = 0.001;
     //let epipolar_thresh = 0.02;
 
     //Todo: Issue with depth prior + positive_principal_distance
@@ -43,7 +43,7 @@ fn main() -> Result<()> {
         true => 1.0,
         false => -1.0
     };
-    let invert_intrinsics = true; // they are already negative from decomp -> but seem to be inverted otherwise
+    let invert_intrinsics = false; // they are already negative from decomp -> but seem to be inverted otherwise
     let normalize_features = false;
     let feature_skip_count = 1;
 
@@ -161,7 +161,7 @@ fn main() -> Result<()> {
     // all_matches.push(matches_6_4_subvec);
     // all_matches.push(matches_6_5_subvec);
     all_matches.push(matches_6_7_subvec);
-    //all_matches.push(matches_6_8_subvec);
+    //all_matches.push(matches_6_8_subvec); 
     //all_matches.push(matches_6_9_subvec);
     //all_matches.push(matches_6_10_subvec);
     //all_matches.push(matches_6_11_subvec);
@@ -285,7 +285,7 @@ fn main() -> Result<()> {
             delta_eps: 1e-30,
             taus: vec![1e-3],
             lm: true,
-            weighting: true,
+            weighting: false, //TODO: seems to destroy depth
             debug: true,
     
             show_octave_result: true,
