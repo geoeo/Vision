@@ -11,7 +11,7 @@ use kiss3d::text::Font;
 use kiss3d::nalgebra::{Point2,Point3,Translation3};
 use na::{Vector3, Isometry3};
 
-use vision::Float;
+use vision::{Float,load_runtime_conf};
 use vision::sfm::{bundle_adjustment::state, landmark::{euclidean_landmark::EuclideanLandmark, inverse_depth_landmark::InverseLandmark}};
 use rand::random;
 use kiss3d::camera::ArcBall;
@@ -55,6 +55,7 @@ fn populate_scene(window: &mut Window, scene_nodes: &mut Vec::<kiss3d::scene::Sc
 
 fn main() -> Result<(),()> {
     let mut window = Window::new("BA: Pointcloud");
+    let runtime_conf = load_runtime_conf();
 
     //let final_state_as_string = fs::read_to_string("D:/Workspace/Rust/Vision/output/orb_ba.txt").expect("Unable to read file");
     //let all_states_as_string = fs::read_to_string("D:/Workspace/Rust/Vision/output/orb_ba_debug.txt").expect("Unable to read file");
@@ -62,8 +63,8 @@ fn main() -> Result<(),()> {
     //let final_state_as_string = fs::read_to_string("D:/Workspace/Rust/Vision/output/3dv.txt").expect("Unable to read file");
     //let all_states_as_string = fs::read_to_string("D:/Workspace/Rust/Vision/output/3dv_debug.txt").expect("Unable to read file");
 
-    let final_state_as_string = fs::read_to_string("/home/marc/Workspace/Rust/Vision/data/olsen.txt").expect("Unable to read file");
-    let all_states_as_string = fs::read_to_string("/home/marc/Workspace/Rust/Vision/data/olsen_debug.txt").expect("Unable to read file");
+    let final_state_as_string = fs::read_to_string(format!("{}/olsen.txt", runtime_conf.local_data_path)).expect("Unable to read file");
+    let all_states_as_string = fs::read_to_string(format!("{}/olsen_debug.txt", runtime_conf.local_data_path)).expect("Unable to read file");
 
 
     let loaded_state: (Vec<[Float;6]>,Vec<[Float;3]>) = serde_yaml::from_str(&final_state_as_string).unwrap();
@@ -109,7 +110,7 @@ fn main() -> Result<(),()> {
 
         if recording_scene {
             // the previously populated scene
-            let file_name = format!("/home/marc/Workspace/Rust/Vision/images/ba_pointcloud/screenshot_{}.png",record_counter);
+            let file_name = format!("{}/screenshot_{}.png",runtime_conf.output_path,record_counter);
             make_screenshot(file_name.as_str(), &window);
             record_counter += 1;
 
@@ -124,7 +125,7 @@ fn main() -> Result<(),()> {
 
         for event in window.events().iter() {
             match event.value {
-                WindowEvent::Key(Key::P, _, _) => make_screenshot("/home/marc/Workspace/Rust/Vision/output/screenshot.png", &window),
+                WindowEvent::Key(Key::P, _, _) => make_screenshot(format!("{}/screenshot.png",runtime_conf.output_path), &window),
                 WindowEvent::Key(Key::R, _, _) => {
                     clear_scene(&mut window, &mut scene_nodes);
                     populate_scene(&mut window,&mut scene_nodes,&cams,&points);
