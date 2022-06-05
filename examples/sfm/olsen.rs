@@ -33,7 +33,7 @@ fn main() -> Result<()> {
     
     let olsen_data_path = data_set_door_path;
     let depth_prior = -1.0;
-    let epipolar_thresh = 0.001;
+    let epipolar_thresh = 0.005;
     //let epipolar_thresh = 0.02;
 
     //Todo: Issue with depth prior + positive_principal_distance
@@ -45,7 +45,7 @@ fn main() -> Result<()> {
     };
     let invert_intrinsics = false; // they are already negative from decomp -> but seem to be inverted otherwise
     let normalize_features = false;
-    let feature_skip_count = 1;
+    let feature_skip_count = 2;
 
     let (cam_intrinsics_0,cam_extrinsics_0) = olsen_data.get_camera_intrinsics_extrinsics(0,positive_principal_distance);
     let (cam_intrinsics_1,cam_extrinsics_1) = olsen_data.get_camera_intrinsics_extrinsics(1,positive_principal_distance);
@@ -121,9 +121,7 @@ fn main() -> Result<()> {
     // let matches_0_5 = olsen_data.get_matches_between_images(0, 5);
     // println!("matches between 0 and 5 are: #{}", matches_0_5.len());
     
-    // let matches_0_10 = olsen_data.get_matches_between_images(0, 10);
-    // println!("matches between 0 and 10 are: #{}", matches_0_10.len());
-    
+    // let matches_0_10 = olsen_data.get_matches_between_images(0, 10);camera_data
     // let matches_0_20 = olsen_data.get_matches_between_images(0, 20);
     // println!("matches between 0 and 20 are: #{}", matches_0_20.len());
 
@@ -140,11 +138,6 @@ fn main() -> Result<()> {
     let pinhole_cam_10 = Perspective::from_matrix(&cam_intrinsics_10, invert_intrinsics);
     let pinhole_cam_11 = Perspective::from_matrix(&cam_intrinsics_11, invert_intrinsics);
     //let pinhole_cam_12 = Perspective::from_matrix(&cam_intrinsics_12, false);
-    //let pinhole_cam_13 = Perspective::from_matrix(&cam_intrinsics_13, false);
-    //let pinhole_cam_17 = Perspective::from_matrix(&cam_intrinsics_17, false);
-    //let pinhole_cam_20 = Perspective::from_matrix(&cam_intrinsics_17, false);
-
-
 
     let mut all_matches = Vec::<Vec<Match<ImageFeature>>>::with_capacity(10);
     //all_matches.push(matches_0_1_subvec);
@@ -161,17 +154,14 @@ fn main() -> Result<()> {
     // all_matches.push(matches_6_2_subvec);
     // all_matches.push(matches_6_3_subvec);
     // all_matches.push(matches_6_4_subvec);
-    // all_matches.push(matches_6_5_subvec);
-    all_matches.push(matches_6_7_subvec);
-    //all_matches.push(matches_6_8_subvec); 
-    //all_matches.push(matches_6_9_subvec);
-    //all_matches.push(matches_6_10_subvec);
     //all_matches.push(matches_6_11_subvec);
     //all_matches.push(matches_6_12_subvec);
     //all_matches.push(matches_6_13_subvec);
+    all_matches.push(matches_6_5_subvec);
+    all_matches.push(matches_6_7_subvec);
     //all_matches.push(matches_6_9_subvec);
     //all_matches.push(matches_6_17_subvec);
-    all_matches.push(matches_7_8_subvec);
+    //all_matches.push(matches_7_8_subvec);
     //all_matches.push(matches_17_20_subvec);
 
     for m in &all_matches {
@@ -184,18 +174,15 @@ fn main() -> Result<()> {
     //camera_data.push(((2,pinhole_cam_2),(3,pinhole_cam_3)));
     //camera_data.push(((3,pinhole_cam_3),(4,pinhole_cam_4)));
     //camera_data.push(((3,pinhole_cam_3),(2,pinhole_cam_2)));
-    //camera_data.push(((4,pinhole_cam_4),(5,pinhole_cam_5)));
-    //camera_data.push(((3,pinhole_cam_3),(5,pinhole_cam_5)));
-    //camera_data.push(((5,pinhole_cam_5),(6,pinhole_cam_6)));
-    //camera_data.push(((5,pinhole_cam_5),(7,pinhole_cam_7)));
+    //camera_data.push(((4,pinhole_cam_4),(5,pinhole_cam_5)));camera_data
     //camera_data.push(((6,pinhole_cam_6),(0,pinhole_cam_0)));
     //camera_data.push(((6,pinhole_cam_6),(1,pinhole_cam_1)));
     // camera_data.push(((6,pinhole_cam_6),(2,pinhole_cam_2)));
     // camera_data.push(((6,pinhole_cam_6),(3,pinhole_cam_3)));
     //camera_data.push(((6,pinhole_cam_6),(4,pinhole_cam_4)));
-    // camera_data.push(((6,pinhole_cam_6),(5,pinhole_cam_5)));
+    camera_data.push(((6,pinhole_cam_6),(5,pinhole_cam_5)));
     camera_data.push(((6,pinhole_cam_6),(7,pinhole_cam_7)));
-    camera_data.push(((6,pinhole_cam_6),(8,pinhole_cam_8)));
+    //camera_data.push(((6,pinhole_cam_6),(8,pinhole_cam_8)));
     //camera_data.push(((6,pinhole_cam_6),(9,pinhole_cam_9)));
     //camera_data.push(((6,pinhole_cam_6),(10,pinhole_cam_10)));
     //camera_data.push(((6,pinhole_cam_6),(11,pinhole_cam_11)));
@@ -232,14 +219,17 @@ fn main() -> Result<()> {
     // all_matches.push(vec![Match{feature_one:ImageFeature::new(10.0,10.0), feature_two: ImageFeature::new(300.0,400.0)}]);
     // all_matches.push(vec![Match{feature_one:ImageFeature::new(10.0,10.0), feature_two: ImageFeature::new(300.0,400.0)}]);
 
-    //TODO: investigate pose chaining
-    let initial_cam_motions = compute_initial_cam_motions(&all_matches, &camera_data, 1.0,epipolar_thresh,positive_principal_distance,normalize_features ,BifocalType::ESSENTIAL, EssentialDecomposition::FÖRSNTER);
+    //TODO: do filtering inside this
+    let initial_cam_motions = compute_initial_cam_motions(&all_matches, &camera_data, 1.0,epipolar_thresh,positive_principal_distance,normalize_features ,BifocalType::FUNDAMENTAL, EssentialDecomposition::FÖRSNTER);
     //let initial_cam_motions = compute_initial_cam_motions(&all_matches, &camera_data, 1.0,epipolar_thresh,false, EssentialDecomposition::FÖRSNTER); //check this
     // TODO: Cordiante system different from what we expect
     let relative_motions = OlssenData::get_relative_motions(&motion_list);
 
     let used_motions_for_filtering = initial_cam_motions.iter().map(|&(_,r)| r).collect::<Vec<(Vector3<Float>,Matrix3<Float>)>>();
     //let used_motions_for_filtering = relative_motions.iter().map(|&(_,r)| r).collect::<Vec<(Vector3<Float>,Matrix3<Float>)>>();
+
+    //TODO: move filtering into initial motion decomp
+    //TODO: there is a bug when starting with cams sequences that are not in order!. E.g. 6,5 and 6,7
     let mut filtered_matches = Vec::<Vec<Match<ImageFeature>>>::with_capacity(all_matches.len());
     for i in 0..all_matches.len(){
         let matches = &all_matches[i];
@@ -251,18 +241,18 @@ fn main() -> Result<()> {
         filtered_matches.push(filtered_matches_by_motion);
     }
 
-    //TODO: there is a bug with using multiple initial positions in the ba. Im guessing they get added wrong to the state vector
+
     let initial_cam_poses = Some(initial_cam_motions);
     //let initial_cam_poses = Some(relative_motions);
     //let initial_cam_poses = None;
 
-    if initial_cam_poses.is_some(){
-        for (_,(t,r)) in initial_cam_poses.as_ref().unwrap() {
-            println!("t : {}",t);
-            println!("r : {}",r);
-            println!("-------");
-        }
-    }
+    // if initial_cam_poses.is_some(){
+    //     for (_,(t,r)) in initial_cam_poses.as_ref().unwrap() {
+    //         println!("t : {}",t);
+    //         println!("r : {}",r);
+    //         println!("-------");
+    //     }
+    // }
 
     let used_matches = &filtered_matches;
     //let used_matches = &all_matches;
@@ -278,19 +268,18 @@ fn main() -> Result<()> {
     }
 
 
-
     if used_matches.len() > 0 {
 
         let runtime_parameters = RuntimeParameters {
             pyramid_scale: 1.0,
-            max_iterations: vec![80; 1],
+            max_iterations: vec![160; 1],
             eps: vec![1e-6],
             step_sizes: vec![1e0],
             max_norm_eps: 1e-30, 
             delta_eps: 1e-30,
             taus: vec![1e-3],
             lm: true,
-            weighting: false, //TODO: seems to destroy depth
+            weighting: false, //TODO: investigate this
             debug: true,
     
             show_octave_result: true,
@@ -299,7 +288,7 @@ fn main() -> Result<()> {
         };
 
 
-        //TODO: compute initial point positions from essential matrix!
+        //TODO: Features are between adjacent cams, but transform is not. -> Mistake!
         let ((cam_positions,points),(s,debug_states_serialized)) = run_ba(used_matches, &camera_data,&initial_cam_poses, olsen_data.get_image_dim(), &runtime_parameters, 1.0,depth_prior);
         fs::write(format!("{}/olsen.txt",runtime_conf.local_data_path), s?).expect("Unable to write file");
         if runtime_parameters.debug {

@@ -154,7 +154,7 @@ impl CameraFeatureMap {
         let number_of_cameras = self.camera_map.keys().len();
         let number_of_unqiue_landmarks = self.number_of_unique_points;
 
-        //TODO: seems to be a bug with > 1 image pair!
+        //TODO: Features are between adjacent cams, but transform is not. -> Mistake!
         let landmarks = match initial_motions {
             Some(motions) => {
                 assert_eq!(motions.len(), camera_data.len());
@@ -168,7 +168,7 @@ impl CameraFeatureMap {
                     let (cam_idx_s, _) = self.camera_map[&(*id_s as u64)];
                     let (cam_idx_f, _) = self.camera_map[&cam_id];
 
-                    assert_eq!(cam_idx_s, 0);
+                    //assert_eq!(cam_idx_s, 0);
                     assert_eq!(*id_f as u64, *cam_id);
 
                     let (point_ids, im_s, im_f) = self.get_features_for_cam_pair(cam_idx_s, cam_idx_f);
