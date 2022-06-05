@@ -305,9 +305,13 @@ pub fn compute_initial_cam_motions<C : Camera + Copy,T : Feature + Clone>(
         decomp_alg: EssentialDecomposition) 
     ->  Vec<(u64,(Vector3<Float>,Matrix3<Float>))> {
     let feature_machtes =  all_matches.iter().map(|m| extract_matches(m, pyramid_scale, normalize_features)).collect::<Vec<Vec<Match<ImageFeature>>>>();
-    let c_init = camera_data[0].0.1;
-    let initial_motion_decomp = feature_machtes.iter().enumerate().map(|(i,m)| (m,camera_data[i])).scan((0,c_init,(Vector3::<Float>::zeros(),Matrix3::<Float>::identity())),|state, (m, (_,(id2,c2)))| {
-        let (_,c_curr,(t_curr,R_curr)) = *state;
+    let (id_init, c_init) = camera_data[0].0;
+    let initial_motion_decomp = feature_machtes.iter().enumerate().map(|(i,m)| (m,camera_data[i])).scan((0, c_init,(Vector3::<Float>::zeros(),Matrix3::<Float>::identity())),|state, (m, ((id1,_),(id2,c2)))| {
+        let (_,c_curr,(t_curr,R_curr)) = match id1 {
+            id if id == id_init => (0, c_init,(Vector3::<Float>::zeros(),Matrix3::<Float>::identity())),
+            _ => *state
+        };
+
         let principal_distance_sign = match positive_principal_distance {
             true => 1.0,
             false => -1.0
