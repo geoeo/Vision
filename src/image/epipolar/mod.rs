@@ -293,6 +293,7 @@ pub fn decompose_essential_kanatani<T: Feature>(E: &Essential, matches: &Vec<Mat
 }
 
 //TODO: refactor to only take initial cam and then list of other cams
+#[allow(non_snake_case)]
 pub fn compute_initial_cam_motions<C : Camera + Copy,T : Feature + Clone>(
         all_matches: &Vec<Vec<Match<T>>>,
         camera_data: &Vec<((usize, C),(usize,C))>,
@@ -309,7 +310,7 @@ pub fn compute_initial_cam_motions<C : Camera + Copy,T : Feature + Clone>(
         let (_,c_curr,(t_curr,R_curr)) = *state;
         let principal_distance_sign = match positive_principal_distance {
             true => 1.0,
-            _ => -1.0
+            false => -1.0
         };
         let (e,f_m) = match epipolar_alg {
             BifocalType::FUNDAMENTAL => {
@@ -329,8 +330,11 @@ pub fn compute_initial_cam_motions<C : Camera + Copy,T : Feature + Clone>(
             EssentialDecomposition::FÖRSNTER => decompose_essential_förstner(&e,&f_m,&c_curr.get_inverse_projection(),&c2.get_inverse_projection()),
             EssentialDecomposition::KANATANI => decompose_essential_kanatani(&e,&f_m, positive_principal_distance)
         };
-
-        Some((id2 as u64, c2,(rotation*t_curr + h,rotation*R_curr)))
+        let new_t = rotation*t_curr + h;
+        let new_R = rotation*R_curr;
+        let new_state = (id2 as u64, c2,(new_t, new_R));
+        *state = new_state;
+        Some(new_state)
     }).map(|(id,_,motion)|(id,motion)).collect::<Vec<(u64,(Vector3<Float>,Matrix3<Float>))>>();
 
     initial_motion_decomp

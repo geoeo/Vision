@@ -88,6 +88,7 @@ fn main() -> Result<()> {
     let matches_6_9 = olsen_data.get_matches_between_images(6, 9);
     let matches_6_10 = olsen_data.get_matches_between_images(6, 10);
     let matches_6_11 = olsen_data.get_matches_between_images(6, 11);
+    let matches_7_8 = olsen_data.get_matches_between_images(7, 8);
     //let matches_6_12 = olsen_data.get_matches_between_images(6, 12);
     //let matches_6_13 = olsen_data.get_matches_between_images(6, 13);
     //let matches_6_17 = olsen_data.get_matches_between_images(6, 17);
@@ -110,6 +111,7 @@ fn main() -> Result<()> {
     let matches_6_9_subvec = matches_6_9.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
     let matches_6_10_subvec = matches_6_10.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
     let matches_6_11_subvec = matches_6_11.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
+    let matches_7_8_subvec = matches_7_8.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
     //let matches_6_12_subvec = matches_6_12.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
     //let matches_6_13_subvec = matches_6_13.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
     //let matches_6_17_subvec = matches_6_17.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
@@ -169,6 +171,7 @@ fn main() -> Result<()> {
     //all_matches.push(matches_6_13_subvec);
     //all_matches.push(matches_6_9_subvec);
     //all_matches.push(matches_6_17_subvec);
+    all_matches.push(matches_7_8_subvec);
     //all_matches.push(matches_17_20_subvec);
 
     for m in &all_matches {
@@ -192,7 +195,7 @@ fn main() -> Result<()> {
     //camera_data.push(((6,pinhole_cam_6),(4,pinhole_cam_4)));
     // camera_data.push(((6,pinhole_cam_6),(5,pinhole_cam_5)));
     camera_data.push(((6,pinhole_cam_6),(7,pinhole_cam_7)));
-    //camera_data.push(((6,pinhole_cam_6),(8,pinhole_cam_8)));
+    camera_data.push(((6,pinhole_cam_6),(8,pinhole_cam_8)));
     //camera_data.push(((6,pinhole_cam_6),(9,pinhole_cam_9)));
     //camera_data.push(((6,pinhole_cam_6),(10,pinhole_cam_10)));
     //camera_data.push(((6,pinhole_cam_6),(11,pinhole_cam_11)));
@@ -200,6 +203,7 @@ fn main() -> Result<()> {
     //camera_data.push(((6,pinhole_cam_6),(13,pinhole_cam_13)));
     //camera_data.push(((6,pinhole_cam_6),(9,pinhole_cam_9)));
     //camera_data.push(((6,pinhole_cam_6),(17,pinhole_cam_17)));
+    //camera_data.push(((7,pinhole_cam_7),(7,pinhole_cam_8)));
     //camera_data.push(((17,pinhole_cam_17),(20,pinhole_cam_20)));
 
     let mut motion_list =  Vec::<((usize,Matrix4<Float>),(usize,Matrix4<Float>))>::with_capacity(10); 
@@ -210,8 +214,9 @@ fn main() -> Result<()> {
     // motion_list.push(((6,cam_extrinsics_6),(4,cam_extrinsics_4)));
     // motion_list.push(((6,cam_extrinsics_6),(5,cam_extrinsics_5)));
     motion_list.push(((6,cam_extrinsics_6),(7,cam_extrinsics_7)));
-    //motion_list.push(((6,cam_extrinsics_6),(8,cam_extrinsics_8)));
+    motion_list.push(((6,cam_extrinsics_6),(8,cam_extrinsics_8)));
     //motion_list.push(((6,cam_extrinsics_6),(9,cam_extrinsics_9)));
+    //motion_list.push(((7,cam_extrinsics_7),(8,cam_extrinsics_8)));
 
 
 
@@ -252,11 +257,11 @@ fn main() -> Result<()> {
     //let initial_cam_poses = None;
 
     if initial_cam_poses.is_some(){
-        // for (_,(t,r)) in initial_cam_poses.as_ref().unwrap() {
-        //     println!("t : {}",t);
-        //     println!("r : {}",r);
-        //     println!("-------");
-        // }
+        for (_,(t,r)) in initial_cam_poses.as_ref().unwrap() {
+            println!("t : {}",t);
+            println!("r : {}",r);
+            println!("-------");
+        }
     }
 
     let used_matches = &filtered_matches;
