@@ -125,8 +125,6 @@ fn main() -> Result<()> {
     all_matches.push(matches_5_4_subvec);
     all_matches.push(matches_5_6_subvec);
     //all_matches.push(matches_5_7_subvec);
-    //all_matches.push(matches_6_0_subvec);
-    //all_matches.push(matches_6_1_subvec);
     // all_matches.push(matches_6_2_subvec);
     // all_matches.push(matches_6_3_subvec);
     // all_matches.push(matches_6_4_subvec);
@@ -143,10 +141,7 @@ fn main() -> Result<()> {
     let mut camera_data = Vec::<((usize,Perspective),(usize,Perspective))>::with_capacity(10); 
     camera_data.push(((5,pinhole_cam_5),(4,pinhole_cam_4)));
     camera_data.push(((5,pinhole_cam_5),(6,pinhole_cam_6)));
-    //camera_data.push(((6,pinhole_cam_6),(0,pinhole_cam_0)));
-    //camera_data.push(((6,pinhole_cam_6),(1,pinhole_cam_1)));
-    // camera_data.push(((6,pinhole_cam_6),(2,pinhole_cam_2)));
-    // camera_data.push(((6,pinhole_cam_6),(3,pinhole_cam_3)));
+
     //camera_data.push(((6,pinhole_cam_6),(4,pinhole_cam_4)));
     //camera_data.push(((6,pinhole_cam_6),(5,pinhole_cam_5)));
     //camera_data.push(((6,pinhole_cam_6),(7,pinhole_cam_7)));
@@ -183,7 +178,7 @@ fn main() -> Result<()> {
 
     //TODO: do filtering inside this
     let initial_cam_motions = compute_initial_cam_motions(&all_matches, &camera_data, 1.0,epipolar_thresh,positive_principal_distance,normalize_features ,BifocalType::ESSENTIAL, EssentialDecomposition::FÖRSNTER);
-    let initial_cam_motions_adj = initial_cam_motions.iter().map(|&(id,(h,rot))| (id,(Vector3::<Float>::new(h[1],h[0],h[2]),rot))).collect::<Vec<(u64,(Vector3<Float>,Matrix3<Float>))>>();
+    let initial_cam_motions_adjusted = initial_cam_motions.iter().map(|&(id,(h,rot))| (id,(Vector3::<Float>::new(h[1],h[0],h[2]),rot))).collect::<Vec<(u64,(Vector3<Float>,Matrix3<Float>))>>();
     //let initial_cam_motions = compute_initial_cam_motions(&all_matches, &camera_data, 1.0,epipolar_thresh,false, EssentialDecomposition::FÖRSNTER); //check this
     // TODO: Cordiante system different from what we expect
     let relative_motions = OlssenData::get_relative_motions(&motion_list);
@@ -205,7 +200,7 @@ fn main() -> Result<()> {
     }
 
 
-    let initial_cam_poses = Some(initial_cam_motions_adj);
+    let initial_cam_poses = Some(initial_cam_motions_adjusted);
     //let initial_cam_poses = Some(relative_motions);
     //let initial_cam_poses = None;
 
