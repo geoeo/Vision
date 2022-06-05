@@ -219,17 +219,7 @@ impl CameraFeatureMap {
                 triangualted_landmarks
             },
             None => {
-                let mut landmarks_raw = Matrix4xX::<Float>::zeros(number_of_unqiue_landmarks);
-                for mut c in landmarks_raw.column_iter_mut() {
-                    let l = Vector4::<Float>::new(0.0, 0.0, depth_prior, 1.0);
-                    c.copy_from(&l);
-                }
-        
-                landmarks_raw.column_iter().map(|x| {
-                    let l = Vector3::<Float>::new(x[(0,0)],x[(1,0)],x[(2,0)]);
-                    EuclideanLandmark::from_state(l)
-                }).collect::<Vec<EuclideanLandmark>>()
-        
+                vec!(Vector3::<Float>::new(0.0, 0.0, depth_prior);number_of_unqiue_landmarks).iter().map(|&v| EuclideanLandmark::from_state(v)).collect()
             }
         };
 
