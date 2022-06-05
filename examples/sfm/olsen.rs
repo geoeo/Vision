@@ -33,7 +33,7 @@ fn main() -> Result<()> {
     
     let olsen_data_path = data_set_door_path;
     let depth_prior = -1.0;
-    let epipolar_thresh = 0.005;
+    let epipolar_thresh = 0.001;
     //let epipolar_thresh = 0.02;
 
     //Todo: Issue with depth prior + positive_principal_distance
@@ -59,20 +59,9 @@ fn main() -> Result<()> {
     let (cam_intrinsics_9,cam_extrinsics_9) = olsen_data.get_camera_intrinsics_extrinsics(9,positive_principal_distance);
     let (cam_intrinsics_10,cam_extrinsics_10) = olsen_data.get_camera_intrinsics_extrinsics(10,positive_principal_distance);
     let (cam_intrinsics_11,cam_extrinsics_11) = olsen_data.get_camera_intrinsics_extrinsics(11,positive_principal_distance);
-    //let (cam_intrinsics_12,cam_extrinsics_12) = olsen_data.get_camera_intrinsics_extrinsics(12,positive_principal_distance);
-    //let (cam_intrinsics_13,cam_extrinsics_13) = olsen_data.get_camera_intrinsics_extrinsics(13,positive_principal_distance);
-    //let (cam_intrinsics_17,cam_extrinsics_17) = olsen_data.get_camera_intrinsics_extrinsics(17,positive_principal_distance);
-    //let (cam_intrinsics_20,cam_extrinsics_20) = olsen_data.get_camera_intrinsics_extrinsics(20,positive_principal_distance);
 
 
-    let matches_0_1 = olsen_data.get_matches_between_images(0, 1);
-    let matches_0_2 = olsen_data.get_matches_between_images(0, 2);
-    let matches_1_2 = olsen_data.get_matches_between_images(1, 2);
-    let matches_2_3 = olsen_data.get_matches_between_images(2, 3);
-    let matches_3_2 = olsen_data.get_matches_between_images(3, 2);
-    let matches_3_4 = olsen_data.get_matches_between_images(3, 4);
-    let matches_3_5 = olsen_data.get_matches_between_images(3, 5);
-    let matches_4_5 = olsen_data.get_matches_between_images(4, 5);
+    let matches_5_4 = olsen_data.get_matches_between_images(5, 4);
     let matches_5_6 = olsen_data.get_matches_between_images(5, 6);
     let matches_5_7 = olsen_data.get_matches_between_images(5, 7);
     let matches_5_8 = olsen_data.get_matches_between_images(5, 8);
@@ -88,19 +77,13 @@ fn main() -> Result<()> {
     let matches_6_9 = olsen_data.get_matches_between_images(6, 9);
     let matches_6_10 = olsen_data.get_matches_between_images(6, 10);
     let matches_6_11 = olsen_data.get_matches_between_images(6, 11);
-    let matches_7_8 = olsen_data.get_matches_between_images(7, 8);
     //let matches_6_12 = olsen_data.get_matches_between_images(6, 12);
     //let matches_6_13 = olsen_data.get_matches_between_images(6, 13);
     //let matches_6_17 = olsen_data.get_matches_between_images(6, 17);
     //let matches_17_20 = olsen_data.get_matches_between_images(17, 20);
 
-    let matches_0_2_subvec = matches_0_2.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
-    let matches_1_2_subvec = matches_1_2.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
-    let matches_2_3_subvec = matches_2_3.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
-    let matches_3_2_subvec = matches_2_3.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
-    let matches_3_4_subvec = matches_3_4.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
-    let matches_3_5_subvec = matches_3_4.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
-    let matches_4_5_subvec = matches_4_5.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
+
+    let matches_5_4_subvec = matches_5_4.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
     let matches_5_6_subvec = matches_5_6.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
     let matches_5_7_subvec = matches_5_7.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
     let matches_5_8_subvec = matches_5_8.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
@@ -111,7 +94,6 @@ fn main() -> Result<()> {
     let matches_6_9_subvec = matches_6_9.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
     let matches_6_10_subvec = matches_6_10.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
     let matches_6_11_subvec = matches_6_11.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
-    let matches_7_8_subvec = matches_7_8.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
     //let matches_6_12_subvec = matches_6_12.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
     //let matches_6_13_subvec = matches_6_13.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
     //let matches_6_17_subvec = matches_6_17.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
@@ -140,68 +122,48 @@ fn main() -> Result<()> {
     //let pinhole_cam_12 = Perspective::from_matrix(&cam_intrinsics_12, false);
 
     let mut all_matches = Vec::<Vec<Match<ImageFeature>>>::with_capacity(10);
-    //all_matches.push(matches_0_1_subvec);
-    //all_matches.push(matches_1_2_subvec);
-    //all_matches.push(matches_2_3_subvec);
-    //all_matches.push(matches_3_4_subvec);
-    //all_matches.push(matches_3_2_subvec);
-    //all_matches.push(matches_4_5_subvec);
-    //all_matches.push(matches_3_5_subvec);
-    //all_matches.push(matches_5_6_subvec);
+    all_matches.push(matches_5_4_subvec);
+    all_matches.push(matches_5_6_subvec);
     //all_matches.push(matches_5_7_subvec);
     //all_matches.push(matches_6_0_subvec);
     //all_matches.push(matches_6_1_subvec);
     // all_matches.push(matches_6_2_subvec);
     // all_matches.push(matches_6_3_subvec);
     // all_matches.push(matches_6_4_subvec);
-    //all_matches.push(matches_6_11_subvec);
-    //all_matches.push(matches_6_12_subvec);
-    //all_matches.push(matches_6_13_subvec);
-    all_matches.push(matches_6_5_subvec);
-    all_matches.push(matches_6_7_subvec);
+    //all_matches.push(matches_6_5_subvec);
+    //all_matches.push(matches_6_7_subvec);
     //all_matches.push(matches_6_9_subvec);
-    //all_matches.push(matches_6_17_subvec);
     //all_matches.push(matches_7_8_subvec);
-    //all_matches.push(matches_17_20_subvec);
+
 
     for m in &all_matches {
         assert!(m.len() > 0);
     }
     
     let mut camera_data = Vec::<((usize,Perspective),(usize,Perspective))>::with_capacity(10); 
-    //camera_data.push(((0,pinhole_cam_0),(1,pinhole_cam_1)));
-    //camera_data.push(((1,pinhole_cam_1),(2,pinhole_cam_2)));
-    //camera_data.push(((2,pinhole_cam_2),(3,pinhole_cam_3)));
-    //camera_data.push(((3,pinhole_cam_3),(4,pinhole_cam_4)));
-    //camera_data.push(((3,pinhole_cam_3),(2,pinhole_cam_2)));
-    //camera_data.push(((4,pinhole_cam_4),(5,pinhole_cam_5)));camera_data
+    camera_data.push(((5,pinhole_cam_5),(4,pinhole_cam_4)));
+    camera_data.push(((5,pinhole_cam_5),(6,pinhole_cam_6)));
     //camera_data.push(((6,pinhole_cam_6),(0,pinhole_cam_0)));
     //camera_data.push(((6,pinhole_cam_6),(1,pinhole_cam_1)));
     // camera_data.push(((6,pinhole_cam_6),(2,pinhole_cam_2)));
     // camera_data.push(((6,pinhole_cam_6),(3,pinhole_cam_3)));
     //camera_data.push(((6,pinhole_cam_6),(4,pinhole_cam_4)));
-    camera_data.push(((6,pinhole_cam_6),(5,pinhole_cam_5)));
-    camera_data.push(((6,pinhole_cam_6),(7,pinhole_cam_7)));
+    //camera_data.push(((6,pinhole_cam_6),(5,pinhole_cam_5)));
+    //camera_data.push(((6,pinhole_cam_6),(7,pinhole_cam_7)));
     //camera_data.push(((6,pinhole_cam_6),(8,pinhole_cam_8)));
     //camera_data.push(((6,pinhole_cam_6),(9,pinhole_cam_9)));
-    //camera_data.push(((6,pinhole_cam_6),(10,pinhole_cam_10)));
-    //camera_data.push(((6,pinhole_cam_6),(11,pinhole_cam_11)));
-    //camera_data.push(((6,pinhole_cam_6),(12,pinhole_cam_12)));
-    //camera_data.push(((6,pinhole_cam_6),(13,pinhole_cam_13)));
-    //camera_data.push(((6,pinhole_cam_6),(9,pinhole_cam_9)));
-    //camera_data.push(((6,pinhole_cam_6),(17,pinhole_cam_17)));
     //camera_data.push(((7,pinhole_cam_7),(7,pinhole_cam_8)));
-    //camera_data.push(((17,pinhole_cam_17),(20,pinhole_cam_20)));
 
     let mut motion_list =  Vec::<((usize,Matrix4<Float>),(usize,Matrix4<Float>))>::with_capacity(10); 
-    //motion_list.push(((4,cam_extrinsics_4),(5,cam_extrinsics_5)));
+    motion_list.push(((5,cam_extrinsics_5),(4,cam_extrinsics_4)));
+    motion_list.push(((5,cam_extrinsics_5),(6,cam_extrinsics_6)));
     //motion_list.push(((6,cam_extrinsics_6),(1,cam_extrinsics_1)));
     // motion_list.push(((6,cam_extrinsics_6),(2,cam_extrinsics_2)));
     // motion_list.push(((6,cam_extrinsics_6),(3,cam_extrinsics_3)));
     // motion_list.push(((6,cam_extrinsics_6),(4,cam_extrinsics_4)));
     // motion_list.push(((6,cam_extrinsics_6),(5,cam_extrinsics_5)));
-    motion_list.push(((6,cam_extrinsics_6),(7,cam_extrinsics_7)));
-    motion_list.push(((6,cam_extrinsics_6),(8,cam_extrinsics_8)));
+    //motion_list.push(((6,cam_extrinsics_6),(7,cam_extrinsics_7)));
+    //motion_list.push(((6,cam_extrinsics_6),(8,cam_extrinsics_8)));
     //motion_list.push(((6,cam_extrinsics_6),(9,cam_extrinsics_9)));
     //motion_list.push(((7,cam_extrinsics_7),(8,cam_extrinsics_8)));
 
@@ -220,7 +182,8 @@ fn main() -> Result<()> {
     // all_matches.push(vec![Match{feature_one:ImageFeature::new(10.0,10.0), feature_two: ImageFeature::new(300.0,400.0)}]);
 
     //TODO: do filtering inside this
-    let initial_cam_motions = compute_initial_cam_motions(&all_matches, &camera_data, 1.0,epipolar_thresh,positive_principal_distance,normalize_features ,BifocalType::FUNDAMENTAL, EssentialDecomposition::FÖRSNTER);
+    let initial_cam_motions = compute_initial_cam_motions(&all_matches, &camera_data, 1.0,epipolar_thresh,positive_principal_distance,normalize_features ,BifocalType::ESSENTIAL, EssentialDecomposition::FÖRSNTER);
+    let initial_cam_motions_adj = initial_cam_motions.iter().map(|&(id,(h,rot))| (id,(Vector3::<Float>::new(h[1],h[0],h[2]),rot))).collect::<Vec<(u64,(Vector3<Float>,Matrix3<Float>))>>();
     //let initial_cam_motions = compute_initial_cam_motions(&all_matches, &camera_data, 1.0,epipolar_thresh,false, EssentialDecomposition::FÖRSNTER); //check this
     // TODO: Cordiante system different from what we expect
     let relative_motions = OlssenData::get_relative_motions(&motion_list);
@@ -242,17 +205,17 @@ fn main() -> Result<()> {
     }
 
 
-    let initial_cam_poses = Some(initial_cam_motions);
+    let initial_cam_poses = Some(initial_cam_motions_adj);
     //let initial_cam_poses = Some(relative_motions);
     //let initial_cam_poses = None;
 
-    // if initial_cam_poses.is_some(){
-    //     for (_,(t,r)) in initial_cam_poses.as_ref().unwrap() {
-    //         println!("t : {}",t);
-    //         println!("r : {}",r);
-    //         println!("-------");
-    //     }
-    // }
+    if initial_cam_poses.is_some(){
+        for (_,(t,r)) in initial_cam_poses.as_ref().unwrap() {
+            println!("t : {}",t);
+            println!("r : {}",r);
+            println!("-------");
+        }
+    }
 
     let used_matches = &filtered_matches;
     //let used_matches = &all_matches;
@@ -277,14 +240,14 @@ fn main() -> Result<()> {
             step_sizes: vec![1e0],
             max_norm_eps: 1e-30, 
             delta_eps: 1e-30,
-            taus: vec![1e-3],
+            taus: vec![1e0],
             lm: true,
             weighting: false, //TODO: investigate this
             debug: true,
     
             show_octave_result: true,
             loss_function: Box::new(loss::TrivialLoss { eps: 1e-16, approximate_gauss_newton_matrices: false }), 
-            intensity_weighting_function:  Box::new(weighting::HuberWeightForPos {})
+            intensity_weighting_function:  Box::new(weighting::CauchyWeight {})
         };
 
 

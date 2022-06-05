@@ -58,18 +58,17 @@ impl WeightingFunction for HuberWeightForPos {
 }
 
 pub struct CauchyWeight {
-    pub sigma_sqrd: Float
 }
 
 impl WeightingFunction for CauchyWeight {
 
-    fn weight(&self, residuals: &DVector<Float>, index: usize,  _ : Option<Float>) -> Float {
+    fn weight(&self, residuals: &DVector<Float>, index: usize,  variance : Option<Float>) -> Float {
         let res = residuals[index];
-        (1.0 + res.powi(2)/self.sigma_sqrd).ln()
+        (1.0 + res.powi(2)/variance.unwrap()).ln()
     }
 
-    fn estimate_variance(&self, _: &DVector<Float>) -> Option<Float> {
-        None
+    fn estimate_variance(&self, residuals: &DVector<Float>) -> Option<Float> {
+        Some(1.345*estimate_std(residuals))
     }
 
     fn name(&self) -> &str {
