@@ -25,7 +25,7 @@ Primal-Dual Convex For L1 Norm https://candes.su.domains/software/l1magic/downlo
 
 ## Sparse BA (Euclidean + Inverse Depth Param)
 ![ba](doc/ba_3dv_50.gif)
-![door-ba](doc/two_view_ba_door.png)
+![door-ba](doc/three_view_ba_door.png)
 
 
 ## Five Point (Data from Carl Olsson: https://www.maths.lth.se/matematiklth/personal/calle/)
