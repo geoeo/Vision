@@ -5,7 +5,7 @@ extern crate vision;
 use color_eyre::eyre::Result;
 
 use std::fs;
-use na::{Vector3,Matrix3,Matrix4};
+use na::{Vector3,Matrix3,Matrix4, Rotation3};
 use vision::io::olsen_loader::OlssenData;
 use vision::sensors::camera::perspective::Perspective;
 use vision::image::{features::{Match,ImageFeature}, epipolar::{compute_initial_cam_motions, BifocalType,EssentialDecomposition,filter_matches_from_motion}};
@@ -36,16 +36,21 @@ fn main() -> Result<()> {
     let epipolar_thresh = 0.001;
     //let epipolar_thresh = 0.02;
 
-    //Todo: Issue with depth prior + positive_principal_distance
+    
     let olsen_data = OlssenData::new(&olsen_data_path);
     let positive_principal_distance = false;
     let principal_distance_sign = match positive_principal_distance {
         true => 1.0,
         false => -1.0
     };
-    let invert_intrinsics = false; // they are already negative from decomp -> but seem to be inverted otherwise
+    let invert_intrinsics = false; // they are already negative from decomp
     let normalize_features = false;
     let feature_skip_count = 2;
+    let rotation_post_translation = Matrix3::<Float>::new(
+        0.0,1.0,0.0,
+        1.0,0.0,0.0,
+        0.0,0.0,1.0
+    );
 
     let (cam_intrinsics_0,cam_extrinsics_0) = olsen_data.get_camera_intrinsics_extrinsics(0,positive_principal_distance);
     let (cam_intrinsics_1,cam_extrinsics_1) = olsen_data.get_camera_intrinsics_extrinsics(1,positive_principal_distance);
@@ -178,7 +183,7 @@ fn main() -> Result<()> {
 
     //TODO: do filtering inside this
     let initial_cam_motions = compute_initial_cam_motions(&all_matches, &camera_data, 1.0,epipolar_thresh,positive_principal_distance,normalize_features ,BifocalType::ESSENTIAL, EssentialDecomposition::FÖRSNTER);
-    let initial_cam_motions_adjusted = initial_cam_motions.iter().map(|&(id,(h,rot))| (id,(Vector3::<Float>::new(h[1],h[0],h[2]),rot))).collect::<Vec<(u64,(Vector3<Float>,Matrix3<Float>))>>();
+    let initial_cam_motions_adjusted = initial_cam_motions.iter().map(|&(id,(h,rot))| (id,(rotation_post_translation*h,rot))).collect::<Vec<(u64,(Vector3<Float>,Matrix3<Float>))>>();
     //let initial_cam_motions = compute_initial_cam_motions(&all_matches, &camera_data, 1.0,epipolar_thresh,false, EssentialDecomposition::FÖRSNTER); //check this
     // TODO: Cordiante system different from what we expect
     let relative_motions = OlssenData::get_relative_motions(&motion_list);
@@ -242,7 +247,7 @@ fn main() -> Result<()> {
     
             show_octave_result: true,
             loss_function: Box::new(loss::TrivialLoss { eps: 1e-16, approximate_gauss_newton_matrices: false }), 
-            intensity_weighting_function:  Box::new(weighting::CauchyWeight {})
+            intensity_weighting_function:  Box::new(weighting::HuberWeightForPos {})
         };
 
 
