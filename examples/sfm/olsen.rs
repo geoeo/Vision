@@ -242,12 +242,13 @@ fn main() -> Result<()> {
             delta_eps: 1e-30,
             taus: vec![1e0],
             lm: true,
-            weighting: false, //TODO: investigate this
+            weighting: true, //TODO: investigate this
             debug: true,
     
             show_octave_result: true,
             loss_function: Box::new(loss::TrivialLoss { eps: 1e-16, approximate_gauss_newton_matrices: false }), 
-            intensity_weighting_function:  Box::new(weighting::HuberWeightForPos {})
+            //intensity_weighting_function:  Box::new(weighting::HuberWeightForPos {})
+            intensity_weighting_function:  Box::new(weighting::CauchyWeight {c: 0.01})
         };
 
 
