@@ -82,7 +82,7 @@ fn main() -> Result<()> {
 
         show_octave_result: true,
         loss_function: Box::new(loss::TrivialLoss { eps: 1e-16, approximate_gauss_newton_matrices: false }), 
-        intensity_weighting_function:  Box::new(weighting::TrivialWeight {})
+        intensity_weighting_function:  Box::new(weighting::SquaredWeight {})
         //intensity_weighting_function:  Box::new(weighting::HuberWeightForPos {delta:1.0})
     };
 
