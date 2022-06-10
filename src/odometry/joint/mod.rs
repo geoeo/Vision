@@ -197,9 +197,8 @@ fn estimate<Cam: Camera, const R: usize, const C: usize>(
     );
 
     //TODO: check weighting
-    let mut std: Option<Float> = None;
-    if runtime_parameters.weighting {
-        std = runtime_parameters.intensity_weighting_function.estimate_standard_deviation(&runtime_memory.new_residuals);
+    let mut std: Option<Float> = runtime_parameters.intensity_weighting_function.estimate_standard_deviation(&runtime_memory.new_residuals);
+    if std.is_some() {
         calc_weight_vec(
             &runtime_memory.new_residuals,
             std,
@@ -282,7 +281,7 @@ fn estimate<Cam: Camera, const R: usize, const C: usize>(
         &mut runtime_memory.full_jacobian,
     );
 
-    if runtime_parameters.weighting {
+    if std.is_some() {
         weight_jacobian_sparse(&mut runtime_memory.full_jacobian, &runtime_memory.weights_vec);
     }
 
@@ -338,9 +337,9 @@ fn estimate<Cam: Camera, const R: usize, const C: usize>(
             &mut runtime_memory.new_residuals,
             &mut runtime_memory.new_image_gradient_points,
         );
+        std = runtime_parameters.intensity_weighting_function.estimate_standard_deviation(&runtime_memory.new_residuals);
+        if std.is_some() {
 
-        if runtime_parameters.weighting {
-            std = runtime_parameters.intensity_weighting_function.estimate_standard_deviation(&runtime_memory.new_residuals);
             calc_weight_vec(
                 &runtime_memory.new_residuals,
                 std,
@@ -414,7 +413,7 @@ fn estimate<Cam: Camera, const R: usize, const C: usize>(
 
     
 
-            if runtime_parameters.weighting {
+            if std.is_some() {
                 weight_jacobian_sparse(&mut runtime_memory.full_jacobian, &runtime_memory.weights_vec);
             }
 

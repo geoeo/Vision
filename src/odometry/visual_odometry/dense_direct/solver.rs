@@ -145,9 +145,8 @@ fn estimate<C : Camera, const T: usize>(
         &mut runtime_memory.image_gradient_points,
     );
 
-    let mut std: Option<Float> = None;
-    if runtime_parameters.weighting {
-        std = runtime_parameters.intensity_weighting_function.estimate_standard_deviation(&runtime_memory.new_residuals);
+    let mut std = runtime_parameters.intensity_weighting_function.estimate_standard_deviation(&runtime_memory.new_residuals);
+    if std.is_some() {
         calc_weight_vec(
             &runtime_memory.new_residuals,
             std,
@@ -238,9 +237,9 @@ fn estimate<C : Camera, const T: usize>(
             &mut runtime_memory.new_image_gradient_points,
         );
 
+        std = runtime_parameters.intensity_weighting_function.estimate_standard_deviation(&runtime_memory.new_residuals);
+        if std.is_some() {
 
-        if runtime_parameters.weighting {
-            std = runtime_parameters.intensity_weighting_function.estimate_standard_deviation(&runtime_memory.new_residuals);
             calc_weight_vec(
                 &runtime_memory.new_residuals,
                 std,
@@ -284,7 +283,7 @@ fn estimate<C : Camera, const T: usize>(
                 &mut runtime_memory.full_jacobian,
             );
 
-            if runtime_parameters.weighting {
+            if std.is_some() {
                 weight_jacobian_sparse(&mut runtime_memory.full_jacobian, &runtime_memory.weights_vec);
             }
 

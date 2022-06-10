@@ -33,8 +33,8 @@ fn main() -> Result<()> {
     
     let olsen_data_path = data_set_door_path;
     let depth_prior = -1.0;
-    let epipolar_thresh = 0.001;
-    //let epipolar_thresh = 0.02;
+    let epipolar_thresh = 0.0008;
+    //let epipolar_thresh = 0.01;
 
     
     let olsen_data = OlssenData::new(&olsen_data_path);
@@ -43,7 +43,7 @@ fn main() -> Result<()> {
         true => 1.0,
         false => -1.0
     };
-    let invert_intrinsics = false; // they are already negative from decomp
+    let invert_intrinsics = true; // they are already negative from decomp
     let normalize_features = false;
     let feature_skip_count = 2;
     let rotation_post_translation = Matrix3::<Float>::new(
@@ -156,7 +156,7 @@ fn main() -> Result<()> {
 
     let mut motion_list =  Vec::<((usize,Matrix4<Float>),(usize,Matrix4<Float>))>::with_capacity(10); 
     motion_list.push(((5,cam_extrinsics_5),(4,cam_extrinsics_4)));
-    motion_list.push(((5,cam_extrinsics_5),(6,cam_extrinsics_6)));
+    //motion_list.push(((5,cam_extrinsics_5),(6,cam_extrinsics_6)));
     //motion_list.push(((6,cam_extrinsics_6),(1,cam_extrinsics_1)));
     // motion_list.push(((6,cam_extrinsics_6),(2,cam_extrinsics_2)));
     // motion_list.push(((6,cam_extrinsics_6),(3,cam_extrinsics_3)));
@@ -220,15 +220,16 @@ fn main() -> Result<()> {
     let used_matches = &filtered_matches;
     //let used_matches = &all_matches;
 
-    for i in 0..camera_data.len() {
-        let ((id_a,_),(id_b,_)) = camera_data[i];
-        let intensity = 3.0*(olsen_data.images[id_a].buffer.max() as Float)/4.0;
-        let matches_vis = match used_matches.len() {
-            0 => visualize::display_matches_for_pyramid(&olsen_data.images[id_a],&olsen_data.images[id_b],&Vec::<Match<ImageFeature>>::new(),true,intensity ,1.0),
-            _ => visualize::display_matches_for_pyramid(&olsen_data.images[id_a],&olsen_data.images[id_b],&used_matches[i],true,intensity ,1.0)
-        };
-        matches_vis.to_image().save(format!("{}match_disp_{}_{}_orb_ba.jpg",olsen_data_path,id_a,id_b)).unwrap();
-    }
+    // This causes a crash on a lot of points
+    // for i in 0..camera_data.len() {
+    //     let ((id_a,_),(id_b,_)) = camera_data[i];
+    //     let intensity = 3.0*(olsen_data.images[id_a].buffer.max() as Float)/4.0;
+    //     let matches_vis = match used_matches.len() {
+    //         0 => visualize::display_matches_for_pyramid(&olsen_data.images[id_a],&olsen_data.images[id_b],&Vec::<Match<ImageFeature>>::new(),true,intensity ,1.0),
+    //         _ => visualize::display_matches_for_pyramid(&olsen_data.images[id_a],&olsen_data.images[id_b],&used_matches[i],true,intensity ,1.0)
+    //     };
+    //     matches_vis.to_image().save(format!("{}match_disp_{}_{}_orb_ba.jpg",olsen_data_path,id_a,id_b)).unwrap();
+    // }
 
 
     if used_matches.len() > 0 {
@@ -236,18 +237,16 @@ fn main() -> Result<()> {
         let runtime_parameters = RuntimeParameters {
             pyramid_scale: 1.0,
             max_iterations: vec![160; 1],
-            eps: vec![1e-6],
+            eps: vec![1e-12],
             step_sizes: vec![1e0],
             max_norm_eps: 1e-30, 
             delta_eps: 1e-30,
-            taus: vec![1e0],
+            taus: vec![1e-3],
             lm: true,
-            weighting: true, //TODO: investigate this
             debug: true,
-    
             show_octave_result: true,
             loss_function: Box::new(loss::TrivialLoss { eps: 1e-16, approximate_gauss_newton_matrices: false }), 
-            intensity_weighting_function:  Box::new(weighting::BisquareWeight {})
+            intensity_weighting_function:  Box::new(weighting::SquaredWeight {})
             //intensity_weighting_function:  Box::new(weighting::CauchyWeight {c: 0.01})
         };
 

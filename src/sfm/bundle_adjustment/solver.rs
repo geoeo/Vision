@@ -131,9 +131,8 @@ pub fn optimize<C : Camera,L: Landmark<T> + Copy + Clone, const T: usize>(state:
     compute_residual(&estimated_features, observed_features, &mut residuals);
     compute_jacobian(&state,&cameras,&mut jacobian);
 
-    let mut std: Option<Float> = None;
-    if runtime_parameters.weighting {
-        std = runtime_parameters.intensity_weighting_function.estimate_standard_deviation(&residuals);
+    let mut std: Option<Float> = runtime_parameters.intensity_weighting_function.estimate_standard_deviation(&residuals);
+    if std.is_some() {
         calc_weight_vec(
             &residuals,
             std,
@@ -197,16 +196,17 @@ pub fn optimize<C : Camera,L: Landmark<T> + Copy + Clone, const T: usize>(state:
 
         get_estimated_features(&new_state, cameras,observed_features, &mut new_estimated_features);
         compute_residual(&new_estimated_features, observed_features, &mut new_residuals);
-        if runtime_parameters.weighting {
-            std = runtime_parameters.intensity_weighting_function.estimate_standard_deviation(&new_residuals);
+        std = runtime_parameters.intensity_weighting_function.estimate_standard_deviation(&residuals);
+        if std.is_some() {
             calc_weight_vec(
                 &new_residuals,
                 std,
                 &runtime_parameters.intensity_weighting_function,
                 &mut weights_vec,
             );
+            weight_residuals_sparse(&mut new_residuals, &weights_vec);
         }
-        weight_residuals_sparse(&mut new_residuals, &weights_vec);
+
 
         let new_cost = compute_cost(&new_residuals,&runtime_parameters.intensity_weighting_function, std);
         let cost_diff = cost-new_cost;
@@ -233,7 +233,7 @@ pub fn optimize<C : Camera,L: Landmark<T> + Copy + Clone, const T: usize>(state:
 
             jacobian.fill(0.0);
             compute_jacobian(&state,&cameras,&mut jacobian);
-            if runtime_parameters.weighting {
+            if std.is_some() {
                 weight_jacobian_sparse(&mut jacobian, &weights_vec);
             }
 
