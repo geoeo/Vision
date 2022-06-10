@@ -241,7 +241,7 @@ fn main() -> Result<()> {
             step_sizes: vec![1e0],
             max_norm_eps: 1e-30, 
             delta_eps: 1e-30,
-            taus: vec![1e-3],
+            taus: vec![1e0],
             lm: true,
             debug: true,
             show_octave_result: true,
