@@ -159,7 +159,6 @@ pub fn optimize<C : Camera,L: Landmark<T> + Copy + Clone, const T: usize>(state:
         false => runtime_parameters.step_sizes[0]
     };
 
-    
     let mut cost = compute_cost(&residuals,&runtime_parameters.intensity_weighting_function, std);
     let mut iteration_count = 0;
     while ((!runtime_parameters.lm && (cost.sqrt() > runtime_parameters.eps[0])) || 

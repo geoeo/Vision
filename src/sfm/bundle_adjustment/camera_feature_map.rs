@@ -199,7 +199,6 @@ impl CameraFeatureMap {
                     for j in 0..point_ids.len() {
                         let point_id = point_ids[j];
                         let mut point = Xs.fixed_slice::<3, 1>(0, j).into_owned();
-                        //println!("{}",point);
                         point /= point[2]*depth_prior;
                         triangualted_landmarks[point_id] = EuclideanLandmark::from_state(point);
                         // if point[0].abs() > 1.0 || point[1].abs() > 1.0 {
