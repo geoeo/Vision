@@ -51,7 +51,7 @@ fn main() {
 
         show_octave_result: true,
         loss_function: Box::new(loss::SoftOneLoss { eps: 1e-16, approximate_gauss_newton_matrices: true }), 
-        intensity_weighting_function:  Box::new(weighting::HuberWeightForPos {})
+        intensity_weighting_function:  Box::new(weighting::HuberWeight {})
     };
 
     let mut se3_est = vec![Isometry3::<Float>::identity()];

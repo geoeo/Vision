@@ -32,16 +32,16 @@ impl Display for dyn WeightingFunction {
 }
 
 //TODO: revisit these and include references for M-estimators
-pub struct HuberWeightForPos {
+pub struct HuberWeight {
 }
 
-impl WeightingFunction for HuberWeightForPos {
+impl WeightingFunction for HuberWeight {
 
     fn weight(&self, residuals: &DVector<Float>, index: usize,  std: Option<Float>) -> Float {
         let res_abs = residuals[index].abs();
         let k = std.expect("k has to have been computed for Huber Weight");
         match res_abs {
-            v if (v <= k || k == 0.0) => 1.0,
+            v if v <= k => 1.0,
             _ => k/res_abs
         }
     }
@@ -51,7 +51,7 @@ impl WeightingFunction for HuberWeightForPos {
     }
 
     fn name(&self) -> &str {
-        "HuberWeightForPos"
+        "HuberWeight"
     }
 
     fn cost(&self, residuals: &DVector<Float>, std: Option<Float>) -> Float {
@@ -93,6 +93,46 @@ impl WeightingFunction for CauchyWeight {
     }
 
 }
+
+pub struct BisquareWeight {
+    
+}
+
+impl WeightingFunction for BisquareWeight {
+
+    fn weight(&self, residuals: &DVector<Float>, index: usize,  std: Option<Float>) -> Float {
+        let e = residuals[index];
+        let e_abs = e.abs();
+        let k = std.expect("k has to have been computed for Huber Weight");
+        match e_abs {
+            v if v <= k => (1.0 - (e/k).powi(2)).powi(2),
+            _ => 0.0
+        }
+    }
+
+    fn estimate_standard_deviation(&self, residuals: &DVector<Float>) -> Option<Float> {
+        Some(4.685*estimate_std(residuals))
+    }
+
+    fn name(&self) -> &str {
+        "Bisquare"
+    }
+
+    fn cost(&self, residuals: &DVector<Float>, std: Option<Float>) -> Float {
+        let k = std.expect("k has to have been computed for Huber Weight");
+        let factor = k.powi(2)/6.0;
+        residuals.map(|e| {
+            let e_abs = e.abs();
+            match e_abs {
+                v if v <= k => factor*(1.0-(1.0-(e/k).powi(2)).powi(3)),
+                v if v > k => factor,
+                _ => 0.0
+            }
+        }).sum()
+    }
+
+}
+
 
 
 pub struct SquaredWeight {
