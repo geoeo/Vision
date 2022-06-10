@@ -119,7 +119,7 @@ impl WeightingFunction for BisquareWeight {
     }
 
     fn cost(&self, residuals: &DVector<Float>, std: Option<Float>) -> Float {
-        let k = std.expect("k has to have been computed for Huber Weight");
+        let k = std.expect("k has to have been computed for BisquareWeight Weight");
         let factor = k.powi(2)/6.0;
         residuals.map(|e| {
             let e_abs = e.abs();
