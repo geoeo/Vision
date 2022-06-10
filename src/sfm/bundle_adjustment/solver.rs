@@ -131,9 +131,12 @@ pub fn optimize<C : Camera,L: Landmark<T> + Copy + Clone, const T: usize>(state:
     compute_residual(&estimated_features, observed_features, &mut residuals);
     compute_jacobian(&state,&cameras,&mut jacobian);
 
+    let mut std: Option<Float> = None;
     if runtime_parameters.weighting {
+        std = runtime_parameters.intensity_weighting_function.estimate_standard_deviation(&residuals);
         calc_weight_vec(
             &residuals,
+            std,
             &runtime_parameters.intensity_weighting_function,
             &mut weights_vec,
         );
@@ -157,7 +160,7 @@ pub fn optimize<C : Camera,L: Landmark<T> + Copy + Clone, const T: usize>(state:
     };
 
     
-    let mut cost = compute_cost(&residuals,&runtime_parameters.loss_function);
+    let mut cost = compute_cost(&residuals,&runtime_parameters.intensity_weighting_function, std);
     let mut iteration_count = 0;
     while ((!runtime_parameters.lm && (cost.sqrt() > runtime_parameters.eps[0])) || 
     (runtime_parameters.lm && delta_norm > delta_thresh && max_norm_delta > runtime_parameters.max_norm_eps && cost.sqrt() > runtime_parameters.eps[0] ))  && iteration_count < max_iterations  {
@@ -196,15 +199,17 @@ pub fn optimize<C : Camera,L: Landmark<T> + Copy + Clone, const T: usize>(state:
         get_estimated_features(&new_state, cameras,observed_features, &mut new_estimated_features);
         compute_residual(&new_estimated_features, observed_features, &mut new_residuals);
         if runtime_parameters.weighting {
+            std = runtime_parameters.intensity_weighting_function.estimate_standard_deviation(&residuals);
             calc_weight_vec(
                 &new_residuals,
+                std,
                 &runtime_parameters.intensity_weighting_function,
                 &mut weights_vec,
             );
         }
         weight_residuals_sparse(&mut new_residuals, &weights_vec);
 
-        let new_cost = compute_cost(&new_residuals,&runtime_parameters.loss_function);
+        let new_cost = compute_cost(&new_residuals,&runtime_parameters.intensity_weighting_function, std);
         let cost_diff = cost-new_cost;
         let gain_ratio = cost_diff/gain_ratio_denom;
         if runtime_parameters.debug {

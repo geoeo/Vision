@@ -13,11 +13,11 @@ use crate::Float;
 
 pub fn calc_weight_vec<D, S1>(
     residuals: &DVector<Float>,
+    std: Option<Float>,
     weight_function: &Box<dyn WeightingFunction>,
     weights_vec: &mut Vector<Float,D,S1>) -> () where 
         D: Dim,
         S1: StorageMut<Float, D>{
-    let std = weight_function.estimate_standard_deviation(residuals);
     for i in 0..residuals.len() {
         weights_vec[i] = weight_function.weight(residuals,i,std).sqrt();
     }
@@ -42,7 +42,7 @@ pub fn weight_residuals_sparse<D, S1,S2>(
 //TODO: performance offender
 pub fn weight_jacobian_sparse<R,C,S1,S2>(
     jacobian: &mut Matrix<Float, R, C, S1>,
-    weights_vec: &Vector<Float,R,S2>,) -> () where
+    weights_vec: &Vector<Float,R,S2>) -> () where
     R: Dim,
     C: Dim ,
     S1: StorageMut<Float, R,C> ,
@@ -71,9 +71,8 @@ pub fn scale_to_diagonal<const T: usize>(
 
 }
 
-
-pub fn compute_cost(residuals: &DVector<Float>, loss_function: &Box<dyn LossFunction>) -> Float {
-    loss_function.cost((residuals.transpose() * residuals)[0])
+pub fn compute_cost(residuals: &DVector<Float>, weight_function: &Box<dyn WeightingFunction>, std: Option<Float>) -> Float {
+    weight_function.cost(residuals, std)
 }
 
 pub fn weight_residuals<const T: usize>(residual: &mut SVector<Float, T>, weights: &SMatrix<Float,T,T>) -> () where Const<T>: DimMin<Const<T>, Output = Const<T>> {

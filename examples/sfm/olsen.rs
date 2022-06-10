@@ -240,15 +240,15 @@ fn main() -> Result<()> {
             step_sizes: vec![1e0],
             max_norm_eps: 1e-30, 
             delta_eps: 1e-30,
-            taus: vec![1e0],
+            taus: vec![1e3],
             lm: true,
             weighting: true, //TODO: investigate this
             debug: true,
     
             show_octave_result: true,
             loss_function: Box::new(loss::TrivialLoss { eps: 1e-16, approximate_gauss_newton_matrices: false }), 
-            //intensity_weighting_function:  Box::new(weighting::HuberWeightForPos {})
-            intensity_weighting_function:  Box::new(weighting::CauchyWeight {c: 0.01})
+            intensity_weighting_function:  Box::new(weighting::HuberWeightForPos {})
+            //intensity_weighting_function:  Box::new(weighting::CauchyWeight {c: 0.01})
         };
 
 

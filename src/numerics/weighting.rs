@@ -7,8 +7,9 @@ use crate::numerics::estimate_std;
 
 
 pub trait WeightingFunction {
-    fn weight(&self, residuals: &DVector<Float>, index: usize, variance: Option<Float>) -> Float;
+    fn weight(&self, residuals: &DVector<Float>, index: usize, std: Option<Float>) -> Float;
     fn estimate_standard_deviation(&self, residuals: &DVector<Float>) -> Option<Float>;
+    fn cost(&self, residuals: &DVector<Float>, std: Option<Float>) -> Float;
     fn name(&self) -> &str;
 }
 
@@ -31,7 +32,6 @@ impl Display for dyn WeightingFunction {
 }
 
 //TODO: revisit these and include references for M-estimators
-//TODO: make delta changeable at runtime
 pub struct HuberWeightForPos {
 }
 
@@ -41,7 +41,7 @@ impl WeightingFunction for HuberWeightForPos {
         let res_abs = residuals[index].abs();
         let k = std.expect("k has to have been computed for Huber Weight");
         match res_abs {
-            res_abs if (res_abs <= k || k == 0.0) => 1.0,
+            v if (v <= k || k == 0.0) => 1.0,
             _ => k/res_abs
         }
     }
@@ -52,6 +52,18 @@ impl WeightingFunction for HuberWeightForPos {
 
     fn name(&self) -> &str {
         "HuberWeightForPos"
+    }
+
+    fn cost(&self, residuals: &DVector<Float>, std: Option<Float>) -> Float {
+        let k = std.expect("k has to have been computed for Huber Weight");
+        residuals.map(|e| {
+            let e_abs = e.abs();
+            match e_abs {
+                v if v <= k => e.powi(2)/2.0,
+                v if v > k => k*(v - (e/2.0)),
+                _ => 0.0
+            }
+        }).sum()
     }
 
 }
@@ -75,13 +87,18 @@ impl WeightingFunction for CauchyWeight {
         "CauchyWeight"
     }
 
+    fn cost(&self, residuals: &DVector<Float>, _: Option<Float>) -> Float {
+        let factor = self.c.powi(2)/2.0;
+        factor*residuals.map(|e| (1.0+ e.powi(2)/self.c).ln()).sum()
+    }
+
 }
 
 
-pub struct TrivialWeight {
+pub struct SquaredWeight {
 }
 
-impl WeightingFunction for TrivialWeight {
+impl WeightingFunction for SquaredWeight {
 
     fn weight(&self,_residuals: &DVector<Float>, _index: usize,  _: Option<Float>) -> Float {
         1.0
@@ -95,6 +112,10 @@ impl WeightingFunction for TrivialWeight {
         "TrivialWeight"
     }
 
+    fn cost(&self, residuals: &DVector<Float>, _: Option<Float>) -> Float {
+        (residuals.transpose() * residuals)[0]
+    }
+
 }
 
 pub struct TDistWeight {
@@ -103,6 +124,7 @@ pub struct TDistWeight {
     pub eps: Float
 }
 
+//From Engels Paper -> Check cost
 impl TDistWeight {
     fn estimate_t_dist_variance(&self, residuals: &DVector<Float>, t_dist_nu: Float, max_it: usize, eps: Float) -> Float {
         let mut it = 0;
@@ -147,6 +169,10 @@ impl WeightingFunction for TDistWeight {
 
     fn name(&self) -> &str {
         "T-Dist"
+    }
+
+    fn cost(&self, residuals: &DVector<Float>, _: Option<Float>) -> Float {
+        (residuals.transpose() * residuals)[0]
     }
 
 }
