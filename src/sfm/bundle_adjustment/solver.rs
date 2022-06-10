@@ -199,7 +199,7 @@ pub fn optimize<C : Camera,L: Landmark<T> + Copy + Clone, const T: usize>(state:
         get_estimated_features(&new_state, cameras,observed_features, &mut new_estimated_features);
         compute_residual(&new_estimated_features, observed_features, &mut new_residuals);
         if runtime_parameters.weighting {
-            std = runtime_parameters.intensity_weighting_function.estimate_standard_deviation(&residuals);
+            std = runtime_parameters.intensity_weighting_function.estimate_standard_deviation(&new_residuals);
             calc_weight_vec(
                 &new_residuals,
                 std,
@@ -211,9 +211,12 @@ pub fn optimize<C : Camera,L: Landmark<T> + Copy + Clone, const T: usize>(state:
 
         let new_cost = compute_cost(&new_residuals,&runtime_parameters.intensity_weighting_function, std);
         let cost_diff = cost-new_cost;
-        let gain_ratio = cost_diff/gain_ratio_denom;
+        let gain_ratio = match gain_ratio_denom {
+            v if v != 0.0 => cost_diff/v,
+            _ => 0.0
+        };
         if runtime_parameters.debug {
-            println!("cost: {}, new cost: {}, mu: {:?}, gain: {} , nu: {}",cost,new_cost, mu, gain_ratio, nu);
+            println!("cost: {}, new cost: {}, mu: {:?}, gain: {} , nu: {}, std: {:?}",cost,new_cost, mu, gain_ratio, nu, std);
         }
 
         if gain_ratio > 0.0  || !runtime_parameters.lm {
