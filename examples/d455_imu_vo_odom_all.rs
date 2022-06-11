@@ -72,7 +72,6 @@ fn main() {
         delta_eps: 1e-5,
         taus: vec!(1e-6,1e-3,1e-3),
         lm: true,
-        weighting: true,
         debug: false,
 
         show_octave_result: true,
