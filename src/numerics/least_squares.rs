@@ -72,7 +72,7 @@ pub fn scale_to_diagonal<const T: usize>(
 }
 
 pub fn compute_cost(residuals: &DVector<Float>, weight_function: &Box<dyn WeightingFunction>, std: Option<Float>) -> Float {
-    0.5*weight_function.cost(residuals, std)
+    weight_function.cost(residuals, std)
 }
 
 pub fn weight_residuals<const T: usize>(residual: &mut SVector<Float, T>, weights: &SMatrix<Float,T,T>) -> () where Const<T>: DimMin<Const<T>, Output = Const<T>> {
@@ -150,12 +150,13 @@ pub fn gauss_newton_step_with_loss_and_schur(
 }
 
 #[allow(non_snake_case)]
-pub fn gauss_newton_step_with_schur<R, C,S1, S2,StorageTargetArrow,StorageTargetResidual,const LANDMARK_PARAM_SIZE: usize, const CAMERA_PARAM_SIZE: usize>(
+pub fn gauss_newton_step_with_schur<R, C,S1, S2,StorageTargetArrow, StorageTargetResidual, const LANDMARK_PARAM_SIZE: usize, const CAMERA_PARAM_SIZE: usize>(
     target_arrowhead: &mut Matrix<Float,C,C,StorageTargetArrow>, 
     target_arrowhead_residual: &mut Vector<Float,C,StorageTargetResidual>, 
     target_perturb: &mut Vector<Float,C,StorageTargetResidual>, 
     residuals: &Vector<Float, R,S1>, 
     jacobian: &Matrix<Float,R,C,S2>,
+    intensity_weighting_function: &Box<dyn WeightingFunction>,
     mu: Option<Float>, 
     tau: Float,
     n_cams: usize, 
@@ -167,13 +168,20 @@ pub fn gauss_newton_step_with_schur<R, C,S1, S2,StorageTargetArrow,StorageTarget
         S2: Storage<Float, R, C>,
         StorageTargetArrow: StorageMut<Float, C, C>,
         StorageTargetResidual: StorageMut<Float, C, U1>,
-        DefaultAllocator: Allocator<Float, R, C>+  Allocator<Float, C, R> + Allocator<Float, C, C> + Allocator<Float, C> + Allocator<Float, Const<1_usize>, C>  {
+        DefaultAllocator: Allocator<Float, R, C>+  Allocator<Float, C, R> + Allocator<Float, C, C> + Allocator<Float, C> + Allocator<Float, Const<1_usize>, C> + Allocator<f64, Const<1_usize>, R>  {
 
 
         let u_span = CAMERA_PARAM_SIZE*n_cams;
         let v_span = LANDMARK_PARAM_SIZE*n_points;
 
         let diag_max = compute_arrow_head_and_residuals::<_,_,_,_,_,_,LANDMARK_PARAM_SIZE,CAMERA_PARAM_SIZE>(target_arrowhead,target_arrowhead_residual,jacobian,residuals,mu,tau,n_cams,n_points);
+        let mu_val = match mu {
+            None => tau*diag_max,
+            Some(v) => v
+        };
+        for d_i in 0..target_arrowhead.ncols() {
+            target_arrowhead[(d_i,d_i)]+= mu_val;
+        }
 
         let U_star = target_arrowhead.slice((0,0),(u_span,u_span));
         let V_star = target_arrowhead.slice((u_span,u_span),(v_span,v_span));
@@ -209,18 +217,21 @@ pub fn gauss_newton_step_with_schur<R, C,S1, S2,StorageTargetArrow,StorageTarget
                 target_perturb.slice_mut((0,0),(u_span,1)).copy_from(&h_a);
                 target_perturb.slice_mut((u_span,0),(v_span,1)).copy_from(&h_b);
             
-                let mu_val = match mu {
-                    None => tau*diag_max,
-                    Some(v) => v
-                };
-                let scaled_target_res = target_perturb.scale(mu_val);
-        
 
-                let g_1 = (&target_perturb).transpose()*(&scaled_target_res);
-                let g_2 = (&target_perturb).transpose()*(target_arrowhead_residual as  &Vector<Float,C,StorageTargetResidual>);
-                let gain_ratio_denom = 0.5*(g_1+g_2);
+                //TODO: maybe move this into weighting instead of boolean flag call
+                let gain_ratio_denom = match intensity_weighting_function.is_square() {
+                    true => (((&target_perturb).transpose())*((&jacobian.transpose())))[0],
+                    false => {
+                        let scaled_target_res = target_perturb.scale(mu_val);
+                        let g_1 = (&target_perturb).transpose()*(&scaled_target_res);
+                        let g_2 = (&target_perturb).transpose()*(target_arrowhead_residual as  &Vector<Float,C,StorageTargetResidual>);
+                        let gain = 0.5*(g_1+g_2);
+                        gain[0]
+                    }
+                };
+
                 
-                Some((gain_ratio_denom[0], mu_val))
+                Some((gain_ratio_denom, mu_val))
             }
             _ => None
         }

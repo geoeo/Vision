@@ -10,6 +10,7 @@ pub trait WeightingFunction {
     fn weight(&self, residuals: &DVector<Float>, index: usize, std: Option<Float>) -> Float;
     fn estimate_standard_deviation(&self, residuals: &DVector<Float>) -> Option<Float>;
     fn cost(&self, residuals: &DVector<Float>, std: Option<Float>) -> Float;
+    fn is_square(&self) -> bool;
     fn name(&self) -> &str;
 }
 
@@ -54,6 +55,10 @@ impl WeightingFunction for HuberWeight {
         "HuberWeight"
     }
 
+    fn is_square(&self) -> bool {
+        false
+    }
+
     fn cost(&self, residuals: &DVector<Float>, std: Option<Float>) -> Float {
         let k = std.expect("k has to have been computed for Huber Weight");
         residuals.map(|e| {
@@ -87,6 +92,10 @@ impl WeightingFunction for CauchyWeight {
         "CauchyWeight"
     }
 
+    fn is_square(&self) -> bool {
+        false
+    }
+
     fn cost(&self, residuals: &DVector<Float>, _: Option<Float>) -> Float {
         let factor = self.c.powi(2)/2.0;
         factor*residuals.map(|e| (1.0+ e.powi(2)/self.c).ln()).sum()
@@ -116,6 +125,9 @@ impl WeightingFunction for BisquareWeight {
 
     fn name(&self) -> &str {
         "Bisquare"
+    }
+    fn is_square(&self) -> bool {
+        false
     }
 
     fn cost(&self, residuals: &DVector<Float>, std: Option<Float>) -> Float {
@@ -152,8 +164,12 @@ impl WeightingFunction for SquaredWeight {
         "TrivialWeight"
     }
 
+    fn is_square(&self) -> bool {
+        true
+    }
+
     fn cost(&self, residuals: &DVector<Float>, _: Option<Float>) -> Float {
-        (residuals.transpose() * residuals)[0]
+        0.5*(residuals.transpose() * residuals)[0]
     }
 
 }
@@ -210,6 +226,11 @@ impl WeightingFunction for TDistWeight {
     fn name(&self) -> &str {
         "T-Dist"
     }
+
+    fn is_square(&self) -> bool {
+        false
+    }
+
 
     fn cost(&self, residuals: &DVector<Float>, _: Option<Float>) -> Float {
         (residuals.transpose() * residuals)[0]
