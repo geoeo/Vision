@@ -218,20 +218,13 @@ pub fn gauss_newton_step_with_schur<R, C,S1, S2,StorageTargetArrow, StorageTarge
                 target_perturb.slice_mut((u_span,0),(v_span,1)).copy_from(&h_b);
             
 
-                //TODO: maybe move this into weighting instead of boolean flag call
-                let gain_ratio_denom = match intensity_weighting_function.is_square() {
-                    true => (((&target_perturb).transpose())*((&jacobian.transpose())))[0],
-                    false => {
-                        let scaled_target_res = target_perturb.scale(mu_val);
-                        let g_1 = (&target_perturb).transpose()*(&scaled_target_res);
-                        let g_2 = (&target_perturb).transpose()*(target_arrowhead_residual as  &Vector<Float,C,StorageTargetResidual>);
-                        let gain = 0.5*(g_1+g_2);
-                        gain[0]
-                    }
-                };
+                let scaled_target_res = target_perturb.scale(mu_val);
+                let g_1 = (&target_perturb).transpose()*(&scaled_target_res);
+                let g_2 = (&target_perturb).transpose()*(target_arrowhead_residual as  &Vector<Float,C,StorageTargetResidual>);
+                let gain_ratio_denom = 0.5*(g_1+g_2);
 
                 
-                Some((gain_ratio_denom, mu_val))
+                Some((gain_ratio_denom[0], mu_val))
             }
             _ => None
         }
