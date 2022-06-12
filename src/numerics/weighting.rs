@@ -55,15 +55,17 @@ impl WeightingFunction for HuberWeight {
     }
 
     fn cost(&self, residuals: &DVector<Float>, std: Option<Float>) -> Float {
-        let k = std.expect("k has to have been computed for Huber Weight");
-        residuals.map(|e| {
-            let e_abs = e.abs();
-            match e_abs {
-                v if v <= k => e.powi(2)/2.0,
-                v if v > k => k*(v - (e/2.0)),
-                _ => 0.0
-            }
-        }).sum()
+        // let k = std.expect("k has to have been computed for Huber Weight");
+        // residuals.map(|e| {
+        //     let e_abs = e.abs();
+        //     match e_abs {
+        //         v if v <= k => e.powi(2)/2.0,
+        //         v if v > k => k*(v - (e/2.0)),
+        //         _ => 0.0
+        //     }
+        // }).sum()
+
+        0.5*(residuals.transpose() * residuals)[0]
     }
 
 }
@@ -88,8 +90,10 @@ impl WeightingFunction for CauchyWeight {
     }
 
     fn cost(&self, residuals: &DVector<Float>, _: Option<Float>) -> Float {
-        let factor = self.c.powi(2)/2.0;
-        factor*residuals.map(|e| (1.0+ e.powi(2)/self.c).ln()).sum()
+        // let factor = self.c.powi(2)/2.0;
+        // factor*residuals.map(|e| (1.0+ e.powi(2)/self.c).ln()).sum()
+
+        0.5*(residuals.transpose() * residuals)[0]
     }
 
 }
@@ -119,16 +123,18 @@ impl WeightingFunction for BisquareWeight {
     }
 
     fn cost(&self, residuals: &DVector<Float>, std: Option<Float>) -> Float {
-        let k = std.expect("k has to have been computed for BisquareWeight Weight");
-        let factor = k.powi(2)/6.0;
-        residuals.map(|e| {
-            let e_abs = e.abs();
-            match e_abs {
-                v if v <= k => factor*(1.0-(1.0-(e/k).powi(2)).powi(3)),
-                v if v > k => factor,
-                _ => 0.0
-            }
-        }).sum()
+        // let k = std.expect("k has to have been computed for BisquareWeight Weight");
+        // let factor = k.powi(2)/6.0;
+        // residuals.map(|e| {
+        //     let e_abs = e.abs();
+        //     match e_abs {
+        //         v if v <= k => factor*(1.0-(1.0-(e/k).powi(2)).powi(3)),
+        //         v if v > k => factor,
+        //         _ => 0.0
+        //     }
+        // }).sum()
+
+        0.5*(residuals.transpose() * residuals)[0]
     }
 
 }
