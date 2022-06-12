@@ -33,7 +33,7 @@ fn main() -> Result<()> {
     
     let olsen_data_path = data_set_door_path;
     let depth_prior = -1.0;
-    let epipolar_thresh = 0.0008;
+    let epipolar_thresh = 0.001;
     //let epipolar_thresh = 0.01;
 
     
@@ -241,12 +241,12 @@ fn main() -> Result<()> {
             step_sizes: vec![1e0],
             max_norm_eps: 1e-30, 
             delta_eps: 1e-30,
-            taus: vec![1e0],
+            taus: vec![1e-3],
             lm: true,
             debug: true,
             show_octave_result: true,
             loss_function: Box::new(loss::TrivialLoss { eps: 1e-16, approximate_gauss_newton_matrices: false }), 
-            intensity_weighting_function:  Box::new(weighting::SquaredWeight {})
+            intensity_weighting_function:  Box::new(weighting::SquaredWeight {}) // check lm for non square weight
             //intensity_weighting_function:  Box::new(weighting::CauchyWeight {c: 0.01})
         };
 

@@ -72,7 +72,7 @@ pub fn scale_to_diagonal<const T: usize>(
 }
 
 pub fn compute_cost(residuals: &DVector<Float>, weight_function: &Box<dyn WeightingFunction>, std: Option<Float>) -> Float {
-    weight_function.cost(residuals, std)
+    0.5*weight_function.cost(residuals, std)
 }
 
 pub fn weight_residuals<const T: usize>(residual: &mut SVector<Float, T>, weights: &SMatrix<Float,T,T>) -> () where Const<T>: DimMin<Const<T>, Output = Const<T>> {
@@ -218,7 +218,7 @@ pub fn gauss_newton_step_with_schur<R, C,S1, S2,StorageTargetArrow,StorageTarget
 
                 let g_1 = (&target_perturb).transpose()*(&scaled_target_res);
                 let g_2 = (&target_perturb).transpose()*(target_arrowhead_residual as  &Vector<Float,C,StorageTargetResidual>);
-                let gain_ratio_denom = g_1+g_2;
+                let gain_ratio_denom = 0.5*(g_1+g_2);
                 
                 Some((gain_ratio_denom[0], mu_val))
             }
