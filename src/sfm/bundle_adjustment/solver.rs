@@ -177,7 +177,6 @@ pub fn optimize<C : Camera,L: Landmark<T> + Copy + Clone, const T: usize>(state:
                 &mut delta,
                 &residuals,
                 &jacobian,
-                &runtime_parameters.intensity_weighting_function,
                 mu,
                 tau,
                 state.n_cams,
