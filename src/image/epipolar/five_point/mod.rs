@@ -31,8 +31,8 @@ pub fn five_point_essential<T: Feature + Clone, C: Camera>(matches: &Vec<Match<T
 
     for i in 0..l {
         let m = &matches[i];
-        let f_1 = m.feature_one.get_camera_ray(principal_distance_sign);
-        let f_2 = m.feature_two.get_camera_ray(principal_distance_sign);
+        let f_1 = m.feature_one.get_reduced_image_coordinates(principal_distance_sign);
+        let f_2 = m.feature_two.get_reduced_image_coordinates(principal_distance_sign);
 
         features_one.column_mut(i).copy_from(&f_1);
         features_two.column_mut(i).copy_from(&f_2);
@@ -103,7 +103,7 @@ pub fn five_point_essential<T: Feature + Clone, C: Camera>(matches: &Vec<Match<T
         let E_est = x*E1+y*E2+z*E3+E4;
         E_est
     }).collect::<Vec<Essential>>();
-    let best_essential = cheirality_check(&all_essential_matricies, matches,depth_positive, (&features_one, &camera_one.get_projection(),&inverse_projection_one), (&features_two, &camera_two.get_projection(),&inverse_projection_two));
+    let best_essential = cheirality_check(&all_essential_matricies, matches,depth_positive, (&camera_rays_one, &camera_one.get_projection(),&inverse_projection_one), (&camera_rays_two, &camera_two.get_projection(),&inverse_projection_two));
     
     best_essential
 }

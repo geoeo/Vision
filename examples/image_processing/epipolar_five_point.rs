@@ -34,7 +34,7 @@ fn main() -> Result<()> {
     // let invert_focal_length = false;
 
 
-
+    //TODO: Check data generation - features seem strange
     let K = octave_loader::load_matrix(&format!("{}/5_point_synthetic/intrinsics_neg.txt",runtime_conf.local_data_path));
     let R_raw = octave_loader::load_matrix(&format!("{}/5_point_synthetic/rotation_neg.txt",runtime_conf.local_data_path));
     let t_raw = octave_loader::load_vector(&format!("{}/5_point_synthetic/translation_neg.txt",runtime_conf.local_data_path));

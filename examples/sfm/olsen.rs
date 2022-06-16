@@ -47,9 +47,9 @@ fn main() -> Result<()> {
     let normalize_features = false;
     let feature_skip_count = 2;
     let rotation_post_translation = Matrix3::<Float>::new(
-        0.0,0.0,1.0,
         0.0,1.0,0.0,
-        1.0,0.0,0.0
+        1.0,0.0,0.0,
+        0.0,0.0,1.0
     );
 
     let (cam_intrinsics_0,cam_extrinsics_0) = olsen_data.get_camera_intrinsics_extrinsics(0,positive_principal_distance);
@@ -173,7 +173,7 @@ fn main() -> Result<()> {
 
     // all_matches = Vec::<Vec<Match<ImageFeature>>>::with_capacity(10);
     // all_matches.push(vec![Match{feature_one:ImageFeature::new(10.0,10.0), feature_two: ImageFeature::new(300.0,400.0)}]);
-    // all_matches.push(vec![Match{feature_one:ImageFeature::new(10.0,10.0), feature_two: ImageFeature::new(300.0,400.0)}]);
+    // all_matches.push(vec![Match{feature_one:ImageFeatusre::new(10.0,10.0), feature_two: ImageFeature::new(300.0,400.0)}]);
     // all_matches.push(vec![Match{feature_one:ImageFeature::new(10.0,10.0), feature_two: ImageFeature::new(300.0,400.0)}]);
     // all_matches.push(vec![Match{feature_one:ImageFeature::new(10.0,10.0), feature_two: ImageFeature::new(300.0,400.0)}]);
     // all_matches.push(vec![Match{feature_one:ImageFeature::new(10.0,10.0), feature_two: ImageFeature::new(300.0,400.0)}]);
@@ -241,12 +241,12 @@ fn main() -> Result<()> {
             step_sizes: vec![1e0],
             max_norm_eps: 1e-30, 
             delta_eps: 1e-30,
-            taus: vec![1e-0],
+            taus: vec![1e-3],
             lm: true,
             debug: true,
             show_octave_result: true,
             loss_function: Box::new(loss::TrivialLoss { eps: 1e-16, approximate_gauss_newton_matrices: false }), 
-            intensity_weighting_function:  Box::new(weighting::HuberWeight {}) // check lm for non square weight
+            intensity_weighting_function:  Box::new(weighting::SquaredWeight {}) // check lm for non square weight
             //intensity_weighting_function:  Box::new(weighting::CauchyWeight {c: 0.01})
         };
 
