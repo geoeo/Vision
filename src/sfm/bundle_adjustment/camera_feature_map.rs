@@ -167,8 +167,7 @@ impl CameraFeatureMap {
 
                     let (cam_idx_s, _) = self.camera_map[&(*id_s as u64)];
                     let (cam_idx_f, _) = self.camera_map[&cam_id];
-
-                    //assert_eq!(cam_idx_s, 0);
+                    
                     assert_eq!(*id_f as u64, *cam_id);
 
                     let (point_ids, im_s, im_f) = self.get_features_for_cam_pair(cam_idx_s, cam_idx_f);
@@ -180,7 +179,7 @@ impl CameraFeatureMap {
                     for i in 0..local_landmarks {
                         let (x_s, y_s) = im_s[i];
                         let (x_f, y_f) = im_f[i];
-                        //TODO use reduced image coordinates
+                        //TODO use reduced image coordinates -> needs rework for Feature since Rust has problem with static fn in Trait
                         let feat_s = Vector3::<Float>::new(x_s,y_s,depth_prior);
                         let feat_f = Vector3::<Float>::new(x_f,y_f,depth_prior);
                         normalized_image_points_s.column_mut(i).copy_from(&feat_s);
@@ -195,17 +194,11 @@ impl CameraFeatureMap {
                     let triangulated_points = linear_triangulation(&vec!((&normalized_image_points_s,&projection_1),(&normalized_image_points_f,&projection_2)));
                     assert_eq!(triangulated_points.ncols(), point_ids.len());
 
-                    println!("------");
                     for j in 0..point_ids.len() {
                         let point_id = point_ids[j];
                         let mut point = triangulated_points.fixed_slice::<3, 1>(0, j).into_owned();
                         point /= point[2]*depth_prior;
                         triangualted_landmarks[point_id] = EuclideanLandmark::from_state(point);
-                        // if point[0].abs() > 1.0 || point[1].abs() > 1.0 {
-                        //     triangualted_landmarks[point_id] = EuclideanLandmark::from_state(point);
-                        // } else {
-                        //     triangualted_landmarks[point_id] = EuclideanLandmark::from_state(Vector3::<Float>::new(0.0,0.0,depth_prior));
-                        // }
                     }
 
                 }
