@@ -8,6 +8,8 @@ use crate::numerics::{max_norm, least_squares::{compute_cost,weight_jacobian_spa
 use crate::sfm::{landmark::Landmark,bundle_adjustment::{state::State, camera_feature_map::CameraFeatureMap}};
 use crate::odometry::runtime_parameters::RuntimeParameters; //TODO remove dependency on odometry module
 
+const CAMERA_PARAM_SIZE: usize = 6; //TODO make this generic with state
+
 pub fn get_feature_index_in_residual(cam_id: usize, feature_id: usize, n_cams: usize) -> usize {
     2*(cam_id + feature_id*n_cams)
 }
@@ -106,13 +108,16 @@ pub fn compute_jacobian<C : Camera, L: Landmark<T> + Copy + Clone, const T: usiz
 
 }
 
-pub fn optimize<C : Camera,L: Landmark<T> + Copy + Clone, const T: usize>(state: &mut State<L,T>, cameras: &Vec<C>, observed_features: &DVector<Float>, runtime_parameters: &RuntimeParameters ) -> Option<Vec<(Vec<[Float; 6]>, Vec<[Float; T]>)>> {
+pub fn optimize<C : Camera, L: Landmark<LANDMARK_PARAM_SIZE> + Copy + Clone, const LANDMARK_PARAM_SIZE: usize>(state: &mut State<L,LANDMARK_PARAM_SIZE>, cameras: &Vec<C>, observed_features: &DVector<Float>, runtime_parameters: &RuntimeParameters ) -> Option<Vec<(Vec<[Float; CAMERA_PARAM_SIZE]>, Vec<[Float; LANDMARK_PARAM_SIZE]>)>> {
     
 
     let max_iterations = runtime_parameters.max_iterations[0];
+
+    let u_span = CAMERA_PARAM_SIZE*state.n_cams;
+    let v_span = LANDMARK_PARAM_SIZE*state.n_points;
     
     let mut new_state = state.clone();
-    let state_size = 6*state.n_cams+T*state.n_points;
+    let state_size = CAMERA_PARAM_SIZE*state.n_cams+LANDMARK_PARAM_SIZE*state.n_points;
     let mut jacobian = DMatrix::<Float>::zeros(observed_features.nrows(),state_size);
     let mut residuals = DVector::<Float>::zeros(observed_features.nrows());
     let mut new_residuals = DVector::<Float>::zeros(observed_features.nrows());
@@ -123,9 +128,10 @@ pub fn optimize<C : Camera,L: Landmark<T> + Copy + Clone, const T: usize>(state:
     let mut g = DVector::<Float>::from_element(state_size,0.0); 
     let mut delta = DVector::<Float>::from_element(state_size,0.0);
     let mut debug_state_list = match runtime_parameters.debug {
-        true => Some(Vec::<(Vec<[Float; 6]>, Vec<[Float; T]>)>::with_capacity(max_iterations)),
+        true => Some(Vec::<(Vec<[Float; CAMERA_PARAM_SIZE]>, Vec<[Float; LANDMARK_PARAM_SIZE]>)>::with_capacity(max_iterations)),
         false => None
     };
+    let mut V_star_inv = DMatrix::<Float>::zeros(v_span,v_span);
 
     get_estimated_features(state, cameras,observed_features, &mut estimated_features);
     compute_residual(&estimated_features, observed_features, &mut residuals);
@@ -170,17 +176,21 @@ pub fn optimize<C : Camera,L: Landmark<T> + Copy + Clone, const T: usize>(state:
         target_arrowhead.fill(0.0);
         g.fill(0.0);
         delta.fill(0.0);
+        V_star_inv.fill(0.0);
         let gauss_newton_result 
-            = gauss_newton_step_with_schur::<_,_,_,_,_,_,T, 6>(
+            = gauss_newton_step_with_schur::<_,_,_,_,_,_,LANDMARK_PARAM_SIZE, CAMERA_PARAM_SIZE>(
                 &mut target_arrowhead,
                 &mut g,
                 &mut delta,
+                &mut V_star_inv,
                 &residuals,
                 &jacobian,
                 mu,
                 tau,
                 state.n_cams,
-                state.n_points
+                state.n_points,
+                u_span,
+                v_span
             ); 
 
         if gauss_newton_result.is_none(){
