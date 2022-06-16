@@ -179,7 +179,7 @@ impl CameraFeatureMap {
                     for i in 0..local_landmarks {
                         let (x_s, y_s) = im_s[i];
                         let (x_f, y_f) = im_f[i];
-                        //TODO use reduced image coordinates -> needs rework for Feature since Rust has problem with static fn in Trait
+                        //TODO use camera rays -> needs intrinsics
                         let feat_s = Vector3::<Float>::new(x_s,y_s,depth_prior);
                         let feat_f = Vector3::<Float>::new(x_f,y_f,depth_prior);
                         normalized_image_points_s.column_mut(i).copy_from(&feat_s);
