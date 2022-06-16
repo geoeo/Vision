@@ -31,8 +31,8 @@ pub fn five_point_essential<T: Feature + Clone, C: Camera>(matches: &Vec<Match<T
 
     for i in 0..l {
         let m = &matches[i];
-        let f_1 = m.feature_one.get_reduced_image_coordiantes(principal_distance_sign);
-        let f_2 = m.feature_two.get_reduced_image_coordiantes(principal_distance_sign);
+        let f_1 = m.feature_one.get_camera_ray(principal_distance_sign);
+        let f_2 = m.feature_two.get_camera_ray(principal_distance_sign);
 
         features_one.column_mut(i).copy_from(&f_1);
         features_two.column_mut(i).copy_from(&f_2);
@@ -156,6 +156,7 @@ pub fn cheirality_check<T: Feature + Clone>(
         // println!("{}",e_corrected);
         // println!("{}",accepted_cheirality_count);
         // println!("{}",det);
+        // println!("{}",se3);
         // println!("------");
 
         if (accepted_cheirality_count > max_accepted_cheirality_count) ||
