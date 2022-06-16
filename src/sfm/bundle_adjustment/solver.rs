@@ -131,7 +131,7 @@ pub fn optimize<C : Camera, L: Landmark<LANDMARK_PARAM_SIZE> + Copy + Clone, con
         true => Some(Vec::<(Vec<[Float; CAMERA_PARAM_SIZE]>, Vec<[Float; LANDMARK_PARAM_SIZE]>)>::with_capacity(max_iterations)),
         false => None
     };
-    let mut V_star_inv = DMatrix::<Float>::zeros(v_span,v_span);
+    let mut v_star_inv = DMatrix::<Float>::zeros(v_span,v_span);
 
     get_estimated_features(state, cameras,observed_features, &mut estimated_features);
     compute_residual(&estimated_features, observed_features, &mut residuals);
@@ -176,13 +176,13 @@ pub fn optimize<C : Camera, L: Landmark<LANDMARK_PARAM_SIZE> + Copy + Clone, con
         target_arrowhead.fill(0.0);
         g.fill(0.0);
         delta.fill(0.0);
-        V_star_inv.fill(0.0);
+        v_star_inv.fill(0.0);
         let gauss_newton_result 
             = gauss_newton_step_with_schur::<_,_,_,_,_,_,LANDMARK_PARAM_SIZE, CAMERA_PARAM_SIZE>(
                 &mut target_arrowhead,
                 &mut g,
                 &mut delta,
-                &mut V_star_inv,
+                &mut v_star_inv,
                 &residuals,
                 &jacobian,
                 mu,

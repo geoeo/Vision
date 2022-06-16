@@ -81,7 +81,7 @@ pub fn five_point_essential<T: Feature + Clone, C: Camera>(matches: &Vec<Match<T
     action_matrix[(8,3)] = 1.0;
     action_matrix[(9,6)] = 1.0;
 
-    let (eigenvalues, option_vl, option_vr) = nalgebra_lapack::Eigen::complex_eigenvalues(action_matrix, false, true);
+    let (eigenvalues, _, option_vr) = nalgebra_lapack::Eigen::complex_eigenvalues(action_matrix, false, true);
     let eigen_v = option_vr.expect("Five Point: eigenvector computation failed!");
 
     let mut real_eigenvalues =  Vec::<Float>::with_capacity(10);

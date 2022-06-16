@@ -1,6 +1,6 @@
 extern crate nalgebra as na;
 
-use na::{Vector3, Vector4, Matrix3, Matrix4, Matrix4xX, Matrix3xX, DVector, Isometry3};
+use na::{Vector3, Matrix3, Matrix4, Matrix3xX, DVector, Isometry3};
 use std::collections::HashMap;
 use crate::image::{
     features::{Feature, Match},
@@ -192,13 +192,13 @@ impl CameraFeatureMap {
                     let projection_2 = camera_matrix_f.get_projection()*(se3.fixed_slice::<3,4>(0,0));
                     
                     //TODO: this has to be normalized in some way
-                    let Xs = linear_triangulation(&vec!((&normalized_image_points_s,&projection_1),(&normalized_image_points_f,&projection_2)));
-                    assert_eq!(Xs.ncols(), point_ids.len());
+                    let triangulated_points = linear_triangulation(&vec!((&normalized_image_points_s,&projection_1),(&normalized_image_points_f,&projection_2)));
+                    assert_eq!(triangulated_points.ncols(), point_ids.len());
 
                     println!("------");
                     for j in 0..point_ids.len() {
                         let point_id = point_ids[j];
-                        let mut point = Xs.fixed_slice::<3, 1>(0, j).into_owned();
+                        let mut point = triangulated_points.fixed_slice::<3, 1>(0, j).into_owned();
                         point /= point[2]*depth_prior;
                         triangualted_landmarks[point_id] = EuclideanLandmark::from_state(point);
                         // if point[0].abs() > 1.0 || point[1].abs() > 1.0 {
