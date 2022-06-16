@@ -154,12 +154,15 @@ pub fn gauss_newton_step_with_schur<R, C,S1, S2,StorageTargetArrow, StorageTarge
     target_arrowhead: &mut Matrix<Float,C,C,StorageTargetArrow>, 
     target_arrowhead_residual: &mut Vector<Float,C,StorageTargetResidual>, 
     target_perturb: &mut Vector<Float,C,StorageTargetResidual>, 
+    V_star_inv: &mut DMatrix<Float>,
     residuals: &Vector<Float, R,S1>, 
     jacobian: &Matrix<Float,R,C,S2>,
     mu: Option<Float>, 
     tau: Float,
-    n_cams: usize, 
-    n_points: usize)-> Option<(Float,Float)>
+    n_cams: usize,
+    n_points: usize,
+    u_span: usize, 
+    v_span: usize)-> Option<(Float,Float)>
      where 
         R: Dim, 
         C: Dim + DimMin<C, Output = C>,
@@ -168,10 +171,6 @@ pub fn gauss_newton_step_with_schur<R, C,S1, S2,StorageTargetArrow, StorageTarge
         StorageTargetArrow: StorageMut<Float, C, C>,
         StorageTargetResidual: StorageMut<Float, C, U1>,
         DefaultAllocator: Allocator<Float, R, C>+  Allocator<Float, C, R> + Allocator<Float, C, C> + Allocator<Float, C> + Allocator<Float, Const<1_usize>, C> + Allocator<f64, Const<1_usize>, R>  {
-
-
-        let u_span = CAMERA_PARAM_SIZE*n_cams;
-        let v_span = LANDMARK_PARAM_SIZE*n_points;
 
         let diag_max = compute_arrow_head_and_residuals::<_,_,_,_,_,_,LANDMARK_PARAM_SIZE,CAMERA_PARAM_SIZE>(target_arrowhead,target_arrowhead_residual,jacobian,residuals,mu,tau,n_cams,n_points);
         let mu_val = match mu {
@@ -185,8 +184,6 @@ pub fn gauss_newton_step_with_schur<R, C,S1, S2,StorageTargetArrow, StorageTarge
         let U_star = target_arrowhead.slice((0,0),(u_span,u_span));
         let V_star = target_arrowhead.slice((u_span,u_span),(v_span,v_span));
 
-        //TODO: preallocate this
-        let mut V_star_inv = DMatrix::<Float>::zeros(v_span,v_span);
         for i in (0..v_span).step_by(LANDMARK_PARAM_SIZE) {
             let local_inv = V_star.fixed_slice::<LANDMARK_PARAM_SIZE,LANDMARK_PARAM_SIZE>(i,i).try_inverse().expect("local inverse failed");
             V_star_inv.fixed_slice_mut::<LANDMARK_PARAM_SIZE,LANDMARK_PARAM_SIZE>(i,i).copy_from(&local_inv);
@@ -199,8 +196,8 @@ pub fn gauss_newton_step_with_schur<R, C,S1, S2,StorageTargetArrow, StorageTarge
         let res_a = target_arrowhead_residual.slice((0,0),(u_span,1));
         let res_b = target_arrowhead_residual.slice((u_span,0),(v_span,1));
 
-        let schur_compliment = U_star - W*(&V_star_inv)*W_t;
-        let res_a_augment = res_a-W*V_star_inv*res_b;
+        let schur_compliment = U_star - W*(V_star_inv as &DMatrix<Float>)*W_t;
+        let res_a_augment = res_a-W*(V_star_inv as &DMatrix<Float>)*res_b;
 
         let V_star_csc = CscMatrix::<Float>::from(&V_star);
         let V_star_csc_cholseky_result = CscCholesky::factor(&V_star_csc);

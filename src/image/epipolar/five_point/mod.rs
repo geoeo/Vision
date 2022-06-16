@@ -31,15 +31,15 @@ pub fn five_point_essential<T: Feature + Clone, C: Camera>(matches: &Vec<Match<T
 
     for i in 0..l {
         let m = &matches[i];
-        let f_1 = m.feature_one.get_reduced_image_coordiantes(principal_distance_sign);
-        let f_2 = m.feature_two.get_reduced_image_coordiantes(principal_distance_sign);
+        let f_1 = m.feature_one.get_camera_ray(principal_distance_sign);
+        let f_2 = m.feature_two.get_camera_ray(principal_distance_sign);
 
         features_one.column_mut(i).copy_from(&f_1);
         features_two.column_mut(i).copy_from(&f_2);
     }
 
-    let camera_rays_one = inverse_projection_one*features_one;
-    let camera_rays_two = inverse_projection_two*features_two;
+    let camera_rays_one = inverse_projection_one*(&features_one);
+    let camera_rays_two = inverse_projection_two*(&features_two);
 
     for i in 0..l {
         let c_x_1 = &camera_rays_one.column(i);
@@ -81,7 +81,7 @@ pub fn five_point_essential<T: Feature + Clone, C: Camera>(matches: &Vec<Match<T
     action_matrix[(8,3)] = 1.0;
     action_matrix[(9,6)] = 1.0;
 
-    let (eigenvalues, option_vl, option_vr) = nalgebra_lapack::Eigen::complex_eigenvalues(action_matrix, false, true);
+    let (eigenvalues, _, option_vr) = nalgebra_lapack::Eigen::complex_eigenvalues(action_matrix, false, true);
     let eigen_v = option_vr.expect("Five Point: eigenvector computation failed!");
 
     let mut real_eigenvalues =  Vec::<Float>::with_capacity(10);
@@ -103,7 +103,7 @@ pub fn five_point_essential<T: Feature + Clone, C: Camera>(matches: &Vec<Match<T
         let E_est = x*E1+y*E2+z*E3+E4;
         E_est
     }).collect::<Vec<Essential>>();
-    let best_essential = cheirality_check(&all_essential_matricies, matches,depth_positive, (&camera_rays_one, &camera_one.get_projection(),&inverse_projection_one), (&camera_rays_two, &camera_two.get_projection(),&inverse_projection_two));
+    let best_essential = cheirality_check(&all_essential_matricies, matches,depth_positive, (&features_one, &camera_one.get_projection(),&inverse_projection_one), (&features_two, &camera_two.get_projection(),&inverse_projection_two));
     
     best_essential
 }
@@ -150,12 +150,13 @@ pub fn cheirality_check<T: Feature + Clone>(
         }
         let det = e_corrected.determinant().abs();
 
-        // let factor = e_corrected[(2,2)];
-        // let e_corrected_norm = e_corrected.map(|x| x/factor);
+        let factor = e_corrected[(2,2)];
+        let e_corrected_norm = e_corrected.map(|x| x/factor);
         // println!("{}",e_corrected);
         // println!("{}",e_corrected);
         // println!("{}",accepted_cheirality_count);
         // println!("{}",det);
+        // println!("{}",se3);
         // println!("------");
 
         if (accepted_cheirality_count > max_accepted_cheirality_count) ||
