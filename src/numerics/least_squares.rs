@@ -156,7 +156,6 @@ pub fn gauss_newton_step_with_schur<R, C,S1, S2,StorageTargetArrow, StorageTarge
     target_perturb: &mut Vector<Float,C,StorageTargetResidual>, 
     residuals: &Vector<Float, R,S1>, 
     jacobian: &Matrix<Float,R,C,S2>,
-    intensity_weighting_function: &Box<dyn WeightingFunction>,
     mu: Option<Float>, 
     tau: Float,
     n_cams: usize, 
