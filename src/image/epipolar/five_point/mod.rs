@@ -150,8 +150,8 @@ pub fn cheirality_check<T: Feature + Clone>(
         }
         let det = e_corrected.determinant().abs();
 
-        let factor = e_corrected[(2,2)];
-        let e_corrected_norm = e_corrected.map(|x| x/factor);
+        // let factor = e_corrected[(2,2)];
+        // let e_corrected_norm = e_corrected.map(|x| x/factor);
         // println!("{}",e_corrected);
         // println!("{}",e_corrected);
         // println!("{}",accepted_cheirality_count);

@@ -54,7 +54,7 @@ impl WeightingFunction for HuberWeight {
         "HuberWeight"
     }
 
-    fn cost(&self, residuals: &DVector<Float>, std: Option<Float>) -> Float {
+    fn cost(&self, residuals: &DVector<Float>, _: Option<Float>) -> Float {
         0.5*(residuals.transpose() * residuals)[0]
     }
 
@@ -109,7 +109,7 @@ impl WeightingFunction for BisquareWeight {
         "Bisquare"
     }
 
-    fn cost(&self, residuals: &DVector<Float>, std: Option<Float>) -> Float {
+    fn cost(&self, residuals: &DVector<Float>, _: Option<Float>) -> Float {
         0.5*(residuals.transpose() * residuals)[0]
     }
 
