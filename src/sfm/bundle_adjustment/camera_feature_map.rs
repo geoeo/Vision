@@ -180,6 +180,8 @@ impl CameraFeatureMap {
                         let (x_s, y_s) = im_s[i];
                         let (x_f, y_f) = im_f[i];
                         //TODO investigate use of camera ray
+                        //let feat_s = camera_matrix_s.get_inverse_projection()*depth_prior*Vector3::<Float>::new(x_s,y_s,1.0);
+                        //let feat_f = camera_matrix_f.get_inverse_projection()*depth_prior*Vector3::<Float>::new(x_f,y_f,1.0);
                         let feat_s = Vector3::<Float>::new(x_s,y_s,depth_prior);
                         let feat_f = Vector3::<Float>::new(x_f,y_f,depth_prior);
                         normalized_image_points_s.column_mut(i).copy_from(&feat_s);
