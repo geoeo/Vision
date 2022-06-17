@@ -33,7 +33,7 @@ fn main() -> Result<()> {
     
     let olsen_data_path = data_set_door_path;
     let depth_prior = -1.0;
-    let epipolar_thresh = 0.01;
+    let epipolar_thresh = 0.001;
     //let epipolar_thresh = 0.01;
 
     

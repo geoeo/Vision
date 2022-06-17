@@ -35,7 +35,9 @@ pub trait Feature {
     }
     fn get_reduced_image_coordinates(&self, principal_distance_sign: Float) -> Vector3<Float> {
         assert!(principal_distance_sign == 1.0 || principal_distance_sign == -1.0);
-        Vector3::<Float>::new(self.get_x_image_float(), self.get_y_image_float(),1.0)
+        //principal_distance_sign*Vector3::<Float>::new(self.get_x_image_float(), self.get_y_image_float(),1.0)
+        principal_distance_sign*Vector3::<Float>::new(self.get_x_image_float(), self.get_y_image_float(),principal_distance_sign) // five point example
+        //-principal_distance_sign*Vector3::<Float>::new(self.get_x_image_float(), self.get_y_image_float(),1.0)
     }
 }
 
