@@ -163,7 +163,7 @@ impl CameraFeatureMap {
 
                 for i in 0..number_of_camera_pairs {
                     let (cam_id,(b,rotation_matrix)) = &motions[i];
-                    let ((id_s,camear_matrix_s), (id_f,camera_matrix_f)) = &camera_data[i];
+                    let ((id_s,camera_matrix_s), (id_f,camera_matrix_f)) = &camera_data[i];
 
                     let (cam_idx_s, _) = self.camera_map[&(*id_s as u64)];
                     let (cam_idx_f, _) = self.camera_map[&cam_id];
@@ -180,6 +180,8 @@ impl CameraFeatureMap {
                         let (x_s, y_s) = im_s[i];
                         let (x_f, y_f) = im_f[i];
                         //TODO use camera rays -> needs intrinsics
+                        // let feat_s = camera_matrix_s.get_inverse_projection()*depth_prior*Vector3::<Float>::new(x_s,y_s,depth_prior);
+                        // let feat_f = camera_matrix_f.get_inverse_projection()*depth_prior*Vector3::<Float>::new(x_f,y_f,depth_prior);
                         let feat_s = Vector3::<Float>::new(x_s,y_s,depth_prior);
                         let feat_f = Vector3::<Float>::new(x_f,y_f,depth_prior);
                         normalized_image_points_s.column_mut(i).copy_from(&feat_s);
@@ -187,7 +189,7 @@ impl CameraFeatureMap {
                     }
 
                     let se3 = pose::se3(&b,&rotation_matrix);
-                    let projection_1 = camear_matrix_s.get_projection()*(Matrix4::<Float>::identity().fixed_slice::<3,4>(0,0));
+                    let projection_1 = camera_matrix_s.get_projection()*(Matrix4::<Float>::identity().fixed_slice::<3,4>(0,0));
                     let projection_2 = camera_matrix_f.get_projection()*(se3.fixed_slice::<3,4>(0,0));
                     
                     //TODO: this has to be normalized in some way
