@@ -51,6 +51,11 @@ fn main() -> Result<()> {
         1.0,0.0,0.0,
         0.0,0.0,1.0
     );
+    // let rotation_post_translation = Matrix3::<Float>::new(
+    //     1.0,0.0,0.0,
+    //     0.0,1.0,0.0,
+    //     0.0,0.0,1.0
+    // );
 
     let (cam_intrinsics_0,cam_extrinsics_0) = olsen_data.get_camera_intrinsics_extrinsics(0,positive_principal_distance);
     let (cam_intrinsics_1,cam_extrinsics_1) = olsen_data.get_camera_intrinsics_extrinsics(1,positive_principal_distance);
@@ -245,7 +250,7 @@ fn main() -> Result<()> {
             debug: true,
             show_octave_result: true,
             loss_function: Box::new(loss::TrivialLoss { eps: 1e-16, approximate_gauss_newton_matrices: false }), 
-            intensity_weighting_function:  Box::new(weighting::SquaredWeight {}) // check lm for non square weight
+            intensity_weighting_function:  Box::new(weighting::SquaredWeight {})
             //intensity_weighting_function:  Box::new(weighting::CauchyWeight {c: 0.01})
         };
 

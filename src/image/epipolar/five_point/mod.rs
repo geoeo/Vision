@@ -19,27 +19,69 @@ pub fn five_point_essential<T: Feature + Clone, C: Camera>(matches: &Vec<Match<T
     let inverse_projection_one = camera_one.get_inverse_projection();
     let inverse_projection_two = camera_two.get_inverse_projection();
     let l = matches.len();
+    let l_as_float = l as Float;
     let principal_distance_sign = match depth_positive {
         true => 1.0,
         false => -1.0
     };
 
+    let mut reduced_features_one = Matrix3xX::<Float>::zeros(l);
+    let mut reduced_features_two = Matrix3xX::<Float>::zeros(l);
     let mut features_one = Matrix3xX::<Float>::zeros(l);
     let mut features_two = Matrix3xX::<Float>::zeros(l);
     let mut A = OMatrix::<Float, Dynamic,U9>::zeros(l);
 
+    let mut normalization_matrix_one = Matrix3::<Float>::identity();
+    let mut normalization_matrix_two = Matrix3::<Float>::identity();
+
+    let mut avg_x_one = 0.0;
+    let mut avg_y_one = 0.0;
+    let mut max_dist_one: Float = 0.0;
+    let mut avg_x_two = 0.0;
+    let mut avg_y_two = 0.0;
+    let mut max_dist_two: Float = 0.0;
 
     for i in 0..l {
         let m = &matches[i];
-        let f_1 = m.feature_one.get_reduced_image_coordinates(principal_distance_sign);
-        let f_2 = m.feature_two.get_reduced_image_coordinates(principal_distance_sign);
+        let f_1_reduced = m.feature_one.get_reduced_image_coordinates(principal_distance_sign);
+        let f_2_reduced = m.feature_two.get_reduced_image_coordinates(principal_distance_sign);
 
+        reduced_features_one.column_mut(i).copy_from(&f_1_reduced);
+        reduced_features_two.column_mut(i).copy_from(&f_2_reduced);
+
+
+        let f_1 = m.feature_one.get_as_3d_point(principal_distance_sign);
+        let f_2 = m.feature_two.get_as_3d_point(principal_distance_sign);
+        avg_x_one += f_1[0];
+        avg_y_one += f_1[1];
+        max_dist_one = max_dist_one.max((f_1[0].powi(2) + f_1[1].powi(2)));
+        avg_x_two += f_2[0];
+        avg_y_two += f_2[1];
+        max_dist_two = max_dist_two.max((f_2[0].powi(2) + f_2[1].powi(2)));
         features_one.column_mut(i).copy_from(&f_1);
         features_two.column_mut(i).copy_from(&f_2);
     }
 
-    let camera_rays_one = inverse_projection_one*(&features_one);
-    let camera_rays_two = inverse_projection_two*(&features_two);
+    //TODO: unify with five_point and epipolar
+    normalization_matrix_one[(0,2)] = -avg_x_one/l_as_float;
+    normalization_matrix_one[(1,2)] = -avg_y_one/l_as_float;
+    normalization_matrix_one[(2,2)] = max_dist_one;
+
+    normalization_matrix_two[(0,2)] = -avg_x_two/l_as_float;
+    normalization_matrix_two[(1,2)] = -avg_y_two/l_as_float;
+    normalization_matrix_two[(2,2)] = max_dist_two;
+
+    features_one = normalization_matrix_one*features_one;
+    for mut c in features_one.column_iter_mut() {
+        c /= c[2].abs();
+    }
+    features_two = normalization_matrix_two*features_two;
+    for mut c in features_two.column_iter_mut() {
+        c /= c[2].abs();
+    }
+
+    let camera_rays_one = inverse_projection_one*(&reduced_features_one);
+    let camera_rays_two = inverse_projection_two*(&reduced_features_two);
 
     for i in 0..l {
         let c_x_1 = &camera_rays_one.column(i);
@@ -103,7 +145,7 @@ pub fn five_point_essential<T: Feature + Clone, C: Camera>(matches: &Vec<Match<T
         let E_est = x*E1+y*E2+z*E3+E4;
         E_est
     }).collect::<Vec<Essential>>();
-    let best_essential = cheirality_check(&all_essential_matricies, matches,depth_positive, (&camera_rays_one, &camera_one.get_projection(),&inverse_projection_one), (&camera_rays_two, &camera_two.get_projection(),&inverse_projection_two));
+    let best_essential = cheirality_check(&all_essential_matricies, matches,depth_positive, (&features_one, &camera_one.get_projection(),&inverse_projection_one), (&features_two, &camera_two.get_projection(),&inverse_projection_two));
     
     best_essential
 }

@@ -173,26 +173,58 @@ impl CameraFeatureMap {
                     let (point_ids, im_s, im_f) = self.get_features_for_cam_pair(cam_idx_s, cam_idx_f);
                     assert_eq!(im_s.len(), im_f.len());
                     let local_landmarks = im_s.len();
+                    let local_landmarks_as_float = local_landmarks as Float;
                     let mut normalized_image_points_s = Matrix3xX::<Float>::zeros(local_landmarks);
                     let mut normalized_image_points_f = Matrix3xX::<Float>::zeros(local_landmarks);
+
+                    let mut normalization_matrix_one = Matrix3::<Float>::identity();
+                    let mut normalization_matrix_two = Matrix3::<Float>::identity();
+                
+                    let mut avg_x_one = 0.0;
+                    let mut avg_y_one = 0.0;
+                    let mut max_dist_one: Float = 0.0;
+                    let mut avg_x_two = 0.0;
+                    let mut avg_y_two = 0.0;
+                    let mut max_dist_two: Float = 0.0;
 
                     for i in 0..local_landmarks {
                         let (x_s, y_s) = im_s[i];
                         let (x_f, y_f) = im_f[i];
-                        //TODO investigate use of camera ray
-                        //let feat_s = camera_matrix_s.get_inverse_projection()*depth_prior*Vector3::<Float>::new(x_s,y_s,1.0);
-                        //let feat_f = camera_matrix_f.get_inverse_projection()*depth_prior*Vector3::<Float>::new(x_f,y_f,1.0);
                         let feat_s = Vector3::<Float>::new(x_s,y_s,depth_prior);
                         let feat_f = Vector3::<Float>::new(x_f,y_f,depth_prior);
+                        avg_x_one += feat_s[0];
+                        avg_y_one += feat_s[1];
+                        max_dist_one = max_dist_one.max((feat_s[0].powi(2) + feat_s[1].powi(2)));
+                        avg_x_two += feat_f[0];
+                        avg_y_two += feat_f[1];
+                        max_dist_two = max_dist_two.max((feat_f[0].powi(2) + feat_f[1].powi(2)));
                         normalized_image_points_s.column_mut(i).copy_from(&feat_s);
                         normalized_image_points_f.column_mut(i).copy_from(&feat_f);
                     }
+                    
+                    //TODO: unify with five_point and epipolar
+                    normalization_matrix_one[(0,2)] = -avg_x_one/local_landmarks_as_float;
+                    normalization_matrix_one[(1,2)] = -avg_y_one/local_landmarks_as_float;
+                    normalization_matrix_one[(2,2)] = max_dist_one;
+                
+                    normalization_matrix_two[(0,2)] = -avg_x_two/local_landmarks_as_float;
+                    normalization_matrix_two[(1,2)] = -avg_y_two/local_landmarks_as_float;
+                    normalization_matrix_two[(2,2)] = max_dist_two;
+                
+                    // normalized_image_points_s = normalization_matrix_one*normalized_image_points_s;
+                    // for mut c in normalized_image_points_s.column_iter_mut() {
+                    //     c /= c[2].abs();
+                    // }
+                    // normalized_image_points_f = normalization_matrix_two*normalized_image_points_f;
+                    // for mut c in normalized_image_points_f.column_iter_mut() {
+                    //     c /= c[2].abs();
+                    // }
 
                     let se3 = pose::se3(&b,&rotation_matrix);
                     let projection_1 = camera_matrix_s.get_projection()*(Matrix4::<Float>::identity().fixed_slice::<3,4>(0,0));
                     let projection_2 = camera_matrix_f.get_projection()*(se3.fixed_slice::<3,4>(0,0));
                     
-                    //TODO: this has to be normalized in some way
+
                     let triangulated_points = linear_triangulation(&vec!((&normalized_image_points_s,&projection_1),(&normalized_image_points_f,&projection_2)));
                     assert_eq!(triangulated_points.ncols(), point_ids.len());
 
