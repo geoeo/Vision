@@ -294,12 +294,13 @@ pub fn compute_initial_cam_motions<C : Camera + Copy,T : Feature + Clone>(
         epipiolar_thresh: Float, 
         positive_principal_distance: bool,
         normalize_features: bool,
+        offset_rotation: Option<Matrix3<Float>>,
         epipolar_alg: BifocalType,
         decomp_alg: EssentialDecomposition) 
-    ->  Vec<(u64,(Vector3<Float>,Matrix3<Float>))> {
+    ->  (Vec<(u64,(Vector3<Float>,Matrix3<Float>))>,Vec<Vec<Match<ImageFeature>>>) {
     let feature_machtes =  all_matches.iter().map(|m| extract_matches(m, pyramid_scale, normalize_features)).collect::<Vec<Vec<Match<ImageFeature>>>>();
     let (id_init, c_init) = camera_data[0].0;
-    let initial_motion_decomp = feature_machtes.iter().enumerate().map(|(i,m)| (m,camera_data[i])).scan((0, c_init,(Vector3::<Float>::zeros(),Matrix3::<Float>::identity())),|state, (m, ((id1,_),(id2,c2)))| {
+    feature_machtes.iter().enumerate().map(|(i,m)| (m,camera_data[i])).scan((0, c_init,(Vector3::<Float>::zeros(),Matrix3::<Float>::identity())),|state, (m, ((id1,_),(id2,c2)))| {
         let (_,c_curr,(t_curr,R_curr)) = match id1 {
             id if id == id_init => (0, c_init,(Vector3::<Float>::zeros(),Matrix3::<Float>::identity())),
             _ => *state
@@ -327,12 +328,13 @@ pub fn compute_initial_cam_motions<C : Camera + Copy,T : Feature + Clone>(
             EssentialDecomposition::FÖRSNTER => decompose_essential_förstner(&e,&f_m,&c_curr.get_inverse_projection(),&c2.get_inverse_projection()),
             EssentialDecomposition::KANATANI => decompose_essential_kanatani(&e,&f_m, positive_principal_distance)
         };
-        let new_t = rotation*t_curr + h;
+        let new_t = match offset_rotation {
+            Some(r) => r*(rotation*t_curr + h),
+            None => rotation*t_curr + h
+        };
         let new_R = rotation*R_curr;
         let new_state = (id2 as u64, c2,(new_t, new_R));
         *state = new_state;
-        Some(new_state)
-    }).map(|(id,_,motion)|(id,motion)).collect::<Vec<(u64,(Vector3<Float>,Matrix3<Float>))>>();
-
-    initial_motion_decomp
+        Some((new_state, f_m))
+    }).map(|((id,_,motion),filtered)|((id,motion),filtered)).unzip()
 }

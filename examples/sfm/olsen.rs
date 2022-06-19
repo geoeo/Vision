@@ -33,7 +33,7 @@ fn main() -> Result<()> {
     
     let olsen_data_path = data_set_door_path;
     let depth_prior = -1.0;
-    let epipolar_thresh = 0.01;
+    let epipolar_thresh = 0.1;
     //let epipolar_thresh = 0.01;
 
     
@@ -186,8 +186,19 @@ fn main() -> Result<()> {
     // all_matches.push(vec![Match{feature_one:ImageFeature::new(10.0,10.0), feature_two: ImageFeature::new(300.0,400.0)}]);
 
     //TODO: do filtering inside this
-    let initial_cam_motions = compute_initial_cam_motions(&all_matches, &camera_data, 1.0,epipolar_thresh,positive_principal_distance,normalize_features ,BifocalType::ESSENTIAL, EssentialDecomposition::FÖRSNTER);
-    let initial_cam_motions_adjusted = initial_cam_motions.iter().map(|&(id,(h,rot))| (id,(rotation_post_translation*h,rot))).collect::<Vec<(u64,(Vector3<Float>,Matrix3<Float>))>>();
+    let (initial_cam_motions, filtered_matches) 
+        = compute_initial_cam_motions(
+            &all_matches, 
+            &camera_data, 
+            1.0,
+            epipolar_thresh,
+            positive_principal_distance,
+            normalize_features,
+            Some(rotation_post_translation),
+            BifocalType::ESSENTIAL, 
+            EssentialDecomposition::FÖRSNTER
+        );
+    //let initial_cam_motions_adjusted = initial_cam_motions.iter().map(|&(id,(h,rot))| (id,(rotation_post_translation*h,rot))).collect::<Vec<(u64,(Vector3<Float>,Matrix3<Float>))>>();
     //let initial_cam_motions = compute_initial_cam_motions(&all_matches, &camera_data, 1.0,epipolar_thresh,false, EssentialDecomposition::FÖRSNTER); //check this
     // TODO: Cordiante system different from what we expect
     let relative_motions = OlssenData::get_relative_motions(&motion_list);
@@ -197,19 +208,23 @@ fn main() -> Result<()> {
 
     //TODO: move filtering into initial motion decomp
     //TODO: there is a bug when starting with cams sequences that are not in order!. E.g. 6,5 and 6,7
-    let mut filtered_matches = Vec::<Vec<Match<ImageFeature>>>::with_capacity(all_matches.len());
-    for i in 0..all_matches.len(){
-        let matches = &all_matches[i];
-        let relative_motion = &used_motions_for_filtering[i];
-        let ((_,cs),(_,cf)) = camera_data[i];
-        //TODO:if empty dont add
-        let filtered_matches_by_motion = filter_matches_from_motion(matches,relative_motion,&(cs,cf),principal_distance_sign,epipolar_thresh);
-        println!("orig matches: {}, olsson filtered matches: {}", matches.len(), &filtered_matches_by_motion.len());
-        filtered_matches.push(filtered_matches_by_motion);
+    // let mut filtered_matches = Vec::<Vec<Match<ImageFeature>>>::with_capacity(all_matches.len());
+    // for i in 0..all_matches.len(){
+    //     let matches = &all_matches[i];
+    //     let relative_motion = &used_motions_for_filtering[i];
+    //     let ((_,cs),(_,cf)) = camera_data[i];
+    //     //TODO:if empty dont add
+    //     let filtered_matches_by_motion = filter_matches_from_motion(matches,relative_motion,&(cs,cf),principal_distance_sign,epipolar_thresh);
+    //     println!("orig matches: {}, olsson filtered matches: {}", matches.len(), &filtered_matches_by_motion.len());
+    //     filtered_matches.push(filtered_matches_by_motion);
+    // }
+
+    for m in &filtered_matches {
+        println!("filtered matches: {}", m.len());
     }
 
 
-    let initial_cam_poses = Some(initial_cam_motions_adjusted);
+    let initial_cam_poses = Some(initial_cam_motions);
     //let initial_cam_poses = Some(relative_motions);
     //let initial_cam_poses = None;
 

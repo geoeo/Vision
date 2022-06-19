@@ -54,10 +54,10 @@ pub fn five_point_essential<T: Feature + Clone, C: Camera>(matches: &Vec<Match<T
         let f_2 = m.feature_two.get_as_3d_point(principal_distance_sign);
         avg_x_one += f_1[0];
         avg_y_one += f_1[1];
-        max_dist_one = max_dist_one.max((f_1[0].powi(2) + f_1[1].powi(2)));
+        max_dist_one = max_dist_one.max(f_1[0].powi(2) + f_1[1].powi(2));
         avg_x_two += f_2[0];
         avg_y_two += f_2[1];
-        max_dist_two = max_dist_two.max((f_2[0].powi(2) + f_2[1].powi(2)));
+        max_dist_two = max_dist_two.max(f_2[0].powi(2) + f_2[1].powi(2));
         features_one.column_mut(i).copy_from(&f_1);
         features_two.column_mut(i).copy_from(&f_2);
     }

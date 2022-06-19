@@ -194,10 +194,10 @@ impl CameraFeatureMap {
                         let feat_f = Vector3::<Float>::new(x_f,y_f,depth_prior);
                         avg_x_one += feat_s[0];
                         avg_y_one += feat_s[1];
-                        max_dist_one = max_dist_one.max((feat_s[0].powi(2) + feat_s[1].powi(2)));
+                        max_dist_one = max_dist_one.max(feat_s[0].powi(2) + feat_s[1].powi(2));
                         avg_x_two += feat_f[0];
                         avg_y_two += feat_f[1];
-                        max_dist_two = max_dist_two.max((feat_f[0].powi(2) + feat_f[1].powi(2)));
+                        max_dist_two = max_dist_two.max(feat_f[0].powi(2) + feat_f[1].powi(2));
                         normalized_image_points_s.column_mut(i).copy_from(&feat_s);
                         normalized_image_points_f.column_mut(i).copy_from(&feat_f);
                     }
@@ -211,11 +211,13 @@ impl CameraFeatureMap {
                     normalization_matrix_two[(1,2)] = -avg_y_two/local_landmarks_as_float;
                     normalization_matrix_two[(2,2)] = max_dist_two;
                 
-                    // normalized_image_points_s = normalization_matrix_one*normalized_image_points_s;
+                    normalized_image_points_s = normalization_matrix_one*normalized_image_points_s;
+                    normalized_image_points_f = normalization_matrix_two*normalized_image_points_f;
+                    
                     // for mut c in normalized_image_points_s.column_iter_mut() {
                     //     c /= c[2].abs();
                     // }
-                    // normalized_image_points_f = normalization_matrix_two*normalized_image_points_f;
+
                     // for mut c in normalized_image_points_f.column_iter_mut() {
                     //     c /= c[2].abs();
                     // }
