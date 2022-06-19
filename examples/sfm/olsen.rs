@@ -33,7 +33,7 @@ fn main() -> Result<()> {
     
     let olsen_data_path = data_set_door_path;
     let depth_prior = -1.0;
-    let epipolar_thresh = 0.1;
+    let epipolar_thresh = 0.01;
     //let epipolar_thresh = 0.01;
 
     
@@ -46,16 +46,16 @@ fn main() -> Result<()> {
     let invert_intrinsics = false; // they are already negative from decomp
     let normalize_features = false;
     let feature_skip_count = 2;
-    let rotation_post_translation = Matrix3::<Float>::new(
-        0.0,1.0,0.0,
-        1.0,0.0,0.0,
-        0.0,0.0,1.0
-    );
     // let rotation_post_translation = Matrix3::<Float>::new(
-    //     1.0,0.0,0.0,
     //     0.0,1.0,0.0,
+    //     1.0,0.0,0.0,
     //     0.0,0.0,1.0
     // );
+    let rotation_post_translation = Matrix3::<Float>::new(
+        1.0,0.0,0.0,
+        0.0,1.0,0.0,
+        0.0,0.0,1.0
+    );
 
     let (cam_intrinsics_0,cam_extrinsics_0) = olsen_data.get_camera_intrinsics_extrinsics(0,positive_principal_distance);
     let (cam_intrinsics_1,cam_extrinsics_1) = olsen_data.get_camera_intrinsics_extrinsics(1,positive_principal_distance);
@@ -219,8 +219,10 @@ fn main() -> Result<()> {
     //     filtered_matches.push(filtered_matches_by_motion);
     // }
 
-    for m in &filtered_matches {
-        println!("filtered matches: {}", m.len());
+    for i in 0..filtered_matches.len() {
+        let m = &filtered_matches[i];
+        let m_orig = &all_matches[i];
+        println!("orig matches: {}, filtered matches: {}", m_orig.len(), m.len());
     }
 
 
@@ -256,7 +258,7 @@ fn main() -> Result<()> {
         let runtime_parameters = RuntimeParameters {
             pyramid_scale: 1.0,
             max_iterations: vec![160; 1],
-            eps: vec![1e-12],
+            eps: vec![1e-6],
             step_sizes: vec![1e0],
             max_norm_eps: 1e-30, 
             delta_eps: 1e-30,
@@ -265,7 +267,7 @@ fn main() -> Result<()> {
             debug: true,
             show_octave_result: true,
             loss_function: Box::new(loss::TrivialLoss { eps: 1e-16, approximate_gauss_newton_matrices: false }), 
-            intensity_weighting_function:  Box::new(weighting::SquaredWeight {})
+            intensity_weighting_function:  Box::new(weighting::BisquareWeight {})
             //intensity_weighting_function:  Box::new(weighting::CauchyWeight {c: 0.01})
         };
 
