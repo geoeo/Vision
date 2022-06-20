@@ -214,15 +214,6 @@ impl CameraFeatureMap {
                     normalized_image_points_s = normalization_matrix_one*normalized_image_points_s;
                     normalized_image_points_f = normalization_matrix_two*normalized_image_points_f;
 
-                    //TODO: investigate this
-                    // for mut c in normalized_image_points_s.column_iter_mut() {
-                    //     c /= c[2].abs();
-                    // }
-
-                    // for mut c in normalized_image_points_f.column_iter_mut() {
-                    //     c /= c[2].abs();
-                    // }
-
                     let se3 = pose::se3(&b,&rotation_matrix);
                     let projection_1 = camera_matrix_s.get_projection()*(Matrix4::<Float>::identity().fixed_slice::<3,4>(0,0));
                     let projection_2 = camera_matrix_f.get_projection()*(se3.fixed_slice::<3,4>(0,0));

@@ -72,13 +72,7 @@ pub fn five_point_essential<T: Feature + Clone, C: Camera>(matches: &Vec<Match<T
     normalization_matrix_two[(2,2)] = max_dist_two;
 
     features_one = normalization_matrix_one*features_one;
-    for mut c in features_one.column_iter_mut() {
-        c /= c[2].abs();
-    }
     features_two = normalization_matrix_two*features_two;
-    for mut c in features_two.column_iter_mut() {
-        c /= c[2].abs();
-    }
 
     let camera_rays_one = inverse_projection_one*(&reduced_features_one);
     let camera_rays_two = inverse_projection_two*(&reduced_features_two);
