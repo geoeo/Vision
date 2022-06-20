@@ -46,16 +46,7 @@ fn main() -> Result<()> {
     let invert_intrinsics = false; // they are already negative from decomp
     let normalize_features = false;
     let feature_skip_count = 2;
-    // let rotation_post_translation = Matrix3::<Float>::new(
-    //     0.0,1.0,0.0,
-    //     1.0,0.0,0.0,
-    //     0.0,0.0,1.0
-    // );
-    let rotation_post_translation = Matrix3::<Float>::new(
-        1.0,0.0,0.0,
-        0.0,1.0,0.0,
-        0.0,0.0,1.0
-    );
+
 
     let (cam_intrinsics_0,cam_extrinsics_0) = olsen_data.get_camera_intrinsics_extrinsics(0,positive_principal_distance);
     let (cam_intrinsics_1,cam_extrinsics_1) = olsen_data.get_camera_intrinsics_extrinsics(1,positive_principal_distance);
@@ -164,12 +155,7 @@ fn main() -> Result<()> {
     //motion_list.push(((6,cam_extrinsics_6),(1,cam_extrinsics_1)));
     // motion_list.push(((6,cam_extrinsics_6),(2,cam_extrinsics_2)));
     // motion_list.push(((6,cam_extrinsics_6),(3,cam_extrinsics_3)));
-    // motion_list.push(((6,cam_extrinsics_6),(4,cam_extrinsics_4)));
-    // motion_list.push(((6,cam_extrinsics_6),(5,cam_extrinsics_5)));
-    //motion_list.push(((6,cam_extrinsics_6),(7,cam_extrinsics_7)));
-    //motion_list.push(((6,cam_extrinsics_6),(8,cam_extrinsics_8)));
-    //motion_list.push(((6,cam_extrinsics_6),(9,cam_extrinsics_9)));
-    //motion_list.push(((7,cam_extrinsics_7),(8,cam_extrinsics_8)));
+    // motion_list.push(((6,cam_extrinsics_6),(4,cam_extrinsics_4)));BisquareWeight
 
 
 
@@ -194,7 +180,6 @@ fn main() -> Result<()> {
             epipolar_thresh,
             positive_principal_distance,
             normalize_features,
-            Some(rotation_post_translation),
             BifocalType::ESSENTIAL, 
             EssentialDecomposition::FÖRSNTER
         );
@@ -267,7 +252,7 @@ fn main() -> Result<()> {
             debug: true,
             show_octave_result: true,
             loss_function: Box::new(loss::TrivialLoss { eps: 1e-16, approximate_gauss_newton_matrices: false }), 
-            intensity_weighting_function:  Box::new(weighting::BisquareWeight {})
+            intensity_weighting_function:  Box::new(weighting::SquaredWeight {})
             //intensity_weighting_function:  Box::new(weighting::CauchyWeight {c: 0.01})
         };
 

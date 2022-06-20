@@ -294,7 +294,6 @@ pub fn compute_initial_cam_motions<C : Camera + Copy,T : Feature + Clone>(
         epipiolar_thresh: Float, 
         positive_principal_distance: bool,
         normalize_features: bool,
-        offset_rotation: Option<Matrix3<Float>>,
         epipolar_alg: BifocalType,
         decomp_alg: EssentialDecomposition) 
     ->  (Vec<(u64,(Vector3<Float>,Matrix3<Float>))>,Vec<Vec<Match<ImageFeature>>>) {
@@ -328,10 +327,7 @@ pub fn compute_initial_cam_motions<C : Camera + Copy,T : Feature + Clone>(
             EssentialDecomposition::FÖRSNTER => decompose_essential_förstner(&e,&f_m,&c_curr.get_inverse_projection(),&c2.get_inverse_projection()),
             EssentialDecomposition::KANATANI => decompose_essential_kanatani(&e,&f_m, positive_principal_distance)
         };
-        let new_t = match offset_rotation {
-            Some(r) => r*(rotation*t_curr + h),
-            None => rotation*t_curr + h
-        };
+        let new_t = rotation*t_curr + h;
         let new_R = rotation*R_curr;
         let new_state = (id2 as u64, c2,(new_t, new_R));
         *state = new_state;
