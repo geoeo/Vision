@@ -285,9 +285,8 @@ pub fn decompose_essential_kanatani<T: Feature>(E: &Essential, matches: &Vec<Mat
 
 }
 
-//TODO: refactor to only take initial cam and then list of other cams
 #[allow(non_snake_case)]
-pub fn compute_initial_cam_motions<C : Camera + Copy,T : Feature + Clone>(
+pub fn compute_pairwise_cam_motions<C : Camera + Copy,T : Feature + Clone>(
         all_matches: &Vec<Vec<Match<T>>>,
         camera_data: &Vec<((usize, C),(usize,C))>,
         pyramid_scale:Float, 
@@ -298,13 +297,7 @@ pub fn compute_initial_cam_motions<C : Camera + Copy,T : Feature + Clone>(
         decomp_alg: EssentialDecomposition) 
     ->  (Vec<(u64,(Vector3<Float>,Matrix3<Float>))>,Vec<Vec<Match<ImageFeature>>>) {
     let feature_machtes =  all_matches.iter().map(|m| extract_matches(m, pyramid_scale, normalize_features)).collect::<Vec<Vec<Match<ImageFeature>>>>();
-    let (id_init, c_init) = camera_data[0].0;
-    feature_machtes.iter().enumerate().map(|(i,m)| (m,camera_data[i])).scan((0, c_init,(Vector3::<Float>::zeros(),Matrix3::<Float>::identity())),|state, (m, ((id1,_),(id2,c2)))| {
-        let (_,c_curr,(t_curr,R_curr)) = match id1 {
-            id if id == id_init => (0, c_init,(Vector3::<Float>::zeros(),Matrix3::<Float>::identity())),
-            _ => *state
-        };
-
+    feature_machtes.iter().enumerate().map(|(i,m)| (m,camera_data[i])).map(|(m, ((id1,c1),(id2,c2)))| {
         let principal_distance_sign = match positive_principal_distance {
             true => 1.0,
             false => -1.0
@@ -313,24 +306,21 @@ pub fn compute_initial_cam_motions<C : Camera + Copy,T : Feature + Clone>(
             BifocalType::FUNDAMENTAL => {
                 let f = eight_point(m, positive_principal_distance);
                 let filtered =  filter_matches_from_fundamental(&f,m,epipiolar_thresh, principal_distance_sign);
-                (compute_essential(&f,&c_curr.get_projection(),&c2.get_projection()), filtered)
+                (compute_essential(&f,&c1.get_projection(),&c2.get_projection()), filtered)
             },
             BifocalType::ESSENTIAL => {
-                let e = five_point_essential(m, &c_curr, &c2, positive_principal_distance);
-                let f = compute_fundamental(&e, &c_curr.get_inverse_projection(), &c2.get_inverse_projection());
+                let e = five_point_essential(m, &c1, &c2, positive_principal_distance);
+                let f = compute_fundamental(&e, &c1.get_inverse_projection(), &c2.get_inverse_projection());
                 let filtered =  filter_matches_from_fundamental(&f,m,epipiolar_thresh, principal_distance_sign);
                 (e, filtered)
             }
         };
 
         let (h,rotation,_) = match decomp_alg {
-            EssentialDecomposition::FÖRSNTER => decompose_essential_förstner(&e,&f_m,&c_curr.get_inverse_projection(),&c2.get_inverse_projection()),
+            EssentialDecomposition::FÖRSNTER => decompose_essential_förstner(&e,&f_m,&c1.get_inverse_projection(),&c2.get_inverse_projection()),
             EssentialDecomposition::KANATANI => decompose_essential_kanatani(&e,&f_m, positive_principal_distance)
         };
-        let new_t = rotation*t_curr + h;
-        let new_R = rotation*R_curr;
-        let new_state = (id2 as u64, c2,(new_t, new_R));
-        *state = new_state;
-        Some((new_state, f_m))
-    }).map(|((id,_,motion),filtered)|((id,motion),filtered)).unzip()
+        let new_state = (id2 as u64,(h, rotation));
+        (new_state, f_m)
+    }).unzip()
 }

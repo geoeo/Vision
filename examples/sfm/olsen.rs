@@ -5,10 +5,10 @@ extern crate vision;
 use color_eyre::eyre::Result;
 
 use std::fs;
-use na::{Vector3,Matrix3,Matrix4, Rotation3};
+use na::{Vector3,Matrix3,Matrix4};
 use vision::io::olsen_loader::OlssenData;
 use vision::sensors::camera::perspective::Perspective;
-use vision::image::{features::{Match,ImageFeature}, epipolar::{compute_initial_cam_motions, BifocalType,EssentialDecomposition,filter_matches_from_motion}};
+use vision::image::{features::{Match,ImageFeature}, epipolar::{compute_pairwise_cam_motions, BifocalType,EssentialDecomposition,filter_matches_from_motion}};
 use vision::sfm::{bundle_adjustment:: run_ba};
 use vision::odometry::runtime_parameters::RuntimeParameters;
 use vision::numerics::{loss, weighting};
@@ -173,7 +173,7 @@ fn main() -> Result<()> {
 
     //TODO: do filtering inside this
     let (initial_cam_motions, filtered_matches) 
-        = compute_initial_cam_motions(
+        = compute_pairwise_cam_motions(
             &all_matches, 
             &camera_data, 
             1.0,
@@ -190,19 +190,6 @@ fn main() -> Result<()> {
 
     let used_motions_for_filtering = initial_cam_motions.iter().map(|&(_,r)| r).collect::<Vec<(Vector3<Float>,Matrix3<Float>)>>();
     //let used_motions_for_filtering = relative_motions.iter().map(|&(_,r)| r).collect::<Vec<(Vector3<Float>,Matrix3<Float>)>>();
-
-    //TODO: move filtering into initial motion decomp
-    //TODO: there is a bug when starting with cams sequences that are not in order!. E.g. 6,5 and 6,7
-    // let mut filtered_matches = Vec::<Vec<Match<ImageFeature>>>::with_capacity(all_matches.len());
-    // for i in 0..all_matches.len(){
-    //     let matches = &all_matches[i];
-    //     let relative_motion = &used_motions_for_filtering[i];
-    //     let ((_,cs),(_,cf)) = camera_data[i];
-    //     //TODO:if empty dont add
-    //     let filtered_matches_by_motion = filter_matches_from_motion(matches,relative_motion,&(cs,cf),principal_distance_sign,epipolar_thresh);
-    //     println!("orig matches: {}, olsson filtered matches: {}", matches.len(), &filtered_matches_by_motion.len());
-    //     filtered_matches.push(filtered_matches_by_motion);
-    // }
 
     for i in 0..filtered_matches.len() {
         let m = &filtered_matches[i];
