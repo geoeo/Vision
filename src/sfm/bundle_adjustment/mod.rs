@@ -26,6 +26,7 @@ pub fn run_ba<C : Camera + Copy, T : Feature>(all_matches: &Vec<Vec<Match<T>>>, 
     unique_cameras_sorted.sort_unstable_by(|(v1,_),(v2,_)| v1.partial_cmp(v2).unwrap());
     unique_cameras_sorted.dedup_by(|(v1,_),(v2,_)| v1==v2);
 
+    //TODO: transative motions
     let unique_camera_ids_sorted = unique_cameras_sorted.iter().map(|(id,_)| *id as u64).collect();
     let unique_camera_id_pairs = camera_data.iter().map(|((v1,_),(v2,_))| (*v1 as u64,*v2 as u64)).collect();
     let unique_cameras_sorted_by_id = unique_cameras_sorted.iter().map(|(_,cam)| *cam).collect::<Vec<C>>();
@@ -34,6 +35,7 @@ pub fn run_ba<C : Camera + Copy, T : Feature>(all_matches: &Vec<Vec<Match<T>>>, 
     feature_map.add_matches(&unique_camera_id_pairs,all_matches, pyramid_scale);
 
     //TODO: switch impl
+
     let mut state = feature_map.get_euclidean_landmark_state(initial_cam_poses.as_ref(), camera_data, depth_prior);
     //let mut state = feature_map.get_inverse_depth_landmark_state(Some(&initial_motion_decomp), depth_prior,&cameras);
 

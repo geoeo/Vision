@@ -63,7 +63,8 @@ impl CameraFeatureMap {
         let (x_other_recon,y_other_recon) = reconstruct_original_coordiantes_for_float(x_other, y_other, pyramid_scale, octave_index_other as i32);
         let point_source = Point::<Float>::new(x_source_recon,y_source_recon);
         let point_other = Point::<Float>::new(x_other_recon,y_other_recon); 
-
+        
+        //Linearized Pixel Coordiante as Point ID
         let point_source_idx = self.linear_image_idx(&point_source);
         let point_other_idx = self.linear_image_idx(&point_other);
 
@@ -72,8 +73,10 @@ impl CameraFeatureMap {
         
         let source_point_id =  self.camera_map.get(&source_cam_id).unwrap().1.get(&point_source_idx);
         let other_point_id = self.camera_map.get(&other_cam_id).unwrap().1.get(&point_other_idx);
-
+        
+        
         match (source_point_id.clone(),other_point_id.clone()) {
+            //If the no point Id is present in either of the two camera it is a new 3D Point
             (None,None) => {
                 self.point_cam_map[self.number_of_unique_points][source_cam_idx] = Some((point_source.x,point_source.y));
                 self.point_cam_map[self.number_of_unique_points][other_cam_idx] = Some((point_other.x,point_other.y));
@@ -82,6 +85,7 @@ impl CameraFeatureMap {
 
                 self.number_of_unique_points += 1;
             },
+            // Otherwise add it to the camera which observs it for the first time
             (Some(&point_id),_) => {
                 self.point_cam_map[point_id][other_cam_idx] = Some((point_other.x,point_other.y));
                 self.camera_map.get_mut(&other_cam_id).unwrap().1.insert(point_other_idx, point_id);
@@ -154,7 +158,7 @@ impl CameraFeatureMap {
         let number_of_cameras = self.camera_map.keys().len();
         let number_of_unqiue_landmarks = self.number_of_unique_points;
 
-        //TODO: Features are between adjacent cams, but transform is not. -> Mistake!
+
         let landmarks = match initial_motions {
             Some(motions) => {
                 assert_eq!(motions.len(), camera_data.len());
@@ -218,7 +222,7 @@ impl CameraFeatureMap {
                     let projection_1 = camera_matrix_s.get_projection()*(Matrix4::<Float>::identity().fixed_slice::<3,4>(0,0));
                     let projection_2 = camera_matrix_f.get_projection()*(se3.fixed_slice::<3,4>(0,0));
                     
-
+                    //TODO: Push these points into the correct camera coordinate system when using transtitive camera definitions. camera_matrix_s might not be the origin!
                     let triangulated_points = linear_triangulation(&vec!((&normalized_image_points_s,&projection_1),(&normalized_image_points_f,&projection_2)));
                     assert_eq!(triangulated_points.ncols(), point_ids.len());
 
@@ -241,7 +245,8 @@ impl CameraFeatureMap {
         State::new(camera_positions, landmarks, number_of_cameras, number_of_unqiue_landmarks)
     }
 
-    //TODO: Assumes decomposition is relative to reference cam i.e. first cam!
+    //Assumes decomposition is relative to reference cam i.e. first cam!
+    //TODO: Make this work for transative camera definitions
     fn get_initial_camera_positions(&self,initial_motions : Option<&Vec<(u64,(Vector3<Float>,Matrix3<Float>))>> ) -> DVector::<Float> {
 
         let number_of_cameras = self.camera_map.keys().len();

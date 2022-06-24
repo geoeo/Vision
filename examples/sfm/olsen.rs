@@ -171,7 +171,6 @@ fn main() -> Result<()> {
     // all_matches.push(vec![Match{feature_one:ImageFeature::new(10.0,10.0), feature_two: ImageFeature::new(300.0,400.0)}]);
     // all_matches.push(vec![Match{feature_one:ImageFeature::new(10.0,10.0), feature_two: ImageFeature::new(300.0,400.0)}]);
 
-    //TODO: do filtering inside this
     let (initial_cam_motions, filtered_matches) 
         = compute_pairwise_cam_motions(
             &all_matches, 
@@ -188,8 +187,6 @@ fn main() -> Result<()> {
     // TODO: Cordiante system different from what we expect
     let relative_motions = OlssenData::get_relative_motions(&motion_list);
 
-    let used_motions_for_filtering = initial_cam_motions.iter().map(|&(_,r)| r).collect::<Vec<(Vector3<Float>,Matrix3<Float>)>>();
-    //let used_motions_for_filtering = relative_motions.iter().map(|&(_,r)| r).collect::<Vec<(Vector3<Float>,Matrix3<Float>)>>();
 
     for i in 0..filtered_matches.len() {
         let m = &filtered_matches[i];
