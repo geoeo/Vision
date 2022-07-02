@@ -7,6 +7,7 @@ use crate::sensors::camera::Camera;
 use crate::Float;
 use crate::image::features::{Feature,Match, ImageFeature, condition_matches};
 use crate::numerics::pose::optimal_correction_of_rotation;
+use crate::sfm::SFMConfig;
 
 pub type Fundamental =  Matrix3<Float>;
 pub type Essential =  Matrix3<Float>;
@@ -285,8 +286,9 @@ pub fn decompose_essential_kanatani<T: Feature>(E: &Essential, matches: &Vec<Mat
 
 }
 
+//TODO: refactor this to take path from sfm_config. This will the a subrotine for compute_pairwise_cam_motions
 #[allow(non_snake_case)]
-pub fn compute_pairwise_cam_motions<C : Camera + Copy,T : Feature + Clone>(
+pub fn compute_pairwise_cam_motions_for_path<C : Camera + Copy,T : Feature + Clone>(
         all_matches: &Vec<Vec<Match<T>>>,
         camera_data: &Vec<((usize, C),(usize,C))>,
         pyramid_scale:Float, 
@@ -323,4 +325,52 @@ pub fn compute_pairwise_cam_motions<C : Camera + Copy,T : Feature + Clone>(
         let new_state = (id2 as u64,(h, rotation));
         (new_state, f_m)
     }).unzip()
+}
+
+
+#[allow(non_snake_case)]
+pub fn compute_pairwise_cam_motions<C : Camera + Copy,T : Feature + Clone>(
+        sfm_config: &SFMConfig<C, T>,
+        pyramid_scale:Float, 
+        epipiolar_thresh: Float, 
+        positive_principal_distance: bool,
+        normalize_features: bool,
+        epipolar_alg: BifocalType,
+        decomp_alg: EssentialDecomposition) 
+    ->  Vec<(Vec<(u64,(Vector3<Float>,Matrix3<Float>))>,Vec<Vec<Match<ImageFeature>>>)> {
+    panic!("TODO");
+    let root_id = sfm_config.get_root();
+    // let feature_machtes =  sfm_config.get_matches().iter().map(|m| extract_matches(m, pyramid_scale, normalize_features)).collect::<Vec<Vec<Match<ImageFeature>>>>();
+
+    // sfm_config.get_paths().iter().enumerate()
+    // .map(|(i,p)| {
+    //     let cameras = p.iter().map(|&id2| ((root_id, sfm_config.get_camera_map()[&root_id]),(id2,sfm_config.get_camera_map()[&id2]))).collect::<Vec<((usize,C),(usize,C))>>();
+    //     (feature_machtes[i],cameras)
+    // })
+    // .map(|(m, ((_,c1),(id2,c2)))| {
+    //     let principal_distance_sign = match positive_principal_distance {
+    //         true => 1.0,
+    //         false => -1.0
+    //     };
+    //     let (e,f_m) = match epipolar_alg {
+    //         BifocalType::FUNDAMENTAL => {
+    //             let f = eight_point(m, positive_principal_distance);
+    //             let filtered =  filter_matches_from_fundamental(&f,m,epipiolar_thresh, principal_distance_sign);
+    //             (compute_essential(&f,&c1.get_projection(),&c2.get_projection()), filtered)
+    //         },
+    //         BifocalType::ESSENTIAL => {
+    //             let e = five_point_essential(m, &c1, &c2, positive_principal_distance);
+    //             let f = compute_fundamental(&e, &c1.get_inverse_projection(), &c2.get_inverse_projection());
+    //             let filtered =  filter_matches_from_fundamental(&f,m,epipiolar_thresh, principal_distance_sign);
+    //             (e, filtered)
+    //         }
+    //     };
+
+    //     let (h,rotation,_) = match decomp_alg {
+    //         EssentialDecomposition::FÖRSNTER => decompose_essential_förstner(&e,&f_m,&c1.get_inverse_projection(),&c2.get_inverse_projection()),
+    //         EssentialDecomposition::KANATANI => decompose_essential_kanatani(&e,&f_m, positive_principal_distance)
+    //     };
+    //     let new_state = (id2 as u64,(h, rotation));
+    //     (new_state, f_m)
+    // }).unzip()
 }

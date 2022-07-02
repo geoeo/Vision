@@ -5,15 +5,16 @@ extern crate vision;
 use color_eyre::eyre::Result;
 
 use std::fs;
+use std::collections::HashMap;
 use na::{Vector3,Matrix3,Matrix4};
 use vision::io::olsen_loader::OlssenData;
 use vision::sensors::camera::perspective::Perspective;
-use vision::image::{features::{Match,ImageFeature}, epipolar::{compute_pairwise_cam_motions, BifocalType,EssentialDecomposition,filter_matches_from_motion}};
-use vision::sfm::{bundle_adjustment:: run_ba};
+use vision::image::{features::{Match,ImageFeature}, epipolar::{compute_pairwise_cam_motions_for_path, BifocalType,EssentialDecomposition}};
+use vision::sfm::{SFMConfig,bundle_adjustment::run_ba};
 use vision::odometry::runtime_parameters::RuntimeParameters;
 use vision::numerics::{loss, weighting};
 use vision::{float,Float,load_runtime_conf};
-use vision::visualize;
+
 
 
 fn main() -> Result<()> {
@@ -121,9 +122,9 @@ fn main() -> Result<()> {
     let pinhole_cam_11 = Perspective::from_matrix(&cam_intrinsics_11, invert_intrinsics);
     //let pinhole_cam_12 = Perspective::from_matrix(&cam_intrinsics_12, false);
 
-    let mut all_matches = Vec::<Vec<Match<ImageFeature>>>::with_capacity(10);
-    all_matches.push(matches_5_4_subvec);
-    all_matches.push(matches_5_6_subvec);
+    let mut matches = Vec::<Vec<Match<ImageFeature>>>::with_capacity(10);
+    matches.push(matches_5_4_subvec);
+    matches.push(matches_5_6_subvec);
     //all_matches.push(matches_5_7_subvec);
     // all_matches.push(matches_6_2_subvec);
     // all_matches.push(matches_6_3_subvec);
@@ -134,13 +135,18 @@ fn main() -> Result<()> {
     //all_matches.push(matches_7_8_subvec);
 
 
-    for m in &all_matches {
+    for m in &matches {
         assert!(m.len() > 0);
     }
+
+    let all_matches: Vec<Vec<Vec<Match<ImageFeature>>>> = vec!(matches.clone()); //TODO: remove clone after refeactor!
     
     let mut camera_data = Vec::<((usize,Perspective),(usize,Perspective))>::with_capacity(10); 
     camera_data.push(((5,pinhole_cam_5),(4,pinhole_cam_4)));
     camera_data.push(((5,pinhole_cam_5),(6,pinhole_cam_6)));
+
+    let camera_map = HashMap::from([(5, pinhole_cam_5), (4, pinhole_cam_4), (6, pinhole_cam_6)]);
+    let paths = vec!(vec!(4),vec!(6));
 
     //camera_data.push(((6,pinhole_cam_6),(4,pinhole_cam_4)));
     //camera_data.push(((6,pinhole_cam_6),(5,pinhole_cam_5)));
@@ -149,32 +155,17 @@ fn main() -> Result<()> {
     //camera_data.push(((6,pinhole_cam_6),(9,pinhole_cam_9)));
     //camera_data.push(((7,pinhole_cam_7),(7,pinhole_cam_8)));
 
-    let mut motion_list =  Vec::<((usize,Matrix4<Float>),(usize,Matrix4<Float>))>::with_capacity(10); 
-    motion_list.push(((5,cam_extrinsics_5),(4,cam_extrinsics_4)));
-    //motion_list.push(((5,cam_extrinsics_5),(6,cam_extrinsics_6)));
-    //motion_list.push(((6,cam_extrinsics_6),(1,cam_extrinsics_1)));
-    // motion_list.push(((6,cam_extrinsics_6),(2,cam_extrinsics_2)));
-    // motion_list.push(((6,cam_extrinsics_6),(3,cam_extrinsics_3)));
-    // motion_list.push(((6,cam_extrinsics_6),(4,cam_extrinsics_4)));BisquareWeight
 
 
 
+    let sfm_config = SFMConfig::new(5, paths, camera_map, all_matches);
 
 
-    // all_matches = Vec::<Vec<Match<ImageFeature>>>::with_capacity(10);
-    // all_matches.push(vec![Match{feature_one:ImageFeature::new(10.0,10.0), feature_two: ImageFeature::new(300.0,400.0)}]);
-    // all_matches.push(vec![Match{feature_one:ImageFeatusre::new(10.0,10.0), feature_two: ImageFeature::new(300.0,400.0)}]);
-    // all_matches.push(vec![Match{feature_one:ImageFeature::new(10.0,10.0), feature_two: ImageFeature::new(300.0,400.0)}]);
-    // all_matches.push(vec![Match{feature_one:ImageFeature::new(10.0,10.0), feature_two: ImageFeature::new(300.0,400.0)}]);
-    // all_matches.push(vec![Match{feature_one:ImageFeature::new(10.0,10.0), feature_two: ImageFeature::new(300.0,400.0)}]);
-    // all_matches.push(vec![Match{feature_one:ImageFeature::new(10.0,10.0), feature_two: ImageFeature::new(300.0,400.0)}]);
-    // all_matches.push(vec![Match{feature_one:ImageFeature::new(10.0,10.0), feature_two: ImageFeature::new(300.0,400.0)}]);
-    // all_matches.push(vec![Match{feature_one:ImageFeature::new(10.0,10.0), feature_two: ImageFeature::new(300.0,400.0)}]);
 
     let (initial_cam_motions, filtered_matches) 
-        = compute_pairwise_cam_motions(
-            &all_matches, 
-            &camera_data, 
+        = compute_pairwise_cam_motions_for_path(
+            &matches,
+            &camera_data,
             1.0,
             epipolar_thresh,
             positive_principal_distance,
@@ -182,15 +173,32 @@ fn main() -> Result<()> {
             BifocalType::ESSENTIAL, 
             EssentialDecomposition::FÖRSNTER
         );
-    //let initial_cam_motions_adjusted = initial_cam_motions.iter().map(|&(id,(h,rot))| (id,(rotation_post_translation*h,rot))).collect::<Vec<(u64,(Vector3<Float>,Matrix3<Float>))>>();
-    //let initial_cam_motions = compute_initial_cam_motions(&all_matches, &camera_data, 1.0,epipolar_thresh,false, EssentialDecomposition::FÖRSNTER); //check this
-    // TODO: Cordiante system different from what we expect
+
+        // let (initial_cam_motions, filtered_matches) 
+        // = compute_pairwise_cam_motions(
+        //     &sfm_config,
+        //     1.0,
+        //     epipolar_thresh,
+        //     positive_principal_distance,
+        //     normalize_features,
+        //     BifocalType::ESSENTIAL, 
+        //     EssentialDecomposition::FÖRSNTER
+        // );
+
+    // TODO: 
+    let mut motion_list =  Vec::<((usize,Matrix4<Float>),(usize,Matrix4<Float>))>::with_capacity(10); 
+    motion_list.push(((5,cam_extrinsics_5),(4,cam_extrinsics_4)));
+    //motion_list.push(((5,cam_extrinsics_5),(6,cam_extrinsics_6)));
+    //motion_list.push(((6,cam_extrinsics_6),(1,cam_extrinsics_1)));
+    // motion_list.push(((6,cam_extrinsics_6),(2,cam_extrinsics_2)));
+    // motion_list.push(((6,cam_extrinsics_6),(3,cam_extrinsics_3)));
+    // motion_list.push(((6,cam_extrinsics_6),(4,cam_extrinsics_4)));
     let relative_motions = OlssenData::get_relative_motions(&motion_list);
 
 
     for i in 0..filtered_matches.len() {
         let m = &filtered_matches[i];
-        let m_orig = &all_matches[i];
+        let m_orig = &matches[i];
         println!("orig matches: {}, filtered matches: {}", m_orig.len(), m.len());
     }
 
@@ -208,19 +216,6 @@ fn main() -> Result<()> {
     }
 
     let used_matches = &filtered_matches;
-    //let used_matches = &all_matches;
-
-    // This causes a crash on a lot of points
-    // for i in 0..camera_data.len() {
-    //     let ((id_a,_),(id_b,_)) = camera_data[i];
-    //     let intensity = 3.0*(olsen_data.images[id_a].buffer.max() as Float)/4.0;
-    //     let matches_vis = match used_matches.len() {
-    //         0 => visualize::display_matches_for_pyramid(&olsen_data.images[id_a],&olsen_data.images[id_b],&Vec::<Match<ImageFeature>>::new(),true,intensity ,1.0),
-    //         _ => visualize::display_matches_for_pyramid(&olsen_data.images[id_a],&olsen_data.images[id_b],&used_matches[i],true,intensity ,1.0)
-    //     };
-    //     matches_vis.to_image().save(format!("{}match_disp_{}_{}_orb_ba.jpg",olsen_data_path,id_a,id_b)).unwrap();
-    // }
-
 
     if used_matches.len() > 0 {
 
