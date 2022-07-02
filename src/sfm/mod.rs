@@ -21,9 +21,9 @@ impl<C: Camera, F: Feature> SFMConfig<C,F> {
         SFMConfig{root, paths, camera_map, matches}
     }
 
-    pub fn get_root(&self) -> usize { self.root }
-    pub fn get_paths(&self) -> &Vec<Vec<usize>> { &self.paths }
-    pub fn get_camera_map(&self) -> &HashMap<usize, C> { &self.camera_map }
-    pub fn get_matches(&self) -> &Vec<Vec<Vec<Match<F>>>> { &self.matches }
+    pub fn root(&self) -> usize { self.root }
+    pub fn paths(&self) -> &Vec<Vec<usize>> { &self.paths }
+    pub fn camera_map(&self) -> &HashMap<usize, C> { &self.camera_map }
+    pub fn matches(&self) -> &Vec<Vec<Vec<Match<F>>>> { &self.matches }
 
 }

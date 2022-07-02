@@ -286,11 +286,10 @@ pub fn decompose_essential_kanatani<T: Feature>(E: &Essential, matches: &Vec<Mat
 
 }
 
-//TODO: refactor this to take path from sfm_config. This will the a subrotine for compute_pairwise_cam_motions
 #[allow(non_snake_case)]
 pub fn compute_pairwise_cam_motions_for_path<C : Camera + Copy,T : Feature + Clone>(
-        all_matches: &Vec<Vec<Match<T>>>,
-        camera_data: &Vec<((usize, C),(usize,C))>,
+        sfm_config: &SFMConfig<C, T>,
+        path_idx: usize,
         pyramid_scale:Float, 
         epipiolar_thresh: Float, 
         positive_principal_distance: bool,
@@ -298,8 +297,19 @@ pub fn compute_pairwise_cam_motions_for_path<C : Camera + Copy,T : Feature + Clo
         epipolar_alg: BifocalType,
         decomp_alg: EssentialDecomposition) 
     ->  (Vec<(u64,(Vector3<Float>,Matrix3<Float>))>,Vec<Vec<Match<ImageFeature>>>) {
-    let feature_machtes =  all_matches.iter().map(|m| extract_matches(m, pyramid_scale, normalize_features)).collect::<Vec<Vec<Match<ImageFeature>>>>();
-    feature_machtes.iter().enumerate().map(|(i,m)| (m,camera_data[i])).map(|(m, ((id1,c1),(id2,c2)))| {
+    let root_id = sfm_config.root();
+    let path = &sfm_config.paths()[path_idx];
+    let matches = &sfm_config.matches()[path_idx];
+    let camera_map = sfm_config.camera_map();
+    let root_cam = camera_map.get(&root_id).expect("compute_pairwise_cam_motions_for_path: could not get root cam");
+    let feature_machtes =  matches.iter().map(|m| extract_matches(m, pyramid_scale, normalize_features)).collect::<Vec<Vec<Match<ImageFeature>>>>();
+    feature_machtes.iter().enumerate().map(|(i,m)| {
+        let c1 = match i {
+            0 => root_cam,
+            idx => camera_map.get(&path[idx-1]).expect("compute_pairwise_cam_motions_for_path: could not get previous cam")
+        };
+        let id2 = path[i];
+        let c2 = camera_map.get(&id2).expect("compute_pairwise_cam_motions_for_path: could not get second camera");
         let principal_distance_sign = match positive_principal_distance {
             true => 1.0,
             false => -1.0
@@ -311,7 +321,7 @@ pub fn compute_pairwise_cam_motions_for_path<C : Camera + Copy,T : Feature + Clo
                 (compute_essential(&f,&c1.get_projection(),&c2.get_projection()), filtered)
             },
             BifocalType::ESSENTIAL => {
-                let e = five_point_essential(m, &c1, &c2, positive_principal_distance);
+                let e = five_point_essential(m, c1, c2, positive_principal_distance);
                 let f = compute_fundamental(&e, &c1.get_inverse_projection(), &c2.get_inverse_projection());
                 let filtered =  filter_matches_from_fundamental(&f,m,epipiolar_thresh, principal_distance_sign);
                 (e, filtered)
@@ -329,48 +339,25 @@ pub fn compute_pairwise_cam_motions_for_path<C : Camera + Copy,T : Feature + Clo
 
 
 #[allow(non_snake_case)]
-pub fn compute_pairwise_cam_motions<C : Camera + Copy,T : Feature + Clone>(
+pub fn compute_pairwise_cam_motions<C: Camera + Copy,T : Feature + Clone>(
         sfm_config: &SFMConfig<C, T>,
         pyramid_scale:Float, 
-        epipiolar_thresh: Float, 
+        epipolar_thresh: Float, 
         positive_principal_distance: bool,
         normalize_features: bool,
         epipolar_alg: BifocalType,
         decomp_alg: EssentialDecomposition) 
     ->  Vec<(Vec<(u64,(Vector3<Float>,Matrix3<Float>))>,Vec<Vec<Match<ImageFeature>>>)> {
-    panic!("TODO");
-    let root_id = sfm_config.get_root();
-    // let feature_machtes =  sfm_config.get_matches().iter().map(|m| extract_matches(m, pyramid_scale, normalize_features)).collect::<Vec<Vec<Match<ImageFeature>>>>();
-
-    // sfm_config.get_paths().iter().enumerate()
-    // .map(|(i,p)| {
-    //     let cameras = p.iter().map(|&id2| ((root_id, sfm_config.get_camera_map()[&root_id]),(id2,sfm_config.get_camera_map()[&id2]))).collect::<Vec<((usize,C),(usize,C))>>();
-    //     (feature_machtes[i],cameras)
-    // })
-    // .map(|(m, ((_,c1),(id2,c2)))| {
-    //     let principal_distance_sign = match positive_principal_distance {
-    //         true => 1.0,
-    //         false => -1.0
-    //     };
-    //     let (e,f_m) = match epipolar_alg {
-    //         BifocalType::FUNDAMENTAL => {
-    //             let f = eight_point(m, positive_principal_distance);
-    //             let filtered =  filter_matches_from_fundamental(&f,m,epipiolar_thresh, principal_distance_sign);
-    //             (compute_essential(&f,&c1.get_projection(),&c2.get_projection()), filtered)
-    //         },
-    //         BifocalType::ESSENTIAL => {
-    //             let e = five_point_essential(m, &c1, &c2, positive_principal_distance);
-    //             let f = compute_fundamental(&e, &c1.get_inverse_projection(), &c2.get_inverse_projection());
-    //             let filtered =  filter_matches_from_fundamental(&f,m,epipiolar_thresh, principal_distance_sign);
-    //             (e, filtered)
-    //         }
-    //     };
-
-    //     let (h,rotation,_) = match decomp_alg {
-    //         EssentialDecomposition::FÖRSNTER => decompose_essential_förstner(&e,&f_m,&c1.get_inverse_projection(),&c2.get_inverse_projection()),
-    //         EssentialDecomposition::KANATANI => decompose_essential_kanatani(&e,&f_m, positive_principal_distance)
-    //     };
-    //     let new_state = (id2 as u64,(h, rotation));
-    //     (new_state, f_m)
-    // }).unzip()
+    (0..sfm_config.paths().len()).map(|i| 
+        compute_pairwise_cam_motions_for_path(
+        sfm_config,
+        i,
+        pyramid_scale,
+        epipolar_thresh,
+        positive_principal_distance,
+        normalize_features,
+        epipolar_alg, 
+        decomp_alg)
+    ).collect()
+    
 }

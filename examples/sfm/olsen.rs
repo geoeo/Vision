@@ -9,7 +9,7 @@ use std::collections::HashMap;
 use na::{Vector3,Matrix3,Matrix4};
 use vision::io::olsen_loader::OlssenData;
 use vision::sensors::camera::perspective::Perspective;
-use vision::image::{features::{Match,ImageFeature}, epipolar::{compute_pairwise_cam_motions_for_path, BifocalType,EssentialDecomposition}};
+use vision::image::{features::{Match,ImageFeature}, epipolar::{compute_pairwise_cam_motions, compute_pairwise_cam_motions_for_path, BifocalType,EssentialDecomposition}};
 use vision::sfm::{SFMConfig,bundle_adjustment::run_ba};
 use vision::odometry::runtime_parameters::RuntimeParameters;
 use vision::numerics::{loss, weighting};
@@ -122,24 +122,8 @@ fn main() -> Result<()> {
     let pinhole_cam_11 = Perspective::from_matrix(&cam_intrinsics_11, invert_intrinsics);
     //let pinhole_cam_12 = Perspective::from_matrix(&cam_intrinsics_12, false);
 
-    let mut matches = Vec::<Vec<Match<ImageFeature>>>::with_capacity(10);
-    matches.push(matches_5_4_subvec);
-    matches.push(matches_5_6_subvec);
-    //all_matches.push(matches_5_7_subvec);
-    // all_matches.push(matches_6_2_subvec);
-    // all_matches.push(matches_6_3_subvec);
-    // all_matches.push(matches_6_4_subvec);
-    //all_matches.push(matches_6_5_subvec);
-    //all_matches.push(matches_6_7_subvec);
-    //all_matches.push(matches_6_9_subvec);
-    //all_matches.push(matches_7_8_subvec);
 
-
-    for m in &matches {
-        assert!(m.len() > 0);
-    }
-
-    let all_matches: Vec<Vec<Vec<Match<ImageFeature>>>> = vec!(matches.clone()); //TODO: remove clone after refeactor!
+    let sfm_all_matches = vec!(vec!(matches_5_4_subvec),vec!(matches_5_6_subvec)); //TODO: remove clone after refeactor!
     
     let mut camera_data = Vec::<((usize,Perspective),(usize,Perspective))>::with_capacity(10); 
     camera_data.push(((5,pinhole_cam_5),(4,pinhole_cam_4)));
@@ -156,36 +140,27 @@ fn main() -> Result<()> {
     //camera_data.push(((7,pinhole_cam_7),(7,pinhole_cam_8)));
 
 
-
-
-    let sfm_config = SFMConfig::new(5, paths, camera_map, all_matches);
-
-
-
-    let (initial_cam_motions, filtered_matches) 
-        = compute_pairwise_cam_motions_for_path(
-            &matches,
-            &camera_data,
+    let sfm_config = SFMConfig::new(5, paths, camera_map, sfm_all_matches);
+    let motions_per_path = compute_pairwise_cam_motions(
+            &sfm_config,
             1.0,
             epipolar_thresh,
             positive_principal_distance,
             normalize_features,
             BifocalType::ESSENTIAL, 
             EssentialDecomposition::FÖRSNTER
-        );
+    );
 
-        // let (initial_cam_motions, filtered_matches) 
-        // = compute_pairwise_cam_motions(
-        //     &sfm_config,
-        //     1.0,
-        //     epipolar_thresh,
-        //     positive_principal_distance,
-        //     normalize_features,
-        //     BifocalType::ESSENTIAL, 
-        //     EssentialDecomposition::FÖRSNTER
-        // );
+    //This is only to satisfy current interface in ba
+    let mut initial_cam_motions = Vec::<(u64,(Vector3<Float>,Matrix3<Float>))>::with_capacity(10);
+    let mut filtered_matches = Vec::<Vec<Match<ImageFeature>>>::with_capacity(10);
+    for (a,b) in motions_per_path {
+        initial_cam_motions.extend(a);
+        filtered_matches.extend(b);
+    }
 
-    // TODO: 
+
+    //TODO: might be unneccesary
     let mut motion_list =  Vec::<((usize,Matrix4<Float>),(usize,Matrix4<Float>))>::with_capacity(10); 
     motion_list.push(((5,cam_extrinsics_5),(4,cam_extrinsics_4)));
     //motion_list.push(((5,cam_extrinsics_5),(6,cam_extrinsics_6)));
@@ -196,9 +171,10 @@ fn main() -> Result<()> {
     let relative_motions = OlssenData::get_relative_motions(&motion_list);
 
 
+    //This is only to satisfy current interface
     for i in 0..filtered_matches.len() {
         let m = &filtered_matches[i];
-        let m_orig = &matches[i];
+        let m_orig = &sfm_config.matches()[i][0];
         println!("orig matches: {}, filtered matches: {}", m_orig.len(), m.len());
     }
 
