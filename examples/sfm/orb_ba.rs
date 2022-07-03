@@ -4,6 +4,7 @@ extern crate color_eyre;
 extern crate nalgebra as na;
 
 use std::fs;
+use std::collections::HashMap;
 use color_eyre::eyre::Result;
 use std::path::Path;
 use vision::image::pyramid::orb::{orb_runtime_parameters::OrbRuntimeParameters};
@@ -13,6 +14,7 @@ use vision::sfm::{bundle_adjustment::run_ba};
 use vision::sensors::camera::{pinhole::Pinhole};
 use vision::odometry::runtime_parameters::RuntimeParameters;
 use vision::numerics::{loss, weighting};
+use vision::sfm::SFMConfig;
 
 
 fn main() -> Result<()> {
@@ -67,6 +69,8 @@ fn main() -> Result<()> {
 
     let camera_data = vec!(((1,intensity_camera_1), (2,intensity_camera_2)));
 
+    let camera_map = HashMap::from([(1, intensity_camera_1), (2, intensity_camera_2)]);
+    let sfm_config = SFMConfig::new(1, vec!(vec!(2)), camera_map, vec!(all_matches));
 
     let runtime_parameters = RuntimeParameters {
         pyramid_scale: orb_params_1_2.pyramid_scale,
@@ -87,7 +91,7 @@ fn main() -> Result<()> {
 
 
 
-    let ((cam_positions,points),(s,debug_states_serialized)) = run_ba(&all_matches, &camera_data,&None, (image_1.buffer.nrows(),image_1.buffer.ncols()), &runtime_parameters, 1.0,-1.0);
+    let ((cam_positions,points),(s,debug_states_serialized)) = run_ba(&sfm_config.matches()[0], &sfm_config, &camera_data,&None, (image_1.buffer.nrows(),image_1.buffer.ncols()), &runtime_parameters, 1.0,-1.0);
     fs::write(format!("D:/Workspace/Rust/Vision/output/orb_ba.txt"), s?).expect("Unable to write file");
     if runtime_parameters.debug {
         fs::write(format!("D:/Workspace/Rust/Vision/output/orb_ba_debug.txt"), debug_states_serialized?).expect("Unable to write file");

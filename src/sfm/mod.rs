@@ -24,6 +24,29 @@ impl<C: Camera, F: Feature> SFMConfig<C,F> {
     pub fn root(&self) -> usize { self.root }
     pub fn paths(&self) -> &Vec<Vec<usize>> { &self.paths }
     pub fn camera_map(&self) -> &HashMap<usize, C> { &self.camera_map }
-    pub fn matches(&self) -> &Vec<Vec<Vec<Match<F>>>> { &self.matches }
+    pub fn matches(&self) -> &Vec<Vec<Vec<Match<F>>>> { &self.matches } // TODO: These are not the filtered matches which are usually what are used. Unify this
+
+    pub fn compute_path_id_pairs(&self) -> Vec<Vec<(usize, usize)>> {
+        let mut path_id_paris = Vec::<Vec::<(usize,usize)>>::with_capacity(self.paths.len());
+        for sub_path in &self.paths {
+            path_id_paris.push(
+                sub_path.iter().enumerate().map(|(i,&id)| 
+                    match i {
+                        0 => (self.root,id),
+                        idx => (sub_path[idx-1],id)
+                    }
+                ).collect()
+            )
+        }
+
+        path_id_paris
+    }
+
+    pub fn compute_unqiue_ids_cameras_sorted(&self) -> (Vec<usize>, Vec<&C>) {
+        let mut keys_sorted = self.camera_map.keys().map(|k| *k).collect::<Vec<usize>>();
+        keys_sorted.sort_unstable_by(|v1,v2| v1.partial_cmp(v2).unwrap());
+        let cameras_sorted = keys_sorted.iter().map(|id| self.camera_map.get(id).expect("compute_unqiue_ids_cameras_sorted: trying to get invalid camera")).collect::<Vec<&C>>();
+        (keys_sorted,cameras_sorted)
+    }
 
 }

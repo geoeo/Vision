@@ -16,7 +16,7 @@ use crate::{Float, reconstruct_original_coordiantes_for_float};
  * For only feature pairs between cams is assumed. Feature triplets etc. are not correctly supported
  */
 pub struct CameraFeatureMap {
-    pub camera_map: HashMap<u64, (usize, HashMap<usize,usize>)>,
+    pub camera_map: HashMap<usize, (usize, HashMap<usize,usize>)>,
     pub number_of_unique_points: usize,
     /**
      * 2d Vector of rows: point, cols: cam. Where the matrix elements are in (x,y) tuples. 
@@ -31,7 +31,7 @@ impl CameraFeatureMap {
 
     pub const NO_FEATURE_FLAG : Float = -1.0;
 
-    pub fn new<T: Feature>(matches: & Vec<Vec<Match<T>>>, cam_ids: Vec<u64>, image_row_col: (usize,usize)) -> CameraFeatureMap {
+    pub fn new<T: Feature>(matches: & Vec<Vec<Match<T>>>, cam_ids: Vec<usize>, image_row_col: (usize,usize)) -> CameraFeatureMap {
         let max_number_of_points = matches.iter().fold(0,|acc,x| acc + x.len());
         let n_cams = cam_ids.len();
         let mut camera_feature_map = CameraFeatureMap{
@@ -54,7 +54,7 @@ impl CameraFeatureMap {
     }
 
 
-    pub fn add_feature(&mut self, source_cam_id: u64, other_cam_id: u64, 
+    pub fn add_feature(&mut self, source_cam_id: usize, other_cam_id: usize, 
         x_source: Float, y_source: Float, octave_index_source: usize, 
         x_other: Float, y_other: Float, octave_index_other: usize,  
         pyramid_scale: Float) -> () {
@@ -100,7 +100,7 @@ impl CameraFeatureMap {
 
     }
 
-    pub fn add_matches<T: Feature>(&mut self, image_id_pairs: &Vec<(u64, u64)>, matches: &Vec<Vec<Match<T>>>, pyramid_scale: Float) -> () {
+    pub fn add_matches<T: Feature>(&mut self, image_id_pairs: &Vec<(usize, usize)>, matches: &Vec<Vec<Match<T>>>, pyramid_scale: Float) -> () {
         assert_eq!(image_id_pairs.len(), matches.len());
         for i in 0..image_id_pairs.len(){
             let (id_a,id_b) = image_id_pairs[i];
@@ -124,7 +124,7 @@ impl CameraFeatureMap {
     /**
      * initial_motion should all be with respect to the first camera
      */
-    pub fn get_inverse_depth_landmark_state<C: Camera>(&self, initial_motions : Option<&Vec<(u64,(Vector3<Float>,Matrix3<Float>))>>, inverse_depth_prior: Float, cameras: &Vec<C>) -> State<InverseLandmark,6> {
+    pub fn get_inverse_depth_landmark_state<C: Camera>(&self, initial_motions : Option<&Vec<(usize,(Vector3<Float>,Matrix3<Float>))>>, inverse_depth_prior: Float, cameras: &Vec<C>) -> State<InverseLandmark,6> {
 
         let number_of_cameras = self.camera_map.keys().len();
         let number_of_unqiue_landmarks = self.number_of_unique_points;
@@ -153,7 +153,7 @@ impl CameraFeatureMap {
     /**
      * initial_motion should all be with respect to the first camera
      */
-    pub fn get_euclidean_landmark_state<C : Camera + Copy>(&self, initial_motions : Option<&Vec<(u64,(Vector3<Float>,Matrix3<Float>))>>, camera_data: &Vec<((usize, C),(usize,C))>, depth_prior: Float) -> State<EuclideanLandmark,3> {
+    pub fn get_euclidean_landmark_state<C : Camera + Copy>(&self, initial_motions : Option<&Vec<(usize,(Vector3<Float>,Matrix3<Float>))>>, camera_data: &Vec<((usize, C),(usize,C))>, depth_prior: Float) -> State<EuclideanLandmark,3> {
         
         let number_of_cameras = self.camera_map.keys().len();
         let number_of_unqiue_landmarks = self.number_of_unique_points;
@@ -169,10 +169,10 @@ impl CameraFeatureMap {
                     let (cam_id,(b,rotation_matrix)) = &motions[i];
                     let ((id_s,camera_matrix_s), (id_f,camera_matrix_f)) = &camera_data[i];
 
-                    let (cam_idx_s, _) = self.camera_map[&(*id_s as u64)];
+                    let (cam_idx_s, _) = self.camera_map[&(*id_s)];
                     let (cam_idx_f, _) = self.camera_map[&cam_id];
                     
-                    assert_eq!(*id_f as u64, *cam_id);
+                    assert_eq!(*id_f, *cam_id);
 
                     let (point_ids, im_s, im_f) = self.get_features_for_cam_pair(cam_idx_s, cam_idx_f);
                     assert_eq!(im_s.len(), im_f.len());
@@ -247,7 +247,7 @@ impl CameraFeatureMap {
 
     //Assumes decomposition is relative to reference cam i.e. first cam!
     //TODO: Make this work for transative camera definitions
-    fn get_initial_camera_positions(&self,initial_motions : Option<&Vec<(u64,(Vector3<Float>,Matrix3<Float>))>> ) -> DVector::<Float> {
+    fn get_initial_camera_positions(&self,initial_motions : Option<&Vec<(usize,(Vector3<Float>,Matrix3<Float>))>> ) -> DVector::<Float> {
 
         let number_of_cameras = self.camera_map.keys().len();
         let number_of_cam_parameters = 6*number_of_cameras;

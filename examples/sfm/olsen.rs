@@ -152,7 +152,7 @@ fn main() -> Result<()> {
     );
 
     //This is only to satisfy current interface in ba
-    let mut initial_cam_motions = Vec::<(u64,(Vector3<Float>,Matrix3<Float>))>::with_capacity(10);
+    let mut initial_cam_motions = Vec::<(usize,(Vector3<Float>,Matrix3<Float>))>::with_capacity(10);
     let mut filtered_matches = Vec::<Vec<Match<ImageFeature>>>::with_capacity(10);
     for (a,b) in motions_per_path {
         initial_cam_motions.extend(a);
@@ -213,7 +213,7 @@ fn main() -> Result<()> {
 
 
         //TODO: Features are between adjacent cams, but transform is not. -> Mistake!
-        let ((cam_positions,points),(s,debug_states_serialized)) = run_ba(used_matches, &camera_data,&initial_cam_poses, olsen_data.get_image_dim(), &runtime_parameters, 1.0,depth_prior);
+        let ((cam_positions,points),(s,debug_states_serialized)) = run_ba(used_matches, &sfm_config, &camera_data,&initial_cam_poses, olsen_data.get_image_dim(), &runtime_parameters, 1.0,depth_prior);
         fs::write(format!("{}/olsen.txt",runtime_conf.local_data_path), s?).expect("Unable to write file");
         if runtime_parameters.debug {
             fs::write(format!("{}/olsen_debug.txt",runtime_conf.local_data_path), debug_states_serialized?).expect("Unable to write file");

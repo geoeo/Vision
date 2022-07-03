@@ -296,7 +296,7 @@ pub fn compute_pairwise_cam_motions_for_path<C : Camera + Copy,T : Feature + Clo
         normalize_features: bool,
         epipolar_alg: BifocalType,
         decomp_alg: EssentialDecomposition) 
-    ->  (Vec<(u64,(Vector3<Float>,Matrix3<Float>))>,Vec<Vec<Match<ImageFeature>>>) {
+    ->  (Vec<(usize,(Vector3<Float>,Matrix3<Float>))>,Vec<Vec<Match<ImageFeature>>>) {
     let root_id = sfm_config.root();
     let path = &sfm_config.paths()[path_idx];
     let matches = &sfm_config.matches()[path_idx];
@@ -332,7 +332,7 @@ pub fn compute_pairwise_cam_motions_for_path<C : Camera + Copy,T : Feature + Clo
             EssentialDecomposition::FÖRSNTER => decompose_essential_förstner(&e,&f_m,&c1.get_inverse_projection(),&c2.get_inverse_projection()),
             EssentialDecomposition::KANATANI => decompose_essential_kanatani(&e,&f_m, positive_principal_distance)
         };
-        let new_state = (id2 as u64,(h, rotation));
+        let new_state = (id2,(h, rotation));
         (new_state, f_m)
     }).unzip()
 }
@@ -347,7 +347,7 @@ pub fn compute_pairwise_cam_motions<C: Camera + Copy,T : Feature + Clone>(
         normalize_features: bool,
         epipolar_alg: BifocalType,
         decomp_alg: EssentialDecomposition) 
-    ->  Vec<(Vec<(u64,(Vector3<Float>,Matrix3<Float>))>,Vec<Vec<Match<ImageFeature>>>)> {
+    ->  Vec<(Vec<(usize,(Vector3<Float>,Matrix3<Float>))>,Vec<Vec<Match<ImageFeature>>>)> {
     (0..sfm_config.paths().len()).map(|i| 
         compute_pairwise_cam_motions_for_path(
         sfm_config,
