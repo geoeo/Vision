@@ -9,7 +9,7 @@ use std::collections::HashMap;
 use na::{Vector3,Matrix3,Matrix4};
 use vision::io::olsen_loader::OlssenData;
 use vision::sensors::camera::perspective::Perspective;
-use vision::image::{features::{Match,ImageFeature}, epipolar::{compute_pairwise_cam_motions, compute_pairwise_cam_motions_for_path, BifocalType,EssentialDecomposition}};
+use vision::image::{features::{Match,ImageFeature}, epipolar::{compute_pairwise_cam_motions_with_filtered_matches, compute_pairwise_cam_motions_with_filtered_matches_for_path, BifocalType,EssentialDecomposition}};
 use vision::sfm::{SFMConfig,bundle_adjustment::run_ba};
 use vision::odometry::runtime_parameters::RuntimeParameters;
 use vision::numerics::{loss, weighting};
@@ -141,7 +141,7 @@ fn main() -> Result<()> {
 
 
     let sfm_config = SFMConfig::new(5, paths, camera_map, sfm_all_matches);
-    let motions_per_path = compute_pairwise_cam_motions(
+    let motions_filtered_matches_per_path = compute_pairwise_cam_motions_with_filtered_matches(
             &sfm_config,
             1.0,
             epipolar_thresh,
@@ -154,7 +154,7 @@ fn main() -> Result<()> {
     //This is only to satisfy current interface in ba
     let mut initial_cam_motions = Vec::<(usize,(Vector3<Float>,Matrix3<Float>))>::with_capacity(10);
     let mut filtered_matches = Vec::<Vec<Match<ImageFeature>>>::with_capacity(10);
-    for (a,b) in motions_per_path {
+    for (a,b) in motions_filtered_matches_per_path {
         initial_cam_motions.extend(a);
         filtered_matches.extend(b);
     }

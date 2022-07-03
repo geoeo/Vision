@@ -287,7 +287,7 @@ pub fn decompose_essential_kanatani<T: Feature>(E: &Essential, matches: &Vec<Mat
 }
 
 #[allow(non_snake_case)]
-pub fn compute_pairwise_cam_motions_for_path<C : Camera + Copy,T : Feature + Clone>(
+pub fn compute_pairwise_cam_motions_with_filtered_matches_for_path<C : Camera + Copy,T : Feature + Clone>(
         sfm_config: &SFMConfig<C, T>,
         path_idx: usize,
         pyramid_scale:Float, 
@@ -339,7 +339,7 @@ pub fn compute_pairwise_cam_motions_for_path<C : Camera + Copy,T : Feature + Clo
 
 
 #[allow(non_snake_case)]
-pub fn compute_pairwise_cam_motions<C: Camera + Copy,T : Feature + Clone>(
+pub fn compute_pairwise_cam_motions_with_filtered_matches<C: Camera + Copy,T : Feature + Clone>(
         sfm_config: &SFMConfig<C, T>,
         pyramid_scale:Float, 
         epipolar_thresh: Float, 
@@ -349,7 +349,7 @@ pub fn compute_pairwise_cam_motions<C: Camera + Copy,T : Feature + Clone>(
         decomp_alg: EssentialDecomposition) 
     ->  Vec<(Vec<(usize,(Vector3<Float>,Matrix3<Float>))>,Vec<Vec<Match<ImageFeature>>>)> {
     (0..sfm_config.paths().len()).map(|i| 
-        compute_pairwise_cam_motions_for_path(
+        compute_pairwise_cam_motions_with_filtered_matches_for_path(
         sfm_config,
         i,
         pyramid_scale,
