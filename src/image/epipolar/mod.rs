@@ -347,7 +347,7 @@ pub fn compute_pairwise_cam_motions_with_filtered_matches<C: Camera + Copy,T : F
         normalize_features: bool,
         epipolar_alg: BifocalType,
         decomp_alg: EssentialDecomposition) 
-    ->  Vec<(Vec<(usize,(Vector3<Float>,Matrix3<Float>))>,Vec<Vec<Match<ImageFeature>>>)> {
+    ->  (Vec<Vec<(usize,(Vector3<Float>,Matrix3<Float>))>>,Vec<Vec<Vec<Match<ImageFeature>>>>) {
     (0..sfm_config.paths().len()).map(|i| 
         compute_pairwise_cam_motions_with_filtered_matches_for_path(
         sfm_config,
@@ -358,6 +358,6 @@ pub fn compute_pairwise_cam_motions_with_filtered_matches<C: Camera + Copy,T : F
         normalize_features,
         epipolar_alg, 
         decomp_alg)
-    ).collect()
+    ).unzip()
     
 }

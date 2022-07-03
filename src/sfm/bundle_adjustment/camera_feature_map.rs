@@ -31,8 +31,8 @@ impl CameraFeatureMap {
 
     pub const NO_FEATURE_FLAG : Float = -1.0;
 
-    pub fn new<T: Feature>(matches: & Vec<Vec<Match<T>>>, cam_ids: Vec<usize>, image_row_col: (usize,usize)) -> CameraFeatureMap {
-        let max_number_of_points = matches.iter().fold(0,|acc,x| acc + x.len());
+    pub fn new<T: Feature>(matches: & Vec<Vec<Vec<Match<T>>>>, cam_ids: Vec<usize>, image_row_col: (usize,usize)) -> CameraFeatureMap {
+        let max_number_of_points = matches.iter().flatten().fold(0,|acc,x| acc + x.len());
         let n_cams = cam_ids.len();
         let mut camera_feature_map = CameraFeatureMap{
             camera_map:  HashMap::new(),
@@ -100,18 +100,20 @@ impl CameraFeatureMap {
 
     }
 
-    pub fn add_matches<T: Feature>(&mut self, image_id_pairs: &Vec<(usize, usize)>, matches: &Vec<Vec<Match<T>>>, pyramid_scale: Float) -> () {
-        assert_eq!(image_id_pairs.len(), matches.len());
-        for i in 0..image_id_pairs.len(){
-            let (id_a,id_b) = image_id_pairs[i];
-            let matches_for_pair = &matches[i];
+    pub fn add_matches<T: Feature>(&mut self, path_id_pairs: &Vec<Vec<(usize, usize)>>, matches: &Vec<Vec<Vec<Match<T>>>>, pyramid_scale: Float) -> () {
+        let path_id_pairs_flattened = path_id_pairs.iter().flatten().collect::<Vec<&(usize, usize)>>();
+        let matches_flattened = matches.iter().flatten().collect::<Vec<&Vec<Match<T>>>>();
+        assert_eq!(path_id_pairs_flattened.len(), matches.len());
+        for i in 0..path_id_pairs_flattened.len(){
+            let (id_a,id_b) = path_id_pairs_flattened[i];
+            let matches_for_pair = matches_flattened[i];
 
             for feature_match in matches_for_pair {
                 let match_a = &feature_match.feature_one;
                 let match_b = &feature_match.feature_two;
 
 
-                self.add_feature(id_a, id_b, 
+                self.add_feature(*id_a, *id_b, 
                     match_a.get_x_image_float(), match_a.get_y_image_float(),match_a.get_closest_sigma_level(),
                     match_b.get_x_image_float(), match_b.get_y_image_float(),match_b.get_closest_sigma_level(),
                     pyramid_scale);

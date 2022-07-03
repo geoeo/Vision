@@ -141,7 +141,7 @@ fn main() -> Result<()> {
 
 
     let sfm_config = SFMConfig::new(5, paths, camera_map, sfm_all_matches);
-    let motions_filtered_matches_per_path = compute_pairwise_cam_motions_with_filtered_matches(
+    let (initial_cam_motions_per_path,filtered_matches_per_path) = compute_pairwise_cam_motions_with_filtered_matches(
             &sfm_config,
             1.0,
             epipolar_thresh,
@@ -152,13 +152,8 @@ fn main() -> Result<()> {
     );
 
     //This is only to satisfy current interface in ba
-    let mut initial_cam_motions = Vec::<(usize,(Vector3<Float>,Matrix3<Float>))>::with_capacity(10);
-    let mut filtered_matches = Vec::<Vec<Match<ImageFeature>>>::with_capacity(10);
-    for (a,b) in motions_filtered_matches_per_path {
-        initial_cam_motions.extend(a);
-        filtered_matches.extend(b);
-    }
-
+    let initial_cam_motions = initial_cam_motions_per_path.into_iter().flatten().collect::<Vec<(usize,(Vector3<Float>,Matrix3<Float>))>>();
+    let filtered_matches = filtered_matches_per_path.clone().into_iter().flatten().collect::<Vec<Vec<Match<ImageFeature>>>>();
 
     //TODO: might be unneccesary
     let mut motion_list =  Vec::<((usize,Matrix4<Float>),(usize,Matrix4<Float>))>::with_capacity(10); 
@@ -213,7 +208,7 @@ fn main() -> Result<()> {
 
 
         //TODO: Features are between adjacent cams, but transform is not. -> Mistake!
-        let ((cam_positions,points),(s,debug_states_serialized)) = run_ba(used_matches, &sfm_config, &camera_data,&initial_cam_poses, olsen_data.get_image_dim(), &runtime_parameters, 1.0,depth_prior);
+        let ((cam_positions,points),(s,debug_states_serialized)) = run_ba(&filtered_matches_per_path, &sfm_config, &camera_data,&initial_cam_poses, olsen_data.get_image_dim(), &runtime_parameters, 1.0,depth_prior);
         fs::write(format!("{}/olsen.txt",runtime_conf.local_data_path), s?).expect("Unable to write file");
         if runtime_parameters.debug {
             fs::write(format!("{}/olsen_debug.txt",runtime_conf.local_data_path), debug_states_serialized?).expect("Unable to write file");

@@ -14,7 +14,7 @@ pub mod state;
 
 
 
-pub fn run_ba<C : Camera + Copy, T : Feature>(all_matches: &Vec<Vec<Match<T>>>, sfm_config: &SFMConfig<C, T>, camera_data: &Vec<((usize, C),(usize,C))>, initial_cam_poses: &Option<Vec<(usize,(Vector3<Float>,Matrix3<Float>))>>,
+pub fn run_ba<C : Camera + Copy, T : Feature>(matches: &Vec<Vec<Vec<Match<T>>>>, sfm_config: &SFMConfig<C, T>, camera_data: &Vec<((usize, C),(usize,C))>, initial_cam_poses: &Option<Vec<(usize,(Vector3<Float>,Matrix3<Float>))>>,
                                 img_dim : (usize,usize) ,runtime_parameters: &RuntimeParameters, pyramid_scale: Float, depth_prior: Float) 
                                 -> ((Vec<Isometry3<Float>>, Vec<Vector3<Float>>), (serde_yaml::Result<String>, serde_yaml::Result<String>)){
 
@@ -22,12 +22,11 @@ pub fn run_ba<C : Camera + Copy, T : Feature>(all_matches: &Vec<Vec<Match<T>>>, 
     let (unique_camera_ids_sorted,unique_cameras_sorted_by_id) = sfm_config.compute_unqiue_ids_cameras_sorted();
     let path_id_pairs = sfm_config.compute_path_id_pairs();
 
-    //TODO: transative motions
-    let unique_camera_id_pairs = path_id_pairs.into_iter().flatten().collect();
-    let mut feature_map = CameraFeatureMap::new(all_matches,unique_camera_ids_sorted, img_dim);
-    feature_map.add_matches(&unique_camera_id_pairs,all_matches, pyramid_scale);
+    let mut feature_map = CameraFeatureMap::new(matches,unique_camera_ids_sorted, img_dim);
+    feature_map.add_matches(&path_id_pairs,matches, pyramid_scale);
 
     //TODO: switch impl
+    //TODO: transative motions
     let mut state = feature_map.get_euclidean_landmark_state(initial_cam_poses.as_ref(), camera_data, depth_prior);
     //let mut state = feature_map.get_inverse_depth_landmark_state(Some(&initial_motion_decomp), depth_prior,&cameras);
 
