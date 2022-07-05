@@ -16,6 +16,7 @@ use crate::{Float, reconstruct_original_coordiantes_for_float};
  * For only feature pairs between cams is assumed. Feature triplets etc. are not correctly supported
  */
 pub struct CameraFeatureMap {
+    //TODO: review this
     pub camera_map: HashMap<usize, (usize, HashMap<usize,usize>)>,
     pub number_of_unique_points: usize,
     /**
@@ -126,7 +127,7 @@ impl CameraFeatureMap {
     /**
      * initial_motion should all be with respect to the first camera
      */
-    pub fn get_inverse_depth_landmark_state<C: Camera>(&self, initial_motions : Option<&Vec<(usize,(Vector3<Float>,Matrix3<Float>))>>, inverse_depth_prior: Float, cameras: &Vec<C>) -> State<InverseLandmark,6> {
+    pub fn get_inverse_depth_landmark_state<C: Camera>(&self, initial_motions : Option<&Vec<Vec<(usize,(Vector3<Float>,Matrix3<Float>))>>>, inverse_depth_prior: Float, cameras: &Vec<C>) -> State<InverseLandmark,6> {
 
         let number_of_cameras = self.camera_map.keys().len();
         let number_of_unqiue_landmarks = self.number_of_unique_points;
@@ -155,92 +156,98 @@ impl CameraFeatureMap {
     /**
      * initial_motion should all be with respect to the first camera
      */
-    pub fn get_euclidean_landmark_state<C : Camera + Copy>(&self, initial_motions : Option<&Vec<(usize,(Vector3<Float>,Matrix3<Float>))>>, camera_data: &Vec<((usize, C),(usize,C))>, depth_prior: Float) -> State<EuclideanLandmark,3> {
+    pub fn get_euclidean_landmark_state<C : Camera + Copy>(&self, initial_motions : Option<&Vec<Vec<(usize,(Vector3<Float>,Matrix3<Float>))>>>, root_id: usize,camera_map: &HashMap<usize, C>, paths: &Vec<Vec<usize>> , depth_prior: Float) -> State<EuclideanLandmark,3> {
         
         let number_of_cameras = self.camera_map.keys().len();
         let number_of_unqiue_landmarks = self.number_of_unique_points;
 
 
         let landmarks = match initial_motions {
-            Some(motions) => {
-                assert_eq!(motions.len(), camera_data.len());
-                let number_of_camera_pairs = motions.len();
-                let mut triangualted_landmarks = vec![EuclideanLandmark::from_state(Vector3::<Float>::zeros()); number_of_unqiue_landmarks];         
-
-                for i in 0..number_of_camera_pairs {
-                    let (cam_id,(b,rotation_matrix)) = &motions[i];
-                    let ((id_s,camera_matrix_s), (id_f,camera_matrix_f)) = &camera_data[i];
-
-                    let (cam_idx_s, _) = self.camera_map[&(*id_s)];
-                    let (cam_idx_f, _) = self.camera_map[&cam_id];
-                    
-                    assert_eq!(*id_f, *cam_id);
-
-                    let (point_ids, im_s, im_f) = self.get_features_for_cam_pair(cam_idx_s, cam_idx_f);
-                    assert_eq!(im_s.len(), im_f.len());
-                    let local_landmarks = im_s.len();
-                    let local_landmarks_as_float = local_landmarks as Float;
-                    let mut normalized_image_points_s = Matrix3xX::<Float>::zeros(local_landmarks);
-                    let mut normalized_image_points_f = Matrix3xX::<Float>::zeros(local_landmarks);
-
-                    let mut normalization_matrix_one = Matrix3::<Float>::identity();
-                    let mut normalization_matrix_two = Matrix3::<Float>::identity();
-                
-                    let mut avg_x_one = 0.0;
-                    let mut avg_y_one = 0.0;
-                    let mut max_dist_one: Float = 0.0;
-                    let mut avg_x_two = 0.0;
-                    let mut avg_y_two = 0.0;
-                    let mut max_dist_two: Float = 0.0;
-
-                    for i in 0..local_landmarks {
-                        let (x_s, y_s) = im_s[i];
-                        let (x_f, y_f) = im_f[i];
-                        let feat_s = Vector3::<Float>::new(x_s,y_s,depth_prior);
-                        let feat_f = Vector3::<Float>::new(x_f,y_f,depth_prior);
-                        avg_x_one += feat_s[0];
-                        avg_y_one += feat_s[1];
-                        max_dist_one = max_dist_one.max(feat_s[0].powi(2) + feat_s[1].powi(2));
-                        avg_x_two += feat_f[0];
-                        avg_y_two += feat_f[1];
-                        max_dist_two = max_dist_two.max(feat_f[0].powi(2) + feat_f[1].powi(2));
-                        normalized_image_points_s.column_mut(i).copy_from(&feat_s);
-                        normalized_image_points_f.column_mut(i).copy_from(&feat_f);
-                    }
-                    
-                    //TODO: unify with five_point and epipolar
-                    normalization_matrix_one[(0,2)] = -avg_x_one/local_landmarks_as_float;
-                    normalization_matrix_one[(1,2)] = -avg_y_one/local_landmarks_as_float;
-                    normalization_matrix_one[(2,2)] = max_dist_one;
-                
-                    normalization_matrix_two[(0,2)] = -avg_x_two/local_landmarks_as_float;
-                    normalization_matrix_two[(1,2)] = -avg_y_two/local_landmarks_as_float;
-                    normalization_matrix_two[(2,2)] = max_dist_two;
-                
-                    normalized_image_points_s = normalization_matrix_one*normalized_image_points_s;
-                    normalized_image_points_f = normalization_matrix_two*normalized_image_points_f;
-
-                    let se3 = pose::se3(&b,&rotation_matrix);
-                    let projection_1 = camera_matrix_s.get_projection()*(Matrix4::<Float>::identity().fixed_slice::<3,4>(0,0));
-                    let projection_2 = camera_matrix_f.get_projection()*(se3.fixed_slice::<3,4>(0,0));
-                    
-                    //TODO: Push these points into the correct camera coordinate system when using transtitive camera definitions. camera_matrix_s might not be the origin!
-                    let triangulated_points = linear_triangulation(&vec!((&normalized_image_points_s,&projection_1),(&normalized_image_points_f,&projection_2)));
-                    assert_eq!(triangulated_points.ncols(), point_ids.len());
-
-                    for j in 0..point_ids.len() {
-                        let point_id = point_ids[j];
-                        let mut point = triangulated_points.fixed_slice::<3, 1>(0, j).into_owned();
-                        point /= point[2]*depth_prior;
-                        triangualted_landmarks[point_id] = EuclideanLandmark::from_state(point);
-                    }
-
-                }
-                triangualted_landmarks
+            Some(all_motions) => {
+                all_motions.iter().enumerate().map(|(path_idx,motions)| {
+                        assert_eq!(motions.len(), paths[path_idx].len());
+                        let number_of_camera_pairs = motions.len();
+                        let mut triangualted_landmarks = vec![EuclideanLandmark::from_state(Vector3::<Float>::zeros()); number_of_unqiue_landmarks];         
+        
+                        for i in 0..number_of_camera_pairs {
+                            
+                            let id_s = match i {
+                                0 => root_id,
+                                _ => paths[path_idx][i-1]
+                            };
+                            let (cam_id,(b,rotation_matrix)) = &motions[i];
+                            assert_eq!(*cam_id, paths[path_idx][i]);
+                            let camera_matrix_s = camera_map[&id_s];
+                            let camera_matrix_f = camera_map[cam_id];
+        
+                            let (cam_idx_s, _) = self.camera_map[&id_s];
+                            let (cam_idx_f, _) = self.camera_map[&cam_id];
+                            
+        
+                            let (point_ids, im_s, im_f) = self.get_features_for_cam_pair(cam_idx_s, cam_idx_f);
+                            assert_eq!(im_s.len(), im_f.len());
+                            let local_landmarks = im_s.len();
+                            let local_landmarks_as_float = local_landmarks as Float;
+                            let mut normalized_image_points_s = Matrix3xX::<Float>::zeros(local_landmarks);
+                            let mut normalized_image_points_f = Matrix3xX::<Float>::zeros(local_landmarks);
+        
+                            let mut normalization_matrix_one = Matrix3::<Float>::identity();
+                            let mut normalization_matrix_two = Matrix3::<Float>::identity();
+                        
+                            let mut avg_x_one = 0.0;
+                            let mut avg_y_one = 0.0;
+                            let mut max_dist_one: Float = 0.0;
+                            let mut avg_x_two = 0.0;
+                            let mut avg_y_two = 0.0;
+                            let mut max_dist_two: Float = 0.0;
+        
+                            for i in 0..local_landmarks {
+                                let (x_s, y_s) = im_s[i];
+                                let (x_f, y_f) = im_f[i];
+                                let feat_s = Vector3::<Float>::new(x_s,y_s,depth_prior);
+                                let feat_f = Vector3::<Float>::new(x_f,y_f,depth_prior);
+                                avg_x_one += feat_s[0];
+                                avg_y_one += feat_s[1];
+                                max_dist_one = max_dist_one.max(feat_s[0].powi(2) + feat_s[1].powi(2));
+                                avg_x_two += feat_f[0];
+                                avg_y_two += feat_f[1];
+                                max_dist_two = max_dist_two.max(feat_f[0].powi(2) + feat_f[1].powi(2));
+                                normalized_image_points_s.column_mut(i).copy_from(&feat_s);
+                                normalized_image_points_f.column_mut(i).copy_from(&feat_f);
+                            }
+                            
+                            //TODO: unify with five_point and epipolar
+                            normalization_matrix_one[(0,2)] = -avg_x_one/local_landmarks_as_float;
+                            normalization_matrix_one[(1,2)] = -avg_y_one/local_landmarks_as_float;
+                            normalization_matrix_one[(2,2)] = max_dist_one;
+                        
+                            normalization_matrix_two[(0,2)] = -avg_x_two/local_landmarks_as_float;
+                            normalization_matrix_two[(1,2)] = -avg_y_two/local_landmarks_as_float;
+                            normalization_matrix_two[(2,2)] = max_dist_two;
+                        
+                            normalized_image_points_s = normalization_matrix_one*normalized_image_points_s;
+                            normalized_image_points_f = normalization_matrix_two*normalized_image_points_f;
+        
+                            let se3 = pose::se3(&b,&rotation_matrix);
+                            let projection_1 = camera_matrix_s.get_projection()*(Matrix4::<Float>::identity().fixed_slice::<3,4>(0,0));
+                            let projection_2 = camera_matrix_f.get_projection()*(se3.fixed_slice::<3,4>(0,0));
+                            
+                            //TODO: Push these points into the correct camera coordinate system when using transtitive camera definitions. camera_matrix_s might not be the origin!
+                            let triangulated_points = linear_triangulation(&vec!((&normalized_image_points_s,&projection_1),(&normalized_image_points_f,&projection_2)));
+                            assert_eq!(triangulated_points.ncols(), point_ids.len());
+        
+                            for j in 0..point_ids.len() {
+                                let point_id = point_ids[j];
+                                let mut point = triangulated_points.fixed_slice::<3, 1>(0, j).into_owned();
+                                point /= point[2]*depth_prior;
+                                triangualted_landmarks[point_id] = EuclideanLandmark::from_state(point);
+                            }
+                        }
+                    //TODO: transitive motions
+                    triangualted_landmarks
+                }).flatten().collect()
             },
-            None => {
-                vec!(Vector3::<Float>::new(0.0, 0.0, depth_prior);number_of_unqiue_landmarks).iter().map(|&v| EuclideanLandmark::from_state(v)).collect()
-            }
+            None => vec!(Vector3::<Float>::new(0.0, 0.0, depth_prior);number_of_unqiue_landmarks).iter().map(|&v| EuclideanLandmark::from_state(v)).collect()  
         };
 
         let camera_positions = self.get_initial_camera_positions(initial_motions);
@@ -249,21 +256,23 @@ impl CameraFeatureMap {
 
     //Assumes decomposition is relative to reference cam i.e. first cam!
     //TODO: Make this work for transative camera definitions
-    fn get_initial_camera_positions(&self,initial_motions : Option<&Vec<(usize,(Vector3<Float>,Matrix3<Float>))>> ) -> DVector::<Float> {
+    fn get_initial_camera_positions(&self,initial_motions : Option<&Vec<Vec<(usize,(Vector3<Float>,Matrix3<Float>))>>> ) -> DVector::<Float> {
 
         let number_of_cameras = self.camera_map.keys().len();
         let number_of_cam_parameters = 6*number_of_cameras;
         let mut camera_positions = DVector::<Float>::zeros(number_of_cam_parameters);
         if initial_motions.is_some() {
-            let value = initial_motions.unwrap();
-            for (cam_id,(h,rotation_matrix)) in value {
-                let (cam_idx,_) = self.camera_map[&cam_id];
-                let cam_state_idx = 6*cam_idx;
-                let rotation = na::Rotation3::from_matrix(&rotation_matrix);
-                camera_positions.fixed_slice_mut::<3,1>(cam_state_idx,0).copy_from(&h);
-                camera_positions.fixed_slice_mut::<3,1>(cam_state_idx+3,0).copy_from(&rotation.scaled_axis());
+            let all_motions = initial_motions.unwrap();
+            for motions in all_motions {
+                for (cam_id,(h,rotation_matrix)) in motions {
+                    let (cam_idx,_) = self.camera_map[&cam_id];
+                    let cam_state_idx = 6*cam_idx;
+                    //TODO: transitive motions
+                    let rotation = na::Rotation3::from_matrix(&rotation_matrix);
+                    camera_positions.fixed_slice_mut::<3,1>(cam_state_idx,0).copy_from(&h);
+                    camera_positions.fixed_slice_mut::<3,1>(cam_state_idx+3,0).copy_from(&rotation.scaled_axis());
+                }
             }
-
         }
 
         camera_positions

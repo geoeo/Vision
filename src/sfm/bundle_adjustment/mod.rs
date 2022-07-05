@@ -14,7 +14,7 @@ pub mod state;
 
 
 
-pub fn run_ba<C : Camera + Copy, T : Feature>(matches: &Vec<Vec<Vec<Match<T>>>>, sfm_config: &SFMConfig<C, T>, camera_data: &Vec<((usize, C),(usize,C))>, initial_cam_poses: &Option<Vec<(usize,(Vector3<Float>,Matrix3<Float>))>>,
+pub fn run_ba<C : Camera + Copy, T : Feature>(matches: &Vec<Vec<Vec<Match<T>>>>, sfm_config: &SFMConfig<C, T>, camera_data: &Vec<((usize, C),(usize,C))>, initial_cam_poses: Option<&Vec<Vec<(usize,(Vector3<Float>,Matrix3<Float>))>>>,
                                 img_dim : (usize,usize) ,runtime_parameters: &RuntimeParameters, pyramid_scale: Float, depth_prior: Float) 
                                 -> ((Vec<Isometry3<Float>>, Vec<Vector3<Float>>), (serde_yaml::Result<String>, serde_yaml::Result<String>)){
 
@@ -27,7 +27,7 @@ pub fn run_ba<C : Camera + Copy, T : Feature>(matches: &Vec<Vec<Vec<Match<T>>>>,
 
     //TODO: switch impl
     //TODO: transative motions
-    let mut state = feature_map.get_euclidean_landmark_state(initial_cam_poses.as_ref(), camera_data, depth_prior);
+    let mut state = feature_map.get_euclidean_landmark_state(initial_cam_poses, sfm_config.root(), sfm_config.camera_map(), sfm_config.paths(), depth_prior);
     //let mut state = feature_map.get_inverse_depth_landmark_state(Some(&initial_motion_decomp), depth_prior,&cameras);
 
     let observed_features = feature_map.get_observed_features(false);
