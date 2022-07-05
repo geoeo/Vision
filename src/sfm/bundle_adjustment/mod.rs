@@ -19,7 +19,7 @@ pub fn run_ba<C : Camera + Copy, T : Feature>(matches: &Vec<Vec<Vec<Match<T>>>>,
                                 -> ((Vec<Isometry3<Float>>, Vec<Vector3<Float>>), (serde_yaml::Result<String>, serde_yaml::Result<String>)){
 
 
-    let (unique_camera_ids_sorted,unique_cameras_sorted_by_id) = sfm_config.compute_unqiue_ids_cameras_sorted();
+    let (unique_camera_ids_sorted,unique_cameras_sorted_by_id) = sfm_config.compute_unqiue_ids_cameras_root_first();
     let path_id_pairs = sfm_config.compute_path_id_pairs();
 
     let mut feature_map = CameraFeatureMap::new(matches,unique_camera_ids_sorted, img_dim);
