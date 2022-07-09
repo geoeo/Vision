@@ -42,9 +42,10 @@ impl<C: Camera, F: Feature> SFMConfig<C,F> {
         path_id_paris
     }
 
-    pub fn compute_unqiue_ids_cameras_sorted(&self) -> (Vec<usize>, Vec<&C>) {
-        let mut keys_sorted = self.camera_map.keys().map(|k| *k).collect::<Vec<usize>>();
-        keys_sorted.sort_unstable_by(|v1,v2| v1.partial_cmp(v2).unwrap());
+    pub fn compute_unqiue_ids_cameras_root_first(&self) -> (Vec<usize>, Vec<&C>) {
+        let mut keys_sorted = Vec::<usize>::with_capacity(self.camera_map.keys().len());
+        keys_sorted.push(self.root());
+        keys_sorted.extend(self.paths.clone().into_iter().flatten().collect::<Vec<usize>>());
         let cameras_sorted = keys_sorted.iter().map(|id| self.camera_map.get(id).expect("compute_unqiue_ids_cameras_sorted: trying to get invalid camera")).collect::<Vec<&C>>();
         (keys_sorted,cameras_sorted)
     }
