@@ -167,13 +167,14 @@ impl CameraFeatureMap {
                 for path_idx in 0..all_motions.len() {
                         let motions = &all_motions[path_idx];
                         assert_eq!(motions.len(), paths[path_idx].len());
+                        let mut pose_acc = Matrix4::<Float>::identity();
                         for i in 0..motions.len() {
                             
                             let id_s = match i {
                                 0 => root_id,
                                 _ => paths[path_idx][i-1]
                             };
-                            let (cam_id,(b,rotation_matrix)) = &motions[i];
+                            let (cam_id,(h,rotation_matrix)) = &motions[i];
                             assert_eq!(*cam_id, paths[path_idx][i]);
                             let camera_matrix_s = camera_map[&id_s];
                             let camera_matrix_f = camera_map[cam_id];
@@ -225,12 +226,12 @@ impl CameraFeatureMap {
                             normalized_image_points_s = normalization_matrix_one*normalized_image_points_s;
                             normalized_image_points_f = normalization_matrix_two*normalized_image_points_f;
         
-                            let se3 = pose::se3(&b,&rotation_matrix);
+                            let se3 = pose::se3(&h,&rotation_matrix);
                             let projection_1 = camera_matrix_s.get_projection()*(Matrix4::<Float>::identity().fixed_slice::<3,4>(0,0));
                             let projection_2 = camera_matrix_f.get_projection()*(se3.fixed_slice::<3,4>(0,0));
                             
-                            //TODO: Push these points into the correct camera coordinate system when using transtitive camera definitions. camera_matrix_s might not be the origin!
-                            let triangulated_points = linear_triangulation(&vec!((&normalized_image_points_s,&projection_1),(&normalized_image_points_f,&projection_2)));
+                            let triangulated_points = pose_acc*linear_triangulation(&vec!((&normalized_image_points_s,&projection_1),(&normalized_image_points_f,&projection_2)));
+                            pose_acc = se3*pose_acc;
                             assert_eq!(triangulated_points.ncols(), point_ids.len());
     
                             
@@ -252,8 +253,9 @@ impl CameraFeatureMap {
         State::new(camera_positions, landmarks, number_of_cameras, number_of_unqiue_landmarks)
     }
 
-    //Assumes decomposition is relative to reference cam i.e. first cam!
-    //TODO: Make this work for transative camera definitions
+    /**
+     * Assumes decomposition is relative to reference cam i.e. first cam!
+     */
     fn get_initial_camera_positions(&self,initial_motions : Option<&Vec<Vec<(usize,(Vector3<Float>,Matrix3<Float>))>>> ) -> DVector::<Float> {
 
         let number_of_cameras = self.camera_map.keys().len();
@@ -262,11 +264,14 @@ impl CameraFeatureMap {
         if initial_motions.is_some() {
             let all_motions = initial_motions.unwrap();
             for motions in all_motions {
+                let mut rot_acc = Matrix3::<Float>::identity();
+                let mut trans_acc = Vector3::<Float>::zeros();
                 for (cam_id,(h,rotation_matrix)) in motions {
                     let (cam_idx,_) = self.camera_map[&cam_id];
                     let cam_state_idx = 6*cam_idx;
-                    //TODO: transitive motions
-                    let rotation = na::Rotation3::from_matrix(&rotation_matrix);
+                    trans_acc = rotation_matrix*trans_acc + h;
+                    rot_acc = rotation_matrix*rot_acc;
+                    let rotation = na::Rotation3::from_matrix(&rot_acc);
                     camera_positions.fixed_slice_mut::<3,1>(cam_state_idx,0).copy_from(&h);
                     camera_positions.fixed_slice_mut::<3,1>(cam_state_idx+3,0).copy_from(&rotation.scaled_axis());
                 }
