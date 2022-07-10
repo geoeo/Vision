@@ -14,7 +14,7 @@ pub mod state;
 
 
 
-pub fn run_ba<C : Camera + Copy, T : Feature>(matches: &Vec<Vec<Vec<Match<T>>>>, sfm_config: &SFMConfig<C, T>, camera_data: &Vec<((usize, C),(usize,C))>, initial_cam_poses: Option<&Vec<Vec<(usize,(Vector3<Float>,Matrix3<Float>))>>>,
+pub fn run_ba<C : Camera + Copy, T : Feature>(matches: &Vec<Vec<Vec<Match<T>>>>, sfm_config: &SFMConfig<C, T>, initial_cam_poses: Option<&Vec<Vec<(usize,(Vector3<Float>,Matrix3<Float>))>>>,
                                 img_dim : (usize,usize) ,runtime_parameters: &RuntimeParameters, pyramid_scale: Float, depth_prior: Float) 
                                 -> ((Vec<Isometry3<Float>>, Vec<Vector3<Float>>), (serde_yaml::Result<String>, serde_yaml::Result<String>)){
 

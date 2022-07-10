@@ -52,14 +52,11 @@ fn main() -> Result<()> {
         intensity_weighting_function:  Box::new(weighting::SquaredWeight {})
     };
 
-
-    let camera_data = vec!(((0,intensity_camera_0),(1,intensity_camera_1)),((0,intensity_camera_0),(2,intensity_camera_2)),((1,intensity_camera_1),(3,intensity_camera_3)));
-
     let camera_map = HashMap::from([(0, intensity_camera_0), (1, intensity_camera_1),(2,intensity_camera_2),(3,intensity_camera_3) ]);
     let sfm_config = SFMConfig::new(0, vec!(vec!(2), vec!(1,3)), camera_map, vec!(vec!(matches_0_2),vec!(matches_0_1,matches_1_3)));
 
 
-    let ((cam_positions,points),(s,debug_states_serialized)) = run_ba(&sfm_config.matches(), &sfm_config, &camera_data, None, (480,640), &runtime_parameters, 1.0,-1.0);
+    let ((cam_positions,points),(s,debug_states_serialized)) = run_ba(&sfm_config.matches(), &sfm_config, None, (480,640), &runtime_parameters, 1.0,-1.0);
     fs::write(format!("D:/Workspace/Rust/Vision/output/3dv.txt"), s?).expect("Unable to write file");
     if runtime_parameters.debug {
         fs::write(format!("D:/Workspace/Rust/Vision/output/3dv_debug.txt"), debug_states_serialized?).expect("Unable to write file");

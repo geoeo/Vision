@@ -104,7 +104,7 @@ impl CameraFeatureMap {
     pub fn add_matches<T: Feature>(&mut self, path_id_pairs: &Vec<Vec<(usize, usize)>>, matches: &Vec<Vec<Vec<Match<T>>>>, pyramid_scale: Float) -> () {
         let path_id_pairs_flattened = path_id_pairs.iter().flatten().collect::<Vec<&(usize, usize)>>();
         let matches_flattened = matches.iter().flatten().collect::<Vec<&Vec<Match<T>>>>();
-        assert_eq!(path_id_pairs_flattened.len(), matches.len());
+        assert_eq!(path_id_pairs_flattened.len(), matches_flattened.len());
         for i in 0..path_id_pairs_flattened.len(){
             let (id_a,id_b) = path_id_pairs_flattened[i];
             let matches_for_pair = matches_flattened[i];
@@ -153,9 +153,6 @@ impl CameraFeatureMap {
         State::new(camera_positions,landmarks, number_of_cameras, number_of_unqiue_landmarks)
     }
 
-    /**
-     * initial_motion should all be with respect to the first camera
-     */
     pub fn get_euclidean_landmark_state<C : Camera + Copy>(&self, initial_motions : Option<&Vec<Vec<(usize,(Vector3<Float>,Matrix3<Float>))>>>, root_id: usize,camera_map: &HashMap<usize, C>, paths: &Vec<Vec<usize>> , depth_prior: Float) -> State<EuclideanLandmark,3> {
         
         let number_of_cameras = self.camera_map.keys().len();
@@ -231,9 +228,8 @@ impl CameraFeatureMap {
                             let projection_2 = camera_matrix_f.get_projection()*(se3.fixed_slice::<3,4>(0,0));
                             
                             let triangulated_points = pose_acc*linear_triangulation(&vec!((&normalized_image_points_s,&projection_1),(&normalized_image_points_f,&projection_2)));
-                            pose_acc = se3*pose_acc;
+                            pose_acc = pose_acc*se3;
                             assert_eq!(triangulated_points.ncols(), point_ids.len());
-    
                             
                             for j in 0..point_ids.len() {
                                 let point_id = point_ids[j];
@@ -253,9 +249,6 @@ impl CameraFeatureMap {
         State::new(camera_positions, landmarks, number_of_cameras, number_of_unqiue_landmarks)
     }
 
-    /**
-     * Assumes decomposition is relative to reference cam i.e. first cam!
-     */
     fn get_initial_camera_positions(&self,initial_motions : Option<&Vec<Vec<(usize,(Vector3<Float>,Matrix3<Float>))>>> ) -> DVector::<Float> {
 
         let number_of_cameras = self.camera_map.keys().len();
@@ -269,10 +262,10 @@ impl CameraFeatureMap {
                 for (cam_id,(h,rotation_matrix)) in motions {
                     let (cam_idx,_) = self.camera_map[&cam_id];
                     let cam_state_idx = 6*cam_idx;
-                    trans_acc = rotation_matrix*trans_acc + h;
-                    rot_acc = rotation_matrix*rot_acc;
+                    trans_acc = rot_acc*h + trans_acc;
+                    rot_acc = rot_acc*rotation_matrix;
                     let rotation = na::Rotation3::from_matrix(&rot_acc);
-                    camera_positions.fixed_slice_mut::<3,1>(cam_state_idx,0).copy_from(&h);
+                    camera_positions.fixed_slice_mut::<3,1>(cam_state_idx,0).copy_from(&trans_acc);
                     camera_positions.fixed_slice_mut::<3,1>(cam_state_idx+3,0).copy_from(&rotation.scaled_axis());
                 }
             }
