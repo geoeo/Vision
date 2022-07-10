@@ -63,6 +63,7 @@ fn main() -> Result<()> {
     let (cam_intrinsics_11,cam_extrinsics_11) = olsen_data.get_camera_intrinsics_extrinsics(11,positive_principal_distance);
 
 
+    let matches_4_3 = olsen_data.get_matches_between_images(4, 3);
     let matches_5_4 = olsen_data.get_matches_between_images(5, 4);
     let matches_5_6 = olsen_data.get_matches_between_images(5, 6);
     // let matches_5_7 = olsen_data.get_matches_between_images(5, 7);
@@ -85,6 +86,7 @@ fn main() -> Result<()> {
     //let matches_17_20 = olsen_data.get_matches_between_images(17, 20);
 
 
+    let matches_4_3_subvec = matches_4_3.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
     let matches_5_4_subvec = matches_5_4.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
     let matches_5_6_subvec = matches_5_6.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
     // let matches_5_7_subvec = matches_5_7.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
@@ -127,6 +129,10 @@ fn main() -> Result<()> {
     let sfm_all_matches = vec!(vec!(matches_5_4_subvec),vec!(matches_5_6_subvec));
     let camera_map = HashMap::from([(5, pinhole_cam_5), (4, pinhole_cam_4), (6, pinhole_cam_6)]);
     let paths = vec!(vec!(4),vec!(6));
+
+    // let sfm_all_matches = vec!(vec!(matches_5_4_subvec, matches_4_3_subvec),vec!(matches_5_6_subvec));
+    // let camera_map = HashMap::from([(5, pinhole_cam_5), (4, pinhole_cam_4), (6, pinhole_cam_6), (3, pinhole_cam_3)]);
+    // let paths = vec!(vec!(4,3),vec!(6));
 
     // let sfm_all_matches = vec!(vec!(matches_5_4_subvec),vec!(matches_5_6_subvec, matches_6_7_subvec));
     // let camera_map = HashMap::from([(5, pinhole_cam_5), (4, pinhole_cam_4), (6, pinhole_cam_6), (7, pinhole_cam_7)]);
