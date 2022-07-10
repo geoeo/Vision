@@ -67,8 +67,6 @@ fn main() -> Result<()> {
     //matches.extend(matches_1_3);
     //matches.extend(matches_1_4);
 
-    let camera_data = vec!(((1,intensity_camera_1), (2,intensity_camera_2)));
-
     let camera_map = HashMap::from([(1, intensity_camera_1), (2, intensity_camera_2)]);
     let sfm_config = SFMConfig::new(1, vec!(vec!(2)), camera_map, vec!(all_matches));
 
@@ -91,7 +89,7 @@ fn main() -> Result<()> {
 
 
 
-    let ((cam_positions,points),(s,debug_states_serialized)) = run_ba(&sfm_config.matches(), &sfm_config, &camera_data,&None, (image_1.buffer.nrows(),image_1.buffer.ncols()), &runtime_parameters, 1.0,-1.0);
+    let ((cam_positions,points),(s,debug_states_serialized)) = run_ba(&sfm_config.matches(), &sfm_config, None, (image_1.buffer.nrows(),image_1.buffer.ncols()), &runtime_parameters, 1.0,-1.0);
     fs::write(format!("D:/Workspace/Rust/Vision/output/orb_ba.txt"), s?).expect("Unable to write file");
     if runtime_parameters.debug {
         fs::write(format!("D:/Workspace/Rust/Vision/output/orb_ba_debug.txt"), debug_states_serialized?).expect("Unable to write file");
