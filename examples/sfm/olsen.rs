@@ -40,10 +40,6 @@ fn main() -> Result<()> {
     
     let olsen_data = OlssenData::new(&olsen_data_path);
     let positive_principal_distance = false;
-    let principal_distance_sign = match positive_principal_distance {
-        true => 1.0,
-        false => -1.0
-    };
     let invert_intrinsics = false; // they are already negative from decomp
     let normalize_features = false;
     let feature_skip_count = 2;
@@ -63,6 +59,7 @@ fn main() -> Result<()> {
     let (cam_intrinsics_11,cam_extrinsics_11) = olsen_data.get_camera_intrinsics_extrinsics(11,positive_principal_distance);
 
 
+    let matches_4_2 = olsen_data.get_matches_between_images(4, 2);
     let matches_4_3 = olsen_data.get_matches_between_images(4, 3);
     let matches_5_4 = olsen_data.get_matches_between_images(5, 4);
     let matches_5_6 = olsen_data.get_matches_between_images(5, 6);
@@ -86,6 +83,7 @@ fn main() -> Result<()> {
     //let matches_17_20 = olsen_data.get_matches_between_images(17, 20);
 
 
+    let matches_4_2_subvec = matches_4_2.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
     let matches_4_3_subvec = matches_4_3.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
     let matches_5_4_subvec = matches_5_4.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
     let matches_5_6_subvec = matches_5_6.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
@@ -147,7 +145,7 @@ fn main() -> Result<()> {
             epipolar_thresh,
             positive_principal_distance,
             normalize_features,
-            BifocalType::ESSENTIAL, 
+            BifocalType::FUNDAMENTAL, 
             EssentialDecomposition::FÖRSNTER
     );
 
@@ -196,12 +194,12 @@ fn main() -> Result<()> {
             step_sizes: vec![1e0],
             max_norm_eps: 1e-30, 
             delta_eps: 1e-30,
-            taus: vec![1e-3],
+            taus: vec![1e-12],
             lm: true,
             debug: true,
             show_octave_result: true,
             loss_function: Box::new(loss::TrivialLoss { eps: 1e-16, approximate_gauss_newton_matrices: false }), 
-            intensity_weighting_function:  Box::new(weighting::SquaredWeight {})
+            intensity_weighting_function:  Box::new(weighting::BisquareWeight {})
             //intensity_weighting_function:  Box::new(weighting::CauchyWeight {c: 0.01})
         };
 
