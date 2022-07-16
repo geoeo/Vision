@@ -158,6 +158,7 @@ pub fn cheirality_check<T: Feature + Clone>(
     let camera_matrix_2 = points_cam_2.1;
     let inverse_camera_matrix_1 = points_cam_1.2;
     let inverse_camera_matrix_2 = points_cam_2.2;
+    let number_of_points = matches.len();
     for e in all_essential_matricies {
         let (t,R,e_corrected) = decompose_essential_förstner(&e,matches,inverse_camera_matrix_1,inverse_camera_matrix_2);
         let se3 = pose::se3(&t,&R);
@@ -165,18 +166,14 @@ pub fn cheirality_check<T: Feature + Clone>(
         let projection_1 = camera_matrix_1*(Matrix4::<Float>::identity().fixed_slice::<3,4>(0,0));
         let projection_2 = camera_matrix_2*(se3.fixed_slice::<3,4>(0,0));
 
-        let p1_static = points_cam_1.0;
-        let p2_static = points_cam_2.0;
-        let mut p1_dynamic = Matrix3xX::<Float>::zeros(5);
-        let mut p2_dynamic = Matrix3xX::<Float>::zeros(5);
-        p1_dynamic.fixed_columns_mut::<5>(0).copy_from(&p1_static.columns(0,5));
-        p2_dynamic.fixed_columns_mut::<5>(0).copy_from(&p2_static.columns(0,5));
+        let p1_points = &points_cam_1.0;
+        let p2_points = &points_cam_2.0;
 
-        let Xs = linear_triangulation(&vec!((&p1_dynamic,&projection_1),(&p2_dynamic,&projection_2)));
+        let Xs = linear_triangulation(&vec!((p1_points,&projection_1),(p2_points,&projection_2)));
         let p1_x = projection_1*&Xs;
         let p2_x = projection_2*&Xs;
         let mut accepted_cheirality_count = 0;
-        for i in 0..5 {
+        for i in 0..number_of_points {
             let d1 = p1_x[(2,i)];
             let d2 = p2_x[(2,i)];
 
@@ -202,6 +199,7 @@ pub fn cheirality_check<T: Feature + Clone>(
             max_accepted_cheirality_count = accepted_cheirality_count;
         }
     }
+    //println!("------");
     best_e.expect("cheirality_check: no best essential matrix found!").clone()
 }
 

@@ -232,7 +232,7 @@ pub fn decompose_essential_förstner<T : Feature>(
     
     // Might be this method five r_t after all
     rotation = optimal_correction_of_rotation(&rotation.transpose());
-    
+    translation = -rotation.transpose()*translation;
     (translation,rotation,e_corrected)
 
 }
