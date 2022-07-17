@@ -44,8 +44,10 @@ impl<C: Camera, F: Feature> SFMConfig<C,F> {
 
     pub fn compute_unqiue_ids_cameras_root_first(&self) -> (Vec<usize>, Vec<&C>) {
         let mut keys_sorted = Vec::<usize>::with_capacity(self.camera_map.keys().len());
+        // root has to first by design
         keys_sorted.push(self.root());
         keys_sorted.extend(self.paths.clone().into_iter().flatten().collect::<Vec<usize>>());
+        keys_sorted.dedup();
         let cameras_sorted = keys_sorted.iter().map(|id| self.camera_map.get(id).expect("compute_unqiue_ids_cameras_sorted: trying to get invalid camera")).collect::<Vec<&C>>();
         (keys_sorted,cameras_sorted)
     }

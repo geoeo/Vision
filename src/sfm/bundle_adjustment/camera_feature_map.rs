@@ -160,7 +160,7 @@ impl CameraFeatureMap {
 
         let landmarks = match initial_motions {
             Some(all_motions) => {
-                let mut triangualted_landmarks = vec![EuclideanLandmark::from_state(Vector3::<Float>::zeros()); number_of_unqiue_landmarks];       
+                let mut triangualted_landmarks = vec![EuclideanLandmark::from_state(Vector3::<Float>::new(0.0,0.0,depth_prior)); number_of_unqiue_landmarks];       
                 for path_idx in 0..all_motions.len() {
                         let motions = &all_motions[path_idx];
                         assert_eq!(motions.len(), paths[path_idx].len());
@@ -265,7 +265,7 @@ impl CameraFeatureMap {
                     trans_acc = rot_acc*h + trans_acc;
                     rot_acc = rot_acc*rotation_matrix;
                     let rotation = Rotation3::from_matrix_eps(&rot_acc, 2e-16, 100, Rotation3::identity());
-                    camera_positions.fixed_slice_mut::<3,1>(cam_state_idx,0).copy_from(&trans_acc);
+                    camera_positions.fixed_slice_mut::<3,1>(cam_state_idx,0).copy_from(&trans_acc); // this causes a crash for 3dv example
                     camera_positions.fixed_slice_mut::<3,1>(cam_state_idx+3,0).copy_from(&rotation.scaled_axis());
                 }
             }
