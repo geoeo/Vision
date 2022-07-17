@@ -13,14 +13,17 @@ use vision::odometry::runtime_parameters::RuntimeParameters;
 use vision::numerics::{loss, weighting};
 use vision::io::three_dv_loader;
 use vision::sfm::SFMConfig;
+use vision::{float,Float,load_runtime_conf};
 
 fn main() -> Result<()> {
 
     color_eyre::install()?;
+    let runtime_conf = load_runtime_conf();
 
-    let matches_0_1 = three_dv_loader::load_matches("D:/Workspace/Cpp/3dv_tutorial/bin/data", "image_formation_neg_z_no_noise_0.xyz", "image_formation_neg_z_no_noise_1.xyz");
-    let matches_0_2 = three_dv_loader::load_matches("D:/Workspace/Cpp/3dv_tutorial/bin/data", "image_formation_neg_z_no_noise_0.xyz", "image_formation_neg_z_no_noise_2.xyz");
-    let matches_1_3 = three_dv_loader::load_matches("D:/Workspace/Cpp/3dv_tutorial/bin/data", "image_formation_neg_z_no_noise_1.xyz", "image_formation_neg_z_no_noise_3.xyz");
+
+    let matches_0_1 = three_dv_loader::load_matches(&format!("{}/3dv",runtime_conf.dataset_path), "image_formation_neg_z_no_noise_0.xyz", "image_formation_neg_z_no_noise_1.xyz");
+    let matches_0_2 = three_dv_loader::load_matches(&format!("{}/3dv",runtime_conf.dataset_path), "image_formation_neg_z_no_noise_0.xyz", "image_formation_neg_z_no_noise_2.xyz");
+    let matches_1_3 = three_dv_loader::load_matches(&format!("{}/3dv",runtime_conf.dataset_path), "image_formation_neg_z_no_noise_1.xyz", "image_formation_neg_z_no_noise_3.xyz");
 
     // let matches_0_1 = three_dv_loader::load_matches("D:/Workspace/Cpp/3dv_tutorial/bin/data", "image_formation0_neg_z.xyz", "image_formation1_neg_z.xyz");
     // let matches_0_2 = three_dv_loader::load_matches("D:/Workspace/Cpp/3dv_tutorial/bin/data", "image_formation0_neg_z.xyz", "image_formation2_neg_z.xyz");
@@ -57,9 +60,9 @@ fn main() -> Result<()> {
 
 
     let ((cam_positions,points),(s,debug_states_serialized)) = run_ba(&sfm_config.matches(), &sfm_config, None, (480,640), &runtime_parameters, 1.0,-1.0);
-    fs::write(format!("D:/Workspace/Rust/Vision/output/3dv.txt"), s?).expect("Unable to write file");
+    fs::write(format!("{}/{}",runtime_conf.output_path,"3dv.txt"), s?).expect("Unable to write file");
     if runtime_parameters.debug {
-        fs::write(format!("D:/Workspace/Rust/Vision/output/3dv_debug.txt"), debug_states_serialized?).expect("Unable to write file");
+        fs::write(format!("{}/{}",runtime_conf.output_path,"3dv_debug.txt"), debug_states_serialized?).expect("Unable to write file");
     }
    
 
