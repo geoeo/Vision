@@ -12,8 +12,9 @@ pub fn from_matrix(mat: &Matrix4<Float>) -> Isometry3<Float> {
     Isometry3::<Float>::from_parts(Translation3::from(vec), UnitQuaternion::<Float>::from_matrix(&rot))
 }
 
+// 
 pub fn se3(t: &Vector3<Float>, rotation: &Matrix3<Float>) -> Matrix4<Float> {
-    Isometry::<Float, Rotation3<Float>,3>::from_parts(Translation3::from(*t), Rotation3::from_matrix(rotation)).to_homogeneous()
+    Isometry::<Float, Rotation3<Float>,3>::from_parts(Translation3::from(*t),Rotation3::from_matrix_eps(rotation, 2e-16, 100, Rotation3::identity())).to_homogeneous()
 }
 
 pub fn from_parts(t: &Vector3<Float>, quat: &UnitQuaternion<Float>) -> Isometry3<Float> {

@@ -43,6 +43,8 @@ fn main() -> Result<()> {
     let invert_intrinsics = false; // they are already negative from decomp
     let normalize_features = false;
     let feature_skip_count = 2;
+    //let change_of_basis = Matrix3::<Float>::new(0.0,0.0,1.0, 0.0,1.0,0.0, 1.0,0.0,0.0);
+    let change_of_basis = Matrix3::<Float>::identity();
 
 
     let (cam_intrinsics_0,cam_extrinsics_0) = olsen_data.get_camera_intrinsics_extrinsics(0,positive_principal_distance);
@@ -124,13 +126,13 @@ fn main() -> Result<()> {
 
 
 
-    let sfm_all_matches = vec!(vec!(matches_5_4_subvec),vec!(matches_5_6_subvec));
-    let camera_map = HashMap::from([(5, pinhole_cam_5), (4, pinhole_cam_4), (6, pinhole_cam_6)]);
-    let paths = vec!(vec!(4),vec!(6));
+    // let sfm_all_matches = vec!(vec!(matches_5_4_subvec),vec!(matches_5_6_subvec));
+    // let camera_map = HashMap::from([(5, pinhole_cam_5), (4, pinhole_cam_4), (6, pinhole_cam_6)]);
+    // let paths = vec!(vec!(4),vec!(6));
 
-    // let sfm_all_matches = vec!(vec!(matches_5_4_subvec, matches_4_3_subvec),vec!(matches_5_6_subvec));
-    // let camera_map = HashMap::from([(5, pinhole_cam_5), (4, pinhole_cam_4), (6, pinhole_cam_6), (3, pinhole_cam_3)]);
-    // let paths = vec!(vec!(4,3),vec!(6));
+    let sfm_all_matches = vec!(vec!(matches_5_4_subvec, matches_4_3_subvec),vec!(matches_5_6_subvec));
+    let camera_map = HashMap::from([(5, pinhole_cam_5), (4, pinhole_cam_4), (6, pinhole_cam_6), (3, pinhole_cam_3)]);
+    let paths = vec!(vec!(4,3),vec!(6));
 
     // let sfm_all_matches = vec!(vec!(matches_5_4_subvec),vec!(matches_5_6_subvec, matches_6_7_subvec));
     // let camera_map = HashMap::from([(5, pinhole_cam_5), (4, pinhole_cam_4), (6, pinhole_cam_6), (7, pinhole_cam_7)]);
@@ -139,7 +141,7 @@ fn main() -> Result<()> {
 
 
     let sfm_config = SFMConfig::new(5, paths, camera_map, sfm_all_matches);
-    let (initial_cam_motions_per_path,filtered_matches_per_path) = compute_pairwise_cam_motions_with_filtered_matches(
+    let (mut initial_cam_motions_per_path,filtered_matches_per_path) = compute_pairwise_cam_motions_with_filtered_matches(
             &sfm_config,
             1.0,
             epipolar_thresh,
@@ -148,6 +150,12 @@ fn main() -> Result<()> {
             BifocalType::FUNDAMENTAL, 
             EssentialDecomposition::FÖRSNTER
     );
+
+    for i in 0..initial_cam_motions_per_path.len() {
+        let p = &initial_cam_motions_per_path[i];
+        let new_p = p.iter().map(|(id,(b,rot))| (*id,(change_of_basis*b,change_of_basis*rot))).collect::<Vec<(usize,(Vector3<Float>,Matrix3<Float>))>>();
+        initial_cam_motions_per_path[i] = new_p;
+    }
 
 
     //TODO: might be unneccesary
@@ -170,7 +178,6 @@ fn main() -> Result<()> {
             println!("orig matches: {}, filtered matches: {}", m_orig.len(), m.len());
         }
     }
-
     //This is only to satisfy current interface in ba
     let initial_cam_motions = initial_cam_motions_per_path.clone().into_iter().flatten().collect::<Vec<(usize,(Vector3<Float>,Matrix3<Float>))>>();
     let initial_cam_poses = Some(initial_cam_motions);
@@ -194,12 +201,12 @@ fn main() -> Result<()> {
             step_sizes: vec![1e0],
             max_norm_eps: 1e-30, 
             delta_eps: 1e-30,
-            taus: vec![1e-12],
+            taus: vec![1e-1],
             lm: true,
             debug: true,
             show_octave_result: true,
             loss_function: Box::new(loss::TrivialLoss { eps: 1e-16, approximate_gauss_newton_matrices: false }), 
-            intensity_weighting_function:  Box::new(weighting::BisquareWeight {})
+            intensity_weighting_function:  Box::new(weighting::SquaredWeight {})
             //intensity_weighting_function:  Box::new(weighting::CauchyWeight {c: 0.01})
         };
 
