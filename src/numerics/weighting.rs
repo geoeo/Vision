@@ -9,7 +9,7 @@ use crate::numerics::estimate_std;
 pub trait WeightingFunction {
     fn weight(&self, residuals: &DVector<Float>, index: usize, std: Option<Float>) -> Float;
     fn estimate_standard_deviation(&self, residuals: &DVector<Float>) -> Option<Float>;
-    fn cost(&self, residuals: &DVector<Float>, std: Option<Float>) -> Float;
+    fn cost(&self, residuals: &DVector<Float>) -> Float;
     fn name(&self) -> &str;
 }
 
@@ -54,8 +54,8 @@ impl WeightingFunction for HuberWeight {
         "HuberWeight"
     }
 
-    fn cost(&self, residuals: &DVector<Float>, _: Option<Float>) -> Float {
-        0.5*(residuals.transpose() * residuals)[0]
+    fn cost(&self, residuals: &DVector<Float>) -> Float {
+        ((residuals.transpose() * residuals)[0]).sqrt()
     }
 
 }
@@ -79,8 +79,8 @@ impl WeightingFunction for CauchyWeight {
         "CauchyWeight"
     }
 
-    fn cost(&self, residuals: &DVector<Float>, _: Option<Float>) -> Float {
-        0.5*(residuals.transpose() * residuals)[0]
+    fn cost(&self, residuals: &DVector<Float>) -> Float {
+        ((residuals.transpose() * residuals)[0]).sqrt()
     }
 
 }
@@ -109,8 +109,8 @@ impl WeightingFunction for BisquareWeight {
         "Bisquare"
     }
 
-    fn cost(&self, residuals: &DVector<Float>, _: Option<Float>) -> Float {
-        0.5*(residuals.transpose() * residuals)[0]
+    fn cost(&self, residuals: &DVector<Float>) -> Float {
+        ((residuals.transpose() * residuals)[0]).sqrt()
     }
 
 }
@@ -134,7 +134,7 @@ impl WeightingFunction for SquaredWeight {
         "TrivialWeight"
     }
 
-    fn cost(&self, residuals: &DVector<Float>, _: Option<Float>) -> Float {
+    fn cost(&self, residuals: &DVector<Float>) -> Float {
         0.5*(residuals.transpose() * residuals)[0]
     }
 
@@ -193,8 +193,8 @@ impl WeightingFunction for TDistWeight {
         "T-Dist"
     }
 
-    fn cost(&self, residuals: &DVector<Float>, _: Option<Float>) -> Float {
-        0.5*(residuals.transpose() * residuals)[0]
+    fn cost(&self, residuals: &DVector<Float>) -> Float {
+        ((residuals.transpose() * residuals)[0]).sqrt()
     }
 
 }

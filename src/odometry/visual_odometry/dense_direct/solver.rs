@@ -157,7 +157,7 @@ fn estimate<C : Camera, const T: usize>(
     }
 
 
-    let mut cost = compute_cost(&runtime_memory.residuals, &runtime_parameters.intensity_weighting_function, std);
+    let mut cost = compute_cost(&runtime_memory.residuals, &runtime_parameters.intensity_weighting_function);
 
     let mut max_norm_delta = float::MAX;
     let mut delta_thresh = float::MIN;
@@ -252,7 +252,7 @@ fn estimate<C : Camera, const T: usize>(
 
         percentage_of_valid_pixels =
             (runtime_memory.new_image_gradient_points.len() as Float / number_of_pixels_float) * 100.0;
-        let new_cost = compute_cost(&runtime_memory.new_residuals, &runtime_parameters.intensity_weighting_function, std);
+        let new_cost = compute_cost(&runtime_memory.new_residuals, &runtime_parameters.intensity_weighting_function);
         let cost_diff = cost - new_cost;
         let gain_ratio = cost_diff / gain_ratio_denom;
         if runtime_parameters.debug {

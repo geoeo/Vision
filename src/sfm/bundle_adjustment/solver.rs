@@ -164,7 +164,7 @@ pub fn optimize<C : Camera, L: Landmark<LANDMARK_PARAM_SIZE> + Copy + Clone, con
         false => runtime_parameters.step_sizes[0]
     };
 
-    let mut cost = compute_cost(&residuals,&runtime_parameters.intensity_weighting_function, std);
+    let mut cost = compute_cost(&residuals,&runtime_parameters.intensity_weighting_function);
     let mut iteration_count = 0;
     while ((!runtime_parameters.lm && (cost.sqrt() > runtime_parameters.eps[0])) || 
     (runtime_parameters.lm && delta_norm > delta_thresh && max_norm_delta > runtime_parameters.max_norm_eps && cost.sqrt() > runtime_parameters.eps[0] ))  && iteration_count < max_iterations  {
@@ -218,7 +218,7 @@ pub fn optimize<C : Camera, L: Landmark<LANDMARK_PARAM_SIZE> + Copy + Clone, con
         }
 
 
-        let new_cost = compute_cost(&new_residuals,&runtime_parameters.intensity_weighting_function, std);
+        let new_cost = compute_cost(&new_residuals,&runtime_parameters.intensity_weighting_function);
         let cost_diff = cost-new_cost;
         let gain_ratio = match gain_ratio_denom {
             v if v != 0.0 => cost_diff/v,
