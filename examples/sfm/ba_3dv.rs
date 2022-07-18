@@ -53,13 +53,12 @@ fn main() -> Result<()> {
     };
 
     let camera_map = HashMap::from([(0, intensity_camera_0), (1, intensity_camera_1),(2,intensity_camera_2),(3,intensity_camera_3) ]);
-    //let sfm_config = SFMConfig::new(0, vec!(vec!(2), vec!(1,3), vec!(3)), camera_map, vec!(vec!(matches_0_2),vec!(matches_0_1, matches_1_3),vec!(matches_0_3))); // This crashes
+    //let sfm_config = SFMConfig::new(0, vec!(vec!(2), vec!(1,3), vec!(3)), camera_map, vec!(vec!(matches_0_2),vec!(matches_0_1, matches_1_3),vec!(matches_0_3)));
     let sfm_config = SFMConfig::new(0, vec!(vec!(2), vec!(3)), camera_map, vec!(vec!(matches_0_2),vec!(matches_0_3)));
 
     let depth_prior = -1.0;
-    let epipolar_thresh = 0.01;
+    let epipolar_thresh = float::INFINITY;
     let positive_principal_distance = false;
-    let invert_intrinsics = false; // they are already negative from decomp
     let normalize_features = false;
 
     let (initial_cam_motions_per_path,filtered_matches_per_path) = compute_pairwise_cam_motions_with_filtered_matches(
@@ -68,7 +67,7 @@ fn main() -> Result<()> {
         epipolar_thresh,
         positive_principal_distance,
         normalize_features,
-        BifocalType::FUNDAMENTAL,  // essential performs worse
+        BifocalType::ESSENTIAL,
         EssentialDecomposition::FÖRSNTER
 );
 

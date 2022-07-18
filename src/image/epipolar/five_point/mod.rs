@@ -177,7 +177,7 @@ pub fn cheirality_check<T: Feature + Clone>(
             let d1 = p1_x[(2,i)];
             let d2 = p2_x[(2,i)];
 
-            if depth_positive && d1 > 0.0 && d2 > 0.0 || !depth_positive && d1 < 0.0 && d2 < 0.0 {
+            if (depth_positive && d1 > 0.0 && d2 > 0.0) || (!depth_positive && d1 < 0.0 && d2 < 0.0) {
                 accepted_cheirality_count += 1 
             }
         }
@@ -199,7 +199,7 @@ pub fn cheirality_check<T: Feature + Clone>(
             max_accepted_cheirality_count = accepted_cheirality_count;
         }
     }
-    //println!("------");
+    // println!("------");
     best_e.expect("cheirality_check: no best essential matrix found!").clone()
 }
 
