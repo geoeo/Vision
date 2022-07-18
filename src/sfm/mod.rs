@@ -43,7 +43,8 @@ impl<C: Camera, F: Feature> SFMConfig<C,F> {
     }
 
     pub fn compute_unqiue_ids_cameras_root_first(&self) -> (Vec<usize>, Vec<&C>) {
-        let mut keys_sorted = Vec::<usize>::with_capacity(self.camera_map.keys().len());
+        let number_of_keys = self.camera_map.keys().len();
+        let mut keys_sorted = Vec::<usize>::with_capacity(number_of_keys);
         // root has to first by design
         keys_sorted.push(self.root());
         keys_sorted.extend(self.paths.clone().into_iter().flatten().collect::<Vec<usize>>());
