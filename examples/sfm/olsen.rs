@@ -34,7 +34,7 @@ fn main() -> Result<()> {
     
     let olsen_data_path = data_set_door_path;
     let depth_prior = -1.0;
-    let epipolar_thresh = 0.01;
+    let epipolar_thresh = 0.005; // for more than 2 paths
     //let epipolar_thresh = 0.01;
 
     
@@ -147,7 +147,7 @@ fn main() -> Result<()> {
             epipolar_thresh,
             positive_principal_distance,
             normalize_features,
-            BifocalType::FUNDAMENTAL, 
+            BifocalType::ESSENTIAL, 
             EssentialDecomposition::FÖRSNTER
     );
 
@@ -201,7 +201,7 @@ fn main() -> Result<()> {
             step_sizes: vec![1e0],
             max_norm_eps: 1e-30, 
             delta_eps: 1e-30,
-            taus: vec![1e-1],
+            taus: vec![1e-1], // 1e-1 : squared , 1e-12 - Huber
             lm: true,
             debug: true,
             show_octave_result: true,
