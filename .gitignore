@@ -41,5 +41,4 @@ images/lenna_cropped.png
 images/out.png
 images/ba_pointcloud
 data/3dv_debug.txt
-.gitignore
 data/3dv.txt
