@@ -34,13 +34,13 @@ fn main() -> Result<()> {
     
     let olsen_data_path = data_set_door_path;
     let depth_prior = -1.0;
-    let epipolar_thresh = 0.005; // for more than 2 paths
-    //let epipolar_thresh = 0.01;
+    let epipolar_thresh = 0.01; 
+    //let epipolar_thresh = 0.005; 
 
     
     let olsen_data = OlssenData::new(&olsen_data_path);
     let positive_principal_distance = false;
-    let invert_intrinsics = false; // they are already negative from decomp
+    let invert_intrinsics = true; // they are already negative from decomp
     let normalize_features = false;
     let feature_skip_count = 2;
     //let change_of_basis = Matrix3::<Float>::new(0.0,0.0,1.0, 0.0,1.0,0.0, 1.0,0.0,0.0);
@@ -131,8 +131,9 @@ fn main() -> Result<()> {
     // let paths = vec!(vec!(4),vec!(6));
 
     let sfm_all_matches = vec!(vec!(matches_5_4_subvec, matches_4_3_subvec),vec!(matches_5_6_subvec));
-    let camera_map = HashMap::from([(5, pinhole_cam_5), (4, pinhole_cam_4), (6, pinhole_cam_6), (3, pinhole_cam_3)]);
+    let camera_map = HashMap::from([(5, pinhole_cam_5), (4, pinhole_cam_4), (6, pinhole_cam_6), (3, pinhole_cam_3)]); // 1.9e-1
     let paths = vec!(vec!(4,3),vec!(6));
+
 
     // let sfm_all_matches = vec!(vec!(matches_5_4_subvec),vec!(matches_5_6_subvec, matches_6_7_subvec));
     // let camera_map = HashMap::from([(5, pinhole_cam_5), (4, pinhole_cam_4), (6, pinhole_cam_6), (7, pinhole_cam_7)]);
@@ -147,7 +148,7 @@ fn main() -> Result<()> {
             epipolar_thresh,
             positive_principal_distance,
             normalize_features,
-            BifocalType::ESSENTIAL, 
+            BifocalType::FUNDAMENTAL, 
             EssentialDecomposition::FÖRSNTER
     );
 
@@ -196,12 +197,12 @@ fn main() -> Result<()> {
 
         let runtime_parameters = RuntimeParameters {
             pyramid_scale: 1.0,
-            max_iterations: vec![160; 1],
+            max_iterations: vec![500; 1],
             eps: vec![1e-6],
             step_sizes: vec![1e0],
             max_norm_eps: 1e-30, 
             delta_eps: 1e-30,
-            taus: vec![1e-1], // 1e-1 : squared , 1e-12 - Huber
+            taus: vec![1.9e-1], // 1e-1 : squared , 1e-6 - Huber
             lm: true,
             debug: true,
             show_octave_result: true,
