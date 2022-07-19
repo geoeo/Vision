@@ -40,3 +40,5 @@ images/lenna_cropped_2.png
 images/lenna_cropped.png
 images/out.png
 images/ba_pointcloud
+data/3dv_debug.txt
+.gitignore
