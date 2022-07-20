@@ -1,12 +1,11 @@
 extern crate nalgebra as na;
 
 use nalgebra_sparse::{csc::CscMatrix, factorization::CscCholesky};
-use na::{ DMatrix, DVector , OVector, Dynamic, Matrix, SMatrix, SVector,Vector,Dim,storage::{Storage,StorageMut},base::{default_allocator::DefaultAllocator, allocator::Allocator},
-    VecStorage, Const, DimMin, U1
+use na::{DMatrix, DVector , OVector, Dynamic, Matrix, SMatrix, SVector,Vector,Dim,storage::{Storage,StorageMut},base::{default_allocator::DefaultAllocator, allocator::{Allocator}},
+    VecStorage, Const, DimMin, U1, ArrayStorage
 };
-
 use std::boxed::Box;
-
+use std::ops::AddAssign;
 use crate::numerics::{loss::LossFunction, weighting::WeightingFunction};
 use crate::Float;
 
@@ -150,7 +149,7 @@ pub fn gauss_newton_step_with_loss_and_schur(
 }
 
 #[allow(non_snake_case)]
-pub fn gauss_newton_step_with_schur<R, C,S1, S2,StorageTargetArrow, StorageTargetResidual, const LANDMARK_PARAM_SIZE: usize, const CAMERA_PARAM_SIZE: usize>(
+pub fn gauss_newton_step_with_schur<R, C, S1, S2,StorageTargetArrow, StorageTargetResidual, const LANDMARK_PARAM_SIZE: usize, const CAMERA_PARAM_SIZE: usize>(
     target_arrowhead: &mut Matrix<Float,C,C,StorageTargetArrow>, 
     target_arrowhead_residual: &mut Vector<Float,C,StorageTargetResidual>, 
     target_perturb: &mut Vector<Float,C,StorageTargetResidual>, 
@@ -172,14 +171,7 @@ pub fn gauss_newton_step_with_schur<R, C,S1, S2,StorageTargetArrow, StorageTarge
         StorageTargetResidual: StorageMut<Float, C, U1>,
         DefaultAllocator: Allocator<Float, R, C>+  Allocator<Float, C, R> + Allocator<Float, C, C> + Allocator<Float, C> + Allocator<Float, Const<1_usize>, C> + Allocator<f64, Const<1_usize>, R>  {
 
-        let diag_max = compute_arrow_head_and_residuals::<_,_,_,_,_,_,LANDMARK_PARAM_SIZE,CAMERA_PARAM_SIZE>(target_arrowhead,target_arrowhead_residual,jacobian,residuals,mu,tau,n_cams,n_points);
-        let mu_val = match mu {
-            None => tau*diag_max,
-            Some(v) => v
-        };
-        for d_i in 0..target_arrowhead.ncols() {
-            target_arrowhead[(d_i,d_i)]+= mu_val;
-        }
+        let mu_val = compute_arrow_head_and_residuals::<_,_,_,_,_,_,LANDMARK_PARAM_SIZE,CAMERA_PARAM_SIZE>(target_arrowhead,target_arrowhead_residual,jacobian,residuals,mu,tau,n_cams,n_points);
 
         /*
          *     | U*  W  |
@@ -190,26 +182,24 @@ pub fn gauss_newton_step_with_schur<R, C,S1, S2,StorageTargetArrow, StorageTarge
         let U_star = target_arrowhead.slice((0,0),(u_span,u_span));
         let V_star = target_arrowhead.slice((u_span,u_span),(v_span,v_span));
 
+        let res_a = target_arrowhead_residual.slice((0,0),(u_span,1));
+        let res_b = target_arrowhead_residual.slice((u_span,0),(v_span,1));
+
         for i in (0..v_span).step_by(LANDMARK_PARAM_SIZE) {
             let local_inv = V_star.fixed_slice::<LANDMARK_PARAM_SIZE,LANDMARK_PARAM_SIZE>(i,i).try_inverse().expect("local inverse failed");
             V_star_inv.fixed_slice_mut::<LANDMARK_PARAM_SIZE,LANDMARK_PARAM_SIZE>(i,i).copy_from(&local_inv);
         }
 
-        
         let W = target_arrowhead.slice((0,u_span),(u_span,v_span));
         let W_t = target_arrowhead.slice((u_span,0),(v_span,u_span));
-
-        let res_a = target_arrowhead_residual.slice((0,0),(u_span,1));
-        let res_b = target_arrowhead_residual.slice((u_span,0),(v_span,1));
 
         let schur_compliment = U_star - W*(V_star_inv as &DMatrix<Float>)*W_t;
         let res_a_augment = res_a-W*(V_star_inv as &DMatrix<Float>)*res_b;
 
+        let h_a_option = schur_compliment.cholesky();
         let V_star_csc = CscMatrix::<Float>::from(&V_star);
         let V_star_csc_cholseky_result = CscCholesky::factor(&V_star_csc);
 
-        let h_a_option = schur_compliment.cholesky();
-        
         match (h_a_option,V_star_csc_cholseky_result) {
             (Some(h_a_cholesky), Ok(V_star_cholesky)) => {
                 let h_a = h_a_cholesky.solve(&res_a_augment);
@@ -247,7 +237,7 @@ pub fn gauss_newton_step<R, C,S1, S2, S3>(
         S1: Storage<Float, R>,
         S2: Storage<Float, R, C>,
         S3: Storage<Float, C, C>,
-        DefaultAllocator: Allocator<Float, R, C>+  Allocator<Float, C, R> + Allocator<Float, C, C> + Allocator<Float, C>+ Allocator<Float, Const<1_usize>, C> + Allocator<(usize, usize), C>,  {
+        DefaultAllocator: Allocator<Float, R, C>+  Allocator<Float, C, R> + Allocator<Float, C, C> + Allocator<Float, C>+ Allocator<Float, Const<1_usize>, C> + Allocator<(usize, usize), C>  {
     let (A,g) = (jacobian.transpose()*jacobian,jacobian.transpose()*residuals);
     let mu_val = match mu {
         None => tau*A.diagonal().max(),
@@ -281,12 +271,9 @@ fn compute_arrow_head_and_residuals<R, C,StorageTargetArrow, StorageTargetResidu
 
         let number_of_cam_params = CAM_PARAM_SIZE*n_cams;
         let number_of_measurement_rows = 2*n_cams*n_points;
-        let mut diag_max: Float = 0.0;
-    
+        let mut U_j = SMatrix::<Float,CAM_PARAM_SIZE,CAM_PARAM_SIZE>::zeros();
         for j in (0..number_of_cam_params).step_by(CAM_PARAM_SIZE) {
-            let mut U_j = SMatrix::<Float,CAM_PARAM_SIZE,CAM_PARAM_SIZE>::zeros();
             let u_idx = j;
-
             let cam_id = j/CAM_PARAM_SIZE;
             let row_start = 2*cam_id;
             let row_end = number_of_measurement_rows;
@@ -312,22 +299,19 @@ fn compute_arrow_head_and_residuals<R, C,StorageTargetArrow, StorageTargetResidu
                 target_arrowhead.fixed_slice_mut::<LANDMARK_PARAM_SIZE,CAM_PARAM_SIZE>(v_idx,u_idx).copy_from(&W_j_transpose);
 
                 let residual = -residuals.fixed_slice::<2,1>(i,0);
-                let e_a = target_residual.fixed_slice::<CAM_PARAM_SIZE,1>(u_idx,0) + slice_a_transpose*residual;
-                let e_b = target_residual.fixed_slice::<LANDMARK_PARAM_SIZE,1>(v_idx,0) + slice_b_transpose*residual;
-
-                target_residual.fixed_slice_mut::<CAM_PARAM_SIZE,1>(u_idx,0).copy_from(&e_a);
-                target_residual.fixed_slice_mut::<LANDMARK_PARAM_SIZE,1>(v_idx,0).copy_from(&e_b);
-
-                let v_diag_max = V_i.diagonal().max();
-                if v_diag_max > diag_max {
-                    diag_max = v_diag_max;
-                }
+                target_residual.fixed_slice_mut::<CAM_PARAM_SIZE,1>(u_idx,0).add_assign(&(slice_a_transpose*residual));
+                target_residual.fixed_slice_mut::<LANDMARK_PARAM_SIZE,1>(v_idx,0).add_assign(&(slice_b_transpose*residual));
 
             }
             target_arrowhead.fixed_slice_mut::<CAM_PARAM_SIZE,CAM_PARAM_SIZE>(u_idx,u_idx).copy_from(&U_j);
-            let u_diag_max = U_j.diagonal().max();
-            if u_diag_max > diag_max {
-                diag_max = u_diag_max;
+            U_j.fill(0.0);
+        }
+
+        let mut diag_max = 0.0;
+        for i in 0..target_arrowhead.ncols() {
+            let v = target_arrowhead[(i,i)];
+            if v > diag_max {
+                diag_max = v;
             }
         }
 
@@ -339,5 +323,5 @@ fn compute_arrow_head_and_residuals<R, C,StorageTargetArrow, StorageTargetResidu
         for i in 0..target_arrowhead.ncols() {
             target_arrowhead[(i,i)] = target_arrowhead[(i,i)]+mu_val;
         }
-    diag_max
+        mu_val
 }

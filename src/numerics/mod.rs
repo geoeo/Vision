@@ -9,6 +9,7 @@ pub mod pose;
 pub mod loss;
 pub mod least_squares;
 pub mod weighting;
+pub mod conjugate_gradient;
 
 pub fn to_matrix<const N: usize, const M: usize, const D: usize>(vec: &SVector<Float,D>) -> SMatrix<Float,N,M> {
     assert_eq!(D,N*M);
