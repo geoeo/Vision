@@ -21,8 +21,13 @@ color-eyre = "0.5"
 serde = { version = "*", features = ["derive"] }
 serde_yaml = "0.8"
 
+[profile.release]
+debug = 0
+strip = "none"
+
 [profile.dev]
-debug = true
+debug = 2
+strip = "debuginfo"
 
 [[example]]
 name = "orb_ba"
