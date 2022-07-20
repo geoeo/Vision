@@ -26,6 +26,8 @@ fn main() -> Result<()> {
     let matches_0_2 = three_dv_loader::load_matches(&format!("{}/3dv",runtime_conf.dataset_path), "image_formation_neg_z_no_noise_0.xyz", "image_formation_neg_z_no_noise_2.xyz");
     let matches_1_3 = three_dv_loader::load_matches(&format!("{}/3dv",runtime_conf.dataset_path), "image_formation_neg_z_no_noise_1.xyz", "image_formation_neg_z_no_noise_3.xyz");
     let matches_0_3 = three_dv_loader::load_matches(&format!("{}/3dv",runtime_conf.dataset_path), "image_formation_neg_z_no_noise_0.xyz", "image_formation_neg_z_no_noise_3.xyz");
+    let matches_2_1 = three_dv_loader::load_matches(&format!("{}/3dv",runtime_conf.dataset_path), "image_formation_neg_z_no_noise_2.xyz", "image_formation_neg_z_no_noise_1.xyz");
+    let matches_2_3 = three_dv_loader::load_matches(&format!("{}/3dv",runtime_conf.dataset_path), "image_formation_neg_z_no_noise_2.xyz", "image_formation_neg_z_no_noise_3.xyz");
 
     // let matches_0_1 = three_dv_loader::load_matches("D:/Workspace/Cpp/3dv_tutorial/bin/data", "image_formation0_neg_z.xyz", "image_formation1_neg_z.xyz");
     // let matches_0_2 = three_dv_loader::load_matches("D:/Workspace/Cpp/3dv_tutorial/bin/data", "image_formation0_neg_z.xyz", "image_formation2_neg_z.xyz");
@@ -53,11 +55,11 @@ fn main() -> Result<()> {
     };
 
     let camera_map = HashMap::from([(0, intensity_camera_0), (1, intensity_camera_1),(2,intensity_camera_2),(3,intensity_camera_3) ]);
-    let sfm_config = SFMConfig::new(0, vec!(vec!(2), vec!(1,3), vec!(3)), camera_map, vec!(vec!(matches_0_2),vec!(matches_0_1, matches_1_3),vec!(matches_0_3)));
-    //let sfm_config = SFMConfig::new(0, vec!(vec!(2), vec!(3)), camera_map, vec!(vec!(matches_0_2),vec!(matches_0_3)));
+    //let sfm_config = SFMConfig::new(0, vec!(vec!(2), vec!(1,3), vec!(3)), camera_map, vec!(vec!(matches_0_2),vec!(matches_0_1, matches_1_3),vec!(matches_0_3)));
+    let sfm_config = SFMConfig::new(2, vec!(vec!(1), vec!(3)), camera_map, vec!(vec!(matches_2_1),vec!(matches_2_3)));
 
     let depth_prior = -1.0;
-    let epipolar_thresh = float::INFINITY;
+    let epipolar_thresh = 0.01;
     let positive_principal_distance = false;
     let normalize_features = false;
 
@@ -67,16 +69,16 @@ fn main() -> Result<()> {
         epipolar_thresh,
         positive_principal_distance,
         normalize_features,
-        BifocalType::ESSENTIAL,
+        BifocalType::FUNDAMENTAL,
         EssentialDecomposition::FÖRSNTER
 );
 
 
     let ((cam_positions,points),(s,debug_states_serialized)) = run_ba(&filtered_matches_per_path, &sfm_config, Some(&initial_cam_motions_per_path), (480,640), &runtime_parameters, 1.0,depth_prior);
     //let ((cam_positions,points),(s,debug_states_serialized)) = run_ba(&sfm_config.matches(), &sfm_config, None, (480,640), &runtime_parameters, 1.0,depth_prior);
-    fs::write(format!("{}/{}",runtime_conf.output_path,"3dv.txt"), s?).expect("Unable to write file");
+    fs::write(format!("{}/{}",runtime_conf.local_data_path,"3dv.txt"), s?).expect("Unable to write file");
     if runtime_parameters.debug {
-        fs::write(format!("{}/{}",runtime_conf.output_path,"3dv_debug.txt"), debug_states_serialized?).expect("Unable to write file");
+        fs::write(format!("{}/{}",runtime_conf.local_data_path,"3dv_debug.txt"), debug_states_serialized?).expect("Unable to write file");
     }
    
 
