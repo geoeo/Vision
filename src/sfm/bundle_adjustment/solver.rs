@@ -118,20 +118,20 @@ pub fn optimize<C : Camera, L: Landmark<LANDMARK_PARAM_SIZE> + Copy + Clone, con
     
     let mut new_state = state.clone();
     let state_size = CAMERA_PARAM_SIZE*state.n_cams+LANDMARK_PARAM_SIZE*state.n_points;
-    let mut jacobian = DMatrix::<Float>::zeros(observed_features.nrows(),state_size);
+    let mut jacobian = DMatrix::<Float>::zeros(observed_features.nrows(),state_size); // a lot of memory
     let mut residuals = DVector::<Float>::zeros(observed_features.nrows());
     let mut new_residuals = DVector::<Float>::zeros(observed_features.nrows());
     let mut estimated_features = DVector::<Float>::zeros(observed_features.nrows());
     let mut new_estimated_features = DVector::<Float>::zeros(observed_features.nrows());
     let mut weights_vec = DVector::<Float>::from_element(observed_features.nrows(),1.0);
-    let mut target_arrowhead = DMatrix::<Float>::zeros(state_size, state_size);
+    let mut target_arrowhead = DMatrix::<Float>::zeros(state_size, state_size); // a lot of memory
     let mut g = DVector::<Float>::from_element(state_size,0.0); 
     let mut delta = DVector::<Float>::from_element(state_size,0.0);
     let mut debug_state_list = match runtime_parameters.debug {
         true => Some(Vec::<(Vec<[Float; CAMERA_PARAM_SIZE]>, Vec<[Float; LANDMARK_PARAM_SIZE]>)>::with_capacity(max_iterations)),
         false => None
     };
-    let mut v_star_inv = DMatrix::<Float>::zeros(v_span,v_span);
+    let mut v_star_inv = DMatrix::<Float>::zeros(v_span,v_span); // a lot of memory
 
     get_estimated_features(state, cameras,observed_features, &mut estimated_features);
     compute_residual(&estimated_features, observed_features, &mut residuals);

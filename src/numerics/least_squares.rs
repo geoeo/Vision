@@ -193,8 +193,8 @@ pub fn gauss_newton_step_with_schur<R, C, S1, S2,StorageTargetArrow, StorageTarg
         let W = target_arrowhead.slice((0,u_span),(u_span,v_span));
         let W_t = target_arrowhead.slice((u_span,0),(v_span,u_span));
 
-        let schur_compliment = U_star - W*(V_star_inv as &DMatrix<Float>)*W_t;
-        let res_a_augment = res_a-W*(V_star_inv as &DMatrix<Float>)*res_b;
+        let schur_compliment = U_star - W*(V_star_inv as &DMatrix<Float>)*W_t; // takes long time
+        let res_a_augment = res_a-W*(V_star_inv as &DMatrix<Float>)*res_b; // takes long time
 
         let h_a_option = schur_compliment.cholesky();
         let V_star_csc = CscMatrix::<Float>::from(&V_star);
