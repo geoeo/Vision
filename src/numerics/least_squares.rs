@@ -181,6 +181,12 @@ pub fn gauss_newton_step_with_schur<R, C,S1, S2,StorageTargetArrow, StorageTarge
             target_arrowhead[(d_i,d_i)]+= mu_val;
         }
 
+        /*
+         *     | U*  W  |
+         * H = | W_t V* |
+         *  
+         */
+
         let U_star = target_arrowhead.slice((0,0),(u_span,u_span));
         let V_star = target_arrowhead.slice((u_span,u_span),(v_span,v_span));
 
