@@ -21,12 +21,12 @@ pub fn compute_preconditioner<PStorage,VStorage,WStorage, WtStorage>(preconditio
     preconditioner.slice_mut((0,0),(p_dim,p_dim)).copy_from(P_inv);
     
     let temp = W*V_star;
-    preconditioner.slice_mut((0,p_dim),(w_rows,p_dim)).copy_from(&(P_inv*(&temp)));
-    preconditioner.slice_mut((0,p_dim),(w_rows,p_dim)).scale_mut(-omega);
+    preconditioner.slice_mut((0,p_dim),(p_dim,v_dim)).copy_from(&(P_inv*(&temp)));
+    preconditioner.slice_mut((0,p_dim),(p_dim,v_dim)).scale_mut(-omega);
     
     let temp_2 = V_star*W_t*P_inv;
-    preconditioner.slice_mut((p_dim,0),(w_rows,p_dim)).copy_from(&temp_2);
-    preconditioner.slice_mut((p_dim,0),(w_rows,p_dim)).scale_mut(-omega);
+    preconditioner.slice_mut((p_dim,0),(v_dim,p_dim)).copy_from(&temp_2);
+    preconditioner.slice_mut((p_dim,0),(v_dim,p_dim)).scale_mut(-omega);
 
     let mut v_cubed = V_star.clone_owned();
     v_cubed.mul_assign(V_star);
