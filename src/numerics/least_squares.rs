@@ -269,9 +269,9 @@ pub fn gauss_newton_step_with_conguate_gradient<R, C, S1, S2,StorageTargetArrow,
         let W = target_arrowhead.slice((0,u_span),(u_span,v_span));
         let W_t = target_arrowhead.slice((u_span,0),(v_span,u_span));
 
-        let mut preconditioner = DMatrix::<Float>::zeros(target_arrowhead.nrows(),target_arrowhead.ncols());
-        conjugate_gradient::compute_preconditioner(&mut preconditioner, &U_star, &V_star, V_star_inv, &W, &W_t, 1.0);
-
+        let mut preconditioner = DMatrix::<Float>::zeros(target_arrowhead.nrows(),target_arrowhead.ncols()); //TODO: preallocate
+        let U_star_inv = U_star.try_inverse().expect("local inverse failed");
+        conjugate_gradient::compute_preconditioner(&mut preconditioner, &U_star_inv, &V_star, &W, &W_t, 1.0);
 
 
         panic!("TODO");

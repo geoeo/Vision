@@ -1,32 +1,39 @@
 extern crate nalgebra as na;
 
-use std::ops::{AddAssign,SubAssign};
+use std::ops::{AddAssign,SubAssign,MulAssign};
 use na::{DMatrix, Matrix,Dynamic, storage::{Storage, StorageMut}, Vector, Const ,U1, base::{default_allocator::DefaultAllocator, allocator::{Allocator}}};
 use crate::{Float};
 
 #[allow(non_snake_case)]
-pub fn compute_preconditioner<PStorage,VStorage,VinvStorage,WStorage, WtStorage>(preconditioner: &mut DMatrix::<Float>,P: &Matrix::<Float,Dynamic,Dynamic,PStorage> , V_star: &Matrix::<Float,Dynamic,Dynamic, VStorage>, V_star_inv: &Matrix::<Float,Dynamic,Dynamic,VinvStorage>, W: &Matrix::<Float,Dynamic,Dynamic, WStorage>, W_t: &Matrix::<Float,Dynamic,Dynamic,WtStorage>, omega: Float) -> () 
+pub fn compute_preconditioner<PStorage,VStorage,WStorage, WtStorage>(preconditioner: &mut DMatrix::<Float>,P_inv: &Matrix::<Float,Dynamic,Dynamic,PStorage> , V_star: &Matrix::<Float,Dynamic,Dynamic, VStorage>, W: &Matrix::<Float,Dynamic,Dynamic, WStorage>, W_t: &Matrix::<Float,Dynamic,Dynamic, WtStorage>, omega: Float) -> () 
     where
         PStorage: Storage<Float,Dynamic,Dynamic>,
-        VStorage: Storage<Float,Dynamic,Dynamic>,
-        VinvStorage: Storage<Float,Dynamic,Dynamic>,
+        VStorage: Storage<Float,Dynamic,Dynamic> + Clone,
         WStorage: Storage<Float,Dynamic,Dynamic>,
         WtStorage: Storage<Float,Dynamic,Dynamic>,
     {
-    let p_rows = P.nrows();
-    let p_cols = P.ncols();
+    let p_dim = P_inv.nrows();
     let w_rows = W.nrows();
     let w_cols = W.ncols();
-    let v_rows = V_star.nrows();
-    let v_cols = V_star.ncols();
+    let v_dim = V_star.nrows();
 
     let omega_sqrd = omega.powi(2);
-    preconditioner.slice_mut((0,0),(p_rows,p_cols)).copy_from(&(P + omega_sqrd*W*V_star_inv*W_t));
-    preconditioner.slice_mut((0,p_cols),(w_rows,w_cols)).copy_from(&W);
-    preconditioner.slice_mut((0,p_cols),(w_rows,w_cols)).scale_mut(omega);
-    preconditioner.slice_mut((p_rows,0),(w_rows,w_cols)).copy_from(&W_t);
-    preconditioner.slice_mut((p_rows,0),(w_rows,w_cols)).scale_mut(omega);
-    preconditioner.slice_mut((p_rows,p_cols),(v_rows,v_cols)).copy_from(&V_star);
+    preconditioner.slice_mut((0,0),(p_dim,p_dim)).copy_from(P_inv);
+    
+    let temp = W*V_star;
+    preconditioner.slice_mut((0,p_dim),(w_rows,p_dim)).copy_from(&(P_inv*(&temp)));
+    preconditioner.slice_mut((0,p_dim),(w_rows,p_dim)).scale_mut(-omega);
+    
+    let temp_2 = V_star*W_t*P_inv;
+    preconditioner.slice_mut((p_dim,0),(w_rows,p_dim)).copy_from(&temp_2);
+    preconditioner.slice_mut((p_dim,0),(w_rows,p_dim)).scale_mut(-omega);
+
+    let mut v_cubed = V_star.clone_owned();
+    v_cubed.mul_assign(V_star);
+    v_cubed.mul_assign(V_star);
+    preconditioner.slice_mut((p_dim,p_dim),(v_dim,v_dim)).copy_from(&((&temp_2)*(&temp)));
+    preconditioner.slice_mut((p_dim,p_dim),(v_dim,v_dim)).scale_mut(omega_sqrd);
+    preconditioner.slice_mut((p_dim,p_dim),(v_dim,v_dim)).add_assign(&v_cubed);
 
 
 }
