@@ -13,8 +13,6 @@ pub fn compute_preconditioner<PStorage,VStorage,WStorage, WtStorage>(preconditio
         WtStorage: Storage<Float,Dynamic,Dynamic>,
     {
     let p_dim = P_inv.nrows();
-    let w_rows = W.nrows();
-    let w_cols = W.ncols();
     let v_dim = V_star.nrows();
 
     let omega_sqrd = omega.powi(2);
