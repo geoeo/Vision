@@ -1,11 +1,18 @@
 extern crate nalgebra as na;
 
 use std::ops::{AddAssign,SubAssign};
-use na::{DMatrix, Matrix, storage::{Storage, StorageMut}, Vector, Const ,U1, Dim, base::{dimension::DimName,default_allocator::DefaultAllocator, allocator::{Allocator}}};
+use na::{DMatrix, Matrix,Dynamic, storage::{Storage, StorageMut}, Vector, Const ,U1, base::{default_allocator::DefaultAllocator, allocator::{Allocator}}};
 use crate::{Float};
 
 #[allow(non_snake_case)]
-pub fn compute_preconditioner(preconditioner: &mut DMatrix::<Float>,P: DMatrix::<Float> , V_star: &DMatrix::<Float>, V_star_inv: &DMatrix::<Float>, W: &DMatrix::<Float>, W_t: &DMatrix::<Float>, omega: Float ) -> () {
+pub fn compute_preconditioner<PStorage,VStorage,VinvStorage,WStorage, WtStorage>(preconditioner: &mut DMatrix::<Float>,P: &Matrix::<Float,Dynamic,Dynamic,PStorage> , V_star: &Matrix::<Float,Dynamic,Dynamic, VStorage>, V_star_inv: &Matrix::<Float,Dynamic,Dynamic,VinvStorage>, W: &Matrix::<Float,Dynamic,Dynamic, WStorage>, W_t: &Matrix::<Float,Dynamic,Dynamic,WtStorage>, omega: Float) -> () 
+    where
+        PStorage: Storage<Float,Dynamic,Dynamic>,
+        VStorage: Storage<Float,Dynamic,Dynamic>,
+        VinvStorage: Storage<Float,Dynamic,Dynamic>,
+        WStorage: Storage<Float,Dynamic,Dynamic>,
+        WtStorage: Storage<Float,Dynamic,Dynamic>,
+    {
     let p_rows = P.nrows();
     let p_cols = P.ncols();
     let w_rows = W.nrows();

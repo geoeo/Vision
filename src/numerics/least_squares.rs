@@ -6,7 +6,7 @@ use na::{DMatrix, DVector , OVector, Dynamic, Matrix, SMatrix, SVector,Vector,Di
 };
 use std::boxed::Box;
 use std::ops::AddAssign;
-use crate::numerics::{loss::LossFunction, weighting::WeightingFunction};
+use crate::numerics::{loss::LossFunction, weighting::WeightingFunction, conjugate_gradient};
 use crate::Float;
 
 
@@ -220,6 +220,63 @@ pub fn gauss_newton_step_with_schur<R, C, S1, S2,StorageTargetArrow, StorageTarg
             }
             _ => None
         }
+
+
+}
+
+#[allow(non_snake_case)]
+pub fn gauss_newton_step_with_conguate_gradient<R, C, S1, S2,StorageTargetArrow, StorageTargetResidual, const LANDMARK_PARAM_SIZE: usize, const CAMERA_PARAM_SIZE: usize>(
+    target_arrowhead: &mut Matrix<Float,C,C,StorageTargetArrow>, 
+    target_arrowhead_residual: &mut Vector<Float,C,StorageTargetResidual>, 
+    target_perturb: &mut Vector<Float,C,StorageTargetResidual>, 
+    V_star_inv: &mut DMatrix<Float>,
+    residuals: &Vector<Float, R,S1>, 
+    jacobian: &Matrix<Float,R,C,S2>,
+    mu: Option<Float>, 
+    tau: Float,
+    n_cams: usize,
+    n_points: usize,
+    u_span: usize, 
+    v_span: usize)-> Option<(Float,Float)>
+     where 
+        R: Dim, 
+        C: Dim + DimMin<C, Output = C>,
+        S1: Storage<Float, R>,
+        S2: Storage<Float, R, C>,
+        StorageTargetArrow: StorageMut<Float, C, C>,
+        StorageTargetResidual: StorageMut<Float, C, U1>,
+        DefaultAllocator: Allocator<Float, R, C>+  Allocator<Float, C, R> + Allocator<Float, C, C> + Allocator<Float, C> + Allocator<Float, U1, C> + Allocator<f64, U1, R>  {
+
+        let mu_val = compute_arrow_head_and_residuals::<_,_,_,_,_,_,LANDMARK_PARAM_SIZE,CAMERA_PARAM_SIZE>(target_arrowhead,target_arrowhead_residual,jacobian,residuals,mu,tau,n_cams,n_points);
+
+        /*
+         *     | U*  W  |
+         * H = | W_t V* |
+         *  
+         */
+
+        let U_star = target_arrowhead.slice((0,0),(u_span,u_span));
+        let V_star = target_arrowhead.slice((u_span,u_span),(v_span,v_span));
+
+        let res_a = target_arrowhead_residual.slice((0,0),(u_span,1));
+        let res_b = target_arrowhead_residual.slice((u_span,0),(v_span,1));
+
+        for i in (0..v_span).step_by(LANDMARK_PARAM_SIZE) {
+            let local_inv = V_star.fixed_slice::<LANDMARK_PARAM_SIZE,LANDMARK_PARAM_SIZE>(i,i).try_inverse().expect("local inverse failed");
+            V_star_inv.fixed_slice_mut::<LANDMARK_PARAM_SIZE,LANDMARK_PARAM_SIZE>(i,i).copy_from(&local_inv);
+        }
+
+        let W = target_arrowhead.slice((0,u_span),(u_span,v_span));
+        let W_t = target_arrowhead.slice((u_span,0),(v_span,u_span));
+
+        let mut preconditioner = DMatrix::<Float>::zeros(target_arrowhead.nrows(),target_arrowhead.ncols());
+        conjugate_gradient::compute_preconditioner(&mut preconditioner, &U_star, &V_star, V_star_inv, &W, &W_t, 1.0);
+
+
+
+        panic!("TODO");
+
+
 
 
 }
