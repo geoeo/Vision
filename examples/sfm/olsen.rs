@@ -35,7 +35,7 @@ fn main() -> Result<()> {
     let olsen_data_path = data_set_door_path;
     let depth_prior = -1.0;
     let epipolar_thresh = 0.01; 
-    //let epipolar_thresh = 0.005; 
+    //let epipolar_thresh = 0.008; 
 
     
     let olsen_data = OlssenData::new(&olsen_data_path);
@@ -126,13 +126,13 @@ fn main() -> Result<()> {
 
 
 
-    let sfm_all_matches = vec!(vec!(matches_5_4_subvec),vec!(matches_5_6_subvec));
-    let camera_map = HashMap::from([(5, pinhole_cam_5), (4, pinhole_cam_4), (6, pinhole_cam_6)]);
-    let paths = vec!(vec!(4),vec!(6));
+    // let sfm_all_matches = vec!(vec!(matches_5_4_subvec),vec!(matches_5_6_subvec));
+    // let camera_map = HashMap::from([(5, pinhole_cam_5), (4, pinhole_cam_4), (6, pinhole_cam_6)]);
+    // let paths = vec!(vec!(4),vec!(6));
 
-    // let sfm_all_matches = vec!(vec!(matches_5_4_subvec, matches_4_3_subvec),vec!(matches_5_6_subvec));
-    // let camera_map = HashMap::from([(5, pinhole_cam_5), (4, pinhole_cam_4), (6, pinhole_cam_6), (3, pinhole_cam_3)]);  // 1e-1 : squared , 1e-6 - Huber
-    // let paths = vec!(vec!(4,3),vec!(6));
+    let sfm_all_matches = vec!(vec!(matches_5_4_subvec, matches_4_3_subvec),vec!(matches_5_6_subvec));
+    let camera_map = HashMap::from([(5, pinhole_cam_5), (4, pinhole_cam_4), (6, pinhole_cam_6), (3, pinhole_cam_3)]);  // 1e-1 : squared , 1e-6 - Huber
+    let paths = vec!(vec!(4,3),vec!(6));
 
 
     // let sfm_all_matches = vec!(vec!(matches_5_4_subvec),vec!(matches_5_6_subvec, matches_6_7_subvec));
@@ -202,7 +202,7 @@ fn main() -> Result<()> {
             step_sizes: vec![1e0],
             max_norm_eps: 1e-30, 
             delta_eps: 1e-30,
-            taus: vec![1.0e0],
+            taus: vec![1.9e-1],
             lm: true,
             debug: true,
             show_octave_result: true,

@@ -2,7 +2,7 @@ extern crate nalgebra as na;
 
 use nalgebra_sparse::{csc::CscMatrix, factorization::CscCholesky};
 use na::{DMatrix, DVector , OVector, Dynamic, Matrix, SMatrix, SVector,Vector,Dim,storage::{Storage,StorageMut},base::{default_allocator::DefaultAllocator, allocator::{Allocator}},
-    VecStorage, Const, DimMin, U1, ArrayStorage
+    VecStorage, Const, DimMin, U1
 };
 use std::boxed::Box;
 use std::ops::AddAssign;
@@ -169,7 +169,7 @@ pub fn gauss_newton_step_with_schur<R, C, S1, S2,StorageTargetArrow, StorageTarg
         S2: Storage<Float, R, C>,
         StorageTargetArrow: StorageMut<Float, C, C>,
         StorageTargetResidual: StorageMut<Float, C, U1>,
-        DefaultAllocator: Allocator<Float, R, C>+  Allocator<Float, C, R> + Allocator<Float, C, C> + Allocator<Float, C> + Allocator<Float, Const<1_usize>, C> + Allocator<f64, Const<1_usize>, R>  {
+        DefaultAllocator: Allocator<Float, R, C>+  Allocator<Float, C, R> + Allocator<Float, C, C> + Allocator<Float, C> + Allocator<Float, U1, C> + Allocator<f64, U1, R>  {
 
         let mu_val = compute_arrow_head_and_residuals::<_,_,_,_,_,_,LANDMARK_PARAM_SIZE,CAMERA_PARAM_SIZE>(target_arrowhead,target_arrowhead_residual,jacobian,residuals,mu,tau,n_cams,n_points);
 

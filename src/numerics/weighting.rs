@@ -89,6 +89,7 @@ pub struct BisquareWeight {
     
 }
 
+//TODO: investigate this
 impl WeightingFunction for BisquareWeight {
 
     fn weight(&self, residuals: &DVector<Float>, index: usize,  std: Option<Float>) -> Float {

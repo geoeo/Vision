@@ -59,7 +59,7 @@ fn main() -> Result<()> {
     let sfm_config = SFMConfig::new(2, vec!(vec!(1), vec!(3)), camera_map, vec!(vec!(matches_2_1),vec!(matches_2_3)));
 
     let depth_prior = -1.0;
-    let epipolar_thresh = 0.01;
+    let epipolar_thresh = Float::INFINITY;
     let positive_principal_distance = false;
     let normalize_features = false;
 
@@ -69,7 +69,7 @@ fn main() -> Result<()> {
         epipolar_thresh,
         positive_principal_distance,
         normalize_features,
-        BifocalType::FUNDAMENTAL,
+        BifocalType::ESSENTIAL,
         EssentialDecomposition::FÖRSNTER
 );
 
