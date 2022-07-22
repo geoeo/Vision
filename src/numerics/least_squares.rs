@@ -197,13 +197,11 @@ pub fn gauss_newton_step_with_schur<R, C, S1, S2,StorageTargetArrow, StorageTarg
         let res_a_augment = res_a-W*(V_star_inv as &DMatrix<Float>)*res_b; // takes long time
 
         let h_a_option = schur_compliment.cholesky();
-        let V_star_csc = CscMatrix::<Float>::from(&V_star);
-        let V_star_csc_cholseky_result = CscCholesky::factor(&V_star_csc);
 
-        match (h_a_option,V_star_csc_cholseky_result) {
-            (Some(h_a_cholesky), Ok(V_star_cholesky)) => {
+        match (h_a_option) {
+            Some(h_a_cholesky) => {
                 let h_a = h_a_cholesky.solve(&res_a_augment);
-                let h_b = V_star_cholesky.solve(&(res_b-W_t*(&h_a)));
+                let h_b = (V_star_inv as &DMatrix<Float>)*(res_b-W_t*(&h_a));
 
                 target_perturb.slice_mut((0,0),(u_span,1)).copy_from(&h_a);
                 target_perturb.slice_mut((u_span,0),(v_span,1)).copy_from(&h_b);
@@ -219,7 +217,6 @@ pub fn gauss_newton_step_with_schur<R, C, S1, S2,StorageTargetArrow, StorageTarg
 #[allow(non_snake_case)]
 pub fn gauss_newton_step_with_conguate_gradient<R, C, S1, S2,StorageTargetArrow, StorageTargetResidual, const LANDMARK_PARAM_SIZE: usize, const CAMERA_PARAM_SIZE: usize>(
     target_arrowhead: &mut Matrix<Float,C,C,StorageTargetArrow>, 
-    preconditioner_inverse: &mut DMatrix<Float>, 
     target_arrowhead_residual: &mut Vector<Float,C,StorageTargetResidual>, 
     target_perturb: &mut Vector<Float,C,StorageTargetResidual>, 
     V_star_inv: &mut DMatrix<Float>,
@@ -265,17 +262,16 @@ pub fn gauss_newton_step_with_conguate_gradient<R, C, S1, S2,StorageTargetArrow,
         let W = target_arrowhead.slice((0,u_span),(u_span,v_span));
         let W_t = target_arrowhead.slice((u_span,0),(v_span,u_span));
 
-        conjugate_gradient::compute_preconditioner_inverse(preconditioner_inverse, &U_star_inv, &V_star_inv, &W, &W_t, 1.0); // Takes a long time
+        let res_a = target_arrowhead_residual.rows(0, u_span);
+        let res_b = target_arrowhead_residual.rows(u_span,v_span);
 
-        let arrowhead_slice = target_arrowhead.slice((0,0),(target_arrowhead.nrows(),target_arrowhead.ncols()));
-        let preconditioned_arrowhead = (preconditioner_inverse as &DMatrix<Float>)*arrowhead_slice;
-        target_arrowhead.slice_mut((0,0),(target_arrowhead.nrows(),target_arrowhead.ncols())).copy_from(&preconditioned_arrowhead); // Takes a very long time !
-        
-        let arrowhead_res_slice = target_arrowhead_residual.rows(0,target_arrowhead_residual.nrows());
-        let preconditioned_residual = (preconditioner_inverse as &DMatrix<Float>)*arrowhead_res_slice;
-        target_arrowhead_residual.rows_mut(0,target_arrowhead_residual.nrows()).copy_from(&preconditioned_residual);
+        // Precondition S with preconditioner U*
+        let schur_compliment = (U_star_inv as &DMatrix<Float>)*(U_star - W*(V_star_inv as &DMatrix<Float>)*W_t); // takes long time
+        let res_a_augment = (U_star_inv as &DMatrix<Float>)*(res_a-W*(V_star_inv as &DMatrix<Float>)*res_b); // takes long time
+        conjugate_gradient::conjugate_gradient::<_,_,_,Dynamic>(&schur_compliment, &res_a_augment, &mut target_perturb.rows_mut(0,u_span), 1e-6, 100);
+        let h_b = (V_star_inv as &DMatrix<Float>)*(res_b-W_t*(&target_perturb.rows(0,u_span)));
 
-        conjugate_gradient::conjugate_gradient(target_arrowhead, target_arrowhead_residual, target_perturb, 1e-6, 100);
+        target_perturb.slice_mut((u_span,0),(v_span,1)).copy_from(&h_b);
 
         Some((compute_gain_ratio(target_perturb,target_arrowhead_residual,mu_val), mu_val))
 
