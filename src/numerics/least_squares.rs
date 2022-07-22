@@ -164,7 +164,7 @@ pub fn gauss_newton_step_with_schur<R, C, S1, S2,StorageTargetArrow, StorageTarg
     v_span: usize)-> Option<(Float,Float)>
      where 
         R: Dim, 
-        C: Dim + DimMin<C, Output = C>,
+        C: Dim,
         S1: Storage<Float, R>,
         S2: Storage<Float, R, C>,
         StorageTargetArrow: StorageMut<Float, C, C>,
@@ -205,7 +205,6 @@ pub fn gauss_newton_step_with_schur<R, C, S1, S2,StorageTargetArrow, StorageTarg
                 let h_a = h_a_cholesky.solve(&res_a_augment);
                 let h_b = V_star_cholesky.solve(&(res_b-W_t*(&h_a)));
 
-
                 target_perturb.slice_mut((0,0),(u_span,1)).copy_from(&h_a);
                 target_perturb.slice_mut((u_span,0),(v_span,1)).copy_from(&h_b);
                 
@@ -233,7 +232,7 @@ pub fn gauss_newton_step_with_conguate_gradient<R, C, S1, S2,StorageTargetArrow,
     v_span: usize)-> Option<(Float,Float)>
      where 
         R: Dim, 
-        C: Dim + DimMin<C, Output = C> + DimName,
+        C: Dim + DimName,
         S1: Storage<Float, R>,
         S2: Storage<Float, R, C>,
         StorageTargetArrow: StorageMut<Float, C, C>,
@@ -285,7 +284,7 @@ pub fn gauss_newton_step_with_conguate_gradient<R, C, S1, S2,StorageTargetArrow,
 
 pub fn compute_gain_ratio<St, C>(perturb: &Vector<Float,C, St>,residual: &Vector<Float,C,St> , mu: Float) -> Float 
     where 
-        C: Dim + DimMin<C, Output = C>,
+        C: Dim,
         St: StorageMut<Float, C, U1>,
         DefaultAllocator: Allocator<Float, C> + Allocator<Float, U1, C> {
     let scaled_target_res = perturb.scale(mu);
@@ -334,7 +333,7 @@ fn compute_arrow_head_and_residuals<R, C,StorageTargetArrow, StorageTargetResidu
     ) -> Float
     where 
     R: Dim, 
-    C: Dim + DimMin<C, Output = C>,
+    C: Dim,
     StorageTargetArrow: StorageMut<Float, C, C>,
     StorageTargetResidual: StorageMut<Float, C, U1>,
     StorageResidual: Storage<Float, R, U1>,
