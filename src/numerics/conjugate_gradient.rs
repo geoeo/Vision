@@ -10,8 +10,7 @@ pub fn compute_block_matrix_preconditioner_inverse<PStorage,VStorage,WStorage, W
         PStorage: Storage<Float,Dynamic,Dynamic>,
         VStorage: Storage<Float,Dynamic,Dynamic> + Clone,
         WStorage: Storage<Float,Dynamic,Dynamic>,
-        WtStorage: Storage<Float,Dynamic,Dynamic>,
-    {
+        WtStorage: Storage<Float,Dynamic,Dynamic> {
     let p_dim = P_inv.nrows();
     let v_dim = C.nrows();
 
@@ -29,8 +28,6 @@ pub fn compute_block_matrix_preconditioner_inverse<PStorage,VStorage,WStorage, W
     preconditioner.slice_mut((p_dim,p_dim),(v_dim,v_dim)).copy_from(&((&temp_2)*(&temp)));
     preconditioner.slice_mut((p_dim,p_dim),(v_dim,v_dim)).scale_mut(omega_sqrd);
     preconditioner.slice_mut((p_dim,p_dim),(v_dim,v_dim)).add_assign(C);
-
-
 }
 
 #[allow(non_snake_case)]
