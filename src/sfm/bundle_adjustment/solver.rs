@@ -4,7 +4,7 @@ use na::{DVector,DMatrix,Matrix, Dynamic, U4, VecStorage,Point3, Vector4};
 use crate::{float,Float};
 use crate::sensors::camera::Camera;
 use crate::numerics::lie::left_jacobian_around_identity;
-use crate::numerics::{max_norm, least_squares::{compute_cost,weight_jacobian_sparse,weight_residuals_sparse, calc_weight_vec, gauss_newton_step_with_schur}};
+use crate::numerics::{max_norm, least_squares::{compute_cost,weight_jacobian_sparse,weight_residuals_sparse, calc_weight_vec, gauss_newton_step_with_schur, gauss_newton_step_with_conguate_gradient}};
 use crate::sfm::{landmark::Landmark,bundle_adjustment::{state::State, camera_feature_map::CameraFeatureMap}};
 use crate::odometry::runtime_parameters::RuntimeParameters; //TODO remove dependency on odometry module
 
@@ -131,7 +131,8 @@ pub fn optimize<C : Camera, L: Landmark<LANDMARK_PARAM_SIZE> + Copy + Clone, con
         true => Some(Vec::<(Vec<[Float; CAMERA_PARAM_SIZE]>, Vec<[Float; LANDMARK_PARAM_SIZE]>)>::with_capacity(max_iterations)),
         false => None
     };
-    let mut v_star_inv = DMatrix::<Float>::zeros(v_span,v_span); // a lot of memory
+    let mut v_star_inv = DMatrix::<Float>::zeros(v_span,v_span); // a lot of memory - maybe use sparse format
+    let mut u_star_inv = DMatrix::<Float>::zeros(u_span,u_span); // a lot of memory - maybe use sparse format
 
     get_estimated_features(state, cameras,observed_features, &mut estimated_features);
     compute_residual(&estimated_features, observed_features, &mut residuals);
@@ -177,12 +178,29 @@ pub fn optimize<C : Camera, L: Landmark<LANDMARK_PARAM_SIZE> + Copy + Clone, con
         g.fill(0.0);
         delta.fill(0.0);
         v_star_inv.fill(0.0);
-        let gauss_newton_result 
-            = gauss_newton_step_with_schur::<_,_,_,_,_,_,LANDMARK_PARAM_SIZE, CAMERA_PARAM_SIZE>(
+        // let gauss_newton_result 
+        //     = gauss_newton_step_with_schur::<_,_,_,_,_,_,LANDMARK_PARAM_SIZE, CAMERA_PARAM_SIZE>(
+        //         &mut target_arrowhead,
+        //         &mut g,
+        //         &mut delta,
+        //         &mut v_star_inv,
+        //         &residuals,
+        //         &jacobian,
+        //         mu,
+        //         tau,
+        //         state.n_cams,
+        //         state.n_points,
+        //         u_span,
+        //         v_span
+        //     ); 
+
+            let gauss_newton_result 
+            = gauss_newton_step_with_conguate_gradient::<_,_,_,_,_,_,LANDMARK_PARAM_SIZE, CAMERA_PARAM_SIZE>(
                 &mut target_arrowhead,
                 &mut g,
                 &mut delta,
                 &mut v_star_inv,
+                &mut u_star_inv,
                 &residuals,
                 &jacobian,
                 mu,

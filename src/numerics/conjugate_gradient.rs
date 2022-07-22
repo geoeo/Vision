@@ -1,7 +1,7 @@
 extern crate nalgebra as na;
 
 use std::ops::{AddAssign,SubAssign};
-use na::{DMatrix, Matrix,Dynamic, storage::{Storage, StorageMut}, Vector, U1, Dim, DimName, base::{default_allocator::DefaultAllocator, allocator::{Allocator}}};
+use na::{DMatrix, Matrix,Dynamic, storage::{Storage, StorageMut}, Vector ,U1, Dim, DimName, base::{default_allocator::DefaultAllocator, allocator::{Allocator}}};
 use crate::{Float};
 
 #[allow(non_snake_case)]
@@ -36,7 +36,7 @@ pub fn compute_preconditioner_inverse<PStorage,VStorage,WStorage, WtStorage>(pre
 #[allow(non_snake_case)]
 pub fn conjugate_gradient<StorageA, StorageB, StorageX, S>(A: &Matrix<Float,S,S,StorageA>,  b: &Vector<Float,S,StorageB>, x: &mut Vector<Float, S, StorageX>, threshold: Float, max_it: usize) -> () 
     where 
-        S: Dim + DimName,
+        S: Dim,
         StorageA: Storage<Float, S, S>, 
         StorageX: StorageMut<Float, S, U1>,
         StorageB: Storage<Float, S, U1>,
@@ -44,6 +44,7 @@ pub fn conjugate_gradient<StorageA, StorageB, StorageX, S>(A: &Matrix<Float,S,S,
 
         let mut s = b - A*(x as &Vector<Float, S, StorageX>);
         let mut p = s.clone();
+        let p_rows = p.nrows();
         let mut it = 0;
 
         while it < max_it && (&s).norm() > threshold {
@@ -56,7 +57,7 @@ pub fn conjugate_gradient<StorageA, StorageB, StorageX, S>(A: &Matrix<Float,S,S,
             let s_new_comp_squared = ((&s).transpose()*(&s))[0];
             let beta = s_new_comp_squared/s_comp_squared;
             let p_new = &s + beta*p_borrow;
-            p.rows_mut(0,p.nrows()).copy_from(&p_new);
+            p.rows_mut(0,p_rows).copy_from(&p_new.rows(0,p_rows));
             it = it+1;
         }
 

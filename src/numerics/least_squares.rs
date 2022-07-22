@@ -222,6 +222,7 @@ pub fn gauss_newton_step_with_conguate_gradient<R, C, S1, S2,StorageTargetArrow,
     target_arrowhead_residual: &mut Vector<Float,C,StorageTargetResidual>, 
     target_perturb: &mut Vector<Float,C,StorageTargetResidual>, 
     V_star_inv: &mut DMatrix<Float>,
+    U_star_inv: &mut DMatrix<Float>,
     residuals: &Vector<Float, R,S1>, 
     jacobian: &Matrix<Float,R,C,S2>,
     mu: Option<Float>, 
@@ -232,7 +233,7 @@ pub fn gauss_newton_step_with_conguate_gradient<R, C, S1, S2,StorageTargetArrow,
     v_span: usize)-> Option<(Float,Float)>
      where 
         R: Dim, 
-        C: Dim + DimName,
+        C: Dim,
         S1: Storage<Float, R>,
         S2: Storage<Float, R, C>,
         StorageTargetArrow: StorageMut<Float, C, C>,
@@ -255,7 +256,6 @@ pub fn gauss_newton_step_with_conguate_gradient<R, C, S1, S2,StorageTargetArrow,
             V_star_inv.fixed_slice_mut::<LANDMARK_PARAM_SIZE,LANDMARK_PARAM_SIZE>(i,i).copy_from(&local_inv);
         }
 
-        let mut U_star_inv = DMatrix::<Float>::zeros(u_span,u_span); //TODO: preallocate
         for i in (0..u_span).step_by(CAMERA_PARAM_SIZE) {
             let local_inv = U_star.fixed_slice::<CAMERA_PARAM_SIZE,CAMERA_PARAM_SIZE>(i,i).try_inverse().expect("U local inverse failed");
             U_star_inv.fixed_slice_mut::<CAMERA_PARAM_SIZE,CAMERA_PARAM_SIZE>(i,i).copy_from(&local_inv);
@@ -264,7 +264,7 @@ pub fn gauss_newton_step_with_conguate_gradient<R, C, S1, S2,StorageTargetArrow,
         let W = target_arrowhead.slice((0,u_span),(u_span,v_span));
         let W_t = target_arrowhead.slice((u_span,0),(v_span,u_span));
 
-        let mut preconditioner_inverse = DMatrix::<Float>::zeros(target_arrowhead.nrows(),target_arrowhead.ncols()); //TODO: preallocate
+        let mut preconditioner_inverse = DMatrix::<Float>::zeros(target_arrowhead.nrows(),target_arrowhead.ncols()); //TODO: maybe use sparse CSC form 
         conjugate_gradient::compute_preconditioner_inverse(&mut preconditioner_inverse, &U_star_inv, &V_star_inv, &W, &W_t, 1.0);
 
         let arrowhead_slice = target_arrowhead.slice((0,0),(target_arrowhead.nrows(),target_arrowhead.ncols()));
