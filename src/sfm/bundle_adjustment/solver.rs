@@ -181,41 +181,40 @@ pub fn optimize<C : Camera, L: Landmark<LANDMARK_PARAM_SIZE> + Copy + Clone, con
         delta.fill(0.0);
         v_star_inv.fill(0.0);
 
-    let gauss_newton_result 
-        = gauss_newton_step_with_schur::<_,_,_,_,_,_,LANDMARK_PARAM_SIZE, CAMERA_PARAM_SIZE>(
-            &mut target_arrowhead,
-            &mut g,
-            &mut delta,
-            &mut v_star_inv,
-            &residuals,
-            &jacobian,
-            mu,
-            tau,
-            state.n_cams,
-            state.n_points,
-            u_span,
-            v_span
-        ); 
+    // let gauss_newton_result 
+    //     = gauss_newton_step_with_schur::<_,_,_,_,_,_,LANDMARK_PARAM_SIZE, CAMERA_PARAM_SIZE>(
+    //         &mut target_arrowhead,
+    //         &mut g,
+    //         &mut delta,
+    //         &mut v_star_inv,
+    //         &residuals,
+    //         &jacobian,
+    //         mu,
+    //         tau,
+    //         state.n_cams,
+    //         state.n_points,
+    //         u_span,
+    //         v_span
+    //     ); 
 
 
         u_star_inv.fill(0.0);
-        //preconditioner_inverse.fill(0.0);
-        // let gauss_newton_result 
-        //     = gauss_newton_step_with_conguate_gradient::<_,_,_,_,_,_,LANDMARK_PARAM_SIZE, CAMERA_PARAM_SIZE>(
-        //         &mut target_arrowhead,
-        //         &mut g,
-        //         &mut delta,
-        //         &mut v_star_inv,
-        //         &mut u_star_inv,
-        //         &residuals,
-        //         &jacobian,
-        //         mu,
-        //         tau,
-        //         state.n_cams,
-        //         state.n_points,
-        //         u_span,
-        //         v_span
-        //     ); 
+        let gauss_newton_result 
+            = gauss_newton_step_with_conguate_gradient::<_,_,_,_,_,_,LANDMARK_PARAM_SIZE, CAMERA_PARAM_SIZE>(
+                &mut target_arrowhead,
+                &mut g,
+                &mut delta,
+                &mut v_star_inv,
+                &mut u_star_inv,
+                &residuals,
+                &jacobian,
+                mu,
+                tau,
+                state.n_cams,
+                state.n_points,
+                u_span,
+                v_span
+            ); 
 
         if gauss_newton_result.is_none(){
             println!("Sover failed at it: {}, avg_rmse: {}",iteration_count,cost.sqrt());

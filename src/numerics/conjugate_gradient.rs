@@ -1,7 +1,7 @@
 extern crate nalgebra as na;
 
 use std::ops::{AddAssign,SubAssign};
-use na::{DMatrix, Matrix,Dynamic, storage::{Storage, StorageMut}, Vector ,U1, Dim, DimName, base::{default_allocator::DefaultAllocator, allocator::{Allocator}}};
+use na::{DMatrix, Matrix,Dynamic, storage::{Storage, StorageMut}, Vector ,U1, Dim, base::{default_allocator::DefaultAllocator, allocator::{Allocator}}};
 use crate::{Float};
 
 #[allow(non_snake_case)]
