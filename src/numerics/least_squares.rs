@@ -1,7 +1,7 @@
 extern crate nalgebra as na;
 
 use nalgebra_sparse::{csc::CscMatrix, factorization::CscCholesky};
-use na::{DMatrix, DVector , OVector, Dynamic, Matrix, SMatrix, SVector,Vector,Dim,storage::{Storage,StorageMut},base::{default_allocator::DefaultAllocator, allocator::{Allocator}},
+use na::{DMatrix, DVector , OVector, Dynamic, Matrix, SMatrix, SVector,Vector,Dim, DimName,storage::{Storage,StorageMut},base::{default_allocator::DefaultAllocator, allocator::{Allocator}},
     VecStorage, Const, DimMin, U1
 };
 use std::boxed::Box;
@@ -208,15 +208,8 @@ pub fn gauss_newton_step_with_schur<R, C, S1, S2,StorageTargetArrow, StorageTarg
 
                 target_perturb.slice_mut((0,0),(u_span,1)).copy_from(&h_a);
                 target_perturb.slice_mut((u_span,0),(v_span,1)).copy_from(&h_b);
-            
-
-                let scaled_target_res = target_perturb.scale(mu_val);
-                let g_1 = (&target_perturb).transpose()*(&scaled_target_res);
-                let g_2 = (&target_perturb).transpose()*(target_arrowhead_residual as  &Vector<Float,C,StorageTargetResidual>);
-                let gain_ratio_denom = 0.5*(g_1+g_2);
-
                 
-                Some((gain_ratio_denom[0], mu_val))
+                Some((compute_gain_ratio(target_perturb,target_arrowhead_residual,mu_val), mu_val))
             }
             _ => None
         }
@@ -240,7 +233,7 @@ pub fn gauss_newton_step_with_conguate_gradient<R, C, S1, S2,StorageTargetArrow,
     v_span: usize)-> Option<(Float,Float)>
      where 
         R: Dim, 
-        C: Dim + DimMin<C, Output = C>,
+        C: Dim + DimMin<C, Output = C> + DimName,
         S1: Storage<Float, R>,
         S2: Storage<Float, R, C>,
         StorageTargetArrow: StorageMut<Float, C, C>,
@@ -258,27 +251,48 @@ pub fn gauss_newton_step_with_conguate_gradient<R, C, S1, S2,StorageTargetArrow,
         let U_star = target_arrowhead.slice((0,0),(u_span,u_span));
         let V_star = target_arrowhead.slice((u_span,u_span),(v_span,v_span));
 
-        let res_a = target_arrowhead_residual.slice((0,0),(u_span,1));
-        let res_b = target_arrowhead_residual.slice((u_span,0),(v_span,1));
-
         for i in (0..v_span).step_by(LANDMARK_PARAM_SIZE) {
-            let local_inv = V_star.fixed_slice::<LANDMARK_PARAM_SIZE,LANDMARK_PARAM_SIZE>(i,i).try_inverse().expect("local inverse failed");
+            let local_inv = V_star.fixed_slice::<LANDMARK_PARAM_SIZE,LANDMARK_PARAM_SIZE>(i,i).try_inverse().expect("V local inverse failed");
             V_star_inv.fixed_slice_mut::<LANDMARK_PARAM_SIZE,LANDMARK_PARAM_SIZE>(i,i).copy_from(&local_inv);
+        }
+
+        let mut U_star_inv = DMatrix::<Float>::zeros(u_span,u_span); //TODO: preallocate
+        for i in (0..u_span).step_by(CAMERA_PARAM_SIZE) {
+            let local_inv = U_star.fixed_slice::<CAMERA_PARAM_SIZE,CAMERA_PARAM_SIZE>(i,i).try_inverse().expect("U local inverse failed");
+            U_star_inv.fixed_slice_mut::<CAMERA_PARAM_SIZE,CAMERA_PARAM_SIZE>(i,i).copy_from(&local_inv);
         }
 
         let W = target_arrowhead.slice((0,u_span),(u_span,v_span));
         let W_t = target_arrowhead.slice((u_span,0),(v_span,u_span));
 
-        let mut preconditioner = DMatrix::<Float>::zeros(target_arrowhead.nrows(),target_arrowhead.ncols()); //TODO: preallocate
-        let U_star_inv = U_star.try_inverse().expect("local inverse failed");
-        conjugate_gradient::compute_preconditioner(&mut preconditioner, &U_star_inv, &V_star, &W, &W_t, 1.0);
+        let mut preconditioner_inverse = DMatrix::<Float>::zeros(target_arrowhead.nrows(),target_arrowhead.ncols()); //TODO: preallocate
+        conjugate_gradient::compute_preconditioner_inverse(&mut preconditioner_inverse, &U_star_inv, &V_star_inv, &W, &W_t, 1.0);
+
+        let arrowhead_slice = target_arrowhead.slice((0,0),(target_arrowhead.nrows(),target_arrowhead.ncols()));
+        let preconditioned_arrowhead = (&preconditioner_inverse)*arrowhead_slice;
+        target_arrowhead.slice_mut((0,0),(target_arrowhead.nrows(),target_arrowhead.ncols())).copy_from(&preconditioned_arrowhead);
+        
+        let arrowhead_res_slice = target_arrowhead_residual.rows(0,target_arrowhead_residual.nrows());
+        let preconditioned_residual = (&preconditioner_inverse)*arrowhead_res_slice;
+        target_arrowhead_residual.rows_mut(0,target_arrowhead_residual.nrows()).copy_from(&preconditioned_residual);
+
+        conjugate_gradient::conjugate_gradient(target_arrowhead, target_arrowhead_residual, target_perturb, 1e-6, 100);
+
+        Some((compute_gain_ratio(target_perturb,target_arrowhead_residual,mu_val), mu_val))
 
 
-        panic!("TODO");
+}
 
-
-
-
+pub fn compute_gain_ratio<St, C>(perturb: &Vector<Float,C, St>,residual: &Vector<Float,C,St> , mu: Float) -> Float 
+    where 
+        C: Dim + DimMin<C, Output = C>,
+        St: StorageMut<Float, C, U1>,
+        DefaultAllocator: Allocator<Float, C> + Allocator<Float, U1, C> {
+    let scaled_target_res = perturb.scale(mu);
+    let g_1 = perturb.transpose()*(&scaled_target_res);
+    let g_2 = perturb.transpose()*residual;
+    let gain_ratio_denom = 0.5*(g_1+g_2);
+    gain_ratio_denom[0]
 }
 
 #[allow(non_snake_case)]
