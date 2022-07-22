@@ -219,6 +219,7 @@ pub fn gauss_newton_step_with_schur<R, C, S1, S2,StorageTargetArrow, StorageTarg
 #[allow(non_snake_case)]
 pub fn gauss_newton_step_with_conguate_gradient<R, C, S1, S2,StorageTargetArrow, StorageTargetResidual, const LANDMARK_PARAM_SIZE: usize, const CAMERA_PARAM_SIZE: usize>(
     target_arrowhead: &mut Matrix<Float,C,C,StorageTargetArrow>, 
+    preconditioner_inverse: &mut DMatrix<Float>, 
     target_arrowhead_residual: &mut Vector<Float,C,StorageTargetResidual>, 
     target_perturb: &mut Vector<Float,C,StorageTargetResidual>, 
     V_star_inv: &mut DMatrix<Float>,
@@ -264,15 +265,14 @@ pub fn gauss_newton_step_with_conguate_gradient<R, C, S1, S2,StorageTargetArrow,
         let W = target_arrowhead.slice((0,u_span),(u_span,v_span));
         let W_t = target_arrowhead.slice((u_span,0),(v_span,u_span));
 
-        let mut preconditioner_inverse = DMatrix::<Float>::zeros(target_arrowhead.nrows(),target_arrowhead.ncols()); //TODO: maybe use sparse CSC form 
-        conjugate_gradient::compute_preconditioner_inverse(&mut preconditioner_inverse, &U_star_inv, &V_star_inv, &W, &W_t, 1.0);
+        conjugate_gradient::compute_preconditioner_inverse(preconditioner_inverse, &U_star_inv, &V_star_inv, &W, &W_t, 1.0); // Takes a long time
 
         let arrowhead_slice = target_arrowhead.slice((0,0),(target_arrowhead.nrows(),target_arrowhead.ncols()));
-        let preconditioned_arrowhead = (&preconditioner_inverse)*arrowhead_slice;
-        target_arrowhead.slice_mut((0,0),(target_arrowhead.nrows(),target_arrowhead.ncols())).copy_from(&preconditioned_arrowhead);
+        let preconditioned_arrowhead = (preconditioner_inverse as &DMatrix<Float>)*arrowhead_slice;
+        target_arrowhead.slice_mut((0,0),(target_arrowhead.nrows(),target_arrowhead.ncols())).copy_from(&preconditioned_arrowhead); // Takes a very long time !
         
         let arrowhead_res_slice = target_arrowhead_residual.rows(0,target_arrowhead_residual.nrows());
-        let preconditioned_residual = (&preconditioner_inverse)*arrowhead_res_slice;
+        let preconditioned_residual = (preconditioner_inverse as &DMatrix<Float>)*arrowhead_res_slice;
         target_arrowhead_residual.rows_mut(0,target_arrowhead_residual.nrows()).copy_from(&preconditioned_residual);
 
         conjugate_gradient::conjugate_gradient(target_arrowhead, target_arrowhead_residual, target_perturb, 1e-6, 100);

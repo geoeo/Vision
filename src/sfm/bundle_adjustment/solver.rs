@@ -133,6 +133,9 @@ pub fn optimize<C : Camera, L: Landmark<LANDMARK_PARAM_SIZE> + Copy + Clone, con
     };
     let mut v_star_inv = DMatrix::<Float>::zeros(v_span,v_span); // a lot of memory - maybe use sparse format
     let mut u_star_inv = DMatrix::<Float>::zeros(u_span,u_span); // a lot of memory - maybe use sparse format
+    let mut preconditioner_inverse = DMatrix::<Float>::zeros(state_size,state_size); // a lot of memory - maybe use sparse format
+
+    println!("BA Memory Allocation Complete.");
 
     get_estimated_features(state, cameras,observed_features, &mut estimated_features);
     compute_residual(&estimated_features, observed_features, &mut residuals);
@@ -178,25 +181,30 @@ pub fn optimize<C : Camera, L: Landmark<LANDMARK_PARAM_SIZE> + Copy + Clone, con
         g.fill(0.0);
         delta.fill(0.0);
         v_star_inv.fill(0.0);
-        // let gauss_newton_result 
-        //     = gauss_newton_step_with_schur::<_,_,_,_,_,_,LANDMARK_PARAM_SIZE, CAMERA_PARAM_SIZE>(
-        //         &mut target_arrowhead,
-        //         &mut g,
-        //         &mut delta,
-        //         &mut v_star_inv,
-        //         &residuals,
-        //         &jacobian,
-        //         mu,
-        //         tau,
-        //         state.n_cams,
-        //         state.n_points,
-        //         u_span,
-        //         v_span
-        //     ); 
 
-            let gauss_newton_result 
+    // let gauss_newton_result 
+    //     = gauss_newton_step_with_schur::<_,_,_,_,_,_,LANDMARK_PARAM_SIZE, CAMERA_PARAM_SIZE>(
+    //         &mut target_arrowhead,
+    //         &mut g,
+    //         &mut delta,
+    //         &mut v_star_inv,
+    //         &residuals,
+    //         &jacobian,
+    //         mu,
+    //         tau,
+    //         state.n_cams,
+    //         state.n_points,
+    //         u_span,
+    //         v_span
+    //     ); 
+
+
+        u_star_inv.fill(0.0);
+        preconditioner_inverse.fill(0.0);
+        let gauss_newton_result 
             = gauss_newton_step_with_conguate_gradient::<_,_,_,_,_,_,LANDMARK_PARAM_SIZE, CAMERA_PARAM_SIZE>(
                 &mut target_arrowhead,
+                &mut preconditioner_inverse,
                 &mut g,
                 &mut delta,
                 &mut v_star_inv,

@@ -46,8 +46,9 @@ pub fn conjugate_gradient<StorageA, StorageB, StorageX, S>(A: &Matrix<Float,S,S,
         let mut p = s.clone();
         let p_rows = p.nrows();
         let mut it = 0;
+        let mut norm = (&s).norm();
 
-        while it < max_it && (&s).norm() > threshold {
+        while it < max_it && norm > threshold {
             let p_borrow = &p;
             let s_comp_squared = ((&s).transpose()*(&s))[0];
             let p_comp_squared = (p_borrow.transpose()*A*p_borrow)[0];
@@ -59,6 +60,9 @@ pub fn conjugate_gradient<StorageA, StorageB, StorageX, S>(A: &Matrix<Float,S,S,
             let p_new = &s + beta*p_borrow;
             p.rows_mut(0,p_rows).copy_from(&p_new.rows(0,p_rows));
             it = it+1;
+            norm = (&s).norm();
         }
+
+        println!("cg finished with it: {} and thesh: {}" , it, norm);
 
 }
