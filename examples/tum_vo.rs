@@ -85,7 +85,9 @@ fn main() {
 
         show_octave_result: true,
         loss_function: Box::new(loss::TrivialLoss {eps: 1e-16, approximate_gauss_newton_matrices: true}),
-        intensity_weighting_function:  Box::new(weighting::TDistWeight {t_dist_nu: 5.0, max_it: 20, eps: 1e-12})
+        intensity_weighting_function:  Box::new(weighting::TDistWeight {t_dist_nu: 5.0, max_it: 20, eps: 1e-12}),
+        cg_threshold: 1e-6,
+        cg_max_it: 200
         //intensity_weighting_function:  Box::new(weighting::HuberWeightForPos {})
     };
 

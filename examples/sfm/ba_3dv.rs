@@ -54,7 +54,9 @@ fn main() -> Result<()> {
 
         show_octave_result: true,
         loss_function: Box::new(loss::TrivialLoss { eps: 1e-16, approximate_gauss_newton_matrices: false }), 
-        intensity_weighting_function:  Box::new(weighting::SquaredWeight {})
+        intensity_weighting_function:  Box::new(weighting::SquaredWeight {}),
+        cg_threshold: 1e-6,
+        cg_max_it: 200
     };
 
     let camera_map = HashMap::from([(0, intensity_camera_0), (1, intensity_camera_1),(2,intensity_camera_2),(3,intensity_camera_3),(4,intensity_camera_4)  ]);

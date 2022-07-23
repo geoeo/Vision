@@ -32,10 +32,13 @@ fn main() -> Result<()> {
     let data_set_de_guerre_path =  format!("{}/Olsen/de_guerre/",runtime_conf.dataset_path);
     let data_set_fort_channing_path = format!("{}/Olsen/Fort_Channing_gate/",runtime_conf.dataset_path);
     
-    let olsen_data_path = data_set_door_path;
+    let olsen_data_path = data_set_vasa_path;
     let depth_prior = -1.0;
-    //let epipolar_thresh = 0.01; 
-    let epipolar_thresh = 0.008; 
+    let epipolar_thresh = 0.01; 
+    //let epipolar_thresh = 0.05;
+    //let epipolar_thresh = 0.1;
+    //let epipolar_thresh = 1.0;
+    //let epipolar_thresh = Float::INFINITY;
 
     
     let olsen_data = OlssenData::new(&olsen_data_path);
@@ -61,6 +64,7 @@ fn main() -> Result<()> {
     let (cam_intrinsics_11,cam_extrinsics_11) = olsen_data.get_camera_intrinsics_extrinsics(11,positive_principal_distance);
 
 
+    let matches_3_2 = olsen_data.get_matches_between_images(3, 2);
     let matches_4_2 = olsen_data.get_matches_between_images(4, 2);
     let matches_4_3 = olsen_data.get_matches_between_images(4, 3);
     let matches_5_4 = olsen_data.get_matches_between_images(5, 4);
@@ -82,9 +86,12 @@ fn main() -> Result<()> {
     //let matches_6_12 = olsen_data.get_matches_between_images(6, 12);
     //let matches_6_13 = olsen_data.get_matches_between_images(6, 13);
     //let matches_6_17 = olsen_data.get_matches_between_images(6, 17);
+    let matches_7_8 = olsen_data.get_matches_between_images(7, 8);
+    let matches_8_9 = olsen_data.get_matches_between_images(8, 9);
     //let matches_17_20 = olsen_data.get_matches_between_images(17, 20);
 
 
+    let matches_3_2_subvec = matches_4_2.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
     let matches_4_2_subvec = matches_4_2.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
     let matches_4_3_subvec = matches_4_3.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
     let matches_5_4_subvec = matches_5_4.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
@@ -100,6 +107,8 @@ fn main() -> Result<()> {
     //let matches_6_12_subvec = matches_6_12.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
     //let matches_6_13_subvec = matches_6_13.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
     //let matches_6_17_subvec = matches_6_17.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
+    let matches_7_8_subvec = matches_7_8.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
+    let matches_8_9_subvec = matches_8_9.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
     //let matches_17_20_subvec = matches_6_17.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
 
 
@@ -126,13 +135,17 @@ fn main() -> Result<()> {
 
 
 
-    let sfm_all_matches = vec!(vec!(matches_5_4_subvec),vec!(matches_5_6_subvec));
-    let camera_map = HashMap::from([(5, pinhole_cam_5), (4, pinhole_cam_4), (6, pinhole_cam_6)]);
-    let paths = vec!(vec!(4),vec!(6));
+    // let sfm_all_matches = vec!(vec!(matches_5_4_subvec),vec!(matches_5_6_subvec));
+    // let camera_map = HashMap::from([(5, pinhole_cam_5), (4, pinhole_cam_4), (6, pinhole_cam_6)]);
+    // let paths = vec!(vec!(4),vec!(6));
 
     // let sfm_all_matches = vec!(vec!(matches_5_4_subvec, matches_4_3_subvec),vec!(matches_5_6_subvec));
-    // let camera_map = HashMap::from([(5, pinhole_cam_5), (4, pinhole_cam_4), (6, pinhole_cam_6), (3, pinhole_cam_3)]);  // 1e-1 : squared , 1e-6 - Huber
+    // let camera_map = HashMap::from([(5, pinhole_cam_5), (4, pinhole_cam_4), (6, pinhole_cam_6), (3, pinhole_cam_3)]);  
     // let paths = vec!(vec!(4,3),vec!(6));
+
+    let sfm_all_matches = vec!(vec!(matches_5_4_subvec, matches_4_3_subvec,matches_3_2_subvec),vec!(matches_5_6_subvec,matches_6_7_subvec,matches_7_8_subvec,matches_8_9_subvec));
+    let camera_map = HashMap::from([(5, pinhole_cam_5), (4, pinhole_cam_4), (6, pinhole_cam_6), (3, pinhole_cam_3),(2, pinhole_cam_2),(7, pinhole_cam_7),(8, pinhole_cam_8),(9, pinhole_cam_9)]);  
+    let paths = vec!(vec!(4,3,2),vec!(6,7,8,9));
 
 
     // let sfm_all_matches = vec!(vec!(matches_5_4_subvec),vec!(matches_5_6_subvec, matches_6_7_subvec));
@@ -197,7 +210,7 @@ fn main() -> Result<()> {
 
         let runtime_parameters = RuntimeParameters {
             pyramid_scale: 1.0,
-            max_iterations: vec![500; 1],
+            max_iterations: vec![10000; 1],
             eps: vec![1e-6],
             step_sizes: vec![1e0],
             max_norm_eps: 1e-30, 
@@ -207,8 +220,10 @@ fn main() -> Result<()> {
             debug: true,
             show_octave_result: true,
             loss_function: Box::new(loss::TrivialLoss { eps: 1e-16, approximate_gauss_newton_matrices: false }), 
-            intensity_weighting_function:  Box::new(weighting::SquaredWeight {})
+            intensity_weighting_function:  Box::new(weighting::SquaredWeight {}),
             //intensity_weighting_function:  Box::new(weighting::CauchyWeight {c: 0.01})
+            cg_threshold: 1e-6,
+            cg_max_it: 200
         };
 
         let ((cam_positions,points),(s,debug_states_serialized)) = run_ba(&filtered_matches_per_path, &sfm_config, Some(&initial_cam_motions_per_path), olsen_data.get_image_dim(), &runtime_parameters, 1.0,depth_prior);
