@@ -23,7 +23,7 @@ Primal-Dual Convex For L1 Norm https://candes.su.domains/software/l1magic/downlo
 ## Fast Corner
 ![fast](doc/lenna_fast.png)
 
-## Sparse BA (Euclidean / Inverse Depth Param - Essential / Fundamental as Initial Guess)
+## Sparse BA (Euclidean / Inverse Depth Param - Essential / Fundamental as Initial Guess - Preconditioned Conjugate Gradient)
 ![ba](doc/ba_3dv.gif)
 ![door-ba-three](doc/three_view_ba_door.png)
 ![door-ba-three-gif](doc/three_view_ba_door.gif)
