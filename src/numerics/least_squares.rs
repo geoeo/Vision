@@ -185,6 +185,7 @@ pub fn gauss_newton_step_with_schur<R, C, S1, S2,StorageTargetArrow, StorageTarg
         let res_a = target_arrowhead_residual.slice((0,0),(u_span,1));
         let res_b = target_arrowhead_residual.slice((u_span,0),(v_span,1));
 
+        //TODO: return NONE of failure
         for i in (0..v_span).step_by(LANDMARK_PARAM_SIZE) {
             let local_inv = V_star.fixed_slice::<LANDMARK_PARAM_SIZE,LANDMARK_PARAM_SIZE>(i,i).try_inverse().expect("local inverse failed");
             V_star_inv.fixed_slice_mut::<LANDMARK_PARAM_SIZE,LANDMARK_PARAM_SIZE>(i,i).copy_from(&local_inv);
@@ -249,7 +250,8 @@ pub fn gauss_newton_step_with_conguate_gradient<R, C, S1, S2,StorageTargetArrow,
 
         let U_star = target_arrowhead.slice((0,0),(u_span,u_span));
         let V_star = target_arrowhead.slice((u_span,u_span),(v_span,v_span));
-
+        
+        //TODO: return NONE of failure
         for i in (0..v_span).step_by(LANDMARK_PARAM_SIZE) {
             let local_inv = V_star.fixed_slice::<LANDMARK_PARAM_SIZE,LANDMARK_PARAM_SIZE>(i,i).try_inverse().expect("V local inverse failed");
             V_star_inv.fixed_slice_mut::<LANDMARK_PARAM_SIZE,LANDMARK_PARAM_SIZE>(i,i).copy_from(&local_inv);

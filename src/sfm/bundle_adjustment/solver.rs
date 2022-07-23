@@ -140,6 +140,7 @@ pub fn optimize<C : Camera, L: Landmark<LANDMARK_PARAM_SIZE> + Copy + Clone, con
     compute_residual(&estimated_features, observed_features, &mut residuals);
     compute_jacobian(&state,&cameras,&mut jacobian);
 
+    //TODO: weight cam and features independently
     let mut std: Option<Float> = runtime_parameters.intensity_weighting_function.estimate_standard_deviation(&residuals);
     if std.is_some() {
         calc_weight_vec(
@@ -181,6 +182,7 @@ pub fn optimize<C : Camera, L: Landmark<LANDMARK_PARAM_SIZE> + Copy + Clone, con
         delta.fill(0.0);
         v_star_inv.fill(0.0);
 
+        //TODO: switch in runtime parameters
     // let gauss_newton_result 
     //     = gauss_newton_step_with_schur::<_,_,_,_,_,_,LANDMARK_PARAM_SIZE, CAMERA_PARAM_SIZE>(
     //         &mut target_arrowhead,
@@ -218,7 +220,7 @@ pub fn optimize<C : Camera, L: Landmark<LANDMARK_PARAM_SIZE> + Copy + Clone, con
                 runtime_parameters.cg_max_it
             ); 
 
-        let (gain_ratio, new_cost, pertb_norm) = match gauss_newton_result {
+        let (gain_ratio, new_cost, pertb_norm, cost_diff) = match gauss_newton_result {
             Some((gain_ratio_denom, mu_val)) => {
                 mu = Some(mu_val);
                 let pertb = step*(&delta);
@@ -242,11 +244,11 @@ pub fn optimize<C : Camera, L: Landmark<LANDMARK_PARAM_SIZE> + Copy + Clone, con
                 let cost_diff = cost-new_cost;
                 let gain_ratio = match gain_ratio_denom {
                     v if v != 0.0 => cost_diff/v,
-                    _ => 0.0
+                    _ => Float::NAN
                 };
-                (gain_ratio, new_cost, pertb.norm())
+                (gain_ratio, new_cost, pertb.norm(), cost_diff)
             },
-            None => (Float::NAN, Float::NAN, Float::NAN)
+            None => (Float::NAN, Float::NAN, Float::NAN, Float::NAN)
         };
 
 
@@ -254,7 +256,7 @@ pub fn optimize<C : Camera, L: Landmark<LANDMARK_PARAM_SIZE> + Copy + Clone, con
             println!("cost: {}, new cost: {}, mu: {:?}, gain: {} , nu: {}, std: {:?}",cost,new_cost, mu, gain_ratio, nu, std);
         }
 
-        if (!gain_ratio.is_nan() && gain_ratio > 0.0) || !runtime_parameters.lm {
+        if (!gain_ratio.is_nan() && gain_ratio > 0.0 && cost_diff > 0.0) || !runtime_parameters.lm {
             estimated_features.copy_from(&new_estimated_features);
             state.copy_from(&new_state); 
 
