@@ -137,6 +137,18 @@ fn main() -> Result<(),()> {
                     let (debug_cams,debug_points) = state.as_matrix_point();
                     populate_scene(&mut window,&mut scene_nodes,&debug_cams,&debug_points);
                 },
+                WindowEvent::Key(Key::Left, _, _) => {
+                    arc_ball.set_up_axis_dir(-kiss3d::nalgebra::Vector3::x_axis());
+                },
+                WindowEvent::Key(Key::Right, _, _) => {
+                    arc_ball.set_up_axis_dir(kiss3d::nalgebra::Vector3::x_axis());
+                },
+                WindowEvent::Key(Key::Up, _, _) => {
+                    arc_ball.set_up_axis_dir(kiss3d::nalgebra::Vector3::y_axis());
+                },
+                WindowEvent::Key(Key::Down, _, _) => {
+                    arc_ball.set_up_axis_dir(-kiss3d::nalgebra::Vector3::y_axis());
+                },
                 _ => ()
             }
         }
