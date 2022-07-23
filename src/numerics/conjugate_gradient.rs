@@ -31,7 +31,7 @@ pub fn compute_block_matrix_preconditioner_inverse<PStorage,VStorage,WStorage, W
 }
 
 #[allow(non_snake_case)]
-pub fn conjugate_gradient<StorageA, StorageB, StorageX, S>(A: &Matrix<Float,S,S,StorageA>,  b: &Vector<Float,S,StorageB>, x: &mut Vector<Float, S, StorageX>, threshold: Float, max_it: usize) -> () 
+pub fn conjugate_gradient<StorageA, StorageB, StorageX, S>(A: &Matrix<Float,S,S,StorageA>,  b: &Vector<Float,S,StorageB>, x: &mut Vector<Float, S, StorageX>, threshold: Float, max_it: usize) -> bool 
     where 
         S: Dim,
         StorageA: Storage<Float, S, S>, 
@@ -61,5 +61,6 @@ pub fn conjugate_gradient<StorageA, StorageB, StorageX, S>(A: &Matrix<Float,S,S,
         }
 
         println!("cg finished with it: {} and thesh: {}" , it, norm);
+        !norm.is_nan()
 
 }

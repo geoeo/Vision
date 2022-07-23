@@ -16,7 +16,9 @@ pub struct RuntimeParameters{
     pub show_octave_result: bool,
     pub lm: bool,
     pub loss_function: Box<dyn LossFunction>,
-    pub intensity_weighting_function: Box<dyn WeightingFunction>
+    pub intensity_weighting_function: Box<dyn WeightingFunction>,
+    pub cg_threshold: Float,
+    pub cg_max_it: usize
 }
 
 impl fmt::Display for RuntimeParameters {

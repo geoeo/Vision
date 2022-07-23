@@ -213,52 +213,55 @@ pub fn optimize<C : Camera, L: Landmark<LANDMARK_PARAM_SIZE> + Copy + Clone, con
                 state.n_cams,
                 state.n_points,
                 u_span,
-                v_span
+                v_span,
+                runtime_parameters.cg_threshold,
+                runtime_parameters.cg_max_it
             ); 
 
-        if gauss_newton_result.is_none(){
-            println!("Sover failed at it: {}, avg_rmse: {}",iteration_count,cost.sqrt());
-            break;
-        }
-
-        let (gain_ratio_denom, mu_val) = gauss_newton_result.unwrap();
-
-        mu = Some(mu_val);
-        let pertb = step*(&delta);
-        new_state.update(&pertb);
-
-        get_estimated_features(&new_state, cameras,observed_features, &mut new_estimated_features);
-        compute_residual(&new_estimated_features, observed_features, &mut new_residuals);
-        std = runtime_parameters.intensity_weighting_function.estimate_standard_deviation(&residuals);
-        if std.is_some() {
-            calc_weight_vec(
-                &new_residuals,
-                std,
-                &runtime_parameters.intensity_weighting_function,
-                &mut weights_vec,
-            );
-            weight_residuals_sparse(&mut new_residuals, &weights_vec);
-        }
-
-
-        let new_cost = compute_cost(&new_residuals,&runtime_parameters.intensity_weighting_function);
-        let cost_diff = cost-new_cost;
-        let gain_ratio = match gain_ratio_denom {
-            v if v != 0.0 => cost_diff/v,
-            _ => 0.0
+        let (gain_ratio, new_cost, pertb_norm) = match gauss_newton_result {
+            Some((gain_ratio_denom, mu_val)) => {
+                mu = Some(mu_val);
+                let pertb = step*(&delta);
+                new_state.update(&pertb);
+        
+                get_estimated_features(&new_state, cameras,observed_features, &mut new_estimated_features);
+                compute_residual(&new_estimated_features, observed_features, &mut new_residuals);
+                std = runtime_parameters.intensity_weighting_function.estimate_standard_deviation(&residuals);
+                if std.is_some() {
+                    calc_weight_vec(
+                        &new_residuals,
+                        std,
+                        &runtime_parameters.intensity_weighting_function,
+                        &mut weights_vec,
+                    );
+                    weight_residuals_sparse(&mut new_residuals, &weights_vec);
+                }
+        
+        
+                let new_cost = compute_cost(&new_residuals,&runtime_parameters.intensity_weighting_function);
+                let cost_diff = cost-new_cost;
+                let gain_ratio = match gain_ratio_denom {
+                    v if v != 0.0 => cost_diff/v,
+                    _ => 0.0
+                };
+                (gain_ratio, new_cost, pertb.norm())
+            },
+            None => (Float::NAN, Float::NAN, Float::NAN)
         };
+
+
         if runtime_parameters.debug {
             println!("cost: {}, new cost: {}, mu: {:?}, gain: {} , nu: {}, std: {:?}",cost,new_cost, mu, gain_ratio, nu, std);
         }
 
-        if gain_ratio > 0.0  || !runtime_parameters.lm {
+        if (!gain_ratio.is_nan() && gain_ratio > 0.0) || !runtime_parameters.lm {
             estimated_features.copy_from(&new_estimated_features);
             state.copy_from(&new_state); 
 
             cost = new_cost;
 
             max_norm_delta = max_norm(&g);
-            delta_norm = pertb.norm(); 
+            delta_norm = pertb_norm; 
 
             delta_thresh = runtime_parameters.delta_eps*(estimated_features.norm() + runtime_parameters.delta_eps);
 
