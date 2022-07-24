@@ -12,6 +12,14 @@ pub mod camera_feature_map;
 pub mod solver;
 pub mod state;
 
+macro_rules! define_sfm_float {
+    ($f:tt) => {
+        pub use std::$f as sfm_float;
+        pub type SfmFloat = $f;
+    }
+}
+define_sfm_float!(f32);
+
 
 
 pub fn run_ba<C : Camera + Copy, T : Feature>(matches: &Vec<Vec<Vec<Match<T>>>>, sfm_config: &SFMConfig<C, T>, initial_cam_poses: Option<&Vec<Vec<(usize,(Vector3<Float>,Matrix3<Float>))>>>,
