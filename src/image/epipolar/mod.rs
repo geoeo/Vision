@@ -121,8 +121,8 @@ pub fn compute_fundamental(E: &Essential, inverse_projection_start: &Matrix3<Flo
 #[allow(non_snake_case)]
 pub fn filter_matches_from_fundamental<T: Feature + Clone>(F: &Fundamental,matches: &Vec<Match<T>>, epipiolar_thresh: Float, principal_distance_sign: Float) -> Vec<Match<T>> {
     matches.iter().filter(|m| {
-            let start = m.feature_one.get_as_3d_point(principal_distance_sign);
-            let finish = m.feature_two.get_as_3d_point(principal_distance_sign);
+            let start = m.feature_one.get_as_3d_point(-1.0);
+            let finish = m.feature_two.get_as_3d_point(-1.0);
             let val = (start.transpose()*F*finish)[0].abs();
             val < epipiolar_thresh
         }).cloned().collect::<Vec<Match<T>>>()

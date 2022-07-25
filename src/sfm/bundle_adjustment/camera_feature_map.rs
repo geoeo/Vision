@@ -199,8 +199,8 @@ impl CameraFeatureMap {
                             for landmark_id in 0..local_landmarks {
                                 let (x_s, y_s) = im_s[landmark_id];
                                 let (x_f, y_f) = im_f[landmark_id];
-                                let feat_s = Vector3::<Float>::new(x_s,y_s,depth_prior);
-                                let feat_f = Vector3::<Float>::new(x_f,y_f,depth_prior);
+                                let feat_s = Vector3::<Float>::new(x_s,y_s,-1.0);
+                                let feat_f = Vector3::<Float>::new(x_f,y_f,-1.0);
                                 avg_x_one += feat_s[0];
                                 avg_y_one += feat_s[1];
                                 max_dist_one = max_dist_one.max(feat_s[0].powi(2) + feat_s[1].powi(2));
