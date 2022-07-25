@@ -121,8 +121,8 @@ pub fn compute_fundamental(E: &Essential, inverse_projection_start: &Matrix3<Flo
 #[allow(non_snake_case)]
 pub fn filter_matches_from_fundamental<T: Feature + Clone>(F: &Fundamental,matches: &Vec<Match<T>>, epipiolar_thresh: Float, principal_distance_sign: Float) -> Vec<Match<T>> {
     matches.iter().filter(|m| {
-            let start = m.feature_one.get_camera_ray(principal_distance_sign);
-            let finish = m.feature_two.get_camera_ray(principal_distance_sign);
+            let start = m.feature_one.get_as_3d_point(principal_distance_sign);
+            let finish = m.feature_two.get_as_3d_point(principal_distance_sign);
             let val = (start.transpose()*F*finish)[0].abs();
             val < epipiolar_thresh
         }).cloned().collect::<Vec<Match<T>>>()
@@ -144,9 +144,9 @@ pub fn filter_matches_from_motion<T: Feature + Clone, C: Camera>(matches: &Vec<M
  * Computes the epipolar lines of a match.
  * Returns (line of first feature in second image, line of second feature in first image)
  */
-pub fn epipolar_lines<T: Feature>(bifocal_tensor: &Matrix3<Float>, feature_match: &Match<T>, principal_distance_sign: Float) -> (Vector3<Float>, Vector3<Float>) {
-    let f_from = feature_match.feature_one.get_camera_ray(principal_distance_sign);
-    let f_to = feature_match.feature_two.get_camera_ray(principal_distance_sign);
+pub fn epipolar_lines<T: Feature>(bifocal_tensor: &Matrix3<Float>, feature_match: &Match<T>, cam_one_intrinsics: &Matrix3<Float>, cam_two_intrinsics: &Matrix3<Float>) -> (Vector3<Float>, Vector3<Float>) {
+    let f_from = feature_match.feature_one.get_camera_ray(cam_one_intrinsics);
+    let f_to = feature_match.feature_two.get_camera_ray(cam_two_intrinsics);
 
     ((f_from.transpose()*bifocal_tensor).transpose(), bifocal_tensor*f_to)
 }
@@ -195,13 +195,14 @@ pub fn decompose_essential_förstner<T : Feature>(
         let mut v_sign = 0.0;
         let mut u_sign = 0.0;
         for m in matches {
-            let f_start = inverse_camera_matrix_start*m.feature_one.get_camera_ray(principal_distance_sign);
-            let f_finish = inverse_camera_matrix_finish*m.feature_two.get_camera_ray(principal_distance_sign);
+            let f_start = m.feature_one.get_camera_ray(&inverse_camera_matrix_start);
+            let f_finish = m.feature_two.get_camera_ray(&inverse_camera_matrix_finish);
 
             let binormal = ((h.cross_matrix()*f_start).cross_matrix()*h).normalize();
             let mat = Matrix3::<Float>::from_columns(&[h,binormal,f_start.cross_matrix()*R.transpose()*f_finish]);
             let s_i = mat.determinant();
             let s_i_sign = match s_i {
+
                 det if det > 0.0 => 1.0,
                 det if det < 0.0 => -1.0,
                 _ => 0.0

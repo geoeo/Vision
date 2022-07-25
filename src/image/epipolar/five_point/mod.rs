@@ -25,8 +25,8 @@ pub fn five_point_essential<T: Feature + Clone, C: Camera>(matches: &Vec<Match<T
         false => -1.0
     };
 
-    let mut reduced_features_one = Matrix3xX::<Float>::zeros(l);
-    let mut reduced_features_two = Matrix3xX::<Float>::zeros(l);
+    let mut camera_rays_one = Matrix3xX::<Float>::zeros(l);
+    let mut camera_rays_two = Matrix3xX::<Float>::zeros(l);
     let mut features_one = Matrix3xX::<Float>::zeros(l);
     let mut features_two = Matrix3xX::<Float>::zeros(l);
     let mut A = OMatrix::<Float, Dynamic,U9>::zeros(l);
@@ -43,12 +43,11 @@ pub fn five_point_essential<T: Feature + Clone, C: Camera>(matches: &Vec<Match<T
 
     for i in 0..l {
         let m = &matches[i];
-        let f_1_reduced = m.feature_one.get_camera_ray(principal_distance_sign);
-        let f_2_reduced = m.feature_two.get_camera_ray(principal_distance_sign);
+        let f_1_reduced = m.feature_one.get_camera_ray(&inverse_projection_one);
+        let f_2_reduced = m.feature_two.get_camera_ray(&inverse_projection_two);
 
-        reduced_features_one.column_mut(i).copy_from(&f_1_reduced);
-        reduced_features_two.column_mut(i).copy_from(&f_2_reduced);
-
+        camera_rays_one.column_mut(i).copy_from(&f_1_reduced);
+        camera_rays_two.column_mut(i).copy_from(&f_2_reduced);
 
         let f_1 = m.feature_one.get_as_3d_point(principal_distance_sign);
         let f_2 = m.feature_two.get_as_3d_point(principal_distance_sign);
@@ -73,9 +72,6 @@ pub fn five_point_essential<T: Feature + Clone, C: Camera>(matches: &Vec<Match<T
 
     features_one = normalization_matrix_one*features_one;
     features_two = normalization_matrix_two*features_two;
-
-    let camera_rays_one = inverse_projection_one*(&reduced_features_one);
-    let camera_rays_two = inverse_projection_two*(&reduced_features_two);
 
     for i in 0..l {
         let c_x_1 = &camera_rays_one.column(i);
