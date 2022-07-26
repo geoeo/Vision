@@ -185,31 +185,43 @@ pub fn gauss_newton_step_with_schur<R, C, S1, S2,StorageTargetArrow, StorageTarg
         let res_a = target_arrowhead_residual.slice((0,0),(u_span,1));
         let res_b = target_arrowhead_residual.slice((u_span,0),(v_span,1));
 
-        //TODO: return NONE of failure
+        let mut inv_success = true;
         for i in (0..v_span).step_by(LANDMARK_PARAM_SIZE) {
-            let local_inv = V_star.fixed_slice::<LANDMARK_PARAM_SIZE,LANDMARK_PARAM_SIZE>(i,i).try_inverse().expect("local inverse failed");
-            V_star_inv.fixed_slice_mut::<LANDMARK_PARAM_SIZE,LANDMARK_PARAM_SIZE>(i,i).copy_from(&local_inv);
+            let some_local_inv = V_star.fixed_slice::<LANDMARK_PARAM_SIZE,LANDMARK_PARAM_SIZE>(i,i).try_inverse();
+            let success = match some_local_inv {
+                Some(inv) => {
+                    V_star_inv.fixed_slice_mut::<LANDMARK_PARAM_SIZE,LANDMARK_PARAM_SIZE>(i,i).copy_from(&inv);
+                    true
+                },
+                None => false
+            };
+            inv_success &= success;
         }
 
-        let W = target_arrowhead.slice((0,u_span),(u_span,v_span));
-        let W_t = target_arrowhead.slice((u_span,0),(v_span,u_span));
-
-        let schur_compliment = U_star - W*(V_star_inv as &DMatrix<Float>)*W_t; // takes long time
-        let res_a_augment = res_a-W*(V_star_inv as &DMatrix<Float>)*res_b; // takes long time
-
-        let h_a_option = schur_compliment.cholesky();
-
-        match h_a_option {
-            Some(h_a_cholesky) => {
-                let h_a = h_a_cholesky.solve(&res_a_augment);
-                let h_b = (V_star_inv as &DMatrix<Float>)*(res_b-W_t*(&h_a));
-
-                target_perturb.slice_mut((0,0),(u_span,1)).copy_from(&h_a);
-                target_perturb.slice_mut((u_span,0),(v_span,1)).copy_from(&h_b);
-                
-                Some((compute_gain_ratio(target_perturb,target_arrowhead_residual,mu_val), mu_val))
-            }
-            _ => None
+        match inv_success {
+            true => {
+                let W = target_arrowhead.slice((0,u_span),(u_span,v_span));
+                let W_t = target_arrowhead.slice((u_span,0),(v_span,u_span));
+        
+                let schur_compliment = U_star - W*(V_star_inv as &DMatrix<Float>)*W_t; // takes long time
+                let res_a_augment = res_a-W*(V_star_inv as &DMatrix<Float>)*res_b; // takes long time
+        
+                let h_a_option = schur_compliment.cholesky();
+        
+                match h_a_option {
+                    Some(h_a_cholesky) => {
+                        let h_a = h_a_cholesky.solve(&res_a_augment);
+                        let h_b = (V_star_inv as &DMatrix<Float>)*(res_b-W_t*(&h_a));
+        
+                        target_perturb.slice_mut((0,0),(u_span,1)).copy_from(&h_a);
+                        target_perturb.slice_mut((u_span,0),(v_span,1)).copy_from(&h_b);
+                        
+                        Some((compute_gain_ratio(target_perturb,target_arrowhead_residual,mu_val), mu_val))
+                    }
+                    _ => None
+                }
+            },
+            false => None
         }
 
 }
@@ -251,34 +263,55 @@ pub fn gauss_newton_step_with_conguate_gradient<R, C, S1, S2,StorageTargetArrow,
         let U_star = target_arrowhead.slice((0,0),(u_span,u_span));
         let V_star = target_arrowhead.slice((u_span,u_span),(v_span,v_span));
         
-        //TODO: return NONE of failure
+        let mut inv_success = true;
         for i in (0..v_span).step_by(LANDMARK_PARAM_SIZE) {
-            let local_inv = V_star.fixed_slice::<LANDMARK_PARAM_SIZE,LANDMARK_PARAM_SIZE>(i,i).try_inverse().expect("V local inverse failed");
-            V_star_inv.fixed_slice_mut::<LANDMARK_PARAM_SIZE,LANDMARK_PARAM_SIZE>(i,i).copy_from(&local_inv);
+            let some_local_inv = V_star.fixed_slice::<LANDMARK_PARAM_SIZE,LANDMARK_PARAM_SIZE>(i,i).try_inverse();
+            let success = match some_local_inv {
+                Some(inv) => {
+                    V_star_inv.fixed_slice_mut::<LANDMARK_PARAM_SIZE,LANDMARK_PARAM_SIZE>(i,i).copy_from(&inv);
+                    true
+                },
+                None => false
+            };
+            inv_success &= success;
         }
 
         for i in (0..u_span).step_by(CAMERA_PARAM_SIZE) {
-            let local_inv = U_star.fixed_slice::<CAMERA_PARAM_SIZE,CAMERA_PARAM_SIZE>(i,i).try_inverse().expect("U local inverse failed");
-            U_star_inv.fixed_slice_mut::<CAMERA_PARAM_SIZE,CAMERA_PARAM_SIZE>(i,i).copy_from(&local_inv);
+            let some_local_inv = U_star.fixed_slice::<CAMERA_PARAM_SIZE,CAMERA_PARAM_SIZE>(i,i).try_inverse();
+            let success = match some_local_inv {
+                Some(inv) => {
+                    U_star_inv.fixed_slice_mut::<CAMERA_PARAM_SIZE,CAMERA_PARAM_SIZE>(i,i).copy_from(&inv);
+                    true
+                },
+                None => false
+            };
+            inv_success &= success;
         }
 
-        let W = target_arrowhead.slice((0,u_span),(u_span,v_span));
-        let W_t = target_arrowhead.slice((u_span,0),(v_span,u_span));
-
-        let res_a = target_arrowhead_residual.rows(0, u_span);
-        let res_b = target_arrowhead_residual.rows(u_span,v_span);
-
-        // Precondition S with preconditioner U*
-        let schur_compliment = (U_star_inv as &DMatrix<Float>)*(U_star - W*(V_star_inv as &DMatrix<Float>)*W_t); // takes long time
-        let res_a_augment = (U_star_inv as &DMatrix<Float>)*(res_a-W*(V_star_inv as &DMatrix<Float>)*res_b); // takes long time
-        match conjugate_gradient::conjugate_gradient::<_,_,_,Dynamic>(&schur_compliment, &res_a_augment, &mut target_perturb.rows_mut(0,u_span), cg_tresh, cg_max_it) {
+        match inv_success {
             true => {
-                let h_b = (V_star_inv as &DMatrix<Float>)*(res_b-W_t*(&target_perturb.rows(0,u_span)));
-                target_perturb.slice_mut((u_span,0),(v_span,1)).copy_from(&h_b);
-                Some((compute_gain_ratio(target_perturb,target_arrowhead_residual,mu_val), mu_val))
+                let W = target_arrowhead.slice((0,u_span),(u_span,v_span));
+                let W_t = target_arrowhead.slice((u_span,0),(v_span,u_span));
+        
+                let res_a = target_arrowhead_residual.rows(0, u_span);
+                let res_b = target_arrowhead_residual.rows(u_span,v_span);
+        
+                // Precondition S with preconditioner U*
+                let schur_compliment = (U_star_inv as &DMatrix<Float>)*(U_star - W*(V_star_inv as &DMatrix<Float>)*W_t); // takes long time
+                let res_a_augment = (U_star_inv as &DMatrix<Float>)*(res_a-W*(V_star_inv as &DMatrix<Float>)*res_b); // takes long time
+                match conjugate_gradient::conjugate_gradient::<_,_,_,Dynamic>(&schur_compliment, &res_a_augment, &mut target_perturb.rows_mut(0,u_span), cg_tresh, cg_max_it) {
+                    true => {
+                        let h_b = (V_star_inv as &DMatrix<Float>)*(res_b-W_t*(&target_perturb.rows(0,u_span)));
+                        target_perturb.slice_mut((u_span,0),(v_span,1)).copy_from(&h_b);
+                        Some((compute_gain_ratio(target_perturb,target_arrowhead_residual,mu_val), mu_val))
+                    },
+                    false => None
+                }
             },
             false => None
         }
+
+
 
 }
 

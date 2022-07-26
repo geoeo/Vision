@@ -5,6 +5,15 @@ use crate::image::features::{Feature, Match};
 pub mod bundle_adjustment;
 pub mod landmark;
 
+
+macro_rules! define_sfm_float {
+    ($f:tt) => {
+        pub use std::$f as sfm_float;
+        pub type SfmFloat = $f;
+    }
+}
+define_sfm_float!(f32);
+
 /**
  * We assume that the indices between paths and matches are consistent
  */
