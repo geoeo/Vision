@@ -11,15 +11,16 @@ use crate::numerics::{loss::LossFunction, weighting::WeightingFunction, conjugat
 use crate::Float;
 
 
-pub fn calc_weight_vec<D, S1>(
-    residuals: &DVector<Float>,
-    std: Option<Float>,
-    weight_function: &Box<dyn WeightingFunction>,
-    weights_vec: &mut Vector<Float,D,S1>) -> () where 
+pub fn calc_weight_vec<F, D, S1>(
+    residuals: &DVector<F>,
+    std: Option<F>,
+    weight_function: &Box<dyn WeightingFunction<F>>,
+    weights_vec: &mut Vector<F,D,S1>) -> () where 
+        F : float::Float + Scalar + NumAssign + SimdRealField + ComplexField,
         D: Dim,
-        S1: StorageMut<Float, D>{
+        S1: StorageMut<F, D>{
     for i in 0..residuals.len() {
-        weights_vec[i] = weight_function.weight(residuals,i,std).sqrt();
+        weights_vec[i] = float::Float::sqrt(weight_function.weight(residuals,i,std));
     }
     
 
@@ -28,26 +29,28 @@ pub fn calc_weight_vec<D, S1>(
 /**
  * The values in the weights vector should be the square root of the weight matrix diagonals
  * */
-pub fn weight_residuals_sparse<D, S1,S2>(
-    residual_target: &mut Vector<Float,D,S1>,
-     weights_vec: &Vector<Float,D,S2>) -> () where 
+pub fn weight_residuals_sparse<F, D, S1,S2>(
+    residual_target: &mut Vector<F,D,S1>,
+     weights_vec: &Vector<F,D,S2>) -> () where 
+        F : float::Float + Scalar + NumAssign + SimdRealField + ComplexField,
         D: Dim,
-        S1: StorageMut<Float, D>,
-        S2: Storage<Float, D> {
+        S1: StorageMut<F, D>,
+        S2: Storage<F, D> {
     residual_target.component_mul_assign(weights_vec);
 }
 
 
 //TODO: optimize
 //TODO: performance offender
-pub fn weight_jacobian_sparse<R,C,S1,S2>(
-    jacobian: &mut Matrix<Float, R, C, S1>,
-    weights_vec: &Vector<Float,R,S2>) -> () where
+pub fn weight_jacobian_sparse<F, R,C,S1,S2>(
+    jacobian: &mut Matrix<F, R, C, S1>,
+    weights_vec: &Vector<F,R,S2>) -> () where
+    F : float::Float + Scalar + NumAssign + SimdRealField + ComplexField,
     R: Dim,
     C: Dim ,
-    S1: StorageMut<Float, R,C> ,
-    S2: Storage<Float, R>,
-    DefaultAllocator: Allocator<Float, U1, C>
+    S1: StorageMut<F, R,C> ,
+    S2: Storage<F, R>,
+    DefaultAllocator: Allocator<F, U1, C>
   {
     let size = weights_vec.len();
     for i in 0..size {
@@ -57,21 +60,21 @@ pub fn weight_jacobian_sparse<R,C,S1,S2>(
 }
 
 
-pub fn scale_to_diagonal<const T: usize>(
-    mat: &mut Matrix<Float, Dynamic, Const<T>, VecStorage<Float, Dynamic, Const<T>>>,
-    residual: &DVector<Float>,
-    first_deriv: Float,
-    second_deriv: Float,
-) -> () {
+pub fn scale_to_diagonal<F, const T: usize>(
+    mat: &mut Matrix<F, Dynamic, Const<T>, VecStorage<F, Dynamic, Const<T>>>,
+    residual: &DVector<F>,
+    first_deriv: F,
+    second_deriv: F,
+) -> () where F : float::Float + Scalar + NumAssign + SimdRealField + ComplexField {
     for j in 0..T {
         for i in 0..residual.nrows() {
-            mat[(i, j)] *= first_deriv + 2.0 * second_deriv * residual[i].powi(2);
+            mat[(i, j)] *= first_deriv + convert::<f64,F>(2.0) * second_deriv * float::Float::powi(residual[i], 2);
         }
     }
 
 }
 
-pub fn compute_cost(residuals: &DVector<Float>, weight_function: &Box<dyn WeightingFunction>) -> Float {
+pub fn compute_cost<F>(residuals: &DVector<F>, weight_function: &Box<dyn WeightingFunction<F>>) -> F where F : float::Float + Scalar + NumAssign + SimdRealField + ComplexField {
     weight_function.cost(residuals)
 }
 

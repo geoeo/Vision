@@ -1,6 +1,7 @@
 extern crate nalgebra as na;
 
-use na::{Matrix2,Matrix3,Matrix1x2,Matrix3x1,SMatrix, Vector,SVector,Dim, storage::Storage,DVector};
+use na::{convert, Matrix2,Matrix3,Matrix1x2,Matrix3x1,SMatrix, Vector,SVector,Dim, storage::Storage,DVector, SimdRealField, ComplexField,base::Scalar};
+use num_traits::{NumAssign, identities};
 use crate::image::Image;
 use crate::{Float,float};
 
@@ -40,17 +41,17 @@ pub fn quadratic_roots(a: Float, b: Float, c: Float) -> (Float,Float) {
     }
 }
 
-pub fn estimate_std(data: &DVector<Float>) -> Float {
-    median_absolute_deviation(data)/0.67449 
+pub fn estimate_std<F>(data: &DVector<F>) -> F where F : num_traits::float::Float + Scalar + NumAssign + SimdRealField + ComplexField + identities::One {
+    median_absolute_deviation(data)/convert::<f64,F>(0.67449) 
 }
 
-pub fn median_absolute_deviation(data: &DVector<Float>) -> Float {
+pub fn median_absolute_deviation<F>(data: &DVector<F>) -> F where F : num_traits::float::Float + Scalar + NumAssign + SimdRealField + ComplexField + identities::One {
     let median_value = median(data.data.as_vec().clone(), true);
-    let absolute_deviation: Vec<Float> = data.iter().map(|x| (x-median_value).abs()).collect();
+    let absolute_deviation: Vec<F> = data.iter().map(|&x| num_traits::float::Float::abs(x-median_value)).collect();
     median(absolute_deviation,false)
 }
 
-pub fn median(data: Vec<Float>, sort_data: bool) -> Float {
+pub fn median<F>(data: Vec<F>, sort_data: bool) -> F where F : num_traits::float::Float + Scalar + NumAssign + SimdRealField + ComplexField + identities::One  {
     let mut mut_data = data;
     if sort_data {
         mut_data.sort_unstable_by(|a, b| a.partial_cmp(b).unwrap());

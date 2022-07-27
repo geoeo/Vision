@@ -16,7 +16,7 @@ pub struct RuntimeParameters{
     pub show_octave_result: bool,
     pub lm: bool,
     pub loss_function: Box<dyn LossFunction>,
-    pub intensity_weighting_function: Box<dyn WeightingFunction>,
+    pub intensity_weighting_function: Box<dyn WeightingFunction<Float>>,
     pub cg_threshold: Float,
     pub cg_max_it: usize
 }

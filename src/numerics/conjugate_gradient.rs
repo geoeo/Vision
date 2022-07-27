@@ -7,7 +7,7 @@ use na::{SimdRealField, ComplexField, DMatrix, Matrix,Dynamic, storage::{Storage
 use crate::{Float};
 
 #[allow(non_snake_case)]
-pub fn compute_block_matrix_preconditioner_inverse<F,PStorage,VStorage,WStorage, WtStorage>(preconditioner: &mut DMatrix::<F>,P_inv: &Matrix::<F,Dynamic,Dynamic,PStorage> , C: &Matrix::<F,Dynamic,Dynamic, VStorage>, E: &Matrix::<F,Dynamic,Dynamic, WStorage>, E_t: &Matrix::<F,Dynamic,Dynamic, WtStorage>, omega: F, omega_sqrd: F) -> () 
+pub fn compute_block_matrix_preconditioner_inverse<F,PStorage,VStorage,WStorage, WtStorage>(preconditioner: &mut DMatrix::<F>,P_inv: &Matrix::<F,Dynamic,Dynamic,PStorage> , C: &Matrix::<F,Dynamic,Dynamic, VStorage>, E: &Matrix::<F,Dynamic,Dynamic, WStorage>, E_t: &Matrix::<F,Dynamic,Dynamic, WtStorage>, omega: F) -> () 
     where
         F : float::Float + Scalar + NumAssign + SimdRealField + ComplexField,
         PStorage: Storage<F,Dynamic,Dynamic>,
@@ -17,6 +17,7 @@ pub fn compute_block_matrix_preconditioner_inverse<F,PStorage,VStorage,WStorage,
     let p_dim = P_inv.nrows();
     let v_dim = C.nrows();
 
+    let omega_sqrd = float::Float::powi(omega, 2);
     preconditioner.slice_mut((0,0),(p_dim,p_dim)).copy_from(P_inv);
     
     let temp = E*C;
