@@ -202,7 +202,7 @@ pub fn optimize<C : Camera, L: Landmark<LANDMARK_PARAM_SIZE> + Copy + Clone, con
 
         u_star_inv.fill(0.0);
         let gauss_newton_result 
-            = gauss_newton_step_with_conguate_gradient::<_,_,_,_,_,_,LANDMARK_PARAM_SIZE, CAMERA_PARAM_SIZE>(
+            = gauss_newton_step_with_conguate_gradient::<_,_,_,_,_,_,_,LANDMARK_PARAM_SIZE, CAMERA_PARAM_SIZE>(
                 &mut target_arrowhead,
                 &mut g,
                 &mut delta,

@@ -35,8 +35,8 @@ fn main() -> Result<()> {
     let olsen_data_path = data_set_door_path;
     let depth_prior = -1.0;
     //let epipolar_thresh = 0.001; 
-    let epipolar_thresh = 0.01; 
-    //let epipolar_thresh = 0.05;
+    //let epipolar_thresh = 0.01; 
+    let epipolar_thresh = 0.05;
     //let epipolar_thresh = 0.1;
     //let epipolar_thresh = 1.0;
     //let epipolar_thresh = Float::INFINITY;
@@ -44,7 +44,7 @@ fn main() -> Result<()> {
     let feature_skip_count = 2;
     let olsen_data = OlssenData::new(&olsen_data_path);
     let positive_principal_distance = false;
-    let invert_intrinsics = true; // they are already negative from decomp
+    let invert_intrinsics = false; // they are already negative from decomp
     let normalize_features = false;
 
     //let change_of_basis = Matrix3::<Float>::new(0.0,0.0,1.0, 0.0,1.0,0.0, 1.0,0.0,0.0);
@@ -136,13 +136,13 @@ fn main() -> Result<()> {
 
 
 
-    // let sfm_all_matches = vec!(vec!(matches_5_4_subvec),vec!(matches_5_6_subvec));
-    // let camera_map = HashMap::from([(5, pinhole_cam_5), (4, pinhole_cam_4), (6, pinhole_cam_6)]);
-    // let paths = vec!(vec!(4),vec!(6));
+    let sfm_all_matches = vec!(vec!(matches_5_4_subvec),vec!(matches_5_6_subvec));
+    let camera_map = HashMap::from([(5, pinhole_cam_5), (4, pinhole_cam_4), (6, pinhole_cam_6)]);
+    let paths = vec!(vec!(4),vec!(6));
 
-    let sfm_all_matches = vec!(vec!(matches_5_4_subvec, matches_4_3_subvec),vec!(matches_5_6_subvec));
-    let camera_map = HashMap::from([(5, pinhole_cam_5), (4, pinhole_cam_4), (6, pinhole_cam_6), (3, pinhole_cam_3)]);  
-    let paths = vec!(vec!(4,3),vec!(6));
+    // let sfm_all_matches = vec!(vec!(matches_5_4_subvec, matches_4_3_subvec),vec!(matches_5_6_subvec));
+    // let camera_map = HashMap::from([(5, pinhole_cam_5), (4, pinhole_cam_4), (6, pinhole_cam_6), (3, pinhole_cam_3)]);  
+    // let paths = vec!(vec!(4,3),vec!(6));
 
     // let sfm_all_matches = vec!(vec!(matches_5_4_subvec, matches_4_3_subvec),vec!(matches_5_6_subvec, matches_6_7_subvec));
     // let camera_map = HashMap::from([(5, pinhole_cam_5), (4, pinhole_cam_4), (6, pinhole_cam_6), (3, pinhole_cam_3),(2, pinhole_cam_2),(7, pinhole_cam_7),(8, pinhole_cam_8)]);  
@@ -166,7 +166,7 @@ fn main() -> Result<()> {
             epipolar_thresh,
             positive_principal_distance,
             normalize_features,
-            BifocalType::FUNDAMENTAL, 
+            BifocalType::ESSENTIAL, 
             EssentialDecomposition::FÖRSNTER
     );
 

@@ -20,6 +20,7 @@ plotters = { version = "*", default_features = true}
 color-eyre = "0.5"
 serde = { version = "*", features = ["derive"] }
 serde_yaml = "0.8"
+num-traits = "*"
 
 [profile.release]
 debug = 0

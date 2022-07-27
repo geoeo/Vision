@@ -1,7 +1,8 @@
 extern crate nalgebra as na;
+extern crate num_traits;
 
-use nalgebra_sparse::{csc::CscMatrix, factorization::CscCholesky};
-use na::{DMatrix, DVector , OVector, Dynamic, Matrix, SMatrix, SVector,Vector,Dim, DimName,storage::{Storage,StorageMut},base::{default_allocator::DefaultAllocator, allocator::{Allocator}},
+use num_traits::{float,NumAssign};
+use na::{convert, SimdRealField, ComplexField, zero, DMatrix, DVector , OVector, Dynamic, Matrix, SMatrix, SVector,Vector,Dim,storage::{Storage,StorageMut},base::{Scalar, default_allocator::DefaultAllocator, allocator::{Allocator}},
     VecStorage, Const, DimMin, U1
 };
 use std::boxed::Box;
@@ -74,12 +75,16 @@ pub fn compute_cost(residuals: &DVector<Float>, weight_function: &Box<dyn Weight
     weight_function.cost(residuals)
 }
 
-pub fn weight_residuals<const T: usize>(residual: &mut SVector<Float, T>, weights: &SMatrix<Float,T,T>) -> () where Const<T>: DimMin<Const<T>, Output = Const<T>> {
+pub fn weight_residuals<F, const T: usize>(residual: &mut SVector<F, T>, weights: &SMatrix<F,T,T>) -> () where 
+    F : float::Float + Scalar + NumAssign + SimdRealField + ComplexField,
+    Const<T>: DimMin<Const<T>, Output = Const<T>> {
     weights.mul_to(&residual.clone(),residual);
 }
 
-pub fn weight_jacobian<const M: usize, const N: usize>(jacobian: &mut SMatrix<Float,M,N>, weights: &SMatrix<Float,M,M>) -> () 
-    where Const<M>: DimMin<Const<M>, Output = Const<M>>,Const<N>: DimMin<Const<N>, Output = Const<N>> {
+pub fn weight_jacobian<F, const M: usize, const N: usize>(jacobian: &mut SMatrix<F,M,N>, weights: &SMatrix<F,M,M>) -> () 
+    where 
+    F : float::Float + Scalar + NumAssign + SimdRealField + ComplexField,
+    Const<M>: DimMin<Const<M>, Output = Const<M>>,Const<N>: DimMin<Const<N>, Output = Const<N>> {
     weights.mul_to(&jacobian.clone(),jacobian);
 }
 
@@ -149,29 +154,30 @@ pub fn gauss_newton_step_with_loss_and_schur(
 }
 
 #[allow(non_snake_case)]
-pub fn gauss_newton_step_with_schur<R, C, S1, S2,StorageTargetArrow, StorageTargetResidual, const LANDMARK_PARAM_SIZE: usize, const CAMERA_PARAM_SIZE: usize>(
-    target_arrowhead: &mut Matrix<Float,C,C,StorageTargetArrow>, 
-    target_arrowhead_residual: &mut Vector<Float,C,StorageTargetResidual>, 
-    target_perturb: &mut Vector<Float,C,StorageTargetResidual>, 
-    V_star_inv: &mut DMatrix<Float>,
-    residuals: &Vector<Float, R,S1>, 
-    jacobian: &Matrix<Float,R,C,S2>,
-    mu: Option<Float>, 
-    tau: Float,
+pub fn gauss_newton_step_with_schur<F, R, C, S1, S2,StorageTargetArrow, StorageTargetResidual, const LANDMARK_PARAM_SIZE: usize, const CAMERA_PARAM_SIZE: usize>(
+    target_arrowhead: &mut Matrix<F,C,C,StorageTargetArrow>, 
+    target_arrowhead_residual: &mut Vector<F,C,StorageTargetResidual>, 
+    target_perturb: &mut Vector<F,C,StorageTargetResidual>, 
+    V_star_inv: &mut DMatrix<F>,
+    residuals: &Vector<F, R,S1>, 
+    jacobian: &Matrix<F,R,C,S2>,
+    mu: Option<F>, 
+    tau: F,
     n_cams: usize,
     n_points: usize,
     u_span: usize, 
-    v_span: usize)-> Option<(Float,Float)>
+    v_span: usize)-> Option<(F,F)>
      where 
+        F : float::Float + Scalar + NumAssign + SimdRealField + ComplexField,
         R: Dim, 
         C: Dim,
-        S1: Storage<Float, R>,
-        S2: Storage<Float, R, C>,
-        StorageTargetArrow: StorageMut<Float, C, C>,
-        StorageTargetResidual: StorageMut<Float, C, U1>,
-        DefaultAllocator: Allocator<Float, R, C>+  Allocator<Float, C, R> + Allocator<Float, C, C> + Allocator<Float, C> + Allocator<Float, U1, C> + Allocator<f64, U1, R>  {
+        S1: Storage<F, R>,
+        S2: Storage<F, R, C>,
+        StorageTargetArrow: StorageMut<F, C, C>,
+        StorageTargetResidual: StorageMut<F, C, U1>,
+        DefaultAllocator: Allocator<F, R, C>+  Allocator<F, C, R> + Allocator<F, C, C> + Allocator<F, C> + Allocator<F, U1, C> + Allocator<f64, U1, R>  {
 
-        let mu_val = compute_arrow_head_and_residuals::<_,_,_,_,_,_,LANDMARK_PARAM_SIZE,CAMERA_PARAM_SIZE>(target_arrowhead,target_arrowhead_residual,jacobian,residuals,mu,tau,n_cams,n_points);
+        let mu_val = compute_arrow_head_and_residuals::<_,_,_,_,_,_,_,LANDMARK_PARAM_SIZE,CAMERA_PARAM_SIZE>(target_arrowhead,target_arrowhead_residual,jacobian,residuals,mu,tau,n_cams,n_points);
 
         /*
          *     | U*  W  |
@@ -203,15 +209,15 @@ pub fn gauss_newton_step_with_schur<R, C, S1, S2,StorageTargetArrow, StorageTarg
                 let W = target_arrowhead.slice((0,u_span),(u_span,v_span));
                 let W_t = target_arrowhead.slice((u_span,0),(v_span,u_span));
         
-                let schur_compliment = U_star - W*(V_star_inv as &DMatrix<Float>)*W_t; // takes long time
-                let res_a_augment = res_a-W*(V_star_inv as &DMatrix<Float>)*res_b; // takes long time
+                let schur_compliment = U_star - W*(V_star_inv as &DMatrix<F>)*W_t; // takes long time
+                let res_a_augment = res_a-W*(V_star_inv as &DMatrix<F>)*res_b; // takes long time
         
                 let h_a_option = schur_compliment.cholesky();
         
                 match h_a_option {
                     Some(h_a_cholesky) => {
                         let h_a = h_a_cholesky.solve(&res_a_augment);
-                        let h_b = (V_star_inv as &DMatrix<Float>)*(res_b-W_t*(&h_a));
+                        let h_b = (V_star_inv as &DMatrix<F>)*(res_b-W_t*(&h_a));
         
                         target_perturb.slice_mut((0,0),(u_span,1)).copy_from(&h_a);
                         target_perturb.slice_mut((u_span,0),(v_span,1)).copy_from(&h_b);
@@ -227,32 +233,33 @@ pub fn gauss_newton_step_with_schur<R, C, S1, S2,StorageTargetArrow, StorageTarg
 }
 
 #[allow(non_snake_case)]
-pub fn gauss_newton_step_with_conguate_gradient<R, C, S1, S2,StorageTargetArrow, StorageTargetResidual, const LANDMARK_PARAM_SIZE: usize, const CAMERA_PARAM_SIZE: usize>(
-    target_arrowhead: &mut Matrix<Float,C,C,StorageTargetArrow>, 
-    target_arrowhead_residual: &mut Vector<Float,C,StorageTargetResidual>, 
-    target_perturb: &mut Vector<Float,C,StorageTargetResidual>, 
-    V_star_inv: &mut DMatrix<Float>,
-    U_star_inv: &mut DMatrix<Float>,
-    residuals: &Vector<Float, R,S1>, 
-    jacobian: &Matrix<Float,R,C,S2>,
-    mu: Option<Float>, 
-    tau: Float,
+pub fn gauss_newton_step_with_conguate_gradient<F, R, C, S1, S2,StorageTargetArrow, StorageTargetResidual, const LANDMARK_PARAM_SIZE: usize, const CAMERA_PARAM_SIZE: usize>(
+    target_arrowhead: &mut Matrix<F,C,C,StorageTargetArrow>, 
+    target_arrowhead_residual: &mut Vector<F,C,StorageTargetResidual>, 
+    target_perturb: &mut Vector<F,C,StorageTargetResidual>, 
+    V_star_inv: &mut DMatrix<F>,
+    U_star_inv: &mut DMatrix<F>,
+    residuals: &Vector<F, R,S1>, 
+    jacobian: &Matrix<F,R,C,S2>,
+    mu: Option<F>, 
+    tau: F,
     n_cams: usize,
     n_points: usize,
     u_span: usize, 
     v_span: usize,
-    cg_tresh: Float,
-    cg_max_it: usize)-> Option<(Float,Float)>
+    cg_tresh: F,
+    cg_max_it: usize)-> Option<(F,F)>
      where 
+        F : float::Float + Scalar + NumAssign + SimdRealField + ComplexField,
         R: Dim, 
         C: Dim,
-        S1: Storage<Float, R>,
-        S2: Storage<Float, R, C>,
-        StorageTargetArrow: StorageMut<Float, C, C>,
-        StorageTargetResidual: StorageMut<Float, C, U1>,
-        DefaultAllocator: Allocator<Float, R, C>+  Allocator<Float, C, R> + Allocator<Float, C, C> + Allocator<Float, C> + Allocator<Float, U1, C> + Allocator<f64, U1, R>  {
+        S1: Storage<F, R>,
+        S2: Storage<F, R, C>,
+        StorageTargetArrow: StorageMut<F, C, C>,
+        StorageTargetResidual: StorageMut<F, C, U1>,
+        DefaultAllocator: Allocator<F, R, C>+  Allocator<F, C, R> + Allocator<F, C, C> + Allocator<F, C> + Allocator<F, U1, C> + Allocator<F, U1, R>  {
 
-        let mu_val = compute_arrow_head_and_residuals::<_,_,_,_,_,_,LANDMARK_PARAM_SIZE,CAMERA_PARAM_SIZE>(target_arrowhead,target_arrowhead_residual,jacobian,residuals,mu,tau,n_cams,n_points);
+        let mu_val = compute_arrow_head_and_residuals::<_,_,_,_,_,_,_,LANDMARK_PARAM_SIZE,CAMERA_PARAM_SIZE>(target_arrowhead,target_arrowhead_residual,jacobian,residuals,mu,tau,n_cams,n_points);
 
         /*
          *     | U*  W  |
@@ -297,11 +304,11 @@ pub fn gauss_newton_step_with_conguate_gradient<R, C, S1, S2,StorageTargetArrow,
                 let res_b = target_arrowhead_residual.rows(u_span,v_span);
         
                 // Precondition S with preconditioner U*
-                let schur_compliment = (U_star_inv as &DMatrix<Float>)*(U_star - W*(V_star_inv as &DMatrix<Float>)*W_t); // takes long time
-                let res_a_augment = (U_star_inv as &DMatrix<Float>)*(res_a-W*(V_star_inv as &DMatrix<Float>)*res_b); // takes long time
-                match conjugate_gradient::conjugate_gradient::<_,_,_,Dynamic>(&schur_compliment, &res_a_augment, &mut target_perturb.rows_mut(0,u_span), cg_tresh, cg_max_it) {
+                let schur_compliment = (U_star_inv as &DMatrix<F>)*(U_star - W*(V_star_inv as &DMatrix<F>)*W_t); // takes long time
+                let res_a_augment = (U_star_inv as &DMatrix<F>)*(res_a-W*(V_star_inv as &DMatrix<F>)*res_b); // takes long time
+                match conjugate_gradient::conjugate_gradient::<_,_,_,_,Dynamic>(&schur_compliment, &res_a_augment, &mut target_perturb.rows_mut(0,u_span), cg_tresh, cg_max_it) {
                     true => {
-                        let h_b = (V_star_inv as &DMatrix<Float>)*(res_b-W_t*(&target_perturb.rows(0,u_span)));
+                        let h_b = (V_star_inv as &DMatrix<F>)*(res_b-W_t*(&target_perturb.rows(0,u_span)));
                         target_perturb.slice_mut((u_span,0),(v_span,1)).copy_from(&h_b);
                         Some((compute_gain_ratio(target_perturb,target_arrowhead_residual,mu_val), mu_val))
                     },
@@ -315,16 +322,17 @@ pub fn gauss_newton_step_with_conguate_gradient<R, C, S1, S2,StorageTargetArrow,
 
 }
 
-pub fn compute_gain_ratio<St, C>(perturb: &Vector<Float,C, St>,residual: &Vector<Float,C,St> , mu: Float) -> Float 
+pub fn compute_gain_ratio<F,St, C>(perturb: &Vector<F,C, St>,residual: &Vector<F,C,St> , mu: F) -> F 
     where 
+        F : float::Float + Scalar + NumAssign + SimdRealField,
         C: Dim,
-        St: StorageMut<Float, C, U1>,
-        DefaultAllocator: Allocator<Float, C> + Allocator<Float, U1, C> {
+        St: StorageMut<F, C, U1>,
+        DefaultAllocator: Allocator<F, C> + Allocator<F, U1, C> {
     let scaled_target_res = perturb.scale(mu);
     let g_1 = perturb.transpose()*(&scaled_target_res);
     let g_2 = perturb.transpose()*residual;
-    let gain_ratio_denom = 0.5*(g_1+g_2);
-    gain_ratio_denom[0]
+    let gain_ratio_denom = convert::<f64,F>(0.5)*(g_1[0]+g_2[0]);
+    gain_ratio_denom
 }
 
 #[allow(non_snake_case)]
@@ -353,28 +361,29 @@ pub fn gauss_newton_step<R, C,S1, S2, S3>(
 }
 
 #[allow(non_snake_case)]
-fn compute_arrow_head_and_residuals<R, C,StorageTargetArrow, StorageTargetResidual, StorageJacobian, StorageResidual, const LANDMARK_PARAM_SIZE: usize, const CAM_PARAM_SIZE: usize>
+fn compute_arrow_head_and_residuals<F,R, C,StorageTargetArrow, StorageTargetResidual, StorageJacobian, StorageResidual, const LANDMARK_PARAM_SIZE: usize, const CAM_PARAM_SIZE: usize>
     (
-        target_arrowhead: &mut Matrix<Float,C,C,StorageTargetArrow>, 
-        target_residual: &mut Vector<Float,C,StorageTargetResidual>, 
-        jacobian: &Matrix<Float,R,C,StorageJacobian>, 
-        residuals: &Vector<Float, R, StorageResidual>,
-        mu: Option<Float>, 
-        tau: Float,
+        target_arrowhead: &mut Matrix<F,C,C,StorageTargetArrow>, 
+        target_residual: &mut Vector<F,C,StorageTargetResidual>, 
+        jacobian: &Matrix<F,R,C,StorageJacobian>, 
+        residuals: &Vector<F, R, StorageResidual>,
+        mu: Option<F>, 
+        tau: F,
         n_cams: usize, 
         n_points: usize
-    ) -> Float
+    ) -> F
     where 
+    F : float::Float + Scalar + NumAssign,
     R: Dim, 
     C: Dim,
-    StorageTargetArrow: StorageMut<Float, C, C>,
-    StorageTargetResidual: StorageMut<Float, C, U1>,
-    StorageResidual: Storage<Float, R, U1>,
-    StorageJacobian: Storage<Float, R, C> {
+    StorageTargetArrow: StorageMut<F, C, C>,
+    StorageTargetResidual: StorageMut<F, C, U1>,
+    StorageResidual: Storage<F, R, U1>,
+    StorageJacobian: Storage<F, R, C> {
 
         let number_of_cam_params = CAM_PARAM_SIZE*n_cams;
         let number_of_measurement_rows = 2*n_cams*n_points;
-        let mut U_j = SMatrix::<Float,CAM_PARAM_SIZE,CAM_PARAM_SIZE>::zeros();
+        let mut U_j = SMatrix::<F,CAM_PARAM_SIZE,CAM_PARAM_SIZE>::zeros();
         for j in (0..number_of_cam_params).step_by(CAM_PARAM_SIZE) {
             let u_idx = j;
             let cam_id = j/CAM_PARAM_SIZE;
@@ -407,10 +416,10 @@ fn compute_arrow_head_and_residuals<R, C,StorageTargetArrow, StorageTargetResidu
 
             }
             target_arrowhead.fixed_slice_mut::<CAM_PARAM_SIZE,CAM_PARAM_SIZE>(u_idx,u_idx).copy_from(&U_j);
-            U_j.fill(0.0);
+            U_j.fill(zero::<F>());
         }
 
-        let mut diag_max = 0.0;
+        let mut diag_max: F = zero::<F>();
         for i in 0..target_arrowhead.ncols() {
             let v = target_arrowhead[(i,i)];
             if v > diag_max {

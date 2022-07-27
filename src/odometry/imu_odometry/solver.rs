@@ -75,8 +75,8 @@ fn estimate<const R: usize, const C: usize>(imu_data_measurement: &ImuDataFrame,
     let weight_l_upper = weights.cholesky().expect("Cholesky Decomp Failed!").l().transpose();
     let mut jacobian = imu_odometry::generate_jacobian(&estimate.rotation_lie(), delta_t);
 
-    weight_residuals::<9>(&mut residuals, &weight_l_upper);
-    weight_jacobian::<9,9>(&mut jacobian, &weight_l_upper);
+    weight_residuals::<_,9>(&mut residuals, &weight_l_upper);
+    weight_jacobian::<_,9,9>(&mut jacobian, &weight_l_upper);
 
 
     //let mut bias_jacobian = bias::genrate_residual_jacobian(&bias_estimate, preintegrated_bias, &residuals_unweighted);
@@ -124,7 +124,7 @@ fn estimate<const R: usize, const C: usize>(imu_data_measurement: &ImuDataFrame,
 
         let mut new_residuals = imu_odometry::generate_residual(&new_estimate, preintegrated_measurement, &new_bias_estimate, preintegrated_bias);
         //let new_residuals_unweighted = new_residuals.clone();
-        weight_residuals::<9>(&mut new_residuals, &weight_l_upper);
+        weight_residuals::<_,9>(&mut new_residuals, &weight_l_upper);
 
         let mut new_bias_a_residuals = bias::compute_residual(&new_bias_estimate.bias_a_delta, &preintegrated_bias.integrated_bias_a);
         let mut new_bias_g_residuals = bias::compute_residual(&new_bias_estimate.bias_g_delta, &preintegrated_bias.integrated_bias_g);
@@ -161,7 +161,7 @@ fn estimate<const R: usize, const C: usize>(imu_data_measurement: &ImuDataFrame,
             
 
             jacobian = imu_odometry::generate_jacobian(&estimate.rotation_lie(), delta_t);
-            weight_jacobian::<9,9>(&mut jacobian, &weight_l_upper);
+            weight_jacobian::<_, 9,9>(&mut jacobian, &weight_l_upper);
 
             bias_jacobian = bias::genrate_residual_jacobian(&bias_estimate, preintegrated_bias, &residuals);
 

@@ -1,20 +1,22 @@
 extern crate nalgebra as na;
+extern crate num_traits;
 
 use std::ops::{AddAssign,SubAssign};
-use na::{DMatrix, Matrix,Dynamic, storage::{Storage, StorageMut}, Vector ,U1, Dim, base::{default_allocator::DefaultAllocator, allocator::{Allocator}}};
+use num_traits::{float,NumAssign};
+use na::{SimdRealField, ComplexField, DMatrix, Matrix,Dynamic, storage::{Storage, StorageMut}, Vector ,U1, Dim, base::{Scalar, default_allocator::DefaultAllocator, allocator::{Allocator}}};
 use crate::{Float};
 
 #[allow(non_snake_case)]
-pub fn compute_block_matrix_preconditioner_inverse<PStorage,VStorage,WStorage, WtStorage>(preconditioner: &mut DMatrix::<Float>,P_inv: &Matrix::<Float,Dynamic,Dynamic,PStorage> , C: &Matrix::<Float,Dynamic,Dynamic, VStorage>, E: &Matrix::<Float,Dynamic,Dynamic, WStorage>, E_t: &Matrix::<Float,Dynamic,Dynamic, WtStorage>, omega: Float) -> () 
+pub fn compute_block_matrix_preconditioner_inverse<F,PStorage,VStorage,WStorage, WtStorage>(preconditioner: &mut DMatrix::<F>,P_inv: &Matrix::<F,Dynamic,Dynamic,PStorage> , C: &Matrix::<F,Dynamic,Dynamic, VStorage>, E: &Matrix::<F,Dynamic,Dynamic, WStorage>, E_t: &Matrix::<F,Dynamic,Dynamic, WtStorage>, omega: F, omega_sqrd: F) -> () 
     where
-        PStorage: Storage<Float,Dynamic,Dynamic>,
-        VStorage: Storage<Float,Dynamic,Dynamic> + Clone,
-        WStorage: Storage<Float,Dynamic,Dynamic>,
-        WtStorage: Storage<Float,Dynamic,Dynamic> {
+        F : float::Float + Scalar + NumAssign + SimdRealField + ComplexField,
+        PStorage: Storage<F,Dynamic,Dynamic>,
+        VStorage: Storage<F,Dynamic,Dynamic> + Clone,
+        WStorage: Storage<F,Dynamic,Dynamic>,
+        WtStorage: Storage<F,Dynamic,Dynamic> {
     let p_dim = P_inv.nrows();
     let v_dim = C.nrows();
 
-    let omega_sqrd = omega.powi(2);
     preconditioner.slice_mut((0,0),(p_dim,p_dim)).copy_from(P_inv);
     
     let temp = E*C;
@@ -31,15 +33,16 @@ pub fn compute_block_matrix_preconditioner_inverse<PStorage,VStorage,WStorage, W
 }
 
 #[allow(non_snake_case)]
-pub fn conjugate_gradient<StorageA, StorageB, StorageX, S>(A: &Matrix<Float,S,S,StorageA>,  b: &Vector<Float,S,StorageB>, x: &mut Vector<Float, S, StorageX>, threshold: Float, max_it: usize) -> bool 
+pub fn conjugate_gradient<F,StorageA, StorageB, StorageX, S>(A: &Matrix<F,S,S,StorageA>,  b: &Vector<F,S,StorageB>, x: &mut Vector<F, S, StorageX>, threshold: F, max_it: usize) -> bool 
     where 
+        F : float::Float + Scalar + NumAssign + SimdRealField + ComplexField,
         S: Dim,
-        StorageA: Storage<Float, S, S>, 
-        StorageX: StorageMut<Float, S, U1>,
-        StorageB: Storage<Float, S, U1>,
-        DefaultAllocator: Allocator<Float, S, S> + Allocator<Float, S> + Allocator<Float, U1, S>  {
+        StorageA: Storage<F, S, S>, 
+        StorageX: StorageMut<F, S, U1>,
+        StorageB: Storage<F, S, U1>,
+        DefaultAllocator: Allocator<F, S, S> + Allocator<F, S> + Allocator<F, U1, S>  {
 
-        let mut s = b - A*(x as &Vector<Float, S, StorageX>);
+        let mut s = b - A*(x as &Vector<F, S, StorageX>);
         let mut p = s.clone();
         let p_rows = p.nrows();
         let mut it = 0;
@@ -49,12 +52,12 @@ pub fn conjugate_gradient<StorageA, StorageB, StorageX, S>(A: &Matrix<Float,S,S,
             let p_borrow = &p;
             let s_comp_squared = ((&s).transpose()*(&s))[0];
             let p_comp_squared = (p_borrow.transpose()*A*p_borrow)[0];
-            let alpha = s_comp_squared/p_comp_squared;
-            x.add_assign(&(alpha*p_borrow));
-            s.sub_assign(&(alpha*(A*p_borrow)));
+            let alpha: F = s_comp_squared/p_comp_squared;
+            x.add_assign(&(p_borrow.scale(alpha)));
+            s.sub_assign(&((A*p_borrow).scale(alpha)));
             let s_new_comp_squared = ((&s).transpose()*(&s))[0];
             let beta = s_new_comp_squared/s_comp_squared;
-            let p_new = &s + beta*p_borrow;
+            let p_new = &s + p_borrow.scale(beta);
             p.rows_mut(0,p_rows).copy_from(&p_new.rows(0,p_rows));
             it = it+1;
             norm = (&s).norm();
