@@ -2,7 +2,6 @@ extern crate nalgebra as na;
 extern crate num_traits;
 
 use std::fmt::{Display,Debug,Formatter,Result};
-use crate::{Float};
 use crate::numerics::estimate_std;
 use num_traits::{float,NumAssign, pow, identities};
 use na::{convert, SimdRealField, ComplexField, DVector,base::Scalar};
@@ -147,11 +146,11 @@ impl<F> WeightingFunction<F> for SquaredWeight where F : float::Float + Scalar +
 
 }
 
-pub struct TDistWeight {
-    pub t_dist_nu: Float,
-    pub max_it: usize,
-    pub eps: Float
-}
+// pub struct TDistWeight {
+//     pub t_dist_nu: Float,
+//     pub max_it: usize,
+//     pub eps: Float
+// }
 
 //From Engels Paper -> Check cost
 // impl TDistWeight {
