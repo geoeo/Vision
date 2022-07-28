@@ -122,7 +122,7 @@ fn generate_normalized_weight_orientation_arrays(octave: &SiftOctave, keypoint: 
             let rot_x = x_center + rotated_coordinates[(0,0)]; 
             let rot_y = y_center + rotated_coordinates[(1,0)];  
             let gauss_weight = gauss_2d(x_center, y_center,rot_x, rot_y,sigma);
-            let grad_orientation = gradient_and_orientation(x_gradient,y_gradient,rot_x.trunc() as usize,rot_y.trunc() as usize); 
+            let grad_orientation = gradient_and_orientation::<Float>(x_gradient,y_gradient,rot_x.trunc() as usize,rot_y.trunc() as usize); 
             let weighted_gradient = grad_orientation.0*gauss_weight; 
             
             sample_weights[matrix_index] = weighted_gradient;

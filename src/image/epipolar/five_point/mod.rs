@@ -92,10 +92,10 @@ pub fn five_point_essential<T: Feature + Clone, C: Camera>(matches: &Vec<Match<T
     let u3 = vt.row(7).transpose();
     let u4 = vt.row(8).transpose();
 
-    let E1 = to_matrix::<3,3,9>(&u1).transpose();
-    let E2 = to_matrix::<3,3,9>(&u2).transpose();
-    let E3 = to_matrix::<3,3,9>(&u3).transpose();
-    let E4 = to_matrix::<3,3,9>(&u4).transpose();
+    let E1 = to_matrix::<_,3,3,9>(&u1).transpose();
+    let E2 = to_matrix::<_,3,3,9>(&u2).transpose();
+    let E3 = to_matrix::<_,3,3,9>(&u3).transpose();
+    let E4 = to_matrix::<_,3,3,9>(&u4).transpose();
 
     let M = generate_five_point_constrait_matrix(&E1,&E2,&E3,&E4);
 
