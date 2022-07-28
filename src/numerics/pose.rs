@@ -1,8 +1,7 @@
 extern crate nalgebra as na;
 
-use na::{Vector3,Matrix4,Matrix3,Point3,UnitQuaternion,Isometry ,Isometry3, Translation3, Rotation3};
+use na::{Vector3,Matrix4,Matrix3,Point3,UnitQuaternion,Isometry ,Isometry3, Translation3, Rotation3, convert, SimdRealField, ComplexField,base::Scalar, RealField};
 use num_traits::{float,NumAssign};
-use na::{convert, SimdRealField, ComplexField,base::Scalar, RealField};
 
 pub fn from_matrix<F>(mat: &Matrix4<F>) -> Isometry3<F> where F : float::Float + Scalar + NumAssign + RealField + SimdRealField + ComplexField {
     let vec = Vector3::<F>::new(mat[(0,3)],mat[(1,3)],mat[(2,3)]);
