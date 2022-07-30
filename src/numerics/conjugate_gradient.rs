@@ -4,7 +4,6 @@ extern crate num_traits;
 use std::ops::{AddAssign,SubAssign};
 use num_traits::{float,NumAssign};
 use na::{SimdRealField, ComplexField, DMatrix, Matrix,Dynamic, storage::{Storage, StorageMut}, Vector ,U1, Dim, base::{Scalar, default_allocator::DefaultAllocator, allocator::{Allocator}}};
-use crate::{Float};
 
 #[allow(non_snake_case)]
 pub fn compute_block_matrix_preconditioner_inverse<F,PStorage,VStorage,WStorage, WtStorage>(preconditioner: &mut DMatrix::<F>,P_inv: &Matrix::<F,Dynamic,Dynamic,PStorage> , C: &Matrix::<F,Dynamic,Dynamic, VStorage>, E: &Matrix::<F,Dynamic,Dynamic, WStorage>, E_t: &Matrix::<F,Dynamic,Dynamic, WtStorage>, omega: F) -> () 

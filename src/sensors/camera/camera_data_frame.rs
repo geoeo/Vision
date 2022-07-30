@@ -15,8 +15,8 @@ pub struct CameraDataFrame {
     pub source_depth_images: Vec<Image>,
     pub target_gray_images: Vec<Image>,
     pub target_depth_images: Vec<Image>,
-    pub intensity_camera: Pinhole,
-    pub depth_camera: Pinhole,
+    pub intensity_camera: Pinhole<Float>,
+    pub depth_camera: Pinhole<Float>,
     pub target_gt_poses: Option<Vec<(Vector3<Float>,Quaternion<Float>)>>,
     pub source_gt_poses: Option<Vec<(Vector3<Float>,Quaternion<Float>)>> 
 }

@@ -18,7 +18,7 @@ pub fn get_feature_index_in_residual(cam_id: usize, feature_id: usize, n_cams: u
  * In the format [f1_cam1, f1_cam2,...]
  * Some entries may be 0 since not all cams see all points
  * */
-pub fn get_estimated_features<C : Camera, L: Landmark<T> + Copy + Clone, const T: usize>(state: &State<L,T>, cameras: &Vec<&C>,observed_features: &DVector<Float>, estimated_features: &mut DVector<Float>) -> () {
+pub fn get_estimated_features<C : Camera<Float>, L: Landmark<Float,T> + Copy + Clone, const T: usize>(state: &State<Float,L,T>, cameras: &Vec<&C>,observed_features: &DVector<Float>, estimated_features: &mut DVector<Float>) -> () {
     let n_cams = state.n_cams;
     let n_points = state.n_points;
     assert_eq!(estimated_features.nrows(),2*n_points*n_cams);
@@ -60,7 +60,7 @@ pub fn compute_residual(estimated_features: &DVector<Float>, observed_features: 
     }
 }
 
-pub fn compute_jacobian_wrt_object_points<C : Camera, L: Landmark<T> + Copy + Clone, const T: usize>(camera: &C, state: &State<L,T>, cam_idx: usize, point_idx: usize, i: usize, j: usize, jacobian: &mut DMatrix<Float>) -> (){
+pub fn compute_jacobian_wrt_object_points<C : Camera<Float>, L: Landmark<Float, T> + Copy + Clone, const T: usize>(camera: &C, state: &State<Float,L,T>, cam_idx: usize, point_idx: usize, i: usize, j: usize, jacobian: &mut DMatrix<Float>) -> (){
     let transformation = state.to_se3(cam_idx);
     let point = state.get_landmarks()[point_idx].get_euclidean_representation();
     let jacobian_world = state.jacobian_wrt_world_coordiantes(point_idx,cam_idx);
@@ -71,7 +71,7 @@ pub fn compute_jacobian_wrt_object_points<C : Camera, L: Landmark<T> + Copy + Cl
     jacobian.fixed_slice_mut::<2,T>(i,j).copy_from(&local_jacobian.fixed_slice::<2,T>(0,0));
 }
 
-pub fn compute_jacobian_wrt_camera_extrinsics<C : Camera, L: Landmark<T> + Copy + Clone, const T: usize>(camera: &C, state: &State<L,T>, cam_idx: usize, point: &Point3<Float> ,i: usize, j: usize, jacobian: &mut DMatrix<Float>) 
+pub fn compute_jacobian_wrt_camera_extrinsics<C : Camera<Float>, L: Landmark<Float, T> + Copy + Clone, const T: usize>(camera: &C, state: &State<Float,L,T>, cam_idx: usize, point: &Point3<Float> ,i: usize, j: usize, jacobian: &mut DMatrix<Float>) 
     -> (){
     let transformation = state.to_se3(cam_idx);
     let transformed_point = transformation*Vector4::<Float>::new(point[0],point[1],point[2],1.0);
@@ -83,7 +83,7 @@ pub fn compute_jacobian_wrt_camera_extrinsics<C : Camera, L: Landmark<T> + Copy 
     jacobian.fixed_slice_mut::<2,6>(i,j).copy_from(&local_jacobian);
 }
 
-pub fn compute_jacobian<C : Camera, L: Landmark<T> + Copy + Clone, const T: usize>(state: &State<L,T>, cameras: &Vec<&C>, jacobian: &mut DMatrix<Float>) -> () {
+pub fn compute_jacobian<C : Camera<Float>, L: Landmark<Float, T> + Copy + Clone, const T: usize>(state: &State<Float, L,T>, cameras: &Vec<&C>, jacobian: &mut DMatrix<Float>) -> () {
     //cam
     let number_of_cam_params = 6*state.n_cams;
     for cam_state_idx in (0..number_of_cam_params).step_by(6) {
@@ -108,7 +108,7 @@ pub fn compute_jacobian<C : Camera, L: Landmark<T> + Copy + Clone, const T: usiz
 
 }
 
-pub fn optimize<C : Camera, L: Landmark<LANDMARK_PARAM_SIZE> + Copy + Clone, const LANDMARK_PARAM_SIZE: usize>(state: &mut State<L,LANDMARK_PARAM_SIZE>, cameras: &Vec<&C>, observed_features: &DVector<Float>, runtime_parameters: &RuntimeParameters ) -> Option<Vec<(Vec<[Float; CAMERA_PARAM_SIZE]>, Vec<[Float; LANDMARK_PARAM_SIZE]>)>> {
+pub fn optimize<C : Camera<Float>, L: Landmark<Float, LANDMARK_PARAM_SIZE> + Copy + Clone, const LANDMARK_PARAM_SIZE: usize>(state: &mut State<Float, L,LANDMARK_PARAM_SIZE>, cameras: &Vec<&C>, observed_features: &DVector<Float>, runtime_parameters: &RuntimeParameters ) -> Option<Vec<(Vec<[Float; CAMERA_PARAM_SIZE]>, Vec<[Float; LANDMARK_PARAM_SIZE]>)>> {
     
 
     let max_iterations = runtime_parameters.max_iterations[0];

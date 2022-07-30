@@ -41,7 +41,7 @@ pub fn parse_to_float(string: &str, negate_value: bool) -> Float {
 }
 
 //TODO: make this a generic camera arg
-pub fn load_depth_image_from_csv(file_path: &Path, negate_values: bool, invert_y: bool, width: usize, height: usize, scale: Float, normalize: bool, set_default_depth: bool, transform_camera_option: &Option<(&Matrix4<Float>,&Pinhole)>) -> Image {
+pub fn load_depth_image_from_csv(file_path: &Path, negate_values: bool, invert_y: bool, width: usize, height: usize, scale: Float, normalize: bool, set_default_depth: bool, transform_camera_option: &Option<(&Matrix4<Float>,&Pinhole<Float>)>) -> Image {
     let file = File::open(file_path).expect("load_depth_map failed");
     let mut reader = BufReader::new(file);
     let mut contents = String::new();

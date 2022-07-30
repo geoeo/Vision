@@ -23,7 +23,7 @@ pub fn run_trajectory<C>(
     intensity_camera: &C,
     depth_camera: &C,
     runtime_parameters: &RuntimeParameters,
-) -> Vec<Isometry3<Float>> where C: Camera {
+) -> Vec<Isometry3<Float>> where C: Camera<Float> {
     let mut runtime_memory_vector = RuntimeMemory::<6>::from_pyramid(&source_rgdb_pyramids[0]);
     source_rgdb_pyramids
         .iter()
@@ -43,7 +43,7 @@ pub fn run_trajectory<C>(
         .collect::<Vec<Isometry3<Float>>>()
 }
 
-pub fn run<C: Camera, const T: usize>(
+pub fn run<C: Camera<Float>, const T: usize>(
     iteration: usize,
     source_rgdb_pyramid: &GDPyramid<GDOctave>,
     target_rgdb_pyramid: &GDPyramid<GDOctave>,
@@ -93,7 +93,7 @@ pub fn run<C: Camera, const T: usize>(
 }
 
 //TODO: buffer all debug strings and print at the end. Also the numeric matricies could be buffered per octave level
-fn estimate<C : Camera, const T: usize>(
+fn estimate<C : Camera<Float>, const T: usize>(
     source_octave: &GDOctave,
     source_depth_image_original: &Image,
     target_octave: &GDOctave,

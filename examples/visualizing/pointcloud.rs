@@ -68,9 +68,9 @@ fn main() -> Result<(),()> {
 
 
     let loaded_state: (Vec<[Float;6]>,Vec<[Float;3]>) = serde_yaml::from_str(&final_state_as_string).unwrap();
-    let ba_state = state::State::<EuclideanLandmark,3>::from_serial(&loaded_state);
+    let ba_state = state::State::<Float,EuclideanLandmark<Float>,3>::from_serial(&loaded_state);
     let loaded_all_states: Vec<(Vec<[Float;6]>,Vec<[Float;3]>)> = serde_yaml::from_str(&all_states_as_string).unwrap();
-    let all_ba_states = loaded_all_states.iter().map(|x|  state::State::<EuclideanLandmark,3>::from_serial(x)).collect::<Vec< state::State::<EuclideanLandmark,3>>>();
+    let all_ba_states = loaded_all_states.iter().map(|x|  state::State::<Float,EuclideanLandmark<Float>,3>::from_serial(x)).collect::<Vec< state::State::<Float,EuclideanLandmark<Float>,3>>>();
 
     // let loaded_state: (Vec<[Float;6]>,Vec<[Float;6]>) = serde_yaml::from_str(&final_state_as_string).unwrap();
     // let ba_state = state::State::<InverseLandmark,6>::from_serial(&loaded_state);

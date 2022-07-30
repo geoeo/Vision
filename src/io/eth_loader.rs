@@ -116,7 +116,7 @@ pub fn load_ground_truths(file_path: &Path,  gt_alignment_rot: &UnitQuaternion<F
 
 
 
-pub fn load_intrinsics_as_pinhole(file_path: &Path, invert_focal_lengths: bool) -> Pinhole {
+pub fn load_intrinsics_as_pinhole(file_path: &Path, invert_focal_lengths: bool) -> Pinhole<Float> {
     let file = File::open(file_path).expect("load_intrinsics failed");
     let mut reader = BufReader::new(file);
     let mut contents = String::new();

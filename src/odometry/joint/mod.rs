@@ -29,7 +29,7 @@ use crate::{float, Float};
 const OBSERVATIONS_DIM: usize = 9;
 const PARAMETERS_DIM: usize = 15; //With bias
 
-pub fn run_trajectory<Cam: Camera>(
+pub fn run_trajectory<Cam: Camera<Float>>(
     source_rgdb_pyramids: &Vec<GDPyramid<GDOctave>>,
     target_rgdb_pyramids: &Vec<GDPyramid<GDOctave>>,
     intensity_camera: &Cam,
@@ -65,7 +65,7 @@ pub fn run_trajectory<Cam: Camera>(
         .collect::<Vec<Isometry3<Float>>>()
 }
 
-pub fn run<Cam: Camera, const C: usize>(
+pub fn run<Cam: Camera<Float>, const C: usize>(
     iteration: usize,
     source_rgdb_pyramid: &GDPyramid<GDOctave>,
     target_rgdb_pyramid: &GDPyramid<GDOctave>,
@@ -137,7 +137,7 @@ pub fn run<Cam: Camera, const C: usize>(
 }
 
 //TODO: buffer all debug strings and print at the end. Also the numeric matricies could be buffered per octave level
-fn estimate<Cam: Camera, const R: usize, const C: usize>(
+fn estimate<Cam: Camera<Float>, const R: usize, const C: usize>(
     source_octave: &GDOctave,
     source_depth_image_original: &Image,
     target_octave: &GDOctave,

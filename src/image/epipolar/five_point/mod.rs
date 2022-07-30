@@ -15,7 +15,7 @@ mod constraints;
  * This only work on ubuntu. assert build version or something
  */
 #[allow(non_snake_case)]
-pub fn five_point_essential<T: Feature + Clone, C: Camera>(matches: &Vec<Match<T>>, camera_one: &C, camera_two: &C, depth_positive: bool) -> Essential {
+pub fn five_point_essential<T: Feature + Clone, C: Camera<Float>>(matches: &Vec<Match<T>>, camera_one: &C, camera_two: &C, depth_positive: bool) -> Essential {
     let inverse_projection_one = camera_one.get_inverse_projection();
     let inverse_projection_two = camera_two.get_inverse_projection();
     let l = matches.len();

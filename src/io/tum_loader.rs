@@ -146,7 +146,7 @@ pub fn load_ground_truths_and_timestamps(file_path: &Path, gt_alignment_rot: &Un
     (timestamps,ground_truths)
 }
 
-pub fn load_intrinsics_as_pinhole(dataset: &Dataset, invert_focal_lengths: bool) -> Pinhole {
+pub fn load_intrinsics_as_pinhole(dataset: &Dataset, invert_focal_lengths: bool) -> Pinhole<Float> {
     match dataset {
         Dataset::FR1 => Pinhole::new(517.3, 516.5, 318.6, 255.3, invert_focal_lengths),
         Dataset::FR2 => Pinhole::new(520.9, 521.0, 325.1, 249.7, invert_focal_lengths),

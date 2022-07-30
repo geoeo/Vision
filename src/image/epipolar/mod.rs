@@ -41,7 +41,7 @@ pub fn extract_matches<T: Feature>(matches: &Vec<Match<T>>, pyramid_scale: Float
 
 }
 #[allow(non_snake_case)]
-pub fn five_point_essential<T: Feature + Clone, C: Camera>(matches: &Vec<Match<T>>, camera_one: &C, camera_two: &C, depth_positive: bool) -> Essential {
+pub fn five_point_essential<T: Feature + Clone, C: Camera<Float>>(matches: &Vec<Match<T>>, camera_one: &C, camera_two: &C, depth_positive: bool) -> Essential {
     five_point::five_point_essential(matches,camera_one,camera_two,depth_positive)
 }
 
@@ -129,7 +129,7 @@ pub fn filter_matches_from_fundamental<T: Feature + Clone>(F: &Fundamental,match
 }
 
 #[allow(non_snake_case)]
-pub fn filter_matches_from_motion<T: Feature + Clone, C: Camera>(matches: &Vec<Match<T>>, relative_motion: &(Vector3<Float>,Matrix3<Float>),camera_pair: &(C,C), principal_distance_sign: Float, epipiolar_thresh: Float) -> Vec<Match<T>> {
+pub fn filter_matches_from_motion<T: Feature + Clone, C: Camera<Float>>(matches: &Vec<Match<T>>, relative_motion: &(Vector3<Float>,Matrix3<Float>),camera_pair: &(C,C), principal_distance_sign: Float, epipiolar_thresh: Float) -> Vec<Match<T>> {
     let (cam_s,cam_f) = &camera_pair;
     let (t,R) = &relative_motion;
     let essential = essential_matrix_from_motion(t, R);
@@ -180,10 +180,6 @@ pub fn decompose_essential_förstner<T : Feature>(
 
 
     let b = u.column(2).into_owned(); 
-    let principal_distance_sign = match inverse_camera_matrix_start[(0,0)] {
-        v if v < 0.0 => -1.0,
-        _ => 1.0
-    };
     let R_matrices = vec!(V_norm*W*U_norm.transpose(), V_norm*W*U_norm.transpose(),V_norm*W.transpose()*U_norm.transpose(), V_norm*W.transpose()*U_norm.transpose());
     let h_vecs = vec!(b,-b, b, -b);
 
@@ -234,7 +230,7 @@ pub fn decompose_essential_förstner<T : Feature>(
     // Might be this method five r_t after all
     //rotation = optimal_correction_of_rotation(&rotation.transpose());
     //translation = -rotation.transpose()*translation;
-    (translation,rotation,e_corrected)
+    (translation,optimal_correction_of_rotation(&rotation),e_corrected)
 
 }
 
@@ -288,7 +284,7 @@ pub fn decompose_essential_kanatani<T: Feature>(E: &Essential, matches: &Vec<Mat
 }
 
 #[allow(non_snake_case)]
-pub fn compute_pairwise_cam_motions_with_filtered_matches_for_path<C : Camera + Copy,T : Feature + Clone>(
+pub fn compute_pairwise_cam_motions_with_filtered_matches_for_path<C : Camera<Float> + Copy,T : Feature + Clone>(
         sfm_config: &SFMConfig<C, T>,
         path_idx: usize,
         pyramid_scale:Float, 
@@ -340,7 +336,7 @@ pub fn compute_pairwise_cam_motions_with_filtered_matches_for_path<C : Camera + 
 
 
 #[allow(non_snake_case)]
-pub fn compute_pairwise_cam_motions_with_filtered_matches<C: Camera + Copy,T : Feature + Clone>(
+pub fn compute_pairwise_cam_motions_with_filtered_matches<C: Camera<Float> + Copy,T : Feature + Clone>(
         sfm_config: &SFMConfig<C, T>,
         pyramid_scale:Float, 
         epipolar_thresh: Float, 

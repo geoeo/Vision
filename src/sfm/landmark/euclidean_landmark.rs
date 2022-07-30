@@ -1,46 +1,48 @@
 extern crate nalgebra as na;
+extern crate num_traits;
 
-use na::{Isometry3, Point3, Vector3,SVector, SMatrix};
+use na::{Isometry3, Point3, Vector3,SVector, SMatrix, SimdRealField, ComplexField,base::Scalar};
+use num_traits::{float,NumAssign};
+use std::{ops::Mul,convert::From};
 use crate::sfm::landmark::Landmark;
-use crate::Float;
 
 #[derive(Copy,Clone)]
-pub struct EuclideanLandmark {
-    state: Point3<Float>,
+pub struct EuclideanLandmark<F: float::Float + Scalar + NumAssign + SimdRealField + ComplexField + Mul<F> + From<F>> {
+    state: Point3<F>,
 }
 
-impl Landmark<3> for EuclideanLandmark {
+impl<F: float::Float + Scalar + NumAssign + SimdRealField + ComplexField + Mul<F> + From<F>> Landmark<F,3> for EuclideanLandmark<F> {
 
-    fn from_state(state: SVector<Float,3>) -> EuclideanLandmark {
-        EuclideanLandmark{state: Point3::<Float>::from(state)}
+    fn from_state(state: SVector<F,3>) -> EuclideanLandmark<F> {
+        EuclideanLandmark{state: Point3::<F>::from(state)}
     }
 
-    fn update(&mut self,perturb :&SVector<Float,3>) -> () {
+    fn update(&mut self,perturb :&SVector<F,3>) -> () {
         self.state.coords += perturb;
     }
 
-    fn get_euclidean_representation(&self) -> Point3<Float> {
+    fn get_euclidean_representation(&self) -> Point3<F> {
         self.state
     }
 
-    fn transform_into_other_camera_frame(&self, other_cam_world: &Isometry3<Float>) -> Point3<Float> {
+    fn transform_into_other_camera_frame(&self, other_cam_world: &Isometry3<F>) -> Point3<F> {
         other_cam_world*self.state
         
     }
 
-    fn jacobian(&self, world_to_cam: &Isometry3<Float>) -> SMatrix<Float,3,{Self::LANDMARK_PARAM_SIZE}> {
+    fn jacobian(&self, world_to_cam: &Isometry3<F>) -> SMatrix<F,3,3> {
         world_to_cam.rotation.to_rotation_matrix().matrix().into_owned()
     }
 
-    fn get_state_as_vector(&self) -> &Vector3<Float> {
+    fn get_state_as_vector(&self) -> &Vector3<F> {
         &self.state.coords
     }
 
-    fn from_array(arr: &[Float; Self::LANDMARK_PARAM_SIZE]) -> EuclideanLandmark {
-        EuclideanLandmark{state: Point3::<Float>::new(arr[0],arr[1],arr[2])}
+    fn from_array(arr: &[F; 3]) -> EuclideanLandmark<F> {
+        EuclideanLandmark{state: Point3::<F>::new(arr[0],arr[1],arr[2])}
     }
 
-    fn get_state_as_array(&self) -> [Float; Self::LANDMARK_PARAM_SIZE] {
+    fn get_state_as_array(&self) -> [F; 3] {
         [self.state[0], self.state[1], self.state[2]]
     }
 }

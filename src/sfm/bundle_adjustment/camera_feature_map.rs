@@ -127,13 +127,13 @@ impl CameraFeatureMap {
     /**
      * initial_motion should all be with respect to the first camera
      */
-    pub fn get_inverse_depth_landmark_state<C: Camera>(&self, initial_motions : Option<&Vec<Vec<(usize,(Vector3<Float>,Matrix3<Float>))>>>, inverse_depth_prior: Float, cameras: &Vec<C>) -> State<InverseLandmark,6> {
+    pub fn get_inverse_depth_landmark_state<C: Camera<Float>>(&self, initial_motions : Option<&Vec<Vec<(usize,(Vector3<Float>,Matrix3<Float>))>>>, inverse_depth_prior: Float, cameras: &Vec<C>) -> State<Float,InverseLandmark<Float>,6> {
 
         let number_of_cameras = self.camera_map.keys().len();
         let number_of_unqiue_landmarks = self.number_of_unique_points;
         let camera_positions = self.get_initial_camera_positions(initial_motions);
         let n_points = self.number_of_unique_points;
-        let mut landmarks = Vec::<InverseLandmark>::with_capacity(number_of_unqiue_landmarks);
+        let mut landmarks = Vec::<InverseLandmark<Float>>::with_capacity(number_of_unqiue_landmarks);
 
         for landmark_idx in 0..n_points {
             let observing_cams = &self.point_cam_map[landmark_idx];
@@ -153,7 +153,7 @@ impl CameraFeatureMap {
         State::new(camera_positions,landmarks, number_of_cameras, number_of_unqiue_landmarks)
     }
 
-    pub fn get_euclidean_landmark_state<C : Camera + Copy>(&self, initial_motions : Option<&Vec<Vec<(usize,(Vector3<Float>,Matrix3<Float>))>>>, root_id: usize,camera_map: &HashMap<usize, C>, paths: &Vec<Vec<usize>> , depth_prior: Float) -> State<EuclideanLandmark,3> {
+    pub fn get_euclidean_landmark_state<C : Camera<Float> + Copy>(&self, initial_motions : Option<&Vec<Vec<(usize,(Vector3<Float>,Matrix3<Float>))>>>, root_id: usize,camera_map: &HashMap<usize, C>, paths: &Vec<Vec<usize>> , depth_prior: Float) -> State<Float, EuclideanLandmark<Float>,3> {
         
         let number_of_cameras = self.camera_map.keys().len();
         let number_of_unqiue_landmarks = self.number_of_unique_points;
@@ -241,7 +241,7 @@ impl CameraFeatureMap {
                 }
                 triangualted_landmarks
             },
-            None => vec!(Vector3::<Float>::new(0.0, 0.0, depth_prior);number_of_unqiue_landmarks).iter().map(|&v| EuclideanLandmark::from_state(v)).collect::<Vec<EuclideanLandmark>>()  
+            None => vec!(Vector3::<Float>::new(0.0, 0.0, depth_prior);number_of_unqiue_landmarks).iter().map(|&v| EuclideanLandmark::from_state(v)).collect::<Vec<EuclideanLandmark<Float>>>()  
         };
 
 

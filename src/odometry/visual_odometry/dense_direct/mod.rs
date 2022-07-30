@@ -80,7 +80,7 @@ pub fn compute_image_gradients(x_gradients: &DMatrix<Float>, y_gradients: &DMatr
 
 }
 
-pub fn backproject_points<C : Camera>(source_image_buffer: &DMatrix<Float>,depth_image_buffer: &DMatrix<Float>,  camera: &C, pyramid_scale: Float,  octave_index: usize) -> (Matrix<Float,U4,Dynamic,VecStorage<Float,U4,Dynamic>>, Vec<bool>) {
+pub fn backproject_points<C : Camera<Float>>(source_image_buffer: &DMatrix<Float>,depth_image_buffer: &DMatrix<Float>,  camera: &C, pyramid_scale: Float,  octave_index: usize) -> (Matrix<Float,U4,Dynamic,VecStorage<Float,U4,Dynamic>>, Vec<bool>) {
     let (rows,cols) = source_image_buffer.shape();
     let mut backproject_points =  Matrix::<Float,U4,Dynamic,VecStorage<Float,U4,Dynamic>>::zeros(rows*cols);
     let mut backproject_points_flags =  vec![false;rows*cols];
@@ -105,7 +105,7 @@ pub fn backproject_points<C : Camera>(source_image_buffer: &DMatrix<Float>,depth
     (backproject_points,backproject_points_flags)
 }
 
-pub fn precompute_jacobians<C: Camera, T: Dim + DimName>(backprojected_points: &Matrix<Float,U4,Dynamic,VecStorage<Float,U4,Dynamic>>,backprojected_points_flags: &Vec<bool>, camera: &C) -> Matrix<Float,Dynamic,T, VecStorage<Float,Dynamic,T>> {
+pub fn precompute_jacobians<C: Camera<Float>, T: Dim + DimName>(backprojected_points: &Matrix<Float,U4,Dynamic,VecStorage<Float,U4,Dynamic>>,backprojected_points_flags: &Vec<bool>, camera: &C) -> Matrix<Float,Dynamic,T, VecStorage<Float,Dynamic,T>> {
     let number_of_points = backprojected_points.ncols();
     let mut precomputed_jacobians = Matrix::<Float,Dynamic,T, VecStorage<Float,Dynamic,T>>::zeros(2*number_of_points);
 
@@ -138,7 +138,7 @@ pub fn compute_full_jacobian<const D: usize>(image_gradients: &Matrix<Float,Dyna
 
 //TODO: highest performance offender
 pub fn compute_residuals<C>(target_image_buffer: &DMatrix<Float>,source_image_buffer: &DMatrix<Float>,backprojected_points: &Matrix<Float,U4,Dynamic,VecStorage<Float,U4,Dynamic>>,
-    backprojected_points_flags: &Vec<bool>, est_transform: &Matrix4<Float>, camera: &C, residual_target: &mut DVector<Float>, image_gradient_points: &mut Vec<Point<usize>>) -> () where C: Camera {
+    backprojected_points_flags: &Vec<bool>, est_transform: &Matrix4<Float>, camera: &C, residual_target: &mut DVector<Float>, image_gradient_points: &mut Vec<Point<usize>>) -> () where C: Camera<Float> {
     let transformed_points = est_transform*backprojected_points;
     let number_of_points = transformed_points.ncols();
     let image_width = target_image_buffer.ncols();

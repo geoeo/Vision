@@ -1,9 +1,10 @@
 use std::collections::HashMap;
 use crate::sensors::camera::Camera;
 use crate::image::features::{Feature, Match};
+use crate::Float;
 
 pub mod bundle_adjustment;
-pub mod landmark;
+pub mod landmark; 
 
 
 macro_rules! define_sfm_float {
@@ -17,14 +18,14 @@ define_sfm_float!(f32);
 /**
  * We assume that the indices between paths and matches are consistent
  */
-pub struct SFMConfig<C: Camera, F: Feature> {
+pub struct SFMConfig<C: Camera<Float>, F: Feature> {
     root: usize,
     paths: Vec<Vec<usize>>,
     camera_map: HashMap<usize, C>,
     matches: Vec<Vec<Vec<Match<F>>>>
 }
 
-impl<C: Camera, F: Feature> SFMConfig<C,F> {
+impl<C: Camera<Float>, F: Feature> SFMConfig<C,F> {
 
     pub fn new(root: usize, paths: Vec<Vec<usize>>, camera_map: HashMap<usize, C>, matches: Vec<Vec<Vec<Match<F>>>>) -> SFMConfig<C,F> {
         SFMConfig{root, paths, camera_map, matches}
