@@ -39,7 +39,7 @@ fn main() -> Result<()> {
     let epipolar_thresh = 0.05;
     //let epipolar_thresh = 0.1;
     //let epipolar_thresh = 1.0;
-    //let epipolar_thresh = Float::INFINITY;
+    let epipolar_thresh = Float::INFINITY;
 
     let feature_skip_count = 2;
     let olsen_data = OlssenData::new(&olsen_data_path);
@@ -166,7 +166,7 @@ fn main() -> Result<()> {
             epipolar_thresh,
             positive_principal_distance,
             normalize_features,
-            BifocalType::ESSENTIAL, 
+            BifocalType::FUNDAMENTAL, 
             EssentialDecomposition::FÖRSNTER
     );
 

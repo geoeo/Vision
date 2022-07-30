@@ -1,8 +1,10 @@
 extern crate nalgebra as na;
+extern crate num_traits;
 
 use na::{convert, Matrix2,Matrix3,Matrix1x2,Matrix3x1,SMatrix, Vector,SVector,Dim, storage::Storage,DVector, SimdRealField, ComplexField,base::Scalar};
 use num_traits::{float,NumAssign, identities};
 use crate::image::Image;
+use crate::Float;
 
 pub mod lie;
 pub mod pose;
@@ -80,8 +82,8 @@ pub fn rotation_matrix_2d_from_orientation<F>(orientation: F) -> Matrix2<F> wher
 }
 
 pub fn gradient_and_orientation<F>(x_gradient: &Image, y_gradient: &Image, x: usize, y: usize) -> (F,F) where F : num_traits::float::Float + Scalar + NumAssign + SimdRealField + ComplexField {
-    let x_sample: F = convert(x_gradient.buffer.index((y,x)).clone());
-    let y_sample: F = convert(y_gradient.buffer.index((y,x)).clone());
+    let x_sample: F = num_traits::cast::<Float,F>(x_gradient.buffer.index((y,x)).clone()).expect("gradient_and_orientation: x_sample cast failed");
+    let y_sample: F = num_traits::cast::<Float,F>(y_gradient.buffer.index((y,x)).clone()).expect("gradient_and_orientation: y_sample cast failed");
     let two: F = convert(2.0);
 
     let x_diff = round(x_sample,5);

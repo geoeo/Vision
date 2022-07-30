@@ -121,10 +121,10 @@ pub fn load_intrinsics_as_pinhole(file_path: &Path, invert_focal_lengths: bool) 
     let mut reader = BufReader::new(file);
     let mut contents = String::new();
     reader.read_to_string(&mut contents).unwrap();
-    let values = contents.trim().split(|c| !char::is_numeric(c)).map(|s| (s.len(),s.parse::<f64>())).filter(|(_,option)|  option.is_ok()).map(|(len,option)| (len,option.unwrap())).collect::<Vec<(usize,Float)>>();
+    let values = contents.trim().split(|c| !char::is_numeric(c)).map(|s| (s.len(),s.parse::<Float>())).filter(|(_,option)|  option.is_ok()).map(|(len,option)| (len,option.unwrap())).collect::<Vec<(usize,Float)>>();
 
-    let fx = values[0].1 + values[1].1/(10f64.powi(values[1].0 as i32));
-    let fy = values[6].1 +values[7].1/(10f64.powi(values[7].0 as i32));
+    let fx = values[0].1 + values[1].1/(10f64.powi(values[1].0 as i32) as Float);
+    let fy = values[6].1 +values[7].1/(10f64.powi(values[7].0 as i32) as Float);
 
     let cx = values[3].1;
     let cy = values[8].1;
