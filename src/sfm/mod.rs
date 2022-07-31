@@ -3,13 +3,7 @@ extern crate num_traits;
 extern crate simba;
 
 use std::collections::HashMap;
-use std::marker::PhantomData;
-use crate::sensors::camera::Camera;
 use crate::image::features::{Feature, Match};
-
-
-use num_traits::{float,NumAssign};
-use na::{SimdRealField, ComplexField,base::Scalar, RealField};
 
 pub mod bundle_adjustment;
 pub mod landmark; 
@@ -26,18 +20,17 @@ define_sfm_float!(f32);
 /**
  * We assume that the indices between paths and matches are consistent
  */
-pub struct SFMConfig<F: float::Float + Scalar + NumAssign + SimdRealField + ComplexField + RealField, C: Camera<F>, Feat: Feature> {
+pub struct SFMConfig<C, Feat: Feature> {
     root: usize,
     paths: Vec<Vec<usize>>,
     camera_map: HashMap<usize, C>,
     matches: Vec<Vec<Vec<Match<Feat>>>>,
-    phantom: PhantomData<fn(F) -> F>
 }
 
-impl<F: float::Float + Scalar + NumAssign + SimdRealField + ComplexField + RealField, C: Camera<F>, Feat: Feature> SFMConfig<F,C,Feat> {
+impl<C, Feat: Feature> SFMConfig<C,Feat> {
 
-    pub fn new(root: usize, paths: Vec<Vec<usize>>, camera_map: HashMap<usize, C>, matches: Vec<Vec<Vec<Match<Feat>>>>) -> SFMConfig<F,C,Feat> {
-        SFMConfig{root, paths, camera_map, matches, phantom: PhantomData }
+    pub fn new(root: usize, paths: Vec<Vec<usize>>, camera_map: HashMap<usize, C>, matches: Vec<Vec<Vec<Match<Feat>>>>) -> SFMConfig<C,Feat> {
+        SFMConfig{root, paths, camera_map, matches}
     }
 
     pub fn root(&self) -> usize { self.root }
