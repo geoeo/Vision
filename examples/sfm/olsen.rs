@@ -142,6 +142,7 @@ fn main() -> Result<()> {
 
     let sfm_all_matches = vec!(vec!(matches_5_4_subvec, matches_4_3_subvec),vec!(matches_5_6_subvec));
     let camera_map = HashMap::from([(5, pinhole_cam_5), (4, pinhole_cam_4), (6, pinhole_cam_6), (3, pinhole_cam_3)]);  
+    let camera_map_ba = HashMap::from([(5, pinhole_cam_5.cast::<f32>()), (4, pinhole_cam_4.cast::<f32>()), (6, pinhole_cam_6.cast::<f32>()), (3, pinhole_cam_3.cast::<f32>())]);  
     let paths = vec!(vec!(4,3),vec!(6));
 
     // let sfm_all_matches = vec!(vec!(matches_5_4_subvec, matches_4_3_subvec),vec!(matches_5_6_subvec, matches_6_7_subvec));
@@ -159,7 +160,8 @@ fn main() -> Result<()> {
 
 
 
-    let sfm_config = SFMConfig::new(5, paths, camera_map, sfm_all_matches);
+    let sfm_config = SFMConfig::new(5, paths.clone(), camera_map, sfm_all_matches.clone());
+    let sfm_config_ba = SFMConfig::new(5, paths, camera_map_ba, sfm_all_matches);
     let (mut initial_cam_motions_per_path,filtered_matches_per_path) = compute_pairwise_cam_motions_with_filtered_matches(
             &sfm_config,
             1.0,

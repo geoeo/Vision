@@ -31,7 +31,7 @@ pub fn run_ba<C : Camera<Float> + Copy, T : Feature>(matches: &Vec<Vec<Vec<Match
 
     let observed_features = feature_map.get_observed_features(false);
     
-    let some_debug_state_list = solver::optimize::<Float,_,_,3>(&mut state, &unique_cameras_sorted_by_id, &observed_features, &runtime_parameters);
+    let some_debug_state_list = solver::optimize::<_,_,_,3>(&mut state, &unique_cameras_sorted_by_id, &observed_features, &runtime_parameters);
     let state_serialized = serde_yaml::to_string(&state.to_serial());
     let debug_states_serialized = serde_yaml::to_string(&some_debug_state_list);
 

@@ -1,8 +1,10 @@
 extern crate nalgebra as na;
 extern crate num_traits;
+extern crate simba;
 
-use na::{U1,U3, Matrix2x3,Matrix3, Vector, Vector3, base::storage::Storage, SimdRealField, ComplexField,base::Scalar};
+use na::{convert, U1,U3, Matrix2x3,Matrix3, Vector, Vector3, base::storage::Storage, SimdRealField, ComplexField,base::Scalar};
 use num_traits::{float,NumAssign};
+use simba::scalar::{SubsetOf,SupersetOf};
 use crate::image::features::geometry::point::Point;
 use crate::sensors::camera::Camera; 
 
@@ -52,6 +54,10 @@ impl<F: float::Float + Scalar + NumAssign + SimdRealField + ComplexField> Pinhol
     pub fn get_cy(&self) -> F {
         self.projection[(1,2)]
     }
+
+    pub fn cast<F2: num_traits::float::Float + Scalar + NumAssign + SimdRealField + ComplexField + SubsetOf<F> + SupersetOf<F>>(&self) -> Pinhole<F2> {
+        Pinhole::<F2>::new(convert(self.get_fx()),convert(self.get_fy()),convert(self.get_cx()),convert(self.get_cy()),false)
+    }
 }
 
 impl<F: float::Float + Scalar + NumAssign + SimdRealField + ComplexField> Camera<F> for Pinhole<F> {
@@ -85,6 +91,8 @@ impl<F: float::Float + Scalar + NumAssign + SimdRealField + ComplexField> Camera
         let homogeneous = Vector3::<F>::new(point.x, point.y,F::one());
         (self.inverse_projection*homogeneous).scale(depth)
     }
+
+
 }
 
 
