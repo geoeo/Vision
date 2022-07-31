@@ -1,7 +1,12 @@
 extern crate nalgebra as na;
+extern crate num_traits;
+extern crate simba;
 
-use na::{DVector,DMatrix,Matrix, Dynamic, U4, VecStorage,Point3, Vector4};
-use crate::{float,Float};
+use simba::scalar::{SubsetOf,SupersetOf};
+use std::{ops::Mul,convert::From};
+use na::{DVector,DMatrix,Matrix, Dynamic, U4, VecStorage,Point3, Vector4, SimdRealField, ComplexField, base::Scalar, RealField, convert};
+use num_traits::{float,NumAssign};
+use crate::Float;
 use crate::sensors::camera::Camera;
 use crate::numerics::lie::left_jacobian_around_identity;
 use crate::numerics::{max_norm, least_squares::{compute_cost,weight_jacobian_sparse,weight_residuals_sparse, calc_weight_vec, gauss_newton_step_with_schur, gauss_newton_step_with_conguate_gradient}};
@@ -18,11 +23,13 @@ pub fn get_feature_index_in_residual(cam_id: usize, feature_id: usize, n_cams: u
  * In the format [f1_cam1, f1_cam2,...]
  * Some entries may be 0 since not all cams see all points
  * */
-pub fn get_estimated_features<C : Camera<Float>, L: Landmark<Float,T> + Copy + Clone, const T: usize>(state: &State<Float,L,T>, cameras: &Vec<&C>,observed_features: &DVector<Float>, estimated_features: &mut DVector<Float>) -> () {
+pub fn get_estimated_features<F, C : Camera<F>, L: Landmark<F,T> + Copy + Clone, const T: usize>(
+    state: &State<F,L,T>, cameras: &Vec<&C>,observed_features: &DVector<F>, estimated_features: &mut DVector<F>) 
+    -> () where F: float::Float + Scalar + NumAssign + SimdRealField + ComplexField + Mul<F> + From<F> + RealField + SubsetOf<Float> + SupersetOf<Float>{
     let n_cams = state.n_cams;
     let n_points = state.n_points;
     assert_eq!(estimated_features.nrows(),2*n_points*n_cams);
-    let mut position_world = Matrix::<Float,U4,Dynamic, VecStorage<Float,U4,Dynamic>>::from_element(n_points, 1.0);
+    let mut position_world = Matrix::<F,U4,Dynamic, VecStorage<F,U4,Dynamic>>::from_element(n_points, F::one());
     for j in 0..n_points {
         position_world.fixed_slice_mut::<3,1>(0,j).copy_from(&state.get_landmarks()[j].get_euclidean_representation().coords); 
     };
@@ -38,7 +45,7 @@ pub fn get_estimated_features<C : Camera<Float>, L: Landmark<Float,T> + Copy + C
             
             let feat_id = get_feature_index_in_residual(i, j, n_cams);
             // If at least one camera has no match, skip
-            if !(observed_features[feat_id] == CameraFeatureMap::NO_FEATURE_FLAG || observed_features[feat_id+1] == CameraFeatureMap::NO_FEATURE_FLAG){
+            if !(observed_features[feat_id] == convert(CameraFeatureMap::NO_FEATURE_FLAG) || observed_features[feat_id+1] == convert(CameraFeatureMap::NO_FEATURE_FLAG)){
                 estimated_features[feat_id] = estimated_feature.x;
                 estimated_features[feat_id+1] = estimated_feature.y;
             }
@@ -49,32 +56,35 @@ pub fn get_estimated_features<C : Camera<Float>, L: Landmark<Float,T> + Copy + C
 }
 
 
-pub fn compute_residual(estimated_features: &DVector<Float>, observed_features: &DVector<Float>, residual_vector: &mut DVector<Float>) -> () {
+pub fn compute_residual<F>(
+    estimated_features: &DVector<F>, observed_features: &DVector<F>, residual_vector: &mut DVector<F>) 
+    -> () where F: float::Float + Scalar + NumAssign + SimdRealField + ComplexField + Mul<F> + From<F> + RealField + SubsetOf<Float> + SupersetOf<Float> {
     assert_eq!(residual_vector.nrows(), estimated_features.nrows());
     for i in 0..residual_vector.nrows() {
-        if observed_features[i] != CameraFeatureMap::NO_FEATURE_FLAG {
+        if observed_features[i] != convert(CameraFeatureMap::NO_FEATURE_FLAG) {
             residual_vector[i] =  estimated_features[i] - observed_features[i];
         } else {
-            residual_vector[i] = 0.0;
+            residual_vector[i] = F::zero();
         }
     }
 }
 
-pub fn compute_jacobian_wrt_object_points<C : Camera<Float>, L: Landmark<Float, T> + Copy + Clone, const T: usize>(camera: &C, state: &State<Float,L,T>, cam_idx: usize, point_idx: usize, i: usize, j: usize, jacobian: &mut DMatrix<Float>) -> (){
+pub fn compute_jacobian_wrt_object_points<F, C : Camera<F>, L: Landmark<F, T> + Copy + Clone, const T: usize>(camera: &C, state: &State<F,L,T>, cam_idx: usize, point_idx: usize, i: usize, j: usize, jacobian: &mut DMatrix<F>) 
+    -> () where F: float::Float + Scalar + NumAssign + SimdRealField + ComplexField + Mul<F> + From<F> + RealField + SubsetOf<Float> + SupersetOf<Float>{
     let transformation = state.to_se3(cam_idx);
     let point = state.get_landmarks()[point_idx].get_euclidean_representation();
     let jacobian_world = state.jacobian_wrt_world_coordiantes(point_idx,cam_idx);
-    let transformed_point = transformation*Vector4::<Float>::new(point[0],point[1],point[2],1.0);
+    let transformed_point = transformation*Vector4::<F>::new(point[0],point[1],point[2],F::one());
     let projection_jacobian = camera.get_jacobian_with_respect_to_position_in_camera_frame(&transformed_point.fixed_rows::<3>(0));
     let local_jacobian = projection_jacobian*jacobian_world;
 
     jacobian.fixed_slice_mut::<2,T>(i,j).copy_from(&local_jacobian.fixed_slice::<2,T>(0,0));
 }
 
-pub fn compute_jacobian_wrt_camera_extrinsics<C : Camera<Float>, L: Landmark<Float, T> + Copy + Clone, const T: usize>(camera: &C, state: &State<Float,L,T>, cam_idx: usize, point: &Point3<Float> ,i: usize, j: usize, jacobian: &mut DMatrix<Float>) 
-    -> (){
+pub fn compute_jacobian_wrt_camera_extrinsics<F, C : Camera<F>, L: Landmark<F, T> + Copy + Clone, const T: usize>(camera: &C, state: &State<F,L,T>, cam_idx: usize, point: &Point3<F> ,i: usize, j: usize, jacobian: &mut DMatrix<F>) 
+    -> () where F: float::Float + Scalar + NumAssign + SimdRealField + ComplexField + Mul<F> + From<F> + RealField + SubsetOf<Float> + SupersetOf<Float>{
     let transformation = state.to_se3(cam_idx);
-    let transformed_point = transformation*Vector4::<Float>::new(point[0],point[1],point[2],1.0);
+    let transformed_point = transformation*Vector4::<F>::new(point[0],point[1],point[2],F::one());
     let lie_jacobian = left_jacobian_around_identity(&transformed_point.fixed_rows::<3>(0)); 
 
     let projection_jacobian = camera.get_jacobian_with_respect_to_position_in_camera_frame(&transformed_point.fixed_rows::<3>(0));
@@ -83,7 +93,8 @@ pub fn compute_jacobian_wrt_camera_extrinsics<C : Camera<Float>, L: Landmark<Flo
     jacobian.fixed_slice_mut::<2,6>(i,j).copy_from(&local_jacobian);
 }
 
-pub fn compute_jacobian<C : Camera<Float>, L: Landmark<Float, T> + Copy + Clone, const T: usize>(state: &State<Float, L,T>, cameras: &Vec<&C>, jacobian: &mut DMatrix<Float>) -> () {
+pub fn compute_jacobian<F, C : Camera<F>, L: Landmark<F, T> + Copy + Clone, const T: usize>(state: &State<F, L,T>, cameras: &Vec<&C>, jacobian: &mut DMatrix<F>) 
+    -> ()  where F: float::Float + Scalar + NumAssign + SimdRealField + ComplexField + Mul<F> + From<F> + RealField + SubsetOf<Float> + SupersetOf<Float> {
     //cam
     let number_of_cam_params = 6*state.n_cams;
     for cam_state_idx in (0..number_of_cam_params).step_by(6) {
@@ -108,7 +119,8 @@ pub fn compute_jacobian<C : Camera<Float>, L: Landmark<Float, T> + Copy + Clone,
 
 }
 
-pub fn optimize<C : Camera<Float>, L: Landmark<Float, LANDMARK_PARAM_SIZE> + Copy + Clone, const LANDMARK_PARAM_SIZE: usize>(state: &mut State<Float, L,LANDMARK_PARAM_SIZE>, cameras: &Vec<&C>, observed_features: &DVector<Float>, runtime_parameters: &RuntimeParameters ) -> Option<Vec<(Vec<[Float; CAMERA_PARAM_SIZE]>, Vec<[Float; LANDMARK_PARAM_SIZE]>)>> {
+pub fn optimize<F, C : Camera<F>, L: Landmark<F, LANDMARK_PARAM_SIZE> + Copy + Clone, const LANDMARK_PARAM_SIZE: usize>(state: &mut State<F, L,LANDMARK_PARAM_SIZE>, cameras: &Vec<&C>, observed_features: &DVector<F>, runtime_parameters: &RuntimeParameters<F> ) 
+    -> Option<Vec<(Vec<[F; CAMERA_PARAM_SIZE]>, Vec<[F; LANDMARK_PARAM_SIZE]>)>> where F: float::Float + Scalar + NumAssign + SimdRealField + ComplexField + Mul<F> + From<F> + RealField + SubsetOf<Float> + SupersetOf<Float> {
     
 
     let max_iterations = runtime_parameters.max_iterations[0];
@@ -118,21 +130,22 @@ pub fn optimize<C : Camera<Float>, L: Landmark<Float, LANDMARK_PARAM_SIZE> + Cop
     
     let mut new_state = state.clone();
     let state_size = CAMERA_PARAM_SIZE*state.n_cams+LANDMARK_PARAM_SIZE*state.n_points;
-    let mut jacobian = DMatrix::<Float>::zeros(observed_features.nrows(),state_size); // a lot of memory
-    let mut residuals = DVector::<Float>::zeros(observed_features.nrows());
-    let mut new_residuals = DVector::<Float>::zeros(observed_features.nrows());
-    let mut estimated_features = DVector::<Float>::zeros(observed_features.nrows());
-    let mut new_estimated_features = DVector::<Float>::zeros(observed_features.nrows());
-    let mut weights_vec = DVector::<Float>::from_element(observed_features.nrows(),1.0);
-    let mut target_arrowhead = DMatrix::<Float>::zeros(state_size, state_size); // a lot of memory
-    let mut g = DVector::<Float>::from_element(state_size,0.0); 
-    let mut delta = DVector::<Float>::from_element(state_size,0.0);
+    let mut jacobian = DMatrix::<F>::zeros(observed_features.nrows(),state_size); // a lot of memory
+    let mut residuals = DVector::<F>::zeros(observed_features.nrows());
+    let mut new_residuals = DVector::<F>::zeros(observed_features.nrows());
+    let mut estimated_features = DVector::<F>::zeros(observed_features.nrows());
+    let mut new_estimated_features = DVector::<F>::zeros(observed_features.nrows());
+    let mut weights_vec = DVector::<F>::from_element(observed_features.nrows(),F::one());
+    let mut target_arrowhead = DMatrix::<F>::zeros(state_size, state_size); // a lot of memory
+    let mut g = DVector::<F>::from_element(state_size,F::zero()); 
+    let mut delta = DVector::<F>::from_element(state_size,F::zero());
     let mut debug_state_list = match runtime_parameters.debug {
-        true => Some(Vec::<(Vec<[Float; CAMERA_PARAM_SIZE]>, Vec<[Float; LANDMARK_PARAM_SIZE]>)>::with_capacity(max_iterations)),
+        true => Some(Vec::<(Vec<[F; CAMERA_PARAM_SIZE]>, Vec<[F; LANDMARK_PARAM_SIZE]>)>::with_capacity(max_iterations)),
         false => None
     };
-    let mut v_star_inv = DMatrix::<Float>::zeros(v_span,v_span); // a lot of memory - maybe use sparse format
-    let mut u_star_inv = DMatrix::<Float>::zeros(u_span,u_span); // a lot of memory - maybe use sparse format
+    let mut v_star_inv = DMatrix::<F>::zeros(v_span,v_span); // a lot of memory - maybe use sparse format
+    let mut u_star_inv = DMatrix::<F>::zeros(u_span,u_span); // a lot of memory - maybe use sparse format
+    let two: F = convert(2.0);
 
     println!("BA Memory Allocation Complete.");
 
@@ -141,7 +154,7 @@ pub fn optimize<C : Camera<Float>, L: Landmark<Float, LANDMARK_PARAM_SIZE> + Cop
     compute_jacobian(&state,&cameras,&mut jacobian);
 
     //TODO: weight cam and features independently
-    let mut std: Option<Float> = runtime_parameters.intensity_weighting_function.estimate_standard_deviation(&residuals);
+    let mut std: Option<F> = runtime_parameters.intensity_weighting_function.estimate_standard_deviation(&residuals);
     if std.is_some() {
         calc_weight_vec(
             &residuals,
@@ -153,34 +166,34 @@ pub fn optimize<C : Camera<Float>, L: Landmark<Float, LANDMARK_PARAM_SIZE> + Cop
         weight_jacobian_sparse(&mut jacobian, &weights_vec);
     }
 
-    let mut max_norm_delta = float::MAX;
-    let mut delta_thresh = float::MIN;
-    let mut delta_norm = float::MAX;
-    let mut nu = 2.0;
+    let mut max_norm_delta = float::Float::max_value();
+    let mut delta_thresh = float::Float::min_value();
+    let mut delta_norm = float::Float::max_value();
+    let mut nu: F = two;
     let tau = runtime_parameters.taus[0];
 
-    let mut mu: Option<Float> = match runtime_parameters.lm {
+    let mut mu: Option<F> = match runtime_parameters.lm {
         true => None,
-        false => Some(0.0)
+        false => Some(F::zero())
     };
     let step = match runtime_parameters.lm {
-        true => 1.0,
+        true => F::one(),
         false => runtime_parameters.step_sizes[0]
     };
 
     let mut cost = compute_cost(&residuals,&runtime_parameters.intensity_weighting_function);
     let mut iteration_count = 0;
-    while ((!runtime_parameters.lm && (cost.sqrt() > runtime_parameters.eps[0])) || 
-    (runtime_parameters.lm && delta_norm > delta_thresh && max_norm_delta > runtime_parameters.max_norm_eps && cost.sqrt() > runtime_parameters.eps[0] ))  && iteration_count < max_iterations  {
+    while ((!runtime_parameters.lm && (float::Float::sqrt(cost) > runtime_parameters.eps[0])) || 
+    (runtime_parameters.lm && delta_norm > delta_thresh && max_norm_delta > runtime_parameters.max_norm_eps && float::Float::sqrt(cost) > runtime_parameters.eps[0] ))  && iteration_count < max_iterations  {
         if runtime_parameters.debug {
             debug_state_list.as_mut().expect("Debug is true but state list is None!. This should not happen").push(state.to_serial());
-            println!("it: {}, avg_rmse: {}",iteration_count,cost.sqrt());
+            println!("it: {}, avg_rmse: {}",iteration_count,float::Float::sqrt(cost));
         }
 
-        target_arrowhead.fill(0.0);
-        g.fill(0.0);
-        delta.fill(0.0);
-        v_star_inv.fill(0.0);
+        target_arrowhead.fill(F::zero());
+        g.fill(F::zero());
+        delta.fill(F::zero());
+        v_star_inv.fill(F::zero());
 
         //TODO: switch in runtime parameters
     // let gauss_newton_result 
@@ -200,7 +213,7 @@ pub fn optimize<C : Camera<Float>, L: Landmark<Float, LANDMARK_PARAM_SIZE> + Cop
     //     ); 
 
 
-        u_star_inv.fill(0.0);
+        u_star_inv.fill(F::zero());
         let gauss_newton_result 
             = gauss_newton_step_with_conguate_gradient::<_,_,_,_,_,_,_,LANDMARK_PARAM_SIZE, CAMERA_PARAM_SIZE>(
                 &mut target_arrowhead,
@@ -223,7 +236,7 @@ pub fn optimize<C : Camera<Float>, L: Landmark<Float, LANDMARK_PARAM_SIZE> + Cop
         let (gain_ratio, new_cost, pertb_norm, cost_diff) = match gauss_newton_result {
             Some((gain_ratio_denom, mu_val)) => {
                 mu = Some(mu_val);
-                let pertb = step*(&delta);
+                let pertb = delta.scale(step);
                 new_state.update(&pertb);
         
                 get_estimated_features(&new_state, cameras,observed_features, &mut new_estimated_features);
@@ -243,12 +256,12 @@ pub fn optimize<C : Camera<Float>, L: Landmark<Float, LANDMARK_PARAM_SIZE> + Cop
                 let new_cost = compute_cost(&new_residuals,&runtime_parameters.intensity_weighting_function);
                 let cost_diff = cost-new_cost;
                 let gain_ratio = match gain_ratio_denom {
-                    v if v != 0.0 => cost_diff/v,
-                    _ => Float::NAN
+                    v if v != F::zero() => cost_diff/v,
+                    _ => float::Float::nan()
                 };
                 (gain_ratio, new_cost, pertb.norm(), cost_diff)
             },
-            None => (Float::NAN, Float::NAN, Float::NAN, Float::NAN)
+            None => (float::Float::nan(), float::Float::nan(), float::Float::nan(), float::Float::nan())
         };
 
 
@@ -256,7 +269,7 @@ pub fn optimize<C : Camera<Float>, L: Landmark<Float, LANDMARK_PARAM_SIZE> + Cop
             println!("cost: {}, new cost: {}, mu: {:?}, gain: {} , nu: {}, std: {:?}",cost,new_cost, mu, gain_ratio, nu, std);
         }
 
-        if (!gain_ratio.is_nan() && gain_ratio > 0.0 && cost_diff > 0.0) || !runtime_parameters.lm {
+        if (!gain_ratio.is_nan() && gain_ratio > F::zero() && cost_diff > F::zero()) || !runtime_parameters.lm {
             estimated_features.copy_from(&new_estimated_features);
             state.copy_from(&new_state); 
 
@@ -269,19 +282,19 @@ pub fn optimize<C : Camera<Float>, L: Landmark<Float, LANDMARK_PARAM_SIZE> + Cop
 
             residuals.copy_from(&new_residuals);
 
-            jacobian.fill(0.0);
+            jacobian.fill(F::zero());
             compute_jacobian(&state,&cameras,&mut jacobian);
             if std.is_some() {
                 weight_jacobian_sparse(&mut jacobian, &weights_vec);
             }
 
-            let v: Float = 1.0 / 3.0;
-            mu = Some(mu.unwrap() * v.max(1.0 - (2.0 * gain_ratio - 1.0).powi(3)));
-            nu = 2.0;
+            let v: F = convert(1.0 / 3.0);
+            mu = Some(mu.unwrap() * float::Float::max(v,F::one() - float::Float::powi(two * gain_ratio - F::one(),3)));
+            nu = two;
         } else {
             new_state.copy_from(&state); 
             mu = Some(nu*mu.unwrap());
-            nu *= 2.0;
+            nu *= two;
         }
 
         iteration_count += 1;

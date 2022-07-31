@@ -14,7 +14,7 @@ pub mod state;
 
 
 pub fn run_ba<C : Camera<Float> + Copy, T : Feature>(matches: &Vec<Vec<Vec<Match<T>>>>, sfm_config: &SFMConfig<C, T>, initial_cam_poses: Option<&Vec<Vec<(usize,(Vector3<Float>,Matrix3<Float>))>>>,
-                                img_dim : (usize,usize) ,runtime_parameters: &RuntimeParameters, pyramid_scale: Float, depth_prior: Float) 
+                                img_dim : (usize,usize) ,runtime_parameters: &RuntimeParameters<Float>, pyramid_scale: Float, depth_prior: Float) 
                                 -> ((Vec<Isometry3<Float>>, Vec<Vector3<Float>>), (serde_yaml::Result<String>, serde_yaml::Result<String>)){
 
 
@@ -31,7 +31,7 @@ pub fn run_ba<C : Camera<Float> + Copy, T : Feature>(matches: &Vec<Vec<Vec<Match
 
     let observed_features = feature_map.get_observed_features(false);
     
-    let some_debug_state_list = solver::optimize::<_,_,3>(&mut state, &unique_cameras_sorted_by_id, &observed_features, &runtime_parameters);
+    let some_debug_state_list = solver::optimize::<Float,_,_,3>(&mut state, &unique_cameras_sorted_by_id, &observed_features, &runtime_parameters);
     let state_serialized = serde_yaml::to_string(&state.to_serial());
     let debug_states_serialized = serde_yaml::to_string(&some_debug_state_list);
 

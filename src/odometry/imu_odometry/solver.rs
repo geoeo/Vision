@@ -12,7 +12,7 @@ const OBSERVATIONS_DIM: usize = 9;
 const PARAMETERS_DIM: usize = 15; //With bias
 
 
-pub fn run_trajectory(imu_data_measurements: &Vec<ImuDataFrame>, gravity_body: &Vector3<Float>, runtime_parameters: &RuntimeParameters) -> Vec<Isometry3<Float>> {
+pub fn run_trajectory(imu_data_measurements: &Vec<ImuDataFrame>, gravity_body: &Vector3<Float>, runtime_parameters: &RuntimeParameters<Float>) -> Vec<Isometry3<Float>> {
     let mut bias_delta = BiasDelta::empty();
     imu_data_measurements.iter().enumerate().map(|(i,measurement)| {
         let (transform_est, bias_update) = run(i+1,measurement,&bias_delta,gravity_body,runtime_parameters);
@@ -22,7 +22,7 @@ pub fn run_trajectory(imu_data_measurements: &Vec<ImuDataFrame>, gravity_body: &
     }).collect::<Vec<Isometry3<Float>>>()
 }
 
-pub fn run<>(iteration: usize, imu_data_measurement: &ImuDataFrame, prev_bias_delta: &BiasDelta, gravity_body: &Vector3<Float>, runtime_parameters: &RuntimeParameters) -> (Matrix4<Float>, BiasDelta) {
+pub fn run<>(iteration: usize, imu_data_measurement: &ImuDataFrame, prev_bias_delta: &BiasDelta, gravity_body: &Vector3<Float>, runtime_parameters: &RuntimeParameters<Float>) -> (Matrix4<Float>, BiasDelta) {
 
     let imu_data_measurement_with_bias = imu_data_measurement.new_from_bias(prev_bias_delta);
     let (preintegrated_measurement, imu_covariance, preintegrated_bias) = imu_odometry::pre_integration(&imu_data_measurement_with_bias, gravity_body);
@@ -49,7 +49,7 @@ pub fn run<>(iteration: usize, imu_data_measurement: &ImuDataFrame, prev_bias_de
 
 //TODO: buffer all debug strings and print at the end. Also the numeric matricies could be buffered per octave level
 fn estimate<const R: usize, const C: usize>(imu_data_measurement: &ImuDataFrame, preintegrated_measurement: &ImuDelta,preintegrated_bias: &BiasPreintegrated ,imu_covariance: &ImuCovariance,
-    initial_guess_mat: &Matrix4<Float>,gravity_body: &Vector3<Float>, runtime_parameters: &RuntimeParameters) -> (Matrix4<Float>, usize, BiasDelta) where Const<C>: DimMin<Const<C>, Output = Const<C>> {
+    initial_guess_mat: &Matrix4<Float>,gravity_body: &Vector3<Float>, runtime_parameters: &RuntimeParameters<Float>) -> (Matrix4<Float>, usize, BiasDelta) where Const<C>: DimMin<Const<C>, Output = Const<C>> {
     let identity = SMatrix::<Float,C,C>::identity();
     let mut residuals_imu = SVector::<Float,R>::zeros();
     let mut jacobian_full = SMatrix::<Float,R,C>::zeros();

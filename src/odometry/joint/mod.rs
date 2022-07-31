@@ -36,7 +36,7 @@ pub fn run_trajectory<Cam: Camera<Float>>(
     depth_camera: &Cam,
     imu_data_measurements: &Vec<ImuDataFrame>,
     gravity_body: &Vector3<Float>,
-    runtime_parameters: &RuntimeParameters,
+    runtime_parameters: &RuntimeParameters<Float>,
 ) -> Vec<Isometry3<Float>> {
     let mut runtime_memory_vector = RuntimeMemory::<PARAMETERS_DIM>::from_pyramid(&source_rgdb_pyramids[0]);
     let mut bias_delta = BiasDelta::empty();
@@ -75,7 +75,7 @@ pub fn run<Cam: Camera<Float>, const C: usize>(
     imu_data_measurement: &ImuDataFrame,
     prev_bias_delta: &BiasDelta,
     gravity_body: &Vector3<Float>,
-    runtime_parameters: &RuntimeParameters,
+    runtime_parameters: &RuntimeParameters<Float>,
 ) -> (Matrix4<Float>, BiasDelta) where Const<C>: DimMin<Const<C>, Output = Const<C>> {
     let octave_count = source_rgdb_pyramid.octaves.len();
 
@@ -152,7 +152,7 @@ fn estimate<Cam: Camera<Float>, const R: usize, const C: usize>(
     preintegrated_bias: &BiasPreintegrated,
     imu_covariance: &ImuCovariance,
     gravity_body: &Vector3<Float>,
-    runtime_parameters: &RuntimeParameters,
+    runtime_parameters: &RuntimeParameters<Float>,
 ) -> (Matrix4<Float>, usize, BiasDelta) where Const<C>: DimMin<Const<C>, Output = Const<C>> {
     let source_image = &source_octave.gray_images[0];
     let target_image = &target_octave.gray_images[0];

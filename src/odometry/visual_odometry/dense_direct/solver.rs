@@ -22,7 +22,7 @@ pub fn run_trajectory<C>(
     target_rgdb_pyramids: &Vec<GDPyramid<GDOctave>>,
     intensity_camera: &C,
     depth_camera: &C,
-    runtime_parameters: &RuntimeParameters,
+    runtime_parameters: &RuntimeParameters<Float>,
 ) -> Vec<Isometry3<Float>> where C: Camera<Float> {
     let mut runtime_memory_vector = RuntimeMemory::<6>::from_pyramid(&source_rgdb_pyramids[0]);
     source_rgdb_pyramids
@@ -50,7 +50,7 @@ pub fn run<C: Camera<Float>, const T: usize>(
     runtime_memory_vector: &mut Vec<RuntimeMemory<T>>,
     intensity_camera: &C,
     depth_camera: &C,
-    runtime_parameters: &RuntimeParameters,
+    runtime_parameters: &RuntimeParameters<Float>,
 ) -> Isometry3<Float> where Const<T>: DimMin<Const<T>, Output = Const<T>> {
     let octave_count = source_rgdb_pyramid.octaves.len();
 
@@ -102,7 +102,7 @@ fn estimate<C : Camera<Float>, const T: usize>(
     initial_guess_mat: &Matrix4<Float>,
     intensity_camera: &C,
     depth_camera: &C,
-    runtime_parameters: &RuntimeParameters,
+    runtime_parameters: &RuntimeParameters<Float>,
 ) -> (Matrix4<Float>, usize) where Const<T>: DimMin<Const<T>, Output = Const<T>> {
     let source_image = &source_octave.gray_images[0];
     let target_image = &target_octave.gray_images[0];

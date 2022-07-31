@@ -1,27 +1,34 @@
-use crate::Float;
+extern crate nalgebra as na;
+extern crate num_traits;
+extern crate simba;
+
+use simba::scalar::{SubsetOf,SupersetOf};
+use std::{ops::Mul,convert::From};
+use na::{SimdRealField, ComplexField, base::Scalar, RealField};
+use num_traits::{float,NumAssign};
 use crate::numerics::{loss::LossFunction, weighting::WeightingFunction};
 use std::{fmt,boxed::Box};
 
 
 #[derive(Debug)]
-pub struct RuntimeParameters{
-    pub pyramid_scale: Float,
+pub struct RuntimeParameters<F: float::Float + Scalar + NumAssign + SimdRealField + ComplexField + Mul<F> + From<F> + RealField>{
+    pub pyramid_scale: F,
     pub max_iterations: Vec<usize>,
-    pub eps: Vec<Float>,
-    pub max_norm_eps: Float,
-    pub delta_eps: Float,
-    pub taus: Vec<Float>,
-    pub step_sizes: Vec<Float>,
+    pub eps: Vec<F>,
+    pub max_norm_eps: F,
+    pub delta_eps: F,
+    pub taus: Vec<F>,
+    pub step_sizes: Vec<F>,
     pub debug: bool,
     pub show_octave_result: bool,
     pub lm: bool,
     pub loss_function: Box<dyn LossFunction>,
-    pub intensity_weighting_function: Box<dyn WeightingFunction<Float>>,
-    pub cg_threshold: Float,
+    pub intensity_weighting_function: Box<dyn WeightingFunction<F>>,
+    pub cg_threshold: F,
     pub cg_max_it: usize
 }
 
-impl fmt::Display for RuntimeParameters {
+impl<F: float::Float + Scalar + NumAssign + SimdRealField + ComplexField + Mul<F> + From<F> + RealField+ fmt::LowerExp> fmt::Display for RuntimeParameters<F> {
 
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
 
