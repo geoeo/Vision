@@ -1,6 +1,11 @@
 extern crate nalgebra as na;
+extern crate num_traits;
+extern crate simba;
 
-use na::{Vector3, Matrix3, Matrix4, Matrix3xX, DVector, Isometry3, Rotation3};
+use simba::scalar::{SubsetOf,SupersetOf};
+use std::{ops::Mul,convert::From};
+use na::{convert,Vector3, Matrix3, Matrix4, Matrix3xX, DVector, Isometry3, Rotation3, SimdRealField, ComplexField,base::Scalar, RealField};
+use num_traits::{float,NumAssign};
 use std::collections::HashMap;
 use crate::image::{
     features::{Feature, Match},
@@ -153,14 +158,17 @@ impl CameraFeatureMap {
         State::new(camera_positions,landmarks, number_of_cameras, number_of_unqiue_landmarks)
     }
 
-    pub fn get_euclidean_landmark_state<C : Camera<Float> + Copy>(&self, initial_motions : Option<&Vec<Vec<(usize,(Vector3<Float>,Matrix3<Float>))>>>, root_id: usize,camera_map: &HashMap<usize, C>, paths: &Vec<Vec<usize>> , depth_prior: Float) -> State<Float, EuclideanLandmark<Float>,3> {
+    pub fn get_euclidean_landmark_state<F: float::Float + Scalar + NumAssign + SimdRealField + ComplexField + Mul<F> + From<F> + RealField + SubsetOf<Float> + SupersetOf<Float>, C : Camera<F> + Copy>(
+        &self, initial_motions : Option<&Vec<Vec<(usize,(Vector3<Float>,Matrix3<Float>))>>>, root_id: usize,camera_map: &HashMap<usize, C>, paths: &Vec<Vec<usize>> , depth_prior: F) 
+        -> State<F, EuclideanLandmark<F>,3> {
         
         let number_of_cameras = self.camera_map.keys().len();
         let number_of_unqiue_landmarks = self.number_of_unique_points;
+        let depth_prior_system_float: Float = convert(depth_prior);
 
         let landmarks = match initial_motions {
             Some(all_motions) => {
-                let mut triangualted_landmarks = vec![EuclideanLandmark::from_state(Vector3::<Float>::new(0.0,0.0,depth_prior)); number_of_unqiue_landmarks];       
+                let mut triangualted_landmarks = vec![EuclideanLandmark::from_state(Vector3::<F>::new(F::zero(),F::zero(),depth_prior)); number_of_unqiue_landmarks];       
                 for path_idx in 0..all_motions.len() {
                         let motions = &all_motions[path_idx];
                         assert_eq!(motions.len(), paths[path_idx].len());
@@ -224,8 +232,8 @@ impl CameraFeatureMap {
                             normalized_image_points_f = normalization_matrix_two*normalized_image_points_f;
         
                             let se3 = pose::se3(&h,&rotation_matrix);
-                            let projection_1 = camera_matrix_s.get_projection()*(Matrix4::<Float>::identity().fixed_slice::<3,4>(0,0));
-                            let projection_2 = camera_matrix_f.get_projection()*(se3.fixed_slice::<3,4>(0,0));
+                            let projection_1 = camera_matrix_s.get_projection().cast::<Float>()*(Matrix4::<Float>::identity().fixed_slice::<3,4>(0,0));
+                            let projection_2 = camera_matrix_f.get_projection().cast::<Float>()*(se3.fixed_slice::<3,4>(0,0));
                             
                             let triangulated_points = pose_acc*linear_triangulation(&vec!((&normalized_image_points_s,&projection_1),(&normalized_image_points_f,&projection_2)));
                             pose_acc = pose_acc*se3;
@@ -234,14 +242,18 @@ impl CameraFeatureMap {
                             for j in 0..point_ids.len() {
                                 let point_id = point_ids[j];
                                 let mut point = triangulated_points.fixed_slice::<3, 1>(0, j).into_owned();
-                                point /= point[2]*depth_prior;
-                                triangualted_landmarks[point_id] = EuclideanLandmark::from_state(point);
+                                point /= point[2]*depth_prior_system_float;
+                                triangualted_landmarks[point_id] = EuclideanLandmark::from_state(Vector3::<F>::new(
+                                    convert(point[0]),
+                                    convert(point[1]),
+                                    convert(point[2])
+                                ));
                             }
                         }
                 }
                 triangualted_landmarks
             },
-            None => vec!(Vector3::<Float>::new(0.0, 0.0, depth_prior);number_of_unqiue_landmarks).iter().map(|&v| EuclideanLandmark::from_state(v)).collect::<Vec<EuclideanLandmark<Float>>>()  
+            None => vec!(Vector3::<F>::new(F::zero(), F::zero(), depth_prior);number_of_unqiue_landmarks).iter().map(|&v| EuclideanLandmark::from_state(v)).collect::<Vec<EuclideanLandmark<F>>>()  
         };
 
 
@@ -249,22 +261,26 @@ impl CameraFeatureMap {
         State::new(camera_positions, landmarks, number_of_cameras, number_of_unqiue_landmarks)
     }
 
-    fn get_initial_camera_positions(&self,initial_motions : Option<&Vec<Vec<(usize,(Vector3<Float>,Matrix3<Float>))>>> ) -> DVector::<Float> {
+    fn get_initial_camera_positions<F: float::Float + Scalar + NumAssign + SimdRealField + ComplexField + Mul<F> + From<F> + RealField + SubsetOf<Float> + SupersetOf<Float>>(
+        &self,initial_motions : Option<&Vec<Vec<(usize,(Vector3<Float>,Matrix3<Float>))>>>) 
+        -> DVector::<F> {
 
         let number_of_cameras = self.camera_map.keys().len();
         let number_of_cam_parameters = 6*number_of_cameras;
-        let mut camera_positions = DVector::<Float>::zeros(number_of_cam_parameters);
+        let mut camera_positions = DVector::<F>::zeros(number_of_cam_parameters);
         if initial_motions.is_some() {
             let all_motions = initial_motions.unwrap();
             for motions in all_motions {
-                let mut rot_acc = Matrix3::<Float>::identity();
-                let mut trans_acc = Vector3::<Float>::zeros();
+                let mut rot_acc = Matrix3::<F>::identity();
+                let mut trans_acc = Vector3::<F>::zeros();
                 for (cam_id,(h,rotation_matrix)) in motions {
                     let (cam_idx,_) = self.camera_map[&cam_id];
                     let cam_state_idx = 6*cam_idx;
-                    trans_acc = rot_acc*h + trans_acc;
-                    rot_acc = rot_acc*rotation_matrix;
-                    let rotation = Rotation3::from_matrix_eps(&rot_acc, 2e-16, 100, Rotation3::identity());
+                    let h_cast: Vector3<F> = h.cast::<F>();
+                    let rotation_matrix_cast: Matrix3<F> = rotation_matrix.cast::<F>();
+                    trans_acc = rot_acc*h_cast + trans_acc;
+                    rot_acc = rot_acc*rotation_matrix_cast;
+                    let rotation = Rotation3::from_matrix_eps(&rot_acc, convert(2e-16), 100, Rotation3::identity());
                     camera_positions.fixed_slice_mut::<3,1>(cam_state_idx,0).copy_from(&trans_acc);
                     camera_positions.fixed_slice_mut::<3,1>(cam_state_idx+3,0).copy_from(&rotation.scaled_axis());
                 }

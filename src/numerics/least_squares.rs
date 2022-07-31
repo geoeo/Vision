@@ -91,6 +91,7 @@ pub fn weight_jacobian<F, const M: usize, const N: usize>(jacobian: &mut SMatrix
     weights.mul_to(&jacobian.clone(),jacobian);
 }
 
+//TODO Remove Float
 #[allow(non_snake_case)]
 pub fn gauss_newton_step_with_loss_and_schur(
     residuals: &DVector<Float>,

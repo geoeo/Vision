@@ -15,7 +15,7 @@ macro_rules! define_float {
         pub type Float = $f;
     }
 }
-define_float!(f64);
+define_float!(f32);
 
 #[repr(u8)]
 #[derive(Debug,Copy,Clone,PartialEq)]
