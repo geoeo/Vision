@@ -285,7 +285,7 @@ pub fn decompose_essential_kanatani<T: Feature>(E: &Essential, matches: &Vec<Mat
 
 #[allow(non_snake_case)]
 pub fn compute_pairwise_cam_motions_with_filtered_matches_for_path<C : Camera<Float> + Copy,T : Feature + Clone>(
-        sfm_config: &SFMConfig<C, T>,
+        sfm_config: &SFMConfig<Float, C, T>,
         path_idx: usize,
         pyramid_scale:Float, 
         epipiolar_thresh: Float, 
@@ -337,7 +337,7 @@ pub fn compute_pairwise_cam_motions_with_filtered_matches_for_path<C : Camera<Fl
 
 #[allow(non_snake_case)]
 pub fn compute_pairwise_cam_motions_with_filtered_matches<C: Camera<Float> + Copy,T : Feature + Clone>(
-        sfm_config: &SFMConfig<C, T>,
+        sfm_config: &SFMConfig<Float,C, T>,
         pyramid_scale:Float, 
         epipolar_thresh: Float, 
         positive_principal_distance: bool,

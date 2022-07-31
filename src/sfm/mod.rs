@@ -1,7 +1,15 @@
+extern crate nalgebra as na;
+extern crate num_traits;
+extern crate simba;
+
 use std::collections::HashMap;
+use std::marker::PhantomData;
 use crate::sensors::camera::Camera;
 use crate::image::features::{Feature, Match};
-use crate::Float;
+
+
+use num_traits::{float,NumAssign};
+use na::{SimdRealField, ComplexField,base::Scalar, RealField};
 
 pub mod bundle_adjustment;
 pub mod landmark; 
@@ -18,23 +26,24 @@ define_sfm_float!(f32);
 /**
  * We assume that the indices between paths and matches are consistent
  */
-pub struct SFMConfig<C: Camera<Float>, F: Feature> {
+pub struct SFMConfig<F: float::Float + Scalar + NumAssign + SimdRealField + ComplexField + RealField, C: Camera<F>, Feat: Feature> {
     root: usize,
     paths: Vec<Vec<usize>>,
     camera_map: HashMap<usize, C>,
-    matches: Vec<Vec<Vec<Match<F>>>>
+    matches: Vec<Vec<Vec<Match<Feat>>>>,
+    phantom: PhantomData<fn(F) -> F>
 }
 
-impl<C: Camera<Float>, F: Feature> SFMConfig<C,F> {
+impl<F: float::Float + Scalar + NumAssign + SimdRealField + ComplexField + RealField, C: Camera<F>, Feat: Feature> SFMConfig<F,C,Feat> {
 
-    pub fn new(root: usize, paths: Vec<Vec<usize>>, camera_map: HashMap<usize, C>, matches: Vec<Vec<Vec<Match<F>>>>) -> SFMConfig<C,F> {
-        SFMConfig{root, paths, camera_map, matches}
+    pub fn new(root: usize, paths: Vec<Vec<usize>>, camera_map: HashMap<usize, C>, matches: Vec<Vec<Vec<Match<Feat>>>>) -> SFMConfig<F,C,Feat> {
+        SFMConfig{root, paths, camera_map, matches, phantom: PhantomData }
     }
 
     pub fn root(&self) -> usize { self.root }
     pub fn paths(&self) -> &Vec<Vec<usize>> { &self.paths }
     pub fn camera_map(&self) -> &HashMap<usize, C> { &self.camera_map }
-    pub fn matches(&self) -> &Vec<Vec<Vec<Match<F>>>> { &self.matches } // TODO: These are not the filtered matches which are usually what are used. Unify this
+    pub fn matches(&self) -> &Vec<Vec<Vec<Match<Feat>>>> { &self.matches } // TODO: These are not the filtered matches which are usually what are used. Unify this
 
     pub fn compute_path_id_pairs(&self) -> Vec<Vec<(usize, usize)>> {
         let mut path_id_paris = Vec::<Vec::<(usize,usize)>>::with_capacity(self.paths.len());
