@@ -276,10 +276,10 @@ pub fn gauss_newton_step_with_conguate_gradient<F, R, C, S1, S2,StorageTargetArr
         
         let mut inv_success = true;
         for i in (0..v_span).step_by(LANDMARK_PARAM_SIZE) {
-            let some_local_inv = V_star.fixed_slice::<LANDMARK_PARAM_SIZE,LANDMARK_PARAM_SIZE>(i,i).try_inverse();
-            let success = match some_local_inv {
-                Some(inv) => {
-                    V_star_inv.fixed_slice_mut::<LANDMARK_PARAM_SIZE,LANDMARK_PARAM_SIZE>(i,i).copy_from(&inv);
+            let v_slice_cholesky = V_star.fixed_slice::<LANDMARK_PARAM_SIZE,LANDMARK_PARAM_SIZE>(i,i).cholesky();
+            let success = match v_slice_cholesky {
+                Some(chol) => {
+                    V_star_inv.fixed_slice_mut::<LANDMARK_PARAM_SIZE,LANDMARK_PARAM_SIZE>(i,i).copy_from(&chol.inverse());
                     true
                 },
                 None => false
@@ -288,10 +288,10 @@ pub fn gauss_newton_step_with_conguate_gradient<F, R, C, S1, S2,StorageTargetArr
         }
 
         for i in (0..u_span).step_by(CAMERA_PARAM_SIZE) {
-            let some_local_inv = U_star.fixed_slice::<CAMERA_PARAM_SIZE,CAMERA_PARAM_SIZE>(i,i).try_inverse();
-            let success = match some_local_inv {
-                Some(inv) => {
-                    U_star_inv.fixed_slice_mut::<CAMERA_PARAM_SIZE,CAMERA_PARAM_SIZE>(i,i).copy_from(&inv);
+            let u_slice_cholesky =  U_star.fixed_slice::<CAMERA_PARAM_SIZE,CAMERA_PARAM_SIZE>(i,i).cholesky();
+            let success = match u_slice_cholesky {
+                Some(chol) => {
+                    U_star_inv.fixed_slice_mut::<CAMERA_PARAM_SIZE,CAMERA_PARAM_SIZE>(i,i).copy_from(&chol.inverse());
                     true
                 },
                 None => false
@@ -308,9 +308,10 @@ pub fn gauss_newton_step_with_conguate_gradient<F, R, C, S1, S2,StorageTargetArr
                 let res_b = target_arrowhead_residual.rows(u_span,v_span);
         
                 // Precondition S with preconditioner U*
-                let schur_compliment = (U_star_inv as &DMatrix<F>)*(U_star - W*(V_star_inv as &DMatrix<F>)*W_t); // takes long time
+                let schur_compliment = U_star - W*(V_star_inv as &DMatrix<F>)*W_t; // takes long time
+                let schur_compliment_preconditioned = (U_star_inv as &DMatrix<F>)*schur_compliment;
                 let res_a_augment = (U_star_inv as &DMatrix<F>)*(res_a-W*(V_star_inv as &DMatrix<F>)*res_b); // takes long time
-                match conjugate_gradient::conjugate_gradient::<_,_,_,_,Dynamic>(&schur_compliment, &res_a_augment, &mut target_perturb.rows_mut(0,u_span), cg_tresh, cg_max_it) {
+                match conjugate_gradient::conjugate_gradient::<_,_,_,_,Dynamic>(&schur_compliment_preconditioned, &res_a_augment, &mut target_perturb.rows_mut(0,u_span), cg_tresh, cg_max_it) {
                     true => {
                         let h_b = (V_star_inv as &DMatrix<F>)*(res_b-W_t*(&target_perturb.rows(0,u_span)));
                         target_perturb.slice_mut((u_span,0),(v_span,1)).copy_from(&h_b);
