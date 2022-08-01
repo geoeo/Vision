@@ -26,7 +26,7 @@ pub fn run_ba<F: serde::Serialize + float::Float + Scalar + NumAssign + SimdReal
 
 
     let (unique_camera_ids_sorted,_) = sfm_config.compute_unqiue_ids_cameras_root_first();
-    let (_,unique_cameras_sorted_by_id_ba) = sfm_config.compute_unqiue_ids_cameras_lowp_root_first();
+    let (_,unique_cameras_sorted_by_id_ba) = sfm_config.compute_unqiue_ids_cameras_ba_root_first();
     let path_id_pairs = sfm_config.compute_path_id_pairs();
 
     let mut feature_map = CameraFeatureMap::new(matches,unique_camera_ids_sorted, img_dim);
