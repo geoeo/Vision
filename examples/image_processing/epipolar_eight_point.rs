@@ -118,14 +118,10 @@ fn main() -> Result<()> {
     println!("{}",fundamental_matrix);
     println!("{}",fundamental_matrix_norm);
 
-    let principal_distance_sign = match depth_positive { 
-        true => 1.0,
-        false => -1.0
-    };
     let essential_matrix = epipolar::compute_essential(&fundamental_matrix, &intensity_camera_1.get_inverse_projection(), &intensity_camera_2.get_inverse_projection());
     let (h, R_est, e_corrected) = epipolar::decompose_essential_förstner(&essential_matrix,&feature_matches,&intensity_camera_1.get_inverse_projection(),&intensity_camera_2.get_inverse_projection());
     //let feature_matches_vis = &feature_matches[0..20];
-    let feature_matches_vis = epipolar::filter_matches_from_fundamental(&fundamental_matrix, &feature_matches,0.00001, principal_distance_sign); 
+    let feature_matches_vis = epipolar::filter_matches_from_fundamental(&fundamental_matrix, &feature_matches,0.00001); 
     let epipolar_lines: Vec<(Vector3<Float>, Vector3<Float>)> = feature_matches_vis.iter().map(|m| epipolar::epipolar_lines(&fundamental_matrix_norm, m, &cam_intrinsics_0, &cam_intrinsics_1)).collect();
 
     println!("{}",h);
