@@ -197,10 +197,10 @@ pub fn gauss_newton_step_with_schur<F, R, C, S1, S2,StorageTargetArrow, StorageT
 
         let mut inv_success = true;
         for i in (0..v_span).step_by(LANDMARK_PARAM_SIZE) {
-            let some_local_inv = V_star.fixed_slice::<LANDMARK_PARAM_SIZE,LANDMARK_PARAM_SIZE>(i,i).try_inverse();
-            let success = match some_local_inv {
-                Some(inv) => {
-                    V_star_inv.fixed_slice_mut::<LANDMARK_PARAM_SIZE,LANDMARK_PARAM_SIZE>(i,i).copy_from(&inv);
+            let v_slice_cholesky = V_star.fixed_slice::<LANDMARK_PARAM_SIZE,LANDMARK_PARAM_SIZE>(i,i).cholesky();
+            let success = match v_slice_cholesky {
+                Some(chol) => {
+                    V_star_inv.fixed_slice_mut::<LANDMARK_PARAM_SIZE,LANDMARK_PARAM_SIZE>(i,i).copy_from(&chol.inverse());
                     true
                 },
                 None => false
