@@ -20,11 +20,7 @@ pub fn five_point_essential<T: Feature + Clone, C: Camera<Float>>(matches: &Vec<
     let inverse_projection_two = camera_two.get_inverse_projection();
     let l = matches.len();
     let l_as_float = l as Float;
-    let principal_distance_sign = match depth_positive {
-        true => 1.0,
-        false => -1.0
-    };
-
+    
     let mut camera_rays_one = Matrix3xX::<Float>::zeros(l);
     let mut camera_rays_two = Matrix3xX::<Float>::zeros(l);
     let mut features_one = Matrix3xX::<Float>::zeros(l);

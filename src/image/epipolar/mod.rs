@@ -119,7 +119,7 @@ pub fn compute_fundamental(E: &Essential, inverse_projection_start: &Matrix3<Flo
 }
 
 #[allow(non_snake_case)]
-pub fn filter_matches_from_fundamental<T: Feature + Clone>(F: &Fundamental,matches: &Vec<Match<T>>, epipiolar_thresh: Float, principal_distance_sign: Float) -> Vec<Match<T>> {
+pub fn filter_matches_from_fundamental<T: Feature + Clone>(F: &Fundamental,matches: &Vec<Match<T>>, epipiolar_thresh: Float) -> Vec<Match<T>> {
     matches.iter().filter(|m| {
             let start = m.feature_one.get_as_3d_point(-1.0);
             let finish = m.feature_two.get_as_3d_point(-1.0);
@@ -129,7 +129,7 @@ pub fn filter_matches_from_fundamental<T: Feature + Clone>(F: &Fundamental,match
 }
 
 #[allow(non_snake_case)]
-pub fn filter_matches_from_motion<T: Feature + Clone, C: Camera<Float>>(matches: &Vec<Match<T>>, relative_motion: &(Vector3<Float>,Matrix3<Float>),camera_pair: &(C,C), principal_distance_sign: Float, epipiolar_thresh: Float) -> Vec<Match<T>> {
+pub fn filter_matches_from_motion<T: Feature + Clone, C: Camera<Float>>(matches: &Vec<Match<T>>, relative_motion: &(Vector3<Float>,Matrix3<Float>),camera_pair: &(C,C), epipiolar_thresh: Float) -> Vec<Match<T>> {
     let (cam_s,cam_f) = &camera_pair;
     let (t,R) = &relative_motion;
     let essential = essential_matrix_from_motion(t, R);
@@ -137,7 +137,7 @@ pub fn filter_matches_from_motion<T: Feature + Clone, C: Camera<Float>>(matches:
     let cam_f_inv = cam_f.get_inverse_projection();
     let fundamental = compute_fundamental(&essential, &cam_s_inv, &cam_f_inv);
 
-    filter_matches_from_fundamental(&fundamental,matches, epipiolar_thresh, principal_distance_sign)
+    filter_matches_from_fundamental(&fundamental,matches, epipiolar_thresh)
 }
 
 /**
@@ -286,7 +286,6 @@ pub fn compute_pairwise_cam_motions_with_filtered_matches_for_path<C : Camera<Fl
         path_idx: usize,
         pyramid_scale:Float, 
         epipiolar_thresh: Float, 
-        positive_principal_distance: bool,
         normalize_features: bool,
         epipolar_alg: BifocalType,
         decomp_alg: EssentialDecomposition) 
@@ -304,27 +303,23 @@ pub fn compute_pairwise_cam_motions_with_filtered_matches_for_path<C : Camera<Fl
         };
         let id2 = path[i];
         let c2 = camera_map.get(&id2).expect("compute_pairwise_cam_motions_for_path: could not get second camera");
-        let principal_distance_sign = match positive_principal_distance {
-            true => 1.0,
-            false => -1.0
-        };
         let (e,f_m) = match epipolar_alg {
             BifocalType::FUNDAMENTAL => {
-                let f = eight_point(m, positive_principal_distance);
-                let filtered =  filter_matches_from_fundamental(&f,m,epipiolar_thresh, principal_distance_sign);
+                let f = eight_point(m, false);
+                let filtered =  filter_matches_from_fundamental(&f,m,epipiolar_thresh);
                 (compute_essential(&f,&c1.get_projection(),&c2.get_projection()), filtered)
             },
             BifocalType::ESSENTIAL => {
-                let e = five_point_essential(m, c1, c2, positive_principal_distance);
+                let e = five_point_essential(m, c1, c2, false);
                 let f = compute_fundamental(&e, &c1.get_inverse_projection(), &c2.get_inverse_projection());
-                let filtered =  filter_matches_from_fundamental(&f,m,epipiolar_thresh, principal_distance_sign);
+                let filtered =  filter_matches_from_fundamental(&f,m,epipiolar_thresh);
                 (e, filtered)
             }
         };
 
         let (h,rotation,_) = match decomp_alg {
             EssentialDecomposition::FÖRSNTER => decompose_essential_förstner(&e,&f_m,&c1.get_inverse_projection(),&c2.get_inverse_projection()),
-            EssentialDecomposition::KANATANI => decompose_essential_kanatani(&e,&f_m, positive_principal_distance)
+            EssentialDecomposition::KANATANI => decompose_essential_kanatani(&e,&f_m, false)
         };
         let new_state = (id2,(h, rotation));
         (new_state, f_m)
@@ -337,7 +332,6 @@ pub fn compute_pairwise_cam_motions_with_filtered_matches<C: Camera<Float> + Cop
         sfm_config: &SFMConfig<C, T>,
         pyramid_scale:Float, 
         epipolar_thresh: Float, 
-        positive_principal_distance: bool,
         normalize_features: bool,
         epipolar_alg: BifocalType,
         decomp_alg: EssentialDecomposition) 
@@ -348,7 +342,6 @@ pub fn compute_pairwise_cam_motions_with_filtered_matches<C: Camera<Float> + Cop
         i,
         pyramid_scale,
         epipolar_thresh,
-        positive_principal_distance,
         normalize_features,
         epipolar_alg, 
         decomp_alg)

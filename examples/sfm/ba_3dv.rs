@@ -65,14 +65,12 @@ fn main() -> Result<()> {
 
     let depth_prior = -1.0;
     let epipolar_thresh = Float::INFINITY;
-    let positive_principal_distance = false;
     let normalize_features = false;
 
     let (initial_cam_motions_per_path,filtered_matches_per_path) = compute_pairwise_cam_motions_with_filtered_matches(
         &sfm_config,
         1.0,
         epipolar_thresh,
-        positive_principal_distance,
         normalize_features,
         BifocalType::ESSENTIAL,
         EssentialDecomposition::FÖRSNTER
