@@ -93,7 +93,7 @@ pub fn compute_jacobian_wrt_camera_extrinsics<F, C : Camera<F>, L: Landmark<F, T
     jacobian.fixed_slice_mut::<2,6>(i,j).copy_from(&local_jacobian);
 }
 
-pub fn compute_jacobian<F, C : Camera<F>, L: Landmark<F, T> + Copy + Clone, const T: usize>(state: &State<F, L,T>, cameras: &Vec<&C>, jacobian: &mut DMatrix<F>) 
+pub fn compute_jacobian<F, C : Camera<F>, L: Landmark<F, T> + Copy + Clone, const T: usize>(state: &State<F,L,T>, cameras: &Vec<&C>, jacobian: &mut DMatrix<F>) 
     -> ()  where F: float::Float + Scalar + NumAssign + SimdRealField + ComplexField + Mul<F> + From<F> + RealField + SubsetOf<Float> + SupersetOf<Float> {
     //cam
     let number_of_cam_params = 6*state.n_cams;
@@ -119,7 +119,7 @@ pub fn compute_jacobian<F, C : Camera<F>, L: Landmark<F, T> + Copy + Clone, cons
 
 }
 
-pub fn optimize<F, C : Camera<F>, L: Landmark<F, LANDMARK_PARAM_SIZE> + Copy + Clone, const LANDMARK_PARAM_SIZE: usize>(state: &mut State<F, L,LANDMARK_PARAM_SIZE>, cameras: &Vec<&C>, observed_features: &DVector<F>, runtime_parameters: &RuntimeParameters<F> ) 
+pub fn optimize<F, C : Camera<F>, L: Landmark<F, LANDMARK_PARAM_SIZE> + Copy + Clone, const LANDMARK_PARAM_SIZE: usize>(state: &mut State<F,L,LANDMARK_PARAM_SIZE>, cameras: &Vec<&C>, observed_features: &DVector<F>, runtime_parameters: &RuntimeParameters<F> ) 
     -> Option<Vec<(Vec<[F; CAMERA_PARAM_SIZE]>, Vec<[F; LANDMARK_PARAM_SIZE]>)>> where F: float::Float + Scalar + NumAssign + SimdRealField + ComplexField + Mul<F> + From<F> + RealField + SubsetOf<Float> + SupersetOf<Float> {
     
 

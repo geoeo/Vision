@@ -1,14 +1,12 @@
 extern crate nalgebra as na;
-extern crate num_traits;
 
-use na::{Isometry3, Point3, SVector, SMatrix, SimdRealField, ComplexField,base::Scalar};
-use num_traits::{float,NumAssign};
+use na::{Isometry3, Point3, SVector, SMatrix,base::Scalar};
 
 pub mod euclidean_landmark;
 pub mod inverse_depth_landmark;
 
 
-pub trait Landmark<F: float::Float + Scalar + NumAssign + SimdRealField + ComplexField, const T: usize> {
+pub trait Landmark<F: Scalar, const T: usize> {
     const LANDMARK_PARAM_SIZE: usize = T;
 
     fn from_state(state: SVector<F, T>) -> Self; 
