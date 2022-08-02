@@ -293,13 +293,16 @@ pub fn optimize<F, C : Camera<F>, L: Landmark<F, LANDMARK_PARAM_SIZE> + Copy + C
             nu = two;
         } else {
             new_state.copy_from(&state); 
-            mu = Some(nu*mu.unwrap());
+            mu = match mu {
+                Some(v) => Some(nu*v),
+                None => None
+            };
             nu *= two;
         }
 
         iteration_count += 1;
 
-        if mu.unwrap().is_infinite(){
+        if mu.is_some() && mu.unwrap().is_infinite(){
             break;
         }
 
