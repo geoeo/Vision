@@ -302,7 +302,7 @@ pub fn optimize<F, C : Camera<F>, L: Landmark<F, LANDMARK_PARAM_SIZE> + Copy + C
 
         iteration_count += 1;
 
-        if mu.is_some() && mu.unwrap().is_infinite(){
+        if (mu.is_some() && mu.unwrap().is_infinite()) || nu.is_infinite(){
             break;
         }
 
