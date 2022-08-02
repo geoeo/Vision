@@ -61,7 +61,7 @@ fn main() -> Result<()> {
 
     let camera_map = HashMap::from([(0, intensity_camera_0), (1, intensity_camera_1),(2,intensity_camera_2),(3,intensity_camera_3),(4,intensity_camera_4)  ]);
     //let sfm_config = SFMConfig::new(0, vec!(vec!(2), vec!(1,3), vec!(3)), camera_map, vec!(vec!(matches_0_2),vec!(matches_0_1, matches_1_3),vec!(matches_0_3)));
-    let sfm_config = SFMConfig::new(2, vec!(vec!(1,0), vec!(3,4)), camera_map, vec!(vec!(matches_2_1,matches_1_0),vec!(matches_2_3,matches_3_4)));
+    let sfm_config = SFMConfig::new(2, vec!(vec!(1,0), vec!(3,4)), camera_map.clone(), camera_map, vec!(vec!(matches_2_1,matches_1_0),vec!(matches_2_3,matches_3_4)));
 
     let depth_prior = -1.0;
     let epipolar_thresh = Float::INFINITY;
@@ -77,7 +77,7 @@ fn main() -> Result<()> {
 );
 
 
-    let ((cam_positions,points),(s,debug_states_serialized)) = run_ba(&filtered_matches_per_path, &sfm_config, &sfm_config, Some(&initial_cam_motions_per_path), (480,640), &runtime_parameters, 1.0,depth_prior);
+    let ((cam_positions,points),(s,debug_states_serialized)) = run_ba(&filtered_matches_per_path, &sfm_config, Some(&initial_cam_motions_per_path), (480,640), &runtime_parameters, 1.0,depth_prior);
     //let ((cam_positions,points),(s,debug_states_serialized)) = run_ba(&sfm_config.matches(), &sfm_config, None, (480,640), &runtime_parameters, 1.0,depth_prior);
     fs::write(format!("{}/{}",runtime_conf.local_data_path,"3dv.txt"), s?).expect("Unable to write file");
     if runtime_parameters.debug {
