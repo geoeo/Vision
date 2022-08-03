@@ -32,6 +32,7 @@ fn main() -> Result<()> {
     let data_set_de_guerre_path =  format!("{}/Olsen/de_guerre/",runtime_conf.dataset_path);
     let data_set_fort_channing_path = format!("{}/Olsen/Fort_Channing_gate/",runtime_conf.dataset_path);
     let data_set_park_gate_path = format!("{}/Olsen/park_gate/",runtime_conf.dataset_path);
+    let data_set_kronan_path = format!("{}/Olsen/kronan/",runtime_conf.dataset_path);
     
     let olsen_data_path = data_set_park_gate_path;
     let depth_prior = -1.0;
