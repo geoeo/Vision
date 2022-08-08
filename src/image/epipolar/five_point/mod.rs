@@ -15,7 +15,7 @@ mod constraints;
  * This only work on ubuntu. assert build version or something
  */
 #[allow(non_snake_case)]
-pub fn five_point_essential<T: Feature + Clone, C: Camera<Float>>(matches: &Vec<Match<T>>, camera_one: &C, camera_two: &C, depth_positive: bool) -> Essential {
+pub fn five_point_essential<T: Feature + Clone, C: Camera<Float>>(matches: &Vec<Match<T>>, camera_one: &C, camera_two: &C) -> Essential {
     let inverse_projection_one = camera_one.get_inverse_projection();
     let inverse_projection_two = camera_two.get_inverse_projection();
     let l = matches.len();
@@ -131,7 +131,7 @@ pub fn five_point_essential<T: Feature + Clone, C: Camera<Float>>(matches: &Vec<
         let E_est = x*E1+y*E2+z*E3+E4;
         E_est
     }).collect::<Vec<Essential>>();
-    let best_essential = cheirality_check(&all_essential_matricies, matches,depth_positive, (&features_one, &camera_one.get_projection(),&inverse_projection_one), (&features_two, &camera_two.get_projection(),&inverse_projection_two));
+    let best_essential = cheirality_check(&all_essential_matricies, matches,false, (&features_one, &camera_one.get_projection(),&inverse_projection_one), (&features_two, &camera_two.get_projection(),&inverse_projection_two));
     
     best_essential
 }

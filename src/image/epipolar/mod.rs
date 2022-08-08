@@ -41,8 +41,8 @@ pub fn extract_matches<T: Feature>(matches: &Vec<Match<T>>, pyramid_scale: Float
 
 }
 #[allow(non_snake_case)]
-pub fn five_point_essential<T: Feature + Clone, C: Camera<Float>>(matches: &Vec<Match<T>>, camera_one: &C, camera_two: &C, depth_positive: bool) -> Essential {
-    five_point::five_point_essential(matches,camera_one,camera_two,depth_positive)
+pub fn five_point_essential<T: Feature + Clone, C: Camera<Float>>(matches: &Vec<Match<T>>, camera_one: &C, camera_two: &C) -> Essential {
+    five_point::five_point_essential(matches,camera_one,camera_two)
 }
 
 /**
@@ -310,7 +310,7 @@ pub fn compute_pairwise_cam_motions_with_filtered_matches_for_path<C : Camera<Fl
                 (compute_essential(&f,&c1.get_projection(),&c2.get_projection()), filtered)
             },
             BifocalType::ESSENTIAL => {
-                let e = five_point_essential(m, c1, c2, false);
+                let e = five_point_essential(m, c1, c2);
                 let f = compute_fundamental(&e, &c1.get_inverse_projection(), &c2.get_inverse_projection());
                 let filtered =  filter_matches_from_fundamental(&f,m,epipiolar_thresh);
                 (e, filtered)
