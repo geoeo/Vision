@@ -144,7 +144,7 @@ pub fn optimize<F, C : Camera<F>, L: Landmark<F, LANDMARK_PARAM_SIZE> + Copy + C
         false => None
     };
     let mut v_star_inv = DMatrix::<F>::zeros(v_span,v_span); // a lot of memory - maybe use sparse format
-    let mut u_star_inv = DMatrix::<F>::zeros(u_span,u_span); // a lot of memory - maybe use sparse format
+    let mut preconditioner = DMatrix::<F>::zeros(u_span,u_span); // a lot of memory - maybe use sparse format
     let two: F = convert(2.0);
 
     println!("BA Memory Allocation Complete.");
@@ -197,7 +197,7 @@ pub fn optimize<F, C : Camera<F>, L: Landmark<F, LANDMARK_PARAM_SIZE> + Copy + C
 
         //TODO: switch in runtime parameters
     // let gauss_newton_result 
-    //     = gauss_newton_step_with_schur::<_,_,_,_,_,_,LANDMARK_PARAM_SIZE, CAMERA_PARAM_SIZE>(
+    //     = gauss_newton_step_with_schur::<_,_,_,_,_,_,_,LANDMARK_PARAM_SIZE, CAMERA_PARAM_SIZE>(
     //         &mut target_arrowhead,
     //         &mut g,
     //         &mut delta,
@@ -213,14 +213,14 @@ pub fn optimize<F, C : Camera<F>, L: Landmark<F, LANDMARK_PARAM_SIZE> + Copy + C
     //     ); 
 
 
-        u_star_inv.fill(F::zero());
+    preconditioner.fill(F::zero());
         let gauss_newton_result 
             = gauss_newton_step_with_conguate_gradient::<_,_,_,_,_,_,_,LANDMARK_PARAM_SIZE, CAMERA_PARAM_SIZE>(
                 &mut target_arrowhead,
                 &mut g,
                 &mut delta,
                 &mut v_star_inv,
-                &mut u_star_inv,
+                &mut preconditioner,
                 &residuals,
                 &jacobian,
                 mu,

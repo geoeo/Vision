@@ -205,6 +205,17 @@ pub fn gauss_newton_step_with_schur<F, R, C, S1, S2,StorageTargetArrow, StorageT
                 },
                 None => false
             };
+
+
+            // let v_slice_inv_opt = V_star.fixed_slice::<LANDMARK_PARAM_SIZE,LANDMARK_PARAM_SIZE>(i,i).try_inverse();
+            // let success = match v_slice_inv_opt {
+            //     Some(inv) => {
+            //         V_star_inv.fixed_slice_mut::<LANDMARK_PARAM_SIZE,LANDMARK_PARAM_SIZE>(i,i).copy_from(&inv);
+            //         true
+            //     },
+            //     None => false
+            // };
+
             inv_success &= success;
         }
 
@@ -242,7 +253,7 @@ pub fn gauss_newton_step_with_conguate_gradient<F, R, C, S1, S2,StorageTargetArr
     target_arrowhead_residual: &mut Vector<F,C,StorageTargetResidual>, 
     target_perturb: &mut Vector<F,C,StorageTargetResidual>, 
     V_star_inv: &mut DMatrix<F>,
-    U_star_inv: &mut DMatrix<F>,
+    preconditioner: &mut DMatrix<F>,
     residuals: &Vector<F, R,S1>, 
     jacobian: &Matrix<F,R,C,S2>,
     mu: Option<F>, 
@@ -284,14 +295,53 @@ pub fn gauss_newton_step_with_conguate_gradient<F, R, C, S1, S2,StorageTargetArr
                 },
                 None => false
             };
+
+            // let v_slice_inv_opt = V_star.fixed_slice::<LANDMARK_PARAM_SIZE,LANDMARK_PARAM_SIZE>(i,i).try_inverse();
+            // let success = match v_slice_inv_opt {
+            //     Some(inv) => {
+            //         V_star_inv.fixed_slice_mut::<LANDMARK_PARAM_SIZE,LANDMARK_PARAM_SIZE>(i,i).copy_from(&inv);
+            //         true
+            //     },
+            //     None => false
+            // };
+
             inv_success &= success;
         }
 
+        // for i in (0..u_span).step_by(CAMERA_PARAM_SIZE) {
+        //     let u_slice_cholesky =  U_star.fixed_slice::<CAMERA_PARAM_SIZE,CAMERA_PARAM_SIZE>(i,i).cholesky();
+        //     let success = match u_slice_cholesky {
+        //         Some(chol) => {
+        //             preconditioner.fixed_slice_mut::<CAMERA_PARAM_SIZE,CAMERA_PARAM_SIZE>(i,i).copy_from(&chol.inverse());
+        //             true
+        //         },
+        //         None => false
+        //     };
+
+            // let u_slice_inverse_opt = U_star.fixed_slice::<CAMERA_PARAM_SIZE,CAMERA_PARAM_SIZE>(i,i).try_inverse();
+            // let success = match u_slice_inverse_opt {
+            //     Some(inv) => {
+            //         U_star_inv.fixed_slice_mut::<CAMERA_PARAM_SIZE,CAMERA_PARAM_SIZE>(i,i).copy_from(&inv);
+            //         true
+            //     },
+            //     None => false
+            // };
+
+        //     inv_success &= success;
+        // }
+
+        let W = target_arrowhead.slice((0,u_span),(u_span,v_span));
+        let W_t = target_arrowhead.slice((u_span,0),(v_span,u_span));
+        let res_a = target_arrowhead_residual.rows(0, u_span);
+        let res_b = target_arrowhead_residual.rows(u_span,v_span);
+
+        let schur_compliment = U_star - W*(V_star_inv as &DMatrix<F>)*W_t; // takes long time
+
         for i in (0..u_span).step_by(CAMERA_PARAM_SIZE) {
-            let u_slice_cholesky =  U_star.fixed_slice::<CAMERA_PARAM_SIZE,CAMERA_PARAM_SIZE>(i,i).cholesky();
-            let success = match u_slice_cholesky {
+            let s_cholesky =  schur_compliment.fixed_slice::<CAMERA_PARAM_SIZE,CAMERA_PARAM_SIZE>(i,i).cholesky();
+            let success = match s_cholesky {
                 Some(chol) => {
-                    U_star_inv.fixed_slice_mut::<CAMERA_PARAM_SIZE,CAMERA_PARAM_SIZE>(i,i).copy_from(&chol.inverse());
+                    preconditioner.fixed_slice_mut::<CAMERA_PARAM_SIZE,CAMERA_PARAM_SIZE>(i,i).copy_from(&chol.inverse());
                     true
                 },
                 None => false
@@ -301,16 +351,8 @@ pub fn gauss_newton_step_with_conguate_gradient<F, R, C, S1, S2,StorageTargetArr
 
         match inv_success {
             true => {
-                let W = target_arrowhead.slice((0,u_span),(u_span,v_span));
-                let W_t = target_arrowhead.slice((u_span,0),(v_span,u_span));
-        
-                let res_a = target_arrowhead_residual.rows(0, u_span);
-                let res_b = target_arrowhead_residual.rows(u_span,v_span);
-        
-                // Precondition S with preconditioner U*
-                let schur_compliment = U_star - W*(V_star_inv as &DMatrix<F>)*W_t; // takes long time
-                let schur_compliment_preconditioned = (U_star_inv as &DMatrix<F>)*schur_compliment;
-                let res_a_augment = (U_star_inv as &DMatrix<F>)*(res_a-W*(V_star_inv as &DMatrix<F>)*res_b); // takes long time
+                let schur_compliment_preconditioned = (preconditioner as &DMatrix<F>)*schur_compliment;
+                let res_a_augment = (preconditioner as &DMatrix<F>)*(res_a-W*(V_star_inv as &DMatrix<F>)*res_b); // takes long time
                 match conjugate_gradient::conjugate_gradient::<_,_,_,_,Dynamic>(&schur_compliment_preconditioned, &res_a_augment, &mut target_perturb.rows_mut(0,u_span), cg_tresh, cg_max_it) {
                     true => {
                         let h_b = (V_star_inv as &DMatrix<F>)*(res_b-W_t*(&target_perturb.rows(0,u_span)));
