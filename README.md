@@ -27,6 +27,7 @@ Primal-Dual Convex For L1 Norm https://candes.su.domains/software/l1magic/downlo
 ![ba](doc/ba_3dv.gif)
 ![door-ba-four](doc/four_view_ba_door.png)
 ![door-ba-four-gif](doc/four_view_ba_door.gif)
+![fort-channing](doc/fort_channing.png)
 
 
 ## Five Point (Data from Carl Olsson: https://www.maths.lth.se/matematiklth/personal/calle/)
