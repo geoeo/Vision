@@ -298,7 +298,7 @@ impl CameraFeatureMap {
         let n_points = self.number_of_unique_points;
         let n_cams = self.camera_map.keys().len();
         let mut observed_features = DVector::<F>::zeros(n_points*n_cams*2); // some entries might be invalid
-        let c_y = self.image_row_col.0 as Float; 
+        let c_y = (self.image_row_col.0 - 1) as Float; 
 
         for landmark_idx in 0..n_points {
             let observing_cams = &self.point_cam_map[landmark_idx];

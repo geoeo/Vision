@@ -41,10 +41,10 @@ fn main() -> Result<()> {
     //let epipolar_thresh = 0.005; 
     //let epipolar_thresh = 0.01; 
     //let epipolar_thresh = 0.05;
-    let epipolar_thresh = 0.1;
+    //let epipolar_thresh = 0.1;
     //let epipolar_thresh = 1.0;
     //let epipolar_thresh = 5.0;
-    //let epipolar_thresh = Float::INFINITY;
+    let epipolar_thresh = Float::INFINITY;
 
     let feature_skip_count = 1;
     let olsen_data = OlssenData::new(&olsen_data_path);
@@ -52,7 +52,7 @@ fn main() -> Result<()> {
     let invert_intrinsics = false; // they are already negative from decomp
     let normalize_features = false;
 
-    //let change_of_basis = Matrix3::<Float>::new(1.0,0.0,0.0, 0.0,1.0,0.0, 1.0,0.0,0.0);
+    //let change_of_basis = Matrix3::<Float>::new(-1.0,0.0,0.0, 0.0,-1.0,0.0, 1.0,0.0,0.0);
     let change_of_basis = Matrix3::<Float>::identity();
 
 
@@ -73,6 +73,7 @@ fn main() -> Result<()> {
     let (cam_intrinsics_13,cam_extrinsics_13) = olsen_data.get_camera_intrinsics_extrinsics(13,positive_principal_distance);
     let (cam_intrinsics_14,cam_extrinsics_14) = olsen_data.get_camera_intrinsics_extrinsics(14,positive_principal_distance);
 
+    let (cam_intrinsics_18,cam_extrinsics_18) = olsen_data.get_camera_intrinsics_extrinsics(18,positive_principal_distance);
     let (cam_intrinsics_19,cam_extrinsics_19) = olsen_data.get_camera_intrinsics_extrinsics(19,positive_principal_distance);
     let (cam_intrinsics_20,cam_extrinsics_20) = olsen_data.get_camera_intrinsics_extrinsics(20,positive_principal_distance);
     let (cam_intrinsics_21,cam_extrinsics_21) = olsen_data.get_camera_intrinsics_extrinsics(21,positive_principal_distance);
@@ -97,6 +98,7 @@ fn main() -> Result<()> {
     let matches_12_13 = olsen_data.get_matches_between_images(12, 13);
     let matches_13_14 = olsen_data.get_matches_between_images(13, 14);
 
+    let matches_19_18 = olsen_data.get_matches_between_images(19, 18);
     let matches_20_19 = olsen_data.get_matches_between_images(20, 19);
     let matches_20_21 = olsen_data.get_matches_between_images(20, 21);
     let matches_21_22 = olsen_data.get_matches_between_images(21, 22);
@@ -119,6 +121,7 @@ fn main() -> Result<()> {
     let matches_12_13_subvec = matches_12_13.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
     let matches_13_14_subvec = matches_13_14.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
 
+    let matches_19_18_subvec = matches_19_18.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
     let matches_20_19_subvec = matches_20_19.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
     let matches_20_21_subvec = matches_20_21.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
     let matches_21_22_subvec = matches_21_22.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
@@ -139,6 +142,7 @@ fn main() -> Result<()> {
     let pinhole_cam_12 = Perspective::from_matrix(&cam_intrinsics_12, invert_intrinsics);
     let pinhole_cam_13 = Perspective::from_matrix(&cam_intrinsics_13, invert_intrinsics);
     let pinhole_cam_14 = Perspective::from_matrix(&cam_intrinsics_14, invert_intrinsics);
+    let pinhole_cam_18 = Perspective::from_matrix(&cam_intrinsics_18, invert_intrinsics);
     let pinhole_cam_19 = Perspective::from_matrix(&cam_intrinsics_19, invert_intrinsics);
     let pinhole_cam_20 = Perspective::from_matrix(&cam_intrinsics_20, invert_intrinsics);
     let pinhole_cam_21 = Perspective::from_matrix(&cam_intrinsics_21, invert_intrinsics);
@@ -171,10 +175,10 @@ fn main() -> Result<()> {
     // let paths = vec!(vec!(9),vec!(11));
     // let root_id = 10;
 
-    let sfm_all_matches = vec!(vec!(matches_20_19_subvec),vec!(matches_20_21_subvec, matches_21_22_subvec));
-    let camera_map = HashMap::from([(19, pinhole_cam_19),(20, pinhole_cam_20),(21, pinhole_cam_21),(22, pinhole_cam_22)]);  
-    let camera_map_ba = HashMap::from([(19, pinhole_cam_19.cast::<f32>()),(20, pinhole_cam_20.cast::<f32>()),(21, pinhole_cam_21.cast::<f32>()),(22, pinhole_cam_22.cast::<f32>())]);  
-    let paths = vec!(vec!(19),vec!(21,22));
+    let sfm_all_matches = vec!(vec!(matches_20_19_subvec,matches_19_18_subvec),vec!(matches_20_21_subvec, matches_21_22_subvec));
+    let camera_map = HashMap::from([(18, pinhole_cam_18),(19, pinhole_cam_19),(20, pinhole_cam_20),(21, pinhole_cam_21),(22, pinhole_cam_22)]);  
+    let camera_map_ba = HashMap::from([(18, pinhole_cam_18.cast::<f32>()),(19, pinhole_cam_19.cast::<f32>()),(20, pinhole_cam_20.cast::<f32>()),(21, pinhole_cam_21.cast::<f32>()),(22, pinhole_cam_22.cast::<f32>())]);  
+    let paths = vec!(vec!(19,18),vec!(21,22));
     let root_id = 20;
 
     // let sfm_all_matches = vec!(vec!(matches_5_4_subvec, matches_4_3_subvec),vec!(matches_5_6_subvec, matches_6_7_subvec,matches_7_8_subvec));
@@ -189,7 +193,7 @@ fn main() -> Result<()> {
             1.0,
             epipolar_thresh,
             normalize_features,
-            BifocalType::ESSENTIAL, 
+            BifocalType::FUNDAMENTAL, 
             EssentialDecomposition::FÖRSNTER
     );
 
