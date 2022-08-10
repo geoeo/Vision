@@ -159,16 +159,15 @@ impl CameraFeatureMap {
     }
 
     pub fn get_euclidean_landmark_state<F: float::Float + Scalar + NumAssign + SimdRealField + ComplexField + Mul<F> + From<F> + RealField + SubsetOf<Float> + SupersetOf<Float>, C : Camera<Float> + Copy>(
-        &self, initial_motions : Option<&Vec<Vec<(usize,(Vector3<Float>,Matrix3<Float>))>>>, root_id: usize,camera_map: &HashMap<usize, C>, paths: &Vec<Vec<usize>> , depth_prior: F) 
+        &self, initial_motions : Option<&Vec<Vec<(usize,(Vector3<Float>,Matrix3<Float>))>>>, root_id: usize,camera_map: &HashMap<usize, C>, paths: &Vec<Vec<usize>>) 
         -> State<F, EuclideanLandmark<F>,3> {
         
         let number_of_cameras = self.camera_map.keys().len();
         let number_of_unqiue_landmarks = self.number_of_unique_points;
-        let depth_prior_system_float: Float = convert(depth_prior);
 
         let landmarks = match initial_motions {
             Some(all_motions) => {
-                let mut triangualted_landmarks = vec![EuclideanLandmark::from_state(Vector3::<F>::new(F::zero(),F::zero(),depth_prior)); number_of_unqiue_landmarks];       
+                let mut triangualted_landmarks = vec![EuclideanLandmark::from_state(Vector3::<F>::new(F::zero(),F::zero(),-F::one())); number_of_unqiue_landmarks];       
                 for path_idx in 0..all_motions.len() {
                         let motions = &all_motions[path_idx];
                         assert_eq!(motions.len(), paths[path_idx].len());
@@ -238,22 +237,27 @@ impl CameraFeatureMap {
                             let triangulated_points = pose_acc*linear_triangulation(&vec!((&normalized_image_points_s,&projection_1),(&normalized_image_points_f,&projection_2)));
                             pose_acc = pose_acc*se3;
                             assert_eq!(triangulated_points.ncols(), point_ids.len());
-                            
+
                             for j in 0..point_ids.len() {
                                 let point_id = point_ids[j];
                                 let mut point = triangulated_points.fixed_slice::<3, 1>(0, j).into_owned();
-                                point /= point[2]*depth_prior_system_float;
+                                point /= point[2]*-1.0;
+
+                                
                                 triangualted_landmarks[point_id] = EuclideanLandmark::from_state(Vector3::<F>::new(
                                     convert(point[0]),
                                     convert(point[1]),
                                     convert(point[2])
                                 ));
                             }
+                            
+
+                            
                         }
                 }
                 triangualted_landmarks
             },
-            None => vec!(Vector3::<F>::new(F::zero(), F::zero(), depth_prior);number_of_unqiue_landmarks).iter().map(|&v| EuclideanLandmark::from_state(v)).collect::<Vec<EuclideanLandmark<F>>>()  
+            None => vec!(Vector3::<F>::new(F::zero(), F::zero(), -F::one());number_of_unqiue_landmarks).iter().map(|&v| EuclideanLandmark::from_state(v)).collect::<Vec<EuclideanLandmark<F>>>()  
         };
 
 
