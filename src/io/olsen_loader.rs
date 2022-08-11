@@ -69,6 +69,7 @@ impl OlssenData {
             point_correspondence_map[point_idx as usize].1 = Some(i);
         }
 
+        // We flip the y-axis so that the features correspond to the RHS coordiante axis
         point_correspondence_map.iter().filter(|&(v1,v2)| v1.is_some() && v2.is_some()).map(|&(v1,v2)| {
             let coords_one = features_img_one.column(v1.unwrap());
             let feature_one = ImageFeature::new(coords_one[0],(self.height as Float) - 1.0 - coords_one[1]);
