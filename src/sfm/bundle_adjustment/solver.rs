@@ -214,24 +214,24 @@ pub fn optimize<F, C : Camera<F>, L: Landmark<F, LANDMARK_PARAM_SIZE> + Copy + C
 
 
     preconditioner.fill(F::zero());
-        let gauss_newton_result 
-            = gauss_newton_step_with_conguate_gradient::<_,_,_,_,_,_,_,LANDMARK_PARAM_SIZE, CAMERA_PARAM_SIZE>(
-                &mut target_arrowhead,
-                &mut g,
-                &mut delta,
-                &mut v_star_inv,
-                &mut preconditioner,
-                &residuals,
-                &jacobian,
-                mu,
-                tau,
-                state.n_cams,
-                state.n_points,
-                u_span,
-                v_span,
-                runtime_parameters.cg_threshold,
-                runtime_parameters.cg_max_it
-            ); 
+    let gauss_newton_result 
+        = gauss_newton_step_with_conguate_gradient::<_,_,_,_,_,_,_,LANDMARK_PARAM_SIZE, CAMERA_PARAM_SIZE>(
+            &mut target_arrowhead,
+            &mut g,
+            &mut delta,
+            &mut v_star_inv,
+            &mut preconditioner,
+            &residuals,
+            &jacobian,
+            mu,
+            tau,
+            state.n_cams,
+            state.n_points,
+            u_span,
+            v_span,
+            runtime_parameters.cg_threshold,
+            runtime_parameters.cg_max_it
+           ); 
 
         let (gain_ratio, new_cost, pertb_norm, cost_diff) = match gauss_newton_result {
             Some((gain_ratio_denom, mu_val)) => {
