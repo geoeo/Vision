@@ -161,7 +161,7 @@ pub fn cheirality_check<T: Feature + Clone>(
         let p1_points = &points_cam_1.0;
         let p2_points = &points_cam_2.0;
 
-        let Xs = linear_triangulation(&vec!((p1_points,&projection_1),(p2_points,&projection_2)));
+        let Xs = -linear_triangulation(&vec!((p1_points,&projection_1),(p2_points,&projection_2)));
         let p1_x = projection_1*&Xs;
         let p2_x = projection_2*&Xs;
         let mut accepted_cheirality_count = 0;
