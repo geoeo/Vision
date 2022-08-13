@@ -1,8 +1,11 @@
 extern crate nalgebra as na;
+extern crate rand;
 
 mod five_point;
 
 use na::{Vector3, Matrix3,Matrix,Dynamic, VecStorage, dimension::U9};
+use rand::seq::SliceRandom;
+
 use crate::sensors::camera::Camera;
 use crate::Float;
 use crate::image::features::{Feature,Match, ImageFeature, condition_matches};
@@ -40,16 +43,35 @@ pub fn extract_matches<T: Feature>(matches: &Vec<Match<T>>, pyramid_scale: Float
     }
 
 }
-#[allow(non_snake_case)]
+
+pub fn ransac_five_point_essential<T: Feature + Clone, C: Camera<Float>>(matches: &Vec<Match<T>>, camera_one: &C, camera_two: &C, epipolar_thresh: Float, ransac_it: usize) -> Essential {
+    let mut max_inlier_count = 0;
+    let mut best_essential: Option<Essential> = None;
+    for _ in 0..ransac_it {
+        let five_samples: Vec<_> = matches.choose_multiple(&mut rand::thread_rng(), 5).map(|x| x.clone()).collect();
+        let essential_option = five_point::five_point_essential(&five_samples,camera_one,camera_two);
+        match essential_option {
+            Some(essential) => {
+                let f = compute_fundamental(&essential, &camera_one.get_inverse_projection(), &camera_two.get_inverse_projection());
+                best_essential = match filter_matches_from_fundamental(&f,matches,epipolar_thresh).len() {
+                    inliers if inliers > max_inlier_count => {
+                        max_inlier_count = inliers;
+                        Some(essential)
+                    },
+                    _ => best_essential
+                };
+            },
+            None => ()
+        };
+    }
+
+    println!("Best inliner count for essential matrix was {} out of {} matches. That is {} %", max_inlier_count, matches.len(), (max_inlier_count as Float) / (matches.len() as Float));
+    best_essential.expect("No essential matrix could be computer via RANSAC")
+}
+
+
 pub fn five_point_essential<T: Feature + Clone, C: Camera<Float>>(matches: &Vec<Match<T>>, camera_one: &C, camera_two: &C) -> Essential {
-    // let skip = (matches.len() as Float / 5.0).floor() as usize;
-    // //TODO: RANSAC or better 5 feature selection
-    // let mut t = Vec::<Match<T>>::with_capacity(5);
-    // for i in (0..matches.len()).step_by(skip) {
-    //     t.push(matches[i].clone());
-    // }
-    // assert_eq!(t.len(),5);
-    five_point::five_point_essential(&matches,camera_one,camera_two)
+    five_point::five_point_essential(&matches,camera_one,camera_two).expect("five_point_essential: failed")
 }
 
 /**
@@ -292,7 +314,7 @@ pub fn compute_pairwise_cam_motions_with_filtered_matches_for_path<C : Camera<Fl
         sfm_config: &SFMConfig<C,C2, T>,
         path_idx: usize,
         pyramid_scale:Float, 
-        epipiolar_thresh: Float, 
+        epipolar_thresh: Float, 
         normalize_features: bool,
         epipolar_alg: BifocalType,
         decomp_alg: EssentialDecomposition) 
@@ -313,13 +335,13 @@ pub fn compute_pairwise_cam_motions_with_filtered_matches_for_path<C : Camera<Fl
         let (e,f_m) = match epipolar_alg {
             BifocalType::FUNDAMENTAL => {
                 let f = eight_point(m, false);
-                let filtered =  filter_matches_from_fundamental(&f,m,epipiolar_thresh);
+                let filtered =  filter_matches_from_fundamental(&f,m,epipolar_thresh);
                 (compute_essential(&f,&c1.get_projection(),&c2.get_projection()), filtered)
             },
             BifocalType::ESSENTIAL => {
-                let e = five_point_essential(m, c1, c2);
+                let e = ransac_five_point_essential(m, c1, c2,0.005,5000);
                 let f = compute_fundamental(&e, &c1.get_inverse_projection(), &c2.get_inverse_projection());
-                let filtered =  filter_matches_from_fundamental(&f,m,epipiolar_thresh);
+                let filtered =  filter_matches_from_fundamental(&f,m,epipolar_thresh);
                 (e, filtered)
             }
         };

@@ -40,9 +40,12 @@ images/lenna_cropped_2.png
 images/lenna_cropped.png
 images/out.png
 images/ba_pointcloud
+
 data/3dv_debug.txt
 data/3dv.txt
 data/3dv_fountain.txt
 data/3dv_debug_fountain.txt
 data/olsen_fountain.txt
 data/olsen_debug_fountain.txt
+data/olsen_channing.txt
+data/olsen_debug_channing.txt

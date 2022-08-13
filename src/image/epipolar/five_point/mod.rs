@@ -15,7 +15,7 @@ mod constraints;
  * This only work on ubuntu. assert build version or something
  */
 #[allow(non_snake_case)]
-pub fn five_point_essential<T: Feature + Clone, C: Camera<Float>>(matches: &Vec<Match<T>>, camera_one: &C, camera_two: &C) -> Essential {
+pub fn five_point_essential<T: Feature + Clone, C: Camera<Float>>(matches: &Vec<Match<T>>, camera_one: &C, camera_two: &C) -> Option<Essential> {
     let inverse_projection_one = camera_one.get_inverse_projection();
     let inverse_projection_two = camera_two.get_inverse_projection();
     let l = matches.len();
@@ -142,7 +142,7 @@ pub fn cheirality_check<T: Feature + Clone>(
         matches: &Vec<Match<T>>,
         depth_positive: bool,
          points_cam_1: (&OMatrix<Float, U3,Dynamic>, &Matrix3<Float>,&Matrix3<Float>), 
-         points_cam_2: (&OMatrix<Float, U3,Dynamic>, &Matrix3<Float>,&Matrix3<Float>)) -> Essential {
+         points_cam_2: (&OMatrix<Float, U3,Dynamic>, &Matrix3<Float>,&Matrix3<Float>)) -> Option<Essential> {
     let mut max_accepted_cheirality_count = 0;
     let mut best_e = None;
     let mut smallest_det = float::MAX;
@@ -161,6 +161,7 @@ pub fn cheirality_check<T: Feature + Clone>(
         let p1_points = &points_cam_1.0;
         let p2_points = &points_cam_2.0;
 
+        //TODO: re-evaluate this negative sign properly on synthetic data
         let Xs = -linear_triangulation(&vec!((p1_points,&projection_1),(p2_points,&projection_2)));
         let p1_x = projection_1*&Xs;
         let p2_x = projection_2*&Xs;
@@ -192,7 +193,7 @@ pub fn cheirality_check<T: Feature + Clone>(
         }
     }
     // println!("------");
-    best_e.expect("cheirality_check: no best essential matrix found!").clone()
+    best_e
 }
 
 #[allow(non_snake_case)]
