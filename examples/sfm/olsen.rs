@@ -284,8 +284,8 @@ fn main() -> Result<()> {
             debug: true,
             show_octave_result: true,
             loss_function: Box::new(loss::TrivialLoss { eps: 1e-16, approximate_gauss_newton_matrices: false }), 
-            intensity_weighting_function:  Box::new(weighting::SquaredWeight {}),
-            //intensity_weighting_function:  Box::new(weighting::CauchyWeight {c: 0.01})
+            intensity_weighting_function:  Box::new(weighting::HuberWeight {}),
+            //intensity_weighting_function:  Box::new(weighting::CauchyWeight {c: 0.01}),
             cg_threshold: 1e-6,
             cg_max_it: 2e3 as usize
         };

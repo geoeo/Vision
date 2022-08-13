@@ -339,7 +339,7 @@ pub fn compute_pairwise_cam_motions_with_filtered_matches_for_path<C : Camera<Fl
                 (compute_essential(&f,&c1.get_projection(),&c2.get_projection()), filtered)
             },
             BifocalType::ESSENTIAL => {
-                let e = ransac_five_point_essential(m, c1, c2,0.005,5000);
+                let e = ransac_five_point_essential(m, c1, c2,0.01,8000);
                 let f = compute_fundamental(&e, &c1.get_inverse_projection(), &c2.get_inverse_projection());
                 let filtered =  filter_matches_from_fundamental(&f,m,epipolar_thresh);
                 (e, filtered)
