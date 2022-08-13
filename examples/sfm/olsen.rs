@@ -30,21 +30,24 @@ fn main() -> Result<()> {
     let data_set_vasa_path =  format!("{}/Olsen/vasa_statue/",runtime_conf.dataset_path);
     let data_set_ninjo_path =  format!("{}/Olsen/nijo/",runtime_conf.dataset_path);
     let data_set_de_guerre_path =  format!("{}/Olsen/de_guerre/",runtime_conf.dataset_path);
-    let data_set_fort_channing_path = format!("{}/Olsen/Fort_Channing_gate/",runtime_conf.dataset_path);
+    let data_set_fort_canning_path = format!("{}/Olsen/Fort_Channing_gate/",runtime_conf.dataset_path);
     let data_set_park_gate_path = format!("{}/Olsen/park_gate/",runtime_conf.dataset_path);
     let data_set_kronan_path = format!("{}/Olsen/kronan/",runtime_conf.dataset_path);
     let data_set_round_church_path = format!("{}/Olsen/round_church/",runtime_conf.dataset_path);
     
-    let olsen_data_path = data_set_fort_channing_path;
+    let olsen_data_path = data_set_fort_canning_path;
     let depth_prior = -1.0;
     //let epipolar_thresh = 0.001; 
     //let epipolar_thresh = 0.005; 
-    //let epipolar_thresh = 0.01; 
+    //let epipolar_thresh = 0.009; 
+    let epipolar_thresh = 0.01; 
+    //let epipolar_thresh = 0.025;
     //let epipolar_thresh = 0.05;
+    //let epipolar_thresh = 0.09;
     //let epipolar_thresh = 0.1;
     //let epipolar_thresh = 1.0;
-    //let epipolar_thresh = 5.0;
-    let epipolar_thresh = Float::INFINITY;
+    //let epipolar_thresh = 2.0;
+    //let epipolar_thresh = Float::INFINITY;
 
     let feature_skip_count = 1;
     let olsen_data = OlssenData::new(&olsen_data_path);
@@ -52,7 +55,7 @@ fn main() -> Result<()> {
     let invert_intrinsics = false; // they are already negative from decomp
     let normalize_features = false;
 
-    //let change_of_basis = Matrix3::<Float>::new(-1.0,0.0,0.0, 0.0,-1.0,0.0, 1.0,0.0,0.0);
+    //let change_of_basis = Matrix3::<Float>::new(-1.0,0.0,0.0, 0.0,-1.0,0.0, 0.0,0.0,1.0);
     let change_of_basis = Matrix3::<Float>::identity();
 
 
@@ -73,11 +76,15 @@ fn main() -> Result<()> {
     let (cam_intrinsics_13,cam_extrinsics_13) = olsen_data.get_camera_intrinsics_extrinsics(13,positive_principal_distance);
     let (cam_intrinsics_14,cam_extrinsics_14) = olsen_data.get_camera_intrinsics_extrinsics(14,positive_principal_distance);
 
+    let (cam_intrinsics_17,cam_extrinsics_17) = olsen_data.get_camera_intrinsics_extrinsics(17,positive_principal_distance);
     let (cam_intrinsics_18,cam_extrinsics_18) = olsen_data.get_camera_intrinsics_extrinsics(18,positive_principal_distance);
     let (cam_intrinsics_19,cam_extrinsics_19) = olsen_data.get_camera_intrinsics_extrinsics(19,positive_principal_distance);
     let (cam_intrinsics_20,cam_extrinsics_20) = olsen_data.get_camera_intrinsics_extrinsics(20,positive_principal_distance);
     let (cam_intrinsics_21,cam_extrinsics_21) = olsen_data.get_camera_intrinsics_extrinsics(21,positive_principal_distance);
     let (cam_intrinsics_22,cam_extrinsics_22) = olsen_data.get_camera_intrinsics_extrinsics(22,positive_principal_distance);
+    let (cam_intrinsics_23,cam_extrinsics_23) = olsen_data.get_camera_intrinsics_extrinsics(23,positive_principal_distance);
+    let (cam_intrinsics_24,cam_extrinsics_24) = olsen_data.get_camera_intrinsics_extrinsics(24,positive_principal_distance);
+
 
 
     let matches_4_1 = olsen_data.get_matches_between_images(4, 1);
@@ -102,6 +109,8 @@ fn main() -> Result<()> {
     let matches_20_19 = olsen_data.get_matches_between_images(20, 19);
     let matches_20_21 = olsen_data.get_matches_between_images(20, 21);
     let matches_21_22 = olsen_data.get_matches_between_images(21, 22);
+    let matches_22_23 = olsen_data.get_matches_between_images(22, 23);
+    let matches_23_24 = olsen_data.get_matches_between_images(23, 24);
 
     let matches_4_1_subvec = matches_4_1.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
     let matches_2_1_subvec = matches_2_1.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
@@ -121,10 +130,13 @@ fn main() -> Result<()> {
     let matches_12_13_subvec = matches_12_13.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
     let matches_13_14_subvec = matches_13_14.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
 
+    let matches_18_17_subvec = matches_19_18.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
     let matches_19_18_subvec = matches_19_18.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
     let matches_20_19_subvec = matches_20_19.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
     let matches_20_21_subvec = matches_20_21.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
     let matches_21_22_subvec = matches_21_22.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
+    let matches_22_23_subvec = matches_22_23.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
+    let matches_23_24_subvec = matches_23_24.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
 
     let pinhole_cam_0 = Perspective::from_matrix(&cam_intrinsics_0, invert_intrinsics);
     let pinhole_cam_1 = Perspective::from_matrix(&cam_intrinsics_1, invert_intrinsics);
@@ -142,12 +154,14 @@ fn main() -> Result<()> {
     let pinhole_cam_12 = Perspective::from_matrix(&cam_intrinsics_12, invert_intrinsics);
     let pinhole_cam_13 = Perspective::from_matrix(&cam_intrinsics_13, invert_intrinsics);
     let pinhole_cam_14 = Perspective::from_matrix(&cam_intrinsics_14, invert_intrinsics);
+    let pinhole_cam_17 = Perspective::from_matrix(&cam_intrinsics_17, invert_intrinsics);
     let pinhole_cam_18 = Perspective::from_matrix(&cam_intrinsics_18, invert_intrinsics);
     let pinhole_cam_19 = Perspective::from_matrix(&cam_intrinsics_19, invert_intrinsics);
     let pinhole_cam_20 = Perspective::from_matrix(&cam_intrinsics_20, invert_intrinsics);
     let pinhole_cam_21 = Perspective::from_matrix(&cam_intrinsics_21, invert_intrinsics);
     let pinhole_cam_22 = Perspective::from_matrix(&cam_intrinsics_22, invert_intrinsics);
-    
+    let pinhole_cam_23 = Perspective::from_matrix(&cam_intrinsics_23, invert_intrinsics);
+    let pinhole_cam_24 = Perspective::from_matrix(&cam_intrinsics_24, invert_intrinsics);
 
 
 
@@ -170,16 +184,22 @@ fn main() -> Result<()> {
     // let root_id = 5;
 
     // let sfm_all_matches = vec!(vec!(matches_10_9_subvec),vec!(matches_10_11_subvec));
-    // let camera_map = HashMap::from([(7, pinhole_cam_7),(8, pinhole_cam_8),(9, pinhole_cam_9),(10, pinhole_cam_10),(11, pinhole_cam_11),(12, pinhole_cam_12),(13, pinhole_cam_13),(14, pinhole_cam_14)]);  
-    // let camera_map_ba = HashMap::from([(7, pinhole_cam_7.cast::<f32>()),(8, pinhole_cam_8.cast::<f32>()),(9, pinhole_cam_9.cast::<f32>()),(10, pinhole_cam_10.cast::<f32>()),(11, pinhole_cam_11.cast::<f32>()),(12, pinhole_cam_12.cast::<f32>()),(13, pinhole_cam_13.cast::<f32>()),(14, pinhole_cam_14.cast::<f32>())]);  
+    // let camera_map = HashMap::from([(9, pinhole_cam_9),(10, pinhole_cam_10),(11, pinhole_cam_11)]);  
+    // let camera_map_ba = HashMap::from([(9, pinhole_cam_9.cast::<f32>()),(10, pinhole_cam_10.cast::<f32>()),(11, pinhole_cam_11.cast::<f32>())]);  
     // let paths = vec!(vec!(9),vec!(11));
     // let root_id = 10;
 
     let sfm_all_matches = vec!(vec!(matches_20_19_subvec,matches_19_18_subvec),vec!(matches_20_21_subvec, matches_21_22_subvec));
-    let camera_map = HashMap::from([(18, pinhole_cam_18),(19, pinhole_cam_19),(20, pinhole_cam_20),(21, pinhole_cam_21),(22, pinhole_cam_22)]);  
-    let camera_map_ba = HashMap::from([(18, pinhole_cam_18.cast::<f32>()),(19, pinhole_cam_19.cast::<f32>()),(20, pinhole_cam_20.cast::<f32>()),(21, pinhole_cam_21.cast::<f32>()),(22, pinhole_cam_22.cast::<f32>())]);  
+    let camera_map = HashMap::from([(17, pinhole_cam_17),(18, pinhole_cam_18),(19, pinhole_cam_19),(20, pinhole_cam_20),(21, pinhole_cam_21),(22, pinhole_cam_22),(23, pinhole_cam_23),(24, pinhole_cam_24)]);  
+    let camera_map_ba = HashMap::from([(17, pinhole_cam_17.cast::<f32>()),(18, pinhole_cam_18.cast::<f32>()),(19, pinhole_cam_19.cast::<f32>()),(20, pinhole_cam_20.cast::<f32>()),(21, pinhole_cam_21.cast::<f32>()),(22, pinhole_cam_22.cast::<f32>()),(23, pinhole_cam_23.cast::<f32>()),(24, pinhole_cam_24.cast::<f32>())]);  
     let paths = vec!(vec!(19,18),vec!(21,22));
     let root_id = 20;
+
+    // let sfm_all_matches = vec!(vec!(matches_20_19_subvec),vec!(matches_20_21_subvec));
+    // let camera_map = HashMap::from([(17, pinhole_cam_17),(18, pinhole_cam_18),(19, pinhole_cam_19),(20, pinhole_cam_20),(21, pinhole_cam_21),(22, pinhole_cam_22),(23, pinhole_cam_23),(24, pinhole_cam_24)]);  
+    // let camera_map_ba = HashMap::from([(17, pinhole_cam_17.cast::<f32>()),(18, pinhole_cam_18.cast::<f32>()),(19, pinhole_cam_19.cast::<f32>()),(20, pinhole_cam_20.cast::<f32>()),(21, pinhole_cam_21.cast::<f32>()),(22, pinhole_cam_22.cast::<f32>()),(23, pinhole_cam_23.cast::<f32>()),(24, pinhole_cam_24.cast::<f32>())]);  
+    // let paths = vec!(vec!(19),vec!(21));
+    // let root_id = 20;
 
     // let sfm_all_matches = vec!(vec!(matches_5_4_subvec, matches_4_3_subvec),vec!(matches_5_6_subvec, matches_6_7_subvec,matches_7_8_subvec));
     // let camera_map = HashMap::from([(5, pinhole_cam_5), (4, pinhole_cam_4), (6, pinhole_cam_6), (3, pinhole_cam_3),(2, pinhole_cam_2),(7, pinhole_cam_7),(8, pinhole_cam_8)]);  
@@ -193,7 +213,7 @@ fn main() -> Result<()> {
             1.0,
             epipolar_thresh,
             normalize_features,
-            BifocalType::FUNDAMENTAL, 
+            BifocalType::ESSENTIAL, 
             EssentialDecomposition::FÖRSNTER
     );
 
@@ -207,11 +227,6 @@ fn main() -> Result<()> {
     //TODO: might be unneccesary
     let mut motion_list = Vec::<((usize,Matrix4<Float>),(usize,Matrix4<Float>))>::with_capacity(10); 
     motion_list.push(((5,cam_extrinsics_5),(4,cam_extrinsics_4)));
-    //motion_list.push(((5,cam_extrinsics_5),(6,cam_extrinsics_6)));
-    //motion_list.push(((6,cam_extrinsics_6),(1,cam_extrinsics_1)));
-    // motion_list.push(((6,cam_extrinsics_6),(2,cam_extrinsics_2)));
-    // motion_list.push(((6,cam_extrinsics_6),(3,cam_extrinsics_3)));
-    // motion_list.push(((6,cam_extrinsics_6),(4,cam_extrinsics_4)));
     let relative_motions = OlssenData::get_relative_motions(&motion_list);
 
 
@@ -258,7 +273,7 @@ fn main() -> Result<()> {
             cg_max_it: 2e3 as usize
         };
 
-        let ((cam_positions,points),(s,debug_states_serialized)) = run_ba(&filtered_matches_per_path, &sfm_config, Some(&initial_cam_motions_per_path), olsen_data.get_image_dim(), &runtime_parameters, 1.0,depth_prior);
+        let ((cam_positions,points),(s,debug_states_serialized)) = run_ba(&filtered_matches_per_path, &sfm_config, Some(&initial_cam_motions_per_path), olsen_data.get_image_dim(), &runtime_parameters, 1.0);
         fs::write(format!("{}/olsen.txt",runtime_conf.local_data_path), s?).expect("Unable to write file");
         if runtime_parameters.debug {
             fs::write(format!("{}/olsen_debug.txt",runtime_conf.local_data_path), debug_states_serialized?).expect("Unable to write file");

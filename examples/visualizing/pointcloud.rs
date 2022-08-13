@@ -43,11 +43,11 @@ fn populate_scene(window: &mut Window, scene_nodes: &mut Vec::<kiss3d::scene::Sc
         scene_nodes.push(s);
     }
 
-    let factor = 3.0;
+    let point_factor = 1.0;
     for point in points {
-        let mut s = window.add_sphere(0.004);
+        let mut s = window.add_sphere(0.008);
         s.set_color(random(), random(), random());
-        s.append_translation(&Translation3::new(factor*(point[0] as f32), factor*(point[1] as f32),  factor*(point[2] as f32)));
+        s.append_translation(&Translation3::new(point_factor*(point[0] as f32), point_factor*(point[1] as f32),  point_factor*(point[2] as f32)));
         scene_nodes.push(s);
         
     }

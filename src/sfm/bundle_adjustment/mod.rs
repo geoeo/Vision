@@ -21,7 +21,7 @@ pub mod state;
 //TODO: unify the two sfm configs!
 pub fn run_ba<F: serde::Serialize + float::Float + Scalar + NumAssign + SimdRealField + ComplexField + Mul<F> + From<F> + RealField + SubsetOf<Float> + SupersetOf<Float>, C : Camera<Float> + Copy, C2: Camera<F> + Copy, T : Feature>(
     matches: &Vec<Vec<Vec<Match<T>>>>, sfm_config: &SFMConfig<C, C2, T>, initial_cam_poses: Option<&Vec<Vec<(usize,(Vector3<Float>,Matrix3<Float>))>>>,
-                                img_dim : (usize,usize) ,runtime_parameters: &RuntimeParameters<F>, pyramid_scale: Float, depth_prior: F) 
+                                img_dim : (usize,usize) ,runtime_parameters: &RuntimeParameters<F>, pyramid_scale: Float) 
                                 -> ((Vec<Isometry3<F>>, Vec<Vector3<F>>), (serde_yaml::Result<String>, serde_yaml::Result<String>)){
 
 
@@ -34,7 +34,7 @@ pub fn run_ba<F: serde::Serialize + float::Float + Scalar + NumAssign + SimdReal
 
     //TODO: switch impl
     //TODO: transative motions
-    let mut state = feature_map.get_euclidean_landmark_state(initial_cam_poses, sfm_config.root(), sfm_config.camera_map(), sfm_config.paths(), depth_prior);
+    let mut state = feature_map.get_euclidean_landmark_state(initial_cam_poses, sfm_config.root(), sfm_config.camera_map(), sfm_config.paths());
     //let mut state = feature_map.get_inverse_depth_landmark_state(Some(&initial_motion_decomp), depth_prior,&cameras);
     
     //TODO: check this

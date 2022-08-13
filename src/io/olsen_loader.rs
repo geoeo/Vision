@@ -14,7 +14,9 @@ pub struct OlssenData {
     pub images: Vec<Image>,
     pub U: DMatrix<Float>,
     pub point_indices: Vec<DMatrix<Float>>,
-    pub image_points: Vec<DMatrix<Float>>
+    pub image_points: Vec<DMatrix<Float>>,
+    width: usize,
+    height: usize
 }
 
 impl OlssenData {
@@ -35,11 +37,14 @@ impl OlssenData {
         let mut u_uncalib = load_matrices(format!("{}{}",folder_path,"u_uncalib.txt").as_str());
         let point_indices = u_uncalib.split_off(number_of_images);
         let image_points = u_uncalib;
-    
+        
+        assert!(number_of_images > 0);
         assert_eq!(image_points.len(),number_of_images);
         assert_eq!(point_indices.len(),number_of_images);
+        let width = images[0].buffer.ncols();
+        let height = images[0].buffer.nrows();
     
-        OlssenData{P,images,U,point_indices,image_points}
+        OlssenData{P,images,U,point_indices,image_points,width , height }
     }
 
     pub fn get_matches_between_images(&self, first_index: usize, second_index: usize) -> Vec<Match<ImageFeature>> {
@@ -64,11 +69,12 @@ impl OlssenData {
             point_correspondence_map[point_idx as usize].1 = Some(i);
         }
 
+        // We flip the y-axis so that the features correspond to the RHS coordiante axis
         point_correspondence_map.iter().filter(|&(v1,v2)| v1.is_some() && v2.is_some()).map(|&(v1,v2)| {
             let coords_one = features_img_one.column(v1.unwrap());
-            let feature_one = ImageFeature::new(coords_one[0],coords_one[1]);
+            let feature_one = ImageFeature::new(coords_one[0],(self.height as Float) - 1.0 - coords_one[1]);
             let coords_two = features_img_two.column(v2.unwrap());
-            let feature_two = ImageFeature::new(coords_two[0],coords_two[1]);
+            let feature_two = ImageFeature::new(coords_two[0],(self.height as Float) - 1.0 - coords_two[1]);
 
             Match{feature_one,feature_two}
         }).collect::<Vec<Match<ImageFeature>>>()
