@@ -40,7 +40,7 @@ fn main() -> Result<()> {
     let t_raw = octave_loader::load_vector(&format!("{}/5_point_synthetic/translation_neg.txt",runtime_conf.local_data_path));
     let x1h = octave_loader::load_matrix(&format!("{}/5_point_synthetic/cam1_features_neg.txt",runtime_conf.local_data_path));
     let x2h = octave_loader::load_matrix(&format!("{}/5_point_synthetic/cam2_features_neg.txt",runtime_conf.local_data_path));
-    let depth_positive = true; 
+    let depth_positive = false; 
     let invert_focal_length = false;
 
     let t = SVector::<Float,3>::new(t_raw[(0,0)],t_raw[(1,0)],t_raw[(2,0)]);

@@ -42,7 +42,14 @@ pub fn extract_matches<T: Feature>(matches: &Vec<Match<T>>, pyramid_scale: Float
 }
 #[allow(non_snake_case)]
 pub fn five_point_essential<T: Feature + Clone, C: Camera<Float>>(matches: &Vec<Match<T>>, camera_one: &C, camera_two: &C) -> Essential {
-    five_point::five_point_essential(matches,camera_one,camera_two)
+    // let skip = (matches.len() as Float / 5.0).floor() as usize;
+    // //TODO: RANSAC or better 5 feature selection
+    // let mut t = Vec::<Match<T>>::with_capacity(5);
+    // for i in (0..matches.len()).step_by(skip) {
+    //     t.push(matches[i].clone());
+    // }
+    // assert_eq!(t.len(),5);
+    five_point::five_point_essential(&matches,camera_one,camera_two)
 }
 
 /**
