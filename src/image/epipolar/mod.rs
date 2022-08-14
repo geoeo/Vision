@@ -249,6 +249,7 @@ pub fn decompose_essential_förstner<T : Feature>(
         let u_sign_avg = u_sign /matches.len() as Float; 
         let v_sign_avg = v_sign /matches.len() as Float;
 
+        //TODO investigate sign issue
         if u_sign_avg > 0.0 && v_sign_avg > 0.0 {
             translation = h;
             rotation = R;
@@ -340,7 +341,7 @@ pub fn compute_pairwise_cam_motions_with_filtered_matches_for_path<C : Camera<Fl
             },
             BifocalType::ESSENTIAL => {
                 //TODO: put these in configs
-                let e = ransac_five_point_essential(m, c1, c2,0.0001,10000);
+                let e = ransac_five_point_essential(m, c1, c2,0.01,10000);
                 let f = compute_fundamental(&e, &c1.get_inverse_projection(), &c2.get_inverse_projection());
                 let filtered =  filter_matches_from_fundamental(&f,m,epipolar_thresh);
                 (e, filtered)

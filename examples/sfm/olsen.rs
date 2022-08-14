@@ -42,12 +42,12 @@ fn main() -> Result<()> {
     //let epipolar_thresh = 0.009; 
     //let epipolar_thresh = 0.01; 
     //let epipolar_thresh = 0.025;
-    //let epipolar_thresh = 0.05;
+    let epipolar_thresh = 0.05;
     //let epipolar_thresh = 0.09;
     //let epipolar_thresh = 0.1;
     //let epipolar_thresh = 1.0;
     //let epipolar_thresh = 2.0;
-    let epipolar_thresh = Float::INFINITY;
+    //let epipolar_thresh = Float::INFINITY;
 
     let feature_skip_count = 1;
     let olsen_data = OlssenData::new(&olsen_data_path);

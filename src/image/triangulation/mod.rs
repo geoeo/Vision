@@ -37,7 +37,9 @@ pub fn linear_triangulation(image_points_and_projections: &Vec<(&Matrix3xX<Float
             A.fixed_rows_mut::<1>(2*j).copy_from(&RowOVector::<Float,U4>::from_vec(vec![u*p_3_1 - p_1_1, u*p_3_2-p_1_2, u*p_3_3-p_1_3, u*p_3_4-p_1_4]));
             A.fixed_rows_mut::<1>(2*j+1).copy_from(&RowOVector::<Float,U4>::from_vec(vec![v*p_3_1 - p_2_1, v*p_3_2-p_2_2, v*p_3_3-p_2_3, v*p_3_4-p_2_4]));
         }
-        let svd = A.svd(false,true);
+
+
+        let svd = (A.transpose()*A).svd(false,true);
         let eigen_vectors = svd.v_t.expect("linear_triangulation: svd failed");
 
         let p = eigen_vectors.row((2*n_cams)-1);
