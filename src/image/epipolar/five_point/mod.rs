@@ -59,12 +59,12 @@ pub fn five_point_essential<T: Feature + Clone, C: Camera<Float>>(matches: &Vec<
     }
 
     //TODO: unify with five_point and epipolar
-    normalization_matrix_one[(0,2)] = -avg_x_one/l_as_float;
-    normalization_matrix_one[(1,2)] = -avg_y_one/l_as_float;
+    // normalization_matrix_one[(0,2)] = -avg_x_one/l_as_float;
+    // normalization_matrix_one[(1,2)] = -avg_y_one/l_as_float;
     normalization_matrix_one[(2,2)] = max_dist_one;
 
-    normalization_matrix_two[(0,2)] = -avg_x_two/l_as_float;
-    normalization_matrix_two[(1,2)] = -avg_y_two/l_as_float;
+    // normalization_matrix_two[(0,2)] = -avg_x_two/l_as_float;
+    // normalization_matrix_two[(1,2)] = -avg_y_two/l_as_float;
     normalization_matrix_two[(2,2)] = max_dist_two;
 
     for i in 0..l {
@@ -149,8 +149,8 @@ pub fn cheirality_check<T: Feature + Clone>(
     let camera_matrix_2 = points_cam_2.1;
     let inverse_camera_matrix_1 = points_cam_1.2;
     let inverse_camera_matrix_2 = points_cam_2.2;
-    let _condition_matrix_1 = points_cam_1.3; 
-    let _condition_matrix_2 = points_cam_2.3; 
+    let condition_matrix_1 = points_cam_1.3; 
+    let condition_matrix_2 = points_cam_2.3; 
 
     let number_of_points = matches.len();
     for e in all_essential_matricies {
@@ -160,8 +160,8 @@ pub fn cheirality_check<T: Feature + Clone>(
         let projection_1 = camera_matrix_1*(Matrix4::<Float>::identity().fixed_slice::<3,4>(0,0));
         let projection_2 = camera_matrix_2*(se3.fixed_slice::<3,4>(0,0));
 
-        let p1_points = &points_cam_1.0;
-        let p2_points = &points_cam_2.0;
+        let p1_points = condition_matrix_1*points_cam_1.0;
+        let p2_points = condition_matrix_2*points_cam_2.0;
 
         //TODO: review this with the sign change with better synthetic data
         let Xs = -linear_triangulation(&vec!((&p1_points,&projection_1),(&p2_points,&projection_2)));
