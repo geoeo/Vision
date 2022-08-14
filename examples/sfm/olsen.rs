@@ -42,12 +42,12 @@ fn main() -> Result<()> {
     //let epipolar_thresh = 0.009; 
     //let epipolar_thresh = 0.01; 
     //let epipolar_thresh = 0.025;
-    let epipolar_thresh = 0.05;
+    //let epipolar_thresh = 0.05;
     //let epipolar_thresh = 0.09;
     //let epipolar_thresh = 0.1;
     //let epipolar_thresh = 1.0;
     //let epipolar_thresh = 2.0;
-    //let epipolar_thresh = Float::INFINITY;
+    let epipolar_thresh = Float::INFINITY;
 
     let feature_skip_count = 1;
     let olsen_data = OlssenData::new(&olsen_data_path);
@@ -171,7 +171,7 @@ fn main() -> Result<()> {
     let pinhole_cam_21 = Perspective::from_matrix(&cam_intrinsics_21, invert_intrinsics);
     let pinhole_cam_22 = Perspective::from_matrix(&cam_intrinsics_22, invert_intrinsics);
     let pinhole_cam_23 = Perspective::from_matrix(&cam_intrinsics_23, invert_intrinsics);
-    let pinhole_cam_24 = Perspective::from_matrix(&cam_intrinsics_24, invert_intrinsics);let pinhole_cam_23 = Perspective::from_matrix(&cam_intrinsics_23, invert_intrinsics);
+    let pinhole_cam_24 = Perspective::from_matrix(&cam_intrinsics_24, invert_intrinsics);
     let pinhole_cam_24 = Perspective::from_matrix(&cam_intrinsics_24, invert_intrinsics);
 
 
@@ -200,17 +200,17 @@ fn main() -> Result<()> {
     // let paths = vec!(vec!(9),vec!(11));
     // let root_id = 10;
 
-    let sfm_all_matches = vec!(vec!(matches_20_19_subvec,matches_19_18_subvec),vec!(matches_20_21_subvec, matches_21_22_subvec));
-    let camera_map = HashMap::from([(17, pinhole_cam_17),(17, pinhole_cam_17),(18, pinhole_cam_18),(19, pinhole_cam_19),(20, pinhole_cam_20),(21, pinhole_cam_21),(22, pinhole_cam_22),(23, pinhole_cam_23),(24, pinhole_cam_24),(23, pinhole_cam_23),(24, pinhole_cam_24)]);  
-    let camera_map_ba = HashMap::from([(17, pinhole_cam_17.cast::<f32>()),(17, pinhole_cam_17.cast::<f32>()),(18, pinhole_cam_18.cast::<f32>()),(19, pinhole_cam_19.cast::<f32>()),(20, pinhole_cam_20.cast::<f32>()),(21, pinhole_cam_21.cast::<f32>()),(22, pinhole_cam_22.cast::<f32>()),(23, pinhole_cam_23.cast::<f32>()),(24, pinhole_cam_24.cast::<f32>()),(23, pinhole_cam_23.cast::<f32>()),(24, pinhole_cam_24.cast::<f32>())]);  
-    let paths = vec!(vec!(19,18),vec!(21,22));
-    let root_id = 20;
-
-    // let sfm_all_matches = vec!(vec!(matches_20_19_subvec),vec!(matches_20_21_subvec));
-    // let camera_map = HashMap::from([(17, pinhole_cam_17),(18, pinhole_cam_18),(19, pinhole_cam_19),(20, pinhole_cam_20),(21, pinhole_cam_21),(22, pinhole_cam_22),(23, pinhole_cam_23),(24, pinhole_cam_24)]);  
-    // let camera_map_ba = HashMap::from([(17, pinhole_cam_17.cast::<f32>()),(18, pinhole_cam_18.cast::<f32>()),(19, pinhole_cam_19.cast::<f32>()),(20, pinhole_cam_20.cast::<f32>()),(21, pinhole_cam_21.cast::<f32>()),(22, pinhole_cam_22.cast::<f32>()),(23, pinhole_cam_23.cast::<f32>()),(24, pinhole_cam_24.cast::<f32>())]);  
-    // let paths = vec!(vec!(19),vec!(21));
+    // let sfm_all_matches = vec!(vec!(matches_20_19_subvec,matches_19_18_subvec),vec!(matches_20_21_subvec, matches_21_22_subvec));
+    // let camera_map = HashMap::from([(17, pinhole_cam_17),(17, pinhole_cam_17),(18, pinhole_cam_18),(19, pinhole_cam_19),(20, pinhole_cam_20),(21, pinhole_cam_21),(22, pinhole_cam_22),(23, pinhole_cam_23),(24, pinhole_cam_24),(23, pinhole_cam_23),(24, pinhole_cam_24)]);  
+    // let camera_map_ba = HashMap::from([(17, pinhole_cam_17.cast::<f32>()),(17, pinhole_cam_17.cast::<f32>()),(18, pinhole_cam_18.cast::<f32>()),(19, pinhole_cam_19.cast::<f32>()),(20, pinhole_cam_20.cast::<f32>()),(21, pinhole_cam_21.cast::<f32>()),(22, pinhole_cam_22.cast::<f32>()),(23, pinhole_cam_23.cast::<f32>()),(24, pinhole_cam_24.cast::<f32>()),(23, pinhole_cam_23.cast::<f32>()),(24, pinhole_cam_24.cast::<f32>())]);  
+    // let paths = vec!(vec!(19,18),vec!(21,22));
     // let root_id = 20;
+
+    let sfm_all_matches = vec!(vec!(matches_20_19_subvec),vec!(matches_20_21_subvec));
+    let camera_map = HashMap::from([(17, pinhole_cam_17),(18, pinhole_cam_18),(19, pinhole_cam_19),(20, pinhole_cam_20),(21, pinhole_cam_21),(22, pinhole_cam_22),(23, pinhole_cam_23),(24, pinhole_cam_24)]);  
+    let camera_map_ba = HashMap::from([(17, pinhole_cam_17.cast::<f32>()),(18, pinhole_cam_18.cast::<f32>()),(19, pinhole_cam_19.cast::<f32>()),(20, pinhole_cam_20.cast::<f32>()),(21, pinhole_cam_21.cast::<f32>()),(22, pinhole_cam_22.cast::<f32>()),(23, pinhole_cam_23.cast::<f32>()),(24, pinhole_cam_24.cast::<f32>())]);  
+    let paths = vec!(vec!(19),vec!(21));
+    let root_id = 20;
 
     // let sfm_all_matches = vec!(vec!(matches_20_19_subvec),vec!(matches_20_21_subvec));
     // let camera_map = HashMap::from([(17, pinhole_cam_17),(18, pinhole_cam_18),(19, pinhole_cam_19),(20, pinhole_cam_20),(21, pinhole_cam_21),(22, pinhole_cam_22),(23, pinhole_cam_23),(24, pinhole_cam_24)]);  
@@ -230,7 +230,7 @@ fn main() -> Result<()> {
             1.0,
             epipolar_thresh,
             normalize_features,
-            BifocalType::ESSENTIAL, 
+            BifocalType::FUNDAMENTAL, 
             EssentialDecomposition::FÖRSNTER
     );
 

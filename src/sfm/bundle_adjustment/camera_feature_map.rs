@@ -219,19 +219,19 @@ impl CameraFeatureMap {
                             }
                             
                             //TODO: unify with five_point and epipolar
-                            normalization_matrix_one[(0,2)] = -avg_x_one/local_landmarks_as_float;
-                            normalization_matrix_one[(1,2)] = -avg_y_one/local_landmarks_as_float;
+                            // normalization_matrix_one[(0,2)] = -avg_x_one/local_landmarks_as_float;
+                            // normalization_matrix_one[(1,2)] = -avg_y_one/local_landmarks_as_float;
                             normalization_matrix_one[(2,2)] = max_dist_one;
                         
-                            normalization_matrix_two[(0,2)] = -avg_x_two/local_landmarks_as_float;
-                            normalization_matrix_two[(1,2)] = -avg_y_two/local_landmarks_as_float;
+                            // normalization_matrix_two[(0,2)] = -avg_x_two/local_landmarks_as_float;
+                            // normalization_matrix_two[(1,2)] = -avg_y_two/local_landmarks_as_float;
                             normalization_matrix_two[(2,2)] = max_dist_two;
                         
                             normalized_image_points_s = normalized_image_points_s;
                             normalized_image_points_f = normalized_image_points_f;
 
-                            //normalized_image_points_s = normalization_matrix_one*normalized_image_points_s;
-                            //normalized_image_points_f = normalization_matrix_two*normalized_image_points_f;
+                            normalized_image_points_s = normalization_matrix_one*normalized_image_points_s;
+                            normalized_image_points_f = normalization_matrix_two*normalized_image_points_f;
         
                             let se3 = pose::se3(&h,&rotation_matrix);
                             let projection_1 = camera_matrix_s.get_projection()*(Matrix4::<Float>::identity().fixed_slice::<3,4>(0,0));
@@ -260,6 +260,14 @@ impl CameraFeatureMap {
 
                             
                         }
+                }
+                let max_depth = triangualted_landmarks.iter().reduce(|acc, l| {
+                    if l.get_state_as_vector().z > acc.get_state_as_vector().z { l } else { acc }
+                }).expect("triangulated landmarks empty!").get_state_as_vector().z;
+                println!("Max depth: {} ", max_depth);
+                for i in 0..triangualted_landmarks.len() {
+                    let v = triangualted_landmarks[i].get_state_as_vector();
+                    triangualted_landmarks[i] = EuclideanLandmark::from_state(v/float::Float::abs(max_depth));
                 }
                 triangualted_landmarks
             },

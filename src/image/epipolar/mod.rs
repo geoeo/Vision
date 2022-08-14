@@ -46,6 +46,7 @@ pub fn extract_matches<T: Feature>(matches: &Vec<Match<T>>, pyramid_scale: Float
 
 pub fn ransac_five_point_essential<T: Feature + Clone, C: Camera<Float>>(matches: &Vec<Match<T>>, camera_one: &C, camera_two: &C, epipolar_thresh: Float, ransac_it: usize) -> Essential {
     let mut max_inlier_count = 0;
+    let mut min_det = Float::INFINITY;
     let mut best_essential: Option<Essential> = None;
     for _ in 0..ransac_it {
         let five_samples: Vec<_> = matches.choose_multiple(&mut rand::thread_rng(), 5).map(|x| x.clone()).collect();
@@ -53,9 +54,10 @@ pub fn ransac_five_point_essential<T: Feature + Clone, C: Camera<Float>>(matches
         match essential_option {
             Some(essential) => {
                 let f = compute_fundamental(&essential, &camera_one.get_inverse_projection(), &camera_two.get_inverse_projection());
-                best_essential = match filter_matches_from_fundamental(&f,matches,epipolar_thresh).len() {
-                    inliers if inliers > max_inlier_count => {
+                best_essential = match (filter_matches_from_fundamental(&f,matches,epipolar_thresh).len(), essential.determinant().abs()) {
+                    (inliers, det) if (inliers > max_inlier_count) || (inliers == max_inlier_count && det < min_det) => {
                         max_inlier_count = inliers;
+                        min_det = det;
                         Some(essential)
                     },
                     _ => best_essential
@@ -341,7 +343,7 @@ pub fn compute_pairwise_cam_motions_with_filtered_matches_for_path<C : Camera<Fl
             },
             BifocalType::ESSENTIAL => {
                 //TODO: put these in configs
-                let e = ransac_five_point_essential(m, c1, c2,0.01,10000);
+                let e = ransac_five_point_essential(m, c1, c2,0.001,10000);
                 let f = compute_fundamental(&e, &c1.get_inverse_projection(), &c2.get_inverse_projection());
                 let filtered =  filter_matches_from_fundamental(&f,m,epipolar_thresh);
                 (e, filtered)
