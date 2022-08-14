@@ -40,14 +40,14 @@ fn main() -> Result<()> {
     //let epipolar_thresh = 0.001; 
     //let epipolar_thresh = 0.005; 
     //let epipolar_thresh = 0.009; 
-    let epipolar_thresh = 0.01; 
+    //let epipolar_thresh = 0.01; 
     //let epipolar_thresh = 0.025;
     //let epipolar_thresh = 0.05;
     //let epipolar_thresh = 0.09;
     //let epipolar_thresh = 0.1;
     //let epipolar_thresh = 1.0;
     //let epipolar_thresh = 2.0;
-    //let epipolar_thresh = Float::INFINITY;
+    let epipolar_thresh = Float::INFINITY;
 
     let feature_skip_count = 1;
     let olsen_data = OlssenData::new(&olsen_data_path);
@@ -55,7 +55,7 @@ fn main() -> Result<()> {
     let invert_intrinsics = false; // they are already negative from decomp
     let normalize_features = false;
 
-    //let change_of_basis = Matrix3::<Float>::new(-1.0,0.0,0.0, 0.0,-1.0,0.0, 0.0,0.0,1.0);
+    //let change_of_basis = Matrix3::<Float>::new(-1.0,0.0,0.0, 0.0,1.0,0.0, 0.0,0.0,-1.0);
     let change_of_basis = Matrix3::<Float>::identity();
 
 
@@ -284,7 +284,7 @@ fn main() -> Result<()> {
             debug: true,
             show_octave_result: true,
             loss_function: Box::new(loss::TrivialLoss { eps: 1e-16, approximate_gauss_newton_matrices: false }), 
-            intensity_weighting_function:  Box::new(weighting::HuberWeight {}),
+            intensity_weighting_function:  Box::new(weighting::SquaredWeight {}),
             //intensity_weighting_function:  Box::new(weighting::CauchyWeight {c: 0.01}),
             cg_threshold: 1e-6,
             cg_max_it: 2e3 as usize
