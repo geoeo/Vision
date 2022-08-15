@@ -255,14 +255,11 @@ impl CameraFeatureMap {
                                     convert(point[1]),
                                     convert(point[2])
                                 ));
-                            }
-                            
-
-                            
+                            }                          
                         }
                 }
                 let max_depth = triangualted_landmarks.iter().reduce(|acc, l| {
-                    if l.get_state_as_vector().z > acc.get_state_as_vector().z { l } else { acc }
+                    if float::Float::abs(l.get_state_as_vector().z) > float::Float::abs(acc.get_state_as_vector().z) { l } else { acc }
                 }).expect("triangulated landmarks empty!").get_state_as_vector().z;
                 println!("Max depth: {} ", max_depth);
                 for i in 0..triangualted_landmarks.len() {
