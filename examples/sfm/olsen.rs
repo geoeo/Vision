@@ -276,7 +276,7 @@ fn main() -> Result<()> {
 
         let runtime_parameters = RuntimeParameters {
             pyramid_scale: 1.0,
-            max_iterations: vec![10; 1],
+            max_iterations: vec![5000; 1],
             eps: vec![1e-6],
             step_sizes: vec![1e-3],
             max_norm_eps: 1e-30, 
