@@ -263,6 +263,7 @@ impl CameraFeatureMap {
                     if float::Float::abs(l.get_state_as_vector().z) > float::Float::abs(acc.get_state_as_vector().z) { l } else { acc }
                 }).expect("triangulated landmarks empty!").get_state_as_vector().z;
                 println!("Max depth: {} ", max_depth);
+                //TODO: investigate this
                 match epipolar_alg {
                     BifocalType::FUNDAMENTAL => {
                         for i in 0..triangualted_landmarks.len() {
@@ -271,11 +272,11 @@ impl CameraFeatureMap {
                         }
                     },
                     BifocalType::ESSENTIAL => {
-                        // for i in 0..triangualted_landmarks.len() {
-                        //     let v = triangualted_landmarks[i].get_state_as_vector();
-                        //     triangualted_landmarks[i] = EuclideanLandmark::from_state(v/float::Float::abs(max_depth));
-                        // }
-                        ()
+                        for i in 0..triangualted_landmarks.len() {
+                            let v = triangualted_landmarks[i].get_state_as_vector();
+                            triangualted_landmarks[i] = EuclideanLandmark::from_state(v/float::Float::abs(max_depth));
+                        }
+                        
                     }
                 };
 
