@@ -98,4 +98,12 @@ impl<F: float::Float + Scalar + NumAssign + SimdRealField + ComplexField> Camera
         (self.inverse_projection*homogeneous).scale(depth)
     }
 
+    fn get_focal_x(&self) -> F {
+        self.get_fx()
+    }
+
+    fn get_focal_y(&self) -> F {
+        self.get_fy()
+    }
+
 }

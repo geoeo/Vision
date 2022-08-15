@@ -37,8 +37,8 @@ pub trait Feature {
     /**
      * Gets the camera ray for image points which are assumed to lie on the focal plane with depth -1
      */
-    fn get_camera_ray(&self, inverse_intrinsics: &Matrix3<Float>) -> Vector3<Float> {
-        inverse_intrinsics*Vector3::<Float>::new(self.get_x_image_float(), self.get_y_image_float(),-1.0)
+    fn get_camera_ray(&self, inverse_intrinsics: &Matrix3<Float>, c: Float) -> Vector3<Float> {
+        inverse_intrinsics*Vector3::<Float>::new(self.get_x_image_float(), self.get_y_image_float(),c)
     }
 }
 

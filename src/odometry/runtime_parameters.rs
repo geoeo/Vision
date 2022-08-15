@@ -2,7 +2,6 @@ extern crate nalgebra as na;
 extern crate num_traits;
 extern crate simba;
 
-use simba::scalar::{SubsetOf,SupersetOf};
 use std::{ops::Mul,convert::From};
 use na::{SimdRealField, ComplexField, base::Scalar, RealField};
 use num_traits::{float,NumAssign};

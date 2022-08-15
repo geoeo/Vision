@@ -140,7 +140,7 @@ fn main() -> Result<()> {
         false => -1.0
     };
     let five_point_essential_matrix = epipolar::five_point_essential(&feature_matches,&intensity_camera_1,&intensity_camera_2);
-    let (t_est,R_est,_) = epipolar::decompose_essential_förstner(&five_point_essential_matrix,&feature_matches,&intensity_camera_1.get_inverse_projection(),&intensity_camera_2.get_inverse_projection());
+    let (t_est,R_est,_) = epipolar::decompose_essential_förstner(&five_point_essential_matrix,&feature_matches,&intensity_camera_1,&intensity_camera_2);
     let factor = five_point_essential_matrix[(2,2)];
     let five_point_essential_matrix_norm = five_point_essential_matrix.map(|x| x/factor);
 

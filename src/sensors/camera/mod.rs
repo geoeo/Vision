@@ -17,6 +17,8 @@ pub trait Camera<F: num_traits::float::Float + Scalar + NumAssign + SimdRealFiel
     fn get_jacobian_with_respect_to_position_in_camera_frame<T>(&self, position: &Vector<F,U3,T>) -> Matrix2x3<F> where T: Storage<F,U3,U1>;
     fn project<T>(&self, position: &Vector<F,U3,T>) -> Point<F> where T: Storage<F,U3,U1>;
     fn backproject(&self, point: &Point<F>, depth: F) -> Vector3<F>;
+    fn get_focal_x(&self) -> F;
+    fn get_focal_y(&self) -> F;
 }
 
 /**

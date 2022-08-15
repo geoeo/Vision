@@ -44,12 +44,12 @@ pub fn extract_matches<T: Feature>(matches: &Vec<Match<T>>, pyramid_scale: Float
 
 }
 
-pub fn ransac_five_point_essential<T: Feature + Clone, C: Camera<Float>>(matches: &Vec<Match<T>>, camera_one: &C, camera_two: &C, epipolar_thresh: Float, ransac_it: usize) -> Essential {
+pub fn ransac_five_point_essential<T: Feature + Clone, C: Camera<Float>>(matches: &Vec<Match<T>>, camera_one: &C, camera_two: &C, epipolar_thresh: Float, ransac_it: usize, ransac_size: usize) -> Essential {
     let mut max_inlier_count = 0;
     let mut min_det = Float::INFINITY;
     let mut best_essential: Option<Essential> = None;
     for _ in 0..ransac_it {
-        let five_samples: Vec<_> = matches.choose_multiple(&mut rand::thread_rng(), 5).map(|x| x.clone()).collect();
+        let five_samples: Vec<_> = matches.choose_multiple(&mut rand::thread_rng(), ransac_size).map(|x| x.clone()).collect();
         let essential_option = five_point::five_point_essential(&five_samples,camera_one,camera_two);
         match essential_option {
             Some(essential) => {
@@ -176,8 +176,9 @@ pub fn filter_matches_from_motion<T: Feature + Clone, C: Camera<Float>>(matches:
  * Returns (line of first feature in second image, line of second feature in first image)
  */
 pub fn epipolar_lines<T: Feature>(bifocal_tensor: &Matrix3<Float>, feature_match: &Match<T>, cam_one_intrinsics: &Matrix3<Float>, cam_two_intrinsics: &Matrix3<Float>) -> (Vector3<Float>, Vector3<Float>) {
-    let f_from = feature_match.feature_one.get_camera_ray(cam_one_intrinsics);
-    let f_to = feature_match.feature_two.get_camera_ray(cam_two_intrinsics);
+    //TODO: pass in camera object not intrinsics matrix
+    let f_from = feature_match.feature_one.get_camera_ray(cam_one_intrinsics, cam_one_intrinsics[(0,0)]);
+    let f_to = feature_match.feature_two.get_camera_ray(cam_two_intrinsics, cam_two_intrinsics[(0,0)]);
 
     ((f_from.transpose()*bifocal_tensor).transpose(), bifocal_tensor*f_to)
 }
@@ -187,13 +188,18 @@ pub fn epipolar_lines<T: Feature>(bifocal_tensor: &Matrix3<Float>, feature_match
  * @TODO: unify principal distance into enum
  */
 #[allow(non_snake_case)]
-pub fn decompose_essential_förstner<T : Feature>(
+pub fn decompose_essential_förstner<T : Feature, C : Camera<Float>>(
     E: &Essential, matches: &Vec<Match<T>>,
-    inverse_camera_matrix_start: &Matrix3::<Float>,
-    inverse_camera_matrix_finish: &Matrix3::<Float>) -> (Vector3<Float>, Matrix3<Float>,Matrix3<Float> ) {
+    camera_start: &C,
+    camera_finish: &C) -> (Vector3<Float>, Matrix3<Float>,Matrix3<Float> ) {
     assert!(matches.len() > 0);
-    let svd = E.svd(true,true);
 
+    let inverse_camera_matrix_start = camera_start.get_inverse_projection();
+    let inverse_camera_matrix_finish = camera_finish.get_inverse_projection();
+    let c_start = camera_start.get_focal_x();
+    let c_finish = camera_finish.get_focal_x();
+
+    let svd = E.svd(true,true);
     let u = &svd.u.expect("SVD failed on E");
     let v_t = &svd.v_t.expect("SVD failed on E");
 
@@ -222,8 +228,8 @@ pub fn decompose_essential_förstner<T : Feature>(
         let mut v_sign = 0.0;
         let mut u_sign = 0.0;
         for m in matches {
-            let f_start = m.feature_one.get_camera_ray(&inverse_camera_matrix_start);
-            let f_finish = m.feature_two.get_camera_ray(&inverse_camera_matrix_finish);
+            let f_start = m.feature_one.get_camera_ray(&inverse_camera_matrix_start,c_start);
+            let f_finish = m.feature_two.get_camera_ray(&inverse_camera_matrix_finish,c_finish);
 
             let binormal = ((h.cross_matrix()*f_start).cross_matrix()*h).normalize();
             let mat = Matrix3::<Float>::from_columns(&[h,binormal,f_start.cross_matrix()*R.transpose()*f_finish]);
@@ -343,7 +349,7 @@ pub fn compute_pairwise_cam_motions_with_filtered_matches_for_path<C : Camera<Fl
             },
             BifocalType::ESSENTIAL => {
                 //TODO: put these in configs
-                let e = ransac_five_point_essential(m, c1, c2,0.001,10000);
+                let e = ransac_five_point_essential(m, c1, c2, 0.001,10000, 5);
                 let f = compute_fundamental(&e, &c1.get_inverse_projection(), &c2.get_inverse_projection());
                 let filtered =  filter_matches_from_fundamental(&f,m,epipolar_thresh);
                 (e, filtered)
@@ -351,7 +357,7 @@ pub fn compute_pairwise_cam_motions_with_filtered_matches_for_path<C : Camera<Fl
         };
 
         let (h,rotation,_) = match decomp_alg {
-            EssentialDecomposition::FÖRSNTER => decompose_essential_förstner(&e,&f_m,&c1.get_inverse_projection(),&c2.get_inverse_projection()),
+            EssentialDecomposition::FÖRSNTER => decompose_essential_förstner(&e,&f_m,c1,c2),
             EssentialDecomposition::KANATANI => decompose_essential_kanatani(&e,&f_m, false)
         };
         let new_state = (id2,(h, rotation));
