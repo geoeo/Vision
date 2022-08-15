@@ -54,7 +54,7 @@ pub fn ransac_five_point_essential<T: Feature + Clone, C: Camera<Float>>(matches
         match essential_option {
             Some(essential) => {
                 let f = compute_fundamental(&essential, &camera_one.get_inverse_projection(), &camera_two.get_inverse_projection());
-                best_essential = match (filter_matches_from_fundamental(&f,matches,epipolar_thresh).len(), essential.determinant().abs()) {
+                best_essential = match (filter_matches_from_fundamental(&f,matches,epipolar_thresh, camera_one, camera_two).len(), essential.determinant().abs()) {
                     (inliers, det) if (inliers > max_inlier_count) || (inliers == max_inlier_count && det < min_det) => {
                         max_inlier_count = inliers;
                         min_det = det;
@@ -150,10 +150,10 @@ pub fn compute_fundamental(E: &Essential, inverse_projection_start: &Matrix3<Flo
 }
 
 #[allow(non_snake_case)]
-pub fn filter_matches_from_fundamental<T: Feature + Clone>(F: &Fundamental,matches: &Vec<Match<T>>, epipiolar_thresh: Float) -> Vec<Match<T>> {
+pub fn filter_matches_from_fundamental<T: Feature + Clone,C: Camera<Float> >(F: &Fundamental,matches: &Vec<Match<T>>, epipiolar_thresh: Float, camera_start: &C, camera_finish: &C) -> Vec<Match<T>> {
     matches.iter().filter(|m| {
-            let start = m.feature_one.get_as_3d_point(-1.0);
-            let finish = m.feature_two.get_as_3d_point(-1.0);
+            let start = m.feature_one.get_as_3d_point(camera_start.get_focal_x());
+            let finish = m.feature_two.get_as_3d_point(camera_finish.get_focal_y());
             let val = (start.transpose()*F*finish)[0].abs();
             val < epipiolar_thresh
         }).cloned().collect::<Vec<Match<T>>>()
@@ -168,7 +168,7 @@ pub fn filter_matches_from_motion<T: Feature + Clone, C: Camera<Float>>(matches:
     let cam_f_inv = cam_f.get_inverse_projection();
     let fundamental = compute_fundamental(&essential, &cam_s_inv, &cam_f_inv);
 
-    filter_matches_from_fundamental(&fundamental,matches, epipiolar_thresh)
+    filter_matches_from_fundamental(&fundamental,matches, epipiolar_thresh, cam_s,cam_f)
 }
 
 /**
@@ -344,14 +344,14 @@ pub fn compute_pairwise_cam_motions_with_filtered_matches_for_path<C : Camera<Fl
         let (e,f_m) = match epipolar_alg {
             BifocalType::FUNDAMENTAL => {
                 let f = eight_point(m, false);
-                let filtered =  filter_matches_from_fundamental(&f,m,epipolar_thresh);
+                let filtered =  filter_matches_from_fundamental(&f,m,epipolar_thresh, c1,c2);
                 (compute_essential(&f,&c1.get_projection(),&c2.get_projection()), filtered)
             },
             BifocalType::ESSENTIAL => {
                 //TODO: put these in configs
-                let e = ransac_five_point_essential(m, c1, c2, 0.001,10000, 5);
+                let e = ransac_five_point_essential(m, c1, c2, 0.01,10000, 5);
                 let f = compute_fundamental(&e, &c1.get_inverse_projection(), &c2.get_inverse_projection());
-                let filtered =  filter_matches_from_fundamental(&f,m,epipolar_thresh);
+                let filtered =  filter_matches_from_fundamental(&f,m,epipolar_thresh,c1,c2);
                 (e, filtered)
             }
         };
