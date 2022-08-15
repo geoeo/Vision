@@ -272,10 +272,10 @@ impl CameraFeatureMap {
                         }
                     },
                     BifocalType::ESSENTIAL => {
-                        for i in 0..triangualted_landmarks.len() {
-                            let v = triangualted_landmarks[i].get_state_as_vector();
-                            triangualted_landmarks[i] = EuclideanLandmark::from_state(v/float::Float::abs(max_depth));
-                        }
+                        // for i in 0..triangualted_landmarks.len() {
+                        //     let v = triangualted_landmarks[i].get_state_as_vector();
+                        //     triangualted_landmarks[i] = EuclideanLandmark::from_state(v/float::Float::abs(max_depth));
+                        // }
                         
                     }
                 };
