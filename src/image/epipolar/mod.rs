@@ -49,8 +49,8 @@ pub fn ransac_five_point_essential<T: Feature + Clone, C: Camera<Float>>(matches
     let mut min_det = Float::INFINITY;
     let mut best_essential: Option<Essential> = None;
     for _ in 0..ransac_it {
-        let five_samples: Vec<_> = matches.choose_multiple(&mut rand::thread_rng(), ransac_size).map(|x| x.clone()).collect();
-        let essential_option = five_point::five_point_essential(&five_samples,camera_one,camera_two);
+        let samples: Vec<_> = matches.choose_multiple(&mut rand::thread_rng(), ransac_size).map(|x| x.clone()).collect();
+        let essential_option = five_point::five_point_essential(&samples,camera_one,camera_two);
         match essential_option {
             Some(essential) => {
                 let f = compute_fundamental(&essential, &camera_one.get_inverse_projection(), &camera_two.get_inverse_projection());
@@ -196,8 +196,6 @@ pub fn decompose_essential_förstner<T : Feature, C : Camera<Float>>(
 
     let inverse_camera_matrix_start = camera_start.get_inverse_projection();
     let inverse_camera_matrix_finish = camera_finish.get_inverse_projection();
-    let c_start = camera_start.get_focal_x();
-    let c_finish = camera_finish.get_focal_x();
 
     let svd = E.svd(true,true);
     let u = &svd.u.expect("SVD failed on E");
@@ -349,7 +347,7 @@ pub fn compute_pairwise_cam_motions_with_filtered_matches_for_path<C : Camera<Fl
             },
             BifocalType::ESSENTIAL => {
                 //TODO: put these in configs
-                let e = ransac_five_point_essential(m, c1, c2, 0.01,10000, 5);
+                let e = ransac_five_point_essential(m, c1, c2, 10.0,50000, 5);
                 let f = compute_fundamental(&e, &c1.get_inverse_projection(), &c2.get_inverse_projection());
                 let filtered =  filter_matches_from_fundamental(&f,m,epipolar_thresh,c1,c2);
                 (e, filtered)

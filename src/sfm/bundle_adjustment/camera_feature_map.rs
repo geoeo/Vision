@@ -10,7 +10,8 @@ use std::collections::HashMap;
 use crate::image::{
     features::{Feature, Match},
     features::geometry::point::Point,
-    triangulation::linear_triangulation
+    triangulation::linear_triangulation,
+    epipolar::BifocalType
 };
 use crate::sfm::{bundle_adjustment::state::State, landmark::{Landmark, euclidean_landmark::EuclideanLandmark, inverse_depth_landmark::InverseLandmark}};
 use crate::sensors::camera::Camera;
@@ -159,7 +160,7 @@ impl CameraFeatureMap {
     }
 
     pub fn get_euclidean_landmark_state<F: float::Float + Scalar + NumAssign + SimdRealField + ComplexField + Mul<F> + From<F> + RealField + SubsetOf<Float> + SupersetOf<Float>, C : Camera<Float> + Copy>(
-        &self, initial_motions : Option<&Vec<Vec<(usize,(Vector3<Float>,Matrix3<Float>))>>>, root_id: usize,camera_map: &HashMap<usize, C>, paths: &Vec<Vec<usize>>) 
+        &self, initial_motions : Option<&Vec<Vec<(usize,(Vector3<Float>,Matrix3<Float>))>>>, root_id: usize,camera_map: &HashMap<usize, C>, paths: &Vec<Vec<usize>>, epipolar_alg: BifocalType) 
         -> State<F, EuclideanLandmark<F>,3> {
         
         let number_of_cameras = self.camera_map.keys().len();
@@ -262,10 +263,22 @@ impl CameraFeatureMap {
                     if float::Float::abs(l.get_state_as_vector().z) > float::Float::abs(acc.get_state_as_vector().z) { l } else { acc }
                 }).expect("triangulated landmarks empty!").get_state_as_vector().z;
                 println!("Max depth: {} ", max_depth);
-                for i in 0..triangualted_landmarks.len() {
-                    let v = triangualted_landmarks[i].get_state_as_vector();
-                    triangualted_landmarks[i] = EuclideanLandmark::from_state(v/float::Float::abs(max_depth));
-                }
+                match epipolar_alg {
+                    BifocalType::FUNDAMENTAL => {
+                        for i in 0..triangualted_landmarks.len() {
+                            let v = triangualted_landmarks[i].get_state_as_vector();
+                            triangualted_landmarks[i] = EuclideanLandmark::from_state(v/float::Float::abs(max_depth));
+                        }
+                    },
+                    BifocalType::ESSENTIAL => {
+                        // for i in 0..triangualted_landmarks.len() {
+                        //     let v = triangualted_landmarks[i].get_state_as_vector();
+                        //     triangualted_landmarks[i] = EuclideanLandmark::from_state(v/float::Float::abs(max_depth));
+                        // }
+                        ()
+                    }
+                };
+
                 triangualted_landmarks
             },
             None => vec!(Vector3::<F>::new(F::zero(), F::zero(), -F::one());number_of_unqiue_landmarks).iter().map(|&v| EuclideanLandmark::from_state(v)).collect::<Vec<EuclideanLandmark<F>>>()  

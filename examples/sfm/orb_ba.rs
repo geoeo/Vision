@@ -10,6 +10,7 @@ use std::path::Path;
 use vision::image::pyramid::orb::{orb_runtime_parameters::OrbRuntimeParameters};
 use vision::image::features::{Match,orb_feature::OrbFeature};
 use vision::image::Image;
+use vision::image::epipolar::BifocalType;
 use vision::sfm::{bundle_adjustment::run_ba};
 use vision::sensors::camera::{pinhole::Pinhole};
 use vision::odometry::runtime_parameters::RuntimeParameters;
@@ -68,7 +69,7 @@ fn main() -> Result<()> {
     //matches.extend(matches_1_4);
 
     let camera_map = HashMap::from([(1, intensity_camera_1), (2, intensity_camera_2)]);
-    let sfm_config = SFMConfig::new(1, vec!(vec!(2)), camera_map.clone(), camera_map, vec!(all_matches));
+    let sfm_config = SFMConfig::new(1, vec!(vec!(2)), camera_map.clone(), camera_map, vec!(all_matches), BifocalType::ESSENTIAL);
 
     let runtime_parameters = RuntimeParameters {
         pyramid_scale: orb_params_1_2.pyramid_scale,

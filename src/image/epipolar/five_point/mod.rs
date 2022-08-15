@@ -45,17 +45,17 @@ pub fn five_point_essential<T: Feature + Clone, C: Camera<Float>>(matches: &Vec<
         camera_rays_one.column_mut(i).copy_from(&f_1_reduced);
         camera_rays_two.column_mut(i).copy_from(&f_2_reduced);
 
-        // let f_1 = m.feature_one.get_as_3d_point(-1.0);
-        // let f_2 = m.feature_two.get_as_3d_point(-1.0);
-        // avg_x_one += f_1[0];
-        // avg_y_one += f_1[1];
-        // max_dist_one = max_dist_one.max(f_1[0].powi(2) + f_1[1].powi(2));
-        // avg_x_two += f_2[0];
-        // avg_y_two += f_2[1];
-        // max_dist_two = max_dist_two.max(f_2[0].powi(2) + f_2[1].powi(2));
+        let f_1 = m.feature_one.get_as_3d_point(camera_one.get_focal_x());
+        let f_2 = m.feature_two.get_as_3d_point(camera_two.get_focal_x());
+        avg_x_one += f_1[0];
+        avg_y_one += f_1[1];
+        max_dist_one = max_dist_one.max(f_1[0].powi(2) + f_1[1].powi(2));
+        avg_x_two += f_2[0];
+        avg_y_two += f_2[1];
+        max_dist_two = max_dist_two.max(f_2[0].powi(2) + f_2[1].powi(2));
 
-        features_one.column_mut(i).copy_from(&f_1_reduced);
-        features_two.column_mut(i).copy_from(&f_1_reduced);
+        features_one.column_mut(i).copy_from(&f_1);
+        features_two.column_mut(i).copy_from(&f_2);
     }
 
     //TODO: unify with five_point and epipolar
@@ -65,7 +65,7 @@ pub fn five_point_essential<T: Feature + Clone, C: Camera<Float>>(matches: &Vec<
 
     // normalization_matrix_two[(0,2)] = -avg_x_two/l_as_float;
     // normalization_matrix_two[(1,2)] = -avg_y_two/l_as_float;
-    //normalization_matrix_two[(2,2)] = max_dist_two;
+    // normalization_matrix_two[(2,2)] = max_dist_two;
 
     for i in 0..l {
         let c_x_1 = &camera_rays_one.column(i);
@@ -149,8 +149,8 @@ pub fn cheirality_check<T: Feature + Clone,  C: Camera<Float>>(
     let camera_2 = points_cam_2.1;
     let camera_matrix_1 = camera_1.get_projection();
     let camera_matrix_2 = camera_2.get_projection();
-    let _condition_matrix_1 = points_cam_1.2; 
-    let _condition_matrix_2 = points_cam_2.2; 
+    let condition_matrix_1 = points_cam_1.2; 
+    let condition_matrix_2 = points_cam_2.2; 
 
     let number_of_points = matches.len();
     for e in all_essential_matricies {
@@ -160,8 +160,8 @@ pub fn cheirality_check<T: Feature + Clone,  C: Camera<Float>>(
         let projection_1 = camera_matrix_1*(Matrix4::<Float>::identity().fixed_slice::<3,4>(0,0));
         let projection_2 = camera_matrix_2*(se3.fixed_slice::<3,4>(0,0));
 
-        let p1_points = points_cam_1.0;
-        let p2_points = points_cam_2.0;
+        let p1_points = condition_matrix_1*points_cam_1.0;
+        let p2_points = condition_matrix_2*points_cam_2.0;
 
         //TODO: review this with the sign change with better synthetic data
         let Xs = -linear_triangulation(&vec!((&p1_points,&projection_1),(&p2_points,&projection_2)));
@@ -178,8 +178,8 @@ pub fn cheirality_check<T: Feature + Clone,  C: Camera<Float>>(
         }
         let det = e_corrected.determinant().abs();
 
-        // let factor = e_corrected[(2,2)];
-        // let e_corrected_norm = e_corrected.map(|x| x/factor);
+        let factor = e_corrected[(2,2)];
+        let e_corrected_norm = e_corrected.map(|x| x/factor);
         // println!("{}",e_corrected);
         // println!("{}",e_corrected);
         // println!("{}",accepted_cheirality_count);
@@ -189,7 +189,7 @@ pub fn cheirality_check<T: Feature + Clone,  C: Camera<Float>>(
 
         if (accepted_cheirality_count > max_accepted_cheirality_count) ||
             ((accepted_cheirality_count == max_accepted_cheirality_count) && det < smallest_det) {
-            best_e = Some(e_corrected.clone());
+            best_e = Some(e_corrected_norm.clone());
             smallest_det = det;
             max_accepted_cheirality_count = accepted_cheirality_count;
         }

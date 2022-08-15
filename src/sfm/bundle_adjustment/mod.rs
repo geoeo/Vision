@@ -34,7 +34,7 @@ pub fn run_ba<F: serde::Serialize + float::Float + Scalar + NumAssign + SimdReal
 
     //TODO: switch impl
     //TODO: transative motions
-    let mut state = feature_map.get_euclidean_landmark_state(initial_cam_poses, sfm_config.root(), sfm_config.camera_map(), sfm_config.paths());
+    let mut state = feature_map.get_euclidean_landmark_state(initial_cam_poses, sfm_config.root(), sfm_config.camera_map(), sfm_config.paths(), sfm_config.epipolar_alg()) ;
     //let mut state = feature_map.get_inverse_depth_landmark_state(Some(&initial_motion_decomp), depth_prior,&cameras);
     
     //TODO: check this

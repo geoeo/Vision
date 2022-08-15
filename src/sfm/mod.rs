@@ -3,7 +3,7 @@ extern crate num_traits;
 extern crate simba;
 
 use std::collections::HashMap;
-use crate::image::features::{Feature, Match};
+use crate::image::{features::{Feature, Match},epipolar::BifocalType};
 
 pub mod bundle_adjustment;
 pub mod landmark; 
@@ -26,12 +26,13 @@ pub struct SFMConfig<C, C2, Feat: Feature> {
     camera_map: HashMap<usize, C>,
     camera_map_ba: HashMap<usize, C2>,
     matches: Vec<Vec<Vec<Match<Feat>>>>,
+    epipolar_alg: BifocalType
 }
 
 impl<C, C2, Feat: Feature> SFMConfig<C,C2, Feat> {
 
     //TODO: rework casting to be part of camera trait or super struct
-    pub fn new(root: usize, paths: Vec<Vec<usize>>, camera_map: HashMap<usize, C>, camera_map_ba: HashMap<usize, C2>, matches: Vec<Vec<Vec<Match<Feat>>>>) -> SFMConfig<C,C2,Feat> {
+    pub fn new(root: usize, paths: Vec<Vec<usize>>, camera_map: HashMap<usize, C>, camera_map_ba: HashMap<usize, C2>, matches: Vec<Vec<Vec<Match<Feat>>>>, epipolar_alg: BifocalType) -> SFMConfig<C,C2,Feat> {
         for key in camera_map.keys() {
             assert!(camera_map_ba.contains_key(key));
         }
@@ -39,7 +40,7 @@ impl<C, C2, Feat: Feature> SFMConfig<C,C2, Feat> {
         for key in camera_map_ba.keys() {
             assert!(camera_map.contains_key(key));
         }
-        SFMConfig{root, paths, camera_map, camera_map_ba, matches}
+        SFMConfig{root, paths, camera_map, camera_map_ba, matches, epipolar_alg}
     }
 
     pub fn root(&self) -> usize { self.root }
@@ -47,6 +48,7 @@ impl<C, C2, Feat: Feature> SFMConfig<C,C2, Feat> {
     pub fn camera_map(&self) -> &HashMap<usize, C> { &self.camera_map }
     pub fn camera_map_ba(&self) -> &HashMap<usize, C2> { &self.camera_map_ba }
     pub fn matches(&self) -> &Vec<Vec<Vec<Match<Feat>>>> { &self.matches } // TODO: These are not the filtered matches which are usually what are used. Unify this
+    pub fn epipolar_alg(&self) -> BifocalType { self.epipolar_alg}
 
     pub fn compute_path_id_pairs(&self) -> Vec<Vec<(usize, usize)>> {
         let mut path_id_paris = Vec::<Vec::<(usize,usize)>>::with_capacity(self.paths.len());
