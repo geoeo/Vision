@@ -39,8 +39,8 @@ pub fn five_point_essential<T: Feature + Clone, C: Camera<Float>>(matches: &Vec<
 
     for i in 0..l {
         let m = &matches[i];
-        let f_1_reduced = m.feature_one.get_camera_ray(&inverse_projection_one, camera_one.get_focal_x());
-        let f_2_reduced = m.feature_two.get_camera_ray(&inverse_projection_two, camera_two.get_focal_x());
+        let f_1_reduced = m.feature_one.get_camera_ray(&inverse_projection_one);
+        let f_2_reduced = m.feature_two.get_camera_ray(&inverse_projection_two);
 
         camera_rays_one.column_mut(i).copy_from(&f_1_reduced);
         camera_rays_two.column_mut(i).copy_from(&f_2_reduced);

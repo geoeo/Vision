@@ -177,8 +177,8 @@ pub fn filter_matches_from_motion<T: Feature + Clone, C: Camera<Float>>(matches:
  */
 pub fn epipolar_lines<T: Feature>(bifocal_tensor: &Matrix3<Float>, feature_match: &Match<T>, cam_one_intrinsics: &Matrix3<Float>, cam_two_intrinsics: &Matrix3<Float>) -> (Vector3<Float>, Vector3<Float>) {
     //TODO: pass in camera object not intrinsics matrix
-    let f_from = feature_match.feature_one.get_camera_ray(cam_one_intrinsics, cam_one_intrinsics[(0,0)]);
-    let f_to = feature_match.feature_two.get_camera_ray(cam_two_intrinsics, cam_two_intrinsics[(0,0)]);
+    let f_from = feature_match.feature_one.get_camera_ray(cam_one_intrinsics);
+    let f_to = feature_match.feature_two.get_camera_ray(cam_two_intrinsics);
 
     ((f_from.transpose()*bifocal_tensor).transpose(), bifocal_tensor*f_to)
 }
@@ -228,8 +228,8 @@ pub fn decompose_essential_förstner<T : Feature, C : Camera<Float>>(
         let mut v_sign = 0.0;
         let mut u_sign = 0.0;
         for m in matches {
-            let f_start = m.feature_one.get_camera_ray(&inverse_camera_matrix_start,c_start);
-            let f_finish = m.feature_two.get_camera_ray(&inverse_camera_matrix_finish,c_finish);
+            let f_start = m.feature_one.get_camera_ray(&inverse_camera_matrix_start);
+            let f_finish = m.feature_two.get_camera_ray(&inverse_camera_matrix_finish);
 
             let binormal = ((h.cross_matrix()*f_start).cross_matrix()*h).normalize();
             let mat = Matrix3::<Float>::from_columns(&[h,binormal,f_start.cross_matrix()*R.transpose()*f_finish]);
