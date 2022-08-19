@@ -27,7 +27,7 @@ pub struct CameraFeatureMap {
     pub number_of_unique_points: usize,
     /**
      * 2d Vector of rows: point, cols: cam. Where the matrix elements are in (x,y) tuples. 
-     * First entry is the all the cams assocaited with a point.
+     * First entry is all the cams assocaited with a point. point_cam_map[point_id][cam_id]
      */
     pub point_cam_map: Vec<Vec<Option<(Float,Float)>>>,
     pub image_row_col: (usize,usize)

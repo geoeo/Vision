@@ -29,7 +29,7 @@ pub struct SFMConfig<C, C2, Feat: Feature> {
     epipolar_alg: BifocalType
 }
 
-impl<C, C2, Feat: Feature> SFMConfig<C,C2, Feat> {
+impl<C, C2, Feat: Feature + Clone> SFMConfig<C,C2, Feat> {
 
     //TODO: rework casting to be part of camera trait or super struct
     pub fn new(root: usize, paths: Vec<Vec<usize>>, camera_map: HashMap<usize, C>, camera_map_ba: HashMap<usize, C2>, matches: Vec<Vec<Vec<Match<Feat>>>>, epipolar_alg: BifocalType) -> SFMConfig<C,C2,Feat> {
@@ -40,7 +40,10 @@ impl<C, C2, Feat: Feature> SFMConfig<C,C2, Feat> {
         for key in camera_map_ba.keys() {
             assert!(camera_map.contains_key(key));
         }
-        SFMConfig{root, paths, camera_map, camera_map_ba, matches, epipolar_alg}
+
+
+
+        SFMConfig{root, paths, camera_map, camera_map_ba, matches: Self::filter_by_max_tracks(&matches), epipolar_alg}
     }
 
     pub fn root(&self) -> usize { self.root }
@@ -86,6 +89,34 @@ impl<C, C2, Feat: Feature> SFMConfig<C,C2, Feat> {
         keys_sorted.extend(self.paths.clone().into_iter().flatten().collect::<Vec<usize>>());
         keys_sorted.dedup();
         keys_sorted
+    }
+
+    fn filter_by_max_tracks(matches: &Vec<Vec<Vec<Match<Feat>>>>) -> Vec<Vec<Vec<Match<Feat>>>> {
+
+        let mut filtered_matches = Vec::<Vec<Vec<Match<Feat>>>>::with_capacity(matches.len());
+
+        for i in 0..matches.len() {
+            let path = &matches[i];
+            filtered_matches.push(Vec::<Vec<Match<Feat>>>::with_capacity(path.len()));
+            for img_idx in 0..path.len() {
+                filtered_matches[i].push(Vec::<Match<Feat>>::with_capacity(path[img_idx].len()));
+            }
+        }
+
+        //TODO: proper filter logic
+        for i in 0..matches.len() {
+            let path = &matches[i];
+            let path_len = path.len();
+            for img_idx in 0..path_len {
+                let matches = &path[img_idx];
+                for feat_idx in 0..matches.len() {
+                    (filtered_matches[i])[img_idx].push(matches[feat_idx].clone());
+                }
+                
+            }
+        }
+
+        filtered_matches
     }
 
 }
