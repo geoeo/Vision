@@ -103,19 +103,30 @@ impl<C, C2, Feat: Feature + Clone> SFMConfig<C,C2, Feat> {
                 filtered_matches[i].push(Vec::<Match<Feat>>::with_capacity(path[img_idx].len()));
             }
         }
-
-        //TODO: proper filter logic
         for i in 0..matches.len() {
             feature_tracks.clear();
             let path = &matches[i];
             let path_len = path.len();
             for img_idx in 0..path_len {
-                // If img_idx = 0 -> add all points
-                // else iterate trough tracks instead
+
                 let matches = &path[img_idx];
                 for feat_idx in 0..matches.len() {
                     let m = &matches[feat_idx];
-                    (filtered_matches[i])[img_idx].push(m.clone());
+                    match img_idx {
+                        0 => feature_tracks.push(FeatureTrack::new(path_len, m)),
+                        _ => {
+                            let current_feature_one = &m.feature_one;
+                            //TODO: Speed up with caching
+                            for track in feature_tracks.iter_mut() {
+                                if track.get_current_id() == (current_feature_one.get_x_image(), current_feature_one.get_y_image()) {
+                                    track.add(m);
+                                }
+                                
+                            }
+                        }
+                    };
+
+                    (filtered_matches[i])[img_idx].push(m.clone()); // Placeholder logic
                 }
                 
             }
