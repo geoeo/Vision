@@ -15,8 +15,8 @@ pub struct OlssenData {
     pub U: DMatrix<Float>,
     pub point_indices: Vec<DMatrix<Float>>,
     pub image_points: Vec<DMatrix<Float>>,
-    width: usize,
-    height: usize
+    pub width: usize,
+    pub height: usize
 }
 
 impl OlssenData {

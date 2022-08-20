@@ -3,7 +3,7 @@ extern crate num_traits;
 extern crate simba;
 
 use std::collections::HashMap;
-use crate::image::{features::{Feature, Match},epipolar::BifocalType};
+use crate::image::{features::{Feature, Match, feature_track::FeatureTrack},epipolar::BifocalType};
 
 pub mod bundle_adjustment;
 pub mod landmark; 
@@ -32,7 +32,7 @@ pub struct SFMConfig<C, C2, Feat: Feature> {
 impl<C, C2, Feat: Feature + Clone> SFMConfig<C,C2, Feat> {
 
     //TODO: rework casting to be part of camera trait or super struct
-    pub fn new(root: usize, paths: Vec<Vec<usize>>, camera_map: HashMap<usize, C>, camera_map_ba: HashMap<usize, C2>, matches: Vec<Vec<Vec<Match<Feat>>>>, epipolar_alg: BifocalType) -> SFMConfig<C,C2,Feat> {
+    pub fn new(root: usize, paths: Vec<Vec<usize>>, camera_map: HashMap<usize, C>, camera_map_ba: HashMap<usize, C2>, matches: Vec<Vec<Vec<Match<Feat>>>>, epipolar_alg: BifocalType, image_size: usize) -> SFMConfig<C,C2,Feat> {
         for key in camera_map.keys() {
             assert!(camera_map_ba.contains_key(key));
         }
@@ -43,7 +43,7 @@ impl<C, C2, Feat: Feature + Clone> SFMConfig<C,C2, Feat> {
 
 
 
-        SFMConfig{root, paths, camera_map, camera_map_ba, matches: Self::filter_by_max_tracks(&matches), epipolar_alg}
+        SFMConfig{root, paths, camera_map, camera_map_ba, matches: Self::filter_by_max_tracks(&matches, image_size), epipolar_alg}
     }
 
     pub fn root(&self) -> usize { self.root }
@@ -91,9 +91,10 @@ impl<C, C2, Feat: Feature + Clone> SFMConfig<C,C2, Feat> {
         keys_sorted
     }
 
-    fn filter_by_max_tracks(matches: &Vec<Vec<Vec<Match<Feat>>>>) -> Vec<Vec<Vec<Match<Feat>>>> {
+    fn filter_by_max_tracks(matches: &Vec<Vec<Vec<Match<Feat>>>>, image_size: usize) -> Vec<Vec<Vec<Match<Feat>>>> {
 
-        let mut filtered_matches = Vec::<Vec<Vec<Match<Feat>>>>::with_capacity(matches.len());
+        let mut filtered_matches = Vec::<Vec<Vec<Match<Feat>>>>::with_capacity(matches.len()); 
+        let mut feature_tracks = Vec::<FeatureTrack<Feat>>::with_capacity(image_size);
 
         for i in 0..matches.len() {
             let path = &matches[i];
@@ -105,12 +106,16 @@ impl<C, C2, Feat: Feature + Clone> SFMConfig<C,C2, Feat> {
 
         //TODO: proper filter logic
         for i in 0..matches.len() {
+            feature_tracks.clear();
             let path = &matches[i];
             let path_len = path.len();
             for img_idx in 0..path_len {
+                // If img_idx = 0 -> add all points
+                // else iterate trough tracks instead
                 let matches = &path[img_idx];
                 for feat_idx in 0..matches.len() {
-                    (filtered_matches[i])[img_idx].push(matches[feat_idx].clone());
+                    let m = &matches[feat_idx];
+                    (filtered_matches[i])[img_idx].push(m.clone());
                 }
                 
             }

@@ -15,6 +15,7 @@ pub mod harris_corner;
 pub mod hessian_response;
 pub mod orb_feature;
 pub mod intensity_centroid;
+pub mod feature_track;
 
 
 pub trait Feature {
