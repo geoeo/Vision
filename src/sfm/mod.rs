@@ -103,23 +103,25 @@ impl<C, C2, Feat: Feature + Clone> SFMConfig<C,C2, Feat> {
                 filtered_matches[i].push(Vec::<Match<Feat>>::with_capacity(path[img_idx].len()));
             }
         }
+
+        let max_path_len: usize = matches.iter().map(|x| x.len()).sum();
+
         for i in 0..matches.len() {
-            feature_tracks.clear();
             let path = &matches[i];
             let path_len = path.len();
             for img_idx in 0..path_len {
-
                 let matches = &path[img_idx];
                 for feat_idx in 0..matches.len() {
                     let m = &matches[feat_idx];
-                    match img_idx {
-                        0 => feature_tracks.push(FeatureTrack::new(path_len, m)),
+                    match (i, img_idx) {
+                        (0,0) => feature_tracks.push(FeatureTrack::new(max_path_len, m)),
                         _ => {
                             let current_feature_one = &m.feature_one;
                             //TODO: Speed up with caching
                             for track in feature_tracks.iter_mut() {
-                                if track.get_current_id() == (current_feature_one.get_x_image(), current_feature_one.get_y_image()) {
-                                    track.add(m);
+                                if (track.get_feature_current_id() == (current_feature_one.get_x_image(), current_feature_one.get_y_image())) && 
+                                   (track.get_path_img_id() != (i, img_idx)) {
+                                    track.add(i,img_idx, m);
                                 }
                                 
                             }
@@ -131,6 +133,14 @@ impl<C, C2, Feat: Feature + Clone> SFMConfig<C,C2, Feat> {
                 
             }
         }
+
+        let max_track_length = feature_tracks.iter().map(|x| x.get_track_length()).reduce(|max, l| {
+            if l > max { l } else { max }
+        }).expect("filter_by_max_tracks: tracks is empty!");
+
+        let max_tracks: Vec<FeatureTrack<Feat>> = feature_tracks.into_iter().filter(| x | x.get_track_length() == max_track_length).collect();
+
+        //TODO: convert max tracks back into match vector
 
         filtered_matches
     }
