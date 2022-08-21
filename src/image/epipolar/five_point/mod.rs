@@ -189,7 +189,7 @@ pub fn cheirality_check<T: Feature + Clone,  C: Camera<Float>>(
 
         if (accepted_cheirality_count > max_accepted_cheirality_count) ||
             ((accepted_cheirality_count == max_accepted_cheirality_count) && det < smallest_det) {
-            best_e = Some(e_corrected_norm.clone());
+            best_e = Some(e_corrected.clone());
             smallest_det = det;
             max_accepted_cheirality_count = accepted_cheirality_count;
         }
