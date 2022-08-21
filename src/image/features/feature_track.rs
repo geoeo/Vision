@@ -37,4 +37,9 @@ impl<T: Feature + Clone> FeatureTrack<T> {
     pub fn get_track_length(&self) -> usize {
         self.track.len()
     }
+
+    pub fn get_track(&self) -> &Vec<(PathIdx, ImageIdx, Match<T>)> {
+        &self.track
+    }
 }
+

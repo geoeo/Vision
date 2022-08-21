@@ -26,6 +26,7 @@ pub struct SFMConfig<C, C2, Feat: Feature> {
     camera_map: HashMap<usize, C>,
     camera_map_ba: HashMap<usize, C2>,
     matches: Vec<Vec<Vec<Match<Feat>>>>,
+    filtered_matches_by_tracks: Vec<Vec<Vec<Match<Feat>>>>,
     epipolar_alg: BifocalType
 }
 
@@ -41,16 +42,17 @@ impl<C, C2, Feat: Feature + Clone> SFMConfig<C,C2, Feat> {
             assert!(camera_map.contains_key(key));
         }
 
+        let filtered_matches_by_tracks = Self::filter_by_max_tracks(&matches, image_size);
 
-
-        SFMConfig{root, paths, camera_map, camera_map_ba, matches: Self::filter_by_max_tracks(&matches, image_size), epipolar_alg}
+        SFMConfig{root, paths, camera_map, camera_map_ba, matches, filtered_matches_by_tracks, epipolar_alg}
     }
 
     pub fn root(&self) -> usize { self.root }
     pub fn paths(&self) -> &Vec<Vec<usize>> { &self.paths }
     pub fn camera_map(&self) -> &HashMap<usize, C> { &self.camera_map }
     pub fn camera_map_ba(&self) -> &HashMap<usize, C2> { &self.camera_map_ba }
-    pub fn matches(&self) -> &Vec<Vec<Vec<Match<Feat>>>> { &self.matches } // TODO: These are not the filtered matches which are usually what are used. Unify this
+    pub fn matches(&self) -> &Vec<Vec<Vec<Match<Feat>>>> { &self.matches }
+    pub fn filtered_matches_by_tracks(&self) -> &Vec<Vec<Vec<Match<Feat>>>> { &self.filtered_matches_by_tracks }
     pub fn epipolar_alg(&self) -> BifocalType { self.epipolar_alg}
 
     pub fn compute_path_id_pairs(&self) -> Vec<Vec<(usize, usize)>> {
@@ -127,8 +129,6 @@ impl<C, C2, Feat: Feature + Clone> SFMConfig<C,C2, Feat> {
                             }
                         }
                     };
-
-                    (filtered_matches[i])[img_idx].push(m.clone()); // Placeholder logic
                 }
                 
             }
@@ -141,6 +141,18 @@ impl<C, C2, Feat: Feature + Clone> SFMConfig<C,C2, Feat> {
         let max_tracks: Vec<FeatureTrack<Feat>> = feature_tracks.into_iter().filter(| x | x.get_track_length() == max_track_length).collect();
 
         //TODO: convert max tracks back into match vector
+        for t in &max_tracks {
+            for (path_idx, img_idx, m) in t.get_track() {
+                (filtered_matches[*path_idx])[*img_idx].push(m.clone());
+            }
+        }
+
+        for path_idx in 0..matches.len() {
+            let path = &matches[path_idx];
+            for img_idx in 0..path.len() {
+                (filtered_matches[path_idx])[img_idx].shrink_to_fit();
+            }
+        }
 
         filtered_matches
     }

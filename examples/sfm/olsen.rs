@@ -48,7 +48,8 @@ fn main() -> Result<()> {
     //let epipolar_thresh = 1.0;
     //let epipolar_thresh = 2.0;
     //let epipolar_thresh = 5.0;
-    //let epipolar_thresh = 100.0;
+    let epipolar_thresh = 250.0;
+    //let epipolar_thresh = 500.0;
     let epipolar_thresh = Float::INFINITY;
 
     let feature_skip_count = 1;
@@ -226,7 +227,7 @@ fn main() -> Result<()> {
     // let root_id = 5;
 
 
-    let sfm_config = SFMConfig::new(root_id, paths.clone(), camera_map, camera_map_ba, sfm_all_matches.clone(), BifocalType::FUNDAMENTAL, olsen_data.width*olsen_data.height);
+    let sfm_config = SFMConfig::new(root_id, paths.clone(), camera_map, camera_map_ba, sfm_all_matches.clone(), BifocalType::ESSENTIAL, olsen_data.width*olsen_data.height);
     let (mut initial_cam_motions_per_path,filtered_matches_per_path) = compute_pairwise_cam_motions_with_filtered_matches(
             &sfm_config,
             1.0,
@@ -276,12 +277,12 @@ fn main() -> Result<()> {
 
         let runtime_parameters = RuntimeParameters {
             pyramid_scale: 1.0,
-            max_iterations: vec![5000; 1],
+            max_iterations: vec![200; 1],
             eps: vec![1e-6],
             step_sizes: vec![1e-3],
             max_norm_eps: 1e-30, 
             delta_eps: 1e-30,
-            taus: vec![1.0e0],
+            taus: vec![1.0e-1],
             lm: true,
             debug: true,
             show_octave_result: true,

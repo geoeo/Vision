@@ -329,10 +329,12 @@ pub fn compute_pairwise_cam_motions_with_filtered_matches_for_path<C : Camera<Fl
     let root_id = sfm_config.root();
     let path = &sfm_config.paths()[path_idx];
     let matches = &sfm_config.matches()[path_idx];
+    let filtered_matches_by_track = &sfm_config.filtered_matches_by_tracks()[path_idx];
     let camera_map = sfm_config.camera_map();
     let root_cam = camera_map.get(&root_id).expect("compute_pairwise_cam_motions_for_path: could not get root cam");
     let feature_machtes =  matches.iter().map(|m| extract_matches(m, pyramid_scale, normalize_features)).collect::<Vec<Vec<Match<ImageFeature>>>>();
-    feature_machtes.iter().enumerate().map(|(i,m)| {
+    let filtered_feature_machtes_by_track =  filtered_matches_by_track.iter().map(|m| extract_matches(m, pyramid_scale, normalize_features)).collect::<Vec<Vec<Match<ImageFeature>>>>();
+    feature_machtes.iter().zip(filtered_feature_machtes_by_track.iter()).enumerate().map(|(i,(m,f_m_tracks))| {
         let c1 = match i {
             0 => root_cam,
             idx => camera_map.get(&path[idx-1]).expect("compute_pairwise_cam_motions_for_path: could not get previous cam")
@@ -341,13 +343,14 @@ pub fn compute_pairwise_cam_motions_with_filtered_matches_for_path<C : Camera<Fl
         let c2 = camera_map.get(&id2).expect("compute_pairwise_cam_motions_for_path: could not get second camera");
         let (e,f_m) = match epipolar_alg {
             BifocalType::FUNDAMENTAL => {
-                let f = eight_point(m, false);
+                let f = eight_point(f_m_tracks, false);
                 let filtered =  filter_matches_from_fundamental(&f,m,epipolar_thresh, c1,c2);
                 (compute_essential(&f,&c1.get_projection(),&c2.get_projection()), filtered)
             },
             BifocalType::ESSENTIAL => {
                 //TODO: put these in configs
-                let e = ransac_five_point_essential(m, c1, c2, 100.0,50000, 5);
+                let e = ransac_five_point_essential(f_m_tracks, c1, c2, Float::INFINITY,80000, 5);
+                //let e = five_point_essential(f_m_tracks, c1, c2);
                 let f = compute_fundamental(&e, &c1.get_inverse_projection(), &c2.get_inverse_projection());
                 let filtered =  filter_matches_from_fundamental(&f,m,epipolar_thresh,c1,c2);
                 (e, filtered)
