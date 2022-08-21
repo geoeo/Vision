@@ -48,8 +48,11 @@ fn main() -> Result<()> {
     //let epipolar_thresh = 1.0;
     //let epipolar_thresh = 2.0;
     //let epipolar_thresh = 5.0;
-    let epipolar_thresh = 250.0;
+    //let epipolar_thresh = 50.0;
+    //let epipolar_thresh = 100.0;
+    //let epipolar_thresh = 250.0;
     //let epipolar_thresh = 500.0;
+    //let epipolar_thresh = 100000.0;
     let epipolar_thresh = Float::INFINITY;
 
     let feature_skip_count = 1;
@@ -282,7 +285,7 @@ fn main() -> Result<()> {
             step_sizes: vec![1e-3],
             max_norm_eps: 1e-30, 
             delta_eps: 1e-30,
-            taus: vec![1.0e-1],
+            taus: vec![1.0e0],
             lm: true,
             debug: true,
             show_octave_result: true,
