@@ -44,7 +44,8 @@ fn main() -> Result<()> {
     //let epipolar_thresh = 0.025;
     //let epipolar_thresh = 0.05;
     //let epipolar_thresh = 0.09;
-    //let epipolar_thresh = 0.1;
+    let epipolar_thresh = 0.1;
+    //let epipolar_thresh = 0.5;
     //let epipolar_thresh = 1.0;
     //let epipolar_thresh = 2.0;
     //let epipolar_thresh = 5.0;
@@ -53,7 +54,7 @@ fn main() -> Result<()> {
     //let epipolar_thresh = 250.0;
     //let epipolar_thresh = 500.0;
     //let epipolar_thresh = 100000.0;
-    let epipolar_thresh = Float::INFINITY;
+    //let epipolar_thresh = Float::INFINITY;
 
     let feature_skip_count = 1;
     let olsen_data = OlssenData::new(&olsen_data_path);
@@ -61,7 +62,7 @@ fn main() -> Result<()> {
     let invert_intrinsics = false; // they are already negative from decomp
     let normalize_features = false;
 
-    //let change_of_basis = Matrix3::<Float>::new(-1.0,0.0,0.0, 0.0,1.0,0.0, 0.0,0.0,-1.0);
+    //let change_of_basis = Matrix3::<Float>::new(1.0,0.0,0.0, 0.0,1.0,0.0, 0.0,0.0,-1.0);
     let change_of_basis = Matrix3::<Float>::identity();
 
 
@@ -105,9 +106,9 @@ fn main() -> Result<()> {
     let matches_5_4 = olsen_data.get_matches_between_images(5, 4);
     let matches_5_6 = olsen_data.get_matches_between_images(5, 6);
     let matches_6_7 = olsen_data.get_matches_between_images(6, 7);
+    let matches_7_8 = olsen_data.get_matches_between_images(7, 8);
+    let matches_8_9 = olsen_data.get_matches_between_images(8, 9);
 
-    // let matches_7_8 = olsen_data.get_matches_between_images(7, 8);
-    // let matches_8_9 = olsen_data.get_matches_between_images(8, 9);
     // let matches_9_10 = olsen_data.get_matches_between_images(9, 10);
     // let matches_10_9 = olsen_data.get_matches_between_images(10, 9);
     // let matches_10_11 = olsen_data.get_matches_between_images(10, 11);
@@ -132,9 +133,9 @@ fn main() -> Result<()> {
     let matches_5_4_subvec = matches_5_4.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
     let matches_5_6_subvec = matches_5_6.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
     let matches_6_7_subvec = matches_6_7.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
+    let matches_7_8_subvec = matches_7_8.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
+    let matches_8_9_subvec = matches_8_9.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
 
-    // let matches_7_8_subvec = matches_7_8.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
-    // let matches_8_9_subvec = matches_8_9.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
     // let matches_10_9_subvec = matches_10_9.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
     // let matches_9_10_subvec = matches_9_10.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
     // let matches_10_11_subvec = matches_10_11.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
@@ -280,12 +281,12 @@ fn main() -> Result<()> {
 
         let runtime_parameters = RuntimeParameters {
             pyramid_scale: 1.0,
-            max_iterations: vec![200; 1],
+            max_iterations: vec![10000; 1],
             eps: vec![1e-6],
             step_sizes: vec![1e-3],
             max_norm_eps: 1e-30, 
             delta_eps: 1e-30,
-            taus: vec![1.0e0],
+            taus: vec![1.0e-1],
             lm: true,
             debug: true,
             show_octave_result: true,

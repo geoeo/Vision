@@ -107,7 +107,8 @@ impl<C, C2, Feat: Feature + Clone> SFMConfig<C,C2, Feat> {
         }
 
         let max_path_len: usize = matches.iter().map(|x| x.len()).sum();
-
+        
+        //TODO: make this work feature tracks that happen on an image other than the first
         for i in 0..matches.len() {
             let path = &matches[i];
             let path_len = path.len();

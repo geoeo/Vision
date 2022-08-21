@@ -343,13 +343,13 @@ pub fn compute_pairwise_cam_motions_with_filtered_matches_for_path<C : Camera<Fl
         let c2 = camera_map.get(&id2).expect("compute_pairwise_cam_motions_for_path: could not get second camera");
         let (e,f_m) = match epipolar_alg {
             BifocalType::FUNDAMENTAL => {
-                let f = eight_point(m, false); //TODO: make this configurable
+                let f = eight_point(f_m_tracks, false); //TODO: make this configurable
                 let filtered =  filter_matches_from_fundamental(&f,m,epipolar_thresh, c1,c2);
                 (compute_essential(&f,&c1.get_projection(),&c2.get_projection()), filtered)
             },
             BifocalType::ESSENTIAL => {
                 //TODO: put these in configs
-                let e = ransac_five_point_essential(f_m_tracks, c1, c2, Float::INFINITY,80000, 5);
+                let e = ransac_five_point_essential(f_m_tracks, c1, c2, 1.0,100000, 5);
                 //let e = five_point_essential(f_m_tracks, c1, c2);
                 let f = compute_fundamental(&e, &c1.get_inverse_projection(), &c2.get_inverse_projection());
                 let filtered =  filter_matches_from_fundamental(&f,m,epipolar_thresh,c1,c2);
