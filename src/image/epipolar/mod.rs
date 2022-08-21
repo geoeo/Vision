@@ -67,7 +67,7 @@ pub fn ransac_five_point_essential<T: Feature + Clone, C: Camera<Float>>(matches
         };
     }
 
-    println!("Best inliner count for essential matrix was {} out of {} matches. That is {} % with det: {}", max_inlier_count, matches.len(), ((max_inlier_count as Float) / (matches.len() as Float)) * 100.0, best_essential.det().abs());
+    println!("Best inliner count for essential matrix was {} out of {} matches. That is {} % with det: {}", max_inlier_count, matches.len(), ((max_inlier_count as Float) / (matches.len() as Float)) * 100.0, min_det);
     best_essential.expect("No essential matrix could be computer via RANSAC")
 }
 
