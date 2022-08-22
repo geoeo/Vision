@@ -350,7 +350,7 @@ pub fn compute_pairwise_cam_motions_with_filtered_matches_for_path<C : Camera<Fl
             BifocalType::ESSENTIAL => {
                 //TODO: put these in configs
                 //Do NcR for
-                let e = ransac_five_point_essential(f_m_tracks, c1, c2, 0.1,2e5 as usize, 5);
+                let e = ransac_five_point_essential(f_m_tracks, c1, c2, 1.0,2e5 as usize, 5);
                 //let e = five_point_essential(f_m_tracks, c1, c2);
                 let f = compute_fundamental(&e, &c1.get_inverse_projection(), &c2.get_inverse_projection());
                 let filtered =  filter_matches_from_fundamental(&f,m,epipolar_thresh,c1,c2);

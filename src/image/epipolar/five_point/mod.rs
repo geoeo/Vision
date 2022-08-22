@@ -164,7 +164,7 @@ pub fn cheirality_check<T: Feature + Clone,  C: Camera<Float>>(
         let p2_points = condition_matrix_2*points_cam_2.0;
 
         //TODO: review this with the sign change with better synthetic data
-        let Xs = -linear_triangulation(&vec!((&p1_points,&projection_1),(&p2_points,&projection_2)));
+        let Xs = linear_triangulation(&vec!((&p1_points,&projection_1),(&p2_points,&projection_2)));
         let p1_x = projection_1*&Xs;
         let p2_x = projection_2*&Xs;
         let mut accepted_cheirality_count = 0;
