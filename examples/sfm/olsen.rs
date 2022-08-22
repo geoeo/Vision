@@ -35,26 +35,8 @@ fn main() -> Result<()> {
     let data_set_kronan_path = format!("{}/Olsen/kronan/",runtime_conf.dataset_path);
     let data_set_round_church_path = format!("{}/Olsen/round_church/",runtime_conf.dataset_path);
     
-    let olsen_data_path = data_set_door_path;
+    let olsen_data_path = data_set_fountain_path;
     let depth_prior = -1.0;
-    //let epipolar_thresh = 0.001; 
-    //let epipolar_thresh = 0.005; 
-    //let epipolar_thresh = 0.009; 
-    //let epipolar_thresh = 0.01; 
-    //let epipolar_thresh = 0.025;
-    //let epipolar_thresh = 0.05;
-    //let epipolar_thresh = 0.09;
-    let epipolar_thresh = 0.1;
-    //let epipolar_thresh = 0.5;
-    //let epipolar_thresh = 1.0;
-    //let epipolar_thresh = 2.0;
-    //let epipolar_thresh = 5.0;
-    //let epipolar_thresh = 50.0;
-    //let epipolar_thresh = 100.0;
-    //let epipolar_thresh = 250.0;
-    //let epipolar_thresh = 500.0;
-    //let epipolar_thresh = 100000.0;
-    //let epipolar_thresh = Float::INFINITY;
 
     let feature_skip_count = 1;
     let olsen_data = OlssenData::new(&olsen_data_path);
@@ -231,19 +213,31 @@ fn main() -> Result<()> {
     // let root_id = 5;
 
 
-    let sfm_config = SFMConfig::new(root_id, paths.clone(), camera_map, camera_map_ba, sfm_all_matches.clone(), BifocalType::ESSENTIAL, olsen_data.width*olsen_data.height);
+    let sfm_config = SFMConfig::new(root_id, paths.clone(), camera_map.clone(), camera_map_ba.clone(), sfm_all_matches.clone(), BifocalType::ESSENTIAL, olsen_data.width*olsen_data.height);
     let (mut initial_cam_motions_per_path,filtered_matches_per_path) = compute_pairwise_cam_motions_with_filtered_matches(
             &sfm_config,
             1.0,
-            epipolar_thresh,
+            1.0,
             normalize_features,
             sfm_config.epipolar_alg(), 
             EssentialDecomposition::FÖRSNTER
     );
 
+    let sfm_config_fundamental = SFMConfig::new(root_id, paths.clone(), camera_map, camera_map_ba, sfm_all_matches.clone(), BifocalType::FUNDAMENTAL, olsen_data.width*olsen_data.height);
+    let (mut initial_cam_motions_per_path_fundamental,_) = compute_pairwise_cam_motions_with_filtered_matches(
+            &sfm_config_fundamental,
+            1.0,
+            Float::INFINITY,
+            normalize_features,
+            sfm_config_fundamental.epipolar_alg(), 
+            EssentialDecomposition::FÖRSNTER
+    );
+
     for i in 0..initial_cam_motions_per_path.len() {
         let p = &initial_cam_motions_per_path[i];
-        let new_p = p.iter().map(|(id,(b,rot))| (*id,(change_of_basis*b,change_of_basis*rot))).collect::<Vec<(usize,(Vector3<Float>,Matrix3<Float>))>>();
+        let p_fundamental = &initial_cam_motions_per_path_fundamental[i];
+        let new_p = p.iter().enumerate().map(|(idx,(id,(b,rot)))| (*id,(change_of_basis*b,change_of_basis*rot))).collect::<Vec<(usize,(Vector3<Float>,Matrix3<Float>))>>();
+        //let new_p = p.iter().enumerate().map(|(idx,(id,(b,rot)))| (*id,(change_of_basis*b,change_of_basis*p_fundamental[idx].1.1))).collect::<Vec<(usize,(Vector3<Float>,Matrix3<Float>))>>();
         initial_cam_motions_per_path[i] = new_p;
     }
 
@@ -281,12 +275,12 @@ fn main() -> Result<()> {
 
         let runtime_parameters = RuntimeParameters {
             pyramid_scale: 1.0,
-            max_iterations: vec![10000; 1],
+            max_iterations: vec![5000; 1],
             eps: vec![1e-6],
             step_sizes: vec![1e-3],
             max_norm_eps: 1e-30, 
             delta_eps: 1e-30,
-            taus: vec![1.0e-1],
+            taus: vec![1.0e0],
             lm: true,
             debug: true,
             show_octave_result: true,
