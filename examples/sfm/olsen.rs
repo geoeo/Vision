@@ -35,7 +35,7 @@ fn main() -> Result<()> {
     let data_set_kronan_path = format!("{}/Olsen/kronan/",runtime_conf.dataset_path);
     let data_set_round_church_path = format!("{}/Olsen/round_church/",runtime_conf.dataset_path);
     
-    let olsen_data_path = data_set_fountain_path;
+    let olsen_data_path = data_set_door_path;
     let depth_prior = -1.0;
 
     let feature_skip_count = 1;
@@ -217,7 +217,7 @@ fn main() -> Result<()> {
     let (mut initial_cam_motions_per_path,filtered_matches_per_path) = compute_pairwise_cam_motions_with_filtered_matches(
             &sfm_config,
             1.0,
-            1.0,
+            Float::INFINITY,
             normalize_features,
             sfm_config.epipolar_alg(), 
             EssentialDecomposition::FÖRSNTER
@@ -226,7 +226,7 @@ fn main() -> Result<()> {
     let sfm_config_fundamental = SFMConfig::new(root_id, paths.clone(), camera_map, camera_map_ba, sfm_all_matches.clone(), BifocalType::FUNDAMENTAL, olsen_data.width*olsen_data.height);
     let (mut initial_cam_motions_per_path_fundamental,_) = compute_pairwise_cam_motions_with_filtered_matches(
             &sfm_config_fundamental,
-            1.0,
+            0.5,
             Float::INFINITY,
             normalize_features,
             sfm_config_fundamental.epipolar_alg(), 
