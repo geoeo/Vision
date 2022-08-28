@@ -296,39 +296,8 @@ pub fn gauss_newton_step_with_conguate_gradient<F, R, C, S1, S2,StorageTargetArr
                 None => false
             };
 
-            // let v_slice_inv_opt = V_star.fixed_slice::<LANDMARK_PARAM_SIZE,LANDMARK_PARAM_SIZE>(i,i).try_inverse();
-            // let success = match v_slice_inv_opt {
-            //     Some(inv) => {
-            //         V_star_inv.fixed_slice_mut::<LANDMARK_PARAM_SIZE,LANDMARK_PARAM_SIZE>(i,i).copy_from(&inv);
-            //         true
-            //     },
-            //     None => false
-            // };
-
             inv_success &= success;
         }
-
-        // for i in (0..u_span).step_by(CAMERA_PARAM_SIZE) {
-        //     let u_slice_cholesky =  U_star.fixed_slice::<CAMERA_PARAM_SIZE,CAMERA_PARAM_SIZE>(i,i).cholesky();
-        //     let success = match u_slice_cholesky {
-        //         Some(chol) => {
-        //             preconditioner.fixed_slice_mut::<CAMERA_PARAM_SIZE,CAMERA_PARAM_SIZE>(i,i).copy_from(&chol.inverse());
-        //             true
-        //         },
-        //         None => false
-        //     };
-
-            // let u_slice_inverse_opt = U_star.fixed_slice::<CAMERA_PARAM_SIZE,CAMERA_PARAM_SIZE>(i,i).try_inverse();
-            // let success = match u_slice_inverse_opt {
-            //     Some(inv) => {
-            //         U_star_inv.fixed_slice_mut::<CAMERA_PARAM_SIZE,CAMERA_PARAM_SIZE>(i,i).copy_from(&inv);
-            //         true
-            //     },
-            //     None => false
-            // };
-
-        //     inv_success &= success;
-        // }
 
         let W = target_arrowhead.slice((0,u_span),(u_span,v_span));
         let W_t = target_arrowhead.slice((u_span,0),(v_span,u_span));

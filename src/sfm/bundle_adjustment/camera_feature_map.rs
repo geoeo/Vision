@@ -10,7 +10,7 @@ use std::collections::HashMap;
 use crate::image::{
     features::{Feature, Match},
     features::geometry::point::Point,
-    triangulation::linear_triangulation,
+    triangulation::linear_triangulation_svd,
     epipolar::BifocalType
 };
 use crate::sfm::{bundle_adjustment::state::State, landmark::{Landmark, euclidean_landmark::EuclideanLandmark, inverse_depth_landmark::InverseLandmark}};
@@ -22,7 +22,11 @@ use crate::{Float, reconstruct_original_coordiantes_for_float};
  * For only feature pairs between cams is assumed. Feature triplets etc. are not correctly supported
  */
 pub struct CameraFeatureMap {
-    //TODO: review this
+    /**
+     * The first map is a map of the cameras index by their unique ids.
+     * The tuple is the internal cam id and a second map. 
+     * The second map is map of which other cam holds the same reference to that 3d point
+     */
     pub camera_map: HashMap<usize, (usize, HashMap<usize,usize>)>,
     pub number_of_unique_points: usize,
     /**
@@ -238,7 +242,7 @@ impl CameraFeatureMap {
                             let projection_1 = camera_matrix_s.get_projection()*(Matrix4::<Float>::identity().fixed_slice::<3,4>(0,0));
                             let projection_2 = camera_matrix_f.get_projection()*(se3.fixed_slice::<3,4>(0,0));
                             
-                            let triangulated_points = pose_acc*linear_triangulation(&vec!((&normalized_image_points_s,&projection_1),(&normalized_image_points_f,&projection_2)));
+                            let triangulated_points = pose_acc*linear_triangulation_svd(&vec!((&normalized_image_points_s,&projection_1),(&normalized_image_points_f,&projection_2)));
                             pose_acc = pose_acc*se3;
                             assert_eq!(triangulated_points.ncols(), point_ids.len());
 

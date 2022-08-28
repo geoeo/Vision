@@ -1,6 +1,6 @@
 extern crate nalgebra as na;
 
-use na::{Matrix3xX,Matrix4xX,MatrixXx4,OMatrix,RowOVector,U3,U4};
+use na::{DMatrix,DVector, Matrix3xX,Matrix4xX,MatrixXx4,OMatrix,RowOVector,U3,U4};
 use crate::Float;
 
 //TODO: conditioning, also check what happens to zero entries more thoroughly
@@ -9,7 +9,7 @@ use crate::Float;
  * See Triangulation by Hartley et al.
  */
 #[allow(non_snake_case)]
-pub fn linear_triangulation(image_points_and_projections: &Vec<(&Matrix3xX<Float>, &OMatrix<Float,U3,U4>)>) -> Matrix4xX<Float> {
+pub fn linear_triangulation_svd(image_points_and_projections: &Vec<(&Matrix3xX<Float>, &OMatrix<Float,U3,U4>)>) -> Matrix4xX<Float> {
     let n_cams = image_points_and_projections.len();
     let points_per_cam = image_points_and_projections.first().expect("linear_triangulation: no points!").0.ncols();
     let mut triangulated_points = Matrix4xX::<Float>::zeros(points_per_cam);
@@ -50,4 +50,29 @@ pub fn linear_triangulation(image_points_and_projections: &Vec<(&Matrix3xX<Float
         triangulated_points[(3,i)] = 1.0;
     }
     triangulated_points
+}
+
+/**
+ * Stereo Triangulation. Only works for two-view problem but optimizes based on the epipolar constraints.
+ * See 3D Rotations - Kanatani
+ */
+#[allow(non_snake_case)]
+pub fn stereo_triangulation(image_points_and_projection: (&Matrix3xX<Float>, &OMatrix<Float,U3,U4>), image_points_and_projection_prime: (&Matrix3xX<Float>, &OMatrix<Float,U3,U4>)) -> Matrix3xX<Float> {
+    let (image_points, projection) =  image_points_and_projection;
+    let (image_points_prime, projection_prime) =  image_points_and_projection_prime;
+
+    assert_eq!(image_points.ncols(),image_points_prime.ncols());
+    let n = image_points.ncols();
+    let mut T = DMatrix::<Float>::zeros(4*n,3*n);
+    let mut p = DVector::<Float>::zeros(4*n);
+
+    for i in 0..n {
+
+    }
+
+
+
+
+
+    panic!("Not Implemented")
 }
