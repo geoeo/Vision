@@ -1,6 +1,6 @@
 extern crate nalgebra as na;
 
-use na::{DMatrix,DVector, Matrix3xX,Matrix4xX,MatrixXx4,OMatrix,RowOVector,U3,U4};
+use na::{SMatrix,SVector,Matrix3xX,Matrix4xX,MatrixXx4,OMatrix,RowOVector,U3,U4};
 use crate::Float;
 
 //TODO: conditioning, also check what happens to zero entries more thoroughly
@@ -57,22 +57,75 @@ pub fn linear_triangulation_svd(image_points_and_projections: &Vec<(&Matrix3xX<F
  * See 3D Rotations - Kanatani
  */
 #[allow(non_snake_case)]
-pub fn stereo_triangulation(image_points_and_projection: (&Matrix3xX<Float>, &OMatrix<Float,U3,U4>), image_points_and_projection_prime: (&Matrix3xX<Float>, &OMatrix<Float,U3,U4>)) -> Matrix3xX<Float> {
+pub fn stereo_triangulation(image_points_and_projection: (&Matrix3xX<Float>, &OMatrix<Float,U3,U4>), image_points_and_projection_prime: (&Matrix3xX<Float>, &OMatrix<Float,U3,U4>), f0: Float) -> Matrix4xX<Float> {
     let (image_points, projection) =  image_points_and_projection;
     let (image_points_prime, projection_prime) =  image_points_and_projection_prime;
 
     assert_eq!(image_points.ncols(),image_points_prime.ncols());
     let n = image_points.ncols();
-    let mut T = DMatrix::<Float>::zeros(4*n,3*n);
-    let mut p = DVector::<Float>::zeros(4*n);
+    let mut triangulated_points = Matrix4xX::<Float>::zeros(4*n);
+
 
     for i in 0..n {
+        let im_point = image_points.column(i);
+        let im_point_prime = image_points_prime.column(i);
+        let x = im_point[(0)];
+        let y = im_point[(1)];
+        let x_prime = image_points_prime[(0)];
+        let y_prime = im_point_prime[(1)];
+
+        let P_11 = projection[(0,0)];
+        let P_12 = projection[(0,1)];
+        let P_13 = projection[(0,2)];
+        let P_14 = projection[(0,3)];
+
+        let P_21 = projection[(1,0)];
+        let P_22 = projection[(1,1)];
+        let P_23 = projection[(1,2)];
+        let P_24 = projection[(1,3)];
+
+        let P_31 = projection[(2,0)];
+        let P_32 = projection[(2,1)];
+        let P_33 = projection[(2,2)];
+        let P_34 = projection[(2,3)];
+
+        let P_11_prime = projection_prime[(0,0)];
+        let P_12_prime = projection_prime[(0,1)];
+        let P_13_prime = projection_prime[(0,2)];
+        let P_14_prime = projection_prime[(0,3)];
+
+        let P_21_prime = projection_prime[(1,0)];
+        let P_22_prime = projection_prime[(1,1)];
+        let P_23_prime = projection_prime[(1,2)];
+        let P_24_prime = projection_prime[(1,3)];
+
+        let P_31_prime = projection_prime[(2,0)];
+        let P_32_prime = projection_prime[(2,1)];
+        let P_33_prime = projection_prime[(2,2)];
+        let P_34_prime = projection_prime[(2,3)];
+
+        let T = SMatrix::<Float,4,3>::new(
+            f0*P_11-x*P_31,f0*P_12-x*P_32,f0*P_13-x*P_33,
+            f0*P_21-y*P_31,f0*P_22-y*P_32,f0*P_23-y*P_33,
+            f0*P_11_prime-x_prime*P_31_prime,f0*P_12_prime-x_prime*P_32_prime,f0*P_13_prime-x_prime*P_33_prime,
+            f0*P_21_prime-y_prime*P_31_prime,f0*P_22_prime-y_prime*P_32_prime,f0*P_23_prime-y_prime*P_33_prime
+        );
+        let p = SVector::<Float,4>::new(
+            f0*P_14-x*P_34,
+            f0*P_24-y*P_34,
+            f0*P_14_prime-x*P_34_prime,
+            f0*P_24_prime-y*P_34_prime
+        );
+        let T_transpose = T.transpose();
+        let b = T_transpose*p;
+
+        let x = (T_transpose*T).lu().solve(&b).expect("stereo_triangulation: LU failed");
+        triangulated_points[(0,i)] = x[(0,0)];
+        triangulated_points[(1,i)] = x[(1,0)];
+        triangulated_points[(2,i)] = x[(2,0)];
+        triangulated_points[(3,i)] = 1.0;
 
     }
 
-
-
-
-
-    panic!("Not Implemented")
+    triangulated_points
 }
