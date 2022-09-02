@@ -4,7 +4,7 @@ extern crate nalgebra_lapack;
 use na::{Matrix2,Matrix3,Matrix4, OMatrix, Matrix3xX, SVector, Dynamic, dimension::{U10,U20,U9,U3}};
 use crate::{Float,float};
 use crate::sensors::camera::Camera;
-use crate::image::{features::{Feature,Match},epipolar::{Essential,decompose_essential_förstner},triangulation::linear_triangulation_svd};
+use crate::image::{features::{Feature,Match},epipolar::{Essential,decompose_essential_förstner},triangulation::{linear_triangulation_svd,stereo_triangulation}};
 use crate::numerics::{to_matrix, pose};
 
 mod constraints;
@@ -15,7 +15,7 @@ mod constraints;
  * This only work on ubuntu. assert build version or something
  */
 #[allow(non_snake_case)]
-pub fn five_point_essential<T: Feature + Clone, C: Camera<Float>>(matches: &Vec<Match<T>>, camera_one: &C, camera_two: &C) -> Option<Essential> {
+pub fn five_point_essential<T: Feature + Clone, C: Camera<Float>>(matches: &Vec<Match<T>>, camera_one: &C, camera_two: &C, image_dim: usize) -> Option<Essential> {
     let inverse_projection_one = camera_one.get_inverse_projection();
     let inverse_projection_two = camera_two.get_inverse_projection();
     let l = matches.len();
@@ -130,7 +130,7 @@ pub fn five_point_essential<T: Feature + Clone, C: Camera<Float>>(matches: &Vec<
 
         E_est
     }).collect::<Vec<Essential>>();
-    let best_essential = cheirality_check(&all_essential_matricies, matches,false, (&features_one, camera_one, &normalization_matrix_one), (&features_two, camera_two, &normalization_matrix_two));
+    let best_essential = cheirality_check(&all_essential_matricies, matches,false, image_dim,(&features_one, camera_one, &normalization_matrix_one), (&features_two, camera_two, &normalization_matrix_two));
     
     best_essential
 }
@@ -140,6 +140,7 @@ pub fn cheirality_check<T: Feature + Clone,  C: Camera<Float>>(
         all_essential_matricies: &Vec<Essential>,
         matches: &Vec<Match<T>>,
         depth_positive: bool,
+        image_dim: usize,
          points_cam_1: (&OMatrix<Float, U3,Dynamic>, &C, &Matrix3<Float>), 
          points_cam_2: (&OMatrix<Float, U3,Dynamic>, &C, &Matrix3<Float>)) -> Option<Essential> {
     let mut max_accepted_cheirality_count = 0;
@@ -164,35 +165,41 @@ pub fn cheirality_check<T: Feature + Clone,  C: Camera<Float>>(
         let p2_points = condition_matrix_2*points_cam_2.0;
 
         //TODO: review this with the sign change with better synthetic data
-        let Xs = linear_triangulation_svd(&vec!((&p1_points,&projection_1),(&p2_points,&projection_2)));
-        let p1_x = projection_1*&Xs;
-        let p2_x = projection_2*&Xs;
-        let mut accepted_cheirality_count = 0;
-        for i in 0..number_of_points {
-            let d1 = p1_x[(2,i)];
-            let d2 = p2_x[(2,i)];
-
-            if (depth_positive && d1 > 0.0 && d2 > 0.0) || (!depth_positive && d1 < 0.0 && d2 < 0.0) {
-                accepted_cheirality_count += 1 
-            }
-        }
-        let det = e_corrected.determinant().abs();
-
-        let factor = e_corrected[(2,2)];
-        let e_corrected_norm = e_corrected.map(|x| x/factor);
-        // println!("{}",e_corrected);
-        // println!("{}",e_corrected);
-        // println!("{}",accepted_cheirality_count);
-        // println!("{}",det);
-        // println!("{}",se3);
-        // println!("------");
-
-        if (accepted_cheirality_count > max_accepted_cheirality_count) ||
-            ((accepted_cheirality_count == max_accepted_cheirality_count) && det < smallest_det) {
-            best_e = Some(e_corrected.clone());
-            smallest_det = det;
-            max_accepted_cheirality_count = accepted_cheirality_count;
-        }
+        //let Xs_option = Some(linear_triangulation_svd(&vec!((&p1_points,&projection_1),(&p2_points,&projection_2))));
+        let Xs_option = stereo_triangulation((&p1_points,&projection_1),(&p2_points,&projection_2),image_dim as Float);
+        match Xs_option {
+            Some(Xs) => {
+                let p1_x = projection_1*&Xs;
+                let p2_x = projection_2*&Xs;
+                let mut accepted_cheirality_count = 0;
+                for i in 0..number_of_points {
+                    let d1 = p1_x[(2,i)];
+                    let d2 = p2_x[(2,i)];
+        
+                    if (depth_positive && d1 > 0.0 && d2 > 0.0) || (!depth_positive && d1 < 0.0 && d2 < 0.0) {
+                        accepted_cheirality_count += 1 
+                    }
+                }
+                let det = e_corrected.determinant().abs();
+        
+                let factor = e_corrected[(2,2)];
+                let e_corrected_norm = e_corrected.map(|x| x/factor);
+                // println!("{}",e_corrected);
+                // println!("{}",e_corrected);
+                // println!("{}",accepted_cheirality_count);
+                // println!("{}",det);
+                // println!("{}",se3);
+                // println!("------");
+        
+                if (accepted_cheirality_count > max_accepted_cheirality_count) ||
+                    ((accepted_cheirality_count == max_accepted_cheirality_count) && det < smallest_det) {
+                    best_e = Some(e_corrected.clone());
+                    smallest_det = det;
+                    max_accepted_cheirality_count = accepted_cheirality_count;
+                }
+            },
+            _=> ()
+        };
     }
     // println!("------");
     best_e

@@ -7,9 +7,9 @@ pub struct FeatureTrack<T: Feature> {
 }
 
 impl<T: Feature + Clone> FeatureTrack<T> {
-    pub fn new(capacity: usize, m: &Match<T>) -> FeatureTrack<T> {
+    pub fn new(capacity: usize,path_idx: usize , m: &Match<T>) -> FeatureTrack<T> {
         let mut track = Vec::<(PathIdx, ImageIdx, Match<T>)>::with_capacity(capacity);
-        track.push((0 ,0, m.clone()));
+        track.push((path_idx ,0, m.clone()));
         FeatureTrack{track}
     }
 

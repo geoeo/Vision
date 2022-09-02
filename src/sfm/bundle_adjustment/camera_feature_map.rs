@@ -10,7 +10,7 @@ use std::collections::HashMap;
 use crate::image::{
     features::{Feature, Match},
     features::geometry::point::Point,
-    triangulation::linear_triangulation_svd,
+    triangulation::{linear_triangulation_svd,stereo_triangulation},
     epipolar::BifocalType
 };
 use crate::sfm::{bundle_adjustment::state::State, landmark::{Landmark, euclidean_landmark::EuclideanLandmark, inverse_depth_landmark::InverseLandmark}};
@@ -169,6 +169,7 @@ impl CameraFeatureMap {
         
         let number_of_cameras = self.camera_map.keys().len();
         let number_of_unqiue_landmarks = self.number_of_unique_points;
+        let f0 = (self.image_row_col.0*self.image_row_col.1) as Float;
 
         let landmarks = match initial_motions {
             Some(all_motions) => {
@@ -242,7 +243,8 @@ impl CameraFeatureMap {
                             let projection_1 = camera_matrix_s.get_projection()*(Matrix4::<Float>::identity().fixed_slice::<3,4>(0,0));
                             let projection_2 = camera_matrix_f.get_projection()*(se3.fixed_slice::<3,4>(0,0));
                             
-                            let triangulated_points = pose_acc*linear_triangulation_svd(&vec!((&normalized_image_points_s,&projection_1),(&normalized_image_points_f,&projection_2)));
+                            //let triangulated_points = pose_acc*linear_triangulation_svd(&vec!((&normalized_image_points_s,&projection_1),(&normalized_image_points_f,&projection_2)));
+                            let triangulated_points = pose_acc*stereo_triangulation((&normalized_image_points_s,&projection_1),(&normalized_image_points_f,&projection_2),f0).expect("get_euclidean_landmark_state: Stereo Triangulation Failed");
                             pose_acc = pose_acc*se3;
                             assert_eq!(triangulated_points.ncols(), point_ids.len());
 

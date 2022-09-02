@@ -57,14 +57,14 @@ pub fn linear_triangulation_svd(image_points_and_projections: &Vec<(&Matrix3xX<F
  * See 3D Rotations - Kanatani
  */
 #[allow(non_snake_case)]
-pub fn stereo_triangulation(image_points_and_projection: (&Matrix3xX<Float>, &OMatrix<Float,U3,U4>), image_points_and_projection_prime: (&Matrix3xX<Float>, &OMatrix<Float,U3,U4>), f0: Float) -> Matrix4xX<Float> {
+pub fn stereo_triangulation(image_points_and_projection: (&Matrix3xX<Float>, &OMatrix<Float,U3,U4>), image_points_and_projection_prime: (&Matrix3xX<Float>, &OMatrix<Float,U3,U4>), f0: Float) -> Option<Matrix4xX<Float>> {
     let (image_points, projection) =  image_points_and_projection;
     let (image_points_prime, projection_prime) =  image_points_and_projection_prime;
 
     assert_eq!(image_points.ncols(),image_points_prime.ncols());
     let n = image_points.ncols();
-    let mut triangulated_points = Matrix4xX::<Float>::zeros(4*n);
-
+    let mut triangulated_points = Matrix4xX::<Float>::zeros(n);
+    let mut success = true;
 
     for i in 0..n {
         let im_point = image_points.column(i);
@@ -119,13 +119,22 @@ pub fn stereo_triangulation(image_points_and_projection: (&Matrix3xX<Float>, &OM
         let T_transpose = T.transpose();
         let b = T_transpose*p;
 
-        let x = (T_transpose*T).lu().solve(&b).expect("stereo_triangulation: LU failed");
-        triangulated_points[(0,i)] = x[(0,0)];
-        triangulated_points[(1,i)] = x[(1,0)];
-        triangulated_points[(2,i)] = x[(2,0)];
-        triangulated_points[(3,i)] = 1.0;
+        match (T_transpose*T).lu().solve(&b) {
+            Some(x) => {
+                triangulated_points[(0,i)] = x[(0,0)];
+                triangulated_points[(1,i)] = x[(1,0)];
+                triangulated_points[(2,i)] = x[(2,0)];
+                triangulated_points[(3,i)] = 1.0;
+            },
+            _ => {success = false;}
+        };
+
 
     }
 
-    triangulated_points
+    match success {
+        true => Some(triangulated_points),
+        false => None
+    }
+    
 }

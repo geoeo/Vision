@@ -27,7 +27,8 @@ pub struct SFMConfig<C, C2, Feat: Feature> {
     camera_map_ba: HashMap<usize, C2>,
     matches: Vec<Vec<Vec<Match<Feat>>>>,
     filtered_matches_by_tracks: Vec<Vec<Vec<Match<Feat>>>>,
-    epipolar_alg: BifocalType
+    epipolar_alg: BifocalType,
+    image_size: usize
 }
 
 impl<C, C2, Feat: Feature + Clone> SFMConfig<C,C2, Feat> {
@@ -44,7 +45,7 @@ impl<C, C2, Feat: Feature + Clone> SFMConfig<C,C2, Feat> {
 
         let filtered_matches_by_tracks = Self::filter_by_max_tracks(&matches, image_size);
 
-        SFMConfig{root, paths, camera_map, camera_map_ba, matches, filtered_matches_by_tracks, epipolar_alg}
+        SFMConfig{root, paths, camera_map, camera_map_ba, matches, filtered_matches_by_tracks, epipolar_alg, image_size}
     }
 
     pub fn root(&self) -> usize { self.root }
@@ -54,6 +55,7 @@ impl<C, C2, Feat: Feature + Clone> SFMConfig<C,C2, Feat> {
     pub fn matches(&self) -> &Vec<Vec<Vec<Match<Feat>>>> { &self.matches }
     pub fn filtered_matches_by_tracks(&self) -> &Vec<Vec<Vec<Match<Feat>>>> { &self.filtered_matches_by_tracks }
     pub fn epipolar_alg(&self) -> BifocalType { self.epipolar_alg}
+    pub fn image_size(&self) -> usize { self.image_size}
 
     pub fn compute_path_id_pairs(&self) -> Vec<Vec<(usize, usize)>> {
         let mut path_id_paris = Vec::<Vec::<(usize,usize)>>::with_capacity(self.paths.len());
@@ -113,11 +115,11 @@ impl<C, C2, Feat: Feature + Clone> SFMConfig<C,C2, Feat> {
             let path = &matches[i];
             let path_len = path.len();
             for img_idx in 0..path_len {
-                let matches = &path[img_idx];
-                for feat_idx in 0..matches.len() {
-                    let m = &matches[feat_idx];
-                    match (i, img_idx) {
-                        (0,0) => feature_tracks.push(FeatureTrack::new(max_path_len, m)),
+                let current_matches = &path[img_idx];
+                for feat_idx in 0..current_matches.len() {
+                    let m = &current_matches[feat_idx];
+                    match img_idx {
+                        0 => feature_tracks.push(FeatureTrack::new(max_path_len,i, m)),
                         _ => {
                             let current_feature_one = &m.feature_one;
                             //TODO: Speed up with caching

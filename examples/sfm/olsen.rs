@@ -217,7 +217,7 @@ fn main() -> Result<()> {
     let (mut initial_cam_motions_per_path,filtered_matches_per_path) = compute_pairwise_cam_motions_with_filtered_matches(
             &sfm_config,
             1.0,
-            1.0,
+            Float::INFINITY,
             normalize_features,
             sfm_config.epipolar_alg(), 
             EssentialDecomposition::FÖRSNTER
@@ -226,7 +226,7 @@ fn main() -> Result<()> {
     let sfm_config_fundamental = SFMConfig::new(root_id, paths.clone(), camera_map, camera_map_ba, sfm_all_matches.clone(), BifocalType::FUNDAMENTAL, olsen_data.width*olsen_data.height);
     let (mut initial_cam_motions_per_path_fundamental,_) = compute_pairwise_cam_motions_with_filtered_matches(
             &sfm_config_fundamental,
-            0.5,
+            1.0,
             Float::INFINITY,
             normalize_features,
             sfm_config_fundamental.epipolar_alg(), 
@@ -280,7 +280,7 @@ fn main() -> Result<()> {
             step_sizes: vec![1e-3],
             max_norm_eps: 1e-30, 
             delta_eps: 1e-30,
-            taus: vec![1.0e0],
+            taus: vec![1.0e-3],
             lm: true,
             debug: true,
             show_octave_result: true,
