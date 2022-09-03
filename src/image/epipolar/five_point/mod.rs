@@ -15,7 +15,7 @@ mod constraints;
  * This only work on ubuntu. assert build version or something
  */
 #[allow(non_snake_case)]
-pub fn five_point_essential<T: Feature + Clone, C: Camera<Float>>(matches: &Vec<Match<T>>, camera_one: &C, camera_two: &C, image_dim: usize) -> Option<Essential> {
+pub fn five_point_essential<T: Feature + Clone, C: Camera<Float>>(matches: &Vec<Match<T>>, camera_one: &C, camera_two: &C) -> Option<Essential> {
     let inverse_projection_one = camera_one.get_inverse_projection();
     let inverse_projection_two = camera_two.get_inverse_projection();
     let l = matches.len();
@@ -130,7 +130,7 @@ pub fn five_point_essential<T: Feature + Clone, C: Camera<Float>>(matches: &Vec<
 
         E_est
     }).collect::<Vec<Essential>>();
-    let best_essential = cheirality_check(&all_essential_matricies, matches,false, image_dim,(&features_one, camera_one, &normalization_matrix_one), (&features_two, camera_two, &normalization_matrix_two));
+    let best_essential = cheirality_check(&all_essential_matricies, matches,false,(&features_one, camera_one, &normalization_matrix_one), (&features_two, camera_two, &normalization_matrix_two));
     
     best_essential
 }
@@ -140,7 +140,6 @@ pub fn cheirality_check<T: Feature + Clone,  C: Camera<Float>>(
         all_essential_matricies: &Vec<Essential>,
         matches: &Vec<Match<T>>,
         depth_positive: bool,
-        image_dim: usize,
          points_cam_1: (&OMatrix<Float, U3,Dynamic>, &C, &Matrix3<Float>), 
          points_cam_2: (&OMatrix<Float, U3,Dynamic>, &C, &Matrix3<Float>)) -> Option<Essential> {
     let mut max_accepted_cheirality_count = 0;
@@ -166,7 +165,7 @@ pub fn cheirality_check<T: Feature + Clone,  C: Camera<Float>>(
 
         //TODO: review this with the sign change with better synthetic data
         //let Xs_option = Some(linear_triangulation_svd(&vec!((&p1_points,&projection_1),(&p2_points,&projection_2))));
-        let Xs_option = stereo_triangulation((&p1_points,&projection_1),(&p2_points,&projection_2),image_dim as Float);
+        let Xs_option = stereo_triangulation((&p1_points,&projection_1),(&p2_points,&projection_2),condition_matrix_1[(2,2)],condition_matrix_2[(2,2)]);
         match Xs_option {
             Some(Xs) => {
                 let p1_x = projection_1*&Xs;
@@ -183,7 +182,7 @@ pub fn cheirality_check<T: Feature + Clone,  C: Camera<Float>>(
                 let det = e_corrected.determinant().abs();
         
                 let factor = e_corrected[(2,2)];
-                let e_corrected_norm = e_corrected.map(|x| x/factor);
+                let e_corrected_norm = e_corrected.normalize();
                 // println!("{}",e_corrected);
                 // println!("{}",e_corrected);
                 // println!("{}",accepted_cheirality_count);
@@ -193,7 +192,7 @@ pub fn cheirality_check<T: Feature + Clone,  C: Camera<Float>>(
         
                 if (accepted_cheirality_count > max_accepted_cheirality_count) ||
                     ((accepted_cheirality_count == max_accepted_cheirality_count) && det < smallest_det) {
-                    best_e = Some(e_corrected.clone());
+                    best_e = Some(e_corrected_norm.clone());
                     smallest_det = det;
                     max_accepted_cheirality_count = accepted_cheirality_count;
                 }

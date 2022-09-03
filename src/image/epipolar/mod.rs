@@ -44,13 +44,13 @@ pub fn extract_matches<T: Feature>(matches: &Vec<Match<T>>, pyramid_scale: Float
 
 }
 
-pub fn ransac_five_point_essential<T: Feature + Clone, C: Camera<Float>>(matches: &Vec<Match<T>>, camera_one: &C, camera_two: &C, epipolar_thresh: Float, ransac_it: usize, ransac_size: usize, image_dim: usize) -> Essential {
+pub fn ransac_five_point_essential<T: Feature + Clone, C: Camera<Float>>(matches: &Vec<Match<T>>, camera_one: &C, camera_two: &C, epipolar_thresh: Float, ransac_it: usize, ransac_size: usize) -> Essential {
     let mut max_inlier_count = 0;
     let mut min_det = Float::INFINITY;
     let mut best_essential: Option<Essential> = None;
     for _ in 0..ransac_it {
         let samples: Vec<_> = matches.choose_multiple(&mut rand::thread_rng(), ransac_size).map(|x| x.clone()).collect();
-        let essential_option = five_point::five_point_essential(&samples,camera_one,camera_two, image_dim);
+        let essential_option = five_point::five_point_essential(&samples,camera_one,camera_two);
         match essential_option {
             Some(essential) => {
                 let f = compute_fundamental(&essential, &camera_one.get_inverse_projection(), &camera_two.get_inverse_projection());
@@ -72,8 +72,8 @@ pub fn ransac_five_point_essential<T: Feature + Clone, C: Camera<Float>>(matches
 }
 
 
-pub fn five_point_essential<T: Feature + Clone, C: Camera<Float>>(matches: &Vec<Match<T>>, camera_one: &C, camera_two: &C, image_dim: usize) -> Essential {
-    five_point::five_point_essential(&matches,camera_one,camera_two, image_dim).expect("five_point_essential: failed")
+pub fn five_point_essential<T: Feature + Clone, C: Camera<Float>>(matches: &Vec<Match<T>>, camera_one: &C, camera_two: &C) -> Essential {
+    five_point::five_point_essential(&matches,camera_one,camera_two).expect("five_point_essential: failed")
 }
 
 /**
@@ -350,7 +350,7 @@ pub fn compute_pairwise_cam_motions_with_filtered_matches_for_path<C : Camera<Fl
             BifocalType::ESSENTIAL => {
                 //TODO: put these in configs
                 //Do NcR for
-                let e = ransac_five_point_essential(f_m_tracks, c1, c2, 1.0,1e5 as usize, 5, sfm_config.image_size() );
+                let e = ransac_five_point_essential(f_m_tracks, c1, c2, 1.0,1e5 as usize, 5 );
                 //let e = five_point_essential(f_m_tracks, c1, c2, sfm_config.image_size());
                 let f = compute_fundamental(&e, &c1.get_inverse_projection(), &c2.get_inverse_projection());
                 let filtered =  filter_matches_from_fundamental(&f,m,epipolar_thresh,c1,c2);

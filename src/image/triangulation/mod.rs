@@ -57,7 +57,7 @@ pub fn linear_triangulation_svd(image_points_and_projections: &Vec<(&Matrix3xX<F
  * See 3D Rotations - Kanatani
  */
 #[allow(non_snake_case)]
-pub fn stereo_triangulation(image_points_and_projection: (&Matrix3xX<Float>, &OMatrix<Float,U3,U4>), image_points_and_projection_prime: (&Matrix3xX<Float>, &OMatrix<Float,U3,U4>), f0: Float) -> Option<Matrix4xX<Float>> {
+pub fn stereo_triangulation(image_points_and_projection: (&Matrix3xX<Float>, &OMatrix<Float,U3,U4>), image_points_and_projection_prime: (&Matrix3xX<Float>, &OMatrix<Float,U3,U4>), f0: Float, f0_prime: Float) -> Option<Matrix4xX<Float>> {
     let (image_points, projection) =  image_points_and_projection;
     let (image_points_prime, projection_prime) =  image_points_and_projection_prime;
 
@@ -107,14 +107,14 @@ pub fn stereo_triangulation(image_points_and_projection: (&Matrix3xX<Float>, &OM
         let T = SMatrix::<Float,4,3>::new(
             f0*P_11-x*P_31,f0*P_12-x*P_32,f0*P_13-x*P_33,
             f0*P_21-y*P_31,f0*P_22-y*P_32,f0*P_23-y*P_33,
-            f0*P_11_prime-x_prime*P_31_prime,f0*P_12_prime-x_prime*P_32_prime,f0*P_13_prime-x_prime*P_33_prime,
-            f0*P_21_prime-y_prime*P_31_prime,f0*P_22_prime-y_prime*P_32_prime,f0*P_23_prime-y_prime*P_33_prime
+            f0_prime*P_11_prime-x_prime*P_31_prime,f0_prime*P_12_prime-x_prime*P_32_prime,f0_prime*P_13_prime-x_prime*P_33_prime,
+            f0_prime*P_21_prime-y_prime*P_31_prime,f0_prime*P_22_prime-y_prime*P_32_prime,f0_prime*P_23_prime-y_prime*P_33_prime
         );
         let p = SVector::<Float,4>::new(
             f0*P_14-x*P_34,
             f0*P_24-y*P_34,
-            f0*P_14_prime-x*P_34_prime,
-            f0*P_24_prime-y*P_34_prime
+            f0_prime*P_14_prime-x*P_34_prime,
+            f0_prime*P_24_prime-y*P_34_prime
         );
         let T_transpose = T.transpose();
         let b = T_transpose*p;
