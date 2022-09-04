@@ -1,7 +1,7 @@
 extern crate nalgebra as na;
 extern crate rand;
 
-use na::{Matrix3,Matrix,Dynamic, VecStorage, dimension::U9};
+use na::{Vector9, Matrix3,Matrix,Dynamic, VecStorage, dimension::U9};
 
 use crate::Float;
 use crate::image::features::{Feature,Match};
@@ -71,3 +71,40 @@ pub fn eight_point<T : Feature>(matches: &Vec<Match<T>>, positive_principal_dist
 pub fn optimal_correction(initial_F: &Fundamental) -> Fundamental {
     panic!("TODO")
 }
+
+fn linearize_fundamental(f: &Fundamental) -> Vector9<Float> {
+    Vector9::<Float>::new(
+        f[(0,0)],
+        f[(0,1)],
+        f[(0,2)],
+        f[(1,0)],
+        f[(1,1)],
+        f[(1,2)],
+        f[(2,0)],
+        f[(2,1)],
+        f[(2,2)])
+}
+
+fn linear_cofactor(u: &Vector9<Float>) ->  Vector9<Float> {
+    let u1 = u[0];
+    let u2 = u[1];
+    let u3 = u[2];
+    let u4 = u[3];
+    let u5 = u[4];
+    let u6 = u[5];
+    let u7 = u[6];
+    let u8 = u[7];
+    let u9 = u[8];
+
+    Vector9::<Float>::new(
+        u5*u9-u8*u6,
+        u6*u7-u9*u4,
+        u4*u8-u7*u5,
+        u8*u3-u2*u9,
+        u9*u1-u3*u7,
+        u7*u2-u1*u8,
+        u2*u6-u5*u3,
+        u3*u4-u6*u1,
+        u1*u5-u4*u2).normalize()
+}
+
