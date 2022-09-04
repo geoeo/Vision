@@ -111,7 +111,7 @@ fn main() -> Result<()> {
     println!("----------------");
 
 
-    let fundamental_matrix = epipolar::tensor::eight_point(&feature_matches, depth_positive);
+    let fundamental_matrix = epipolar::tensor::fundamental::eight_point(&feature_matches, depth_positive);
     let factor = fundamental_matrix[(2,2)];
     let fundamental_matrix_norm = fundamental_matrix.map(|x| x/factor);
     println!("best 8 point: ");
