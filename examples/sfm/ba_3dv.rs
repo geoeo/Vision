@@ -6,7 +6,7 @@ extern crate nalgebra as na;
 use std::fs;
 use std::collections::HashMap;
 use color_eyre::eyre::Result;
-use vision::image::{features::{Match,ImageFeature}, epipolar::{compute_pairwise_cam_motions_with_filtered_matches, compute_pairwise_cam_motions_with_filtered_matches_for_path, BifocalType,EssentialDecomposition}};
+use vision::image::{features::{Match,ImageFeature}, epipolar::{compute_pairwise_cam_motions_with_filtered_matches, compute_pairwise_cam_motions_with_filtered_matches_for_path, tensor::{BifocalType,EssentialDecomposition}}};
 use vision::sfm::bundle_adjustment::run_ba;
 use vision::sensors::camera::pinhole::Pinhole;
 use vision::odometry::runtime_parameters::RuntimeParameters;

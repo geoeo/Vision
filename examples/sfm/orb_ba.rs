@@ -10,7 +10,7 @@ use std::path::Path;
 use vision::image::pyramid::orb::{orb_runtime_parameters::OrbRuntimeParameters};
 use vision::image::features::{Match,orb_feature::OrbFeature};
 use vision::image::Image;
-use vision::image::epipolar::BifocalType;
+use vision::image::epipolar::tensor::BifocalType;
 use vision::sfm::{bundle_adjustment::run_ba};
 use vision::sensors::camera::{pinhole::Pinhole};
 use vision::odometry::runtime_parameters::RuntimeParameters;

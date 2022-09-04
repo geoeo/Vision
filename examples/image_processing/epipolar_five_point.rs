@@ -61,7 +61,7 @@ fn main() -> Result<()> {
         synth_matches.push(m);
     }
     let all_feature_matches = epipolar::extract_matches(&synth_matches, 1.0, false); 
-    let gt = epipolar::essential_matrix_from_motion(&t,&R);
+    let gt = epipolar::tensor::essential_matrix_from_motion(&t,&R);
     let factor = gt[(2,2)];
     let gt_norm = gt.map(|x| x/factor);
     println!("------ GT -------");
@@ -139,8 +139,8 @@ fn main() -> Result<()> {
         true => 1.0,
         false => -1.0
     };
-    let five_point_essential_matrix = epipolar::five_point_essential(&feature_matches,&intensity_camera_1,&intensity_camera_2);
-    let (t_est,R_est,_) = epipolar::decompose_essential_förstner(&five_point_essential_matrix,&feature_matches,&intensity_camera_1,&intensity_camera_2);
+    let five_point_essential_matrix = epipolar::tensor::five_point_essential(&feature_matches,&intensity_camera_1,&intensity_camera_2);
+    let (t_est,R_est,_) = epipolar::tensor::decompose_essential_förstner(&five_point_essential_matrix,&feature_matches,&intensity_camera_1,&intensity_camera_2);
     let factor = five_point_essential_matrix[(2,2)];
     let five_point_essential_matrix_norm = five_point_essential_matrix.map(|x| x/factor);
 

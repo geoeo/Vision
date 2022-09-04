@@ -100,7 +100,7 @@ fn main() -> Result<()> {
     let p1 = pose::from_matrix(&cam_extrinsics_1);
     let p01 = pose::pose_difference(&p0, &p1);
     let (t_raw, R) = pose::decomp(&p01);
-    let gt = epipolar::essential_matrix_from_motion(&t_raw,&R);
+    let gt = epipolar::tensor::essential_matrix_from_motion(&t_raw,&R);
     let factor = gt[(2,2)];
     let gt_norm = gt.map(|x| x/factor);
     println!("------ GT -------");
@@ -111,17 +111,17 @@ fn main() -> Result<()> {
     println!("----------------");
 
 
-    let fundamental_matrix = epipolar::eight_point(&feature_matches, depth_positive);
+    let fundamental_matrix = epipolar::tensor::eight_point(&feature_matches, depth_positive);
     let factor = fundamental_matrix[(2,2)];
     let fundamental_matrix_norm = fundamental_matrix.map(|x| x/factor);
     println!("best 8 point: ");
     println!("{}",fundamental_matrix);
     println!("{}",fundamental_matrix_norm);
 
-    let essential_matrix = epipolar::compute_essential(&fundamental_matrix, &intensity_camera_1.get_inverse_projection(), &intensity_camera_2.get_inverse_projection());
-    let (h, R_est, e_corrected) = epipolar::decompose_essential_förstner(&essential_matrix,&feature_matches,&intensity_camera_1,&intensity_camera_2);
+    let essential_matrix = epipolar::tensor::compute_essential(&fundamental_matrix, &intensity_camera_1.get_inverse_projection(), &intensity_camera_2.get_inverse_projection());
+    let (h, R_est, e_corrected) = epipolar::tensor::decompose_essential_förstner(&essential_matrix,&feature_matches,&intensity_camera_1,&intensity_camera_2);
     //let feature_matches_vis = &feature_matches[0..20];
-    let feature_matches_vis = epipolar::filter_matches_from_fundamental(&fundamental_matrix, &feature_matches,0.00001,&intensity_camera_1, &intensity_camera_2); 
+    let feature_matches_vis = epipolar::tensor::filter_matches_from_fundamental(&fundamental_matrix, &feature_matches,0.00001,&intensity_camera_1, &intensity_camera_2); 
     let epipolar_lines: Vec<(Vector3<Float>, Vector3<Float>)> = feature_matches_vis.iter().map(|m| epipolar::epipolar_lines(&fundamental_matrix_norm, m, &cam_intrinsics_0, &cam_intrinsics_1)).collect();
 
     println!("{}",h);

@@ -11,7 +11,7 @@ use crate::image::{
     features::{Feature, Match},
     features::geometry::point::Point,
     triangulation::{linear_triangulation_svd,stereo_triangulation},
-    epipolar::BifocalType
+    epipolar::tensor::BifocalType
 };
 use crate::sfm::{bundle_adjustment::state::State, landmark::{Landmark, euclidean_landmark::EuclideanLandmark, inverse_depth_landmark::InverseLandmark}};
 use crate::sensors::camera::Camera;

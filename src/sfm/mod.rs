@@ -3,7 +3,7 @@ extern crate num_traits;
 extern crate simba;
 
 use std::collections::HashMap;
-use crate::image::{features::{Feature, Match, feature_track::FeatureTrack},epipolar::BifocalType};
+use crate::image::{features::{Feature, Match, feature_track::FeatureTrack},epipolar::tensor::BifocalType};
 
 pub mod bundle_adjustment;
 pub mod landmark; 
