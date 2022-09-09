@@ -1,7 +1,7 @@
 extern crate nalgebra as na;
 extern crate rand;
 
-use na::{SVector, Matrix3,Matrix,Dynamic, VecStorage, dimension::U9};
+use na::{SVector, SMatrix, Matrix3,Matrix,Dynamic, VecStorage, dimension::U9};
 
 use crate::Float;
 use crate::image::features::{Feature,Match};
@@ -106,5 +106,41 @@ fn linear_cofactor(u: &SVector<Float, 9>) ->  SVector<Float, 9> {
         u2*u6-u5*u3,
         u3*u4-u6*u1,
         u1*u5-u4*u2]).normalize()
+}
+
+fn compute_eta<T : Feature>(m_measured: &Match<T>,m_est: &Match<T>, f0: Float) -> SVector<Float, 9> {
+    let feature_left_measured = m_measured.feature_one.get_as_2d_point();
+    let feature_right_measured = m_measured.feature_two.get_as_2d_point();
+    let feature_left_est = m_est.feature_one.get_as_2d_point();
+    let feature_right_est = m_est.feature_two.get_as_2d_point();
+
+    let x_left_measured = feature_left_measured[0];
+    let y_left_measured = feature_left_measured[1];
+    let x_right_measured = feature_right_measured[0];
+    let y_right_measured = feature_right_measured[1];
+
+    let x_left_est = feature_left_est[0];
+    let y_left_est = feature_left_est[1];
+    let x_right_est = feature_right_est[0];
+    let y_right_est = feature_right_est[1];
+
+    SVector::<Float, 9>::from_vec(vec![
+        x_left_measured*x_right_measured+x_right_measured*x_left_est+x_left_measured*x_right_est,
+        x_left_measured*y_right_measured+y_right_measured*x_left_est+x_left_measured*y_right_est,
+        f0*(x_left_measured+x_left_est),
+        y_left_measured*x_right_measured+x_right_measured*y_left_est+y_left_measured*x_right_est,
+        y_left_measured*y_right_measured+y_right_measured*y_left_est+y_left_measured*y_right_est,
+        f0*(y_left_measured+y_left_est),
+        f0*(x_right_measured+x_right_est),
+        f0*(y_right_measured+y_right_est),
+        f0.powi(2)])
+
+}
+
+fn compute_covariance_of_eta<T : Feature>(m_measured: &Match<T>,m_est: &Match<T>, f0: Float) -> SMatrix<Float, 9, 9> {
+    SMatrix::<Float, 9, 9>::from_vec(vec! [
+        0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0
+    ]);
+    panic!("TODO")
 }
 
