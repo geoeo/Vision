@@ -137,10 +137,33 @@ fn compute_eta<T : Feature>(m_measured: &Match<T>,m_est: &Match<T>, f0: Float) -
 
 }
 
-fn compute_covariance_of_eta<T : Feature>(m_measured: &Match<T>,m_est: &Match<T>, f0: Float) -> SMatrix<Float, 9, 9> {
+fn compute_covariance_of_eta<T : Feature>(m_measured: &Match<T>, f0: Float) -> SMatrix<Float, 9, 9> {
+
+    let feature_left_measured = m_measured.feature_one.get_as_2d_point();
+    let feature_right_measured = m_measured.feature_two.get_as_2d_point();
+
+    let x_left_measured = feature_left_measured[0];
+    let y_left_measured = feature_left_measured[1];
+    let x_right_measured = feature_right_measured[0];
+    let y_right_measured = feature_right_measured[1];
+
+    let x_left_measured_sqrd = x_left_measured.powi(2);
+    let y_left_measured_sqrd = y_left_measured.powi(2);
+    let x_right_measured_sqrd = x_right_measured.powi(2);
+    let y_right_measured_sqrd = y_right_measured.powi(2);
+
+    let f0_sqrd = f0.powi(2);
+
     SMatrix::<Float, 9, 9>::from_vec(vec! [
-        0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0
-    ]);
-    panic!("TODO")
+        x_left_measured_sqrd+x_right_measured_sqrd,x_right_measured*y_right_measured,f0*x_right_measured,x_left_measured*y_left_measured,0.0,0.0,f0*x_left_measured,0.0,0.0,
+        x_right_measured*y_right_measured,x_left_measured_sqrd+y_right_measured_sqrd,f0*y_right_measured,0.0,x_left_measured*y_left_measured,0.0,0.0,f0*x_left_measured,0.0,
+        f0*x_right_measured,f0*y_right_measured,f0_sqrd,0.0,0.0,0.0,0.0,0.0,0.0,
+        x_left_measured*y_left_measured,0.0,0.0,y_left_measured_sqrd+x_right_measured_sqrd,x_right_measured*y_right_measured,f0*x_right_measured,f0*y_left_measured,0.0,0.0,
+        0.0,x_left_measured*y_left_measured,0.0,x_right_measured*y_right_measured,y_left_measured_sqrd+y_right_measured_sqrd,f0*y_right_measured,0.0,f0*y_left_measured,0.0,
+        0.0,0.0,0.0,f0*x_right_measured,f0*y_right_measured,f0_sqrd,0.0,0.0,0.0,
+        f0*x_left_measured,0.0,0.0,f0*y_left_measured,0.0,0.0,f0_sqrd,0.0,0.0,
+        0.0,f0*x_left_measured,0.0,0.0,f0*y_left_measured,0.0,0.0,f0_sqrd,0.0,
+        0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0
+    ])
 }
 

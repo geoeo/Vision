@@ -59,12 +59,12 @@ pub fn five_point_essential<T: Feature + Clone, C: Camera<Float>>(matches: &Vec<
     }
 
     //TODO: unify with five_point and epipolar
-    // normalization_matrix_one[(0,2)] = -avg_x_one/l_as_float;
-    // normalization_matrix_one[(1,2)] = -avg_y_one/l_as_float;
+    normalization_matrix_one[(0,2)] = -avg_x_one/l_as_float;
+    normalization_matrix_one[(1,2)] = -avg_y_one/l_as_float;
     normalization_matrix_one[(2,2)] = max_dist_one;
 
-    // normalization_matrix_two[(0,2)] = -avg_x_two/l_as_float;
-    // normalization_matrix_two[(1,2)] = -avg_y_two/l_as_float;
+    normalization_matrix_two[(0,2)] = -avg_x_two/l_as_float;
+    normalization_matrix_two[(1,2)] = -avg_y_two/l_as_float;
     normalization_matrix_two[(2,2)] = max_dist_two;
 
     for i in 0..l {

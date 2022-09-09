@@ -225,12 +225,12 @@ impl CameraFeatureMap {
                             }
                             
                             //TODO: unify with five_point and epipolar
-                            // normalization_matrix_one[(0,2)] = -avg_x_one/local_landmarks_as_float;
-                            // normalization_matrix_one[(1,2)] = -avg_y_one/local_landmarks_as_float;
+                            //normalization_matrix_one[(0,2)] = -avg_x_one/local_landmarks_as_float;
+                            //normalization_matrix_one[(1,2)] = -avg_y_one/local_landmarks_as_float;
                             normalization_matrix_one[(2,2)] = max_dist_one;
                         
-                            // normalization_matrix_two[(0,2)] = -avg_x_two/local_landmarks_as_float;
-                            // normalization_matrix_two[(1,2)] = -avg_y_two/local_landmarks_as_float;
+                            //normalization_matrix_two[(0,2)] = -avg_x_two/local_landmarks_as_float;
+                            //normalization_matrix_two[(1,2)] = -avg_y_two/local_landmarks_as_float;
                             normalization_matrix_two[(2,2)] = max_dist_two;
                         
                             //normalized_image_points_s = normalized_image_points_s;

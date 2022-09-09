@@ -89,6 +89,7 @@ pub struct Match<T : Feature> {
 /**
  * Conditions Matches on a Sphere of Radius 1.
  * TODO: Conditioning on a Cube of Side Length 1
+ * TODO rework this so that it works with all epipolar methods!
  */
 pub fn condition_matches<T: Feature>(matches: &Vec<Match<T>>) -> Vec<Match<ImageFeature>> {
     let number_of_matches = matches.len();
