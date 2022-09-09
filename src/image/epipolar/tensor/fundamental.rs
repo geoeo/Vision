@@ -1,7 +1,7 @@
 extern crate nalgebra as na;
 extern crate rand;
 
-use na::{Vector9, Matrix3,Matrix,Dynamic, VecStorage, dimension::U9};
+use na::{SVector, Matrix3,Matrix,Dynamic, VecStorage, dimension::U9};
 
 use crate::Float;
 use crate::image::features::{Feature,Match};
@@ -72,8 +72,8 @@ pub fn optimal_correction(initial_F: &Fundamental) -> Fundamental {
     panic!("TODO")
 }
 
-fn linearize_fundamental(f: &Fundamental) -> Vector9<Float> {
-    Vector9::<Float>::new(
+fn linearize_fundamental(f: &Fundamental) -> SVector<Float, 9> {
+    SVector::<Float, 9>::from_vec(vec![
         f[(0,0)],
         f[(0,1)],
         f[(0,2)],
@@ -82,10 +82,10 @@ fn linearize_fundamental(f: &Fundamental) -> Vector9<Float> {
         f[(1,2)],
         f[(2,0)],
         f[(2,1)],
-        f[(2,2)])
+        f[(2,2)]])
 }
 
-fn linear_cofactor(u: &Vector9<Float>) ->  Vector9<Float> {
+fn linear_cofactor(u: &SVector<Float, 9>) ->  SVector<Float, 9> {
     let u1 = u[0];
     let u2 = u[1];
     let u3 = u[2];
@@ -96,7 +96,7 @@ fn linear_cofactor(u: &Vector9<Float>) ->  Vector9<Float> {
     let u8 = u[7];
     let u9 = u[8];
 
-    Vector9::<Float>::new(
+    SVector::<Float, 9>::from_vec(vec![
         u5*u9-u8*u6,
         u6*u7-u9*u4,
         u4*u8-u7*u5,
@@ -105,6 +105,6 @@ fn linear_cofactor(u: &Vector9<Float>) ->  Vector9<Float> {
         u7*u2-u1*u8,
         u2*u6-u5*u3,
         u3*u4-u6*u1,
-        u1*u5-u4*u2).normalize()
+        u1*u5-u4*u2]).normalize()
 }
 
