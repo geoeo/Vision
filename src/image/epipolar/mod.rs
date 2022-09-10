@@ -90,7 +90,7 @@ pub fn compute_pairwise_cam_motions_with_filtered_matches_for_path<C : Camera<Fl
                 //TODO: put these in configs
                 //Do NcR for
                 let e = tensor::ransac_five_point_essential(f_m_tracks, c1, c2, 2.0,1e5 as usize, 5 );
-                //let e = five_point_essential(f_m_tracks, c1, c2);
+                //let e = tensor::five_point_essential(f_m_tracks, c1, c2);
                 let f = tensor::compute_fundamental(&e, &c1.get_inverse_projection(), &c2.get_inverse_projection());
                 let filtered =  tensor::filter_matches_from_fundamental(&f,m,epipolar_thresh,c1,c2);
                 (e, filtered)

@@ -162,7 +162,6 @@ pub fn decompose_essential_förstner<T : Feature, C : Camera<Float>>(
         let u_sign_avg = u_sign /matches.len() as Float; 
         let v_sign_avg = v_sign /matches.len() as Float;
 
-        //TODO investigate sign issue
         if u_sign_avg > 0.0 && v_sign_avg > 0.0 {
             translation = h;
             rotation = R;
