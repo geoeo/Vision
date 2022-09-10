@@ -11,10 +11,10 @@ use crate::image::epipolar::tensor::Fundamental;
 
 /**
  * Photogrammetric Computer Vision p.570
- * Fails if points are coplanar!
+ * Fails if points are coplanar.
  */
 #[allow(non_snake_case)]
-pub fn eight_point<T : Feature>(matches: &Vec<Match<T>>, positive_principal_distance: bool) -> Fundamental {
+pub fn eight_point_hartley<T : Feature>(matches: &Vec<Match<T>>, positive_principal_distance: bool) -> Fundamental {
     let number_of_matches = matches.len() as Float; 
     assert!(number_of_matches >= 8.0);
 
@@ -111,10 +111,10 @@ fn linear_cofactor(u: &SVector<Float, 9>) ->  SVector<Float, 9> {
 }
 
 fn compute_eta<T : Feature>(m_measured: &Match<T>,m_est: &Match<T>, f0: Float) -> SVector<Float, 9> {
-    let feature_left_measured = m_measured.feature_one.get_as_2d_point();
-    let feature_right_measured = m_measured.feature_two.get_as_2d_point();
-    let feature_left_est = m_est.feature_one.get_as_2d_point();
-    let feature_right_est = m_est.feature_two.get_as_2d_point();
+    let feature_left_measured = m_measured.feature_one.get_as_2d_point()/f0;
+    let feature_right_measured = m_measured.feature_two.get_as_2d_point()/f0;
+    let feature_left_est = m_est.feature_one.get_as_2d_point()/f0;
+    let feature_right_est = m_est.feature_two.get_as_2d_point()/f0;
 
     let x_left_measured = feature_left_measured[0];
     let y_left_measured = feature_left_measured[1];
@@ -141,8 +141,8 @@ fn compute_eta<T : Feature>(m_measured: &Match<T>,m_est: &Match<T>, f0: Float) -
 
 fn compute_covariance_of_eta<T : Feature>(m_measured: &Match<T>, f0: Float) -> SMatrix<Float, 9, 9> {
 
-    let feature_left_measured = m_measured.feature_one.get_as_2d_point();
-    let feature_right_measured = m_measured.feature_two.get_as_2d_point();
+    let feature_left_measured = m_measured.feature_one.get_as_2d_point()/f0;
+    let feature_right_measured = m_measured.feature_two.get_as_2d_point()/f0;
 
     let x_left_measured = feature_left_measured[0];
     let y_left_measured = feature_left_measured[1];

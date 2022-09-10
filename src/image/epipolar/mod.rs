@@ -82,7 +82,7 @@ pub fn compute_pairwise_cam_motions_with_filtered_matches_for_path<C : Camera<Fl
         let c2 = camera_map.get(&id2).expect("compute_pairwise_cam_motions_for_path: could not get second camera");
         let (e,f_m) = match epipolar_alg {
             tensor::BifocalType::FUNDAMENTAL => {
-                let f = tensor::fundamental::eight_point(f_m_tracks, false); //TODO: make this configurable
+                let f = tensor::fundamental::eight_point_hartley(f_m_tracks, false); //TODO: make this configurable
                 let filtered =  tensor::filter_matches_from_fundamental(&f,m,epipolar_thresh, c1,c2);
                 (tensor::compute_essential(&f,&c1.get_projection(),&c2.get_projection()), filtered)
             },

@@ -202,11 +202,7 @@ impl CameraFeatureMap {
                             let mut normalization_matrix_one = Matrix3::<Float>::identity();
                             let mut normalization_matrix_two = Matrix3::<Float>::identity();
                         
-                            let mut avg_x_one = 0.0;
-                            let mut avg_y_one = 0.0;
                             let mut max_dist_one: Float = 0.0;
-                            let mut avg_x_two = 0.0;
-                            let mut avg_y_two = 0.0;
                             let mut max_dist_two: Float = 0.0;
         
                             for landmark_id in 0..local_landmarks {
@@ -214,27 +210,18 @@ impl CameraFeatureMap {
                                 let (x_f, y_f) = im_f[landmark_id];
                                 let feat_s = Vector3::<Float>::new(x_s,y_s,camera_matrix_s.get_focal_x());
                                 let feat_f = Vector3::<Float>::new(x_f,y_f,camera_matrix_f.get_focal_x());
-                                avg_x_one += feat_s[0];
-                                avg_y_one += feat_s[1];
                                 max_dist_one = max_dist_one.max(feat_s[0].powi(2) + feat_s[1].powi(2));
-                                avg_x_two += feat_f[0];
-                                avg_y_two += feat_f[1];
                                 max_dist_two = max_dist_two.max(feat_f[0].powi(2) + feat_f[1].powi(2));
                                 normalized_image_points_s.column_mut(landmark_id).copy_from(&feat_s);
                                 normalized_image_points_f.column_mut(landmark_id).copy_from(&feat_f);
                             }
                             
                             //TODO: unify with five_point and epipolar
-                            //normalization_matrix_one[(0,2)] = -avg_x_one/local_landmarks_as_float;
-                            //normalization_matrix_one[(1,2)] = -avg_y_one/local_landmarks_as_float;
-                            normalization_matrix_one[(2,2)] = max_dist_one;
+                            normalization_matrix_one[(0,0)] = 1.0/max_dist_one;
+                            normalization_matrix_one[(1,1)] = 1.0/max_dist_one;
+                            normalization_matrix_two[(0,0)] = 1.0/max_dist_two;
+                            normalization_matrix_two[(1,1)] = 1.0/max_dist_two;
                         
-                            //normalization_matrix_two[(0,2)] = -avg_x_two/local_landmarks_as_float;
-                            //normalization_matrix_two[(1,2)] = -avg_y_two/local_landmarks_as_float;
-                            normalization_matrix_two[(2,2)] = max_dist_two;
-                        
-                            //normalized_image_points_s = normalized_image_points_s;
-                            //normalized_image_points_f = normalized_image_points_f;
 
                             normalized_image_points_s = normalization_matrix_one*normalized_image_points_s;
                             normalized_image_points_f = normalization_matrix_two*normalized_image_points_f;
