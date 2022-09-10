@@ -4,7 +4,7 @@ extern crate rand;
 mod five_point;
 pub mod fundamental;
 
-use na::{Vector3, Matrix3};
+use na::{Vector3, Matrix3, SMatrix};
 use rand::seq::SliceRandom;
 
 use crate::sensors::camera::Camera;
@@ -77,6 +77,12 @@ pub fn essential_matrix_from_motion(translation: &Vector3<Float>, rotation: &Mat
 #[allow(non_snake_case)]
 pub fn compute_essential(F: &Fundamental, projection_start: &Matrix3<Float>, projection_finish: &Matrix3<Float>) -> Essential {
     projection_start.transpose()*F*projection_finish
+}
+
+#[allow(non_snake_case)]
+pub fn compute_covariance_of_essential_for_eight_matches(fundamental_cov: &SMatrix<Float, 9, 9>, projection_start: &Matrix3<Float>, projection_finish: &Matrix3<Float>) -> SMatrix<Float, 9, 9>  {
+    let factor = projection_finish.transpose().kronecker(projection_start);
+    factor*fundamental_cov*factor.transpose()
 }
 
 #[allow(non_snake_case)]
