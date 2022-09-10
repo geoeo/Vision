@@ -238,7 +238,7 @@ fn main() -> Result<()> {
         let p_fundamental = &initial_cam_motions_per_path_fundamental[i];
         let new_p = p.iter().enumerate().map(|(idx,(id,(b,rot)))| (*id,(change_of_basis*b,change_of_basis*rot))).collect::<Vec<(usize,(Vector3<Float>,Matrix3<Float>))>>();
         //let new_p = p.iter().enumerate().map(|(idx,(id,(b,rot)))| (*id,(change_of_basis*b,change_of_basis*p_fundamental[idx].1.1))).collect::<Vec<(usize,(Vector3<Float>,Matrix3<Float>))>>();
-        initial_cam_motions_per_path[i] = new_p;
+        initial_cam_motions_per_path[i] = p.clone();
     }
 
 

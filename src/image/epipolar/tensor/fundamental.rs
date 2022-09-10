@@ -1,6 +1,8 @@
 extern crate nalgebra as na;
+extern crate nalgebra_lapack;
 extern crate rand;
 
+use std::iter::zip;
 use na::{SVector, SMatrix, Matrix3,Matrix,Dynamic, VecStorage, dimension::U9};
 
 use crate::Float;
@@ -165,5 +167,81 @@ fn compute_covariance_of_eta<T : Feature>(m_measured: &Match<T>, f0: Float) -> S
         0.0,f0*x_left_measured,0.0,0.0,f0*y_left_measured,0.0,0.0,f0_sqrd,0.0,
         0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0
     ])
+}
+
+#[allow(non_snake_case)]
+fn EFNS<T : Feature>(matches: &Vec<Match<T>>,matches_est: &Vec<Match<T>>, u_orig: &SVector<Float, 9>, u_cofactor: &SVector<Float, 9>, f0: Float, error_threshold: Float, max_it: usize) -> Option<SVector<Float, 9>> {
+
+    let mut it = 0;
+    let mut u_norm = Float::INFINITY;
+    let mut u_new: Option<SVector<Float, 9>> = None; 
+    let mut u = u_orig.clone();
+
+    while(it < max_it && u_norm > error_threshold) {
+        let mut M =  SMatrix::<Float, 9, 9>::zeros();
+        let mut L =  SMatrix::<Float, 9, 9>::zeros();
+        let u_transpose = u.transpose();
+    
+        for (m,m_est) in zip(matches,matches_est) {
+            let eta = compute_eta(m, m_est, f0);
+            let eta_transpose = eta.transpose();
+            let eta_cov = compute_covariance_of_eta(m,f0);
+    
+            let factor = (u_transpose*eta_cov*u)[0];
+            let M_new = eta*eta_transpose /factor;
+            let L_new = (u_transpose*eta)[0].powi(2)*eta_cov/factor.powi(2);
+    
+            M += M_new;
+            L += L_new;
+        }
+    
+        let P_cofactor = SMatrix::<Float, 9, 9>::identity() - u_cofactor*u_cofactor.transpose();
+        let X = M-L;
+        let Y = P_cofactor*X*P_cofactor;
+    
+        let eigen = nalgebra_lapack::Eigen::new(Y, false,true).expect("EFNS: Eigen Decomp Faield!");
+        let eigen_vectors = eigen.eigenvectors.expect("EFNS: Eigenvectors Faield!");
+        let eigen_values = eigen.eigenvalues;
+    
+        let mut min_1_idx = 0;
+        let mut min_1_val = Float::INFINITY;
+        let mut min_2_idx = 0;
+        let mut min_2_val = Float::INFINITY;
+    
+        for i in 0..9 {
+            match eigen_values[i].abs() {
+                v if v < min_1_val && v < min_2_val => {
+                    min_2_idx = min_1_idx;
+                    min_2_val = min_1_val;
+                    min_1_idx = i;
+                    min_1_val = v;
+                },
+                v if v > min_1_val && v < min_2_val => {
+                    min_2_idx = i;
+                    min_2_val = v;
+                },
+                _ => ()
+            };
+        }
+    
+        let v1 = eigen_vectors.column(min_1_idx);
+        let v2 = eigen_vectors.column(min_2_idx);
+    
+        let u_hat = (u_transpose*v1)[0]*v1 + (u_transpose*v2)[0]*v2;
+        let u_prime = (P_cofactor*u_hat).normalize();
+        u_norm = (u-u_prime).norm();
+
+        match u_norm {
+            v if v < error_threshold => u_new = Some(u_prime),
+            _ => u = (u+u_prime).normalize()
+        };
+            
+
+        it+=1;
+    }
+
+    u_new
+
+
 }
 
