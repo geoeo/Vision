@@ -3,7 +3,7 @@ extern crate nalgebra_lapack;
 extern crate rand;
 
 use std::iter::zip;
-use na::{SVector, SMatrix, Matrix3,Matrix,Dynamic, VecStorage, dimension::U9};
+use na::{SVector, Matrix, SMatrix, Matrix3, Dynamic, VecStorage, dimension::U9};
 
 use crate::Float;
 use crate::image::features::{Feature,Match};
@@ -70,7 +70,14 @@ pub fn eight_point_hartley<T : Feature>(matches: &Vec<Match<T>>, positive_princi
 /**
  * Compact Fundamental Matrix Computation, Kanatani and Sugaya 
  */
-pub fn optimal_correction(initial_F: &Fundamental) -> Fundamental {
+pub fn optimal_correction<T : Feature>(initial_F: &Fundamental, m_measured: &Match<T>) -> Fundamental {
+
+    //TODO init u, m_est
+
+    // call EFNS
+
+    // update
+
     panic!("TODO")
 }
 
@@ -170,12 +177,17 @@ fn compute_covariance_of_eta<T : Feature>(m_measured: &Match<T>, f0: Float) -> S
 }
 
 #[allow(non_snake_case)]
-fn EFNS<T : Feature>(matches: &Vec<Match<T>>,matches_est: &Vec<Match<T>>, u_orig: &SVector<Float, 9>, u_cofactor: &SVector<Float, 9>, f0: Float, error_threshold: Float, max_it: usize) -> Option<SVector<Float, 9>> {
+fn EFNS<T : Feature>(matches: &Vec<Match<T>>,matches_est: &Vec<Match<T>>, u_orig: &SVector<Float, 9>, u_cofactor: &SVector<Float, 9>, f0: Float, error_threshold: Float, max_it: usize) 
+    -> (Option<SVector<Float, 9>>, Vec<SVector<Float, 9>>, Vec<SMatrix<Float, 1, 9>>, Vec<SMatrix<Float, 9, 9>>) {
 
     let mut it = 0;
+    let number_of_observations = matches_est.len();
     let mut u_norm = Float::INFINITY;
     let mut u_new: Option<SVector<Float, 9>> = None; 
     let mut u = u_orig.clone();
+    let mut etas = Vec::<SVector<Float, 9>>::with_capacity(number_of_observations);
+    let mut etas_transposed = Vec::<SMatrix<Float, 1, 9>>::with_capacity(number_of_observations);
+    let mut eta_covariances = Vec::<SMatrix<Float, 9, 9>>::with_capacity(number_of_observations);
 
     while(it < max_it && u_norm > error_threshold) {
         let mut M =  SMatrix::<Float, 9, 9>::zeros();
@@ -186,6 +198,10 @@ fn EFNS<T : Feature>(matches: &Vec<Match<T>>,matches_est: &Vec<Match<T>>, u_orig
             let eta = compute_eta(m, m_est, f0);
             let eta_transpose = eta.transpose();
             let eta_cov = compute_covariance_of_eta(m,f0);
+
+            etas.push(eta);
+            etas_transposed.push(eta_transpose);
+            eta_covariances.push(eta_cov);
     
             let factor = (u_transpose*eta_cov*u)[0];
             let M_new = eta*eta_transpose /factor;
@@ -240,8 +256,6 @@ fn EFNS<T : Feature>(matches: &Vec<Match<T>>,matches_est: &Vec<Match<T>>, u_orig
         it+=1;
     }
 
-    u_new
-
-
+    (u_new, etas, etas_transposed, eta_covariances)
 }
 
