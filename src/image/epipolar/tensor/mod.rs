@@ -30,8 +30,8 @@ pub enum EssentialDecomposition {
 #[allow(non_snake_case)]
 pub fn filter_matches_from_fundamental<T: Feature + Clone,C: Camera<Float> >(F: &Fundamental,matches: &Vec<Match<T>>, epipiolar_thresh: Float, camera_start: &C, camera_finish: &C) -> Vec<Match<T>> {
     matches.iter().filter(|m| {
-            let start = m.feature_one.get_as_3d_point(camera_start.get_focal_x());
-            let finish = m.feature_two.get_as_3d_point(camera_finish.get_focal_y());
+            let start = m.feature_one.get_as_3d_point(-1.0);
+            let finish = m.feature_two.get_as_3d_point(-1.0);
             let val = (start.transpose()*F*finish)[0].abs();
             val < epipiolar_thresh
         }).cloned().collect::<Vec<Match<T>>>()

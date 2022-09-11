@@ -45,8 +45,8 @@ pub fn five_point_essential<T: Feature + Clone, C: Camera<Float>>(matches: &Vec<
         camera_rays_one.column_mut(i).copy_from(&f_1_reduced);
         camera_rays_two.column_mut(i).copy_from(&f_2_reduced);
 
-        let f_1 = m.feature_one.get_as_3d_point(camera_one.get_focal_x());
-        let f_2 = m.feature_two.get_as_3d_point(camera_two.get_focal_x());
+        let f_1 = m.feature_one.get_as_3d_point(-1.0);
+        let f_2 = m.feature_two.get_as_3d_point(-1.0);
         avg_x_one += f_1[0];
         avg_y_one += f_1[1];
         max_dist_one = max_dist_one.max(f_1[0].powi(2) + f_1[1].powi(2));

@@ -48,7 +48,7 @@ fn main() -> Result<()> {
         step_sizes: vec![1e0],
         max_norm_eps: 1e-30, 
         delta_eps: 1e-30,
-        taus: vec![1e0],
+        taus: vec![1e-3],
         lm: true,
         debug: true,
 
@@ -63,7 +63,8 @@ fn main() -> Result<()> {
     //let sfm_config = SFMConfig::new(0, vec!(vec!(2), vec!(1,3), vec!(3)), camera_map, vec!(vec!(matches_0_2),vec!(matches_0_1, matches_1_3),vec!(matches_0_3)));
     let sfm_config = SFMConfig::new(2, vec!(vec!(1,0), vec!(3,4)), camera_map.clone(), camera_map, vec!(vec!(matches_2_1,matches_1_0),vec!(matches_2_3,matches_3_4)),BifocalType::ESSENTIAL, 320*240);
 
-    let epipolar_thresh = Float::INFINITY;
+    let epipolar_thresh = 1e0;
+    //let epipolar_thresh = Float::INFINITY;
     let normalize_features = false;
 
     let (initial_cam_motions_per_path,filtered_matches_per_path) = compute_pairwise_cam_motions_with_filtered_matches(

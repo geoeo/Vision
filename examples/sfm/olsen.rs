@@ -36,7 +36,6 @@ fn main() -> Result<()> {
     let data_set_round_church_path = format!("{}/Olsen/round_church/",runtime_conf.dataset_path);
     
     let olsen_data_path = data_set_door_path;
-    let depth_prior = -1.0;
 
     let feature_skip_count = 1;
     let olsen_data = OlssenData::new(&olsen_data_path);
@@ -217,7 +216,7 @@ fn main() -> Result<()> {
     let (mut initial_cam_motions_per_path,filtered_matches_per_path) = compute_pairwise_cam_motions_with_filtered_matches(
             &sfm_config,
             1.0,
-            Float::INFINITY,
+            1e0,
             normalize_features,
             sfm_config.epipolar_alg(), 
             EssentialDecomposition::FÖRSNTER

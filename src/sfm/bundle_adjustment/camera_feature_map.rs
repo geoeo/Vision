@@ -208,8 +208,8 @@ impl CameraFeatureMap {
                             for landmark_id in 0..local_landmarks {
                                 let (x_s, y_s) = im_s[landmark_id];
                                 let (x_f, y_f) = im_f[landmark_id];
-                                let feat_s = Vector3::<Float>::new(x_s,y_s,camera_matrix_s.get_focal_x());
-                                let feat_f = Vector3::<Float>::new(x_f,y_f,camera_matrix_f.get_focal_x());
+                                let feat_s = Vector3::<Float>::new(x_s,y_s,-1.0);
+                                let feat_f = Vector3::<Float>::new(x_f,y_f,-1.0);
                                 max_dist_one = max_dist_one.max(feat_s[0].powi(2) + feat_s[1].powi(2));
                                 max_dist_two = max_dist_two.max(feat_f[0].powi(2) + feat_f[1].powi(2));
                                 normalized_image_points_s.column_mut(landmark_id).copy_from(&feat_s);
