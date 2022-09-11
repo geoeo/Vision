@@ -70,9 +70,9 @@ pub fn five_point_essential<T: Feature + Clone, C: Camera<Float>>(matches: &Vec<
     normalization_matrix_one[(1,2)] = -avg_y_one/(l_as_float);
     normalization_matrix_one[(2,2)] = max_dist_one;
 
-    normalization_matrix_two[(0,2)] = -avg_x_two/(l_as_float*max_dist_two);
-    normalization_matrix_two[(1,2)] = -avg_y_two/(l_as_float*max_dist_two);
-    normalization_matrix_two[(2,2)] = 1.0/max_dist_two;
+    normalization_matrix_two[(0,2)] = -avg_x_two/(l_as_float);
+    normalization_matrix_two[(1,2)] = -avg_y_two/(l_as_float);
+    normalization_matrix_two[(2,2)] = max_dist_two;
 
     for i in 0..l {
         let c_x_1 = &camera_rays_one.column(i);
