@@ -13,10 +13,57 @@ use crate::sfm::SFMConfig;
 pub type Fundamental =  Matrix3<Float>;
 pub type Essential =  Matrix3<Float>;
 
+//TODO: Doenst work!
+pub fn compute_linear_normalization<T: Feature, C: Camera<Float>>(matches: &Vec<Match<T>>, camera_one: &C, camera_two: &C) -> (Matrix3<Float>, Matrix3<Float>) {
+    let l = matches.len();
+    let l_as_float = l as Float;
+
+    let mut normalization_matrix_one = Matrix3::<Float>::identity();
+    let mut normalization_matrix_two = Matrix3::<Float>::identity();
+
+    let mut avg_x_one = 0.0;
+    let mut avg_y_one = 0.0;
+    let mut avg_x_two = 0.0;
+    let mut avg_y_two = 0.0;
+
+    let projection_one =camera_one.get_projection();
+    let projection_two =camera_two.get_projection();
+
+    let cx_one = projection_one[(0,2)];
+    let cy_one = projection_one[(1,2)];
+    let cx_two = projection_two[(0,2)];
+    let cy_two = projection_two[(1,2)];
+
+
+    for i in 0..l {
+        let m = &matches[i];
+        let f_1 = m.feature_one.get_as_3d_point(-1.0);
+        let f_2 = m.feature_two.get_as_3d_point(-1.0);
+        avg_x_one += f_1[0];
+        avg_y_one += f_1[1];
+        avg_x_two += f_2[0];
+        avg_y_two += f_2[1];
+    }
+
+    let max_dist_one = cx_one*cy_one;
+    let max_dist_two = cx_two*cy_two;
+
+    normalization_matrix_one[(0,2)] = -avg_x_one/l_as_float;
+    normalization_matrix_one[(1,2)] = -avg_y_one/l_as_float;
+    normalization_matrix_one[(2,2)] = max_dist_one;
+
+    normalization_matrix_two[(0,2)] = -avg_x_two/l_as_float;
+    normalization_matrix_two[(1,2)] = -avg_y_two/l_as_float;
+    normalization_matrix_two[(2,2)] = max_dist_two;
+
+    (normalization_matrix_one,normalization_matrix_two)
+
+}
 
 pub fn extract_matches<T: Feature>(matches: &Vec<Match<T>>, pyramid_scale: Float, normalize: bool) -> Vec<Match<ImageFeature>> {
     match normalize {
         true => {
+            panic!("Remove this control flow!");
             condition_matches(matches)
         },
         false => {
@@ -80,9 +127,11 @@ pub fn compute_pairwise_cam_motions_with_filtered_matches_for_path<C : Camera<Fl
         };
         let id2 = path[i];
         let c2 = camera_map.get(&id2).expect("compute_pairwise_cam_motions_for_path: could not get second camera");
+        let (normalization_matrix_one, normalization_matrix_two) = compute_linear_normalization(f_m_tracks,c1,c2);
+        let f0 = normalization_matrix_one[(2,2)].max(normalization_matrix_two[(2,2)]);
         let (e,f_m) = match epipolar_alg {
-            tensor::BifocalType::FUNDAMENTAL => {
-                let f = tensor::fundamental::eight_point_hartley(f_m_tracks, false); //TODO: make this configurable
+            tensor::BifocalType::FUNDAMENTAL => {      
+                let f = tensor::fundamental::eight_point_hartley(f_m_tracks, false, f0); //TODO: make this configurable
                 let filtered =  tensor::filter_matches_from_fundamental(&f,m,epipolar_thresh, c1,c2);
                 (tensor::compute_essential(&f,&c1.get_projection(),&c2.get_projection()), filtered)
             },

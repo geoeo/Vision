@@ -18,6 +18,9 @@ mod constraints;
 pub fn five_point_essential<T: Feature + Clone, C: Camera<Float>>(matches: &Vec<Match<T>>, camera_one: &C, camera_two: &C) -> Option<Essential> {
     let inverse_projection_one = camera_one.get_inverse_projection();
     let inverse_projection_two = camera_two.get_inverse_projection();
+    let projection_one =camera_one.get_projection();
+    let projection_two =camera_two.get_projection();
+
     let l = matches.len();
     let l_as_float = l as Float;
     
@@ -30,12 +33,11 @@ pub fn five_point_essential<T: Feature + Clone, C: Camera<Float>>(matches: &Vec<
     let mut normalization_matrix_one = Matrix3::<Float>::identity();
     let mut normalization_matrix_two = Matrix3::<Float>::identity();
 
+
     let mut avg_x_one = 0.0;
     let mut avg_y_one = 0.0;
-    let mut max_dist_one: Float = 0.0;
     let mut avg_x_two = 0.0;
     let mut avg_y_two = 0.0;
-    let mut max_dist_two: Float = 0.0;
 
     for i in 0..l {
         let m = &matches[i];
@@ -49,25 +51,28 @@ pub fn five_point_essential<T: Feature + Clone, C: Camera<Float>>(matches: &Vec<
         let f_2 = m.feature_two.get_as_3d_point(-1.0);
         avg_x_one += f_1[0];
         avg_y_one += f_1[1];
-        max_dist_one = max_dist_one.max(f_1[0].powi(2) + f_1[1].powi(2));
         avg_x_two += f_2[0];
         avg_y_two += f_2[1];
-        max_dist_two = max_dist_two.max(f_2[0].powi(2) + f_2[1].powi(2));
 
         features_one.column_mut(i).copy_from(&f_1);
         features_two.column_mut(i).copy_from(&f_2);
     }
 
+    let cx_one = projection_one[(0,2)];
+    let cy_one = projection_one[(1,2)];
+    let cx_two = projection_two[(0,2)];
+    let cy_two = projection_two[(1,2)];
+    let max_dist_one = cx_one*cy_one;
+    let max_dist_two = cx_two*cy_two;
+
     //TODO: unify with five_point and epipolar
-    normalization_matrix_one[(0,2)] = -avg_x_one/(max_dist_one*l_as_float);
-    normalization_matrix_one[(1,2)] = -avg_y_one/(max_dist_one*l_as_float);
-    normalization_matrix_one[(0,0)] = 1.0/max_dist_one;
-    normalization_matrix_one[(1,1)] = 1.0/max_dist_one;
+    normalization_matrix_one[(0,2)] = -avg_x_one/(l_as_float);
+    normalization_matrix_one[(1,2)] = -avg_y_one/(l_as_float);
+    normalization_matrix_one[(2,2)] = max_dist_one;
 
     normalization_matrix_two[(0,2)] = -avg_x_two/(l_as_float*max_dist_two);
     normalization_matrix_two[(1,2)] = -avg_y_two/(l_as_float*max_dist_two);
-    normalization_matrix_two[(0,0)] = 1.0/max_dist_two;
-    normalization_matrix_two[(1,1)] = 1.0/max_dist_two;
+    normalization_matrix_two[(2,2)] = 1.0/max_dist_two;
 
     for i in 0..l {
         let c_x_1 = &camera_rays_one.column(i);
@@ -149,10 +154,14 @@ pub fn cheirality_check<T: Feature + Clone,  C: Camera<Float>>(
     let mut smallest_det = float::MAX;
     let camera_1 = points_cam_1.1;
     let camera_2 = points_cam_2.1;
-    let camera_matrix_1 = camera_1.get_projection();
-    let camera_matrix_2 = camera_2.get_projection();
+
+    //TODO: clean this up
+    let mut camera_matrix_1 = camera_1.get_projection();
+    let mut camera_matrix_2 = camera_2.get_projection();
     let condition_matrix_1 = points_cam_1.2; 
     let condition_matrix_2 = points_cam_2.2; 
+    let f0 = condition_matrix_1[(2,2)];
+    let f0_prime = condition_matrix_2[(2,2)];
 
     let number_of_points = matches.len();
     for e in all_essential_matricies {
@@ -162,12 +171,23 @@ pub fn cheirality_check<T: Feature + Clone,  C: Camera<Float>>(
         let projection_1 = camera_matrix_1*(Matrix4::<Float>::identity().fixed_slice::<3,4>(0,0));
         let projection_2 = camera_matrix_2*(se3.fixed_slice::<3,4>(0,0));
 
-        let p1_points = condition_matrix_1*points_cam_1.0;
-        let p2_points = condition_matrix_2*points_cam_2.0;
+        camera_matrix_1[(0,0)] /= f0;
+        camera_matrix_1[(1,1)] /= f0;
+        camera_matrix_1[(0,2)] /= f0;
+        camera_matrix_1[(1,2)] /= f0;
+
+
+        camera_matrix_2[(0,0)] /= f0_prime;
+        camera_matrix_2[(1,1)] /= f0_prime;
+        camera_matrix_2[(0,2)] /= f0_prime;
+        camera_matrix_2[(1,2)] /= f0_prime;
+
+        let p1_points = condition_matrix_1*points_cam_1.0/f0;
+        let p2_points = condition_matrix_2*points_cam_2.0/f0_prime;
 
         //TODO: review this with the sign change with better synthetic data
         //let Xs_option = Some(linear_triangulation_svd(&vec!((&p1_points,&projection_1),(&p2_points,&projection_2))));
-        let Xs_option = stereo_triangulation((&p1_points,&projection_1),(&p2_points,&projection_2),condition_matrix_1[(2,2)],condition_matrix_2[(2,2)]);
+        let Xs_option = stereo_triangulation((&p1_points,&projection_1),(&p2_points,&projection_2),f0,f0_prime);
         match Xs_option {
             Some(Xs) => {
                 let p1_x = projection_1*&Xs;

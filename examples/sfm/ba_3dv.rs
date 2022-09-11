@@ -56,6 +56,7 @@ fn main() -> Result<()> {
         loss_function: Box::new(loss::TrivialLoss { eps: 1e-16, approximate_gauss_newton_matrices: false }), 
         intensity_weighting_function:  Box::new(weighting::SquaredWeight {}),
         cg_threshold: 1e-6,
+      
         cg_max_it: 200
     };
 
@@ -63,8 +64,8 @@ fn main() -> Result<()> {
     //let sfm_config = SFMConfig::new(0, vec!(vec!(2), vec!(1,3), vec!(3)), camera_map, vec!(vec!(matches_0_2),vec!(matches_0_1, matches_1_3),vec!(matches_0_3)));
     let sfm_config = SFMConfig::new(2, vec!(vec!(1,0), vec!(3,4)), camera_map.clone(), camera_map, vec!(vec!(matches_2_1,matches_1_0),vec!(matches_2_3,matches_3_4)),BifocalType::ESSENTIAL, 320*240);
 
-    let epipolar_thresh = 1e0;
-    //let epipolar_thresh = Float::INFINITY;
+    //let epipolar_thresh = 1e-2;
+    let epipolar_thresh = Float::INFINITY;
     let normalize_features = false;
 
     let (initial_cam_motions_per_path,filtered_matches_per_path) = compute_pairwise_cam_motions_with_filtered_matches(
@@ -74,8 +75,7 @@ fn main() -> Result<()> {
         normalize_features,
         sfm_config.epipolar_alg(),
         EssentialDecomposition::FÖRSNTER
-);
-
+    );
 
     let ((cam_positions,points),(s,debug_states_serialized)) = run_ba(&filtered_matches_per_path, &sfm_config, Some(&initial_cam_motions_per_path), (480,640), &runtime_parameters, 1.0);
     //let ((cam_positions,points),(s,debug_states_serialized)) = run_ba(&sfm_config.matches(), &sfm_config, None, (480,640), &runtime_parameters, 1.0,depth_prior);
