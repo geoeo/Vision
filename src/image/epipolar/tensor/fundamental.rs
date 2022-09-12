@@ -6,7 +6,7 @@ use std::iter::zip;
 use na::{SVector, Matrix, SMatrix, Matrix3, Dynamic, VecStorage, dimension::U9};
 
 use crate::Float;
-use crate::image::features::{Feature,Match};
+use crate::image::features::{Feature,solver_feature::SolverFeature,Match};
 use crate::image::epipolar::tensor::Fundamental;
 
 
@@ -79,8 +79,12 @@ pub fn eight_point_hartley<T : Feature>(matches: &Vec<Match<T>>, positive_princi
 /**
  * Compact Fundamental Matrix Computation, Kanatani and Sugaya 
  */
-pub fn optimal_correction<T : Feature>(initial_F: &Fundamental, m_measured: &Match<T>) -> Fundamental {
+pub fn optimal_correction<T : Feature + SolverFeature>(initial_F: &Fundamental, m_measured: &Vec<Match<T>>) -> Fundamental {
 
+    let mut m_est = Vec::<Match<T>>::with_capacity(m_measured.len());
+    for i in 0..m_est.capacity() {
+        m_est.push(Match { feature_one: T::empty(), feature_two: T::empty() })
+    }
     //TODO init u, m_est
 
     // call EFNS
