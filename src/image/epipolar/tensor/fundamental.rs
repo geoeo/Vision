@@ -3,40 +3,20 @@ extern crate nalgebra_lapack;
 extern crate rand;
 
 use std::iter::zip;
-use na::{SVector, Matrix, SMatrix, Matrix3, Dynamic, VecStorage, dimension::U9};
+use na::{SVector, Matrix, SMatrix, Matrix3, Vector2, Dynamic, VecStorage, dimension::U9};
 
 use crate::Float;
 use crate::image::features::{Feature,solver_feature::SolverFeature,Match};
 use crate::image::epipolar::tensor::Fundamental;
 
 
+//TODO: not least squares. Port back and implement least squares
 pub fn eight_point_least_squares<T : Feature>(matches: &Vec<Match<T>>, f0: Float) -> Matrix::<Float,Dynamic, U9, VecStorage<Float,Dynamic,U9>> {
     let number_of_matches = matches.len() as Float; 
-    assert!(number_of_matches >= 8.0);
+    assert!(number_of_matches == 8.0);
 
-    let mut A = Matrix::<Float,Dynamic, U9, VecStorage<Float,Dynamic,U9>>::zeros(matches.len());
-    for i in 0..A.nrows() {
-        let feature_right = matches[i].feature_two.get_as_2d_point();
-        let feature_left = matches[i].feature_one.get_as_2d_point();
+    panic!("TODO");
 
-        let l_x =  feature_left[0]/f0;
-        let l_y =  feature_left[1]/f0;
-
-        let r_x =  feature_right[0]/f0;
-        let r_y =  feature_right[1]/f0;
-
-        A[(i,0)] = r_x*l_x;
-        A[(i,1)] = r_y*l_x;
-        A[(i,2)] = f0*l_x;
-        A[(i,3)] = r_x*l_y;
-        A[(i,4)] = r_y*l_y;
-        A[(i,5)] = f0*l_y;
-        A[(i,6)] = f0*r_x;
-        A[(i,7)] = f0*r_y;
-        A[(i,8)] = f0.powi(2);
-    }
-
-    A
 
 }
 
@@ -49,7 +29,13 @@ pub fn eight_point_hartley<T : Feature>(matches: &Vec<Match<T>>, positive_princi
     let number_of_matches = matches.len() as Float; 
     assert!(number_of_matches >= 8.0);
 
-    let A = eight_point_least_squares(matches, f0);
+    let mut A = Matrix::<Float, Dynamic, U9, VecStorage<Float, Dynamic, U9>>::zeros(matches.len());
+    for i in 0..A.nrows() {
+        let feature_right = matches[i].feature_two.get_as_2d_point();
+        let feature_left = matches[i].feature_one.get_as_2d_point();
+        A.row_mut(i).copy_from(&linear_coefficients(&feature_left, &feature_right, f0).transpose());
+    }
+
     let svd = A.svd(false,true);
     let v_t =  &svd.v_t.expect("SVD failed on A");
     let f = &v_t.row(v_t.nrows()-1);
@@ -74,6 +60,26 @@ pub fn eight_point_hartley<T : Feature>(matches: &Vec<Match<T>>, positive_princi
         false => svd_f.recompose().ok().expect("SVD recomposition failed").normalize()
     }
     
+}
+
+fn linear_coefficients(feature_left: &Vector2<Float>, feature_right: &Vector2<Float>, f0: Float) -> SVector<Float, 9> {
+    let l_x =  feature_left[0]/f0;
+    let l_y =  feature_left[1]/f0;
+
+    let r_x =  feature_right[0]/f0;
+    let r_y =  feature_right[1]/f0;
+
+    SVector::<Float, 9>::from_vec(vec![
+        r_x*l_x,
+        r_y*l_x,
+        f0*l_x,
+        r_x*l_y,
+        r_y*l_y,
+        f0*l_y,
+        f0*r_x,
+        f0*r_y,
+        f0.powi(2)
+    ])
 }
 
 /**
