@@ -3,20 +3,38 @@ extern crate nalgebra_lapack;
 extern crate rand;
 
 use std::iter::zip;
-use na::{SVector, Matrix, SMatrix, Matrix3, Vector2, Dynamic, VecStorage, dimension::U9};
+use na::{SVector, Vector, Matrix, SMatrix, Matrix3, Vector2, Dynamic, VecStorage, dimension::{U9,U1}, base::storage::Storage};
+use nalgebra::linalg::SymmetricEigen;
 
 use crate::Float;
 use crate::image::features::{Feature,solver_feature::SolverFeature,Match};
 use crate::image::epipolar::tensor::Fundamental;
 
 
-//TODO: not least squares. Port back and implement least squares
-pub fn eight_point_least_squares<T : Feature>(matches: &Vec<Match<T>>, f0: Float) -> Matrix::<Float,Dynamic, U9, VecStorage<Float,Dynamic,U9>> {
+pub fn eight_point_least_squares<T : Feature>(matches: &Vec<Match<T>>, f0: Float) -> Matrix3<Float> {
     let number_of_matches = matches.len() as Float; 
     assert!(number_of_matches == 8.0);
 
-    panic!("TODO");
+    let mut M = SMatrix::<Float,9,9>::zeros();
 
+
+    for m in matches {
+        let eta = linear_coefficients(&m.feature_one.get_as_2d_point(), &m.feature_two.get_as_2d_point(), f0);
+        M += eta.transpose()*eta;
+    }
+    let eigen = SymmetricEigen::new(M);
+
+    let mut min_idx = 0;
+    let mut min_value  = eigen.eigenvalues[0];
+    for i in 1..eigen.eigenvalues.len(){
+        if eigen.eigenvalues[i] < min_value {
+            min_idx = i;
+            min_value = eigen.eigenvalues[i];
+        }
+    }
+
+    let eigenvector = eigen.eigenvectors.column(min_idx);
+    to_fundamental(&eigenvector)
 
 }
 
@@ -33,23 +51,14 @@ pub fn eight_point_hartley<T : Feature>(matches: &Vec<Match<T>>, positive_princi
     for i in 0..A.nrows() {
         let feature_right = matches[i].feature_two.get_as_2d_point();
         let feature_left = matches[i].feature_one.get_as_2d_point();
-        A.row_mut(i).copy_from(&linear_coefficients(&feature_left, &feature_right, f0).transpose());
+        A.row_mut(i).copy_from(&linear_coefficients(&feature_left, &feature_right, f0));
     }
 
     let svd = A.svd(false,true);
     let v_t =  &svd.v_t.expect("SVD failed on A");
     let f = &v_t.row(v_t.nrows()-1);
-    let mut F = Matrix3::<Float>::zeros();
+    let F = to_fundamental(&f.transpose());
 
-    F[(0,0)] = f[0];
-    F[(0,1)] = f[1];
-    F[(0,2)] = f[2];
-    F[(1,0)] = f[3];
-    F[(1,1)] = f[4];
-    F[(1,2)] = f[5];
-    F[(2,0)] = f[6];
-    F[(2,1)] = f[7];
-    F[(2,2)] = f[8];
 
     let mut svd_f = F.svd(true,true);
     let acc = svd_f.singular_values[0].powi(2) + svd_f.singular_values[1].powi(2);
@@ -62,14 +71,28 @@ pub fn eight_point_hartley<T : Feature>(matches: &Vec<Match<T>>, positive_princi
     
 }
 
-fn linear_coefficients(feature_left: &Vector2<Float>, feature_right: &Vector2<Float>, f0: Float) -> SVector<Float, 9> {
+fn to_fundamental<T: Storage<Float,U9,U1>>(f: &Vector<Float, U9, T>) -> Matrix3<Float> {
+    Matrix3::<Float>::new(
+        f[0],
+        f[1],
+        f[2],
+        f[3],
+        f[4],
+        f[5],
+        f[6],
+        f[7],
+        f[8]
+    )
+} 
+
+fn linear_coefficients(feature_left: &Vector2<Float>, feature_right: &Vector2<Float>, f0: Float) -> SMatrix<Float,1, 9> {
     let l_x =  feature_left[0]/f0;
     let l_y =  feature_left[1]/f0;
 
     let r_x =  feature_right[0]/f0;
     let r_y =  feature_right[1]/f0;
 
-    SVector::<Float, 9>::from_vec(vec![
+    SMatrix::<Float, 1, 9>::from_vec(vec![
         r_x*l_x,
         r_y*l_x,
         f0*l_x,
