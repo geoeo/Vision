@@ -11,7 +11,7 @@ use crate::image::features::{Feature,solver_feature::SolverFeature,Match};
 use crate::image::epipolar::tensor::Fundamental;
 
 
-pub fn eight_point_least_squares<T : Feature>(matches: &Vec<Match<T>>, f0: Float) -> Matrix3<Float> {
+pub fn eight_point_least_squares<T : Feature>(matches: &Vec<Match<T>>, f0: Float) -> Fundamental {
     let number_of_matches = matches.len() as Float; 
     assert!(number_of_matches == 8.0);
 
@@ -108,20 +108,63 @@ fn linear_coefficients(feature_left: &Vector2<Float>, feature_right: &Vector2<Fl
 /**
  * Compact Fundamental Matrix Computation, Kanatani and Sugaya 
  */
-pub fn optimal_correction<T : Feature + SolverFeature>(initial_F: &Fundamental, m_measured: &Vec<Match<T>>) -> Fundamental {
+pub fn optimal_correction<T : Feature + SolverFeature + Clone>(initial_F: &Fundamental, m_measured_in: &Vec<Match<T>>, f0: Float) -> Fundamental {
+    let error_threshold_efns = 1e-5;
+    let error_threshold = 1e-5;
+    let max_it_efns = 50;
+    let max_it = 50;
 
-    let mut m_est = Vec::<Match<T>>::with_capacity(m_measured.len());
-    for i in 0..m_est.capacity() {
-        m_est.push(Match { feature_one: T::empty(), feature_two: T::empty() })
+    let mut m_measured = m_measured_in.clone();
+    let mut matches_est = vec![Match { feature_one: T::empty(), feature_two: T::empty() };m_measured.len()];
+
+    let mut it = 0;
+    let mut u = linearize_fundamental(initial_F);
+    let mut u_cofactor = linear_cofactor(&u);
+    let mut F_corrected = initial_F.clone();
+    let mut delta = Float::INFINITY;
+
+    while it < max_it && delta > error_threshold  {
+        let (u_new_option, etas, eta_covariances) = EFNS(&m_measured, &matches_est, &u, &u_cofactor, f0, error_threshold_efns, max_it_efns);
+
+        match u_new_option {
+            Some(u_new) => {
+                delta = (u - u_new).norm();
+
+                F_corrected.copy_from(&to_fundamental(&u));
+                
+                for i in 0..matches_est.len() {
+                    let m_est = &mut matches_est[i];
+                    let m_meas = &mut m_measured[i];
+                    let eta = &etas[i];
+                    let eta_cov = &eta_covariances[i];
+
+                    let v_one_est = m_est.feature_one.get_as_3d_point(f0);
+                    let v_two_est = m_est.feature_two.get_as_3d_point(f0);
+
+                    let v_one_meas_in = m_measured_in[i].feature_one.get_as_2d_point();
+                    let v_two_meas_in = m_measured_in[i].feature_two.get_as_2d_point();
+                    
+                    let factor = u_new.dot(eta)/u_new.dot(&(eta_cov*u_new));
+                    let left_update = factor*SMatrix::<Float,2,3>::from_vec(vec![u_new[0],u_new[3],u_new[1],u_new[4],u_new[2],u_new[5]])*v_one_est;
+                    let right_update = factor*SMatrix::<Float,2,3>::from_vec(vec![u_new[0],u_new[1],u_new[3],u_new[4],u_new[6],u_new[7]])*v_two_est;
+                    m_est.feature_one.update(&left_update);
+                    m_est.feature_two.update(&right_update);
+
+                    m_meas.feature_one.update(&(v_one_meas_in-left_update));
+                    m_meas.feature_two.update(&(v_two_meas_in-right_update))
+                }
+
+                u.copy_from(&u_new);
+                u_cofactor.copy_from(&linear_cofactor(&u));
+                it = it+1;
+            },
+            None => panic!("EFNS failed!")
+        };     
     }
-    //TODO init u, m_est
-
-    // call EFNS
-
-    // update
-
-    panic!("TODO")
+    F_corrected
 }
+
+
 
 fn linearize_fundamental(f: &Fundamental) -> SVector<Float, 9> {
     SVector::<Float, 9>::from_vec(vec![
@@ -206,32 +249,35 @@ fn compute_covariance_of_eta<T : Feature>(m_measured: &Match<T>, f0: Float) -> S
     let f0_sqrd = f0.powi(2);
 
     SMatrix::<Float, 9, 9>::from_vec(vec! [
-        x_left_measured_sqrd+x_right_measured_sqrd,x_right_measured*y_right_measured,f0*x_right_measured,x_left_measured*y_left_measured,0.0,0.0,f0*x_left_measured,0.0,0.0,
-        x_right_measured*y_right_measured,x_left_measured_sqrd+y_right_measured_sqrd,f0*y_right_measured,0.0,x_left_measured*y_left_measured,0.0,0.0,f0*x_left_measured,0.0,
+        x_left_measured_sqrd+x_right_measured_sqrd,x_right_measured*y_right_measured,f0*x_right_measured, x_left_measured*y_left_measured,0.0,0.0,f0*x_left_measured,0.0,0.0,
+        x_right_measured*y_right_measured,x_left_measured_sqrd+y_right_measured_sqrd,f0*y_right_measured,0.0, x_left_measured*y_left_measured,0.0,0.0,f0*x_left_measured,0.0,
         f0*x_right_measured,f0*y_right_measured,f0_sqrd,0.0,0.0,0.0,0.0,0.0,0.0,
         x_left_measured*y_left_measured,0.0,0.0,y_left_measured_sqrd+x_right_measured_sqrd,x_right_measured*y_right_measured,f0*x_right_measured,f0*y_left_measured,0.0,0.0,
         0.0,x_left_measured*y_left_measured,0.0,x_right_measured*y_right_measured,y_left_measured_sqrd+y_right_measured_sqrd,f0*y_right_measured,0.0,f0*y_left_measured,0.0,
         0.0,0.0,0.0,f0*x_right_measured,f0*y_right_measured,f0_sqrd,0.0,0.0,0.0,
-        f0*x_left_measured,0.0,0.0,f0*y_left_measured,0.0,0.0,f0_sqrd,0.0,0.0,
-        0.0,f0*x_left_measured,0.0,0.0,f0*y_left_measured,0.0,0.0,f0_sqrd,0.0,
+        f0*x_left_measured,0.0,0.0,f0*y_left_measured,0.0,0.0,0.0,0.0,0.0,
+        0.0,f0*x_left_measured,0.0,0.0,f0*y_left_measured,0.0,f0_sqrd,0.0,0.0,
+        0.0,0.0,0.0,0.0,0.0,0.0,0.0,f0_sqrd,0.0,
         0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0
     ])
+
 }
 
 #[allow(non_snake_case)]
 fn EFNS<T : Feature>(matches: &Vec<Match<T>>,matches_est: &Vec<Match<T>>, u_orig: &SVector<Float, 9>, u_cofactor: &SVector<Float, 9>, f0: Float, error_threshold: Float, max_it: usize) 
-    -> (Option<SVector<Float, 9>>, Vec<SVector<Float, 9>>, Vec<SMatrix<Float, 1, 9>>, Vec<SMatrix<Float, 9, 9>>) {
+    -> (Option<SVector<Float, 9>>, Vec<SVector<Float, 9>>, Vec<SMatrix<Float, 9, 9>>) {
 
     let mut it = 0;
     let number_of_observations = matches_est.len();
     let mut u_norm = Float::INFINITY;
     let mut u_new: Option<SVector<Float, 9>> = None; 
     let mut u = u_orig.clone();
+    //TODO: preallocate an pass in
     let mut etas = Vec::<SVector<Float, 9>>::with_capacity(number_of_observations);
     let mut etas_transposed = Vec::<SMatrix<Float, 1, 9>>::with_capacity(number_of_observations);
     let mut eta_covariances = Vec::<SMatrix<Float, 9, 9>>::with_capacity(number_of_observations);
 
-    while(it < max_it && u_norm > error_threshold) {
+    while it < max_it && u_norm > error_threshold {
         let mut M =  SMatrix::<Float, 9, 9>::zeros();
         let mut L =  SMatrix::<Float, 9, 9>::zeros();
         let u_transpose = u.transpose();
@@ -297,6 +343,6 @@ fn EFNS<T : Feature>(matches: &Vec<Match<T>>,matches_est: &Vec<Match<T>>, u_orig
         it+=1;
     }
 
-    (u_new, etas, etas_transposed, eta_covariances)
+    (u_new, etas, eta_covariances)
 }
 
