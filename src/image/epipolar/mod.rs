@@ -128,11 +128,17 @@ pub fn compute_pairwise_cam_motions_with_filtered_matches_for_path<C : Camera<Fl
         let id2 = path[i];
         let c2 = camera_map.get(&id2).expect("compute_pairwise_cam_motions_for_path: could not get second camera");
         let (normalization_matrix_one, normalization_matrix_two) = compute_linear_normalization(f_m_tracks,c1,c2);
-        let f0 = normalization_matrix_one[(2,2)].max(normalization_matrix_two[(2,2)]);
+        let f0 = normalization_matrix_one[(2,2)].max(normalization_matrix_two[(2,2)]); // -> check this
+        //let f0 = 1.0; // -> check this
         let (e,f_m) = match epipolar_alg {
             tensor::BifocalType::FUNDAMENTAL => {      
                 let f = tensor::fundamental::eight_point_hartley(f_m_tracks, false, f0); //TODO: make this configurable
-                let filtered =  tensor::filter_matches_from_fundamental(&f,m,epipolar_thresh, c1,c2);
+                
+                // let f_corr = tensor::fundamental::optimal_correction(&f, f_m_tracks, 1.0);
+                // let filtered = tensor::filter_matches_from_fundamental(&f_corr,m,epipolar_thresh, c1,c2);
+                // (tensor::compute_essential(&f_corr,&c1.get_projection(),&c2.get_projection()), filtered)
+
+                let filtered = tensor::filter_matches_from_fundamental(&f,m,epipolar_thresh, c1,c2);
                 (tensor::compute_essential(&f,&c1.get_projection(),&c2.get_projection()), filtered)
             },
             tensor::BifocalType::ESSENTIAL => {
@@ -140,9 +146,14 @@ pub fn compute_pairwise_cam_motions_with_filtered_matches_for_path<C : Camera<Fl
                 //Do NcR for
                 let e = tensor::ransac_five_point_essential(f_m_tracks, c1, c2, 1e-3,1e5 as usize, 5 );
                 //let e = tensor::five_point_essential(f_m_tracks, c1, c2);
+
                 let f = tensor::compute_fundamental(&e, &c1.get_inverse_projection(), &c2.get_inverse_projection());
-                let filtered =  tensor::filter_matches_from_fundamental(&f,m,epipolar_thresh,c1,c2);
-                (e, filtered)
+
+                // let f_corr = tensor::fundamental::optimal_correction(&f, f_m_tracks, f0);
+                // let filtered =  tensor::filter_matches_from_fundamental(&f_corr,m,epipolar_thresh,c1,c2);
+                // (tensor::compute_essential(&f_corr,&c1.get_projection(),&c2.get_projection()), filtered)
+
+                (e,  tensor::filter_matches_from_fundamental(&f,m,epipolar_thresh,c1,c2))
             }
         };
 
