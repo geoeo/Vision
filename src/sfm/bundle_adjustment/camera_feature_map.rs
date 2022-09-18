@@ -228,8 +228,8 @@ impl CameraFeatureMap {
                                 normalized_image_points_f.column_mut(landmark_id).copy_from(&feat_f);
                             }
 
-                            let max_dist_one = cx_one*cy_one;
-                            let max_dist_two = cx_two*cy_two;
+                            let max_dist_one = (cx_one.powi(2)+cy_one.powi(2)).sqrt();
+                            let max_dist_two = (cx_two.powi(2)+cy_two.powi(2)).sqrt();
                             
                             //TODO: unify with five_point and epipolar
                             normalization_matrix_one[(0,2)] = -avg_x_one/local_landmarks_as_float;
