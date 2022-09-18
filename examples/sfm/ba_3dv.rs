@@ -62,7 +62,7 @@ fn main() -> Result<()> {
 
     let camera_map = HashMap::from([(0, intensity_camera_0), (1, intensity_camera_1),(2,intensity_camera_2),(3,intensity_camera_3),(4,intensity_camera_4)  ]);
     //let sfm_config = SFMConfig::new(0, vec!(vec!(2), vec!(1,3), vec!(3)), camera_map, vec!(vec!(matches_0_2),vec!(matches_0_1, matches_1_3),vec!(matches_0_3)));
-    let sfm_config = SFMConfig::new(2, vec!(vec!(1,0), vec!(3,4)), camera_map.clone(), camera_map, vec!(vec!(matches_2_1,matches_1_0),vec!(matches_2_3,matches_3_4)),BifocalType::FUNDAMENTAL, 320*240);
+    let sfm_config = SFMConfig::new(2, vec!(vec!(1,0), vec!(3,4)), camera_map.clone(), camera_map, vec!(vec!(matches_2_1,matches_1_0),vec!(matches_2_3,matches_3_4)),BifocalType::ESSENTIAL, 320*240);
 
     //let epipolar_thresh = 1e10;
     let epipolar_thresh = Float::INFINITY;

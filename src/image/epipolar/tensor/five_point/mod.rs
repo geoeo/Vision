@@ -1,7 +1,7 @@
 extern crate nalgebra as na;
 extern crate nalgebra_lapack;
 
-use na::{Matrix2,Matrix3,Matrix4, OMatrix, Matrix3xX, SVector, Dynamic, dimension::{U10,U20,U9,U3}};
+use na::{Matrix2,Matrix3,Matrix4, OMatrix, DMatrix, SMatrix ,Matrix3xX, SVector, Dynamic, dimension::{U10,U20,U9,U3, U4}};
 use crate::{Float,float};
 use crate::sensors::camera::Camera;
 use crate::image::{features::{Feature,Match},epipolar::{Essential,tensor::decompose_essential_förstner},triangulation::{linear_triangulation_svd,stereo_triangulation}};
@@ -62,8 +62,15 @@ pub fn five_point_essential<T: Feature + Clone, C: Camera<Float>>(matches: &Vec<
     let cy_one = projection_one[(1,2)];
     let cx_two = projection_two[(0,2)];
     let cy_two = projection_two[(1,2)];
-    let max_dist_one = cx_one*cy_one;
-    let max_dist_two = cx_two*cy_two;
+    // let max_dist_one = cx_one*cy_one;
+    // let max_dist_two = cx_two*cy_two;
+
+    let max_dist_one = (cx_one.powi(2)+cy_one.powi(2)).sqrt();
+    let max_dist_two = (cx_two.powi(2)+cy_two.powi(2)).sqrt();
+
+    // let max_dist_one = 1.0;
+    // let max_dist_two = 1.0;
+
 
     //TODO: unify with five_point and epipolar
     normalization_matrix_one[(0,2)] = -avg_x_one/(l_as_float);
@@ -93,12 +100,23 @@ pub fn five_point_essential<T: Feature + Clone, C: Camera<Float>>(matches: &Vec<
     let u3 = vt.row(7).transpose();
     let u4 = vt.row(8).transpose();
 
-    let E1 = to_matrix::<_,3,3,9>(&u1).transpose();
-    let E2 = to_matrix::<_,3,3,9>(&u2).transpose();
-    let E3 = to_matrix::<_,3,3,9>(&u3).transpose();
-    let E4 = to_matrix::<_,3,3,9>(&u4).transpose();
+    let EE = SMatrix::<Float,9,4>::from_columns(&[u1, u2, u3, u4]);
+
+    //TODO: check this transpose
+    // let E1 = to_matrix::<_,3,3,9>(&u1).transpose();
+    // let E2 = to_matrix::<_,3,3,9>(&u2).transpose();
+    // let E3 = to_matrix::<_,3,3,9>(&u3).transpose();
+    // let E4 = to_matrix::<_,3,3,9>(&u4).transpose();
+
+    let E1 = to_matrix::<_,3,3,9>(&u1);
+    let E2 = to_matrix::<_,3,3,9>(&u2);
+    let E3 = to_matrix::<_,3,3,9>(&u3);
+    let E4 = to_matrix::<_,3,3,9>(&u4);
+
+
 
     let M = generate_five_point_constrait_matrix(&E1,&E2,&E3,&E4);
+    //let M = constraints::get_opengv_coeffs(&u1, &u2, &u3, &u4);
 
     let C = M.fixed_columns::<10>(0);
     let D = M.fixed_columns::<10>(10);
@@ -110,24 +128,45 @@ pub fn five_point_essential<T: Feature + Clone, C: Camera<Float>>(matches: &Vec<
     action_matrix.fixed_rows_mut::<1>(3).copy_from(&B.fixed_rows::<1>(4));
     action_matrix.fixed_rows_mut::<1>(4).copy_from(&B.fixed_rows::<1>(5));
     action_matrix.fixed_rows_mut::<1>(5).copy_from(&B.fixed_rows::<1>(7));
-    action_matrix.fixed_slice_mut::<2,2>(6,0).copy_from(&Matrix2::<Float>::identity());
+    //action_matrix.fixed_slice_mut::<2,2>(6,0).copy_from(&Matrix2::<Float>::identity());
+    action_matrix[(6,0)] = 1.0;
+    action_matrix[(7,1)] = 1.0;
     action_matrix[(8,3)] = 1.0;
     action_matrix[(9,6)] = 1.0;
 
-    let (eigenvalues, _, option_vr) = nalgebra_lapack::Eigen::complex_eigen_decomposition(action_matrix, false, true);
+    let (eigenvalues, _, option_vr) = nalgebra_lapack::Eigen::complex_eigen_decomposition(action_matrix.transpose(), false, true);
     let eigen_v = option_vr.expect("Five Point: eigenvector computation failed!");
 
     let mut real_eigenvalues =  Vec::<Float>::with_capacity(10);
     let mut real_eigenvectors = Vec::<SVector::<Float,10>>::with_capacity(10);
     for i in 0..10 {
         let c = eigenvalues[i];
-        if c.im == 0.0 {
+        //if c.im == 0.0 {
             let real_value = c.re;
             real_eigenvalues.push(real_value);
+            //real_eigenvectors.push(eigen_v.row(i).transpose().into_owned())
             real_eigenvectors.push(eigen_v.column(i).into_owned())
-        }
+        //}
     }
 
+    let number_of_real_eigenvectors = real_eigenvectors.len();
+    let mut SOLS = DMatrix::<Float>::zeros(4,number_of_real_eigenvectors);
+    for i in 0..number_of_real_eigenvectors {
+        let v = real_eigenvectors[i];
+        SOLS.slice_mut((0,i),(4,1)).copy_from(&(v.slice((6,0),(4,1))/v[9]));
+    }
+
+    let essential_vec = EE*SOLS;
+    let mut Es = Vec::<Essential>::with_capacity(number_of_real_eigenvectors);
+    for c in 0..number_of_real_eigenvectors {
+        let mut E = Matrix3::<Float>::zeros();
+        E.row_mut(0).copy_from(&essential_vec.slice((0,c),(3,1)).transpose());
+        E.row_mut(1).copy_from(&essential_vec.slice((3,c),(3,1)).transpose());
+        E.row_mut(2).copy_from(&essential_vec.slice((6,c),(3,1)).transpose());
+        //Es.push(E.normalize());
+        Es.push(E);
+    };
+    
     let all_essential_matricies = real_eigenvectors.iter().map(|vec| {
         let x = vec[6]/vec[9];
         let y = vec[7]/vec[9];
@@ -135,9 +174,11 @@ pub fn five_point_essential<T: Feature + Clone, C: Camera<Float>>(matches: &Vec<
 
         let E_est = x*E1+y*E2+z*E3+E4;
 
+        //E_est.normalize()
         E_est
     }).collect::<Vec<Essential>>();
     let best_essential = cheirality_check(&all_essential_matricies, matches,false,(&features_one, camera_one, &normalization_matrix_one), (&features_two, camera_two, &normalization_matrix_two));
+    //let best_essential = cheirality_check(&Es, matches,false,(&features_one, camera_one, &normalization_matrix_one), (&features_two, camera_two, &normalization_matrix_two));
     
     best_essential
 }
