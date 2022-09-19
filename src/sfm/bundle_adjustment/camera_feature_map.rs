@@ -232,12 +232,12 @@ impl CameraFeatureMap {
                             let max_dist_two = (cx_two.powi(2)+cy_two.powi(2)).sqrt();
                             
                             //TODO: unify with five_point and epipolar
-                            normalization_matrix_one[(0,2)] = -avg_x_one/local_landmarks_as_float;
-                            normalization_matrix_one[(1,2)] = -avg_y_one/local_landmarks_as_float;
+                            // normalization_matrix_one[(0,2)] = -avg_x_one/local_landmarks_as_float;
+                            // normalization_matrix_one[(1,2)] = -avg_y_one/local_landmarks_as_float;
                             normalization_matrix_one[(2,2)] = max_dist_one;
                         
-                            normalization_matrix_two[(0,2)] = -avg_x_two/local_landmarks_as_float;
-                            normalization_matrix_two[(1,2)] = -avg_y_two/local_landmarks_as_float;
+                            // normalization_matrix_two[(0,2)] = -avg_x_two/local_landmarks_as_float;
+                            // normalization_matrix_two[(1,2)] = -avg_y_two/local_landmarks_as_float;
                             normalization_matrix_two[(2,2)] = max_dist_two;
                         
 
@@ -247,6 +247,8 @@ impl CameraFeatureMap {
                             let se3 = pose::se3(&h,&rotation_matrix);
                             let mut c1_intrinsics = camera_matrix_s.get_projection();
                             let mut c2_intrinsics = camera_matrix_f.get_projection();
+
+                            //TODO: only relevant for stereo triangulation
                             c1_intrinsics[(0,0)] /= max_dist_one;
                             c1_intrinsics[(1,1)] /= max_dist_one;
                             c1_intrinsics[(0,2)] /= max_dist_one;
@@ -288,12 +290,12 @@ impl CameraFeatureMap {
                 }).expect("triangulated landmarks empty!").get_state_as_vector().z;
                 println!("Max depth: {} ", max_depth);
 
-                if float::Float::abs(max_depth) < convert(1e5){
-                    for i in 0..triangualted_landmarks.len() {
-                        let v = triangualted_landmarks[i].get_state_as_vector();
-                        triangualted_landmarks[i] = EuclideanLandmark::from_state(v/float::Float::abs(max_depth));
-                    }
-                }
+                // if float::Float::abs(max_depth) < convert(1e5){
+                //     for i in 0..triangualted_landmarks.len() {
+                //         let v = triangualted_landmarks[i].get_state_as_vector();
+                //         triangualted_landmarks[i] = EuclideanLandmark::from_state(v/float::Float::abs(max_depth));
+                //     }
+                // }
 
                 triangualted_landmarks
             },
