@@ -110,8 +110,8 @@ fn linear_coefficients(feature_left: &Vector2<Float>, feature_right: &Vector2<Fl
  */
 #[allow(non_snake_case)]
 pub fn optimal_correction<T : Feature + SolverFeature + Clone>(initial_F: &Fundamental, m_measured_in: &Vec<Match<T>>, f0: Float) -> Fundamental {
-    let error_threshold_efns = 1e-3;
-    let error_threshold = 1e-3;
+    let error_threshold_efns = 1e-4;
+    let error_threshold = 1e-4;
     let max_it_efns = 100;
     let max_it = 50;
 
@@ -308,48 +308,53 @@ fn EFNS<T : Feature>(matches: &Vec<Match<T>>,matches_est: &Vec<Match<T>>, u_orig
         let X = M-L;
         let Y = P_cofactor*X*P_cofactor;
     
-        let eigen = nalgebra_lapack::Eigen::new(Y, false,true).expect("EFNS: Eigen Decomp Faield!");
-        let eigen_vectors = eigen.eigenvectors.expect("EFNS: Eigenvectors Faield!");
-        let eigen_values = eigen.eigenvalues;
-    
-        let mut min_1_idx = 0;
-        let mut min_1_val = Float::INFINITY;
-        let mut min_2_idx = 0;
-        let mut min_2_val = Float::INFINITY;
-    
-        for i in 0..9 {
-            match eigen_values[i].abs() {
-                v if v < min_1_val && v < min_2_val => {
-                    min_2_idx = min_1_idx;
-                    min_2_val = min_1_val;
-                    min_1_idx = i;
-                    min_1_val = v;
-                },
-                v if v > min_1_val && v < min_2_val => {
-                    min_2_idx = i;
-                    min_2_val = v;
-                },
-                _ => ()
-            };
-        }
-    
-        let v1 = eigen_vectors.column(min_1_idx).normalize();
-        let v2 = eigen_vectors.column(min_2_idx).normalize();
-    
-        let u_hat = (u_transpose*v1)[0]*v1 + (u_transpose*v2)[0]*v2;
-        let mut u_prime = (P_cofactor*u_hat).normalize();
-
-        if u.dot(&u_prime) < 0.0 {
-            u_prime*=-1.0;
-        }
-
-        u_norm = (u-u_prime).norm();
-        u_new.copy_from(&u_prime);
-        u = (u+u_prime).normalize();
-
-        println!("EFNS: norm: {} it: {}",u_norm, it);
+        match nalgebra_lapack::Eigen::new(Y, false,true) {
+            Some(eigen) => {
+                let eigen_vectors = eigen.eigenvectors.expect("EFNS: Eigenvectors Faield!");
+                let eigen_values = eigen.eigenvalues;
             
-        it+=1;
+                let mut min_1_idx = 0;
+                let mut min_1_val = Float::INFINITY;
+                let mut min_2_idx = 0;
+                let mut min_2_val = Float::INFINITY;
+            
+                for i in 0..9 {
+                    match eigen_values[i].abs() {
+                        v if v < min_1_val && v < min_2_val => {
+                            min_2_idx = min_1_idx;
+                            min_2_val = min_1_val;
+                            min_1_idx = i;
+                            min_1_val = v;
+                        },
+                        v if v > min_1_val && v < min_2_val => {
+                            min_2_idx = i;
+                            min_2_val = v;
+                        },
+                        _ => ()
+                    };
+                }
+            
+                let v1 = eigen_vectors.column(min_1_idx).normalize();
+                let v2 = eigen_vectors.column(min_2_idx).normalize();
+            
+                let u_hat = (u_transpose*v1)[0]*v1 + (u_transpose*v2)[0]*v2;
+                let mut u_prime = (P_cofactor*u_hat).normalize();
+        
+                if u.dot(&u_prime) < 0.0 {
+                    u_prime*=-1.0;
+                }
+        
+                u_norm = (u-u_prime).norm();
+                u_new.copy_from(&u_prime);
+                u = (u+u_prime).normalize();
+        
+                println!("EFNS: norm: {} it: {}",u_norm, it);
+                    
+                it+=1;
+            },
+            None => it = max_it
+        };
+
     }
 
     (u_new, etas, eta_covariances)

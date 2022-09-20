@@ -43,7 +43,7 @@ fn main() -> Result<()> {
     let invert_intrinsics = false; // they are already negative from decomp
     let normalize_features = false;
 
-    //let change_of_basis = Matrix3::<Float>::new(1.0,0.0,0.0, 0.0,1.0,0.0, 0.0,0.0,-1.0);
+    //let change_of_basis = Matrix3::<Float>::new(0.0,1.0,0.0, 1.0,0.0,0.0, 0.0,0.0,1.0);
     let change_of_basis = Matrix3::<Float>::identity();
 
 
@@ -212,11 +212,11 @@ fn main() -> Result<()> {
     // let root_id = 5;
 
 
-    let sfm_config = SFMConfig::new(root_id, paths.clone(), camera_map.clone(), camera_map_ba.clone(), sfm_all_matches.clone(), BifocalType::ESSENTIAL, olsen_data.width*olsen_data.height);
+    let sfm_config = SFMConfig::new(root_id, paths.clone(), camera_map.clone(), camera_map_ba.clone(), sfm_all_matches.clone(), BifocalType::FUNDAMENTAL, olsen_data.width*olsen_data.height);
     let (mut initial_cam_motions_per_path,filtered_matches_per_path) = compute_pairwise_cam_motions_with_filtered_matches(
             &sfm_config,
             1.0,
-            1e0,
+            3e0,
             normalize_features,
             sfm_config.epipolar_alg(), 
             EssentialDecomposition::FÖRSNTER
@@ -237,7 +237,7 @@ fn main() -> Result<()> {
         let p_fundamental = &initial_cam_motions_per_path_fundamental[i];
         let new_p = p.iter().enumerate().map(|(idx,(id,(b,rot)))| (*id,(change_of_basis*b,change_of_basis*rot))).collect::<Vec<(usize,(Vector3<Float>,Matrix3<Float>))>>();
         //let new_p = p.iter().enumerate().map(|(idx,(id,(b,rot)))| (*id,(change_of_basis*b,change_of_basis*p_fundamental[idx].1.1))).collect::<Vec<(usize,(Vector3<Float>,Matrix3<Float>))>>();
-        initial_cam_motions_per_path[i] = p.clone();
+        initial_cam_motions_per_path[i] = new_p.clone();
     }
 
 

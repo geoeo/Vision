@@ -228,43 +228,49 @@ impl CameraFeatureMap {
                                 normalized_image_points_f.column_mut(landmark_id).copy_from(&feat_f);
                             }
 
-                            let max_dist_one = (cx_one.powi(2)+cy_one.powi(2)).sqrt();
-                            let max_dist_two = (cx_two.powi(2)+cy_two.powi(2)).sqrt();
+                            // let max_dist_one = (cx_one.powi(2)+cy_one.powi(2)).sqrt();
+                            // let max_dist_two = (cx_two.powi(2)+cy_two.powi(2)).sqrt();
+
+                            let max_dist_one = cx_one*cy_one;
+                            let max_dist_two = cx_two*cy_two;
                             
                             //TODO: unify with five_point and epipolar
                             // normalization_matrix_one[(0,2)] = -avg_x_one/local_landmarks_as_float;
                             // normalization_matrix_one[(1,2)] = -avg_y_one/local_landmarks_as_float;
-                            normalization_matrix_one[(2,2)] = max_dist_one;
+                            //normalization_matrix_one[(2,2)] = max_dist_one;
                         
                             // normalization_matrix_two[(0,2)] = -avg_x_two/local_landmarks_as_float;
                             // normalization_matrix_two[(1,2)] = -avg_y_two/local_landmarks_as_float;
-                            normalization_matrix_two[(2,2)] = max_dist_two;
+                            //normalization_matrix_two[(2,2)] = max_dist_two;
                         
+                            let f0 = normalization_matrix_one[(2,2)];
+                            let f0_prime = normalization_matrix_two[(2,2)];
 
-                            normalized_image_points_s = normalization_matrix_one*normalized_image_points_s/normalization_matrix_one[(2,2)];
-                            normalized_image_points_f = normalization_matrix_two*normalized_image_points_f/normalization_matrix_two[(2,2)];
+                            normalized_image_points_s = normalization_matrix_one*normalized_image_points_s/f0;
+                            normalized_image_points_f = normalization_matrix_two*normalized_image_points_f/f0_prime;
         
                             let se3 = pose::se3(&h,&rotation_matrix);
                             let mut c1_intrinsics = camera_matrix_s.get_projection();
                             let mut c2_intrinsics = camera_matrix_f.get_projection();
 
+
                             //TODO: only relevant for stereo triangulation
-                            c1_intrinsics[(0,0)] /= max_dist_one;
-                            c1_intrinsics[(1,1)] /= max_dist_one;
-                            c1_intrinsics[(0,2)] /= max_dist_one;
-                            c1_intrinsics[(1,2)] /= max_dist_one;
+                            c1_intrinsics[(0,0)] /= f0;
+                            c1_intrinsics[(1,1)] /= f0;
+                            c1_intrinsics[(0,2)] /= f0;
+                            c1_intrinsics[(1,2)] /= f0;
 
 
-                            c2_intrinsics[(0,0)] /= max_dist_two;
-                            c2_intrinsics[(1,1)] /= max_dist_two;
-                            c2_intrinsics[(0,2)] /= max_dist_two;
-                            c2_intrinsics[(1,2)] /= max_dist_two;
+                            c2_intrinsics[(0,0)] /= f0_prime;
+                            c2_intrinsics[(1,1)] /= f0_prime;
+                            c2_intrinsics[(0,2)] /= f0_prime;
+                            c2_intrinsics[(1,2)] /= f0_prime;
 
                             let projection_1 = c1_intrinsics*(Matrix4::<Float>::identity().fixed_slice::<3,4>(0,0));
                             let projection_2 = c2_intrinsics*(se3.fixed_slice::<3,4>(0,0));
                             
-                            //let triangulated_points = pose_acc*linear_triangulation_svd(&vec!((&normalized_image_points_s,&projection_1),(&normalized_image_points_f,&projection_2)));
-                            let triangulated_points = pose_acc*stereo_triangulation((&normalized_image_points_s,&projection_1),(&normalized_image_points_f,&projection_2),max_dist_one,max_dist_two).expect("get_euclidean_landmark_state: Stereo Triangulation Failed");
+                            let triangulated_points = pose_acc*linear_triangulation_svd(&vec!((&normalized_image_points_s,&projection_1),(&normalized_image_points_f,&projection_2)));
+                            //let triangulated_points = pose_acc*stereo_triangulation((&normalized_image_points_s,&projection_1),(&normalized_image_points_f,&projection_2),f0,f0_prime).expect("get_euclidean_landmark_state: Stereo Triangulation Failed");
                             pose_acc = pose_acc*se3;
                             assert_eq!(triangulated_points.ncols(), point_ids.len());
 
