@@ -33,11 +33,15 @@ pub fn five_point_essential<T: Feature + Clone, C: Camera<Float>>(matches: &Vec<
     let mut normalization_matrix_one = Matrix3::<Float>::identity();
     let mut normalization_matrix_two = Matrix3::<Float>::identity();
 
-
     let mut avg_x_one = 0.0;
     let mut avg_y_one = 0.0;
     let mut avg_x_two = 0.0;
     let mut avg_y_two = 0.0;
+
+    let mut max_x_one: Float = 0.0;
+    let mut max_y_one: Float = 0.0;
+    let mut max_x_two: Float = 0.0;
+    let mut max_y_two: Float = 0.0;
 
     for i in 0..l {
         let m = &matches[i];
@@ -49,6 +53,13 @@ pub fn five_point_essential<T: Feature + Clone, C: Camera<Float>>(matches: &Vec<
 
         let f_1 = m.feature_one.get_as_3d_point(-1.0);
         let f_2 = m.feature_two.get_as_3d_point(-1.0);
+
+        max_x_one = max_x_one.max(f_1[0]);
+        max_y_one = max_y_one.max(f_1[1]);
+
+        max_x_two = max_x_two.max(f_2[0]);
+        max_y_two = max_y_two.max(f_2[1]);
+
         avg_x_one += f_1[0];
         avg_y_one += f_1[1];
         avg_x_two += f_2[0];
@@ -62,24 +73,25 @@ pub fn five_point_essential<T: Feature + Clone, C: Camera<Float>>(matches: &Vec<
     let cy_one = projection_one[(1,2)];
     let cx_two = projection_two[(0,2)];
     let cy_two = projection_two[(1,2)];
-    // let max_dist_one = cx_one*cy_one;
-    // let max_dist_two = cx_two*cy_two;
 
-    // let max_dist_one = (cx_one.powi(2)+cy_one.powi(2)).sqrt();
-    // let max_dist_two = (cx_two.powi(2)+cy_two.powi(2)).sqrt();
+    // let max_dist_one = max_x_one*max_y_one;
+    // let max_dist_two = max_x_two*max_y_two;
 
-    let max_dist_one = 1.0;
-    let max_dist_two = 1.0;
+    let max_dist_one = (cx_one.powi(2)+cy_one.powi(2)).sqrt();
+    let max_dist_two = (cx_two.powi(2)+cy_two.powi(2)).sqrt();
+
+    // let max_dist_one = 1.0;
+    // let max_dist_two = 1.0;
 
 
     //TODO: unify with five_point and epipolar
     // normalization_matrix_one[(0,2)] = -avg_x_one/(l_as_float);
     // normalization_matrix_one[(1,2)] = -avg_y_one/(l_as_float);
-    // normalization_matrix_one[(2,2)] = max_dist_one;
+    normalization_matrix_one[(2,2)] = max_dist_one;
 
     // normalization_matrix_two[(0,2)] = -avg_x_two/(l_as_float);
     // normalization_matrix_two[(1,2)] = -avg_y_two/(l_as_float);
-    // normalization_matrix_two[(2,2)] = max_dist_two;
+    normalization_matrix_two[(2,2)] = max_dist_two;
 
     for i in 0..l {
         let c_x_1 = &camera_rays_one.column(i);
@@ -153,6 +165,7 @@ pub fn cheirality_check<T: Feature + Clone,  C: Camera<Float>>(
     let mut max_accepted_cheirality_count = 0;
     let mut best_e = None;
     let mut smallest_det = float::MAX;
+    let mut smallest_eigenvalue = float::MAX;
     let camera_1 = points_cam_1.1;
     let camera_2 = points_cam_2.1;
 
@@ -186,13 +199,14 @@ pub fn cheirality_check<T: Feature + Clone,  C: Camera<Float>>(
         let p1_points = condition_matrix_1*points_cam_1.0/f0;
         let p2_points = condition_matrix_2*points_cam_2.0/f0_prime;
 
-        //TODO: review this with the sign change with better synthetic data
-        //let Xs_option = Some(linear_triangulation_svd(&vec!((&p1_points,&projection_1),(&p2_points,&projection_2))));
-        let Xs_option = stereo_triangulation((&p1_points,&projection_1),(&p2_points,&projection_2),f0,f0_prime);
+        //TODO make ENUM
+        let Xs_option = Some(linear_triangulation_svd(&vec!((&p1_points,&projection_1),(&p2_points,&projection_2))));
+        //let Xs_option = stereo_triangulation((&p1_points,&projection_1),(&p2_points,&projection_2),f0,f0_prime);
         match Xs_option {
             Some(Xs) => {
-                let p1_x = projection_1*&Xs;
-                let p2_x = projection_2*&Xs;
+                let p1_x = &Xs;
+                let p2_x = se3*&Xs;
+
                 let mut accepted_cheirality_count = 0;
                 for i in 0..number_of_points {
                     let d1 = p1_x[(2,i)];
@@ -202,15 +216,18 @@ pub fn cheirality_check<T: Feature + Clone,  C: Camera<Float>>(
                         accepted_cheirality_count += 1 
                     }
                 }
-                let det = e_corrected.determinant().abs();
-        
                 let e_corrected_norm = e_corrected.normalize();
+                let det = e_corrected_norm.determinant().abs();
+                let svd = e_corrected_norm.svd(false,false);
+                let min_val = svd.singular_values[2];
         
-                if (accepted_cheirality_count > max_accepted_cheirality_count) ||
-                    ((accepted_cheirality_count == max_accepted_cheirality_count) && det < smallest_det) {
+
+                if (accepted_cheirality_count >= max_accepted_cheirality_count) ||
+                    ((accepted_cheirality_count == max_accepted_cheirality_count) && min_val < smallest_eigenvalue) {
                     best_e = Some(e_corrected_norm.clone());
                     smallest_det = det;
                     max_accepted_cheirality_count = accepted_cheirality_count;
+                    smallest_eigenvalue = min_val;
                 }
             },
             _=> ()

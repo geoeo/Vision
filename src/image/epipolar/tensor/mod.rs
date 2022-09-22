@@ -37,7 +37,6 @@ pub fn filter_matches_from_fundamental<T: Feature + Clone,C: Camera<Float> >(F: 
         }).cloned().collect::<Vec<Match<T>>>()
 }
 
-//TODO: Ransac based on SVD by Kanatani
 pub fn ransac_five_point_essential<T: Feature + Clone, C: Camera<Float>>(matches: &Vec<Match<T>>, camera_one: &C, camera_two: &C, epipolar_thresh: Float, ransac_it: usize, ransac_size: usize) -> Essential {
     let mut max_inlier_count = 0;
     let mut min_det = Float::INFINITY;
@@ -50,10 +49,10 @@ pub fn ransac_five_point_essential<T: Feature + Clone, C: Camera<Float>>(matches
             Some(essential) => {
                 let svd = essential.svd(false,false);
                 let min_val = svd.singular_values[2];
-                //let f = compute_fundamental(&essential, &camera_one.get_inverse_projection(), &camera_two.get_inverse_projection());
-                best_essential = match (min_val.abs(), essential.determinant().abs()) {
-                    (singular_val, det) if (singular_val < min_singular_value) || (singular_val == min_singular_value && det < min_det) => {
-                        //max_inlier_count = inliers;
+                let f = compute_fundamental(&essential, &camera_one.get_inverse_projection(), &camera_two.get_inverse_projection());
+                best_essential = match (min_val.abs(), essential.determinant().abs(), filter_matches_from_fundamental(&f,matches,epipolar_thresh, camera_one, camera_two).len()) {
+                    (singular_val, det, inliers) if (inliers > max_inlier_count) || (inliers == max_inlier_count && singular_val < min_singular_value) => {
+                        max_inlier_count = inliers;
                         min_singular_value = singular_val;
                         min_det = det;
                         Some(essential)
@@ -65,7 +64,7 @@ pub fn ransac_five_point_essential<T: Feature + Clone, C: Camera<Float>>(matches
         };
     }
 
-    //println!("Best inliner count for essential matrix was {} out of {} matches. That is {} % with det: {}", max_inlier_count, matches.len(), ((max_inlier_count as Float) / (matches.len() as Float)) * 100.0, min_det);
+    println!("Best inliner count for essential matrix was {} out of {} matches. That is {} % with det: {}", max_inlier_count, matches.len(), ((max_inlier_count as Float) / (matches.len() as Float)) * 100.0, min_det);
     best_essential.expect("No essential matrix could be computer via RANSAC")
 }
 

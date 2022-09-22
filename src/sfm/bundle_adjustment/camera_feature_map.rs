@@ -228,20 +228,20 @@ impl CameraFeatureMap {
                                 normalized_image_points_f.column_mut(landmark_id).copy_from(&feat_f);
                             }
 
-                            // let max_dist_one = (cx_one.powi(2)+cy_one.powi(2)).sqrt();
-                            // let max_dist_two = (cx_two.powi(2)+cy_two.powi(2)).sqrt();
+                            let max_dist_one = (cx_one.powi(2)+cy_one.powi(2)).sqrt();
+                            let max_dist_two = (cx_two.powi(2)+cy_two.powi(2)).sqrt();
 
-                            let max_dist_one = cx_one*cy_one;
-                            let max_dist_two = cx_two*cy_two;
+                            // let max_dist_one = cx_one*cy_one;
+                            // let max_dist_two = cx_two*cy_two;
                             
                             //TODO: unify with five_point and epipolar
                             // normalization_matrix_one[(0,2)] = -avg_x_one/local_landmarks_as_float;
                             // normalization_matrix_one[(1,2)] = -avg_y_one/local_landmarks_as_float;
-                            //normalization_matrix_one[(2,2)] = max_dist_one;
+                            // normalization_matrix_one[(2,2)] = max_dist_one;
                         
                             // normalization_matrix_two[(0,2)] = -avg_x_two/local_landmarks_as_float;
                             // normalization_matrix_two[(1,2)] = -avg_y_two/local_landmarks_as_float;
-                            //normalization_matrix_two[(2,2)] = max_dist_two;
+                            // normalization_matrix_two[(2,2)] = max_dist_two;
                         
                             let f0 = normalization_matrix_one[(2,2)];
                             let f0_prime = normalization_matrix_two[(2,2)];
