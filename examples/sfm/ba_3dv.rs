@@ -50,7 +50,7 @@ fn main() -> Result<()> {
 
     let runtime_parameters = RuntimeParameters {
         pyramid_scale: 1.0,
-        max_iterations: vec![1e4 as usize; 1],
+        max_iterations: vec![1e5 as usize; 1],
         eps: vec![1e-3],
         step_sizes: vec![1e0],
         max_norm_eps: 1e-30, 
@@ -64,12 +64,13 @@ fn main() -> Result<()> {
         intensity_weighting_function:  Box::new(weighting::SquaredWeight {}),
         cg_threshold: 1e-6,
       
-        cg_max_it: 200
+        cg_max_it: 2000
     };
 
     let camera_map = HashMap::from([(0, intensity_camera_0), (1, intensity_camera_1),(2,intensity_camera_2),(3,intensity_camera_3),(4,intensity_camera_4)  ]);
     //let sfm_config = SFMConfig::new(0, vec!(vec!(2), vec!(1,3), vec!(3)), camera_map, vec!(vec!(matches_0_2),vec!(matches_0_1, matches_1_3),vec!(matches_0_3)));
-    let sfm_config = SFMConfig::new(2, vec!(vec!(1,0), vec!(3,4)), camera_map.clone(), camera_map, vec!(vec!(matches_2_1,matches_1_0),vec!(matches_2_3,matches_3_4)),BifocalType::ESSENTIAL, 320*240);
+    let sfm_config = SFMConfig::new(2, vec!(vec!(1,0), vec!(3,4)), camera_map.clone(), camera_map, vec!(vec!(matches_2_1,matches_1_0),vec!(matches_2_3,matches_3_4)),
+        BifocalType::ESSENTIAL, 320*240);
 
     //let epipolar_thresh = 4e-1;
     let epipolar_thresh = Float::INFINITY;

@@ -149,8 +149,8 @@ pub fn compute_pairwise_cam_motions_with_filtered_matches_for_path<C : Camera<Fl
             tensor::BifocalType::ESSENTIAL => {
                 //TODO: put these in configs 
                 //Do NcR for
-                let e = tensor::ransac_five_point_essential(m, c1, c2, 1e-2,1e5 as usize, 5);
-                //let e = tensor::five_point_essential(m, c1, c2);
+                //let e = tensor::ransac_five_point_essential(m, c1, c2, 1e-2,1e5 as usize, 5);
+                let e = tensor::five_point_essential(m, c1, c2);
                 let f = tensor::compute_fundamental(&e, &c1.get_inverse_projection(), &c2.get_inverse_projection());
                 
                 //Seems to work better for olsen data 1e-1?

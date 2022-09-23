@@ -87,11 +87,11 @@ pub fn five_point_essential<T: Feature + Clone, C: Camera<Float>>(matches: &Vec<
     //TODO: unify with five_point and epipolar
     // normalization_matrix_one[(0,2)] = -avg_x_one/(l_as_float);
     // normalization_matrix_one[(1,2)] = -avg_y_one/(l_as_float);
-    normalization_matrix_one[(2,2)] = max_dist_one;
+    //normalization_matrix_one[(2,2)] = max_dist_one;
 
     // normalization_matrix_two[(0,2)] = -avg_x_two/(l_as_float);
     // normalization_matrix_two[(1,2)] = -avg_y_two/(l_as_float);
-    normalization_matrix_two[(2,2)] = max_dist_two;
+    //normalization_matrix_two[(2,2)] = max_dist_two;
 
     for i in 0..l {
         let c_x_1 = &camera_rays_one.column(i);
@@ -200,8 +200,8 @@ pub fn cheirality_check<T: Feature + Clone,  C: Camera<Float>>(
         let p2_points = condition_matrix_2*points_cam_2.0/f0_prime;
 
         //TODO make ENUM
-        let Xs_option = Some(linear_triangulation_svd(&vec!((&p1_points,&projection_1),(&p2_points,&projection_2))));
-        //let Xs_option = stereo_triangulation((&p1_points,&projection_1),(&p2_points,&projection_2),f0,f0_prime);
+        //let Xs_option = Some(linear_triangulation_svd(&vec!((&p1_points,&projection_1),(&p2_points,&projection_2))));
+        let Xs_option = stereo_triangulation((&p1_points,&projection_1),(&p2_points,&projection_2),f0,f0_prime);
         match Xs_option {
             Some(Xs) => {
                 let p1_x = &Xs;
