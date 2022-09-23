@@ -226,25 +226,20 @@ fn main() -> Result<()> {
     let (mut initial_cam_motions_per_path_fundamental,filtered_matches_per_path_fundamental) = compute_pairwise_cam_motions_with_filtered_matches(
             &sfm_config_fundamental,
             1.0,
-            Float::INFINITY,
+            3e0,
             normalize_features,
             sfm_config_fundamental.epipolar_alg(), 
             EssentialDecomposition::FÖRSNTER
     );
 
-    for i in 0..initial_cam_motions_per_path.len() {
-        let p = &initial_cam_motions_per_path[i];
-        let p_fundamental = &initial_cam_motions_per_path_fundamental[i];
-        let new_p = p.iter().enumerate().map(|(idx,(id,(b,rot)))| (*id,(change_of_basis*b,change_of_basis*rot))).collect::<Vec<(usize,(Vector3<Float>,Matrix3<Float>))>>();
-        //let new_p = p.iter().enumerate().map(|(idx,(id,(b,rot)))| (*id,(change_of_basis*b,change_of_basis*p_fundamental[idx].1.1))).collect::<Vec<(usize,(Vector3<Float>,Matrix3<Float>))>>();
-        initial_cam_motions_per_path[i] = new_p.clone();
-    }
+    // for i in 0..initial_cam_motions_per_path.len() {
+    //     let p = &initial_cam_motions_per_path[i];
+    //     let p_fundamental = &initial_cam_motions_per_path_fundamental[i];
+    //     let new_p = p.iter().enumerate().map(|(idx,(id,(b,rot)))| (*id,(change_of_basis*b,change_of_basis*rot))).collect::<Vec<(usize,(Vector3<Float>,Matrix3<Float>))>>();
+    //     //let new_p = p.iter().enumerate().map(|(idx,(id,(b,rot)))| (*id,(change_of_basis*b,change_of_basis*p_fundamental[idx].1.1))).collect::<Vec<(usize,(Vector3<Float>,Matrix3<Float>))>>();
+    //     initial_cam_motions_per_path[i] = new_p.clone();
+    // }
 
-
-    //TODO: might be unneccesary
-    let mut motion_list = Vec::<((usize,Matrix4<Float>),(usize,Matrix4<Float>))>::with_capacity(10); 
-    motion_list.push(((5,cam_extrinsics_5),(4,cam_extrinsics_4)));
-    let relative_motions = OlssenData::get_relative_motions(&motion_list);
 
 
     for path_idx in 0..sfm_config.paths().len() {
@@ -279,7 +274,7 @@ fn main() -> Result<()> {
             step_sizes: vec![1e-3],
             max_norm_eps: 1e-30, 
             delta_eps: 1e-30,
-            taus: vec![1.0e0],
+            taus: vec![1.0e-1],
             lm: true,
             debug: true,
             show_octave_result: true,
