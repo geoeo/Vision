@@ -60,7 +60,7 @@ fn main() -> Result<()> {
         let m = Match::<ImageFeature>{feature_one,feature_two};
         synth_matches.push(m);
     }
-    let all_feature_matches = epipolar::extract_matches(&synth_matches, 1.0, false); 
+    let all_feature_matches = epipolar::extract_matches(&synth_matches, 1.0); 
     let gt = epipolar::tensor::essential_matrix_from_motion(&t,&R);
     let factor = gt[(2,2)];
     let gt_norm = gt.map(|x| x/factor);
