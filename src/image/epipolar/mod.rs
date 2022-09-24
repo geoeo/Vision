@@ -4,7 +4,7 @@ extern crate rand;
 pub mod tensor;
 
 use na::{Vector3, Matrix3};
-
+use std::collections::HashMap;
 use crate::sensors::camera::Camera;
 use crate::Float;
 use crate::image::features::{Feature,Match, ImageFeature};
@@ -95,87 +95,3 @@ pub fn epipolar_lines<T: Feature>(bifocal_tensor: &Matrix3<Float>, feature_match
     ((f_from.transpose()*bifocal_tensor).transpose(), bifocal_tensor*f_to)
 }
 
-#[allow(non_snake_case)]
-pub fn compute_pairwise_cam_motions_with_filtered_matches_for_path<C : Camera<Float> + Copy, C2, T : Feature + Clone>(
-        sfm_config: &SFMConfig<C,C2, T>,
-        path_idx: usize,
-        pyramid_scale:Float, 
-        epipolar_thresh: Float, 
-        normalize_features: bool,
-        epipolar_alg: tensor::BifocalType,
-        decomp_alg: tensor::EssentialDecomposition) 
-    ->  (Vec<(usize,(Vector3<Float>,Matrix3<Float>))>,Vec<Vec<Match<T>>>) {
-    let root_id = sfm_config.root();
-    let path = &sfm_config.paths()[path_idx];
-    let matches = &sfm_config.matches()[path_idx];
-    let filtered_matches_by_track = &sfm_config.filtered_matches_by_tracks()[path_idx];
-    let camera_map = sfm_config.camera_map();
-    let root_cam = camera_map.get(&root_id).expect("compute_pairwise_cam_motions_for_path: could not get root cam");
-    matches.iter().zip(filtered_matches_by_track.iter()).enumerate().map(|(i,(m,f_m_tracks))| {
-        let c1 = match i {
-            0 => root_cam,
-            idx => camera_map.get(&path[idx-1]).expect("compute_pairwise_cam_motions_for_path: could not get previous cam")
-        };
-        let id2 = path[i];
-        let c2 = camera_map.get(&id2).expect("compute_pairwise_cam_motions_for_path: could not get second camera");
-        //let (normalization_matrix_one, normalization_matrix_two) = compute_linear_normalization(f_m_tracks,c1,c2);
-        //let f0 = normalization_matrix_one[(2,2)].max(normalization_matrix_two[(2,2)]); // -> check this
-        let f0 = 1.0; // -> check this
-        let (e,f_m) = match epipolar_alg {
-            tensor::BifocalType::FUNDAMENTAL => {      
-                let f = tensor::fundamental::eight_point_hartley(f_m_tracks, false, f0); //TODO: make this configurable
-                
-                // let f_corr = tensor::fundamental::optimal_correction(&f, m, 1.0);
-                // let filtered = tensor::filter_matches_from_fundamental(&f_corr,m,epipolar_thresh, c1,c2);
-                // (tensor::compute_essential(&f_corr,&c1.get_projection(),&c2.get_projection()), filtered)
-
-                let filtered = tensor::filter_matches_from_fundamental(&f,f_m_tracks,epipolar_thresh, c1,c2);
-                (tensor::compute_essential(&f,&c1.get_projection(),&c2.get_projection()), filtered)
-            },
-            tensor::BifocalType::ESSENTIAL => {
-                //TODO: put these in configs 
-                //Do NcR for
-                //let e = tensor::ransac_five_point_essential(m, c1, c2, 1e-2,1e5 as usize, 5);
-                let e = tensor::five_point_essential(m, c1, c2);
-                let f = tensor::compute_fundamental(&e, &c1.get_inverse_projection(), &c2.get_inverse_projection());
-                
-                //Seems to work better for olsen data 1e-1?
-                // let f_corr = tensor::fundamental::optimal_correction(&f, m, f0);
-                // let filtered =  tensor::filter_matches_from_fundamental(&f_corr,m,epipolar_thresh,c1,c2);
-                // (tensor::compute_essential(&f_corr,&c1.get_projection(),&c2.get_projection()), filtered)
-
-                (e, tensor::filter_matches_from_fundamental(&f,m,epipolar_thresh,c1,c2))
-            }
-        };
-
-        let (h,rotation,_) = match decomp_alg {
-            tensor::EssentialDecomposition::FÖRSNTER => tensor::decompose_essential_förstner(&e,&f_m,c1,c2),
-            tensor::EssentialDecomposition::KANATANI => tensor::decompose_essential_kanatani(&e,&f_m, false)
-        };
-        let new_state = (id2,(h, rotation));
-        (new_state, f_m)
-    }).unzip()
-}
-
-
-#[allow(non_snake_case)]
-pub fn compute_pairwise_cam_motions_with_filtered_matches<C: Camera<Float> + Copy, C2, T : Feature + Clone>(
-        sfm_config: &SFMConfig<C, C2, T>,
-        pyramid_scale:Float, 
-        epipolar_thresh: Float, 
-        normalize_features: bool,
-        epipolar_alg: tensor::BifocalType,
-        decomp_alg: tensor::EssentialDecomposition) 
-    ->  (Vec<Vec<(usize,(Vector3<Float>,Matrix3<Float>))>>,Vec<Vec<Vec<Match<T>>>>) {
-    (0..sfm_config.paths().len()).map(|i| 
-        compute_pairwise_cam_motions_with_filtered_matches_for_path(
-        sfm_config,
-        i,
-        pyramid_scale,
-        epipolar_thresh,
-        normalize_features,
-        epipolar_alg, 
-        decomp_alg)
-    ).unzip()
-    
-}

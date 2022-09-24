@@ -9,7 +9,7 @@ use std::collections::HashMap;
 use na::{Vector3,Matrix3,Matrix4};
 use vision::io::olsen_loader::OlssenData;
 use vision::sensors::camera::perspective::Perspective;
-use vision::image::{features::{Match,ImageFeature}, epipolar::{compute_pairwise_cam_motions_with_filtered_matches, compute_pairwise_cam_motions_with_filtered_matches_for_path, tensor::{BifocalType,EssentialDecomposition}}};
+use vision::image::{features::{Match,ImageFeature}, epipolar::tensor::{BifocalType,EssentialDecomposition}};
 use vision::sfm::{SFMConfig,bundle_adjustment::run_ba};
 use vision::odometry::runtime_parameters::RuntimeParameters;
 use vision::numerics::{loss, weighting};
@@ -35,7 +35,7 @@ fn main() -> Result<()> {
     let data_set_kronan_path = format!("{}/Olsen/kronan/",runtime_conf.dataset_path);
     let data_set_round_church_path = format!("{}/Olsen/round_church/",runtime_conf.dataset_path);
     
-    let olsen_data_path = data_set_door_path;
+    let olsen_data_path = data_set_fort_canning_path;
 
     let feature_skip_count = 1;
     let olsen_data = OlssenData::new(&olsen_data_path);
@@ -213,32 +213,33 @@ fn main() -> Result<()> {
 
 
     let sfm_config = SFMConfig::new(root_id, paths.clone(), camera_map.clone(), camera_map_ba.clone(), sfm_all_matches.clone(), BifocalType::ESSENTIAL, olsen_data.width*olsen_data.height);
-    let (mut initial_cam_motions_per_path,filtered_matches_per_path) = compute_pairwise_cam_motions_with_filtered_matches(
-            &sfm_config,
+    let (initial_cam_motions_per_path_essential,filtered_matches_per_path_essential) = sfm_config.compute_pairwise_cam_motions_with_filtered_matches(
             1e0,
-            1e-1,
             normalize_features,
             sfm_config.epipolar_alg(), 
             EssentialDecomposition::FÖRSNTER
     );
 
     let sfm_config_fundamental = SFMConfig::new(root_id, paths.clone(), camera_map, camera_map_ba, sfm_all_matches.clone(), BifocalType::FUNDAMENTAL, olsen_data.width*olsen_data.height);
-    let (mut initial_cam_motions_per_path_fundamental,filtered_matches_per_path_fundamental) = compute_pairwise_cam_motions_with_filtered_matches(
-            &sfm_config_fundamental,
-            1.0,
-            3e0,
+    let (initial_cam_motions_per_path_fundamental,filtered_matches_per_path_fundamental) = sfm_config_fundamental.compute_pairwise_cam_motions_with_filtered_matches(
+            Float::INFINITY, //3e0
             normalize_features,
             sfm_config_fundamental.epipolar_alg(), 
             EssentialDecomposition::FÖRSNTER
     );
 
-    // for i in 0..initial_cam_motions_per_path.len() {
-    //     let p = &initial_cam_motions_per_path[i];
-    //     let p_fundamental = &initial_cam_motions_per_path_fundamental[i];
-    //     let new_p = p.iter().enumerate().map(|(idx,(id,(b,rot)))| (*id,(change_of_basis*b,change_of_basis*rot))).collect::<Vec<(usize,(Vector3<Float>,Matrix3<Float>))>>();
-    //     //let new_p = p.iter().enumerate().map(|(idx,(id,(b,rot)))| (*id,(change_of_basis*b,change_of_basis*p_fundamental[idx].1.1))).collect::<Vec<(usize,(Vector3<Float>,Matrix3<Float>))>>();
-    //     initial_cam_motions_per_path[i] = new_p.clone();
-    // }
+    let mut initial_cam_motions_per_path = initial_cam_motions_per_path_essential.clone();
+    let mut filtered_matches_per_path = filtered_matches_per_path_essential.clone();
+
+    for i in 0..initial_cam_motions_per_path.len() {
+        let p = &initial_cam_motions_per_path[i];
+        let p_fundamental = &initial_cam_motions_per_path_fundamental[i];
+        let new_p = p.iter().enumerate().map(|(idx,(id,(b,rot)))| (*id,(change_of_basis*b,change_of_basis*rot))).collect::<Vec<(usize,(Vector3<Float>,Matrix3<Float>))>>();
+        //let new_p = p.iter().enumerate().map(|(idx,(id,(b,rot)))| (*id,(change_of_basis*b,change_of_basis*p_fundamental[idx].1.1))).collect::<Vec<(usize,(Vector3<Float>,Matrix3<Float>))>>();
+        initial_cam_motions_per_path[i] = new_p.clone();
+    }
+
+
 
 
 
@@ -274,7 +275,7 @@ fn main() -> Result<()> {
             step_sizes: vec![1e-3],
             max_norm_eps: 1e-30, 
             delta_eps: 1e-30,
-            taus: vec![1.0e-1],
+            taus: vec![1.0e0],
             lm: true,
             debug: true,
             show_octave_result: true,
