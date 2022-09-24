@@ -91,7 +91,6 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone> SFMConfig<C,C2, Feat> {
         keys_sorted
     }
 
-    //TODO: this is buggy
     fn filter_by_max_tracks(matches: &Vec<Vec<Vec<Match<Feat>>>>, image_size: usize) -> Vec<Vec<Vec<Match<Feat>>>> {
 
         let mut filtered_matches = Vec::<Vec<Vec<Match<Feat>>>>::with_capacity(matches.len()); 
