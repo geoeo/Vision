@@ -79,3 +79,11 @@ impl OrbFeature {
     }
 }
 
+impl PartialEq for OrbFeature {
+    fn eq(&self, other: &Self) -> bool {
+        (self.get_x_image_float() == other.get_x_image_float()) && 
+        (self.get_y_image_float() == other.get_y_image_float()) &&
+        (self.get_closest_sigma_level() == other.get_closest_sigma_level())
+    }
+}
+

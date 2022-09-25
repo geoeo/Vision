@@ -69,16 +69,16 @@ pub fn five_point_essential<T: Feature + Clone, C: Camera<Float>>(matches: &Vec<
         features_two.column_mut(i).copy_from(&f_2);
     }
 
-    let cx_one = projection_one[(0,2)];
-    let cy_one = projection_one[(1,2)];
-    let cx_two = projection_two[(0,2)];
-    let cy_two = projection_two[(1,2)];
+    // let cx_one = projection_one[(0,2)];
+    // let cy_one = projection_one[(1,2)];
+    // let cx_two = projection_two[(0,2)];
+    // let cy_two = projection_two[(1,2)];
 
     // let max_dist_one = max_x_one*max_y_one;
     // let max_dist_two = max_x_two*max_y_two;
 
-    let max_dist_one = (cx_one.powi(2)+cy_one.powi(2)).sqrt();
-    let max_dist_two = (cx_two.powi(2)+cy_two.powi(2)).sqrt();
+    // let max_dist_one = (cx_one.powi(2)+cy_one.powi(2)).sqrt();
+    // let max_dist_two = (cx_two.powi(2)+cy_two.powi(2)).sqrt();
 
     // let max_dist_one = 1.0;
     // let max_dist_two = 1.0;
@@ -87,11 +87,11 @@ pub fn five_point_essential<T: Feature + Clone, C: Camera<Float>>(matches: &Vec<
     //TODO: unify with five_point and epipolar
     // normalization_matrix_one[(0,2)] = -avg_x_one/(l_as_float);
     // normalization_matrix_one[(1,2)] = -avg_y_one/(l_as_float);
-    //normalization_matrix_one[(2,2)] = max_dist_one;
+    // normalization_matrix_one[(2,2)] = max_dist_one;
 
     // normalization_matrix_two[(0,2)] = -avg_x_two/(l_as_float);
     // normalization_matrix_two[(1,2)] = -avg_y_two/(l_as_float);
-    //normalization_matrix_two[(2,2)] = max_dist_two;
+    // normalization_matrix_two[(2,2)] = max_dist_two;
 
     for i in 0..l {
         let c_x_1 = &camera_rays_one.column(i);

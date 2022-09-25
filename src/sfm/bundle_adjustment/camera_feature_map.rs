@@ -296,13 +296,6 @@ impl CameraFeatureMap {
                 }).expect("triangulated landmarks empty!").get_state_as_vector().z;
                 println!("Max depth: {} ", max_depth);
 
-                // if float::Float::abs(max_depth) < convert(1e5){
-                //     for i in 0..triangualted_landmarks.len() {
-                //         let v = triangualted_landmarks[i].get_state_as_vector();
-                //         triangualted_landmarks[i] = EuclideanLandmark::from_state(v/float::Float::abs(max_depth));
-                //     }
-                // }
-
                 triangualted_landmarks
             },
             None => vec!(Vector3::<F>::new(F::zero(), F::zero(), -F::one());number_of_unqiue_landmarks).iter().map(|&v| EuclideanLandmark::from_state(v)).collect::<Vec<EuclideanLandmark<F>>>()  

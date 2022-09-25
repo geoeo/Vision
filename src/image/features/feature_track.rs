@@ -6,7 +6,7 @@ pub struct FeatureTrack<T: Feature> {
     track: Vec<(PathIdx, ImageIdx, Match<T>)>
 }
 
-impl<T: Feature + Clone> FeatureTrack<T> {
+impl<T: Feature + Clone + PartialEq> FeatureTrack<T> {
     pub fn new(capacity: usize,path_idx: usize , m: &Match<T>) -> FeatureTrack<T> {
         let mut track = Vec::<(PathIdx, ImageIdx, Match<T>)>::with_capacity(capacity);
         track.push((path_idx ,0, m.clone()));
@@ -19,18 +19,17 @@ impl<T: Feature + Clone> FeatureTrack<T> {
     }
 
     /**
-     * Returns a Tuple of the current image coordiantes as (x,y) format
+     * Returns current feature
      */
-    pub fn get_feature_current_id(&self) -> (usize, usize) {
-        let feature_two = &self.track.last().expect("FeatureTrack: Called get_current_id on empty track").2.feature_two;
-        (feature_two.get_x_image(),feature_two.get_y_image())
+    pub fn get_current_feature(&self) -> T {
+        self.track.last().expect("FeatureTrack: Called get_current_id on empty track").2.feature_two.clone()
     }
 
         /**
      * Returns (path_idx, image_idx)
      */
     pub fn get_path_img_id(&self) -> (usize, usize) {
-        let t = &self.track.last().expect("FeatureTrack: Called get_current_id on empty track");
+        let t = self.track.last().expect("FeatureTrack: Called get_current_id on empty track");
         (t.0, t.1)
     }
 

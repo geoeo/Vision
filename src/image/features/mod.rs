@@ -44,6 +44,7 @@ pub trait Feature {
     }
 }
 
+
 pub trait Oriented {
     fn get_orientation(&self) -> Float;
 }
@@ -71,6 +72,12 @@ impl ImageFeature {
     }
 }
 
+impl PartialEq for ImageFeature {
+    fn eq(&self, other: &Self) -> bool {
+        self.location == other.location
+    }
+}
+
 impl Feature for ImageFeature {
 
     fn get_x_image_float(&self) -> Float { self.location.x }
@@ -84,4 +91,11 @@ impl Feature for ImageFeature {
 pub struct Match<T : Feature> {
     pub feature_one: T,
     pub feature_two: T
+}
+
+
+impl<T: Feature + PartialEq> PartialEq for Match<T> {
+    fn eq(&self, other: &Self) -> bool {
+        (self.feature_one == other.feature_one) && (self.feature_two == other.feature_two)
+    }
 }

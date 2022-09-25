@@ -4,11 +4,9 @@ extern crate rand;
 pub mod tensor;
 
 use na::{Vector3, Matrix3};
-use std::collections::HashMap;
 use crate::sensors::camera::Camera;
 use crate::Float;
 use crate::image::features::{Feature,Match, ImageFeature};
-use crate::sfm::SFMConfig;
 
 pub type Fundamental =  Matrix3<Float>;
 pub type Essential =  Matrix3<Float>;

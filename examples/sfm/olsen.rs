@@ -35,7 +35,7 @@ fn main() -> Result<()> {
     let data_set_kronan_path = format!("{}/Olsen/kronan/",runtime_conf.dataset_path);
     let data_set_round_church_path = format!("{}/Olsen/round_church/",runtime_conf.dataset_path);
     
-    let olsen_data_path = data_set_fort_canning_path;
+    let olsen_data_path = data_set_door_path;
 
     let feature_skip_count = 1;
     let olsen_data = OlssenData::new(&olsen_data_path);
@@ -214,7 +214,7 @@ fn main() -> Result<()> {
 
     let sfm_config = SFMConfig::new(root_id, paths.clone(), camera_map.clone(), camera_map_ba.clone(), sfm_all_matches.clone(), BifocalType::ESSENTIAL, olsen_data.width*olsen_data.height);
     let (initial_cam_motions_per_path_essential,filtered_matches_per_path_essential) = sfm_config.compute_pairwise_cam_motions_with_filtered_matches(
-            1e0,
+            Float::INFINITY,
             normalize_features,
             sfm_config.epipolar_alg(), 
             EssentialDecomposition::FÖRSNTER

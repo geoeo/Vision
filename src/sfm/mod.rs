@@ -12,6 +12,7 @@ pub mod landmark;
 use na::{Vector3, Matrix3};
 use crate::Float;
 
+
 /**
  * We assume that the indices between paths and matches are consistent
  */
@@ -26,7 +27,7 @@ pub struct SFMConfig<C, C2, Feat: Feature> {
     image_size: usize
 }
 
-impl<C: Camera<Float>, C2, Feat: Feature + Clone> SFMConfig<C,C2, Feat> {
+impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq> SFMConfig<C,C2, Feat> {
 
     //TODO: rework casting to be part of camera trait or super struct
     pub fn new(root: usize, paths: Vec<Vec<usize>>, camera_map: HashMap<usize, C>, camera_map_ba: HashMap<usize, C2>, matches: Vec<Vec<Vec<Match<Feat>>>>, epipolar_alg: tensor::BifocalType, image_size: usize) -> SFMConfig<C,C2,Feat> {
@@ -91,14 +92,16 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone> SFMConfig<C,C2, Feat> {
         keys_sorted
     }
 
-    fn filter_by_max_tracks(matches: &Vec<Vec<Vec<Match<Feat>>>>, image_size: usize) -> Vec<Vec<Vec<Match<Feat>>>> {
+    fn filter_by_max_tracks(matches: &Vec<Vec<Vec<Match<Feat>>>>,  image_size: usize) -> Vec<Vec<Vec<Match<Feat>>>> {
 
         let mut filtered_matches = Vec::<Vec<Vec<Match<Feat>>>>::with_capacity(matches.len()); 
-        let mut feature_tracks = Vec::<FeatureTrack<Feat>>::with_capacity(image_size);
+        let mut feature_tracks = Vec::<Vec<FeatureTrack<Feat>>>::with_capacity(matches.len());
 
         for i in 0..matches.len() {
-            let path = &matches[i];
-            filtered_matches.push(Vec::<Vec<Match<Feat>>>::with_capacity(path.len()));
+            let path = matches[i].clone();
+            let path_len = path.len();
+            filtered_matches.push(Vec::<Vec<Match<Feat>>>::with_capacity(path_len));
+            feature_tracks.push(Vec::<FeatureTrack<Feat>>::with_capacity(image_size));
             for img_idx in 0..path.len() {
                 filtered_matches[i].push(Vec::<Match<Feat>>::with_capacity(path[img_idx].len()));
             }
@@ -106,43 +109,43 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone> SFMConfig<C,C2, Feat> {
 
         let max_path_len: usize = matches.iter().map(|x| x.len()).sum();
         
-        //TODO: make this work feature tracks that happen on an image other than the first
+        //TODO: make this work feature tracks that happen on an image other than the previous
         for i in 0..matches.len() {
-            let path = &matches[i];
-            let path_len = path.len();
+            let matches_for_path = matches[i].clone();
+            let path_len = matches_for_path.len();
             for img_idx in 0..path_len {
-                let current_matches = &path[img_idx];
-                for feat_idx in 0..current_matches.len() {
-                    let m = &current_matches[feat_idx];
+                let current_matches = matches_for_path[img_idx].clone();
+                for m in &current_matches {
                     match img_idx {
-                        0 => feature_tracks.push(FeatureTrack::new(max_path_len,i, m)),
+                        0 => feature_tracks[i].push(FeatureTrack::new(max_path_len,i, m)),
                         _ => {
                             let current_feature_one = &m.feature_one;
                             //TODO: Speed up with caching
-                            for track in feature_tracks.iter_mut() {
-                                if (track.get_feature_current_id() == (current_feature_one.get_x_image(), current_feature_one.get_y_image())) && 
-                                   (track.get_path_img_id() != (i, img_idx)) {
+                            for track in feature_tracks[i].iter_mut() {
+                                if (track.get_current_feature() == current_feature_one.clone()) && 
+                                   (track.get_path_img_id() == (i, img_idx-1)) {
                                     track.add(i,img_idx, m);
+                                    break;
                                 }
-                                
                             }
                         }
                     };
                 }
-                
             }
         }
 
-        let max_track_length = feature_tracks.iter().map(|x| x.get_track_length()).reduce(|max, l| {
+        let max_track_lengths = feature_tracks.iter().map(|l| l.iter().map(|x| x.get_track_length()).reduce(|max, l| {
             if l > max { l } else { max }
-        }).expect("filter_by_max_tracks: tracks is empty!");
+        }).expect("filter_by_max_tracks: tracks is empty!")).collect::<Vec<usize>>();
 
-        let max_tracks: Vec<FeatureTrack<Feat>> = feature_tracks.into_iter().filter(| x | x.get_track_length() == max_track_length).collect();
 
-        //TODO: convert max tracks back into match vector
-        for t in &max_tracks {
-            for (path_idx, img_idx, m) in t.get_track() {
-                (filtered_matches[*path_idx])[*img_idx].push(m.clone());
+        let max_tracks: Vec<Vec<FeatureTrack<Feat>>> = feature_tracks.into_iter().zip(max_track_lengths).map(| (xs, max) | xs.into_iter().filter(|x| x.get_track_length() == max).collect()).collect();
+
+        for ts in &max_tracks {
+            for t in ts {
+                for (path_idx, img_idx, m) in t.get_track() {
+                    (filtered_matches[*path_idx])[*img_idx].push(m.clone());
+                }
             }
         }
 
@@ -157,92 +160,75 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone> SFMConfig<C,C2, Feat> {
     }
 
     #[allow(non_snake_case)]
-pub fn compute_pairwise_cam_motions_with_filtered_matches_for_path(
-        &self,
-        root_id: usize,
-        camera_map: &HashMap<usize, C>,
-        path: &Vec<usize>,
-        matches: &Vec<Vec<Match<Feat>>>,
-        matches_tracks: &Vec<Vec<Match<Feat>>>,
-        epipolar_thresh: Float, 
-        normalize_features: bool,
-        epipolar_alg: tensor::BifocalType,
-        decomp_alg: tensor::EssentialDecomposition) 
-    ->  (Vec<(usize,(Vector3<Float>,Matrix3<Float>))>,Vec<Vec<Match<Feat>>>) {
-    let root_cam = camera_map.get(&root_id).expect("compute_pairwise_cam_motions_for_path: could not get root cam");
-    matches.iter().zip(matches_tracks.iter()).enumerate().map(|(i,(m,tracks))| {
-        let c1 = match i {
-            0 => root_cam,
-            idx => camera_map.get(&path[idx-1]).expect("compute_pairwise_cam_motions_for_path: could not get previous cam")
-        };
-        let id2 = path[i];
-        let c2 = camera_map.get(&id2).expect("compute_pairwise_cam_motions_for_path: could not get second camera");
-        let f0 = 1.0; // -> check this
-        let (e,f_m) = match epipolar_alg {
-            tensor::BifocalType::FUNDAMENTAL => {      
-                let f = tensor::fundamental::eight_point_hartley(tracks, false, f0); //TODO: make this configurable
-                
-                // let f_corr = tensor::fundamental::optimal_correction(&f, m, 1.0);
-                // let filtered = tensor::filter_matches_from_fundamental(&f_corr,m,epipolar_thresh, c1,c2);
-                // (tensor::compute_essential(&f_corr,&c1.get_projection(),&c2.get_projection()), filtered)
+    pub fn compute_pairwise_cam_motions_with_filtered_matches(
+            &self,
+            epipolar_thresh: Float, 
+            normalize_features: bool,
+            epipolar_alg: tensor::BifocalType,
+            decomp_alg: tensor::EssentialDecomposition) 
+        ->  (Vec<Vec<(usize,(Vector3<Float>,Matrix3<Float>))>>,Vec<Vec<Vec<Match<Feat>>>>) {
+            let root_id = self.root();
+            let root_cam = self.camera_map.get(&root_id).expect("compute_pairwise_cam_motions_for_path: could not get root cam");
+            let mut all_states: Vec<Vec<(usize,(Vector3<Float>,Matrix3<Float>))>> = Vec::<Vec<(usize,(Vector3<Float>,Matrix3<Float>))>>::with_capacity(100);
+            let mut all_filtered_matches: Vec<Vec<Vec<Match<Feat>>>> = Vec::<Vec<Vec<Match<Feat>>>>::with_capacity(100);
+            for path_idx in 0..self.paths.len() {
+                //TODO: investigate this cloning
+                let path = self.paths[path_idx].clone();
+                //let matches = self.matches[path_idx].clone();
+                let matches_tracks = self.filtered_matches_by_tracks[path_idx].clone();
+                let mut states: Vec<(usize,(Vector3<Float>,Matrix3<Float>))> = Vec::<(usize,(Vector3<Float>,Matrix3<Float>))>::with_capacity(100);
+                let mut filtered_matches: Vec<Vec<Match<Feat>>> = Vec::<Vec<Match<Feat>>>::with_capacity(100);
+                for j in 0..matches_tracks.len() {
+                    let tracks = &matches_tracks[j];
+                    //let all_matches = &matches[j];
+                    let m = tracks;
+                    let c1 = match j {
+                        0 => root_cam,
+                        idx => self.camera_map.get(&path[idx-1]).expect("compute_pairwise_cam_motions_for_path: could not get previous cam")
+                    };
+                    let id2 = path[j];
+                    let c2 = self.camera_map.get(&id2).expect("compute_pairwise_cam_motions_for_path: could not get second camera");
+                    let f0 = 1.0; // -> check this
+                    let (e,f_m) = match epipolar_alg {
+                        tensor::BifocalType::FUNDAMENTAL => {      
+                            let f = tensor::fundamental::eight_point_hartley(m, false, f0); //TODO: make this configurable
+                            
+                            // let f_corr = tensor::fundamental::optimal_correction(&f, m, 1.0);
+                            // let filtered = tensor::filter_matches_from_fundamental(&f_corr,m,epipolar_thresh, c1,c2);
+                            // (tensor::compute_essential(&f_corr,&c1.get_projection(),&c2.get_projection()), filtered)
+            
+                            let filtered = tensor::filter_matches_from_fundamental(&f,m,epipolar_thresh, c1, c2);
+                            (tensor::compute_essential(&f,&c1.get_projection(),&c2.get_projection()), filtered)
+                        },
+                        tensor::BifocalType::ESSENTIAL => {
+                            //TODO: put these in configs 
+                            //Do NcR for
+                            //let e = tensor::ransac_five_point_essential(m, c1, c2, 1e-2,1e5 as usize, 5);
+                            let e = tensor::five_point_essential(m, c1, c2);
+                            let f = tensor::compute_fundamental(&e, &c1.get_inverse_projection(), &c2.get_inverse_projection());
+                            
+                            //Seems to work better for olsen data 1e-1?
+                            // let f_corr = tensor::fundamental::optimal_correction(&f, m, f0);
+                            // let filtered =  tensor::filter_matches_from_fundamental(&f_corr,m,epipolar_thresh,c1,c2);
+                            // (tensor::compute_essential(&f_corr,&c1.get_projection(),&c2.get_projection()), filtered)
+            
+                            (e, tensor::filter_matches_from_fundamental(&f,m,epipolar_thresh,c1,c2))
+                        }
+                    };
+            
+                    let (h,rotation,_) = match decomp_alg {
+                        tensor::EssentialDecomposition::FÖRSNTER => tensor::decompose_essential_förstner(&e,&f_m,c1,c2),
+                        tensor::EssentialDecomposition::KANATANI => tensor::decompose_essential_kanatani(&e,&f_m, false)
+                    };
+                    let new_state = (id2,(h, rotation));
+                    states.push(new_state);
+                    filtered_matches.push(f_m);
+                }
 
-                let filtered = tensor::filter_matches_from_fundamental(&f,tracks,epipolar_thresh, c1,c2);
-                (tensor::compute_essential(&f,&c1.get_projection(),&c2.get_projection()), filtered)
-            },
-            tensor::BifocalType::ESSENTIAL => {
-                //TODO: put these in configs 
-                //Do NcR for
-                //let e = tensor::ransac_five_point_essential(m, c1, c2, 1e-2,1e5 as usize, 5);
-                let e = tensor::five_point_essential(tracks, c1, c2);
-                let f = tensor::compute_fundamental(&e, &c1.get_inverse_projection(), &c2.get_inverse_projection());
-                
-                //Seems to work better for olsen data 1e-1?
-                // let f_corr = tensor::fundamental::optimal_correction(&f, m, f0);
-                // let filtered =  tensor::filter_matches_from_fundamental(&f_corr,m,epipolar_thresh,c1,c2);
-                // (tensor::compute_essential(&f_corr,&c1.get_projection(),&c2.get_projection()), filtered)
-
-                (e, tensor::filter_matches_from_fundamental(&f,tracks,epipolar_thresh,c1,c2))
+                all_states.push(states);
+                all_filtered_matches.push(filtered_matches);
             }
-        };
-
-        let (h,rotation,_) = match decomp_alg {
-            tensor::EssentialDecomposition::FÖRSNTER => tensor::decompose_essential_förstner(&e,&f_m,c1,c2),
-            tensor::EssentialDecomposition::KANATANI => tensor::decompose_essential_kanatani(&e,&f_m, false)
-        };
-        let new_state = (id2,(h, rotation));
-        (new_state, m.clone())
-    }).unzip()
-}
-
-
-#[allow(non_snake_case)]
-pub fn compute_pairwise_cam_motions_with_filtered_matches(
-        &self,
-        epipolar_thresh: Float, 
-        normalize_features: bool,
-        epipolar_alg: tensor::BifocalType,
-        decomp_alg: tensor::EssentialDecomposition) 
-    ->  (Vec<Vec<(usize,(Vector3<Float>,Matrix3<Float>))>>,Vec<Vec<Vec<Match<Feat>>>>) {
-        let root_id = self.root();
-        let camera_map = self.camera_map();
-        (0..self.paths.len()).map(|path_idx| {
-            //TODO: investigate this cloning
-            let path = self.paths[path_idx].clone();
-            let matches = self.matches[path_idx].clone();
-            let matches_tracks = self.filtered_matches_by_tracks[path_idx].clone();
-            self.compute_pairwise_cam_motions_with_filtered_matches_for_path(
-                root_id,
-                camera_map,
-                &path,
-                &matches,
-                &matches_tracks,
-                epipolar_thresh,
-                normalize_features,
-                epipolar_alg, 
-                decomp_alg)
-            }
-    ).unzip()
-    
-}
+        (all_states, all_filtered_matches)
+    }
 
 }
