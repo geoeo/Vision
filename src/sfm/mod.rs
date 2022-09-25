@@ -98,11 +98,11 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq> SFMConfi
         let mut feature_tracks = Vec::<Vec<FeatureTrack<Feat>>>::with_capacity(matches.len());
 
         for i in 0..matches.len() {
-            let path = matches[i].clone();
+            let path = &matches[i];
             let path_len = path.len();
             filtered_matches.push(Vec::<Vec<Match<Feat>>>::with_capacity(path_len));
             feature_tracks.push(Vec::<FeatureTrack<Feat>>::with_capacity(image_size));
-            for img_idx in 0..path.len() {
+            for img_idx in 0..path_len {
                 filtered_matches[i].push(Vec::<Match<Feat>>::with_capacity(path[img_idx].len()));
             }
         }

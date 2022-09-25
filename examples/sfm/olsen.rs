@@ -228,8 +228,8 @@ fn main() -> Result<()> {
             EssentialDecomposition::FÖRSNTER
     );
 
-    let mut initial_cam_motions_per_path = initial_cam_motions_per_path_essential.clone();
-    let mut filtered_matches_per_path = filtered_matches_per_path_essential.clone();
+    let mut initial_cam_motions_per_path = initial_cam_motions_per_path_fundamental.clone();
+    let mut filtered_matches_per_path = filtered_matches_per_path_fundamental.clone();
 
     for i in 0..initial_cam_motions_per_path.len() {
         let p = &initial_cam_motions_per_path[i];
