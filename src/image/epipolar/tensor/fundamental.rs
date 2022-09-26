@@ -57,8 +57,19 @@ pub fn eight_point_hartley<T : Feature>(matches: &Vec<Match<T>>, positive_princi
     let svd = A.svd(false,true);
     let v_t =  &svd.v_t.expect("SVD failed on A");
     let f = &v_t.row(v_t.nrows()-1);
-    let F = to_fundamental(&f.transpose());
 
+    // let eigen = (A.transpose()*A).symmetric_eigen();
+    // let mut min_idx = 0;
+    // let mut min_val = Float::INFINITY;
+    // for i in 0..eigen.eigenvalues.nrows(){
+    //     if eigen.eigenvalues[i] < min_val {
+    //         min_idx = i;
+    //         min_val = eigen.eigenvalues[i];
+    //     }
+    // }
+    // let f = eigen.eigenvectors.column(min_idx).transpose();
+    
+    let F = to_fundamental(&f.transpose());
 
     let mut svd_f = F.svd(true,true);
     let acc = svd_f.singular_values[0].powi(2) + svd_f.singular_values[1].powi(2);

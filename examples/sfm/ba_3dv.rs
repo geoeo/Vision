@@ -72,7 +72,7 @@ fn main() -> Result<()> {
     //let sfm_config = SFMConfig::new(2, vec!(vec!(1,0), vec!(3)), camera_map.clone(), camera_map, vec!(vec!(matches_2_1,matches_1_0),vec!(matches_2_3)),
     //let sfm_config = SFMConfig::new(2, vec!(vec!(1), vec!(3,4)), camera_map.clone(), camera_map, vec!(vec!(matches_2_1),vec!(matches_2_3,matches_3_4)),
     let sfm_config = SFMConfig::new(2, vec!(vec!(1,0), vec!(3,4)), camera_map.clone(), camera_map, vec!(vec!(matches_2_1,matches_1_0),vec!(matches_2_3,matches_3_4)),
-        BifocalType::FUNDAMENTAL, 320*240);
+        BifocalType::ESSENTIAL, 320*240);
 
     //let epipolar_thresh = 4e-1;
     let epipolar_thresh = Float::INFINITY;

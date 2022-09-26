@@ -79,7 +79,7 @@ pub fn filter_matches_from_motion<T: Feature + Clone, C: Camera<Float>>(matches:
     let cam_f_inv = cam_f.get_inverse_projection();
     let fundamental = tensor::compute_fundamental(&essential, &cam_s_inv, &cam_f_inv);
 
-    tensor::filter_matches_from_fundamental(&fundamental,matches, epipiolar_thresh, cam_s,cam_f)
+    tensor::filter_matches_from_fundamental(&fundamental,matches, epipiolar_thresh)
 }
 
 /**

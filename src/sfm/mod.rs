@@ -174,14 +174,14 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq> SFMConfi
             for path_idx in 0..self.paths.len() {
                 //TODO: investigate this cloning
                 let path = self.paths[path_idx].clone();
-                //let matches = self.matches[path_idx].clone();
+                let matches = self.matches[path_idx].clone();
                 let matches_tracks = self.filtered_matches_by_tracks[path_idx].clone();
                 let mut states: Vec<(usize,(Vector3<Float>,Matrix3<Float>))> = Vec::<(usize,(Vector3<Float>,Matrix3<Float>))>::with_capacity(100);
                 let mut filtered_matches: Vec<Vec<Match<Feat>>> = Vec::<Vec<Match<Feat>>>::with_capacity(100);
                 for j in 0..matches_tracks.len() {
-                    let tracks = &matches_tracks[j];
-                    //let all_matches = &matches[j];
-                    let m = tracks;
+                    //let tracks = &matches_tracks[j];
+                    let all_matches = &matches[j];
+                    let m = all_matches;
                     let c1 = match j {
                         0 => root_cam,
                         idx => self.camera_map.get(&path[idx-1]).expect("compute_pairwise_cam_motions_for_path: could not get previous cam")
@@ -197,7 +197,7 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq> SFMConfi
                             // let filtered = tensor::filter_matches_from_fundamental(&f_corr,m,epipolar_thresh, c1,c2);
                             // (tensor::compute_essential(&f_corr,&c1.get_projection(),&c2.get_projection()), filtered)
             
-                            let filtered = tensor::filter_matches_from_fundamental(&f,m,epipolar_thresh, c1, c2);
+                            let filtered = tensor::filter_matches_from_fundamental(&f,m,epipolar_thresh);
                             (tensor::compute_essential(&f,&c1.get_projection(),&c2.get_projection()), filtered)
                         },
                         tensor::BifocalType::ESSENTIAL => {
@@ -212,7 +212,7 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq> SFMConfi
                             // let filtered =  tensor::filter_matches_from_fundamental(&f_corr,m,epipolar_thresh,c1,c2);
                             // (tensor::compute_essential(&f_corr,&c1.get_projection(),&c2.get_projection()), filtered)
             
-                            (e, tensor::filter_matches_from_fundamental(&f,m,epipolar_thresh,c1,c2))
+                            (e, tensor::filter_matches_from_fundamental(&f,m,epipolar_thresh))
                         }
                     };
             

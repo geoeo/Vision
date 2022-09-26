@@ -101,16 +101,31 @@ pub fn five_point_essential<T: Feature + Clone, C: Camera<Float>>(matches: &Vec<
         A.row_mut(i).copy_from(&kroenecker_product);
     }
 
-    let vt = match l {
+    let (u1, u2, u3, u4) = match l {
         l if l < 5 => panic!("Five Point: Less than 5 features given!"),
-        5 => nalgebra_lapack::SVD::new(A).expect("Five Point: SVD failed on A!").vt,
-        _ => nalgebra_lapack::SVD::new(A.transpose()*A).expect("Five Point: SVD failed on A!").vt
+        5 => {
+            //TODO: check order for strickly 5 points
+            let vt = nalgebra_lapack::SVD::new(A).expect("Five Point: SVD failed on A!").vt;
+            let u1 = vt.row(5).transpose(); 
+            let u2 = vt.row(6).transpose();
+            let u3 = vt.row(7).transpose();
+            let u4 = vt.row(8).transpose();
+            (u1, u2, u3, u4)
+        },
+        _ => {
+            let eigen = nalgebra_lapack::SymmetricEigen::new(A.transpose()*A);
+            let eigenvectors = eigen.eigenvectors;
+            let mut indexed_eigenvalues = eigen.eigenvalues.iter().enumerate().map(|(i,v)| (i,*v)).collect::<Vec<(usize, Float)>>();
+            indexed_eigenvalues.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
+            let u1 = eigenvectors.column(indexed_eigenvalues[0].0).into_owned();
+            let u2 = eigenvectors.column(indexed_eigenvalues[1].0).into_owned();
+            let u3 = eigenvectors.column(indexed_eigenvalues[2].0).into_owned();
+            let u4 = eigenvectors.column(indexed_eigenvalues[3].0).into_owned();
+            (u1, u2, u3, u4)
+        }
+
     };
 
-    let u1 = vt.row(5).transpose(); 
-    let u2 = vt.row(6).transpose();
-    let u3 = vt.row(7).transpose();
-    let u4 = vt.row(8).transpose();
 
     let E1 = to_matrix::<_,3,3,9>(&u1);
     let E2 = to_matrix::<_,3,3,9>(&u2);
@@ -222,8 +237,8 @@ pub fn cheirality_check<T: Feature + Clone,  C: Camera<Float>>(
                 let min_val = svd.singular_values[2];
         
 
-                if (accepted_cheirality_count >= max_accepted_cheirality_count) ||
-                    ((accepted_cheirality_count == max_accepted_cheirality_count) && min_val < smallest_eigenvalue) {
+                if  !det.is_nan() && ((accepted_cheirality_count >= max_accepted_cheirality_count) ||
+                    ((accepted_cheirality_count == max_accepted_cheirality_count) && min_val < smallest_eigenvalue)) {
                     best_e = Some(e_corrected_norm.clone());
                     smallest_det = det;
                     max_accepted_cheirality_count = accepted_cheirality_count;

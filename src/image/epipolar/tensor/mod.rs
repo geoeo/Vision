@@ -28,7 +28,7 @@ pub enum EssentialDecomposition {
 }
 
 #[allow(non_snake_case)]
-pub fn filter_matches_from_fundamental<T: Feature + Clone,C: Camera<Float> >(F: &Fundamental,matches: &Vec<Match<T>>, epipiolar_thresh: Float, camera_start: &C, camera_finish: &C) -> Vec<Match<T>> {
+pub fn filter_matches_from_fundamental<T: Feature + Clone>(F: &Fundamental,matches: &Vec<Match<T>>, epipiolar_thresh: Float) -> Vec<Match<T>> {
     matches.iter().filter(|m| {
             let start = m.feature_one.get_as_3d_point(-1.0);
             let finish = m.feature_two.get_as_3d_point(-1.0);
@@ -50,7 +50,7 @@ pub fn ransac_five_point_essential<T: Feature + Clone, C: Camera<Float>>(matches
                 let svd = essential.svd(false,false);
                 let min_val = svd.singular_values[2];
                 let f = compute_fundamental(&essential, &camera_one.get_inverse_projection(), &camera_two.get_inverse_projection());
-                best_essential = match (min_val.abs(), essential.determinant().abs(), filter_matches_from_fundamental(&f,matches,epipolar_thresh, camera_one, camera_two).len()) {
+                best_essential = match (min_val.abs(), essential.determinant().abs(), filter_matches_from_fundamental(&f,matches,epipolar_thresh).len()) {
                     (singular_val, det, inliers) if (inliers > max_inlier_count) || (inliers == max_inlier_count && singular_val < min_singular_value) => {
                         max_inlier_count = inliers;
                         min_singular_value = singular_val;
