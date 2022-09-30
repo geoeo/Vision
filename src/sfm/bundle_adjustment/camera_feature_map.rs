@@ -269,8 +269,8 @@ impl CameraFeatureMap {
                             let projection_1 = c1_intrinsics*(Matrix4::<Float>::identity().fixed_slice::<3,4>(0,0));
                             let projection_2 = c2_intrinsics*(se3.fixed_slice::<3,4>(0,0));
                             
-                            //let triangulated_points = pose_acc*linear_triangulation_svd(&vec!((&normalized_image_points_s,&projection_1),(&normalized_image_points_f,&projection_2)));
-                            let triangulated_points = pose_acc*stereo_triangulation((&normalized_image_points_s,&projection_1),(&normalized_image_points_f,&projection_2),f0,f0_prime).expect("get_euclidean_landmark_state: Stereo Triangulation Failed");
+                            let triangulated_points = pose_acc*linear_triangulation_svd(&vec!((&normalized_image_points_s,&projection_1),(&normalized_image_points_f,&projection_2)));
+                            //let triangulated_points = pose_acc*stereo_triangulation((&normalized_image_points_s,&projection_1),(&normalized_image_points_f,&projection_2),f0,f0_prime).expect("get_euclidean_landmark_state: Stereo Triangulation Failed");
                             pose_acc = pose_acc*se3;
                             assert_eq!(triangulated_points.ncols(), point_ids.len());
 

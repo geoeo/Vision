@@ -3,7 +3,7 @@ extern crate num_traits;
 extern crate simba;
 
 use std::collections::HashMap;
-use crate::image::{features::{Feature, Match, feature_track::FeatureTrack},epipolar::tensor};
+use crate::image::{features::{Feature, Match, feature_track::FeatureTrack, solver_feature::SolverFeature},epipolar::tensor};
 use crate::sensors::camera::Camera;
 
 pub mod bundle_adjustment;
@@ -27,7 +27,7 @@ pub struct SFMConfig<C, C2, Feat: Feature> {
     image_size: usize
 }
 
-impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq> SFMConfig<C,C2, Feat> {
+impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverFeature> SFMConfig<C,C2, Feat> {
 
     //TODO: rework casting to be part of camera trait or super struct
     pub fn new(root: usize, paths: Vec<Vec<usize>>, camera_map: HashMap<usize, C>, camera_map_ba: HashMap<usize, C2>, matches: Vec<Vec<Vec<Match<Feat>>>>, epipolar_alg: tensor::BifocalType, image_size: usize) -> SFMConfig<C,C2,Feat> {
@@ -162,7 +162,7 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq> SFMConfi
     #[allow(non_snake_case)]
     pub fn compute_pairwise_cam_motions_with_filtered_matches(
             &self,
-            epipolar_thresh: Float, 
+            perc_tresh: Float, 
             normalize_features: bool,
             epipolar_alg: tensor::BifocalType,
             decomp_alg: tensor::EssentialDecomposition) 
@@ -194,10 +194,11 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq> SFMConfi
                             let f = tensor::fundamental::eight_point_hartley(m, false, f0); //TODO: make this configurable
                             
                             // let f_corr = tensor::fundamental::optimal_correction(&f, m, 1.0);
-                            // let filtered = tensor::filter_matches_from_fundamental(&f_corr,m,epipolar_thresh, c1,c2);
+                            // let filtered = tensor::select_best_matches_from_fundamental(&f_corr,m,perc_tresh);
                             // (tensor::compute_essential(&f_corr,&c1.get_projection(),&c2.get_projection()), filtered)
             
-                            let filtered = tensor::filter_matches_from_fundamental(&f,m,epipolar_thresh);
+                            let filtered = tensor::select_best_matches_from_fundamental(&f,m,perc_tresh);
+                            //let filtered = tensor::filter_matches_from_fundamental(&f,m,3e0);
                             (tensor::compute_essential(&f,&c1.get_projection(),&c2.get_projection()), filtered)
                         },
                         tensor::BifocalType::ESSENTIAL => {
@@ -209,10 +210,10 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq> SFMConfi
                             
                             //Seems to work better for olsen data 1e-1?
                             // let f_corr = tensor::fundamental::optimal_correction(&f, m, f0);
-                            // let filtered =  tensor::filter_matches_from_fundamental(&f_corr,m,epipolar_thresh,c1,c2);
+                            // let filtered =  tensor::select_best_matches_from_fundamental(&f_corr,m,perc_tresh);
                             // (tensor::compute_essential(&f_corr,&c1.get_projection(),&c2.get_projection()), filtered)
             
-                            (e, tensor::filter_matches_from_fundamental(&f,m,epipolar_thresh))
+                            (e, tensor::select_best_matches_from_fundamental(&f,m,perc_tresh))
                         }
                     };
             

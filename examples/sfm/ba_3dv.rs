@@ -72,14 +72,14 @@ fn main() -> Result<()> {
     //let sfm_config = SFMConfig::new(2, vec!(vec!(1,0), vec!(3)), camera_map.clone(), camera_map, vec!(vec!(matches_2_1,matches_1_0),vec!(matches_2_3)),
     //let sfm_config = SFMConfig::new(2, vec!(vec!(1), vec!(3,4)), camera_map.clone(), camera_map, vec!(vec!(matches_2_1),vec!(matches_2_3,matches_3_4)),
     let sfm_config = SFMConfig::new(2, vec!(vec!(1,0), vec!(3,4)), camera_map.clone(), camera_map, vec!(vec!(matches_2_1,matches_1_0),vec!(matches_2_3,matches_3_4)),
-        BifocalType::ESSENTIAL, 320*240);
+        BifocalType::FUNDAMENTAL, 320*240);
 
     //let epipolar_thresh = 4e-1;
-    let epipolar_thresh = Float::INFINITY;
+    let perc_tresh = 1.0;
     let normalize_features = false;
 
     let (initial_cam_motions_per_path,filtered_matches_per_path) = sfm_config.compute_pairwise_cam_motions_with_filtered_matches(
-        epipolar_thresh,
+        perc_tresh,
         normalize_features,
         sfm_config.epipolar_alg(),
         EssentialDecomposition::FÖRSNTER
