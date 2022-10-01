@@ -224,7 +224,7 @@ fn main() -> Result<()> {
 
     let sfm_config_fundamental = SFMConfig::new(root_id, paths.clone(), camera_map, camera_map_ba, sfm_all_matches.clone(), BifocalType::FUNDAMENTAL, olsen_data.width*olsen_data.height);
     let (initial_cam_motions_per_path_fundamental,filtered_matches_per_path_fundamental) = sfm_config_fundamental.compute_pairwise_cam_motions_with_filtered_matches(
-            0.3, 
+            1.0, 
             normalize_features,
             sfm_config_fundamental.epipolar_alg(), 
             EssentialDecomposition::FÖRSNTER

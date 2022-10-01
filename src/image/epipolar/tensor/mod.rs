@@ -6,6 +6,8 @@ pub mod fundamental;
 
 use na::{Vector3, Matrix3, SMatrix};
 use rand::seq::SliceRandom;
+use std::collections::HashSet;
+use std::iter::FromIterator;
 
 use crate::sensors::camera::Camera;
 use crate::Float;
@@ -37,20 +39,21 @@ pub fn filter_matches_from_fundamental<T: Feature + Clone>(F: &Fundamental,match
         }).cloned().collect::<Vec<Match<T>>>()
 }
 
+//TODO: Investigate why sorting the matched changes the solver convergence -> using set for now
 #[allow(non_snake_case)]
 pub fn select_best_matches_from_fundamental<T: Feature + Clone>(F: &Fundamental,matches: &Vec<Match<T>>, perc: Float) -> Vec<Match<T>> {
     assert! (0.0 <= perc && perc <= 1.0);
     let num = matches.len();
     let take_num = (perc*(num as Float)) as usize;
-    let mut valued_matches = matches.iter().map(|m| {
+    let mut sorted_indices = matches.iter().enumerate().map(|(i,m)| {
             let start = m.feature_one.get_as_3d_point(-1.0);
             let finish = m.feature_two.get_as_3d_point(-1.0);
-            (m.clone() , (start.transpose()*F*finish)[0].abs())
-        }).collect::<Vec<(Match<T>,Float)>>();
+            (i , (start.transpose()*F*finish)[0].abs())
+        }).collect::<Vec<(usize,Float)>>();
 
-        valued_matches.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
-        valued_matches.iter().take(take_num).map(|(m,_)| m.clone()).collect::<Vec<Match<T>>>()
-
+        sorted_indices.sort_unstable_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
+        let accepted_indices = HashSet::<usize>::from_iter(sorted_indices.iter().map(|(i,_)| i.clone()));
+        matches.iter().enumerate().filter(|(i,_)| accepted_indices.contains(i)).take(take_num).map(|(_,m)| m.clone()).collect::<Vec<Match<T>>>()
 }
 
 

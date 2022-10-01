@@ -179,9 +179,9 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
                 let mut states: Vec<(usize,(Vector3<Float>,Matrix3<Float>))> = Vec::<(usize,(Vector3<Float>,Matrix3<Float>))>::with_capacity(100);
                 let mut filtered_matches: Vec<Vec<Match<Feat>>> = Vec::<Vec<Match<Feat>>>::with_capacity(100);
                 for j in 0..matches_tracks.len() {
-                    //let tracks = &matches_tracks[j];
+                    let tracks = &matches_tracks[j];
                     let all_matches = &matches[j];
-                    let m = all_matches;
+                    let m = tracks;
                     let c1 = match j {
                         0 => root_cam,
                         idx => self.camera_map.get(&path[idx-1]).expect("compute_pairwise_cam_motions_for_path: could not get previous cam")
@@ -199,6 +199,8 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
             
                             let filtered = tensor::select_best_matches_from_fundamental(&f,m,perc_tresh);
                             //let filtered = tensor::filter_matches_from_fundamental(&f,m,3e0);
+
+
                             (tensor::compute_essential(&f,&c1.get_projection(),&c2.get_projection()), filtered)
                         },
                         tensor::BifocalType::ESSENTIAL => {
