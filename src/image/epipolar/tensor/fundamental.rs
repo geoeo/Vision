@@ -10,13 +10,12 @@ use crate::Float;
 use crate::image::features::{Feature,solver_feature::SolverFeature,Match};
 use crate::image::epipolar::tensor::Fundamental;
 
-
+#[allow(non_snake_case)]
 pub fn eight_point_least_squares<T : Feature>(matches: &Vec<Match<T>>, f0: Float) -> Fundamental {
     let number_of_matches = matches.len() as Float; 
     assert!(number_of_matches == 8.0);
 
     let mut M = SMatrix::<Float,9,9>::zeros();
-
 
     for m in matches {
         let eta = linear_coefficients(&m.feature_one.get_as_2d_point(), &m.feature_two.get_as_2d_point(), f0);
