@@ -164,8 +164,7 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
             &self,
             perc_tresh: Float, 
             normalize_features: bool,
-            epipolar_alg: tensor::BifocalType,
-            decomp_alg: tensor::EssentialDecomposition) 
+            epipolar_alg: tensor::BifocalType) 
         ->  (Vec<Vec<(usize,(Vector3<Float>,Matrix3<Float>))>>,Vec<Vec<Vec<Match<Feat>>>>) {
             let root_id = self.root();
             let root_cam = self.camera_map.get(&root_id).expect("compute_pairwise_cam_motions_for_path: could not get root cam");
@@ -219,10 +218,7 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
                         }
                     };
             
-                    let (h,rotation,_) = match decomp_alg {
-                        tensor::EssentialDecomposition::FÖRSNTER => tensor::decompose_essential_förstner(&e,&f_m,c1,c2),
-                        tensor::EssentialDecomposition::KANATANI => tensor::decompose_essential_kanatani(&e,&f_m, false)
-                    };
+                    let (h,rotation,_) = tensor::decompose_essential_förstner(&e,&f_m,c1,c2);
                     let new_state = (id2,(h, rotation));
                     states.push(new_state);
                     filtered_matches.push(f_m);

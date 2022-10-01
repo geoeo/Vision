@@ -81,8 +81,7 @@ fn main() -> Result<()> {
     let (initial_cam_motions_per_path,filtered_matches_per_path) = sfm_config.compute_pairwise_cam_motions_with_filtered_matches(
         perc_tresh,
         normalize_features,
-        sfm_config.epipolar_alg(),
-        EssentialDecomposition::FÖRSNTER
+        sfm_config.epipolar_alg()
     );
 
     let ((cam_positions,points),(s,debug_states_serialized)) = run_ba(&filtered_matches_per_path, &sfm_config, Some(&initial_cam_motions_per_path), (480,640), &runtime_parameters, 1.0);
