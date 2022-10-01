@@ -38,6 +38,7 @@ pub struct CameraFeatureMap {
 
 }
 
+//@TODO: Include transitive feature mappings not only 2 view!
 impl CameraFeatureMap {
 
     pub const NO_FEATURE_FLAG : Float = -1.0;
