@@ -265,7 +265,7 @@ pub fn get_c9_constraints_coeffs(E1: &Matrix3<Float>, E2: &Matrix3<Float>, E3: &
     ])
 }
 
-#[allow(non_snake_case)]
+#[allow(non_snake_case, dead_code)]
 pub fn get_opengv_coeffs(e1: &SVector<Float, 9>, e2: &SVector<Float, 9>, e3: &SVector<Float, 9>, e4: &SVector<Float, 9>) -> OMatrix<Float,U10,U20> {
 
     let e00 = e1[0];

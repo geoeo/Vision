@@ -36,7 +36,7 @@ fn clear_scene(window: &mut Window, scene_nodes: &mut Vec::<kiss3d::scene::Scene
 fn populate_scene(window: &mut Window, scene_nodes: &mut Vec::<kiss3d::scene::SceneNode>, cams: &Vec<Isometry3<Float>>, points: & Vec<Vector3<Float>>) -> () {
     for cam in cams {
         let cam_world = cam.inverse();
-        let mut s = window.add_sphere(0.01);
+        let mut s = window.add_sphere(0.05);
         s.set_color(random(), random(), random());
         let factor = 1.0;
         s.append_translation(&Translation3::new(factor*(cam_world.translation.vector[0] as f32),factor*(cam_world.translation.vector[1] as f32),factor*(cam_world.translation.vector[2] as f32)));
@@ -45,7 +45,7 @@ fn populate_scene(window: &mut Window, scene_nodes: &mut Vec::<kiss3d::scene::Sc
 
     let point_factor = 1.0;
     for point in points {
-        let mut s = window.add_sphere(0.008);
+        let mut s = window.add_sphere(0.01);
         s.set_color(random(), random(), random());
         s.append_translation(&Translation3::new(point_factor*(point[0] as f32), point_factor*(point[1] as f32),  point_factor*(point[2] as f32)));
         scene_nodes.push(s);
