@@ -310,7 +310,7 @@ fn EFNS<T : Feature>(matches: &Vec<Match<T>>,matches_est: &Vec<Match<T>>, u_orig
         match nalgebra_lapack::Eigen::new(Y, false,true) {
             Some(eigen) => {
                 let eigen_vectors = eigen.eigenvectors.expect("EFNS: Eigenvectors Faield!");
-                let eigen_values = eigen.eigenvalues;
+                let eigen_values = eigen.eigenvalues_re;
             
                 let mut min_1_idx = 0;
                 let mut min_1_val = Float::INFINITY;

@@ -151,8 +151,8 @@ pub fn five_point_essential<T: Feature + Clone, C: Camera<Float>>(matches: &Vec<
     action_matrix[(8,3)] = 1.0;
     action_matrix[(9,6)] = 1.0;
 
-    let (_, _, option_vr) = nalgebra_lapack::Eigen::complex_eigen_decomposition(action_matrix.transpose(), false, true);
-    let eigen_v = option_vr.expect("Five Point: eigenvector computation failed!");
+    let eigen = nalgebra_lapack::Eigen::new(action_matrix.transpose(), false, true).expect("Five Point: eigenvector computation failed!");
+    let eigen_v = eigen.eigenvectors.expect("Five Point: could not retrieve right eigenvectors!");
 
     let mut real_eigenvectors = Vec::<SVector::<Float,10>>::with_capacity(10);
     for i in 0..10 {
