@@ -16,8 +16,6 @@ pub mod filter;
 pub mod pyramid;
 pub mod features;
 pub mod descriptors;
-pub mod epipolar;
-pub mod triangulation;
 
 //TODO: add id based on image name or something like that - hasids.org
 #[derive(Debug,Clone)]

@@ -12,7 +12,6 @@ openblas-src = {version = "*", features = ["static"]}
 nalgebra = {version="*", features=["rand"], path="/home/marc/Workspace/Rust/nalgebra"}
 nalgebra-lapack = {version ="*", default-features=false, features = ["netlib"], path="/home/marc/Workspace/Rust/nalgebra/nalgebra-lapack"}
 nalgebra-sparse = {version ="*", path="/home/marc/Workspace/Rust/nalgebra/nalgebra-sparse"}
-kiss3d = "*"
 rand = {version = "*", features = ["small_rng"] }
 rand_distr = "*"
 optimization_engine = "*"
@@ -22,6 +21,10 @@ serde = { version = "*", features = ["derive"] }
 serde_yaml = "0.8"
 num-traits = "*"
 simba = "*"
+itertools = "*"
+
+[dev-dependencies]
+kiss3d = "*"
 
 [profile.release]
 debug = 0

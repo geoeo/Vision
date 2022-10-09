@@ -4,7 +4,8 @@ extern crate nalgebra_lapack;
 use na::{Matrix3,Matrix4, OMatrix ,Matrix3xX, SVector, Dynamic, dimension::{U10,U20,U9,U3}};
 use crate::{Float,float};
 use crate::sensors::camera::Camera;
-use crate::image::{features::{Feature,Match},epipolar::{Essential,tensor::decompose_essential_förstner},triangulation::{linear_triangulation_svd,stereo_triangulation}};
+use crate::image::{features::{Feature,Match}};
+use crate::sfm::{triangulation::{linear_triangulation_svd,stereo_triangulation},epipolar::{Essential,tensor::decompose_essential_förstner}};
 use crate::numerics::{to_matrix, pose};
 
 mod constraints;
@@ -18,8 +19,8 @@ mod constraints;
 pub fn five_point_essential<T: Feature + Clone, C: Camera<Float>>(matches: &Vec<Match<T>>, camera_one: &C, camera_two: &C) -> Option<Essential> {
     let inverse_projection_one = camera_one.get_inverse_projection();
     let inverse_projection_two = camera_two.get_inverse_projection();
-    let projection_one =camera_one.get_projection();
-    let projection_two =camera_two.get_projection();
+    let projection_one = camera_one.get_projection();
+    let projection_two = camera_two.get_projection();
 
     let l = matches.len();
     let l_as_float = l as Float;
@@ -121,6 +122,7 @@ pub fn five_point_essential<T: Feature + Clone, C: Camera<Float>>(matches: &Vec<
             let u2 = eigenvectors.column(indexed_eigenvalues[1].0).into_owned();
             let u3 = eigenvectors.column(indexed_eigenvalues[2].0).into_owned();
             let u4 = eigenvectors.column(indexed_eigenvalues[3].0).into_owned();
+
             (u1, u2, u3, u4)
         }
 
@@ -180,7 +182,6 @@ pub fn cheirality_check<T: Feature + Clone,  C: Camera<Float>>(
     let mut max_accepted_cheirality_count = 0;
     let mut best_e = None;
     let mut smallest_det = float::MAX;
-    let mut smallest_eigenvalue = float::MAX;
     let camera_1 = points_cam_1.1;
     let camera_2 = points_cam_2.1;
 
@@ -233,16 +234,12 @@ pub fn cheirality_check<T: Feature + Clone,  C: Camera<Float>>(
                 }
                 let e_corrected_norm = e_corrected.normalize();
                 let det = e_corrected_norm.determinant().abs();
-                let svd = e_corrected_norm.svd(false,false);
-                let min_val = svd.singular_values[2];
-        
 
                 if  !det.is_nan() && ((accepted_cheirality_count >= max_accepted_cheirality_count) ||
-                    ((accepted_cheirality_count == max_accepted_cheirality_count) && min_val < smallest_eigenvalue)) {
+                    ((accepted_cheirality_count == max_accepted_cheirality_count) && det < smallest_det)) {
                     best_e = Some(e_corrected_norm.clone());
                     smallest_det = det;
                     max_accepted_cheirality_count = accepted_cheirality_count;
-                    smallest_eigenvalue = min_val;
                 }
             },
             _=> ()

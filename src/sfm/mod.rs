@@ -2,12 +2,16 @@ extern crate nalgebra as na;
 extern crate num_traits;
 extern crate simba;
 
-use std::collections::HashMap;
-use crate::image::{features::{Feature, Match, feature_track::FeatureTrack, solver_feature::SolverFeature},epipolar::tensor};
-use crate::sensors::camera::Camera;
-
 pub mod bundle_adjustment;
-pub mod landmark; 
+pub mod landmark;
+pub mod epipolar;
+pub mod triangulation;
+pub mod quest;
+
+use std::collections::HashMap;
+use crate::image::{features::{Feature, Match, feature_track::FeatureTrack, solver_feature::SolverFeature}};
+use crate::sfm::epipolar::tensor;
+use crate::sensors::camera::Camera;
 
 use na::{Vector3, Matrix3};
 use crate::Float;

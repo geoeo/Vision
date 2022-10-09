@@ -8,7 +8,7 @@ use nalgebra::linalg::SymmetricEigen;
 
 use crate::Float;
 use crate::image::features::{Feature,solver_feature::SolverFeature,Match};
-use crate::image::epipolar::tensor::Fundamental;
+use crate::sfm::epipolar::tensor::Fundamental;
 
 #[allow(non_snake_case)]
 pub fn eight_point_least_squares<T : Feature>(matches: &Vec<Match<T>>, f0: Float) -> Fundamental {

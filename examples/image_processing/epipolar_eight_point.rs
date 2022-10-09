@@ -11,8 +11,8 @@ use vision::image::{
     Image,
     features::{Match,orb_feature::OrbFeature,Feature, ImageFeature},
     pyramid::orb::orb_runtime_parameters::OrbRuntimeParameters,
-    epipolar
 };
+use vision::sfm::epipolar;
 use vision::sensors::camera::{pinhole::Pinhole, Camera, perspective::Perspective};
 use vision::io::{octave_loader,olsen_loader::OlssenData};
 use vision::{Float,load_runtime_conf};
