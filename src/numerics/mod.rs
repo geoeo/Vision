@@ -4,7 +4,7 @@ extern crate simba;
 
 use simba::scalar::{SubsetOf,SupersetOf};
 use na::{convert, Matrix2,Matrix3,Matrix1x2,Matrix3x1,SMatrix, Vector,SVector,Dim, storage::Storage,DVector, SimdRealField, ComplexField,base::Scalar};
-use num_traits::{float,NumAssign, identities};
+use num_traits::{float,NumAssign, identities, Zero, One};
 use crate::image::Image;
 use crate::Float;
 
@@ -187,7 +187,7 @@ pub fn gauss_2d<F>(x_center: F, y_center: F, x: F, y: F, sigma: F) -> F where F 
     exp/denom
 }
 
-pub fn max_norm<F,D,S>(vector: &Vector<F,D,S>) -> F where D: Dim, S: Storage<F,D>, F : num_traits::float::Float + Scalar + NumAssign + SimdRealField + ComplexField  {
+pub fn max_norm<F,D,S>(vector: &Vector<F,D,S>) -> F where D: Dim, S: Storage<F,D>, F : float::Float + Scalar + NumAssign + SimdRealField + ComplexField  {
 
     vector.iter().fold(F::zero(),|max,&v| 
         match float::Float::abs(v) {
@@ -196,6 +196,14 @@ pub fn max_norm<F,D,S>(vector: &Vector<F,D,S>) -> F where D: Dim, S: Storage<F,D
         }
     )
 
+}
+
+pub fn factorial(num: usize) -> usize {
+    (1..num).product()
+}
+
+pub fn bionomial_coefficient(n:usize, k:usize) -> usize {
+    factorial(n)/(factorial(n-k)*factorial(k))
 }
 
 
