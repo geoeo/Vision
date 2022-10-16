@@ -6,6 +6,8 @@ use na::{SMatrix,Matrix2xX, DVector, SVector};
 use crate::Float;
 use crate::numerics::bionomial_coefficient;
 
+
+
 /**
   *  m1: Matrix containing the homogeneous coordinates of  feature points in the 1st camera frame.
   *  m2: Matrix containing the homogeneous coordinates of feature points in the 2nd camera frame.
@@ -14,7 +16,7 @@ use crate::numerics::bionomial_coefficient;
 pub fn generate_constraints(m1: &SMatrix<Float,3,5>, m2: &SMatrix<Float,3,5>) -> SMatrix<Float,11,35> {
 
     let num_points = m1.ncols();
-    let mut idx_bin_1 = Matrix2xX::<usize>::zeros(bionomial_coefficient(num_points,2)-1);
+    let mut idx_bin_1 = SMatrix::<usize,2,9>::zeros(); // 9 = bionomial_coefficient(num_points,2)-1
 
     let mut counter = 0;
     for i in 0..(num_points-3) {
@@ -29,21 +31,21 @@ pub fn generate_constraints(m1: &SMatrix<Float,3,5>, m2: &SMatrix<Float,3,5>) ->
     let idx_bin_1_row1 =  idx_bin_1.row(0);
     let idx_bin_1_row2 =  idx_bin_1.row(1);
 
-    let mut mx1 = DVector::<Float>::zeros(idx_bin_cols);
-    let mut mx2 = DVector::<Float>::zeros(idx_bin_cols);
-    let mut my1 = DVector::<Float>::zeros(idx_bin_cols);
-    let mut my2 = DVector::<Float>::zeros(idx_bin_cols);
-    let mut s1 = DVector::<Float>::zeros(idx_bin_cols);
-    let mut s2 = DVector::<Float>::zeros(idx_bin_cols);
+    let mut mx1 = SVector::<Float,9>::zeros();
+    let mut mx2 = SVector::<Float,9>::zeros();
+    let mut my1 = SVector::<Float,9>::zeros();
+    let mut my2 = SVector::<Float,9>::zeros();
+    let mut s1 = SVector::<Float,9>::zeros();
+    let mut s2 = SVector::<Float,9>::zeros();
 
-    let mut nx1 = DVector::<Float>::zeros(idx_bin_cols);
-    let mut nx2 = DVector::<Float>::zeros(idx_bin_cols);
-    let mut ny1 = DVector::<Float>::zeros(idx_bin_cols);
-    let mut ny2 = DVector::<Float>::zeros(idx_bin_cols);
-    let mut r1 = DVector::<Float>::zeros(idx_bin_cols);
-    let mut r2 = DVector::<Float>::zeros(idx_bin_cols);
+    let mut nx1 = SVector::<Float,9>::zeros();
+    let mut nx2 = SVector::<Float,9>::zeros();
+    let mut ny1 = SVector::<Float,9>::zeros();
+    let mut ny2 = SVector::<Float,9>::zeros();
+    let mut r1 = SVector::<Float,9>::zeros();
+    let mut r2 = SVector::<Float,9>::zeros();
 
-    for i in 0..idx_bin_cols {
+    for i in 0..9 {
         mx1[i] = m1[(0,idx_bin_1_row1[i])];
         mx2[i] = m1[(0,idx_bin_1_row2[i])];
         nx1[i] = m2[(0,idx_bin_1_row1[i])];
@@ -66,16 +68,61 @@ pub fn generate_constraints(m1: &SMatrix<Float,3,5>, m2: &SMatrix<Float,3,5>) ->
     panic!("Todo");
 }
 
-fn coefs_num(mx1: &DVector::<Float>,mx2: &DVector::<Float>, my1: &DVector::<Float>, my2: &DVector::<Float>, nx2: &DVector::<Float>, ny2: &DVector::<Float>, r2: &DVector::<Float>, s1: &DVector::<Float>, s2: &DVector::<Float>) -> SVector<Float,10> {
-    let mut coeffs = SVector::<Float,10>::zeros();
+fn coefs_num(mx1: &SVector::<Float,9>, mx2: &SVector::<Float,9>, my1: &SVector::<Float,9>, my2: &SVector::<Float,9>, nx2: &SVector::<Float,9>, ny2: &SVector::<Float,9>, r2: &SVector::<Float,9>, s1: &SVector::<Float,9>, s2: &SVector::<Float,9>) -> SMatrix<Float,9, 10> {
+    let t2 = mx1.component_mul(my2).component_mul(r2);
+    let t3 = mx2.component_mul(ny2).component_mul(s1);
+    let t4 = my1.component_mul(nx2).component_mul(s2);
+    let t5 = mx1.component_mul(nx2).component_mul(s2)*2.0;
+    let t6 = my1.component_mul(ny2).component_mul(s2)*2.0;
+    let t7 = mx1.component_mul(my2).component_mul(nx2)*2.0;
+    let t8 = my2.component_mul(r2).component_mul(s1)*2.0;
+    let t9 = mx2.component_mul(my1).component_mul(r2);
+    let t10 = mx1.component_mul(ny2).component_mul(s2);
+    let t11 = mx2.component_mul(my1).component_mul(ny2)*2.0;
+    let t12 = mx2.component_mul(r2).component_mul(s1)*2.0;
+    let t13 = my2.component_mul(nx2).component_mul(s1);
 
-    return coeffs
+    return SMatrix::<Float,9,10>::from_columns(&[
+        t2+t3+t4-mx2.component_mul(my1).component_mul(r2)-mx1.component_mul(ny2).component_mul(s2)-my2.component_mul(nx2).component_mul(s1),
+        t11+t12-mx1.component_mul(my2).component_mul(ny2)*2.0-mx1.component_mul(r2).component_mul(s2)*2.0,
+        t7+t8-mx2.component_mul(my1).component_mul(nx2)*2.0-my1.component_mul(r2).component_mul(s2)*2.0,
+        t5+t6-mx2.component_mul(nx2).component_mul(s1)*2.0-my2.component_mul(ny2).component_mul(s1)*2.0,
+        -t2-t3+t4+t9+t10-my2.component_mul(nx2).component_mul(s1),
+        -t5+t6+mx2.component_mul(nx2).component_mul(s1)*2.0-my2.component_mul(ny2).component_mul(s1)*2.0,
+        t7-t8-mx2.component_mul(my1).component_mul(nx2)*2.0+my1.component_mul(r2).component_mul(s2)*2.0,
+        -t2+t3-t4+t9-t10+t13,
+        -t11+t12+mx1.component_mul(my2).component_mul(ny2)*2.0-mx1.component_mul(r2).component_mul(s2)*2.0,
+        t2-t3-t4-t9+t10+t13]
+    )
 }
 
-fn coefs_dem(mx2: &DVector::<Float>,my2: &DVector::<Float>, nx1: &DVector::<Float>, nx2: &DVector::<Float>, ny1: &DVector::<Float>, ny2: &DVector::<Float>, r1: &DVector::<Float>, r2: &DVector::<Float>, s2: &DVector::<Float>) -> SVector<Float,10> {
-    let mut coeffs = SVector::<Float,10>::zeros();
+fn coefs_dem(mx2: &SVector::<Float,9>, my2: &SVector::<Float,9>, nx1: &SVector::<Float,9>, nx2: &SVector::<Float,9>, ny1: &SVector::<Float,9>, ny2: &SVector::<Float,9>, r1: &SVector::<Float,9>, r2: &SVector::<Float,9>, s2: &SVector::<Float,9>) -> SMatrix<Float,9, 10> {
+    let t2 = mx2.component_mul(ny1).component_mul(r2);
+    let t3 = my2.component_mul(nx2).component_mul(r1);
+    let t4 = nx1.component_mul(ny2).component_mul(s2);
+    let t5 = mx2.component_mul(nx2).component_mul(r1)*2.0;
+    let t6 = my2.component_mul(ny2).component_mul(r1)*2.0;
+    let t7 = mx2.component_mul(nx2).component_mul(ny1)*2.0;
+    let t8 = ny1.component_mul(r2).component_mul(s2)*2.0;
+    let t9 = my2.component_mul(nx1).component_mul(r2);
+    let t10 = nx2.component_mul(ny1).component_mul(s2);
+    let t11 = my2.component_mul(nx1).component_mul(ny2)*2.0;
+    let t12 = nx1.component_mul(r2).component_mul(s2)*2.0;
+    let t13 = mx2.component_mul(ny2).component_mul(r1);
 
-    return coeffs
+    return SMatrix::<Float,9, 10>::from_columns(&[
+        t2+t3+t4-mx2.component_mul(ny2).component_mul(r1)-my2.component_mul(nx1).component_mul(r2)-nx2.component_mul(ny1).component_mul(s2),
+        t11+t12-my2.component_mul(nx2).component_mul(ny1)*2.0-nx2.component_mul(r1).component_mul(s2)*2.0,
+        t7+t8-mx2.component_mul(nx1).component_mul(ny2)*2.0-ny2.component_mul(r1).component_mul(s2)*2.0,
+        t5+t6-mx2.component_mul(nx1).component_mul(r2)*2.0-my2.component_mul(ny1).component_mul(r2)*2.0,
+        t2-t3-t4+t9+t10-mx2.component_mul(ny2).component_mul(r1),
+        t5-t6-mx2.component_mul(nx1).component_mul(r2)*2.0+my2.component_mul(ny1).component_mul(r2)*2.0,
+        -t7+t8+mx2.component_mul(nx1).component_mul(ny2)*2.0-ny2.component_mul(r1).component_mul(s2)*2.0,
+        -t2+t3-t4-t9+t10+t13,
+        t11-t12-my2.component_mul(nx2).component_mul(ny1)*2.0+nx2.component_mul(r1).component_mul(s2)*2.0,
+        -t2-t3+t4+t9-t10+t13
+    ]
+    )
 }
 
 
