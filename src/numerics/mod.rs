@@ -4,7 +4,7 @@ extern crate simba;
 
 use simba::scalar::{SubsetOf,SupersetOf};
 use na::{convert, Matrix2,Matrix3,Matrix1x2,Matrix3x1,SMatrix, Vector,SVector,Dim, storage::Storage,DVector, SimdRealField, ComplexField,base::Scalar};
-use num_traits::{float,NumAssign, identities, Zero, One};
+use num_traits::{float,NumAssign, identities};
 use crate::image::Image;
 use crate::Float;
 

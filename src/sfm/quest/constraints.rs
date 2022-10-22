@@ -1,17 +1,15 @@
 extern crate nalgebra as na;
 extern crate itertools;
 
-use itertools::Itertools;
-use na::{SMatrix,Matrix2xX, DVector, SVector};
+use na::{SMatrix, SVector};
 use crate::Float;
-use crate::numerics::bionomial_coefficient;
 
 
 
 /**
   *  m1: Matrix containing the homogeneous coordinates of  feature points in the 1st camera frame.
   *  m2: Matrix containing the homogeneous coordinates of feature points in the 2nd camera frame.
-  *  Output: C: The 11*35 coefficient matrix (10x35?)
+  *  Output: C: The 10*35 coefficient matrix 
   */
 pub fn generate_constraints(m1: &SMatrix<Float,3,5>, m2: &SMatrix<Float,3,5>) -> SMatrix<Float,10,35> {
 
