@@ -1,5 +1,4 @@
 extern crate nalgebra as na;
-extern crate itertools;
 
 use na::{SMatrix, SVector};
 use crate::Float;

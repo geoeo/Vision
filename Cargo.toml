@@ -21,7 +21,8 @@ serde = { version = "*", features = ["derive"] }
 serde_yaml = "0.8"
 num-traits = "*"
 simba = "*"
-itertools = "*"
+num-complex = "*"
+
 
 [dev-dependencies]
 kiss3d = "*"
