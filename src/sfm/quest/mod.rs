@@ -85,9 +85,6 @@ pub fn quest(m1: &SMatrix<Float,3,5>, m2: &SMatrix<Float,3,5>) -> Isometry3<Floa
                 34,    14,    19,    20]);  
 
     let mut b_x = SMatrix::<Float,35,35>::zeros();      
-
-    //Define Ve as a complex 35*35 matrices (needed for C++ code generation)
-    let v_e = SMatrix::<Complex<Float>,35,35>::zeros();    
     let c_f = constraints::generate_constraints(m1, m2);
 
     // A is the coefficient matrix such that A * X = 0
@@ -110,7 +107,7 @@ pub fn quest(m1: &SMatrix<Float,3,5>, m2: &SMatrix<Float,3,5>) -> Isometry3<Floa
     let A2 = A.fixed_columns::<21>(idx_w0_start).into_owned();
 
     let svd_a = SVD::new(-A2,false,false);
-    let b_bar = svd_a.solve(&A1,1e-6);
+    let b_bar = svd_a.solve(&A1,1e-6).expect("SVD Solve Failed in Quest");
 
     // Let 
     // V = [w^4, w^3*x, w^3*y, w^3*z, w^2*x^2, w^2*x*y, w^2*x*z, w^2*y^2, w^2*y*z, w^2*z^2, w*x^3, w*x^2*y, w*x^2*z, w*x*y^2, w*x*y*z, w*x*z^2, w*y^3, w*y^2*z, w*y*z^2, w*z^3, x^4, x^3*y, x^3*z, x^2*y^2, x^2*y*z, x^2*z^2, x*y^3, x*y^2*z, x*y*z^2, x*z^3, y^4, y^3*z, y^2*z^2, y*z^3, z^4]^T
@@ -119,35 +116,40 @@ pub fn quest(m1: &SMatrix<Float,3,5>, m2: &SMatrix<Float,3,5>) -> Isometry3<Floa
     for i in 0..20{
         b_x[(idx_1[(i,1)], idx_1[(i,2)])] = 1.0;
     }
+
+    //Bx(Idx2(:,1),:) = Bbar(Idx2(:,2),:); TODO: check this
+    for i in 0..idx_2.nrows() {
+        b_x.row_mut(idx_2[(i,0)]).copy_from(&b_bar.row(idx_2[(i,1)]));
+    }
+
     
     let eigen = Eigen::new(b_x,false,true).expect("QuEST: Eigen Decomp Failed!");
     let (_,_,real_eigenvectors_option) = eigen.get_real_elements();
     let real_eigenvectors = real_eigenvectors_option.expect("QuEST: Extracting Right Eigenvectors Failed!");
-    let mut real_eigenvectors_mat = SMatrix::<Float,35,35>::from_columns(&real_eigenvectors);
+    let mut V = SMatrix::<Float,35,35>::from_columns(&real_eigenvectors);
     // Correct the sign of each column s.t. the first element (i.e., w) is always positive
     for i in 0..35 {
-        if real_eigenvectors_mat[(0,i)] < 0.0{
-            real_eigenvectors_mat[(0,i)] *= -1.0;
+        if V[(0,i)] < 0.0{
+            V[(0,i)] *= -1.0;
         }
     }
 
-    // % Recover quaternion elements  
-    // w = sqrt(sqrt(V(1,:))); % NOTE: "sqrt(sqrt(.))" is 10 times faster than "nthroot(.,4)"
-    // w3 = w.^3;
-    // x = V(2,:) ./ w3;
-    // y = V(3,:) ./ w3;
-    // z = V(4,:) ./ w3;
 
-    // Q = [w;
-    //     x;
-    //     y;
-    //     z];
+    // Recover quaternion elements  
+    let w  = RowSVector::<Float,35>::from_iterator(V.row(0).into_owned().iter().map(|&v| Float::powf(v,0.25)));
+    let w3 = RowSVector::<Float,35>::from_iterator(w.iter().map(|&v| Float::powf(v,3.0)));
+    let x = V.row(1).into_owned().component_div(&w3);
+    let y = V.row(2).component_div(&w3);
+    let z = V.row(3).component_div(&w3);
 
-    // % Normalize s.t. each column of Q has norm 1
-    // QNrm = sqrt(sum(Q.^2,1));
-    // Q = bsxfun(@rdivide, Q, QNrm);
+    let mut Q = SMatrix::<Float,4,35>::from_rows(&[w,x,y,z]);
+
+    // Normalize s.t. each column of Q has norm 1
+    for mut c in Q.column_iter_mut() {
+        c /= c.apply_norm(&na::EuclideanNorm);
+    }
 
         
-
+    // TODO: Translation and Depth
     panic!("TODO");
 }
