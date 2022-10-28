@@ -1,11 +1,9 @@
 extern crate nalgebra as na;
 extern crate nalgebra_lapack;
 
-use na::{SMatrix, SVector, RowSVector, Isometry3, linalg::SVD};
+use na::{SMatrix, Matrix3, SVector, RowSVector, Isometry3, linalg::SVD, Quaternion, UnitQuaternion};
 use nalgebra_lapack::Eigen;
 use crate::Float;
-
-use num_complex::Complex;
 
 pub mod constraints;
 
@@ -17,7 +15,8 @@ pub mod constraints;
 //          feature point on the image plane. Thus, m and n are 3*5 matrices, 
 //          with one entries in the 3rd row.
  */
-pub fn quest(m1: &SMatrix<Float,3,5>, m2: &SMatrix<Float,3,5>) -> Isometry3<Float> {
+#[allow(non_snake_case)]
+pub fn quest(m1: &SMatrix<Float,3,5>, m2: &SMatrix<Float,3,5>) -> (Isometry3<Float>, Float, Float) {
 
     /*
         Let 
@@ -117,7 +116,6 @@ pub fn quest(m1: &SMatrix<Float,3,5>, m2: &SMatrix<Float,3,5>) -> Isometry3<Floa
         b_x[(idx_1[(i,1)], idx_1[(i,2)])] = 1.0;
     }
 
-    //Bx(Idx2(:,1),:) = Bbar(Idx2(:,2),:); TODO: check this
     for i in 0..idx_2.nrows() {
         b_x.row_mut(idx_2[(i,0)]).copy_from(&b_bar.row(idx_2[(i,1)]));
     }
@@ -134,7 +132,6 @@ pub fn quest(m1: &SMatrix<Float,3,5>, m2: &SMatrix<Float,3,5>) -> Isometry3<Floa
         }
     }
 
-
     // Recover quaternion elements  
     let w  = RowSVector::<Float,35>::from_iterator(V.row(0).into_owned().iter().map(|&v| Float::powf(v,0.25)));
     let w3 = RowSVector::<Float,35>::from_iterator(w.iter().map(|&v| Float::powf(v,3.0)));
@@ -142,6 +139,7 @@ pub fn quest(m1: &SMatrix<Float,3,5>, m2: &SMatrix<Float,3,5>) -> Isometry3<Floa
     let y = V.row(2).component_div(&w3);
     let z = V.row(3).component_div(&w3);
 
+    // Each column represents a candidate rotation
     let mut Q = SMatrix::<Float,4,35>::from_rows(&[w,x,y,z]);
 
     // Normalize s.t. each column of Q has norm 1
@@ -149,7 +147,65 @@ pub fn quest(m1: &SMatrix<Float,3,5>, m2: &SMatrix<Float,3,5>) -> Isometry3<Floa
         c /= c.apply_norm(&na::EuclideanNorm);
     }
 
+
+    let (candidate_translations, candidate_depth_1, candidate_depth_2) = recover_translation_and_depth(m1,m2,&Q);
+
+    //TODO: Chirality Check
         
-    // TODO: Translation and Depth
     panic!("TODO");
+}
+
+#[allow(non_snake_case)]
+fn recover_translation_and_depth(m1: &SMatrix<Float,3,5>, m2: &SMatrix<Float,3,5>, Q: & SMatrix<Float,4,35>) ->(SMatrix<Float,3,35>, SMatrix<Float,5,35>, SMatrix<Float,5,35>) {
+
+    let mut T = SMatrix::<Float,3,35>::zeros();
+    let mut Z1 = SMatrix::<Float,5,35>::zeros();
+    let mut Z2 = SMatrix::<Float,5,35>::zeros();
+    let I = Matrix3::<Float>::identity();
+
+    for k in 0..Q.ncols(){
+        let quat = UnitQuaternion::from_quaternion(Quaternion::<Float>::new(Q[(0,k)],Q[(1,k)],Q[(2,k)],Q[(3,k)]));
+        let R = quat.to_rotation_matrix().matrix().clone();
+
+        // Stack rigid motion constraints into matrix-vector form C * Y = 0
+        let mut C = SMatrix::<Float,15,13>::zeros();
+        for i in 0..5 {
+            for j in (i-1)*3..i*3{
+                C.fixed_slice_mut::<3,3>(j,0).copy_from(&I);
+                for l in (i-1)*2+3..(i-1)*2+5 {
+                    C.fixed_slice_mut::<3,1>(j,l).copy_from(&(R*m1.column(i)));
+                    C.fixed_slice_mut::<3,1>(j,l+3).copy_from(&-m2.column(i))
+                }
+            }
+        }
+
+        // The right singular vector corresponding to the zero singular value of C.
+        let Y = nalgebra_lapack::SVD::new(C).expect("Five Point: SVD failed on A!").vt.row(12).transpose();
+
+        let t = Y.fixed_rows::<3>(0);  // Translation vector
+        let mut z = Y.fixed_rows::<10>(3).into_owned();  // Depths in both camera frames
+
+        let negative_depth_count = z.iter().fold(0, |acc, &v| {
+            match v < 0.0 {
+                true => acc + 1,
+                false => acc
+            }
+        });
+        // Adjust the sign s.t. the recovered depths are negative
+        if negative_depth_count  < 5 {
+            z*=-1.0;
+        }
+
+        let z1 =  SVector::<Float,5>::new(z[0],z[2],z[4],z[6],z[8]); // Depths in camera frame 1
+        let z2 =  SVector::<Float,5>::new(z[1],z[3],z[5],z[7],z[9]); // Depths in camera frame 2
+
+        // Store the results
+        T.column_mut(k).copy_from(&t);
+        Z1.column_mut(k).copy_from(&z1);
+        Z2.column_mut(k).copy_from(&z2);
+    }
+
+
+    panic!("TODO");
+
 }
