@@ -1,7 +1,7 @@
 extern crate nalgebra as na;
 extern crate nalgebra_lapack;
 
-use na::{SMatrix, Matrix3, SVector, RowSVector, linalg::SVD, Quaternion, UnitQuaternion};
+use na::{SMatrix, Matrix3, SVector, OMatrix, Dynamic, RowSVector, RowDVector, linalg::SVD, Quaternion, UnitQuaternion, Const};
 use nalgebra_lapack::Eigen;
 use rand::seq::SliceRandom;
 use crate::sfm::{epipolar::Essential,tensor::essential_matrix_from_motion};
@@ -59,47 +59,47 @@ pub fn quest(m1: &SMatrix<Float,3,5>, m2: &SMatrix<Float,3,5>) -> (Essential, SV
     // contain a 1 element respectively for xV, yV, and zV.
     // V = [w^4, w^3*x, w^3*y, w^3*z, w^2*x^2, w^2*x*y, w^2*x*z, w^2*y^2, w^2*y*z, w^2*z^2, w*x^3, w*x^2*y, w*x^2*z, w*x*y^2, w*x*y*z, w*x*z^2, w*y^3, w*y^2*z, w*y*z^2, w*z^3, x^4, x^3*y, x^3*z, x^2*y^2, x^2*y*z, x^2*z^2, x*y^3, x*y^2*z, x*y*z^2, x*z^3, y^4, y^3*z, y^2*z^2, y*z^3, z^4]^T
     
-    let idx_1 = SVector::<usize,80>::from_vec(vec![ 
-             0,     1,     2,     3,
-             1,     4,     5,     6,
-             2,     5,     7,     8,
-             3,     6,     8,    9,
-             4,    10,    11,    12,
-             5,    11,    13,    14,
-             6,    12,    14,    15,
-             7,    13,    16,    17,
-             8,    14,    17,    18,
-            9,    15,     18,    19,
-            10,    20,    21,    22,
-            11,    21,    23,    24,
-            12,    22,    24,    25,
-            13,    23,    26,    27,
-            14,    24,    27,    28,
-            15,    25,    28,    29,
-            16,    26,    30,    31,
-            17,    27,    31,    32,
-            18,    28,    32,    33,
-            19,    29,    33,    34]);
+    let idx_1 = SMatrix::<usize,20,4>::from_rows(&[ 
+        RowSVector::<usize,4>::from_vec(vec![0,     1,     2,     3]),
+        RowSVector::<usize,4>::from_vec(vec![1,     4,     5,     6]),
+        RowSVector::<usize,4>::from_vec(vec![2,     5,     7,     8]),
+        RowSVector::<usize,4>::from_vec(vec![3,     6,     8,    9]),
+        RowSVector::<usize,4>::from_vec(vec![4,    10,    11,    12]),
+        RowSVector::<usize,4>::from_vec(vec![5,    11,    13,    14]),
+        RowSVector::<usize,4>::from_vec(vec![6,    12,    14,    15]),
+        RowSVector::<usize,4>::from_vec(vec![7,    13,    16,    17]),
+        RowSVector::<usize,4>::from_vec(vec![8,    14,    17,    18]),
+        RowSVector::<usize,4>::from_vec(vec![9,    15,     18,    19]),
+        RowSVector::<usize,4>::from_vec(vec![10,    20,    21,    22]),
+        RowSVector::<usize,4>::from_vec(vec![11,    21,    23,    24]),
+        RowSVector::<usize,4>::from_vec(vec![12,    22,    24,    25]),
+        RowSVector::<usize,4>::from_vec(vec![13,    23,    26,    27]),
+        RowSVector::<usize,4>::from_vec(vec![14,    24,    27,    28]),
+        RowSVector::<usize,4>::from_vec(vec![15,    25,    28,    29]),
+        RowSVector::<usize,4>::from_vec(vec![16,    26,    30,    31]),
+        RowSVector::<usize,4>::from_vec(vec![17,    27,    31,    32]),
+        RowSVector::<usize,4>::from_vec(vec![18,    28,    32,    33]),
+        RowSVector::<usize,4>::from_vec(vec![19,    29,    33,    34])]);
 
     // First column of Idx2 shows the row index of matrix B. The second,
     // third, and fourth columns indicate the row index of Bbar which should be
     // used respectively xV, yV, and zV.
-    let idx_2 = SVector::<usize,60>::from_vec(vec![ 
-                20,     0,     1,     2,
-                21,     1,     3,     4,
-                22,     2,     4,     5,
-                23,     3,     6,     7,
-                24,     4,     7,     8,
-                25,     5,     8,    9,
-                26,     6,    10,    11,
-                27,     7,    11,    12,
-                28,     8,    12,    13,
-                29,     9,    13,    14,
-                30,    10,    15,    16,
-                31,    11,    16,    17,
-                32,    12,    17,    18,
-                33,    13,    18,    19,
-                34,    14,    19,    20]);  
+    let idx_2 = SMatrix::<usize,15,4>::from_rows(&[ 
+        RowSVector::<usize,4>::from_vec(vec![20,     0,     1,     2]),
+        RowSVector::<usize,4>::from_vec(vec![21,     1,     3,     4]),
+        RowSVector::<usize,4>::from_vec(vec![22,     2,     4,     5]),
+        RowSVector::<usize,4>::from_vec(vec![23,     3,     6,     7]),
+        RowSVector::<usize,4>::from_vec(vec![24,     4,     7,     8]),
+        RowSVector::<usize,4>::from_vec(vec![25,     5,     8,    9]),
+        RowSVector::<usize,4>::from_vec(vec![26,     6,    10,    11]),
+        RowSVector::<usize,4>::from_vec(vec![27,     7,    11,    12]),
+        RowSVector::<usize,4>::from_vec(vec![28,     8,    12,    13]),
+        RowSVector::<usize,4>::from_vec(vec![29,     9,    13,    14]),
+        RowSVector::<usize,4>::from_vec(vec![30,    10,    15,    16]),
+        RowSVector::<usize,4>::from_vec(vec![31,    11,    16,    17]),
+        RowSVector::<usize,4>::from_vec(vec![32,    12,    17,    18]),
+        RowSVector::<usize,4>::from_vec(vec![33,    13,    18,    19]),
+        RowSVector::<usize,4>::from_vec(vec![34,    14,    19,    20])]);  
 
     let mut b_x = SMatrix::<Float,35,35>::zeros();      
     let c_f = constraints::generate_constraints(m1, m2);
@@ -117,13 +117,12 @@ pub fn quest(m1: &SMatrix<Float,3,5>, m2: &SMatrix<Float,3,5>) -> (Essential, SV
 
     }
 
-    
     // Split A into matrices A1 and A2. A1 corresponds to terms that contain w, 
     // and A2 corresponds to the rest of the terms.
     let A1 = A.fixed_columns::<35>(idx_w_start).into_owned();
     let A2 = A.fixed_columns::<21>(idx_w0_start).into_owned();
 
-    let svd_a = SVD::new(-A2,false,false);
+    let svd_a = SVD::new(-A2,true,true);
     let b_bar = svd_a.solve(&A1,1e-6).expect("SVD Solve Failed in Quest");
 
     // Let 
@@ -131,7 +130,7 @@ pub fn quest(m1: &SMatrix<Float,3,5>, m2: &SMatrix<Float,3,5>) -> (Essential, SV
     // then we have
     // x V = w Bx V   ,   y V = w By V   ,   z V = w Bz V
     for i in 0..20{
-        b_x[(idx_1[(i,1)], idx_1[(i,2)])] = 1.0;
+        b_x[(idx_1[(i,0)], idx_1[(i,1)])] = 1.0;
     }
 
     for i in 0..idx_2.nrows() {
@@ -142,23 +141,23 @@ pub fn quest(m1: &SMatrix<Float,3,5>, m2: &SMatrix<Float,3,5>) -> (Essential, SV
     let eigen = Eigen::new(b_x,false,true).expect("QuEST: Eigen Decomp Failed!");
     let (_,_,real_eigenvectors_option) = eigen.get_real_elements();
     let real_eigenvectors = real_eigenvectors_option.expect("QuEST: Extracting Right Eigenvectors Failed!");
-    let mut V = SMatrix::<Float,35,35>::from_columns(&real_eigenvectors);
+    let mut V = OMatrix::<Float,Const<35>,Dynamic>::from_columns(&real_eigenvectors);
     // Correct the sign of each column s.t. the first element (i.e., w) is always positive
-    for i in 0..35 {
+    for i in 0..V.ncols() {
         if V[(0,i)] < 0.0{
             V[(0,i)] *= -1.0;
         }
     }
 
     // Recover quaternion elements  
-    let w  = RowSVector::<Float,35>::from_iterator(V.row(0).into_owned().iter().map(|&v| Float::powf(v,0.25)));
-    let w3 = RowSVector::<Float,35>::from_iterator(w.iter().map(|&v| Float::powf(v,3.0)));
+    let w  = RowDVector::<Float>::from_iterator(V.ncols(), V.row(0).into_owned().iter().map(|&v| Float::powf(v,0.25)));
+    let w3 = RowDVector::<Float>::from_iterator(V.ncols(), w.iter().map(|&v| Float::powf(v,3.0)));
     let x = V.row(1).into_owned().component_div(&w3);
     let y = V.row(2).component_div(&w3);
     let z = V.row(3).component_div(&w3);
 
     // Each column represents a candidate rotation
-    let mut Q = SMatrix::<Float,4,35>::from_rows(&[w,x,y,z]);
+    let mut Q = OMatrix::<Float,Const<4>,Dynamic>::from_rows(&[w,x,y,z]);
 
     // Normalize s.t. each column of Q has norm 1
     for mut c in Q.column_iter_mut() {
@@ -170,26 +169,25 @@ pub fn quest(m1: &SMatrix<Float,3,5>, m2: &SMatrix<Float,3,5>) -> (Essential, SV
 }
 
 #[allow(non_snake_case)]
-fn recover_translation_and_depth(m1: &SMatrix<Float,3,5>, m2: &SMatrix<Float,3,5>, Q: & SMatrix<Float,4,35>) ->(SMatrix<Float,3,35>, SMatrix<Float,5,35>, SMatrix<Float,5,35>) {
+fn recover_translation_and_depth(m1: &SMatrix<Float,3,5>, m2: &SMatrix<Float,3,5>, Q: &OMatrix<Float,Const<4>,Dynamic>) ->(OMatrix<Float,Const<3>,Dynamic>, OMatrix<Float,Const<5>,Dynamic>, OMatrix<Float,Const<5>,Dynamic>) {
 
-    let mut T = SMatrix::<Float,3,35>::zeros();
-    let mut Z1 = SMatrix::<Float,5,35>::zeros();
-    let mut Z2 = SMatrix::<Float,5,35>::zeros();
+    let n = Q.ncols();
+    let mut T = OMatrix::<Float,Const<3>,Dynamic>::zeros(n);
+    let mut Z1 = OMatrix::<Float,Const<5>,Dynamic>::zeros(n);
+    let mut Z2 = OMatrix::<Float,Const<5>,Dynamic>::zeros(n);
     let I = Matrix3::<Float>::identity();
 
-    for k in 0..Q.ncols(){
+    for k in 0..n{
         let quat = UnitQuaternion::from_quaternion(Quaternion::<Float>::new(Q[(0,k)],Q[(1,k)],Q[(2,k)],Q[(3,k)]));
         let R = quat.to_rotation_matrix().matrix().clone();
 
         // Stack rigid motion constraints into matrix-vector form C * Y = 0
         let mut C = SMatrix::<Float,15,13>::zeros();
         for i in 0..5 {
-            for j in (i-1)*3..i*3{
-                C.fixed_slice_mut::<3,3>(j,0).copy_from(&I);
-                for l in (i-1)*2+3..(i-1)*2+5 {
-                    C.fixed_slice_mut::<3,1>(j,l).copy_from(&(R*m1.column(i)));
-                    C.fixed_slice_mut::<3,1>(j,l+3).copy_from(&-m2.column(i))
-                }
+            C.fixed_slice_mut::<3,3>(i*3,0).copy_from(&I);
+            for j in i*2+3..i*2+4{
+                C.fixed_slice_mut::<3,1>(i*3,j).copy_from(&(R*m1.column(i)));
+                C.fixed_slice_mut::<3,1>(i*3,j+1).copy_from(&-m2.column(i));
             }
         }
 
@@ -214,7 +212,7 @@ fn recover_translation_and_depth(m1: &SMatrix<Float,3,5>, m2: &SMatrix<Float,3,5
 }
 
 #[allow(non_snake_case)]
-fn cheirality_check(Q: &SMatrix<Float,4,35>, T: &SMatrix<Float,3,35>,  Z1: &SMatrix<Float,5,35>, Z2: &SMatrix<Float,5,35>) -> (Essential, SVector<Float,5>, SVector<Float,5>) {
+fn cheirality_check(Q: &OMatrix<Float,Const<4>,Dynamic>, T: &OMatrix<Float,Const<3>,Dynamic>,  Z1: &OMatrix<Float,Const<5>,Dynamic>, Z2: &OMatrix<Float,Const<5>,Dynamic>) -> (Essential, SVector<Float,5>, SVector<Float,5>) {
 
     let mut best_essential = Essential::zeros();
     let mut best_depths_1 = SVector::<Float,5>::zeros();
