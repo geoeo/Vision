@@ -12,7 +12,7 @@ use crate::Float;
 pub mod constraints;
 
 
-pub fn quest_ransac<T: Feature, C: Camera<Float>>(matches: &Vec<Match<T>>, camera_one: &C, camera_two: &C, epipolar_thresh: Float, ransac_it: usize) -> Essential {
+pub fn quest_ransac<T: Feature + Clone, C: Camera<Float>>(matches: &Vec<Match<T>>, camera_one: &C, camera_two: &C, epipolar_thresh: Float, ransac_it: usize) -> Essential {
 
     let mut max_inlier_count = 0;
     let mut best_essential: Option<Essential> = None;
@@ -20,7 +20,7 @@ pub fn quest_ransac<T: Feature, C: Camera<Float>>(matches: &Vec<Match<T>>, camer
 
         let mut m1 = SMatrix::<Float,3,5>::zeros();
         let mut m2 = SMatrix::<Float,3,5>::zeros();
-        let samples: Vec<_> = matches.choose_multiple(&mut rand::thread_rng(), 5).map(|x| x.clone()).collect();
+        let samples: Vec<_> = matches.choose_multiple(&mut rand::thread_rng(), 11).map(|x| x.clone()).collect();
         for i in 0..5 {
             let s = &samples[i];
             m1.column_mut(i).copy_from(&s.feature_one.get_as_3d_point(-1.0));
@@ -28,7 +28,7 @@ pub fn quest_ransac<T: Feature, C: Camera<Float>>(matches: &Vec<Match<T>>, camer
         }
         let (essential, _, _) = quest(&m1,&m2);
         let f = compute_fundamental(&essential, &camera_one.get_inverse_projection(), &camera_two.get_inverse_projection());
-        let inliers = calc_sampson_distance_inliers_for_fundamental(&f,matches,epipolar_thresh);
+        let inliers = calc_sampson_distance_inliers_for_fundamental(&f,&samples[5..].to_vec(),epipolar_thresh);
         if inliers > max_inlier_count {
             max_inlier_count = inliers;
             best_essential = Some(essential);

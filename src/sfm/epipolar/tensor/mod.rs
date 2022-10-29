@@ -58,16 +58,16 @@ pub fn select_best_matches_from_fundamental<T: Feature + Clone>(F: &Fundamental,
 }
 
 
-pub fn ransac_five_point_essential<T: Feature + Clone, C: Camera<Float>>(matches: &Vec<Match<T>>, camera_one: &C, camera_two: &C, epipolar_thresh: Float, ransac_it: usize, ransac_size: usize) -> Essential {
+pub fn ransac_five_point_essential<T: Feature + Clone, C: Camera<Float>>(matches: &Vec<Match<T>>, camera_one: &C, camera_two: &C, epipolar_thresh: Float, ransac_it: usize) -> Essential {
     let mut max_inlier_count = 0;
     let mut best_essential: Option<Essential> = None;
     for _ in 0..ransac_it {
-        let samples: Vec<_> = matches.choose_multiple(&mut rand::thread_rng(), ransac_size).map(|x| x.clone()).collect();
-        let essential_option = five_point::five_point_essential(&samples,camera_one,camera_two);
+        let samples: Vec<_> = matches.choose_multiple(&mut rand::thread_rng(), 11).map(|x| x.clone()).collect();
+        let essential_option = five_point::five_point_essential(&samples[0..5].to_vec(),camera_one,camera_two);
         match essential_option {
             Some(essential) => {
                 let f = compute_fundamental(&essential, &camera_one.get_inverse_projection(), &camera_two.get_inverse_projection());
-                let inliers = calc_sampson_distance_inliers_for_fundamental(&f,matches,epipolar_thresh);
+                let inliers = calc_sampson_distance_inliers_for_fundamental(&f,&samples[5..].to_vec(),epipolar_thresh);
                 if inliers > max_inlier_count {
                     max_inlier_count = inliers;
                     best_essential = Some(essential);
@@ -93,7 +93,7 @@ pub fn calc_sampson_distance_inliers_for_fundamental<T: Feature>(F: &Fundamental
 
         let denom = t1[0].powi(2) + t1[1].powi(2) + t2[0].powi(2) + t2[1].powi(2);
         v[0].powi(2)/denom
-    }).filter(|&v| v < thresh).count()
+    }).filter(|&v| v.abs() < thresh).count()
 
 }
 
