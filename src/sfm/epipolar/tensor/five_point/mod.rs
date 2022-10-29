@@ -4,7 +4,7 @@ extern crate nalgebra_lapack;
 use na::{Matrix3,Matrix4, OMatrix ,Matrix3xX, SVector, Dynamic, dimension::{U10,U20,U9,U3}};
 use crate::{Float,float};
 use crate::sensors::camera::Camera;
-use crate::image::{features::{Feature,Match}};
+use crate::image::features::{Feature,Match};
 use crate::sfm::{triangulation::{linear_triangulation_svd,stereo_triangulation},epipolar::{Essential,tensor::decompose_essential_förstner}};
 use crate::numerics::{to_matrix, pose};
 

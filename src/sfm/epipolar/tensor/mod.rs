@@ -93,7 +93,7 @@ pub fn five_point_essential<T: Feature + Clone, C: Camera<Float>>(matches: &Vec<
     five_point::five_point_essential(&matches,camera_one,camera_two).expect("five_point_essential: failed")
 }
 
-pub fn essential_matrix_from_motion(translation: &Vector3<Float>, rotation: &Matrix3<Float>) -> Matrix3<Float> {
+pub fn essential_matrix_from_motion(translation: &Vector3<Float>, rotation: &Matrix3<Float>) -> Essential {
     translation.cross_matrix()*rotation.transpose()
 }
 

@@ -1,8 +1,10 @@
 extern crate nalgebra as na;
 extern crate nalgebra_lapack;
 
-use na::{SMatrix, Matrix3, SVector, RowSVector, Isometry3, linalg::SVD, Quaternion, UnitQuaternion};
+use na::{SMatrix, Matrix3, SVector, RowSVector, linalg::SVD, Quaternion, UnitQuaternion};
 use nalgebra_lapack::Eigen;
+use crate::image::descriptors::brief_descriptor;
+use crate::sfm::{epipolar::Essential,tensor::essential_matrix_from_motion};
 use crate::Float;
 
 pub mod constraints;
@@ -16,7 +18,7 @@ pub mod constraints;
 //          with one entries in the 3rd row.
  */
 #[allow(non_snake_case)]
-pub fn quest(m1: &SMatrix<Float,3,5>, m2: &SMatrix<Float,3,5>) -> (Isometry3<Float>, Float, Float) {
+pub fn quest(m1: &SMatrix<Float,3,5>, m2: &SMatrix<Float,3,5>) -> (Essential, SVector<Float,5>, SVector<Float,5>) {
 
     /*
         Let 
@@ -147,12 +149,8 @@ pub fn quest(m1: &SMatrix<Float,3,5>, m2: &SMatrix<Float,3,5>) -> (Isometry3<Flo
         c /= c.apply_norm(&na::EuclideanNorm);
     }
 
-
     let (candidate_translations, candidate_depth_1, candidate_depth_2) = recover_translation_and_depth(m1,m2,&Q);
-
-    //TODO: Chirality Check
-        
-    panic!("TODO");
+    cheirality_check(&Q, &candidate_translations, &candidate_depth_1, &candidate_depth_2)
 }
 
 #[allow(non_snake_case)]
@@ -183,18 +181,8 @@ fn recover_translation_and_depth(m1: &SMatrix<Float,3,5>, m2: &SMatrix<Float,3,5
         let Y = nalgebra_lapack::SVD::new(C).expect("Five Point: SVD failed on A!").vt.row(12).transpose();
 
         let t = Y.fixed_rows::<3>(0);  // Translation vector
-        let mut z = Y.fixed_rows::<10>(3).into_owned();  // Depths in both camera frames
+        let z = Y.fixed_rows::<10>(3).into_owned();  // Depths in both camera frames
 
-        let negative_depth_count = z.iter().fold(0, |acc, &v| {
-            match v < 0.0 {
-                true => acc + 1,
-                false => acc
-            }
-        });
-        // Adjust the sign s.t. the recovered depths are negative
-        if negative_depth_count  < 5 {
-            z*=-1.0;
-        }
 
         let z1 =  SVector::<Float,5>::new(z[0],z[2],z[4],z[6],z[8]); // Depths in camera frame 1
         let z2 =  SVector::<Float,5>::new(z[1],z[3],z[5],z[7],z[9]); // Depths in camera frame 2
@@ -205,7 +193,53 @@ fn recover_translation_and_depth(m1: &SMatrix<Float,3,5>, m2: &SMatrix<Float,3,5
         Z2.column_mut(k).copy_from(&z2);
     }
 
+    (T,Z1,Z2)
 
-    panic!("TODO");
+}
+
+#[allow(non_snake_case)]
+fn cheirality_check(Q: &SMatrix<Float,4,35>, T: &SMatrix<Float,3,35>,  Z1: &SMatrix<Float,5,35>, Z2: &SMatrix<Float,5,35>) -> (Essential, SVector<Float,5>, SVector<Float,5>) {
+
+    let mut best_essential = Essential::zeros();
+    let mut best_depths_1 = SVector::<Float,5>::zeros();
+    let mut best_depths_2 = SVector::<Float,5>::zeros();
+    let mut best_det = Float::MAX;
+    let mut best_depth_count = 0;
+
+    for k in 0..Q.ncols(){
+        let quat = UnitQuaternion::from_quaternion(Quaternion::<Float>::new(Q[(0,k)],Q[(1,k)],Q[(2,k)],Q[(3,k)]));
+        let R = quat.to_rotation_matrix().matrix().clone();
+        let t = T.column(k).into_owned();
+        let depths_1 = Z1.column(k);
+        let depths_2 = Z2.column(k);
+
+        let essential = essential_matrix_from_motion(&t,&R);
+        let det = essential.determinant().abs();
+
+        let negative_depth_count_1 = depths_1.iter().fold(0, |acc, &v| {
+            match v < 0.0 {
+                true => acc + 1,
+                false => acc
+            }
+        });
+
+        let negative_depth_count_2 = depths_2.iter().fold(0, |acc, &v| {
+            match v < 0.0 {
+                true => acc + 1,
+                false => acc
+            }
+        });
+
+        let neg_depth_count = negative_depth_count_1 + negative_depth_count_2;
+        if neg_depth_count > best_depth_count || ((neg_depth_count == best_depth_count) && (det < best_det)) {
+            best_essential = essential;
+            best_depths_1 = depths_1.into_owned();
+            best_depths_2 = depths_2.into_owned();
+            best_det = det;
+            best_depth_count = neg_depth_count;
+        }
+    }
+
+    (best_essential, best_depths_1, best_depths_2)
 
 }
