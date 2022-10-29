@@ -59,7 +59,7 @@ pub fn quest(m1: &SMatrix<Float,3,5>, m2: &SMatrix<Float,3,5>) -> (Essential, SV
     // contain a 1 element respectively for xV, yV, and zV.
     // V = [w^4, w^3*x, w^3*y, w^3*z, w^2*x^2, w^2*x*y, w^2*x*z, w^2*y^2, w^2*y*z, w^2*z^2, w*x^3, w*x^2*y, w*x^2*z, w*x*y^2, w*x*y*z, w*x*z^2, w*y^3, w*y^2*z, w*y*z^2, w*z^3, x^4, x^3*y, x^3*z, x^2*y^2, x^2*y*z, x^2*z^2, x*y^3, x*y^2*z, x*y*z^2, x*z^3, y^4, y^3*z, y^2*z^2, y*z^3, z^4]^T
     
-    let idx_1 = SVector::<usize,100>::from_vec(vec![ 
+    let idx_1 = SVector::<usize,80>::from_vec(vec![ 
              0,     1,     2,     3,
              1,     4,     5,     6,
              2,     5,     7,     8,
