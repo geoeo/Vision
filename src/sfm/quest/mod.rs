@@ -3,11 +3,27 @@ extern crate nalgebra_lapack;
 
 use na::{SMatrix, Matrix3, SVector, RowSVector, linalg::SVD, Quaternion, UnitQuaternion};
 use nalgebra_lapack::Eigen;
-use crate::image::descriptors::brief_descriptor;
+use rand::seq::SliceRandom;
 use crate::sfm::{epipolar::Essential,tensor::essential_matrix_from_motion};
+use crate::image::features::{Feature,Match};
 use crate::Float;
 
 pub mod constraints;
+
+
+pub fn quest_ransac<T: Feature>(matches: &Vec<Match<T>>) -> (Essential, SVector<Float,5>, SVector<Float,5>) {
+    let mut m1 = SMatrix::<Float,3,5>::zeros();
+    let mut m2 = SMatrix::<Float,3,5>::zeros();
+
+    //TODO: ransac part
+    let samples: Vec<_> = matches.choose_multiple(&mut rand::thread_rng(), 5).map(|x| x.clone()).collect();
+    for i in 0..5 {
+        let s = &samples[i];
+        m1.column_mut(i).copy_from(&s.feature_one.get_as_3d_point(-1.0));
+        m2.column_mut(i).copy_from(&s.feature_two.get_as_3d_point(-1.0));
+    }
+    quest(&m1,&m2)
+}
 
 
 /**
