@@ -112,9 +112,7 @@ pub fn quest(m1: &SMatrix<Float,3,5>, m2: &SMatrix<Float,3,5>) -> (Essential, SV
                 let j_prime = idx[(i,j)];
                 A[(i*10+k,j_prime)] = c_f[(k,j)];
             }
-            
         }
-
     }
 
     // Split A into matrices A1 and A2. A1 corresponds to terms that contain w, 
@@ -145,7 +143,7 @@ pub fn quest(m1: &SMatrix<Float,3,5>, m2: &SMatrix<Float,3,5>) -> (Essential, SV
     // Correct the sign of each column s.t. the first element (i.e., w) is always positive
     for i in 0..V.ncols() {
         if V[(0,i)] < 0.0{
-            V[(0,i)] *= -1.0;
+            V.column_mut(i).scale_mut(-1.0);
         }
     }
 
