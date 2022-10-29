@@ -60,35 +60,42 @@ pub fn select_best_matches_from_fundamental<T: Feature + Clone>(F: &Fundamental,
 
 pub fn ransac_five_point_essential<T: Feature + Clone, C: Camera<Float>>(matches: &Vec<Match<T>>, camera_one: &C, camera_two: &C, epipolar_thresh: Float, ransac_it: usize, ransac_size: usize) -> Essential {
     let mut max_inlier_count = 0;
-    let mut min_det = Float::INFINITY;
-    let mut min_singular_value = Float::INFINITY;
     let mut best_essential: Option<Essential> = None;
     for _ in 0..ransac_it {
         let samples: Vec<_> = matches.choose_multiple(&mut rand::thread_rng(), ransac_size).map(|x| x.clone()).collect();
         let essential_option = five_point::five_point_essential(&samples,camera_one,camera_two);
         match essential_option {
             Some(essential) => {
-                let svd = essential.svd(false,false);
-                let min_val = svd.singular_values[2];
                 let f = compute_fundamental(&essential, &camera_one.get_inverse_projection(), &camera_two.get_inverse_projection());
-                best_essential = match (min_val.abs(), essential.determinant().abs(), filter_matches_from_fundamental(&f,matches,epipolar_thresh).len()) {
-                    (singular_val, det, inliers) if (inliers > max_inlier_count) || (inliers == max_inlier_count && singular_val < min_singular_value) => {
-                        max_inlier_count = inliers;
-                        min_singular_value = singular_val;
-                        min_det = det;
-                        Some(essential)
-                    },
-                    _ => best_essential
-                };
+                let inliers = calc_sampson_distance_inliers_for_fundamental(&f,matches,epipolar_thresh);
+                if inliers > max_inlier_count {
+                    max_inlier_count = inliers;
+                    best_essential = Some(essential);
+                }
             },
             None => ()
         };
     }
 
-    println!("Best inliner count for essential matrix was {} out of {} matches. That is {} % with det: {}", max_inlier_count, matches.len(), ((max_inlier_count as Float) / (matches.len() as Float)) * 100.0, min_det);
+    println!("Best inliner count for essential matrix was {} out of {} matches. That is {} %.", max_inlier_count, matches.len(), ((max_inlier_count as Float) / (matches.len() as Float)) * 100.0);
     best_essential.expect("No essential matrix could be computer via RANSAC")
 }
 
+#[allow(non_snake_case)]
+pub fn calc_sampson_distance_inliers_for_fundamental<T: Feature>(F: &Fundamental, matches: &Vec<Match<T>>, thresh: Float) -> usize {
+    matches.iter().map(|m| {
+        let m1 = m.feature_one.get_as_3d_point(-1.0);
+        let m2 = m.feature_two.get_as_3d_point(-1.0);
+        
+        let t1 = F*m2;
+        let t2 = m1.transpose()*F;
+        let v =  m1.transpose()*t1;
+
+        let denom = t1[0].powi(2) + t1[1].powi(2) + t2[0].powi(2) + t2[1].powi(2);
+        v[0].powi(2)/denom
+    }).filter(|&v| v < thresh).count()
+
+}
 
 pub fn five_point_essential<T: Feature + Clone, C: Camera<Float>>(matches: &Vec<Match<T>>, camera_one: &C, camera_two: &C) -> Essential {
     five_point::five_point_essential(&matches,camera_one,camera_two).expect("five_point_essential: failed")

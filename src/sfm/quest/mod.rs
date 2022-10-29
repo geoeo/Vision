@@ -4,25 +4,40 @@ extern crate nalgebra_lapack;
 use na::{SMatrix, Matrix3, SVector, OMatrix, Dynamic, RowSVector, RowDVector, linalg::SVD, Quaternion, UnitQuaternion, Const};
 use nalgebra_lapack::Eigen;
 use rand::seq::SliceRandom;
-use crate::sfm::{epipolar::Essential,tensor::essential_matrix_from_motion};
+use crate::sensors::camera::Camera;
+use crate::sfm::{epipolar::Essential,tensor::{essential_matrix_from_motion,compute_fundamental,calc_sampson_distance_inliers_for_fundamental}};
 use crate::image::features::{Feature,Match};
 use crate::Float;
 
 pub mod constraints;
 
 
-pub fn quest_ransac<T: Feature>(matches: &Vec<Match<T>>) -> (Essential, SVector<Float,5>, SVector<Float,5>) {
-    let mut m1 = SMatrix::<Float,3,5>::zeros();
-    let mut m2 = SMatrix::<Float,3,5>::zeros();
+pub fn quest_ransac<T: Feature, C: Camera<Float>>(matches: &Vec<Match<T>>, camera_one: &C, camera_two: &C, epipolar_thresh: Float, ransac_it: usize) -> Essential {
 
-    //TODO: ransac part
-    let samples: Vec<_> = matches.choose_multiple(&mut rand::thread_rng(), 5).map(|x| x.clone()).collect();
-    for i in 0..5 {
-        let s = &samples[i];
-        m1.column_mut(i).copy_from(&s.feature_one.get_as_3d_point(-1.0));
-        m2.column_mut(i).copy_from(&s.feature_two.get_as_3d_point(-1.0));
+    let mut max_inlier_count = 0;
+    let mut best_essential: Option<Essential> = None;
+    for _ in 0..ransac_it {
+
+        let mut m1 = SMatrix::<Float,3,5>::zeros();
+        let mut m2 = SMatrix::<Float,3,5>::zeros();
+        let samples: Vec<_> = matches.choose_multiple(&mut rand::thread_rng(), 5).map(|x| x.clone()).collect();
+        for i in 0..5 {
+            let s = &samples[i];
+            m1.column_mut(i).copy_from(&s.feature_one.get_as_3d_point(-1.0));
+            m2.column_mut(i).copy_from(&s.feature_two.get_as_3d_point(-1.0));
+        }
+        let (essential, _, _) = quest(&m1,&m2);
+        let f = compute_fundamental(&essential, &camera_one.get_inverse_projection(), &camera_two.get_inverse_projection());
+        let inliers = calc_sampson_distance_inliers_for_fundamental(&f,matches,epipolar_thresh);
+        if inliers > max_inlier_count {
+            max_inlier_count = inliers;
+            best_essential = Some(essential);
+        }
+
     }
-    quest(&m1,&m2)
+
+    println!("Best inliner count for essential matrix was {} out of {} matches. That is {} %.", max_inlier_count, matches.len(), ((max_inlier_count as Float) / (matches.len() as Float)) * 100.0);
+    best_essential.expect("No essential matrix could be computer via RANSAC")
 }
 
 

@@ -206,9 +206,6 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
                             (tensor::compute_essential(&f,&c1.get_projection(),&c2.get_projection()), filtered)
                         },
                         tensor::BifocalType::ESSENTIAL => {
-                            //TODO: put these in configs 
-                            //Do NcR for
-                            //let e = tensor::ransac_five_point_essential(m, c1, c2, 1e-2,1e5 as usize, 5);
                             let e = tensor::five_point_essential(m, c1, c2);
                             let f = tensor::compute_fundamental(&e, &c1.get_inverse_projection(), &c2.get_inverse_projection());
                             
@@ -220,7 +217,7 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
                             (e, tensor::select_best_matches_from_fundamental(&f,m,perc_tresh))
                         },
                         tensor::BifocalType::QUEST => {
-                            let (e,_,_) = quest::quest_ransac(m);
+                            let e = quest::quest_ransac(m, c1, c2, 1e-2,1e4 as usize);
                             let f = tensor::compute_fundamental(&e, &c1.get_inverse_projection(), &c2.get_inverse_projection());
                             (e, tensor::select_best_matches_from_fundamental(&f,m,perc_tresh))
                         }
