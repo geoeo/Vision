@@ -13,18 +13,23 @@ pub mod constraints;
 
 
 pub fn quest_ransac<T: Feature + Clone, C: Camera<Float>>(matches: &Vec<Match<T>>, camera_one: &C, camera_two: &C, epipolar_thresh: Float, ransac_it: usize) -> Essential {
-
+    let inverse_projection_one = camera_one.get_inverse_projection();
+    let inverse_projection_two = camera_two.get_inverse_projection();
     let mut max_inlier_count = 0;
     let mut best_essential: Option<Essential> = None;
+    let number_of_matches = matches.len();
     for _ in 0..ransac_it {
-
         let mut m1 = SMatrix::<Float,3,5>::zeros();
         let mut m2 = SMatrix::<Float,3,5>::zeros();
-        let samples: Vec<_> = matches.choose_multiple(&mut rand::thread_rng(), 11).map(|x| x.clone()).collect();
+        let samples: Vec<_> = matches.choose_multiple(&mut rand::thread_rng(), number_of_matches).map(|x| x.clone()).collect();
         for i in 0..5 {
             let s = &samples[i];
-            m1.column_mut(i).copy_from(&s.feature_one.get_as_3d_point(-1.0));
-            m2.column_mut(i).copy_from(&s.feature_two.get_as_3d_point(-1.0));
+
+            let f_1_reduced = s.feature_one.get_camera_ray(&inverse_projection_one);
+            let f_2_reduced = s.feature_two.get_camera_ray(&inverse_projection_two);
+
+            m1.column_mut(i).copy_from(&f_1_reduced);
+            m2.column_mut(i).copy_from(&f_2_reduced);
         }
         let (essential, _, _) = quest(&m1,&m2);
         let f = compute_fundamental(&essential, &camera_one.get_inverse_projection(), &camera_two.get_inverse_projection());
@@ -33,7 +38,6 @@ pub fn quest_ransac<T: Feature + Clone, C: Camera<Float>>(matches: &Vec<Match<T>
             max_inlier_count = inliers;
             best_essential = Some(essential);
         }
-
     }
 
     println!("Best inliner count for essential matrix was {} out of {} matches. That is {} %.", max_inlier_count, matches.len(), ((max_inlier_count as Float) / (matches.len() as Float)) * 100.0);

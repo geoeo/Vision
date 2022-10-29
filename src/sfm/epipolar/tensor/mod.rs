@@ -61,8 +61,9 @@ pub fn select_best_matches_from_fundamental<T: Feature + Clone>(F: &Fundamental,
 pub fn ransac_five_point_essential<T: Feature + Clone, C: Camera<Float>>(matches: &Vec<Match<T>>, camera_one: &C, camera_two: &C, epipolar_thresh: Float, ransac_it: usize) -> Essential {
     let mut max_inlier_count = 0;
     let mut best_essential: Option<Essential> = None;
+    let number_of_matches = matches.len();
     for _ in 0..ransac_it {
-        let samples: Vec<_> = matches.choose_multiple(&mut rand::thread_rng(), 11).map(|x| x.clone()).collect();
+        let samples: Vec<_> = matches.choose_multiple(&mut rand::thread_rng(), number_of_matches).map(|x| x.clone()).collect();
         let essential_option = five_point::five_point_essential(&samples[0..5].to_vec(),camera_one,camera_two);
         match essential_option {
             Some(essential) => {

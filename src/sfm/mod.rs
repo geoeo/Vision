@@ -217,7 +217,7 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
                             (e, tensor::select_best_matches_from_fundamental(&f,m,perc_tresh))
                         },
                         tensor::BifocalType::QUEST => {
-                            let e = quest::quest_ransac(m, c1, c2, 1e-1,1e4 as usize);
+                            let e = quest::quest_ransac(m, c1, c2, 1e-2,1e4 as usize);
                             let f = tensor::compute_fundamental(&e, &c1.get_inverse_projection(), &c2.get_inverse_projection());
                             (e, tensor::select_best_matches_from_fundamental(&f,m,perc_tresh))
                         }
