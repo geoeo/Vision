@@ -53,6 +53,10 @@ pub fn eight_point_hartley<T : Feature>(matches: &Vec<Match<T>>, positive_princi
         A.row_mut(i).copy_from(&linear_coefficients(&feature_left, &feature_right, f0));
     }
 
+    if A.rank(1e-3) < 8 {
+        panic!("Eight Point: Degenerate Feature Configuration!");
+    }
+
     let svd = A.svd(false,true);
     let v_t =  &svd.v_t.expect("SVD failed on A");
     let f = &v_t.row(v_t.nrows()-1);
