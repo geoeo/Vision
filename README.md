@@ -9,13 +9,13 @@ Imu Preintgration http://rpg.ifi.uzh.ch/docs/TRO16_forster.pdf
 
 Sparse Bundle Adjustment http://users.ics.forth.gr/~lourakis/sba/sba-toms.pdf
 
-8 Point https://www.cse.unr.edu/~bebis/CS485/Handouts/hartley.pdf
-
 Inverse Depth Parameterization https://www.doc.ic.ac.uk/~ajd/Publications/civera_etal_tro2008.pdf
 
-Primal-Dual Convex For L1 Norm https://candes.su.domains/software/l1magic/downloads/l1magic.pdf (Based on: Convex Optimization – Boyd and Vandenberghe)
+8 Point https://www.cse.unr.edu/~bebis/CS485/Handouts/hartley.pdf
 
 5 Point - https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.61.9329&rep=rep1&type=pdf
+
+QuEst - https://www.researchgate.net/publication/322410414_QuEst_A_Quaternion-Based_Approach_for_Camera_Motion_Estimation_From_Minimal_Feature_Points
 
 ## Orb
 ![billa_cereal_far](doc/cereal_far.png)![billa_cereal_tilted](doc/cereal_tilted.png)
