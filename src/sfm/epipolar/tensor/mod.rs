@@ -94,7 +94,7 @@ pub fn calc_sampson_distance_inliers_for_fundamental<T: Feature>(F: &Fundamental
 
         let denom = t1[0].powi(2) + t1[1].powi(2) + t2[0].powi(2) + t2[1].powi(2);
         v[0].powi(2)/denom
-    }).filter(|&v| v.abs() < thresh).count()
+    }).filter(|&v| v < thresh).count()
 
 }
 
