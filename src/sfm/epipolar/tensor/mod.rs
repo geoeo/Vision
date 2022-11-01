@@ -47,16 +47,13 @@ pub fn select_best_matches_from_fundamental<T: Feature + Clone>(F: &Fundamental,
     let num = matches.len();
     let take_num = (perc*(num as Float)) as usize;
     let mut sorted_indices = matches.iter().enumerate().map(|(i,m)| {
-            let start = m.feature_one.get_as_3d_point(-1.0);
-            let finish = m.feature_two.get_as_3d_point(-1.0);
-            (i , (start.transpose()*F*finish)[0].abs())
+            (i , calc_sampson_distance_for_fundamental(F,m))
         }).collect::<Vec<(usize,Float)>>();
 
         sorted_indices.sort_unstable_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
         let accepted_indices = HashSet::<usize>::from_iter(sorted_indices.iter().map(|(i,_)| i.clone()));
         matches.iter().enumerate().filter(|(i,_)| accepted_indices.contains(i)).take(take_num).map(|(_,m)| m.clone()).collect::<Vec<Match<T>>>()
 }
-
 
 pub fn ransac_five_point_essential<T: Feature + Clone, C: Camera<Float>>(matches: &Vec<Match<T>>, camera_one: &C, camera_two: &C, epipolar_thresh: Float, ransac_it: usize) -> Essential {
     let mut max_inlier_count = 0;
@@ -83,19 +80,21 @@ pub fn ransac_five_point_essential<T: Feature + Clone, C: Camera<Float>>(matches
 }
 
 #[allow(non_snake_case)]
+pub fn calc_sampson_distance_for_fundamental<T: Feature>(F: &Fundamental, m: &Match<T>) -> Float {
+    let m1 = m.feature_one.get_as_3d_point(-1.0);
+    let m2 = m.feature_two.get_as_3d_point(-1.0);
+    
+    let t1 = F*m2;
+    let t2 = m1.transpose()*F;
+    let v =  m1.transpose()*t1;
+
+    let denom = t1[0].powi(2) + t1[1].powi(2) + t2[0].powi(2) + t2[1].powi(2);
+    v[0].powi(2)/denom
+}
+
+#[allow(non_snake_case)]
 pub fn calc_sampson_distance_inliers_for_fundamental<T: Feature>(F: &Fundamental, matches: &Vec<Match<T>>, thresh: Float) -> usize {
-    matches.iter().map(|m| {
-        let m1 = m.feature_one.get_as_3d_point(-1.0);
-        let m2 = m.feature_two.get_as_3d_point(-1.0);
-        
-        let t1 = F*m2;
-        let t2 = m1.transpose()*F;
-        let v =  m1.transpose()*t1;
-
-        let denom = t1[0].powi(2) + t1[1].powi(2) + t2[0].powi(2) + t2[1].powi(2);
-        v[0].powi(2)/denom
-    }).filter(|&v| v < thresh).count()
-
+    matches.iter().map(|m| calc_sampson_distance_for_fundamental(F,m)).filter(|&v| v < thresh).count()
 }
 
 pub fn five_point_essential<T: Feature + Clone, C: Camera<Float>>(matches: &Vec<Match<T>>, camera_one: &C, camera_two: &C) -> Essential {
@@ -103,7 +102,7 @@ pub fn five_point_essential<T: Feature + Clone, C: Camera<Float>>(matches: &Vec<
 }
 
 pub fn essential_matrix_from_motion(translation: &Vector3<Float>, rotation: &Matrix3<Float>) -> Essential {
-    translation.cross_matrix()*rotation.transpose()
+    translation.normalize().cross_matrix()*rotation.transpose()
 }
 
 #[allow(non_snake_case)]

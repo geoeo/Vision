@@ -29,9 +29,6 @@ pub fn quest_ransac<T: Feature + Clone, C: Camera<Float>>(matches: &Vec<Match<T>
             let f_1 = s.feature_one.get_camera_ray(&inverse_projection_one);
             let f_2 = s.feature_two.get_camera_ray(&inverse_projection_two);
 
-            // let f_1 = s.feature_one.get_as_3d_point(-1.0);
-            // let f_2 = s.feature_two.get_as_3d_point(-1.0);
-
             m1.column_mut(i).copy_from(&f_1);
             m2.column_mut(i).copy_from(&f_2);
         }

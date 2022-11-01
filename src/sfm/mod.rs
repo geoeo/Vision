@@ -16,8 +16,6 @@ use crate::sensors::camera::Camera;
 use na::{Vector3, Matrix3};
 use crate::Float;
 
-use self::quest::quest;
-
 
 /**
  * We assume that the indices between paths and matches are consistent
@@ -208,12 +206,6 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
                         tensor::BifocalType::ESSENTIAL => {
                             let e = tensor::five_point_essential(m, c1, c2);
                             let f = tensor::compute_fundamental(&e, &c1.get_inverse_projection(), &c2.get_inverse_projection());
-                            
-                            //Seems to work better for olsen data 1e-1?
-                            // let f_corr = tensor::fundamental::optimal_correction(&f, m, f0);
-                            // let filtered =  tensor::select_best_matches_from_fundamental(&f_corr,m,perc_tresh);
-                            // (tensor::compute_essential(&f_corr,&c1.get_projection(),&c2.get_projection()), filtered)
-            
                             (e, tensor::select_best_matches_from_fundamental(&f,m,perc_tresh))
                         },
                         tensor::BifocalType::QUEST => {
