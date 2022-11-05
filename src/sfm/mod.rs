@@ -96,42 +96,45 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
         keys_sorted
     }
 
-    fn filter_by_max_tracks(matches: &Vec<Vec<Vec<Match<Feat>>>>,  image_size: usize) -> Vec<Vec<Vec<Match<Feat>>>> {
+    fn filter_by_max_tracks(all_paths: &Vec<Vec<Vec<Match<Feat>>>>,  image_size: usize) -> Vec<Vec<Vec<Match<Feat>>>> {
 
-        let mut filtered_matches = Vec::<Vec<Vec<Match<Feat>>>>::with_capacity(matches.len()); 
-        let mut feature_tracks = Vec::<Vec<FeatureTrack<Feat>>>::with_capacity(matches.len());
+        let mut filtered_matches = Vec::<Vec<Vec<Match<Feat>>>>::with_capacity(all_paths.len()); 
+        let mut feature_tracks = Vec::<Vec<FeatureTrack<Feat>>>::with_capacity(all_paths.len());
 
-        for i in 0..matches.len() {
-            let path = &matches[i];
+        for path_idx in 0..all_paths.len() {
+            let path = &all_paths[path_idx];
             let path_len = path.len();
             filtered_matches.push(Vec::<Vec<Match<Feat>>>::with_capacity(path_len));
             feature_tracks.push(Vec::<FeatureTrack<Feat>>::with_capacity(image_size));
             for img_idx in 0..path_len {
-                filtered_matches[i].push(Vec::<Match<Feat>>::with_capacity(path[img_idx].len()));
+                filtered_matches[path_idx].push(Vec::<Match<Feat>>::with_capacity(path[img_idx].len()));
             }
         }
 
-        let max_path_len: usize = matches.iter().map(|x| x.len()).sum();
-        
-        //TODO: make this work feature tracks that happen on an image other than the previous
-        for i in 0..matches.len() {
-            let matches_for_path = matches[i].clone();
+        let max_path_len: usize = all_paths.iter().map(|x| x.len()).sum();
+        for path_idx in 0..all_paths.len() {
+            let matches_for_path = all_paths[path_idx].clone();
             let path_len = matches_for_path.len();
             for img_idx in 0..path_len {
                 let current_matches = matches_for_path[img_idx].clone();
                 for m in &current_matches {
                     match img_idx {
-                        0 => feature_tracks[i].push(FeatureTrack::new(max_path_len,i, m)),
+                        0 => feature_tracks[path_idx].push(FeatureTrack::new(max_path_len, path_idx, m)),
                         _ => {
-                            let current_feature_one = &m.feature_one;
-                            //TODO: Speed up with caching
-                            for track in feature_tracks[i].iter_mut() {
-                                if (track.get_current_feature() == current_feature_one.clone()) && 
-                                   (track.get_path_img_id() == (i, img_idx-1)) {
-                                    track.add(i,img_idx, m);
-                                    break;
+                                let current_feature_one = &m.feature_one;
+                                let mut found_track = false;
+                                //TODO: Speed up with caching
+                                for track in feature_tracks[path_idx].iter_mut() {
+                                    if (track.get_current_feature() == current_feature_one.clone()) && 
+                                        (track.get_path_img_id() == (path_idx, img_idx-1)) {
+                                        track.add(path_idx,img_idx, m);
+                                        found_track = true;
+                                        break;
+                                    }
                                 }
-                            }
+                                if !found_track {
+                                    feature_tracks[path_idx].push(FeatureTrack::new(max_path_len, path_idx, m));
+                                }
                         }
                     };
                 }
@@ -153,8 +156,8 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
             }
         }
 
-        for path_idx in 0..matches.len() {
-            let path = &matches[path_idx];
+        for path_idx in 0..all_paths.len() {
+            let path = &all_paths[path_idx];
             for img_idx in 0..path.len() {
                 (filtered_matches[path_idx])[img_idx].shrink_to_fit();
             }
@@ -177,13 +180,13 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
             for path_idx in 0..self.paths.len() {
                 //TODO: investigate this cloning
                 let path = self.paths[path_idx].clone();
-                let matches = self.matches[path_idx].clone();
+                //let matches = self.matches[path_idx].clone();
                 let matches_tracks = self.filtered_matches_by_tracks[path_idx].clone();
                 let mut states: Vec<(usize,(Vector3<Float>,Matrix3<Float>))> = Vec::<(usize,(Vector3<Float>,Matrix3<Float>))>::with_capacity(100);
                 let mut filtered_matches: Vec<Vec<Match<Feat>>> = Vec::<Vec<Match<Feat>>>::with_capacity(100);
                 for j in 0..matches_tracks.len() {
                     let tracks = &matches_tracks[j];
-                    let all_matches = &matches[j];
+                    //let all_matches = &matches[j];
                     let m = tracks;
                     let c1 = match j {
                         0 => root_cam,
