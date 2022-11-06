@@ -7,6 +7,7 @@ pub mod landmark;
 pub mod epipolar;
 pub mod triangulation;
 pub mod quest;
+pub mod rotation_avg;
 
 use std::collections::HashMap;
 use crate::image::{features::{Feature, Match, feature_track::FeatureTrack, solver_feature::SolverFeature}};
@@ -172,25 +173,25 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
             perc_tresh: Float, 
             normalize_features: bool,
             epipolar_alg: tensor::BifocalType) 
-        ->  (Vec<Vec<(usize,(Vector3<Float>,Matrix3<Float>))>>,Vec<Vec<Vec<Match<Feat>>>>) {
+        ->  (Vec<Vec<((usize,usize),(Vector3<Float>, Matrix3<Float>))>>,Vec<Vec<Vec<Match<Feat>>>>) {
             let root_id = self.root();
             let root_cam = self.camera_map.get(&root_id).expect("compute_pairwise_cam_motions_for_path: could not get root cam");
-            let mut all_states: Vec<Vec<(usize,(Vector3<Float>,Matrix3<Float>))>> = Vec::<Vec<(usize,(Vector3<Float>,Matrix3<Float>))>>::with_capacity(100);
+            let mut all_states: Vec<Vec<((usize,usize),(Vector3<Float>,Matrix3<Float>))>> = Vec::<Vec<((usize,usize),(Vector3<Float>,Matrix3<Float>))>>::with_capacity(100);
             let mut all_filtered_matches: Vec<Vec<Vec<Match<Feat>>>> = Vec::<Vec<Vec<Match<Feat>>>>::with_capacity(100);
             for path_idx in 0..self.paths.len() {
                 //TODO: investigate this cloning
                 let path = self.paths[path_idx].clone();
                 //let matches = self.matches[path_idx].clone();
                 let matches_tracks = self.filtered_matches_by_tracks[path_idx].clone();
-                let mut states: Vec<(usize,(Vector3<Float>,Matrix3<Float>))> = Vec::<(usize,(Vector3<Float>,Matrix3<Float>))>::with_capacity(100);
+                let mut states: Vec<((usize,usize),(Vector3<Float>,Matrix3<Float>))> = Vec::<((usize,usize),(Vector3<Float>,Matrix3<Float>))>::with_capacity(100);
                 let mut filtered_matches: Vec<Vec<Match<Feat>>> = Vec::<Vec<Match<Feat>>>::with_capacity(100);
                 for j in 0..matches_tracks.len() {
                     let tracks = &matches_tracks[j];
                     //let all_matches = &matches[j];
                     let m = tracks;
-                    let c1 = match j {
-                        0 => root_cam,
-                        idx => self.camera_map.get(&path[idx-1]).expect("compute_pairwise_cam_motions_for_path: could not get previous cam")
+                    let (id1, c1) = match j {
+                        0 => (root_id, root_cam),
+                        idx => (path[idx-1], self.camera_map.get(&path[idx-1]).expect("compute_pairwise_cam_motions_for_path: could not get previous cam"))
                     };
                     let id2 = path[j];
                     let c2 = self.camera_map.get(&id2).expect("compute_pairwise_cam_motions_for_path: could not get second camera");
@@ -219,7 +220,7 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
                     };
             
                     let (h,rotation,_) = tensor::decompose_essential_förstner(&e,&f_m,c1,c2);
-                    let new_state = (id2,(h, rotation));
+                    let new_state = ((id1, id2),(h, rotation));
                     states.push(new_state);
                     filtered_matches.push(f_m);
                 }

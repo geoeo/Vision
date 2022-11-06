@@ -136,7 +136,7 @@ impl CameraFeatureMap {
     /**
      * initial_motion should all be with respect to the first camera
      */
-    pub fn get_inverse_depth_landmark_state<C: Camera<Float>>(&self, initial_motions : Option<&Vec<Vec<(usize,(Vector3<Float>,Matrix3<Float>))>>>, inverse_depth_prior: Float, cameras: &Vec<C>) -> State<Float,InverseLandmark<Float>,6> {
+    pub fn get_inverse_depth_landmark_state<C: Camera<Float>>(&self, initial_motions : Option<&Vec<Vec<((usize, usize),(Vector3<Float>,Matrix3<Float>))>>>, inverse_depth_prior: Float, cameras: &Vec<C>) -> State<Float,InverseLandmark<Float>,6> {
 
         let number_of_cameras = self.camera_map.keys().len();
         let number_of_unqiue_landmarks = self.number_of_unique_points;
@@ -163,7 +163,7 @@ impl CameraFeatureMap {
     }
 
     pub fn get_euclidean_landmark_state<F: float::Float + Scalar + NumAssign + SimdRealField + ComplexField + Mul<F> + From<F> + RealField + SubsetOf<Float> + SupersetOf<Float>, C : Camera<Float> + Copy>(
-        &self, initial_motions : Option<&Vec<Vec<(usize,(Vector3<Float>,Matrix3<Float>))>>>, root_id: usize,camera_map: &HashMap<usize, C>, paths: &Vec<Vec<usize>>, epipolar_alg: BifocalType) 
+        &self, initial_motions : Option<&Vec<Vec<((usize,usize),(Vector3<Float>,Matrix3<Float>))>>>,camera_map: &HashMap<usize, C>, paths: &Vec<Vec<usize>>, epipolar_alg: BifocalType) 
         -> State<F, EuclideanLandmark<F>,3> {
         
         let number_of_cameras = self.camera_map.keys().len();
@@ -177,14 +177,9 @@ impl CameraFeatureMap {
                         assert_eq!(motions.len(), paths[path_idx].len());
                         let mut pose_acc = Matrix4::<Float>::identity();
                         for i in 0..motions.len() {
-                            
-                            let id_s = match i {
-                                0 => root_id,
-                                _ => paths[path_idx][i-1]
-                            };
-                            let (cam_id,(h,rotation_matrix)) = &motions[i];
+                            let ((id_s, cam_id),(h,rotation_matrix)) = &motions[i];
                             assert_eq!(*cam_id, paths[path_idx][i]);
-                            let camera_matrix_s = camera_map[&id_s];
+                            let camera_matrix_s = camera_map[id_s];
                             let camera_matrix_f = camera_map[cam_id];
         
                             let (cam_idx_s, _) = self.camera_map[&id_s];
@@ -307,7 +302,7 @@ impl CameraFeatureMap {
     }
 
     fn get_initial_camera_positions<F: float::Float + Scalar + NumAssign + SimdRealField + ComplexField + Mul<F> + From<F> + RealField + SubsetOf<Float> + SupersetOf<Float>>(
-        &self,initial_motions : Option<&Vec<Vec<(usize,(Vector3<Float>,Matrix3<Float>))>>>) 
+        &self,initial_motions : Option<&Vec<Vec<((usize,usize),(Vector3<Float>,Matrix3<Float>))>>>) 
         -> DVector::<F> {
 
         let number_of_cameras = self.camera_map.keys().len();
@@ -318,7 +313,7 @@ impl CameraFeatureMap {
             for motions in all_motions {
                 let mut rot_acc = Matrix3::<F>::identity();
                 let mut trans_acc = Vector3::<F>::zeros();
-                for (cam_id,(h,rotation_matrix)) in motions {
+                for ((_, cam_id),(h,rotation_matrix)) in motions {
                     let (cam_idx,_) = self.camera_map[&cam_id];
                     let cam_state_idx = 6*cam_idx;
                     let h_cast: Vector3<F> = h.cast::<F>();
