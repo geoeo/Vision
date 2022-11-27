@@ -61,13 +61,11 @@ fn generate_relative_rotation_matrix(index_to_matrix_map: &HashMap<usize,usize>,
         for ((i_s, i_f), rotation) in v {
             let idx_s = index_to_matrix_map.get(i_s).expect("RCD: Index s not present");
             let idx_f = index_to_matrix_map.get(i_f).expect("RCD: Index f not present");
-            for r in 0..3 {
-                for c in 0..3{
-                    // We want to push the transpose of the rotation
-                    rotations_coo.push(idx_s+r, idx_f+c,rotation[(c,r)]);
-                    rotations_coo.push(idx_f+r, idx_s+c,rotation[(c,r)]);
-                }
-            }
+            let rotation_transpose = rotation.transpose();
+            // Symmetric Matrix of transpose R_ij
+            rotations_coo.push_matrix(3*idx_s, 3*idx_f, &rotation_transpose);
+            rotations_coo.push_matrix(3*idx_f, 3*idx_s, &rotation_transpose);
+
         }
     }
     CscMatrix::from(&rotations_coo)
