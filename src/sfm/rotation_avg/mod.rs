@@ -2,10 +2,12 @@ use nalgebra as na;
 use nalgebra_sparse;
 
 use nalgebra_sparse::{CooMatrix, CscMatrix};
-use na::{Matrix3};
-use crate::Float;
+use na::{Matrix3, MatrixXx3, Rotation3};
+use rand::{thread_rng, Rng};
+
 use core::panic;
 use std::collections::HashMap;
+use crate::Float;
 
 
 
@@ -71,10 +73,18 @@ fn generate_relative_rotation_matrix(index_to_matrix_map: &HashMap<usize,usize>,
     CscMatrix::from(&rotations_coo)
 }
 
-fn generate_absolute_rotation_matrix(index_to_matrix_map: &HashMap<usize,usize>, indexed_relative_rotations: &Vec<Vec<((usize, usize), Matrix3<Float>)>>) -> CscMatrix<Float> {
+/**
+ * This will be initialized with random rotations as stated in the paper
+ */
+fn generate_absolute_rotation_matrix(index_to_matrix_map: &HashMap<usize,usize>) -> MatrixXx3<Float> {
     let number_of_views = index_to_matrix_map.len();
-    let mut rotations_coo = CooMatrix::<Float>::zeros(3*number_of_views, 3);
+    let mut absolute_rotations = MatrixXx3::<Float>::zeros(number_of_views);
+    let mut rng = thread_rng();
 
-    panic!("TODO");
-    CscMatrix::from(&rotations_coo)
+    for i in 0..number_of_views{
+        let rot = rng.gen::<Rotation3<Float>>();
+        absolute_rotations.fixed_rows_mut::<3>(i).copy_from(&rot.matrix());
+    }
+
+    absolute_rotations
 }
