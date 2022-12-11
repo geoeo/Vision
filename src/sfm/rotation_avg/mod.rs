@@ -17,11 +17,23 @@ use crate::Float;
 pub fn rcd(indexed_relative_rotations: &Vec<Vec<((usize, usize), Matrix3<Float>)>>) -> Vec<Vec<((usize, usize), Matrix3<Float>)>> {
     let index_to_matrix_map = generate_path_indices_to_matrix_map(indexed_relative_rotations);
     let relative_rotations_csc = generate_relative_rotation_matrix(&index_to_matrix_map,indexed_relative_rotations);
-    let number_of_views = index_to_matrix_map.len();
+    let absolute_rotations = generate_absolute_rotation_matrix(&index_to_matrix_map);
+    let absolute_rotations_transpose = absolute_rotations.transpose();
+    let number_of_absolute_rotations = index_to_matrix_map.len();
 
     let max_epoch = 100; //TODO: config
     for epoch in 0..max_epoch {
-        for k in 0..number_of_views {
+        for k in 0..number_of_absolute_rotations {
+            let col_start = 3*k;
+            let mut W = MatrixXx3::<Float>::zeros(col_start);
+            let csc_slice: Vec<_> = relative_rotations_csc.triplet_iter().filter(|&(i, j, v)| j >= col_start && j < col_start+3).collect();
+            for (i,j,v) in csc_slice {
+                W[(i,col_start-j)] = *v;
+            }
+
+            let BW = &absolute_rotations*(&absolute_rotations_transpose*&W);
+            let A = &W.transpose()*BW;
+
 
         }
     }
@@ -78,13 +90,12 @@ fn generate_relative_rotation_matrix(index_to_matrix_map: &HashMap<usize,usize>,
  */
 fn generate_absolute_rotation_matrix(index_to_matrix_map: &HashMap<usize,usize>) -> MatrixXx3<Float> {
     let number_of_views = index_to_matrix_map.len();
-    let mut absolute_rotations = MatrixXx3::<Float>::zeros(number_of_views);
+    let mut absolute_rotations = MatrixXx3::<Float>::zeros(3*number_of_views);
     let mut rng = thread_rng();
 
     for i in 0..number_of_views{
         let rot = rng.gen::<Rotation3<Float>>();
         absolute_rotations.fixed_rows_mut::<3>(i).copy_from(&rot.matrix());
     }
-
     absolute_rotations
 }
