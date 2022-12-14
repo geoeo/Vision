@@ -10,7 +10,6 @@ use std::collections::HashMap;
 use crate::Float;
 
 
-
 /**
     Rotation Coordiante Descent Parra et al.
  */
@@ -24,17 +23,15 @@ pub fn rcd(indexed_relative_rotations: &Vec<Vec<((usize, usize), Matrix3<Float>)
     let max_epoch = 100; //TODO: config
     for epoch in 0..max_epoch {
         for k in 0..number_of_absolute_rotations {
-            let col_start = 3*k;
-            let mut W = MatrixXx3::<Float>::zeros(col_start);
-            let csc_slice: Vec<_> = relative_rotations_csc.triplet_iter().filter(|&(i, j, v)| j >= col_start && j < col_start+3).collect();
-            for (i,j,v) in csc_slice {
-                W[(i,col_start-j)] = *v;
-            }
+            let W = generate_dense_from_csc_slice(k,&relative_rotations_csc);
+
+            // let csc_slice: Vec<_> = relative_rotations_csc.triplet_iter().filter(|&(i, j, v)| j >= col_start && j < col_start+3).collect();
+            // for (i,j,v) in csc_slice {
+            //     W[(i,col_start-j)] = *v;
+            // }
 
             let BW = &absolute_rotations*(&absolute_rotations_transpose*&W);
             let A = &W.transpose()*BW;
-
-
         }
     }
 
@@ -98,4 +95,17 @@ fn generate_absolute_rotation_matrix(index_to_matrix_map: &HashMap<usize,usize>)
         absolute_rotations.fixed_rows_mut::<3>(i).copy_from(&rot.matrix());
     }
     absolute_rotations
+}
+
+pub fn generate_dense_from_csc_slice(k: usize,relative_rotations_csc: &CscMatrix<Float>) -> MatrixXx3<Float> {
+    let col_start = 3*k;
+    let mut dense = MatrixXx3::<Float>::zeros(col_start);
+    for col_offset in 0..3{
+        let current_col = col_start+col_offset;
+        let col = relative_rotations_csc.col(current_col);
+        for (row_index,v) in col.row_indices().iter().zip(col.values().iter()) {
+            dense[(*row_index,current_col)] = *v;
+        }
+    }
+    dense   
 }
