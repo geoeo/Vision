@@ -4,7 +4,7 @@ extern crate vision;
 use std::path::Path;
 
 use vision::image::Image;
-use vision::filter::{gauss_kernel::GaussKernel1D,filter_1d_convolution,gaussian_2_d_convolution};
+use vision::image::filter::{gauss_kernel::GaussKernel1D,filter_1d_convolution,gaussian_2_d_convolution};
 use vision::GradientDirection;
 
 fn main() {
@@ -17,7 +17,7 @@ fn main() {
 
 
     let image = image_rs::open(&Path::new(&image_path)).unwrap().to_luma8();
-    let frame = Image::from_gray_image(&image, false, false);
+    let frame = Image::from_gray_image(&image, false, false, None);
     let vec = vec![&frame];
 
     let filter_kernel = GaussKernel1D::new(0.0, 5.5,1,3.0);

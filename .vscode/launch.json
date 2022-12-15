@@ -381,6 +381,18 @@
             "externalConsole": false,
             "env": {"RUST_BACKTRACE":"1", "RUST_BACKTRACE":"full"},
             "preLaunchTask": "build examples"
+        },
+        {
+            "name": "Test Sparse",
+            "type": "lldb",
+            "request": "launch",
+            "program": "${workspaceFolder}/target/debug/deps/sparse-d021fcf936dc3e4c",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": true,
+            "preLaunchTask": "cargo test build",
         }
     ]
 }

@@ -20,12 +20,10 @@ fn test_generate_dense_from_csc_slice() {
     rotations_coo.push_matrix(0, 3, &rot_matrix_transpose);
 
     let csc_matrix = CscMatrix::from(&rotations_coo);
-    let dense_slice = generate_dense_from_csc_slice(0,&csc_matrix);
+    let dense_slice = generate_dense_from_csc_slice(0,2,&csc_matrix);
 
-    let mut ground_truth = MatrixXx3::<Float>::zeros(6);
-    ground_truth.fixed_slice_mut::<3,3>(3,0).copy_from(&rot_matrix);
+    let mut ground_truth_slice = MatrixXx3::<Float>::zeros(6);
+    ground_truth_slice.fixed_slice_mut::<3,3>(3,0).copy_from(&rot_matrix);
 
-    //println!("{:?}",ground_truth);
-
-    assert_eq!(ground_truth,dense_slice);
+    assert_eq!(ground_truth_slice,dense_slice);
 }

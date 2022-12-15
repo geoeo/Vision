@@ -37,6 +37,7 @@ strip = "none"
 debug = 2
 strip = "debuginfo"
 
+
 [[example]]
 name = "orb_ba"
 path = "examples/sfm/orb_ba.rs"
@@ -64,6 +65,10 @@ path = "examples/image_processing/epipolar_five_point.rs"
 [[example]]
 name = "epipolar_eight_point"
 path = "examples/image_processing/epipolar_eight_point.rs"
+
+[[example]]
+name = "blur"
+path = "examples/image_processing/blur.rs"
 
 [[example]]
 name = "pointcloud"

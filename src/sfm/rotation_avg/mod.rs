@@ -23,7 +23,7 @@ pub fn rcd(indexed_relative_rotations: &Vec<Vec<((usize, usize), Matrix3<Float>)
     let max_epoch = 100; //TODO: config
     for epoch in 0..max_epoch {
         for k in 0..number_of_absolute_rotations {
-            let W = generate_dense_from_csc_slice(k,&relative_rotations_csc);
+            let W = generate_dense_from_csc_slice(k,number_of_absolute_rotations,&relative_rotations_csc);
 
             // let csc_slice: Vec<_> = relative_rotations_csc.triplet_iter().filter(|&(i, j, v)| j >= col_start && j < col_start+3).collect();
             // for (i,j,v) in csc_slice {
@@ -97,9 +97,9 @@ fn generate_absolute_rotation_matrix(index_to_matrix_map: &HashMap<usize,usize>)
     absolute_rotations
 }
 
-pub fn generate_dense_from_csc_slice(k: usize,relative_rotations_csc: &CscMatrix<Float>) -> MatrixXx3<Float> {
-    let col_start = 3*k;
-    let mut dense = MatrixXx3::<Float>::zeros(col_start);
+pub fn generate_dense_from_csc_slice(rotation_index_start: usize, max_rotation_count: usize , relative_rotations_csc: &CscMatrix<Float>) -> MatrixXx3<Float> {
+    let col_start = 3*rotation_index_start;
+    let mut dense = MatrixXx3::<Float>::zeros(3*max_rotation_count);
     for col_offset in 0..3{
         let current_col = col_start+col_offset;
         let col = relative_rotations_csc.col(current_col);
