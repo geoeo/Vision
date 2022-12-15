@@ -97,10 +97,13 @@ fn generate_absolute_rotation_matrix(index_to_matrix_map: &HashMap<usize,usize>)
     absolute_rotations
 }
 
+/**
+ * Creates a row slice for a single rotation starting at col_start
+ */
 pub fn generate_dense_from_csc_slice(rotation_index_start: usize, max_rotation_count: usize , relative_rotations_csc: &CscMatrix<Float>) -> MatrixXx3<Float> {
     let col_start = 3*rotation_index_start;
     let mut dense = MatrixXx3::<Float>::zeros(3*max_rotation_count);
-    for col_offset in 0..3{
+    for col_offset in 0..3 {
         let current_col = col_start+col_offset;
         let col = relative_rotations_csc.col(current_col);
         for (row_index,v) in col.row_indices().iter().zip(col.values().iter()) {
