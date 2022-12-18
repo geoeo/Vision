@@ -2,7 +2,7 @@ use nalgebra as na;
 use nalgebra_sparse;
 
 use nalgebra_sparse::{CooMatrix, CscMatrix};
-use na::{Matrix3, MatrixXx3, Rotation3};
+use na::{Matrix3, MatrixXx3, Rotation3, Vector3};
 use rand::{thread_rng, Rng};
 
 use core::panic;
@@ -13,25 +13,35 @@ use crate::Float;
 /**
     Rotation Coordiante Descent Parra et al.
  */
+#[allow(non_snake_case)]
 pub fn rcd(indexed_relative_rotations: &Vec<Vec<((usize, usize), Matrix3<Float>)>>) -> Vec<Vec<((usize, usize), Matrix3<Float>)>> {
     let index_to_matrix_map = generate_path_indices_to_matrix_map(indexed_relative_rotations);
     let relative_rotations_csc = generate_relative_rotation_matrix(&index_to_matrix_map,indexed_relative_rotations);
-    let absolute_rotations = generate_absolute_rotation_matrix(&index_to_matrix_map);
-    let absolute_rotations_transpose = absolute_rotations.transpose();
+    let mut absolute_rotations = generate_absolute_rotation_matrix(&index_to_matrix_map);
+    let mut absolute_rotations_transpose = absolute_rotations.transpose();
     let number_of_absolute_rotations = index_to_matrix_map.len();
 
     let max_epoch = 100; //TODO: config
     for epoch in 0..max_epoch {
         for k in 0..number_of_absolute_rotations {
             let W = generate_dense_from_csc_slice(k,number_of_absolute_rotations,&relative_rotations_csc);
+            let BW = (&absolute_rotations)*(&absolute_rotations_transpose*&W);
+            let A = &W.transpose()*&BW;
+            let svd = A.svd(true,false);
+            let S = svd.singular_values;
+            let U =  svd.u.expect("Svd failed for rcd");
+            let s = S.iter().map(|x| 1.0/x.sqrt()).collect::<Vec<_>>();
+            let aux = BW*(U*Matrix3::<Float>::from_diagonal(&Vector3::<Float>::from_vec(s)))*U.transpose();
 
-            // let csc_slice: Vec<_> = relative_rotations_csc.triplet_iter().filter(|&(i, j, v)| j >= col_start && j < col_start+3).collect();
-            // for (i,j,v) in csc_slice {
-            //     W[(i,col_start-j)] = *v;
-            // }
+            let bottom_offset = 3*(number_of_absolute_rotations-k-1);
+            absolute_rotations.rows_mut(0,3*k).copy_from(&aux.rows(0,3*k));
+            absolute_rotations.slice_mut((3*k,0),(3,3)).copy_from(&Matrix3::<Float>::identity());
+            absolute_rotations.rows_mut(absolute_rotations.nrows()-bottom_offset,bottom_offset).copy_from(&aux.rows(aux.nrows()-bottom_offset,bottom_offset));
 
-            let BW = &absolute_rotations*(&absolute_rotations_transpose*&W);
-            let A = &W.transpose()*BW;
+            absolute_rotations_transpose.columns_mut(0,3*k).copy_from(&absolute_rotations.rows(0,3*k).transpose());
+            absolute_rotations_transpose.slice_mut((0,3*k),(3,3)).copy_from(&Matrix3::<Float>::identity());
+            absolute_rotations_transpose.columns_mut(absolute_rotations_transpose.ncols()-bottom_offset,bottom_offset).copy_from(&absolute_rotations.rows(absolute_rotations.nrows()-bottom_offset,bottom_offset).transpose())
+
         }
     }
 
