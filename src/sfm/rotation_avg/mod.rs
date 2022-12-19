@@ -14,15 +14,17 @@ use crate::Float;
     Rotation Coordiante Descent Parra et al.
  */
 #[allow(non_snake_case)]
-pub fn rcd(indexed_relative_rotations: &Vec<Vec<((usize, usize), Matrix3<Float>)>>) -> Vec<Vec<((usize, usize), Matrix3<Float>)>> {
+pub fn rcd(indexed_relative_rotations: &Vec<Vec<((usize, usize), Matrix3<Float>)>>) -> MatrixXx3<Float> {
     let index_to_matrix_map = generate_path_indices_to_matrix_map(indexed_relative_rotations);
     let relative_rotations_csc = generate_relative_rotation_matrix(&index_to_matrix_map,indexed_relative_rotations);
     let mut absolute_rotations = generate_absolute_rotation_matrix(&index_to_matrix_map);
     let mut absolute_rotations_transpose = absolute_rotations.transpose();
     let number_of_absolute_rotations = index_to_matrix_map.len();
+    let mut cost: Float;
+    let mut old_cost = -0.5*(&absolute_rotations_transpose * (&relative_rotations_csc * &absolute_rotations)).trace();
 
     let max_epoch = 100; //TODO: config
-    for epoch in 0..max_epoch {
+    for _ in 0..max_epoch {
         for k in 0..number_of_absolute_rotations {
             let W = generate_dense_from_csc_slice(k,number_of_absolute_rotations,&relative_rotations_csc);
             let BW = (&absolute_rotations)*(&absolute_rotations_transpose*&W);
@@ -43,13 +45,23 @@ pub fn rcd(indexed_relative_rotations: &Vec<Vec<((usize, usize), Matrix3<Float>)
             absolute_rotations_transpose.columns_mut(absolute_rotations_transpose.ncols()-bottom_offset,bottom_offset).copy_from(&absolute_rotations.rows(absolute_rotations.nrows()-bottom_offset,bottom_offset).transpose())
 
         }
+
+        cost = -0.5*(&absolute_rotations_transpose * (&relative_rotations_csc * &absolute_rotations)).trace();  
+
+        if (old_cost-cost) / old_cost.abs().max(1.0) <= 1e-9{
+            for i in 0..number_of_absolute_rotations {
+                let mut Ri = absolute_rotations.fixed_rows::<3>(3*i).into_owned();
+                if Ri.determinant() < 0.0 {
+                    Ri *= -1.0;
+                }
+                absolute_rotations.fixed_rows_mut::<3>(3*i).copy_from(&Ri);
+            }
+            break;
+        }
+        old_cost = cost; 
     }
 
-
-    
-
-
-    panic!("TODO");
+    absolute_rotations
 }
 
 fn generate_path_indices_to_matrix_map(path_indices: &Vec<Vec<((usize, usize), Matrix3<Float>)>>) -> HashMap<usize,usize> {
