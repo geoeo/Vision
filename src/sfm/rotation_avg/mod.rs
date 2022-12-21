@@ -43,11 +43,9 @@ pub fn rcd(indexed_relative_rotations: &Vec<Vec<((usize, usize), Matrix3<Float>)
             absolute_rotations_transpose.columns_mut(0,3*k).copy_from(&absolute_rotations.rows(0,3*k).transpose());
             absolute_rotations_transpose.slice_mut((0,3*k),(3,3)).copy_from(&Matrix3::<Float>::identity());
             absolute_rotations_transpose.columns_mut(absolute_rotations_transpose.ncols()-bottom_offset,bottom_offset).copy_from(&absolute_rotations.rows(absolute_rotations.nrows()-bottom_offset,bottom_offset).transpose())
-
         }
 
         cost = -0.5*(&absolute_rotations_transpose * (&relative_rotations_csc * &absolute_rotations)).trace();  
-
         if (old_cost-cost) / old_cost.abs().max(1.0) <= 1e-9{
             for i in 0..number_of_absolute_rotations {
                 let mut Ri = absolute_rotations.fixed_rows::<3>(3*i).into_owned();
@@ -62,6 +60,24 @@ pub fn rcd(indexed_relative_rotations: &Vec<Vec<((usize, usize), Matrix3<Float>)
     }
 
     absolute_rotations
+}
+
+pub fn optimize_paths_with_rcd(indexed_relative_rotations: &Vec<Vec<((usize, usize), Matrix3<Float>)>>) -> Vec<Vec<((usize, usize), Matrix3<Float>)>> {
+    absolute_to_relative_rotations(&rcd(indexed_relative_rotations),indexed_relative_rotations)
+}
+
+fn absolute_to_relative_rotations(absolute_rotations: &MatrixXx3<Float>, indexed_relative_rotations: &Vec<Vec<((usize, usize), Matrix3<Float>)>>) -> Vec<Vec<((usize, usize), Matrix3<Float>)>>{
+    indexed_relative_rotations.iter().map(|vec| {
+        vec.iter().map(|((i_s, i_f), _)| {
+            let start_index = *i_s;
+            let finish_index = *i_f;
+            ((start_index, finish_index),get_absolute_rotation_at(absolute_rotations,finish_index)*get_absolute_rotation_at(absolute_rotations,start_index).transpose())
+        }).collect::<Vec<_>>()
+    }).collect::<Vec<_>>()
+}
+
+fn get_absolute_rotation_at(absolute_rotations: &MatrixXx3<Float>, index: usize) ->  Matrix3<Float> {
+    absolute_rotations.fixed_rows::<3>(index).into_owned()
 }
 
 fn generate_path_indices_to_matrix_map(path_indices: &Vec<Vec<((usize, usize), Matrix3<Float>)>>) -> HashMap<usize,usize> {
