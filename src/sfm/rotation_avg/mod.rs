@@ -13,12 +13,12 @@ use crate::{Float,float};
     Rotation Coordiante Descent Parra et al.
  */
 #[allow(non_snake_case)]
-pub fn rcd(indexed_relative_rotations: &Vec<Vec<((usize, usize), Matrix3<Float>)>>) -> MatrixXx3<Float> {
-    let index_to_matrix_map = generate_path_indices_to_matrix_map(indexed_relative_rotations);
-    let relative_rotations_csc = generate_relative_rotation_matrix(&index_to_matrix_map,indexed_relative_rotations);
-    let mut absolute_rotations = generate_absolute_rotation_matrix(&index_to_matrix_map);
-    let mut absolute_rotations_transpose = absolute_rotations.transpose();
+pub fn rcd(indexed_relative_rotations: &Vec<Vec<((usize, usize), Matrix3<Float>)>>, index_to_matrix_map :&HashMap<usize,usize>) -> MatrixXx3<Float> {
     let number_of_absolute_rotations = index_to_matrix_map.len();
+    let relative_rotations_csc = generate_relative_rotation_matrix(&index_to_matrix_map,indexed_relative_rotations);
+    let mut absolute_rotations = generate_absolute_rotation_matrix(number_of_absolute_rotations);
+    let mut absolute_rotations_transpose = absolute_rotations.transpose();
+
     let mut cost = float::MAX;
     let mut old_cost = -0.5*(&absolute_rotations_transpose * (&relative_rotations_csc * &absolute_rotations)).trace();
 
@@ -64,15 +64,16 @@ pub fn rcd(indexed_relative_rotations: &Vec<Vec<((usize, usize), Matrix3<Float>)
 }
 
 pub fn optimize_rotations_with_rcd(indexed_relative_rotations: &Vec<Vec<((usize, usize), Matrix3<Float>)>>) -> Vec<Vec<((usize, usize), Matrix3<Float>)>> {
-    absolute_to_relative_rotations(&rcd(indexed_relative_rotations),indexed_relative_rotations)
+    let index_to_matrix_map = generate_path_indices_to_matrix_map(indexed_relative_rotations);
+    absolute_to_relative_rotations(&rcd(indexed_relative_rotations, &index_to_matrix_map), indexed_relative_rotations, &index_to_matrix_map)
 }
 
-fn absolute_to_relative_rotations(absolute_rotations: &MatrixXx3<Float>, indexed_relative_rotations: &Vec<Vec<((usize, usize), Matrix3<Float>)>>) -> Vec<Vec<((usize, usize), Matrix3<Float>)>>{
+fn absolute_to_relative_rotations(absolute_rotations: &MatrixXx3<Float>, indexed_relative_rotations: &Vec<Vec<((usize, usize), Matrix3<Float>)>>, index_to_matrix_map: &HashMap<usize,usize>) -> Vec<Vec<((usize, usize), Matrix3<Float>)>>{
     indexed_relative_rotations.iter().map(|vec| {
         vec.iter().map(|((i_s, i_f), _)| {
-            let start_index = *i_s;
-            let finish_index = *i_f;
-            ((start_index, finish_index),get_absolute_rotation_at(absolute_rotations,finish_index)*get_absolute_rotation_at(absolute_rotations,start_index).transpose())
+            let idx_s = index_to_matrix_map.get(i_s).expect("RCD: Index s not present");
+            let idx_f = index_to_matrix_map.get(i_f).expect("RCD: Index f not present");
+            ((*i_s, *i_f),get_absolute_rotation_at(absolute_rotations,*idx_f)*get_absolute_rotation_at(absolute_rotations, *idx_s).transpose())
         }).collect::<Vec<_>>()
     }).collect::<Vec<_>>()
 }
@@ -124,8 +125,7 @@ fn generate_relative_rotation_matrix(index_to_matrix_map: &HashMap<usize,usize>,
 /**
  * This will be initialized with random rotations as stated in the paper
  */
-fn generate_absolute_rotation_matrix(index_to_matrix_map: &HashMap<usize,usize>) -> MatrixXx3<Float> {
-    let number_of_views = index_to_matrix_map.len();
+fn generate_absolute_rotation_matrix(number_of_views: usize) -> MatrixXx3<Float> {
     let mut absolute_rotations = MatrixXx3::<Float>::zeros(3*number_of_views);
     let mut rng = thread_rng();
 
