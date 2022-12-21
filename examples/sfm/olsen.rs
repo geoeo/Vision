@@ -10,7 +10,7 @@ use na::{Vector3,Matrix3,Matrix4};
 use vision::io::olsen_loader::OlssenData;
 use vision::sensors::camera::perspective::Perspective;
 use vision::image::{features::{Match,ImageFeature}};
-use vision::{sfm::{SFMConfig,bundle_adjustment::run_ba, epipolar::tensor::{BifocalType,EssentialDecomposition}}};
+use vision::{sfm::{SFMConfig,bundle_adjustment::run_ba, epipolar::tensor::{BifocalType,EssentialDecomposition}, rotation_avg::optimize_rotations_with_rcd}};
 use vision::odometry::runtime_parameters::RuntimeParameters;
 use vision::numerics::{loss, weighting};
 use vision::{float,Float,load_runtime_conf};
@@ -37,7 +37,7 @@ fn main() -> Result<()> {
     
     let olsen_data_path = data_set_door_path;
 
-    let feature_skip_count = 1;
+    let feature_skip_count = 3;
     let olsen_data = OlssenData::new(&olsen_data_path);
     let positive_principal_distance = false;
     let invert_intrinsics = false; // they are already negative from decomp
@@ -228,7 +228,24 @@ fn main() -> Result<()> {
             sfm_config_fundamental.epipolar_alg()
     );
 
-    let initial_cam_motions_per_path = initial_cam_motions_per_path_fundamental.clone();
+    let mut initial_cam_motions_per_path = initial_cam_motions_per_path_fundamental.clone();
+    let initial_cam_rotations_per_path =  initial_cam_motions_per_path_fundamental.iter().map(|vec| {
+        vec.iter().map(|((i_s, i_f), (_,rot))| {
+            ((*i_s, *i_f), rot.clone())
+        }).collect::<Vec<_>>()
+    }).collect::<Vec<_>>();
+    let initial_cam_rotations_per_path_rcd = optimize_rotations_with_rcd(&initial_cam_rotations_per_path);
+    for i in 0..initial_cam_motions_per_path.len(){
+        let path_len = initial_cam_motions_per_path[i].len();
+        for j in 0..path_len{
+            let ((s,f),(t,initial_rot)) = initial_cam_motions_per_path[i][j];
+            let (_,rcd_rot) = initial_cam_rotations_per_path_rcd[i][j];
+            println!("initial r : {}",initial_rot);
+            println!("rcd r : {}",rcd_rot);
+
+            initial_cam_motions_per_path[i][j] = ((s,f),(t,rcd_rot));  
+        }
+    }
     let filtered_matches_per_path = filtered_matches_per_path_fundamental.clone();
 
 
@@ -259,7 +276,7 @@ fn main() -> Result<()> {
             pyramid_scale: 1.0,
             max_iterations: vec![10000; 1],
             eps: vec![1e-6],
-            step_sizes: vec![1e-3],
+            step_sizes: vec![1e0],
             max_norm_eps: 1e-30, 
             delta_eps: 1e-30,
             taus: vec![1.0e0],

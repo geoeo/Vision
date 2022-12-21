@@ -5,9 +5,8 @@ use nalgebra_sparse::{CooMatrix, CscMatrix};
 use na::{Matrix3, MatrixXx3, Rotation3, Vector3};
 use rand::{thread_rng, Rng};
 
-use core::panic;
 use std::collections::HashMap;
-use crate::Float;
+use crate::{Float,float};
 
 
 /**
@@ -20,7 +19,7 @@ pub fn rcd(indexed_relative_rotations: &Vec<Vec<((usize, usize), Matrix3<Float>)
     let mut absolute_rotations = generate_absolute_rotation_matrix(&index_to_matrix_map);
     let mut absolute_rotations_transpose = absolute_rotations.transpose();
     let number_of_absolute_rotations = index_to_matrix_map.len();
-    let mut cost: Float;
+    let mut cost = float::MAX;
     let mut old_cost = -0.5*(&absolute_rotations_transpose * (&relative_rotations_csc * &absolute_rotations)).trace();
 
     let max_epoch = 100; //TODO: config
@@ -46,6 +45,7 @@ pub fn rcd(indexed_relative_rotations: &Vec<Vec<((usize, usize), Matrix3<Float>)
         }
 
         cost = -0.5*(&absolute_rotations_transpose * (&relative_rotations_csc * &absolute_rotations)).trace();  
+        println!("RCD cost: {}", cost);
         if (old_cost-cost) / old_cost.abs().max(1.0) <= 1e-9{
             for i in 0..number_of_absolute_rotations {
                 let mut Ri = absolute_rotations.fixed_rows::<3>(3*i).into_owned();
@@ -58,11 +58,12 @@ pub fn rcd(indexed_relative_rotations: &Vec<Vec<((usize, usize), Matrix3<Float>)
         }
         old_cost = cost; 
     }
-
+    
+    println!("RCD completed with cost: {}", cost);
     absolute_rotations
 }
 
-pub fn optimize_paths_with_rcd(indexed_relative_rotations: &Vec<Vec<((usize, usize), Matrix3<Float>)>>) -> Vec<Vec<((usize, usize), Matrix3<Float>)>> {
+pub fn optimize_rotations_with_rcd(indexed_relative_rotations: &Vec<Vec<((usize, usize), Matrix3<Float>)>>) -> Vec<Vec<((usize, usize), Matrix3<Float>)>> {
     absolute_to_relative_rotations(&rcd(indexed_relative_rotations),indexed_relative_rotations)
 }
 
@@ -138,14 +139,14 @@ fn generate_absolute_rotation_matrix(index_to_matrix_map: &HashMap<usize,usize>)
 /**
  * Creates a row slice for a single rotation starting at col_start
  */
-pub fn generate_dense_from_csc_slice(rotation_index_start: usize, max_rotation_count: usize , relative_rotations_csc: &CscMatrix<Float>) -> MatrixXx3<Float> {
+pub fn generate_dense_from_csc_slice(rotation_index_start: usize, max_rotation_count: usize, relative_rotations_csc: &CscMatrix<Float>) -> MatrixXx3<Float> {
     let col_start = 3*rotation_index_start;
     let mut dense = MatrixXx3::<Float>::zeros(3*max_rotation_count);
     for col_offset in 0..3 {
         let current_col = col_start+col_offset;
         let col = relative_rotations_csc.col(current_col);
         for (row_index,v) in col.row_indices().iter().zip(col.values().iter()) {
-            dense[(*row_index,current_col)] = *v;
+            dense[(*row_index,col_offset)] = *v; 
         }
     }
     dense   
