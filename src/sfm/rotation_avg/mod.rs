@@ -24,7 +24,7 @@ pub fn rcd(indexed_relative_rotations: &Vec<Vec<((usize, usize), Matrix3<Float>)
 
     let max_epoch = 100; //TODO: config
     for _ in 0..max_epoch {
-        for k in 0..number_of_absolute_rotations {
+        for k in 0..number_of_absolute_rotations { // TODO: check direction
             let W = generate_dense_from_csc_slice(k,number_of_absolute_rotations,&relative_rotations_csc);
             let BW = (&absolute_rotations)*(&absolute_rotations_transpose*&W);
             let A = &W.transpose()*&BW;
@@ -65,7 +65,10 @@ pub fn rcd(indexed_relative_rotations: &Vec<Vec<((usize, usize), Matrix3<Float>)
 
 pub fn optimize_rotations_with_rcd(indexed_relative_rotations: &Vec<Vec<((usize, usize), Matrix3<Float>)>>) -> Vec<Vec<((usize, usize), Matrix3<Float>)>> {
     let index_to_matrix_map = generate_path_indices_to_matrix_map(indexed_relative_rotations);
-    absolute_to_relative_rotations(&rcd(indexed_relative_rotations, &index_to_matrix_map), indexed_relative_rotations, &index_to_matrix_map)
+    //TODO: enforce direction! Also check if it just be run on each path individually!
+    let absolute_rotations = rcd(indexed_relative_rotations, &index_to_matrix_map);
+    println!("{}",absolute_rotations);
+    absolute_to_relative_rotations(&absolute_rotations, indexed_relative_rotations, &index_to_matrix_map)
 }
 
 fn absolute_to_relative_rotations(absolute_rotations: &MatrixXx3<Float>, indexed_relative_rotations: &Vec<Vec<((usize, usize), Matrix3<Float>)>>, index_to_matrix_map: &HashMap<usize,usize>) -> Vec<Vec<((usize, usize), Matrix3<Float>)>>{
@@ -73,13 +76,17 @@ fn absolute_to_relative_rotations(absolute_rotations: &MatrixXx3<Float>, indexed
         vec.iter().map(|((i_s, i_f), _)| {
             let idx_s = index_to_matrix_map.get(i_s).expect("RCD: Index s not present");
             let idx_f = index_to_matrix_map.get(i_f).expect("RCD: Index f not present");
-            ((*i_s, *i_f),get_absolute_rotation_at(absolute_rotations,*idx_f)*get_absolute_rotation_at(absolute_rotations, *idx_s).transpose())
+            // Absolute rotations are already transposed!
+            //((*i_s, *i_f),get_absolute_rotation_at(absolute_rotations,*idx_f).transpose()*get_absolute_rotation_at(absolute_rotations, *idx_s))
+            ((*i_s, *i_f),(get_absolute_rotation_at(absolute_rotations,*idx_f).transpose()*get_absolute_rotation_at(absolute_rotations, *idx_s)).transpose()) // This works. check why last transpose is neccessary
+            //((*i_s, *i_f),get_absolute_rotation_at(absolute_rotations,*idx_f)*get_absolute_rotation_at(absolute_rotations, *idx_s).transpose())
+            //((*i_s, *i_f),get_absolute_rotation_at(absolute_rotations,*idx_f))
         }).collect::<Vec<_>>()
     }).collect::<Vec<_>>()
 }
 
 fn get_absolute_rotation_at(absolute_rotations: &MatrixXx3<Float>, index: usize) ->  Matrix3<Float> {
-    absolute_rotations.fixed_rows::<3>(index).into_owned()
+    absolute_rotations.fixed_rows::<3>(3*index).into_owned()
 }
 
 fn generate_path_indices_to_matrix_map(path_indices: &Vec<Vec<((usize, usize), Matrix3<Float>)>>) -> HashMap<usize,usize> {

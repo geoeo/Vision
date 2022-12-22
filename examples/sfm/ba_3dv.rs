@@ -6,7 +6,7 @@ extern crate nalgebra as na;
 use std::fs;
 use std::collections::HashMap;
 use color_eyre::eyre::Result;
-use vision::sfm::{bundle_adjustment::run_ba, epipolar::tensor::{BifocalType,EssentialDecomposition}};
+use vision::sfm::{bundle_adjustment::run_ba, epipolar::tensor::{BifocalType,EssentialDecomposition}, rotation_avg::optimize_rotations_with_rcd};
 use vision::sensors::camera::pinhole::Pinhole;
 use vision::odometry::runtime_parameters::RuntimeParameters;
 use vision::numerics::{loss, weighting};
@@ -67,10 +67,12 @@ fn main() -> Result<()> {
     };
 
     let camera_map = HashMap::from([(0, intensity_camera_0), (1, intensity_camera_1),(2,intensity_camera_2),(3,intensity_camera_3),(4,intensity_camera_4)  ]);
-    //let sfm_config = SFMConfig::new(2, vec!(vec!(1), vec!(3)), camera_map.clone(), camera_map, vec!(vec!(matches_2_1),vec!(matches_2_3)),
+    let sfm_config = SFMConfig::new(2, vec!(vec!(1), vec!(3)), camera_map.clone(), camera_map, vec!(vec!(matches_2_1),vec!(matches_2_3)),
+    //let sfm_config = SFMConfig::new(2, vec!(vec!(1)), camera_map.clone(), camera_map, vec!(vec!(matches_2_1)),
+    //let sfm_config = SFMConfig::new(2, vec!(vec!(1,0)), camera_map.clone(), camera_map, vec!(vec!(matches_2_1,matches_1_0)),
     //let sfm_config = SFMConfig::new(2, vec!(vec!(1,0), vec!(3)), camera_map.clone(), camera_map, vec!(vec!(matches_2_1,matches_1_0),vec!(matches_2_3)),
     //let sfm_config = SFMConfig::new(2, vec!(vec!(1), vec!(3,4)), camera_map.clone(), camera_map, vec!(vec!(matches_2_1),vec!(matches_2_3,matches_3_4)),
-    let sfm_config = SFMConfig::new(2, vec!(vec!(1,0), vec!(3,4)), camera_map.clone(), camera_map, vec!(vec!(matches_2_1,matches_1_0),vec!(matches_2_3,matches_3_4)),
+    //let sfm_config = SFMConfig::new(2, vec!(vec!(1,0), vec!(3,4)), camera_map.clone(), camera_map, vec!(vec!(matches_2_1,matches_1_0),vec!(matches_2_3,matches_3_4)),
         BifocalType::FUNDAMENTAL, 320*240);
 
     let perc_tresh = 1.0;
@@ -82,7 +84,27 @@ fn main() -> Result<()> {
         sfm_config.epipolar_alg()
     );
 
-    let ((cam_positions,points),(s,debug_states_serialized)) = run_ba(&filtered_matches_per_path, &sfm_config, Some(&initial_cam_motions_per_path), (480,640), &runtime_parameters, 1.0);
+    let mut initial_cam_motions_per_path_rcd = initial_cam_motions_per_path.clone();
+    let initial_cam_rotations_per_path =  initial_cam_motions_per_path_rcd.iter().map(|vec| {
+        vec.iter().map(|((i_s, i_f), (_,rot))| {
+            ((*i_s, *i_f), rot.clone())
+        }).collect::<Vec<_>>()
+    }).collect::<Vec<_>>();
+    let initial_cam_rotations_per_path_rcd = optimize_rotations_with_rcd(&initial_cam_rotations_per_path);
+    for i in 0..initial_cam_motions_per_path.len(){
+        let path_len = initial_cam_motions_per_path[i].len();
+        for j in 0..path_len{
+            let ((s,f),(t,initial_rot)) = initial_cam_motions_per_path[i][j];
+            let (_,rcd_rot) = initial_cam_rotations_per_path_rcd[i][j];
+            println!("initial r : {}",initial_rot);
+            println!("rcd r : {}",rcd_rot);
+
+            initial_cam_motions_per_path_rcd[i][j] = ((s,f),(t,rcd_rot));  
+        }
+    }
+
+
+    let ((cam_positions,points),(s,debug_states_serialized)) = run_ba(&filtered_matches_per_path, &sfm_config, Some(&initial_cam_motions_per_path_rcd), (480,640), &runtime_parameters, 1.0);
     //let ((cam_positions,points),(s,debug_states_serialized)) = run_ba(&sfm_config.matches(), &sfm_config, None, (480,640), &runtime_parameters, 1.0,depth_prior);
     fs::write(format!("{}/{}",runtime_conf.local_data_path,"3dv.txt"), s?).expect("Unable to write file");
     if runtime_parameters.debug {
