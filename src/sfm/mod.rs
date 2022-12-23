@@ -11,7 +11,7 @@ pub mod rotation_avg;
 
 use std::collections::HashMap;
 use crate::image::{features::{Feature, Match, feature_track::FeatureTrack, solver_feature::SolverFeature}};
-use crate::sfm::epipolar::tensor;
+use crate::sfm::{epipolar::tensor, triangulation::Triangulation};
 use crate::sensors::camera::Camera;
 use crate::numerics::lie::angular_distance;
 
@@ -30,6 +30,7 @@ pub struct SFMConfig<C, C2, Feat: Feature> {
     matches: Vec<Vec<Vec<Match<Feat>>>>,
     filtered_matches_by_tracks: Vec<Vec<Vec<Match<Feat>>>>,
     epipolar_alg: tensor::BifocalType,
+    triangulation: Triangulation,
     image_size: usize
 }
 
@@ -37,7 +38,7 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
 
     //TODO: this structure is broken and does not account for filtering of paths via angular distance!
     //TODO: rework casting to be part of camera trait or super struct 
-    pub fn new(root: usize, paths: Vec<Vec<usize>>, camera_map: HashMap<usize, C>, camera_map_ba: HashMap<usize, C2>, matches: Vec<Vec<Vec<Match<Feat>>>>, epipolar_alg: tensor::BifocalType, image_size: usize) -> SFMConfig<C,C2,Feat> {
+    pub fn new(root: usize, paths: Vec<Vec<usize>>, camera_map: HashMap<usize, C>, camera_map_ba: HashMap<usize, C2>, matches: Vec<Vec<Vec<Match<Feat>>>>, epipolar_alg: tensor::BifocalType, triangulation: Triangulation, image_size: usize) -> SFMConfig<C,C2,Feat> {
         for key in camera_map.keys() {
             assert!(camera_map_ba.contains_key(key));
         }
@@ -48,7 +49,7 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
 
         let filtered_matches_by_tracks = Self::filter_by_max_tracks(&matches, image_size);
 
-        SFMConfig{root, paths, camera_map, camera_map_ba, matches, filtered_matches_by_tracks, epipolar_alg, image_size}
+        SFMConfig{root, paths, camera_map, camera_map_ba, matches, filtered_matches_by_tracks, epipolar_alg, triangulation, image_size}
     }
 
 
@@ -59,6 +60,7 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
     pub fn matches(&self) -> &Vec<Vec<Vec<Match<Feat>>>> { &self.matches }
     pub fn filtered_matches_by_tracks(&self) -> &Vec<Vec<Vec<Match<Feat>>>> { &self.filtered_matches_by_tracks }
     pub fn epipolar_alg(&self) -> tensor::BifocalType { self.epipolar_alg}
+    pub fn triangulation(&self) -> Triangulation { self.triangulation}
     pub fn image_size(&self) -> usize { self.image_size}
 
     pub fn compute_path_id_pairs(&self) -> Vec<Vec<(usize, usize)>> {

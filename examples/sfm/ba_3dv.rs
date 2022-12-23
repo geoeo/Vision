@@ -6,7 +6,7 @@ extern crate nalgebra as na;
 use std::fs;
 use std::collections::HashMap;
 use color_eyre::eyre::Result;
-use vision::sfm::{bundle_adjustment::run_ba, epipolar::tensor::{BifocalType,EssentialDecomposition}, rotation_avg::{optimize_rotations_with_rcd_per_track,optimize_rotations_with_rcd}};
+use vision::sfm::{triangulation::Triangulation,bundle_adjustment::run_ba, epipolar::tensor::{BifocalType,EssentialDecomposition}, rotation_avg::{optimize_rotations_with_rcd_per_track,optimize_rotations_with_rcd}};
 use vision::sensors::camera::pinhole::Pinhole;
 use vision::odometry::runtime_parameters::RuntimeParameters;
 use vision::numerics::{loss, weighting};
@@ -81,7 +81,7 @@ fn main() -> Result<()> {
     //let sfm_config = SFMConfig::new(2, vec!(vec!(1), vec!(3), vec!(4), vec!(0)), camera_map.clone(), camera_map, vec!(vec!(matches_2_1),vec!(matches_2_3),vec!(matches_2_4),vec!(matches_2_0)),
     let sfm_config = SFMConfig::new(2, vec!(vec!(1,0), vec!(3,4)), camera_map.clone(), camera_map, vec!(vec!(matches_2_1,matches_1_0),vec!(matches_2_3,matches_3_4)),
     //let sfm_config = SFMConfig::new(3, vec!(vec!(4)), camera_map.clone(), camera_map, vec!(vec!(matches_3_4)),
-        BifocalType::FUNDAMENTAL, 320*240);
+        BifocalType::FUNDAMENTAL,  Triangulation::LINEAR ,320*240);
 
     let perc_tresh = 1.0;
     let anguar_thresh = 1.0;

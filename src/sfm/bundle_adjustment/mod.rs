@@ -18,7 +18,6 @@ pub mod camera_feature_map;
 pub mod solver;
 pub mod state;
 
-
 //TODO: unify the two sfm configs!
 pub fn run_ba<F: serde::Serialize + float::Float + Scalar + NumAssign + SimdRealField + ComplexField + Mul<F> + From<F> + RealField + SubsetOf<Float> + SupersetOf<Float>, C : Camera<Float> + Copy, C2: Camera<F> + Copy, T : Feature + Clone + PartialEq + SolverFeature>(
     matches: &Vec<Vec<Vec<Match<T>>>>, sfm_config: &SFMConfig<C, C2, T>, initial_cam_poses: Option<&Vec<Vec<((usize,usize),(Vector3<Float>,Matrix3<Float>))>>>,
@@ -40,7 +39,7 @@ pub fn run_ba<F: serde::Serialize + float::Float + Scalar + NumAssign + SimdReal
 
     //TODO: switch impl
     //TODO: transative motions -> done?
-    let mut state = feature_map.get_euclidean_landmark_state(initial_cam_poses, sfm_config.camera_map(), sfm_config.epipolar_alg());
+    let mut state = feature_map.get_euclidean_landmark_state(initial_cam_poses, sfm_config.camera_map(), sfm_config.triangulation());
     //let mut state = feature_map.get_inverse_depth_landmark_state(Some(&initial_motion_decomp), depth_prior,&cameras);
     
     //TODO: check this

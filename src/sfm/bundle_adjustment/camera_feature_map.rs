@@ -11,7 +11,7 @@ use crate::image::{
     features::{Feature, Match},
     features::geometry::point::Point
 };
-use crate::sfm::{bundle_adjustment::state::State, landmark::{Landmark, euclidean_landmark::EuclideanLandmark, inverse_depth_landmark::InverseLandmark},epipolar::tensor::BifocalType,triangulation::{linear_triangulation_svd,stereo_triangulation}};
+use crate::sfm::{triangulation::Triangulation,bundle_adjustment::state::State, landmark::{Landmark, euclidean_landmark::EuclideanLandmark, inverse_depth_landmark::InverseLandmark},epipolar::tensor::BifocalType,triangulation::{linear_triangulation_svd,stereo_triangulation}};
 use crate::sensors::camera::Camera;
 use crate::numerics::pose;
 use crate::{Float, reconstruct_original_coordiantes_for_float};
@@ -163,7 +163,7 @@ impl CameraFeatureMap {
     }
 
     pub fn get_euclidean_landmark_state<F: float::Float + Scalar + NumAssign + SimdRealField + ComplexField + Mul<F> + From<F> + RealField + SubsetOf<Float> + SupersetOf<Float>, C : Camera<Float> + Copy>(
-        &self, initial_motions : Option<&Vec<Vec<((usize,usize),(Vector3<Float>,Matrix3<Float>))>>>,camera_map: &HashMap<usize, C>, epipolar_alg: BifocalType) 
+        &self, initial_motions : Option<&Vec<Vec<((usize,usize),(Vector3<Float>,Matrix3<Float>))>>>,camera_map: &HashMap<usize, C>, triangulation: Triangulation) 
         -> State<F, EuclideanLandmark<F>,3> {
         
         let number_of_cameras = self.camera_map.keys().len();
@@ -261,9 +261,10 @@ impl CameraFeatureMap {
                             let projection_1 = c1_intrinsics*(Matrix4::<Float>::identity().fixed_slice::<3,4>(0,0));
                             let projection_2 = c2_intrinsics*(se3.fixed_slice::<3,4>(0,0));
                             
-                            //TODO make enum for this
-                            let triangulated_points = pose_acc*linear_triangulation_svd(&vec!((&normalized_image_points_s,&projection_1),(&normalized_image_points_f,&projection_2)));
-                            //let triangulated_points = pose_acc*stereo_triangulation((&normalized_image_points_s,&projection_1),(&normalized_image_points_f,&projection_2),f0,f0_prime).expect("get_euclidean_landmark_state: Stereo Triangulation Failed");
+                            let triangulated_points = match triangulation {
+                                Triangulation::LINEAR =>  pose_acc*linear_triangulation_svd(&vec!((&normalized_image_points_s,&projection_1),(&normalized_image_points_f,&projection_2))),
+                                Triangulation::STEREO =>  pose_acc*stereo_triangulation((&normalized_image_points_s,&projection_1),(&normalized_image_points_f,&projection_2),f0,f0_prime).expect("get_euclidean_landmark_state: Stereo Triangulation Failed"),
+                            };
                             pose_acc = pose_acc*se3;
                             assert_eq!(triangulated_points.ncols(), point_ids.len());
 
