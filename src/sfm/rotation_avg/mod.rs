@@ -7,6 +7,7 @@ use rand::{thread_rng, Rng};
 
 use std::collections::HashMap;
 use crate::{Float,float};
+use crate::numerics::lie::angular_distance;
 
 
 /**
@@ -19,12 +20,15 @@ pub fn rcd(indexed_relative_rotations: &Vec<Vec<((usize, usize), Matrix3<Float>)
     let mut absolute_rotations = generate_absolute_rotation_matrix(number_of_absolute_rotations);
     let mut absolute_rotations_transpose = absolute_rotations.transpose();
 
+    println!("{}",absolute_rotations);
+
     let mut cost = float::MAX;
     let mut old_cost = -0.5*(&absolute_rotations_transpose * (&relative_rotations_csc * &absolute_rotations)).trace();
 
     let max_epoch = 100; //TODO: config
+    let eps = 1e-18;
     for _ in 0..max_epoch {
-        for k in 0..number_of_absolute_rotations { // TODO: check direction
+        for k in 0..number_of_absolute_rotations { 
             let W = generate_dense_from_csc_slice(k,number_of_absolute_rotations,&relative_rotations_csc);
             let BW = (&absolute_rotations)*(&absolute_rotations_transpose*&W);
             let A = &W.transpose()*&BW;
@@ -46,7 +50,7 @@ pub fn rcd(indexed_relative_rotations: &Vec<Vec<((usize, usize), Matrix3<Float>)
 
         cost = -0.5*(&absolute_rotations_transpose * (&relative_rotations_csc * &absolute_rotations)).trace();  
         println!("RCD cost: {}", cost);
-        if (old_cost-cost) / old_cost.abs().max(1.0) <= 1e-9{
+        if (old_cost-cost) / old_cost.abs().max(1.0) <= eps {
             for i in 0..number_of_absolute_rotations {
                 let mut Ri = absolute_rotations.fixed_rows::<3>(3*i).into_owned();
                 if Ri.determinant() < 0.0 {
@@ -79,7 +83,7 @@ fn absolute_to_relative_rotations(absolute_rotations: &MatrixXx3<Float>, indexed
             // Absolute rotations are already transposed!
             //((*i_s, *i_f),get_absolute_rotation_at(absolute_rotations,*idx_f).transpose()*get_absolute_rotation_at(absolute_rotations, *idx_s))
             ((*i_s, *i_f),(get_absolute_rotation_at(absolute_rotations,*idx_f).transpose()*get_absolute_rotation_at(absolute_rotations, *idx_s)).transpose()) // This works. check why last transpose is neccessary
-            //((*i_s, *i_f),get_absolute_rotation_at(absolute_rotations,*idx_f)*get_absolute_rotation_at(absolute_rotations, *idx_s).transpose())
+            //(*i_s, *i_f),get_absolute_rotation_at(absolute_rotations,*idx_f)*get_absolute_rotation_at(absolute_rotations, *idx_s).transpose())
             //((*i_s, *i_f),get_absolute_rotation_at(absolute_rotations,*idx_f))
         }).collect::<Vec<_>>()
     }).collect::<Vec<_>>()
@@ -119,6 +123,7 @@ fn generate_relative_rotation_matrix(index_to_matrix_map: &HashMap<usize,usize>,
         for ((i_s, i_f), rotation) in v {
             let idx_s = index_to_matrix_map.get(i_s).expect("RCD: Index s not present");
             let idx_f = index_to_matrix_map.get(i_f).expect("RCD: Index f not present");
+            println!("rcd: Angular distance of {},{} is: {}",i_s,i_f,angular_distance(&rotation));
             let rotation_transpose = rotation.transpose();
             // Symmetric Matrix of transpose R_ij
             rotations_coo.push_matrix(3*idx_s, 3*idx_f, &rotation_transpose);
@@ -138,7 +143,7 @@ fn generate_absolute_rotation_matrix(number_of_views: usize) -> MatrixXx3<Float>
 
     for i in 0..number_of_views{
         let rot = rng.gen::<Rotation3<Float>>();
-        absolute_rotations.fixed_rows_mut::<3>(i).copy_from(&rot.matrix());
+        absolute_rotations.fixed_rows_mut::<3>(3*i).copy_from(&rot.matrix());
     }
     absolute_rotations
 }

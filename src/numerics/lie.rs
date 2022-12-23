@@ -168,5 +168,13 @@ pub fn right_inverse_jacobian<F,T>(w: &Vector<F,U3,T>) -> Matrix3<F> where T: St
     }
 }
 
+pub fn chordal_distance<F>(a: &Matrix3<F>, b: &Matrix3<F>) -> F where F: float::Float + Scalar + NumAssign + RealField + SimdRealField + ComplexField {
+    (a-b).norm()
+}
+
+pub fn angular_distance<F>(a: &Matrix3<F>) -> F where F: float::Float + Scalar + NumAssign + RealField + SimdRealField + ComplexField {
+    ln_SO3(a).norm()
+}
+
 
 

@@ -163,7 +163,7 @@ impl CameraFeatureMap {
     }
 
     pub fn get_euclidean_landmark_state<F: float::Float + Scalar + NumAssign + SimdRealField + ComplexField + Mul<F> + From<F> + RealField + SubsetOf<Float> + SupersetOf<Float>, C : Camera<Float> + Copy>(
-        &self, initial_motions : Option<&Vec<Vec<((usize,usize),(Vector3<Float>,Matrix3<Float>))>>>,camera_map: &HashMap<usize, C>, paths: &Vec<Vec<usize>>, epipolar_alg: BifocalType) 
+        &self, initial_motions : Option<&Vec<Vec<((usize,usize),(Vector3<Float>,Matrix3<Float>))>>>,camera_map: &HashMap<usize, C>, epipolar_alg: BifocalType) 
         -> State<F, EuclideanLandmark<F>,3> {
         
         let number_of_cameras = self.camera_map.keys().len();
@@ -174,11 +174,9 @@ impl CameraFeatureMap {
                 let mut triangualted_landmarks = vec![EuclideanLandmark::from_state(Vector3::<F>::new(F::zero(),F::zero(),-F::one())); number_of_unqiue_landmarks];       
                 for path_idx in 0..all_motions.len() {
                         let motions = &all_motions[path_idx];
-                        assert_eq!(motions.len(), paths[path_idx].len());
                         let mut pose_acc = Matrix4::<Float>::identity();
                         for i in 0..motions.len() {
                             let ((id_s, cam_id),(h,rotation_matrix)) = &motions[i];
-                            assert_eq!(*cam_id, paths[path_idx][i]);
                             let camera_matrix_s = camera_map[id_s];
                             let camera_matrix_f = camera_map[cam_id];
         

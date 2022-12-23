@@ -160,17 +160,17 @@ fn main() -> Result<()> {
 
 
 
-    // let sfm_all_matches = vec!(vec!(matches_5_4_subvec),vec!(matches_5_6_subvec));
-    // let camera_map = HashMap::from([(5, pinhole_cam_5), (4, pinhole_cam_4), (6, pinhole_cam_6)]);
-    // let camera_map_ba = HashMap::from([(5, pinhole_cam_5.cast::<f32>()), (4, pinhole_cam_4.cast::<f32>()), (6, pinhole_cam_6.cast::<f32>())]);
-    // let paths = vec!(vec!(4),vec!(6));
-    // let root_id = 5;
-
-    let sfm_all_matches = vec!(vec!(matches_5_4_subvec,matches_4_3_subvec));
-    let camera_map = HashMap::from([(5, pinhole_cam_5), (4, pinhole_cam_4), (3, pinhole_cam_3)]);
-    let camera_map_ba = HashMap::from([(5, pinhole_cam_5.cast::<f32>()), (4, pinhole_cam_4.cast::<f32>()), (3, pinhole_cam_3.cast::<f32>())]);
-    let paths = vec!(vec!(4,3));
+    let sfm_all_matches = vec!(vec!(matches_5_4_subvec),vec!(matches_5_6_subvec));
+    let camera_map = HashMap::from([(5, pinhole_cam_5), (4, pinhole_cam_4), (6, pinhole_cam_6)]);
+    let camera_map_ba = HashMap::from([(5, pinhole_cam_5.cast::<f32>()), (4, pinhole_cam_4.cast::<f32>()), (6, pinhole_cam_6.cast::<f32>())]);
+    let paths = vec!(vec!(4),vec!(6));
     let root_id = 5;
+
+    // let sfm_all_matches = vec!(vec!(matches_5_4_subvec,matches_4_3_subvec));
+    // let camera_map = HashMap::from([(5, pinhole_cam_5), (4, pinhole_cam_4), (3, pinhole_cam_3)]);
+    // let camera_map_ba = HashMap::from([(5, pinhole_cam_5.cast::<f32>()), (4, pinhole_cam_4.cast::<f32>()), (3, pinhole_cam_3.cast::<f32>())]);
+    // let paths = vec!(vec!(4,3));
+    // let root_id = 5;
 
 
     // let sfm_all_matches = vec!(vec!(matches_5_4_subvec),vec!(matches_5_6_subvec,matches_6_7_subvec));
@@ -184,6 +184,20 @@ fn main() -> Result<()> {
     // let camera_map_ba = HashMap::from([(5, pinhole_cam_5.cast::<f32>()), (4, pinhole_cam_4.cast::<f32>()), (6, pinhole_cam_6.cast::<f32>()), (3, pinhole_cam_3.cast::<f32>()),(2, pinhole_cam_2.cast::<f32>()),(7, pinhole_cam_7.cast::<f32>()),(8, pinhole_cam_8.cast::<f32>()),(9, pinhole_cam_9.cast::<f32>())]);  
     // let paths = vec!(vec!(4,3),vec!(6,7));
     // let root_id = 5;
+
+    // let sfm_all_matches = vec!(vec!(matches_5_4_subvec, matches_4_3_subvec,matches_3_2_subvec));
+    // let camera_map = HashMap::from([(5, pinhole_cam_5), (4, pinhole_cam_4), (6, pinhole_cam_6), (3, pinhole_cam_3),(2, pinhole_cam_2),(7, pinhole_cam_7),(8, pinhole_cam_8),(9, pinhole_cam_9)]);  
+    // let camera_map_ba = HashMap::from([(5, pinhole_cam_5.cast::<f32>()), (4, pinhole_cam_4.cast::<f32>()), (6, pinhole_cam_6.cast::<f32>()), (3, pinhole_cam_3.cast::<f32>()),(2, pinhole_cam_2.cast::<f32>()),(7, pinhole_cam_7.cast::<f32>()),(8, pinhole_cam_8.cast::<f32>()),(9, pinhole_cam_9.cast::<f32>())]);  
+    // let paths = vec!(vec!(4,3,2));
+    // let root_id = 5;
+
+    // let sfm_all_matches = vec!(vec!(matches_5_6_subvec, matches_6_7_subvec,matches_7_8_subvec));
+    // let camera_map = HashMap::from([(5, pinhole_cam_5), (4, pinhole_cam_4), (6, pinhole_cam_6), (3, pinhole_cam_3),(2, pinhole_cam_2),(7, pinhole_cam_7),(8, pinhole_cam_8),(9, pinhole_cam_9)]);  
+    // let camera_map_ba = HashMap::from([(5, pinhole_cam_5.cast::<f32>()), (4, pinhole_cam_4.cast::<f32>()), (6, pinhole_cam_6.cast::<f32>()), (3, pinhole_cam_3.cast::<f32>()),(2, pinhole_cam_2.cast::<f32>()),(7, pinhole_cam_7.cast::<f32>()),(8, pinhole_cam_8.cast::<f32>()),(9, pinhole_cam_9.cast::<f32>())]);  
+    // let paths = vec!(vec!(6,7,8));
+    // let root_id = 5;
+
+    
 
     // let sfm_all_matches = vec!(vec!(matches_5_4_subvec, matches_4_3_subvec,matches_3_2_subvec),vec!(matches_5_6_subvec, matches_6_7_subvec,matches_7_8_subvec));
     // let camera_map = HashMap::from([(5, pinhole_cam_5), (4, pinhole_cam_4), (6, pinhole_cam_6), (3, pinhole_cam_3),(2, pinhole_cam_2),(7, pinhole_cam_7),(8, pinhole_cam_8),(9, pinhole_cam_9)]);  
@@ -231,6 +245,7 @@ fn main() -> Result<()> {
     let sfm_config_fundamental = SFMConfig::new(root_id, paths.clone(), camera_map, camera_map_ba, sfm_all_matches.clone(), BifocalType::FUNDAMENTAL, olsen_data.width*olsen_data.height);
     let (initial_cam_motions_per_path_fundamental,filtered_matches_per_path_fundamental) = sfm_config_fundamental.compute_pairwise_cam_motions_with_filtered_matches(
             0.8, 
+            1.0,
             normalize_features,
             sfm_config_fundamental.epipolar_alg()
     );
@@ -241,6 +256,7 @@ fn main() -> Result<()> {
             ((*i_s, *i_f), rot.clone())
         }).collect::<Vec<_>>()
     }).collect::<Vec<_>>();
+    
     let initial_cam_rotations_per_path_rcd = optimize_rotations_with_rcd(&initial_cam_rotations_per_path);
     for i in 0..initial_cam_motions_per_path.len(){
         let path_len = initial_cam_motions_per_path[i].len();
@@ -250,21 +266,22 @@ fn main() -> Result<()> {
             println!("initial r : {}",initial_rot);
             println!("rcd r : {}",rcd_rot);
 
-            initial_cam_motions_per_path[i][j] = ((s,f),(t,rcd_rot));  
+            initial_cam_motions_per_path[i][j] = ((s,f),(t,rcd_rot));  //TODO: evaluate this
         }
     }
     let filtered_matches_per_path = filtered_matches_per_path_fundamental.clone();
 
 
-    for path_idx in 0..sfm_config.paths().len() {
-        let path = &sfm_config.paths()[path_idx];
-        for motion_idx in 0..path.len() {
-            let m_orig = &sfm_config.matches()[path_idx][motion_idx];
-            let m = &filtered_matches_per_path[path_idx][motion_idx];
+    // for path_idx in 0..initial_cam_motions_per_path.len() {
+    //     let path = &initial_cam_motions_per_path[path_idx];
+    //     for motion_idx in 0..path.len() {
+    //         let m_orig = &sfm_config.matches()[path_idx][motion_idx];
+    //         let m = &filtered_matches_per_path[path_idx][motion_idx];
 
-            println!("orig matches: {}, filtered matches: {}", m_orig.len(), m.len());
-        }
-    }
+    //         println!("orig matches: {}, filtered matches: {}", m_orig.len(), m.len());
+    //     }
+    // }
+
     //This is only to satisfy current interface in ba
     let initial_cam_motions = initial_cam_motions_per_path.clone().into_iter().flatten().collect::<Vec<((usize,usize),(Vector3<Float>,Matrix3<Float>))>>();
     let initial_cam_poses = Some(initial_cam_motions);
@@ -281,7 +298,7 @@ fn main() -> Result<()> {
 
         let runtime_parameters = RuntimeParameters {
             pyramid_scale: 1.0,
-            max_iterations: vec![10000; 1],
+            max_iterations: vec![1e5 as usize; 1],
             eps: vec![1e-6],
             step_sizes: vec![1e0],
             max_norm_eps: 1e-30, 

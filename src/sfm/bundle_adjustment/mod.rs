@@ -28,14 +28,19 @@ pub fn run_ba<F: serde::Serialize + float::Float + Scalar + NumAssign + SimdReal
 
     let (unique_camera_ids_sorted,_) = sfm_config.compute_unqiue_ids_cameras_root_first();
     let (_,unique_cameras_sorted_by_id_ba) = sfm_config.compute_unqiue_ids_cameras_ba_root_first();
-    let path_id_pairs = sfm_config.compute_path_id_pairs();
+    let path_id_pairs = match initial_cam_poses {
+        None => sfm_config.compute_path_id_pairs(),
+        Some(pose_list) => {
+            pose_list.iter().map(|v| v.iter().map(|((s,f),_)| (*s,*f)).collect::<Vec<_>>()).collect::<Vec<_>>()
+        }  
+    };
 
     let mut feature_map = CameraFeatureMap::new(matches,unique_camera_ids_sorted, img_dim);
     feature_map.add_matches(&path_id_pairs,matches, pyramid_scale);
 
     //TODO: switch impl
-    //TODO: transative motions
-    let mut state = feature_map.get_euclidean_landmark_state(initial_cam_poses, sfm_config.camera_map(), sfm_config.paths(), sfm_config.epipolar_alg()) ;
+    //TODO: transative motions -> done?
+    let mut state = feature_map.get_euclidean_landmark_state(initial_cam_poses, sfm_config.camera_map(), sfm_config.epipolar_alg());
     //let mut state = feature_map.get_inverse_depth_landmark_state(Some(&initial_motion_decomp), depth_prior,&cameras);
     
     //TODO: check this

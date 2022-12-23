@@ -13,6 +13,7 @@ use std::collections::HashMap;
 use crate::image::{features::{Feature, Match, feature_track::FeatureTrack, solver_feature::SolverFeature}};
 use crate::sfm::epipolar::tensor;
 use crate::sensors::camera::Camera;
+use crate::numerics::lie::angular_distance;
 
 use na::{Vector3, Matrix3};
 use crate::Float;
@@ -34,7 +35,8 @@ pub struct SFMConfig<C, C2, Feat: Feature> {
 
 impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverFeature> SFMConfig<C,C2, Feat> {
 
-    //TODO: rework casting to be part of camera trait or super struct
+    //TODO: this structure is broken and does not account for filtering of paths via angular distance!
+    //TODO: rework casting to be part of camera trait or super struct 
     pub fn new(root: usize, paths: Vec<Vec<usize>>, camera_map: HashMap<usize, C>, camera_map_ba: HashMap<usize, C2>, matches: Vec<Vec<Vec<Match<Feat>>>>, epipolar_alg: tensor::BifocalType, image_size: usize) -> SFMConfig<C,C2,Feat> {
         for key in camera_map.keys() {
             assert!(camera_map_ba.contains_key(key));
@@ -171,6 +173,7 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
     pub fn compute_pairwise_cam_motions_with_filtered_matches(
             &self,
             perc_tresh: Float, 
+            angular_thresh: Float,
             normalize_features: bool,
             epipolar_alg: tensor::BifocalType) 
         ->  (Vec<Vec<((usize,usize),(Vector3<Float>, Matrix3<Float>))>>,Vec<Vec<Vec<Match<Feat>>>>) {
@@ -185,6 +188,7 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
                 let matches_tracks = self.filtered_matches_by_tracks[path_idx].clone();
                 let mut states: Vec<((usize,usize),(Vector3<Float>,Matrix3<Float>))> = Vec::<((usize,usize),(Vector3<Float>,Matrix3<Float>))>::with_capacity(100);
                 let mut filtered_matches: Vec<Vec<Match<Feat>>> = Vec::<Vec<Match<Feat>>>::with_capacity(100);
+                let mut track_valid = true;
                 for j in 0..matches_tracks.len() {
                     let tracks = &matches_tracks[j];
                     //let all_matches = &matches[j];
@@ -221,8 +225,15 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
             
                     let (h,rotation,_) = tensor::decompose_essential_förstner(&e,&f_m,c1,c2);
                     let new_state = ((id1, id2),(h, rotation));
-                    states.push(new_state);
-                    filtered_matches.push(f_m);
+                    let angular_distance = angular_distance(&rotation);
+                    if angular_distance < angular_thresh && track_valid {
+                        states.push(new_state);
+                        filtered_matches.push(f_m);
+                    } else {
+                        println!("{},{} got rejected due to angular distance being too big : {} / previous path was rejected", id1, id2, angular_distance);
+                        track_valid = false;
+                    }
+
                 }
 
                 all_states.push(states);

@@ -26,8 +26,10 @@ fn main() -> Result<()> {
     let matches_1_0 = three_dv_loader::load_matches(&format!("{}/3dv",runtime_conf.dataset_path), "image_formation_neg_z_no_noise_1.xyz", "image_formation_neg_z_no_noise_0.xyz");
     let matches_1_3 = three_dv_loader::load_matches(&format!("{}/3dv",runtime_conf.dataset_path), "image_formation_neg_z_no_noise_1.xyz", "image_formation_neg_z_no_noise_3.xyz");
     let matches_0_3 = three_dv_loader::load_matches(&format!("{}/3dv",runtime_conf.dataset_path), "image_formation_neg_z_no_noise_0.xyz", "image_formation_neg_z_no_noise_3.xyz");
+    let matches_2_0 = three_dv_loader::load_matches(&format!("{}/3dv",runtime_conf.dataset_path), "image_formation_neg_z_no_noise_2.xyz", "image_formation_neg_z_no_noise_0.xyz");
     let matches_2_1 = three_dv_loader::load_matches(&format!("{}/3dv",runtime_conf.dataset_path), "image_formation_neg_z_no_noise_2.xyz", "image_formation_neg_z_no_noise_1.xyz");
     let matches_2_3 = three_dv_loader::load_matches(&format!("{}/3dv",runtime_conf.dataset_path), "image_formation_neg_z_no_noise_2.xyz", "image_formation_neg_z_no_noise_3.xyz");
+    let matches_2_4 = three_dv_loader::load_matches(&format!("{}/3dv",runtime_conf.dataset_path), "image_formation_neg_z_no_noise_2.xyz", "image_formation_neg_z_no_noise_4.xyz");
     let matches_3_4 = three_dv_loader::load_matches(&format!("{}/3dv",runtime_conf.dataset_path), "image_formation_neg_z_no_noise_3.xyz", "image_formation_neg_z_no_noise_4.xyz");
 
     // let matches_0_1 = three_dv_loader::load_matches(&format!("{}/3dv",runtime_conf.dataset_path), "image_formation_neg_z_noise_0.xyz", "image_formation_neg_z_noise_1.xyz");
@@ -67,19 +69,27 @@ fn main() -> Result<()> {
     };
 
     let camera_map = HashMap::from([(0, intensity_camera_0), (1, intensity_camera_1),(2,intensity_camera_2),(3,intensity_camera_3),(4,intensity_camera_4)  ]);
-    let sfm_config = SFMConfig::new(2, vec!(vec!(1), vec!(3)), camera_map.clone(), camera_map, vec!(vec!(matches_2_1),vec!(matches_2_3)),
+    //let sfm_config = SFMConfig::new(2, vec!(vec!(1), vec!(3)), camera_map.clone(), camera_map, vec!(vec!(matches_2_1),vec!(matches_2_3)),
     //let sfm_config = SFMConfig::new(2, vec!(vec!(1)), camera_map.clone(), camera_map, vec!(vec!(matches_2_1)),
+    let sfm_config = SFMConfig::new(2, vec!(vec!(3,4)), camera_map.clone(), camera_map, vec!(vec!(matches_2_3,matches_3_4)),
+    //let sfm_config = SFMConfig::new(2, vec!(vec!(3)), camera_map.clone(), camera_map, vec!(vec!(matches_2_3)),
+    //let sfm_config = SFMConfig::new(2, vec!(vec!(4)), camera_map.clone(), camera_map, vec!(vec!(matches_2_4)),
     //let sfm_config = SFMConfig::new(2, vec!(vec!(1,0)), camera_map.clone(), camera_map, vec!(vec!(matches_2_1,matches_1_0)),
     //let sfm_config = SFMConfig::new(2, vec!(vec!(1,0), vec!(3)), camera_map.clone(), camera_map, vec!(vec!(matches_2_1,matches_1_0),vec!(matches_2_3)),
-    //let sfm_config = SFMConfig::new(2, vec!(vec!(1), vec!(3,4)), camera_map.clone(), camera_map, vec!(vec!(matches_2_1),vec!(matches_2_3,matches_3_4)),
+    //let sfm_config = SFMConfig::new(2, vec!(vec!(3,4), vec!(1)), camera_map.clone(), camera_map, vec!(vec!(matches_2_3,matches_3_4),vec!(matches_1_0)),
+
+    //let sfm_config = SFMConfig::new(2, vec!(vec!(1), vec!(3), vec!(4), vec!(0)), camera_map.clone(), camera_map, vec!(vec!(matches_2_1),vec!(matches_2_3),vec!(matches_2_4),vec!(matches_2_0)),
     //let sfm_config = SFMConfig::new(2, vec!(vec!(1,0), vec!(3,4)), camera_map.clone(), camera_map, vec!(vec!(matches_2_1,matches_1_0),vec!(matches_2_3,matches_3_4)),
+    //let sfm_config = SFMConfig::new(3, vec!(vec!(4)), camera_map.clone(), camera_map, vec!(vec!(matches_3_4)),
         BifocalType::FUNDAMENTAL, 320*240);
 
     let perc_tresh = 1.0;
+    let anguar_thresh = 1.0;
     let normalize_features = false;
 
     let (initial_cam_motions_per_path,filtered_matches_per_path) = sfm_config.compute_pairwise_cam_motions_with_filtered_matches(
         perc_tresh,
+        anguar_thresh,
         normalize_features,
         sfm_config.epipolar_alg()
     );
