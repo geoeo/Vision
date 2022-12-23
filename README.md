@@ -17,6 +17,8 @@ Inverse Depth Parameterization https://www.doc.ic.ac.uk/~ajd/Publications/civera
 
 QuEst - https://www.researchgate.net/publication/322410414_QuEst_A_Quaternion-Based_Approach_for_Camera_Motion_Estimation_From_Minimal_Feature_Points
 
+Rotation Coordinate Descent - https://arxiv.org/abs/2103.08292
+
 ## Orb
 ![billa_cereal_far](doc/cereal_far.png)![billa_cereal_tilted](doc/cereal_tilted.png)
 
