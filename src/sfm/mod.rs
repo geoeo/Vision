@@ -188,7 +188,6 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
                 let matches_tracks = self.filtered_matches_by_tracks[path_idx].clone();
                 let mut states: Vec<((usize,usize),(Vector3<Float>,Matrix3<Float>))> = Vec::<((usize,usize),(Vector3<Float>,Matrix3<Float>))>::with_capacity(100);
                 let mut filtered_matches: Vec<Vec<Match<Feat>>> = Vec::<Vec<Match<Feat>>>::with_capacity(100);
-                let mut track_valid = true;
                 for j in 0..matches_tracks.len() {
                     let tracks = &matches_tracks[j];
                     //let all_matches = &matches[j];
@@ -222,22 +221,25 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
                             (e, tensor::select_best_matches_from_fundamental(&f,m,perc_tresh))
                         }
                     };
-            
+                    
+                    // The pose transforms id2 into the coordiante system of id1
                     let (h,rotation,_) = tensor::decompose_essential_förstner(&e,&f_m,c1,c2);
                     let new_state = ((id1, id2),(h, rotation));
                     let angular_distance = angular_distance(&rotation);
-                    if angular_distance < angular_thresh && track_valid {
+                    if angular_distance < angular_thresh {
                         states.push(new_state);
                         filtered_matches.push(f_m);
                     } else {
                         println!("{},{} got rejected due to angular distance being too big : {} / previous path was rejected", id1, id2, angular_distance);
-                        track_valid = false;
+                        break;
                     }
 
                 }
+                if !states.is_empty() {
+                    all_states.push(states);
+                    all_filtered_matches.push(filtered_matches);
+                }
 
-                all_states.push(states);
-                all_filtered_matches.push(filtered_matches);
             }
         (all_states, all_filtered_matches)
     }

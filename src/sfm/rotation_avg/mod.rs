@@ -7,16 +7,14 @@ use rand::{thread_rng, Rng};
 
 use std::collections::HashMap;
 use crate::{Float,float};
-use crate::numerics::{lie::angular_distance, pose::optimal_correction_of_rotation};
+use crate::numerics::{lie::angular_distance};
 
 
 /**
     Rotation Coordiante Descent Parra et al.
  */
 #[allow(non_snake_case)]
-pub fn rcd(indexed_relative_rotations: &Vec<Vec<((usize, usize), Matrix3<Float>)>>, index_to_matrix_map :&HashMap<usize,usize>) -> MatrixXx3<Float> {
-    let number_of_absolute_rotations = index_to_matrix_map.len();
-    let relative_rotations_csc = generate_relative_rotation_matrix(&index_to_matrix_map,indexed_relative_rotations);
+pub fn rcd(relative_rotations_csc: CscMatrix<Float>, number_of_absolute_rotations:usize) -> MatrixXx3<Float> {
     let mut absolute_rotations = generate_absolute_rotation_matrix(number_of_absolute_rotations);
     let mut absolute_rotations_transpose = absolute_rotations.transpose();
 
@@ -69,24 +67,40 @@ pub fn rcd(indexed_relative_rotations: &Vec<Vec<((usize, usize), Matrix3<Float>)
 
 pub fn optimize_rotations_with_rcd(indexed_relative_rotations: &Vec<Vec<((usize, usize), Matrix3<Float>)>>) -> Vec<Vec<((usize, usize), Matrix3<Float>)>> {
     let index_to_matrix_map = generate_path_indices_to_matrix_map(indexed_relative_rotations);
-    //TODO: enforce direction! Also check if it just be run on each path individually!
-    //TODO: double check indexing (i,j)
-    let absolute_rotations = rcd(indexed_relative_rotations, &index_to_matrix_map);
+    let relative_rotations_csc = generate_relative_rotation_matrix(&index_to_matrix_map,indexed_relative_rotations);
+    let number_of_absolute_rotations = index_to_matrix_map.len();
+    let absolute_rotations = rcd(relative_rotations_csc,number_of_absolute_rotations);
     println!("{}",absolute_rotations);
     absolute_to_relative_rotations(&absolute_rotations, indexed_relative_rotations, &index_to_matrix_map)
 }
 
+pub fn optimize_rotations_with_rcd_per_track(indexed_relative_rotations: &Vec<Vec<((usize, usize), Matrix3<Float>)>>) -> Vec<Vec<((usize, usize), Matrix3<Float>)>> {
+    indexed_relative_rotations.iter().map(|rotations_per_track| {
+        let index_to_matrix_map = generate_path_indices_to_matrix_map_per_track(rotations_per_track);
+        let relative_rotations_csc_per_track = generate_relative_rotation_matrix_per_track(&index_to_matrix_map, rotations_per_track);
+        let number_of_absolute_rotations = index_to_matrix_map.len();
+        let absolute_rotations = rcd(relative_rotations_csc_per_track,number_of_absolute_rotations);
+        println!("{}",absolute_rotations);
+        absolute_to_relative_rotations_per_track(&absolute_rotations, rotations_per_track, &index_to_matrix_map)
+    }).collect::<Vec<_>>()
+
+}
+
 fn absolute_to_relative_rotations(absolute_rotations: &MatrixXx3<Float>, indexed_relative_rotations: &Vec<Vec<((usize, usize), Matrix3<Float>)>>, index_to_matrix_map: &HashMap<usize,usize>) -> Vec<Vec<((usize, usize), Matrix3<Float>)>>{
     indexed_relative_rotations.iter().map(|vec| {
-        vec.iter().map(|((i_s, i_f), _)| {
-            let idx_s = index_to_matrix_map.get(i_s).expect("RCD: Index s not present");
-            let idx_f = index_to_matrix_map.get(i_f).expect("RCD: Index f not present");
-            // Absolute rotations are already transposed!
-            let rot = get_absolute_rotation_at(absolute_rotations,*idx_s).transpose()*get_absolute_rotation_at(absolute_rotations, *idx_f);
-            
-            ((*i_s, *i_f),rot) 
-        }).collect::<Vec<_>>()
+        absolute_to_relative_rotations_per_track(absolute_rotations,vec,index_to_matrix_map)
     }).collect::<Vec<_>>()
+}
+
+fn absolute_to_relative_rotations_per_track(absolute_rotations: &MatrixXx3<Float>, indexed_relative_rotations_per_track: &Vec<((usize, usize), Matrix3<Float>)>, index_to_matrix_map: &HashMap<usize,usize>) -> Vec<((usize, usize), Matrix3<Float>)>{
+    indexed_relative_rotations_per_track.iter().map(|((i_s, i_f), _)| {
+        let idx_s = index_to_matrix_map.get(i_s).expect("RCD: Index s not present");
+        let idx_f = index_to_matrix_map.get(i_f).expect("RCD: Index f not present");
+        // Absolute rotations are already transposed!
+        let rot = get_absolute_rotation_at(absolute_rotations,*idx_s).transpose()*get_absolute_rotation_at(absolute_rotations, *idx_f);
+        ((*i_s, *i_f),rot) 
+    }).collect::<Vec<_>>()
+    
 }
 
 fn get_absolute_rotation_at(absolute_rotations: &MatrixXx3<Float>, index: usize) ->  Matrix3<Float> {
@@ -97,41 +111,61 @@ fn generate_path_indices_to_matrix_map(path_indices: &Vec<Vec<((usize, usize), M
     // assuming the first element of each vector is always the (same) root
     let number_of_rotations = path_indices.iter().map(|x| x.len()).sum::<usize>() + 1;
     let mut index_map = HashMap::<usize,usize>::with_capacity(number_of_rotations);
-    let mut index_counter = 0;
     for v in path_indices {
-        for ((i_s, i_f), _) in v {
-            if !index_map.contains_key(i_s) {
-                index_map.insert(*i_s, index_counter);
-                index_counter += 1;
-            }
+        fill_index_map(&mut index_map, v);
+    }
+    index_map
+}
 
-            if !index_map.contains_key(i_f) {
-                index_map.insert(*i_f, index_counter);
-                index_counter += 1;
-            }
+fn generate_path_indices_to_matrix_map_per_track(track_indices: &Vec<((usize, usize), Matrix3<Float>)>) -> HashMap<usize,usize> {
+    // assuming the first element of each vector is always the (same) root
+    let number_of_rotations = track_indices.len() + 1;
+    let mut index_map = HashMap::<usize,usize>::with_capacity(number_of_rotations);
+
+    fill_index_map(&mut index_map, track_indices);
+    index_map
+}
+
+fn fill_index_map(index_map: &mut HashMap<usize, usize>, track_indices: &Vec<((usize, usize), Matrix3<Float>)>) {
+    for ((i_s, i_f), _) in track_indices {
+        if !index_map.contains_key(i_s) {
+            index_map.insert(*i_s, index_map.len());
+        }
+
+        if !index_map.contains_key(i_f) {
+            index_map.insert(*i_f, index_map.len());
         }
     }
-
-    index_map
 }
 
 fn generate_relative_rotation_matrix(index_to_matrix_map: &HashMap<usize,usize>, indexed_relative_rotations: &Vec<Vec<((usize, usize), Matrix3<Float>)>>) -> CscMatrix<Float> {
     let number_of_views = index_to_matrix_map.len();
     let mut rotations_coo = CooMatrix::<Float>::zeros(3*number_of_views, 3*number_of_views);
-
     for v in indexed_relative_rotations {
-        for ((i_s, i_f), rotation) in v {
-            let idx_s = index_to_matrix_map.get(i_s).expect("RCD: Index s not present");
-            let idx_f = index_to_matrix_map.get(i_f).expect("RCD: Index f not present");
-            println!("rcd: Angular distance of {},{} is: {}",i_s,i_f,angular_distance(&rotation));
-            let rotation_transpose = rotation.transpose();
-            // Symmetric Matrix of transpose R_ij
-            rotations_coo.push_matrix(3*idx_s, 3*idx_f, &rotation_transpose);
-            rotations_coo.push_matrix(3*idx_f, 3*idx_s, &rotation_transpose);
-
-        }
+        populate_relative_rotation_matrix_per_track(index_to_matrix_map, v , &mut rotations_coo);
     }
     CscMatrix::from(&rotations_coo)
+}
+
+fn generate_relative_rotation_matrix_per_track(index_to_matrix_map: &HashMap<usize,usize>, indexed_relative_rotations_tracks: &Vec<((usize, usize), Matrix3<Float>)>) -> CscMatrix<Float> {
+    let number_of_views = index_to_matrix_map.len();
+    let mut rotations_coo = CooMatrix::<Float>::zeros(3*number_of_views, 3*number_of_views);
+
+    populate_relative_rotation_matrix_per_track(index_to_matrix_map,indexed_relative_rotations_tracks, &mut rotations_coo);
+    CscMatrix::from(&rotations_coo)
+}
+
+fn populate_relative_rotation_matrix_per_track(index_to_matrix_map: &HashMap<usize,usize>,   indexed_relative_rotations_tracks: &Vec<((usize, usize), Matrix3<Float>)>, rotations_coo: &mut CooMatrix<Float>) {
+    for ((i_s, i_f), rotation) in indexed_relative_rotations_tracks {
+        let idx_s = index_to_matrix_map.get(i_s).expect("RCD: Index s not present");
+        let idx_f = index_to_matrix_map.get(i_f).expect("RCD: Index f not present");
+        assert!(idx_s < idx_f);
+        println!("rcd: Angular distance of {},{} is: {}",i_s,i_f,angular_distance(&rotation));
+        let rotation_transpose = rotation.transpose();
+        // Symmetric Matrix of transpose R_ij
+        rotations_coo.push_matrix(3*idx_f, 3*idx_s, &rotation_transpose);
+        rotations_coo.push_matrix(3*idx_s, 3*idx_f, &rotation_transpose);
+    }
 }
 
 /**
@@ -141,7 +175,7 @@ fn generate_absolute_rotation_matrix(number_of_views: usize) -> MatrixXx3<Float>
     let mut absolute_rotations = MatrixXx3::<Float>::zeros(3*number_of_views);
     let mut rng = thread_rng();
 
-    for i in 0..number_of_views{
+    for i in 0..number_of_views {
         let rot = rng.gen::<Rotation3<Float>>();
         absolute_rotations.fixed_rows_mut::<3>(3*i).copy_from(&rot.matrix());
     }
