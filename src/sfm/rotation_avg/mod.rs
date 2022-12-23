@@ -7,7 +7,7 @@ use rand::{thread_rng, Rng};
 
 use std::collections::HashMap;
 use crate::{Float,float};
-use crate::numerics::lie::angular_distance;
+use crate::numerics::{lie::angular_distance, pose::optimal_correction_of_rotation};
 
 
 /**
@@ -70,6 +70,7 @@ pub fn rcd(indexed_relative_rotations: &Vec<Vec<((usize, usize), Matrix3<Float>)
 pub fn optimize_rotations_with_rcd(indexed_relative_rotations: &Vec<Vec<((usize, usize), Matrix3<Float>)>>) -> Vec<Vec<((usize, usize), Matrix3<Float>)>> {
     let index_to_matrix_map = generate_path_indices_to_matrix_map(indexed_relative_rotations);
     //TODO: enforce direction! Also check if it just be run on each path individually!
+    //TODO: double check indexing (i,j)
     let absolute_rotations = rcd(indexed_relative_rotations, &index_to_matrix_map);
     println!("{}",absolute_rotations);
     absolute_to_relative_rotations(&absolute_rotations, indexed_relative_rotations, &index_to_matrix_map)
@@ -81,10 +82,9 @@ fn absolute_to_relative_rotations(absolute_rotations: &MatrixXx3<Float>, indexed
             let idx_s = index_to_matrix_map.get(i_s).expect("RCD: Index s not present");
             let idx_f = index_to_matrix_map.get(i_f).expect("RCD: Index f not present");
             // Absolute rotations are already transposed!
-            //((*i_s, *i_f),get_absolute_rotation_at(absolute_rotations,*idx_f).transpose()*get_absolute_rotation_at(absolute_rotations, *idx_s))
-            ((*i_s, *i_f),(get_absolute_rotation_at(absolute_rotations,*idx_f).transpose()*get_absolute_rotation_at(absolute_rotations, *idx_s)).transpose()) // This works. check why last transpose is neccessary
-            //(*i_s, *i_f),get_absolute_rotation_at(absolute_rotations,*idx_f)*get_absolute_rotation_at(absolute_rotations, *idx_s).transpose())
-            //((*i_s, *i_f),get_absolute_rotation_at(absolute_rotations,*idx_f))
+            let rot = get_absolute_rotation_at(absolute_rotations,*idx_s).transpose()*get_absolute_rotation_at(absolute_rotations, *idx_f);
+            
+            ((*i_s, *i_f),rot) 
         }).collect::<Vec<_>>()
     }).collect::<Vec<_>>()
 }
