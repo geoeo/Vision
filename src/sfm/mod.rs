@@ -174,6 +174,7 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
             &self,
             perc_tresh: Float, 
             angular_thresh: Float,
+            filter_tracks: bool,
             normalize_features: bool,
             epipolar_alg: tensor::BifocalType) 
         ->  (Vec<Vec<((usize,usize),(Vector3<Float>, Matrix3<Float>))>>,Vec<Vec<Vec<Match<Feat>>>>) {
@@ -184,14 +185,14 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
             for path_idx in 0..self.paths.len() {
                 //TODO: investigate this cloning
                 let path = self.paths[path_idx].clone();
-                //let matches = self.matches[path_idx].clone();
-                let matches_tracks = self.filtered_matches_by_tracks[path_idx].clone();
+                let matches = match filter_tracks {
+                    true => self.filtered_matches_by_tracks[path_idx].clone(),
+                    false =>  self.matches[path_idx].clone()
+                };
                 let mut states: Vec<((usize,usize),(Vector3<Float>,Matrix3<Float>))> = Vec::<((usize,usize),(Vector3<Float>,Matrix3<Float>))>::with_capacity(100);
                 let mut filtered_matches: Vec<Vec<Match<Feat>>> = Vec::<Vec<Match<Feat>>>::with_capacity(100);
-                for j in 0..matches_tracks.len() {
-                    let tracks = &matches_tracks[j];
-                    //let all_matches = &matches[j];
-                    let m = tracks;
+                for j in 0..matches.len() {
+                    let m = &matches[j];
                     let (id1, c1) = match j {
                         0 => (root_id, root_cam),
                         idx => (path[idx-1], self.camera_map.get(&path[idx-1]).expect("compute_pairwise_cam_motions_for_path: could not get previous cam"))
@@ -233,13 +234,11 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
                         println!("{},{} got rejected due to angular distance being too big : {} / previous path was rejected", id1, id2, angular_distance);
                         break;
                     }
-
                 }
                 if !states.is_empty() {
                     all_states.push(states);
                     all_filtered_matches.push(filtered_matches);
                 }
-
             }
         (all_states, all_filtered_matches)
     }

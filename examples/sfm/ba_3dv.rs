@@ -6,7 +6,7 @@ extern crate nalgebra as na;
 use std::fs;
 use std::collections::HashMap;
 use color_eyre::eyre::Result;
-use vision::sfm::{bundle_adjustment::run_ba, epipolar::tensor::{BifocalType,EssentialDecomposition}, rotation_avg::optimize_rotations_with_rcd_per_track};
+use vision::sfm::{bundle_adjustment::run_ba, epipolar::tensor::{BifocalType,EssentialDecomposition}, rotation_avg::{optimize_rotations_with_rcd_per_track,optimize_rotations_with_rcd}};
 use vision::sensors::camera::pinhole::Pinhole;
 use vision::odometry::runtime_parameters::RuntimeParameters;
 use vision::numerics::{loss, weighting};
@@ -86,11 +86,13 @@ fn main() -> Result<()> {
     let perc_tresh = 1.0;
     let anguar_thresh = 1.0;
     let normalize_features = false;
+    let filter_tracks = true;
 
     let (initial_cam_motions_per_path,filtered_matches_per_path) = sfm_config.compute_pairwise_cam_motions_with_filtered_matches(
         perc_tresh,
         anguar_thresh,
         normalize_features,
+        filter_tracks,
         sfm_config.epipolar_alg()
     );
 
@@ -100,7 +102,7 @@ fn main() -> Result<()> {
             ((*i_s, *i_f), rot.clone())
         }).collect::<Vec<_>>()
     }).collect::<Vec<_>>();
-    let initial_cam_rotations_per_path_rcd = optimize_rotations_with_rcd_per_track(&initial_cam_rotations_per_path);
+    let initial_cam_rotations_per_path_rcd = optimize_rotations_with_rcd(&initial_cam_rotations_per_path);
     for i in 0..initial_cam_motions_per_path.len(){
         let path_len = initial_cam_motions_per_path[i].len();
         for j in 0..path_len{
