@@ -315,18 +315,20 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
                 let (key,rcd_rot) = initial_cam_rotations_per_path_rcd[i][j];
                 let initial_pose = pose_map.get(&key).expect("No pose found for rcd rotation in pose map");
                 let initial_rot = initial_pose.rotation.to_rotation_matrix().matrix().to_owned();
-                println!("initial r : {}", initial_rot);
-                println!("rcd r : {}",rcd_rot);
                 let angular_distance_initial = angular_distance(&initial_rot);
                 let angular_distance_rcd = angular_distance(&rcd_rot);
-                
+
+                println!("initial r : {}", initial_rot);
+                println!("rcd r : {}",rcd_rot);
+                println!("initial ang dist : {}", angular_distance_initial);
+                println!("rcd ang dist : {}", angular_distance_rcd);
+
                 //TODO: investigate this
                 if (angular_distance_rcd-angular_distance_initial).abs() <= angular_thresh {
                     let new_se3 = se3(&initial_pose.translation.vector,&rcd_rot);
                     let old_pose = pose_map.insert(key, from_matrix(&new_se3));
                     assert!(old_pose.is_some());
                 }
-
             }
         }
 
