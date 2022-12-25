@@ -69,7 +69,7 @@ fn main() -> Result<()> {
     };
 
     let perc_tresh = 1.0;
-    let anguar_thresh = 1.0;
+    let anguar_thresh = 0.3;
     let filter_tracks = true;
     let refine_rotation_via_rcd = true;
 

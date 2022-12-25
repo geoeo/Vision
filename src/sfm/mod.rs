@@ -36,9 +36,9 @@ pub struct SFMConfig<C, C2, Feat: Feature> {
 
 impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverFeature> SFMConfig<C,C2, Feat> {
 
-    //TODO: this structure is broken and does not account for filtering of paths via angular distance!
     //TODO: rework casting to be part of camera trait or super struct 
-    pub fn new(root: usize, paths: Vec<Vec<usize>>, camera_map: HashMap<usize, C>, 
+    pub fn new(root: usize, paths: Vec<Vec<usize>>, 
+        camera_map: HashMap<usize, C>, 
         camera_map_ba: HashMap<usize, C2>, matches: Vec<Vec<Vec<Match<Feat>>>>, 
         epipolar_alg: tensor::BifocalType, 
         triangulation: Triangulation, 
@@ -61,22 +61,21 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
             false => matches
         };
 
-        let (mut pose_map, match_map, filtered_paths) = Self::compute_pose_and_feature_maps(
+        let (mut pose_map, match_map) = Self::compute_pose_and_feature_maps(
             root,
             &paths,
             &camera_map,
             &accepted_matches,
             perc_tresh, 
-            angular_thresh,
             epipolar_alg
         );
 
         if refine_rotation_via_rcd {
-            Self::refine_rotation_by_rcd(root, &filtered_paths, &mut pose_map);
+            Self::refine_rotation_by_rcd(root, &paths, &mut pose_map, angular_thresh,);
         }
 
 
-        SFMConfig{root, paths: filtered_paths, camera_map, camera_map_ba, match_map, pose_map, epipolar_alg, triangulation, image_size}
+        SFMConfig{root, paths, camera_map, camera_map_ba, match_map, pose_map, epipolar_alg, triangulation, image_size}
     }
 
 
@@ -233,17 +232,14 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
             camera_map: &HashMap<usize, C>,
             matches: &Vec<Vec<Vec<Match<Feat>>>>,
             perc_tresh: Float, 
-            angular_thresh: Float,
             epipolar_alg: tensor::BifocalType) 
-        ->  (HashMap<(usize, usize), Isometry3<Float>>, HashMap<(usize, usize), Vec<Match<Feat>>>, Vec<Vec<usize>>) {
+        ->  (HashMap<(usize, usize), Isometry3<Float>>, HashMap<(usize, usize), Vec<Match<Feat>>>) {
             let number_of_paths = paths.len();
             let map_capacity = 100*number_of_paths;
-            let mut filtered_paths = Vec::<Vec<usize>>::with_capacity(number_of_paths);
             let mut pose_map = HashMap::<(usize, usize), Isometry3<Float>>::with_capacity(map_capacity);
             let mut match_map = HashMap::<(usize, usize), Vec<Match<Feat>>>::with_capacity(map_capacity);
             for path_idx in 0..number_of_paths {
                 let path = paths[path_idx].clone();
-                let mut filtered_path = Vec::<usize>::with_capacity(path.len());
                 let matche_per_path = matches[path_idx].clone();
                 for j in 0..path.len() {
                     let id1 = match j {
@@ -282,24 +278,17 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
                     let (h,rotation,_) = tensor::decompose_essential_förstner(&e,&f_m,c1,c2);
                     let se3 = se3(&h,&rotation);
                     let isometry = from_matrix(&se3);
-                    let angular_distance = angular_distance(&rotation);
-                    if angular_distance < angular_thresh {
-                        let some_pose_old_val = pose_map.insert((id1, id2), isometry);
-                        let some_match_old_val = match_map.insert((id1, id2), f_m);
-                        filtered_path.push(id2);
-                        assert!(some_pose_old_val.is_none());
-                        assert!(some_match_old_val.is_none());
-                    } else {
-                        println!("{},{} got rejected due to angular distance being too big : {} / previous path was rejected", id1, id2, angular_distance);
-                        break;
-                    }
+                    let some_pose_old_val = pose_map.insert((id1, id2), isometry);
+                    let some_match_old_val = match_map.insert((id1, id2), f_m);
+                    assert!(some_pose_old_val.is_none());
+                    assert!(some_match_old_val.is_none());
+
                 }
-                filtered_paths.push(filtered_path);
             }
-        (pose_map, match_map, filtered_paths)
+        (pose_map, match_map)
     }
 
-    fn refine_rotation_by_rcd(root: usize, paths: &Vec<Vec<usize>>, pose_map: &mut HashMap<(usize, usize), Isometry3<Float>>) -> () {
+    fn refine_rotation_by_rcd(root: usize, paths: &Vec<Vec<usize>>, pose_map: &mut HashMap<(usize, usize), Isometry3<Float>>, angular_thresh: Float,) -> () {
         let number_of_paths = paths.len(); 
         let mut initial_cam_motions_per_path = Vec::<Vec<((usize, usize), Matrix3<Float>)>>::with_capacity(number_of_paths);
         for path_idx in 0..number_of_paths {
@@ -325,11 +314,19 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
             for j in 0..path_len {
                 let (key,rcd_rot) = initial_cam_rotations_per_path_rcd[i][j];
                 let initial_pose = pose_map.get(&key).expect("No pose found for rcd rotation in pose map");
-                println!("initial r : {}",initial_pose.rotation.to_rotation_matrix());
+                let initial_rot = initial_pose.rotation.to_rotation_matrix().matrix().to_owned();
+                println!("initial r : {}", initial_rot);
                 println!("rcd r : {}",rcd_rot);
-                let new_se3 = se3(&initial_pose.translation.vector,&rcd_rot);
-                let old_pose = pose_map.insert(key, from_matrix(&new_se3));
-                assert!(old_pose.is_some());
+                let angular_distance_initial = angular_distance(&initial_rot);
+                let angular_distance_rcd = angular_distance(&rcd_rot);
+                
+                //TODO: investigate this
+                if (angular_distance_rcd-angular_distance_initial).abs() <= angular_thresh {
+                    let new_se3 = se3(&initial_pose.translation.vector,&rcd_rot);
+                    let old_pose = pose_map.insert(key, from_matrix(&new_se3));
+                    assert!(old_pose.is_some());
+                }
+
             }
         }
 
