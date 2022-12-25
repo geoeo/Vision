@@ -12,13 +12,22 @@ pub fn from_matrix<F>(mat: &Matrix4<F>) -> Isometry3<F> where F : float::Float +
     Isometry3::<F>::from_parts(Translation3::from(vec), UnitQuaternion::<F>::from_matrix(&rot))
 }
 
-// 
+
 pub fn se3<F>(t: &Vector3<F>, rotation: &Matrix3<F>) -> Matrix4<F> where F : float::Float + Scalar + NumAssign + RealField + SimdRealField + ComplexField{
     Isometry::<F, Rotation3<F>,3>::from_parts(Translation3::from(*t),Rotation3::from_matrix_eps(rotation, convert(2e-16), 100, Rotation3::identity())).to_homogeneous()
 }
 
 pub fn from_parts<F>(t: &Vector3<F>, quat: &UnitQuaternion<F>) -> Isometry3<F> where F : float::Float + Scalar + NumAssign + RealField + SimdRealField + ComplexField {
     Isometry3::<F>::from_parts(Translation3::from(*t), *quat)
+}
+
+pub fn to_parts<F>(isometry:  &Isometry3::<F>) -> (Vector3<F>, Matrix3<F>) where F : float::Float + Scalar + NumAssign + RealField + SimdRealField + ComplexField {
+    let mat = isometry.to_matrix();
+    let translation = Vector3::<F>::new(mat[(0,3)],mat[(1,3)],mat[(2,3)]);
+    let rot = Matrix3::<F>::new(mat[(0,0)],mat[(0,1)],mat[(0,2)],
+                                    mat[(1,0)],mat[(1,1)],mat[(1,2)],
+                                    mat[(2,0)],mat[(2,1)],mat[(2,2)]);
+    (translation, rot)
 }
 
 /**

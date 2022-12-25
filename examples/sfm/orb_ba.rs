@@ -68,7 +68,7 @@ fn main() -> Result<()> {
     //matches.extend(matches_1_4);
 
     let camera_map = HashMap::from([(1, intensity_camera_1), (2, intensity_camera_2)]);
-    let sfm_config = SFMConfig::new(1, vec!(vec!(2)), camera_map.clone(), camera_map, vec!(all_matches), BifocalType::ESSENTIAL, Triangulation::LINEAR, 320*240);
+    let sfm_config = SFMConfig::new(1, vec!(vec!(2)), camera_map.clone(), camera_map, vec!(all_matches), BifocalType::ESSENTIAL, Triangulation::LINEAR, true, 0.8, 1.0, true, 320*240);
 
     let runtime_parameters = RuntimeParameters {
         pyramid_scale: orb_params_1_2.pyramid_scale,
@@ -89,9 +89,9 @@ fn main() -> Result<()> {
         cg_max_it: 200
     };
 
+    let (_,filtered_matches) = sfm_config.compute_lists_from_maps();
 
-
-    let ((cam_positions,points),(s,debug_states_serialized)) = run_ba(&sfm_config.matches(), &sfm_config, None, (image_1.buffer.nrows(),image_1.buffer.ncols()), &runtime_parameters, 1.0);
+    let ((cam_positions,points),(s,debug_states_serialized)) = run_ba(&filtered_matches, &sfm_config, None, (image_1.buffer.nrows(),image_1.buffer.ncols()), &runtime_parameters, 1.0);
     fs::write(format!("D:/Workspace/Rust/Vision/output/orb_ba.txt"), s?).expect("Unable to write file");
     if runtime_parameters.debug {
         fs::write(format!("D:/Workspace/Rust/Vision/output/orb_ba_debug.txt"), debug_states_serialized?).expect("Unable to write file");
