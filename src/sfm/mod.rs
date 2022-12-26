@@ -44,6 +44,7 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
         triangulation: Triangulation, 
         filter_tracks: bool,
         perc_tresh: Float, 
+        epipolar_thresh: Float, 
         angular_thresh: Float,
         refine_rotation_via_rcd: bool,
         image_size: usize) -> SFMConfig<C,C2,Feat> {
@@ -67,6 +68,7 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
             &camera_map,
             &accepted_matches,
             perc_tresh, 
+            epipolar_thresh,
             epipolar_alg
         );
 
@@ -86,6 +88,8 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
     pub fn epipolar_alg(&self) -> tensor::BifocalType { self.epipolar_alg}
     pub fn triangulation(&self) -> Triangulation { self.triangulation}
     pub fn image_size(&self) -> usize { self.image_size}
+    pub fn match_map(&self) -> &HashMap<(usize, usize), Vec<Match<Feat>>> {&self.match_map}
+    pub fn pose_map(&self) -> &HashMap<(usize, usize), Isometry3<Float>> {&self.pose_map}
 
     pub fn compute_path_id_pairs(&self) -> Vec<Vec<(usize, usize)>> {
         let mut path_id_paris = Vec::<Vec::<(usize,usize)>>::with_capacity(self.paths.len());
@@ -193,16 +197,35 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
         }
 
         filtered_matches
+    } 
+
+    pub fn compute_path_pairs_as_list(&self) -> Vec<Vec<(usize,usize)>> {
+        let number_of_paths = self.paths.len();
+        let mut all_path_pairs = Vec::<Vec<(usize,usize)>>::with_capacity(number_of_paths);
+        for path_idx in 0..number_of_paths {
+            let path = &self.paths[path_idx];
+            let mut path_pair = Vec::<(usize,usize)>::with_capacity(path.len());
+            for j in 0..path.len() {
+                let id1 = match j {
+                    0 => self.root(),
+                    idx => path[idx-1]
+                };
+                let id2 = path[j];
+                path_pair.push((id1,id2));
+            }
+            all_path_pairs.push(path_pair);
+        }
+        all_path_pairs
     }
 
     pub fn compute_lists_from_maps(&self)->  (Vec<Vec<((usize,usize),(Vector3<Float>, Matrix3<Float>))>>,Vec<Vec<Vec<Match<Feat>>>>){
         let number_of_paths = self.paths.len();
-        let mut all_states: Vec<Vec<((usize,usize),(Vector3<Float>,Matrix3<Float>))>> = Vec::<Vec<((usize,usize),(Vector3<Float>,Matrix3<Float>))>>::with_capacity(number_of_paths);
-        let mut all_filtered_matches: Vec<Vec<Vec<Match<Feat>>>> = Vec::<Vec<Vec<Match<Feat>>>>::with_capacity(number_of_paths);
+        let mut all_states = Vec::<Vec<((usize,usize),(Vector3<Float>,Matrix3<Float>))>>::with_capacity(number_of_paths);
+        let mut all_filtered_matches = Vec::<Vec<Vec<Match<Feat>>>>::with_capacity(number_of_paths);
         for path_idx in 0..number_of_paths {
             let path = self.paths[path_idx].clone();
-            let mut states: Vec<((usize,usize),(Vector3<Float>,Matrix3<Float>))> = Vec::<((usize,usize),(Vector3<Float>,Matrix3<Float>))>::with_capacity(path.len());
-            let mut filtered_matches: Vec<Vec<Match<Feat>>> = Vec::<Vec<Match<Feat>>>::with_capacity(path.len());
+            let mut states = Vec::<((usize,usize),(Vector3<Float>,Matrix3<Float>))>::with_capacity(path.len());
+            let mut filtered_matches = Vec::<Vec<Match<Feat>>>::with_capacity(path.len());
 
             for j in 0..path.len() {
                 let id1 = match j {
@@ -232,6 +255,7 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
             camera_map: &HashMap<usize, C>,
             matches: &Vec<Vec<Vec<Match<Feat>>>>,
             perc_tresh: Float, 
+            epipolar_tresh: Float,
             epipolar_alg: tensor::BifocalType) 
         ->  (HashMap<(usize, usize), Isometry3<Float>>, HashMap<(usize, usize), Vec<Match<Feat>>>) {
             let number_of_paths = paths.len();
@@ -259,18 +283,18 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
                             // let filtered = tensor::select_best_matches_from_fundamental(&f_corr,m,perc_tresh);
                             // (tensor::compute_essential(&f_corr,&c1.get_projection(),&c2.get_projection()), filtered)
             
-                            let filtered = tensor::select_best_matches_from_fundamental(&f,m,perc_tresh);
+                            let filtered = tensor::select_best_matches_from_fundamental(&f,m,perc_tresh, epipolar_tresh);
                             (tensor::compute_essential(&f,&c1.get_projection(),&c2.get_projection()), filtered)
                         },
                         tensor::BifocalType::ESSENTIAL => {
                             let e = tensor::five_point_essential(m, c1, c2);
                             let f = tensor::compute_fundamental(&e, &c1.get_inverse_projection(), &c2.get_inverse_projection());
-                            (e, tensor::select_best_matches_from_fundamental(&f,m,perc_tresh))
+                            (e, tensor::select_best_matches_from_fundamental(&f,m,perc_tresh,epipolar_tresh))
                         },
                         tensor::BifocalType::QUEST => {
                             let e = quest::quest_ransac(m, c1, c2, 1e-2,1e4 as usize);
                             let f = tensor::compute_fundamental(&e, &c1.get_inverse_projection(), &c2.get_inverse_projection());
-                            (e, tensor::select_best_matches_from_fundamental(&f,m,perc_tresh))
+                            (e, tensor::select_best_matches_from_fundamental(&f,m,perc_tresh,epipolar_tresh))
                         }
                     };
                     

@@ -24,7 +24,7 @@ pub fn rcd(relative_rotations_csc: CscMatrix<Float>, number_of_absolute_rotation
     let mut old_cost = -0.5*(&absolute_rotations_transpose * (&relative_rotations_csc * &absolute_rotations)).trace();
 
     let max_epoch = 100; //TODO: config
-    let eps = 1e-18;
+    let eps = 1e-9;
     for _ in 0..max_epoch {
         for k in 0..number_of_absolute_rotations { 
             let W = generate_dense_from_csc_slice(k,number_of_absolute_rotations,&relative_rotations_csc);

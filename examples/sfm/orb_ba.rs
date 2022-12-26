@@ -68,7 +68,7 @@ fn main() -> Result<()> {
     //matches.extend(matches_1_4);
 
     let camera_map = HashMap::from([(1, intensity_camera_1), (2, intensity_camera_2)]);
-    let sfm_config = SFMConfig::new(1, vec!(vec!(2)), camera_map.clone(), camera_map, vec!(all_matches), BifocalType::ESSENTIAL, Triangulation::LINEAR, true, 0.8, 1.0, true, 320*240);
+    let sfm_config = SFMConfig::new(1, vec!(vec!(2)), camera_map.clone(), camera_map, vec!(all_matches), BifocalType::ESSENTIAL, Triangulation::LINEAR, true, 0.8, 5.0, 1.0, true, 320*240);
 
     let runtime_parameters = RuntimeParameters {
         pyramid_scale: orb_params_1_2.pyramid_scale,

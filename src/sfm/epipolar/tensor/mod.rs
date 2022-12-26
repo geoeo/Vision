@@ -31,28 +31,35 @@ pub enum EssentialDecomposition {
 }
 
 #[allow(non_snake_case)]
-pub fn filter_matches_from_fundamental<T: Feature + Clone>(F: &Fundamental,matches: &Vec<Match<T>>, epipiolar_thresh: Float) -> Vec<Match<T>> {
+pub fn calc_epipolar_constraint<T: Feature + Clone>(F: &Fundamental, m: &Match<T>) -> Float {
+    let start = m.feature_one.get_as_3d_point(-1.0);
+    let finish = m.feature_two.get_as_3d_point(-1.0);
+    (start.transpose()*F*finish)[0].abs()
+}
+
+#[allow(non_snake_case)]
+pub fn filter_matches_from_fundamental<T: Feature + Clone>(F: &Fundamental, matches: &Vec<Match<T>>, epipiolar_thresh: Float) -> Vec<Match<T>> {
     matches.iter().filter(|m| {
-            let start = m.feature_one.get_as_3d_point(-1.0);
-            let finish = m.feature_two.get_as_3d_point(-1.0);
-            let val = (start.transpose()*F*finish)[0].abs();
+            let val = calc_epipolar_constraint(F,m);
             val < epipiolar_thresh
         }).cloned().collect::<Vec<Match<T>>>()
 }
 
 //TODO: Investigate why sorting the matched changes the solver convergence -> using set for now
 #[allow(non_snake_case)]
-pub fn select_best_matches_from_fundamental<T: Feature + Clone>(F: &Fundamental,matches: &Vec<Match<T>>, perc: Float) -> Vec<Match<T>> {
+pub fn select_best_matches_from_fundamental<T: Feature + Clone>(F: &Fundamental, matches: &Vec<Match<T>>, perc: Float, epipolar_thresh: Float) -> Vec<Match<T>> {
     assert! (0.0 <= perc && perc <= 1.0);
-    let num = matches.len();
-    let take_num = (perc*(num as Float)) as usize;
-    let mut sorted_indices = matches.iter().enumerate().map(|(i,m)| {
-            (i , calc_sampson_distance_for_fundamental(F,m))
-        }).collect::<Vec<(usize,Float)>>();
 
-        sorted_indices.sort_unstable_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
-        let accepted_indices = HashSet::<usize>::from_iter(sorted_indices.iter().map(|(i,_)| i.clone()));
-        matches.iter().enumerate().filter(|(i,_)| accepted_indices.contains(i)).take(take_num).map(|(_,m)| m.clone()).collect::<Vec<Match<T>>>()
+    let mut sorted_indices = matches.iter().enumerate()
+    .filter(|(_,m)|  calc_epipolar_constraint(F,m) < epipolar_thresh )
+    .map(|(i,m)| (i , calc_sampson_distance_for_fundamental(F,m)))
+    .collect::<Vec<(usize,Float)>>();
+
+    let num = sorted_indices.len();
+    let take_num = (perc*(num as Float)) as usize;
+    sorted_indices.sort_unstable_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
+    let accepted_indices = HashSet::<usize>::from_iter(sorted_indices.iter().map(|(i,_)| i.clone()));
+    matches.iter().enumerate().filter(|(i,_)| accepted_indices.contains(i)).take(take_num).map(|(_,m)| m.clone()).collect::<Vec<Match<T>>>()
 }
 
 pub fn ransac_five_point_essential<T: Feature + Clone, C: Camera<Float>>(matches: &Vec<Match<T>>, camera_one: &C, camera_two: &C, epipolar_thresh: Float, ransac_it: usize) -> Essential {

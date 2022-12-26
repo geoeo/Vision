@@ -14,8 +14,7 @@ use vision::sfm::{triangulation::Triangulation,SFMConfig,bundle_adjustment::run_
 use vision::odometry::runtime_parameters::RuntimeParameters;
 use vision::numerics::{loss, weighting};
 use vision::{float,Float,load_runtime_conf};
-
-
+use vision::visualize;
 
 fn main() -> Result<()> {
     color_eyre::install()?;
@@ -23,19 +22,20 @@ fn main() -> Result<()> {
 
     println!("--------");
 
-    let data_ceiling_barcelona_path = format!("{}/Olsen/Ceiling_Barcelona/",runtime_conf.dataset_path);
-    let data_set_door_path = format!("{}/Olsen/Door_Lund/",runtime_conf.dataset_path);
-    let data_set_ahlströmer_path =  format!("{}/Olsen/Jonas_Ahlströmer/",runtime_conf.dataset_path);
-    let data_set_fountain_path =  format!("{}/Olsen/fountain/",runtime_conf.dataset_path);
-    let data_set_vasa_path =  format!("{}/Olsen/vasa_statue/",runtime_conf.dataset_path);
-    let data_set_ninjo_path =  format!("{}/Olsen/nijo/",runtime_conf.dataset_path);
-    let data_set_de_guerre_path =  format!("{}/Olsen/de_guerre/",runtime_conf.dataset_path);
-    let data_set_fort_canning_path = format!("{}/Olsen/Fort_Channing_gate/",runtime_conf.dataset_path);
-    let data_set_park_gate_path = format!("{}/Olsen/park_gate/",runtime_conf.dataset_path);
-    let data_set_kronan_path = format!("{}/Olsen/kronan/",runtime_conf.dataset_path);
-    let data_set_round_church_path = format!("{}/Olsen/round_church/",runtime_conf.dataset_path);
+    let ceiling_barcelona = "Ceiling_Barcelona";
+    let door = "Door_Lund";
+    let ahlströmer =  "Jonas_Ahlströmer";
+    let fountain =  "fountain";
+    let vasa =  "vasa_statue";
+    let ninjo =  "nijo";
+    let de_guerre = "de_guerre";
+    let fort_canning = "Fort_Channing_gate";
+    let park_gate = "park_gate";
+    let kronan = "kronan";
+    let round_church = "round_church";
     
-    let olsen_data_path = data_set_door_path;
+    let olsen_dataset_name = park_gate;
+    let olsen_data_path = format!("{}/Olsen/{}/",runtime_conf.dataset_path,olsen_dataset_name);
 
     let feature_skip_count = 1;
     let olsen_data = OlssenData::new(&olsen_data_path);
@@ -186,11 +186,11 @@ fn main() -> Result<()> {
     // let paths = vec!(vec!(4),vec!(6,7));
     // let root_id = 5;
 
-    let sfm_all_matches = vec!(vec!(matches_5_4_subvec, matches_4_3_subvec),vec!(matches_5_6_subvec, matches_6_7_subvec));
-    let camera_map = HashMap::from([(5, pinhole_cam_5), (4, pinhole_cam_4), (6, pinhole_cam_6), (3, pinhole_cam_3),(2, pinhole_cam_2),(7, pinhole_cam_7),(8, pinhole_cam_8),(9, pinhole_cam_9)]);  
-    let camera_map_ba = HashMap::from([(5, pinhole_cam_5.cast::<f32>()), (4, pinhole_cam_4.cast::<f32>()), (6, pinhole_cam_6.cast::<f32>()), (3, pinhole_cam_3.cast::<f32>()),(2, pinhole_cam_2.cast::<f32>()),(7, pinhole_cam_7.cast::<f32>()),(8, pinhole_cam_8.cast::<f32>()),(9, pinhole_cam_9.cast::<f32>())]);  
-    let paths = vec!(vec!(4,3),vec!(6,7));
-    let root_id = 5;
+    // let sfm_all_matches = vec!(vec!(matches_5_4_subvec, matches_4_3_subvec),vec!(matches_5_6_subvec, matches_6_7_subvec));
+    // let camera_map = HashMap::from([(5, pinhole_cam_5), (4, pinhole_cam_4), (6, pinhole_cam_6), (3, pinhole_cam_3),(2, pinhole_cam_2),(7, pinhole_cam_7),(8, pinhole_cam_8),(9, pinhole_cam_9)]);  
+    // let camera_map_ba = HashMap::from([(5, pinhole_cam_5.cast::<f32>()), (4, pinhole_cam_4.cast::<f32>()), (6, pinhole_cam_6.cast::<f32>()), (3, pinhole_cam_3.cast::<f32>()),(2, pinhole_cam_2.cast::<f32>()),(7, pinhole_cam_7.cast::<f32>()),(8, pinhole_cam_8.cast::<f32>()),(9, pinhole_cam_9.cast::<f32>())]);  
+    // let paths = vec!(vec!(4,3),vec!(6,7));
+    // let root_id = 5;
 
     // let sfm_all_matches = vec!(vec!(matches_5_4_subvec, matches_4_3_subvec,matches_3_2_subvec));
     // let camera_map = HashMap::from([(5, pinhole_cam_5), (4, pinhole_cam_4), (6, pinhole_cam_6), (3, pinhole_cam_3),(2, pinhole_cam_2),(7, pinhole_cam_7),(8, pinhole_cam_8),(9, pinhole_cam_9)]);  
@@ -211,11 +211,11 @@ fn main() -> Result<()> {
     // let root_id = 5;
 
 
-    // let sfm_all_matches = vec!(vec!(matches_5_4_subvec, matches_4_3_subvec,matches_3_2_subvec),vec!(matches_5_6_subvec, matches_6_7_subvec,matches_7_8_subvec));
-    // let camera_map = HashMap::from([(5, pinhole_cam_5), (4, pinhole_cam_4), (6, pinhole_cam_6), (3, pinhole_cam_3),(2, pinhole_cam_2),(7, pinhole_cam_7),(8, pinhole_cam_8),(9, pinhole_cam_9)]);  
-    // let camera_map_ba = HashMap::from([(5, pinhole_cam_5.cast::<f32>()), (4, pinhole_cam_4.cast::<f32>()), (6, pinhole_cam_6.cast::<f32>()), (3, pinhole_cam_3.cast::<f32>()),(2, pinhole_cam_2.cast::<f32>()),(7, pinhole_cam_7.cast::<f32>()),(8, pinhole_cam_8.cast::<f32>()),(9, pinhole_cam_9.cast::<f32>())]);  
-    // let paths = vec!(vec!(4,3,2),vec!(6,7,8));
-    // let root_id = 5;
+    let sfm_all_matches = vec!(vec!(matches_5_4_subvec, matches_4_3_subvec,matches_3_2_subvec),vec!(matches_5_6_subvec, matches_6_7_subvec,matches_7_8_subvec));
+    let camera_map = HashMap::from([(5, pinhole_cam_5), (4, pinhole_cam_4), (6, pinhole_cam_6), (3, pinhole_cam_3),(2, pinhole_cam_2),(7, pinhole_cam_7),(8, pinhole_cam_8),(9, pinhole_cam_9)]);  
+    let camera_map_ba = HashMap::from([(5, pinhole_cam_5.cast::<f32>()), (4, pinhole_cam_4.cast::<f32>()), (6, pinhole_cam_6.cast::<f32>()), (3, pinhole_cam_3.cast::<f32>()),(2, pinhole_cam_2.cast::<f32>()),(7, pinhole_cam_7.cast::<f32>()),(8, pinhole_cam_8.cast::<f32>()),(9, pinhole_cam_9.cast::<f32>())]);  
+    let paths = vec!(vec!(4,3,2),vec!(6,7,8));
+    let root_id = 5;
 
     // let sfm_all_matches = vec!(vec!(matches_10_9_subvec),vec!(matches_10_11_subvec));
     // let camera_map = HashMap::from([(9, pinhole_cam_9),(10, pinhole_cam_10),(11, pinhole_cam_11)]);  
@@ -246,7 +246,7 @@ fn main() -> Result<()> {
     // let paths = vec!(    let positive_principal_distance = false;vec!(4),vec!(6,7));
     // let root_id = 5;
 
-    let sfm_config_fundamental = SFMConfig::new(root_id, paths.clone(), camera_map, camera_map_ba, sfm_all_matches.clone(), BifocalType::FUNDAMENTAL, Triangulation::LINEAR, filter_tracks, 0.8, 0.3, true, olsen_data.width*olsen_data.height);
+    let sfm_config_fundamental = SFMConfig::new(root_id, paths.clone(), camera_map, camera_map_ba, sfm_all_matches.clone(), BifocalType::FUNDAMENTAL, Triangulation::LINEAR, filter_tracks, 0.8, 5.0, 0.3, true, olsen_data.width*olsen_data.height);
     let (initial_cam_motions_per_path,filtered_matches_per_path) = sfm_config_fundamental.compute_lists_from_maps();
 
     //This is only to satisfy current interface in ba
@@ -261,8 +261,15 @@ fn main() -> Result<()> {
         }
     }
 
-    if filtered_matches_per_path.len() > 0 {
+    for (i,j) in sfm_config_fundamental.compute_path_pairs_as_list().into_iter().flatten().collect::<Vec<_>>() {
+        let im_1 = olsen_data.get_image(i);
+        let im_2 = olsen_data.get_image(j);
+        let matches = sfm_config_fundamental.match_map().get(&(i,j)).expect(format!("Match ({},{}) not present!",i,j).as_str());
+        let vis_matches = visualize::display_matches_for_pyramid(im_1,im_2,&matches,true,125.0,1.0);
+        vis_matches.to_image().save(format!("{}/olsen_matches_{}_{}_{}.jpg",runtime_conf.output_path,olsen_dataset_name,i,j)).unwrap();
+    }
 
+    if filtered_matches_per_path.len() > 0 {
         let runtime_parameters = RuntimeParameters {
             pyramid_scale: 1.0,
             max_iterations: vec![1e5 as usize; 1],
@@ -287,6 +294,8 @@ fn main() -> Result<()> {
             fs::write(format!("{}/olsen_debug.txt",runtime_conf.local_data_path), debug_states_serialized?).expect("Unable to write file");
         }
     }
+
+
 
 
     Ok(())

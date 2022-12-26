@@ -97,7 +97,10 @@ impl OlssenData {
             assert_eq!((r,c), im.get_rows_columns());
         }
         (r,c)
+    }
 
+    pub fn get_image(&self, index: usize) -> &Image {
+        &self.images[index]
     }
 
     pub fn get_relative_motions(camera_pairs: &Vec<((usize,Matrix4<Float>),(usize,Matrix4<Float>))>) -> Vec<(u64,(Vector3<Float>,Matrix3<Float>))> {
@@ -108,8 +111,6 @@ impl OlssenData {
             let decomp = pose::decomp(&p12);
             (*id2 as u64,decomp)
         }).collect()
-
-
     }
 
 
