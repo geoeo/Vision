@@ -308,7 +308,7 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
             }
             initial_cam_motions_per_path.push(cam_motions);
         }
-        let initial_cam_rotations_per_path_rcd = optimize_rotations_with_rcd(&initial_cam_motions_per_path);
+        let initial_cam_rotations_per_path_rcd = optimize_rotations_with_rcd_per_track(&initial_cam_motions_per_path);
         for i in 0..initial_cam_rotations_per_path_rcd.len(){
             let path_len = initial_cam_rotations_per_path_rcd[i].len();
             for j in 0..path_len {
