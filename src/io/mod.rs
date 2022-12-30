@@ -150,14 +150,18 @@ pub fn closest_ts_index(ts: Float, list: &Vec<Float>) -> usize {
     min_idx
 }
 
-pub fn load_images(dir_path: &str, extension: &str) -> Vec<Image> {
+pub fn load_images(dir_path: &str, extension: &str) -> (Vec<Image>, Vec<String>) {
     assert_eq!(dir_path.chars().last().unwrap(),'/');
     let paths = std::fs::read_dir(format!("{}images",dir_path).as_str()).unwrap();
 
-    paths.map(|x| x.unwrap().path()).filter(|x| {
+    let mut image_name_tuples = paths.map(|x| x.unwrap().path()).filter(|x| {
         match x.extension() {
             Some(v) => v.to_str().unwrap().ends_with(&extension.to_uppercase()) || v.to_str().unwrap().ends_with(&extension.to_lowercase()),
             _ => false
         }
-    }).map(|x| load_image_as_gray(x.as_path(),false,false)).collect()
+    }).map(|x| (load_image_as_gray(x.as_path(),false,false),x.file_name().unwrap().to_str().unwrap().to_string())).collect::<Vec<(Image,String)>>();
+
+    image_name_tuples.sort_unstable_by_key(|(_,name)| name.split(&['_', '.'][..]).collect::<Vec<&str>>()[1].parse::<usize>().expect("Olsen: could not parse image name"));
+
+    image_name_tuples.into_iter().unzip()
 }

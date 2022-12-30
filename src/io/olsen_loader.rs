@@ -15,18 +15,18 @@ pub struct OlssenData {
     pub U: DMatrix<Float>,
     pub point_indices: Vec<DMatrix<Float>>,
     pub image_points: Vec<DMatrix<Float>>,
+    pub sorted_image_names: Vec<String>,
     pub width: usize,
     pub height: usize
 }
 
 impl OlssenData {
-
     #[allow(non_snake_case)]
     pub fn new(folder_path: &str) -> OlssenData {
         assert_eq!(folder_path.chars().last().unwrap(),'/');
         // Cameras - images and cameras are implicitly aligned via index
         let P = load_matrices(format!("{}{}",folder_path,"P.txt").as_str());
-        let images = load_images(folder_path, "JPG");
+        let (images, sorted_image_names) = load_images(folder_path, "JPG");
         assert_eq!(P.len(), images.len());
         let number_of_images = images.len();
     
@@ -44,11 +44,10 @@ impl OlssenData {
         let width = images[0].buffer.ncols();
         let height = images[0].buffer.nrows();
     
-        OlssenData{P,images,U,point_indices,image_points,width , height }
+        OlssenData{P,images,U,point_indices,image_points, sorted_image_names, width , height }
     }
 
     pub fn get_matches_between_images(&self, first_index: usize, second_index: usize) -> Vec<Match<ImageFeature>> {
-
         let features_img_one = &self.image_points[first_index];
         let features_img_two = &self.image_points[second_index];
 
@@ -78,6 +77,10 @@ impl OlssenData {
 
             Match{feature_one,feature_two}
         }).collect::<Vec<Match<ImageFeature>>>()
+    }
+
+    pub fn get_loftr_matches_between_images(&self, first_index: usize, second_index: usize) -> Vec<Match<ImageFeature>> {
+        panic!("TODO")
     }
 
     pub fn get_camera_intrinsics_extrinsics(&self, image_index: usize,  positive_principal_distance: bool) -> (Matrix3<Float>, Matrix4<Float>){
