@@ -1,6 +1,9 @@
 extern crate nalgebra as na;
 
 use na::{DMatrix,Matrix4,Matrix3,Matrix3x4, Vector3};
+use std::fmt::format;
+use std::fs::File;
+use std::io::{BufReader,BufRead};
 use crate::io::{ octave_loader::{load_matrices,load_matrix},load_images};
 use crate::image::{Image,features::{Match,ImageFeature}};
 use crate::sensors::camera::decompose_projection;
@@ -12,12 +15,13 @@ use crate::Float;
 pub struct OlssenData {
     pub P: Vec<DMatrix<Float>>,
     pub images: Vec<Image>,
-    pub U: DMatrix<Float>,
     pub point_indices: Vec<DMatrix<Float>>,
     pub image_points: Vec<DMatrix<Float>>,
     pub sorted_image_names: Vec<String>,
     pub width: usize,
-    pub height: usize
+    pub height: usize,
+    folder_path: String,
+    number_of_3d_points: usize
 }
 
 impl OlssenData {
@@ -44,7 +48,7 @@ impl OlssenData {
         let width = images[0].buffer.ncols();
         let height = images[0].buffer.nrows();
     
-        OlssenData{P,images,U,point_indices,image_points, sorted_image_names, width , height }
+        OlssenData{P, images,point_indices,image_points, sorted_image_names, width, height, number_of_3d_points: U.len(), folder_path: folder_path.to_string()}
     }
 
     pub fn get_matches_between_images(&self, first_index: usize, second_index: usize) -> Vec<Match<ImageFeature>> {
@@ -54,7 +58,7 @@ impl OlssenData {
         let points_indices_image_one = &self.point_indices[first_index];
         let points_indices_image_two = &self.point_indices[second_index];
 
-        let mut point_correspondence_map: Vec<(Option<usize>,Option<usize>)> = vec![(None,None);self.U.len()];
+        let mut point_correspondence_map: Vec<(Option<usize>,Option<usize>)> = vec![(None,None);self.number_of_3d_points];
 
         for i in 0..points_indices_image_one.ncols() {
             let point_idx = points_indices_image_one[(0,i)];
@@ -79,7 +83,19 @@ impl OlssenData {
         }).collect::<Vec<Match<ImageFeature>>>()
     }
 
-    pub fn get_loftr_matches_between_images(&self, first_index: usize, second_index: usize) -> Vec<Match<ImageFeature>> {
+    pub fn get_loftr_matches_between_images(&self, first_index: usize, second_index: usize, olsen_dataset_name: &str) -> Vec<Match<ImageFeature>> {
+        let target_width = self.width;
+        let target_height = self.height;
+
+        let img_name_1 = self.sorted_image_names[first_index].split('.').collect::<Vec<&str>>()[0];
+        let img_name_2 = self.sorted_image_names[second_index].split('.').collect::<Vec<&str>>()[0];
+
+        let loftr_match_file_path = format!("{}loftr/{}_{}_{}.txt",self.folder_path,olsen_dataset_name,img_name_1,img_name_2);
+
+        let file = File::open(loftr_match_file_path).expect("loading loft match file failed!");
+        let reader = BufReader::new(file);
+        let lines = reader.lines();
+
         panic!("TODO")
     }
 
