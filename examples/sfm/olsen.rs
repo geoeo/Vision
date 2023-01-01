@@ -247,7 +247,8 @@ fn main() -> Result<()> {
     // let paths = vec!(    let positive_principal_distance = false;vec!(4),vec!(6,7));
     // let root_id = 5;
 
-    let sfm_config_fundamental = SFMConfig::new(root_id, paths.clone(), camera_map, camera_map_ba, sfm_all_matches.clone(), BifocalType::FUNDAMENTAL, Triangulation::LINEAR, filter_tracks, 0.8, 5.0, 0.3, true, olsen_data.width*olsen_data.height);
+    let sfm_config_fundamental = SFMConfig::new(root_id, paths.clone(), camera_map, camera_map_ba, sfm_all_matches.clone(), 
+    BifocalType::FUNDAMENTAL, Triangulation::LINEAR, filter_tracks, 0.8, 5.0, 0.3, true, olsen_data.width*olsen_data.height, true);
     let (initial_cam_motions_per_path,filtered_matches_per_path) = sfm_config_fundamental.compute_lists_from_maps();
 
     //This is only to satisfy current interface in ba

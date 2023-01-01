@@ -75,17 +75,17 @@ impl OlssenData {
         // We flip the y-axis so that the features correspond to the RHS coordiante axis
         point_correspondence_map.iter().filter(|&(v1,v2)| v1.is_some() && v2.is_some()).map(|&(v1,v2)| {
             let coords_one = features_img_one.column(v1.unwrap());
-            let feature_one = ImageFeature::new(coords_one[0],(self.height as Float) - 1.0 - coords_one[1]);
+            let feature_one = ImageFeature::new(coords_one[0], coords_one[1]);
             let coords_two = features_img_two.column(v2.unwrap());
-            let feature_two = ImageFeature::new(coords_two[0],(self.height as Float) - 1.0 - coords_two[1]);
+            let feature_two = ImageFeature::new(coords_two[0], coords_two[1]);
 
             Match{feature_one,feature_two}
         }).collect::<Vec<Match<ImageFeature>>>()
     }
 
     pub fn get_loftr_matches_between_images(&self, first_index: usize, second_index: usize, olsen_dataset_name: &str) -> Vec<Match<ImageFeature>> {
-        let target_width = self.width;
-        let target_height = self.height;
+        let target_width = self.width as Float;
+        let target_height = self.height as Float;
 
         let img_name_1 = self.sorted_image_names[first_index].split('.').collect::<Vec<&str>>()[0];
         let img_name_2 = self.sorted_image_names[second_index].split('.').collect::<Vec<&str>>()[0];
@@ -94,9 +94,41 @@ impl OlssenData {
 
         let file = File::open(loftr_match_file_path).expect("loading loft match file failed!");
         let reader = BufReader::new(file);
-        let lines = reader.lines();
+        let mut lines = reader.lines();
+        // skip the first 2 lines since they are comments
+        lines.next(); 
+        lines.next();
 
-        panic!("TODO")
+        let img1_dim_raw = lines.next().expect("img1 dims not present in loftr file").unwrap();
+        let img1_split = img1_dim_raw.split(&[':',',']).collect::<Vec<&str>>();
+        let img2_dim_raw = lines.next().expect("img2 dims not present in loftr file").unwrap();
+        let img2_split = img2_dim_raw.split(&[':',',']).collect::<Vec<&str>>();
+
+        let img1_height = img1_split[1].trim().parse::<Float>().expect("could not parse img height");  
+        let img1_width = img1_split[2].trim().parse::<Float>().expect("could not parse img width");  
+
+        let img2_height = img2_split[1].trim().parse::<Float>().expect("could not parse img height");  
+        let img2_width = img2_split[2].trim().parse::<Float>().expect("could not parse img width");  
+
+        // The rest are only matches
+        lines.map(|line| {
+            let matches_raw = line.expect("could not parse loftr match line");
+            let matches_split = matches_raw.split(&[':',',']).collect::<Vec<&str>>();
+            let p1_x = matches_split[0].trim().parse::<Float>().expect("could not parse p1 x");  
+            let p1_y = matches_split[1].trim().parse::<Float>().expect("could not parse p1 y");  
+            let p2_x = matches_split[2].trim().parse::<Float>().expect("could not parse p2 x");  
+            let p2_y = matches_split[3].trim().parse::<Float>().expect("could not parse p2 y");  
+
+            let p1_x_target = (p1_x/img1_width)*target_width;
+            let p1_y_target = (p1_y/img1_height)*target_height;
+            let p2_x_target = (p2_x/img2_width)*target_width;
+            let p2_y_target = (p2_y/img2_height)*target_height;
+
+            let feature_one = ImageFeature::new(p1_x_target, p1_y_target);
+            let feature_two = ImageFeature::new(p2_x_target, p2_y_target);
+
+            Match{feature_one,feature_two}
+        }).collect::<Vec<_>>()
     }
 
     pub fn get_camera_intrinsics_extrinsics(&self, image_index: usize,  positive_principal_distance: bool) -> (Matrix3<Float>, Matrix4<Float>){

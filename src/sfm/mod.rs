@@ -31,7 +31,8 @@ pub struct SFMConfig<C, C2, Feat: Feature> {
     pose_map: HashMap<(usize, usize), Isometry3<Float>>,
     epipolar_alg: tensor::BifocalType,
     triangulation: Triangulation,
-    image_size: usize
+    image_size: usize,
+    invert_y: bool
 }
 
 impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverFeature> SFMConfig<C,C2, Feat> {
@@ -47,7 +48,8 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
         epipolar_thresh: Float, 
         angular_thresh: Float,
         refine_rotation_via_rcd: bool,
-        image_size: usize) -> SFMConfig<C,C2,Feat> {
+        image_size: usize,
+        invert_y: bool) -> SFMConfig<C,C2,Feat> {
         for key in camera_map.keys() {
             assert!(camera_map_ba.contains_key(key));
         }
@@ -77,7 +79,7 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
         }
 
 
-        SFMConfig{root, paths, camera_map, camera_map_ba, match_map, pose_map, epipolar_alg, triangulation, image_size}
+        SFMConfig{root, paths, camera_map, camera_map_ba, match_map, pose_map, epipolar_alg, triangulation, image_size, invert_y}
     }
 
 
@@ -90,6 +92,7 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
     pub fn image_size(&self) -> usize { self.image_size}
     pub fn match_map(&self) -> &HashMap<(usize, usize), Vec<Match<Feat>>> {&self.match_map}
     pub fn pose_map(&self) -> &HashMap<(usize, usize), Isometry3<Float>> {&self.pose_map}
+    pub fn get_invert_y(&self) -> bool {self.invert_y}
 
     pub fn compute_path_id_pairs(&self) -> Vec<Vec<(usize, usize)>> {
         let mut path_id_paris = Vec::<Vec::<(usize,usize)>>::with_capacity(self.paths.len());

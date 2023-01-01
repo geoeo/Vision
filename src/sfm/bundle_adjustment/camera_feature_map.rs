@@ -110,9 +110,10 @@ impl CameraFeatureMap {
 
     }
 
-    pub fn add_matches<T: Feature>(&mut self, path_id_pairs: &Vec<Vec<(usize, usize)>>, matches: &Vec<Vec<Vec<Match<T>>>>, pyramid_scale: Float) -> () {
+    pub fn add_matches<T: Feature>(&mut self, path_id_pairs: &Vec<Vec<(usize, usize)>>, matches: &Vec<Vec<Vec<Match<T>>>>, pyramid_scale: Float, invert_y: bool) -> () {
         let path_id_pairs_flattened = path_id_pairs.iter().flatten().collect::<Vec<&(usize, usize)>>();
         let matches_flattened = matches.iter().flatten().collect::<Vec<&Vec<Match<T>>>>();
+        let img_height = self.image_row_col.0 as Float;
         assert_eq!(path_id_pairs_flattened.len(), matches_flattened.len());
         for i in 0..path_id_pairs_flattened.len(){
             let (id_a,id_b) = path_id_pairs_flattened[i];
@@ -122,10 +123,15 @@ impl CameraFeatureMap {
                 let match_a = &feature_match.feature_one;
                 let match_b = &feature_match.feature_two;
 
+                let (height_a, height_b) = match invert_y {
+                    true => (img_height - 1.0 - match_a.get_y_image_float(), img_height - 1.0 - match_b.get_y_image_float()),
+                    false => (match_a.get_y_image_float(), match_b.get_y_image_float())
+                };
+
 
                 self.add_feature(*id_a, *id_b, 
-                    match_a.get_x_image_float(), match_a.get_y_image_float(),match_a.get_closest_sigma_level(),
-                    match_b.get_x_image_float(), match_b.get_y_image_float(),match_b.get_closest_sigma_level(),
+                    match_a.get_x_image_float(), height_a, match_a.get_closest_sigma_level(),
+                    match_b.get_x_image_float(), height_b, match_b.get_closest_sigma_level(),
                     pyramid_scale);
             }
 

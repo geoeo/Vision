@@ -161,7 +161,7 @@ pub fn load_images(dir_path: &str, extension: &str) -> (Vec<Image>, Vec<String>)
         }
     }).map(|x| (load_image_as_gray(x.as_path(),false,false),x.file_name().unwrap().to_str().unwrap().to_string())).collect::<Vec<(Image,String)>>();
 
-    image_name_tuples.sort_unstable_by_key(|(_,name)| name.split(&['_', '.'][..]).collect::<Vec<&str>>()[1].parse::<usize>().expect("Olsen: could not parse image name"));
+    image_name_tuples.sort_unstable_by_key(|(_,name)| name.split(&['_', '.']).collect::<Vec<&str>>()[1].parse::<usize>().expect("Olsen: could not parse image name"));
 
     image_name_tuples.into_iter().unzip()
 }
