@@ -22,10 +22,12 @@ impl<F: float::Float + Scalar + NumAssign + SimdRealField + ComplexField> Pinhol
        };
        let fx_scaled = factor*fx;
        let fy_scaled = factor*fy;
+       
        let projection = Matrix3::<F>::new(
         fx_scaled, F::zero(), cx,
        F::zero(), fy_scaled, cy,
        F::zero(), F::zero(), F::one());
+
        let inverse_projection = Matrix3::<F>::new(
         F::one()/fx_scaled,F::zero(), -cx/fx_scaled,
        F::zero(),F::one()/fy_scaled, -cy/fy_scaled,

@@ -21,16 +21,16 @@ fn main() -> Result<()> {
     let runtime_conf = load_runtime_conf();
 
 
-    let matches_0_1 = three_dv_loader::load_matches(&format!("{}/3dv",runtime_conf.dataset_path), "image_formation_neg_z_no_noise_0.xyz", "image_formation_neg_z_no_noise_1.xyz");
-    let matches_0_2 = three_dv_loader::load_matches(&format!("{}/3dv",runtime_conf.dataset_path), "image_formation_neg_z_no_noise_0.xyz", "image_formation_neg_z_no_noise_2.xyz");
-    let matches_1_0 = three_dv_loader::load_matches(&format!("{}/3dv",runtime_conf.dataset_path), "image_formation_neg_z_no_noise_1.xyz", "image_formation_neg_z_no_noise_0.xyz");
-    let matches_1_3 = three_dv_loader::load_matches(&format!("{}/3dv",runtime_conf.dataset_path), "image_formation_neg_z_no_noise_1.xyz", "image_formation_neg_z_no_noise_3.xyz");
-    let matches_0_3 = three_dv_loader::load_matches(&format!("{}/3dv",runtime_conf.dataset_path), "image_formation_neg_z_no_noise_0.xyz", "image_formation_neg_z_no_noise_3.xyz");
-    let matches_2_0 = three_dv_loader::load_matches(&format!("{}/3dv",runtime_conf.dataset_path), "image_formation_neg_z_no_noise_2.xyz", "image_formation_neg_z_no_noise_0.xyz");
-    let matches_2_1 = three_dv_loader::load_matches(&format!("{}/3dv",runtime_conf.dataset_path), "image_formation_neg_z_no_noise_2.xyz", "image_formation_neg_z_no_noise_1.xyz");
-    let matches_2_3 = three_dv_loader::load_matches(&format!("{}/3dv",runtime_conf.dataset_path), "image_formation_neg_z_no_noise_2.xyz", "image_formation_neg_z_no_noise_3.xyz");
-    let matches_2_4 = three_dv_loader::load_matches(&format!("{}/3dv",runtime_conf.dataset_path), "image_formation_neg_z_no_noise_2.xyz", "image_formation_neg_z_no_noise_4.xyz");
-    let matches_3_4 = three_dv_loader::load_matches(&format!("{}/3dv",runtime_conf.dataset_path), "image_formation_neg_z_no_noise_3.xyz", "image_formation_neg_z_no_noise_4.xyz");
+    let matches_0_1 = three_dv_loader::load_matches(&format!("{}/3dv",runtime_conf.dataset_path), "image_formation_no_noise_0.xyz", "image_formation_no_noise_1.xyz");
+    let matches_0_2 = three_dv_loader::load_matches(&format!("{}/3dv",runtime_conf.dataset_path), "image_formation_no_noise_0.xyz", "image_formation_no_noise_2.xyz");
+    let matches_1_0 = three_dv_loader::load_matches(&format!("{}/3dv",runtime_conf.dataset_path), "image_formation_no_noise_1.xyz", "image_formation_no_noise_0.xyz");
+    let matches_1_3 = three_dv_loader::load_matches(&format!("{}/3dv",runtime_conf.dataset_path), "image_formation_no_noise_1.xyz", "image_formation_no_noise_3.xyz");
+    let matches_0_3 = three_dv_loader::load_matches(&format!("{}/3dv",runtime_conf.dataset_path), "image_formation_no_noise_0.xyz", "image_formation_no_noise_3.xyz");
+    let matches_2_0 = three_dv_loader::load_matches(&format!("{}/3dv",runtime_conf.dataset_path), "image_formation_no_noise_2.xyz", "image_formation_no_noise_0.xyz");
+    let matches_2_1 = three_dv_loader::load_matches(&format!("{}/3dv",runtime_conf.dataset_path), "image_formation_no_noise_2.xyz", "image_formation_no_noise_1.xyz");
+    let matches_2_3 = three_dv_loader::load_matches(&format!("{}/3dv",runtime_conf.dataset_path), "image_formation_no_noise_2.xyz", "image_formation_no_noise_3.xyz");
+    let matches_2_4 = three_dv_loader::load_matches(&format!("{}/3dv",runtime_conf.dataset_path), "image_formation_no_noise_2.xyz", "image_formation_no_noise_4.xyz");
+    let matches_3_4 = three_dv_loader::load_matches(&format!("{}/3dv",runtime_conf.dataset_path), "image_formation_no_noise_3.xyz", "image_formation_no_noise_4.xyz");
 
     // let matches_0_1 = three_dv_loader::load_matches(&format!("{}/3dv",runtime_conf.dataset_path), "image_formation_neg_z_noise_0.xyz", "image_formation_neg_z_noise_1.xyz");
     // let matches_0_2 = three_dv_loader::load_matches(&format!("{}/3dv",runtime_conf.dataset_path), "image_formation_neg_z_noise_0.xyz", "image_formation_neg_z_noise_2.xyz");
@@ -61,7 +61,7 @@ fn main() -> Result<()> {
         debug: true,
 
         show_octave_result: true,
-        loss_function: Box::new(loss::TrivialLoss { eps: 1e-16, approximate_gauss_newton_matrices: false }), 
+        loss_function: Box::new(loss::TrivialLoss { eps: 1e-16, approximate_gauss_newton_matrices: false}), 
         intensity_weighting_function:  Box::new(weighting::SquaredWeight {}),
         cg_threshold: 1e-6,
       
@@ -86,7 +86,7 @@ fn main() -> Result<()> {
     //let sfm_config = SFMConfig::new(2, vec!(vec!(1), vec!(3), vec!(4), vec!(0)), camera_map.clone(), camera_map, vec!(vec!(matches_2_1),vec!(matches_2_3),vec!(matches_2_4),vec!(matches_2_0)),
     let sfm_config = SFMConfig::new(2, vec!(vec!(1,0), vec!(3,4)), camera_map.clone(), camera_map, vec!(vec!(matches_2_1,matches_1_0),vec!(matches_2_3,matches_3_4)),
     //let sfm_config = SFMConfig::new(3, vec!(vec!(4)), camera_map.clone(), camera_map, vec!(vec!(matches_3_4)),
-        BifocalType::FUNDAMENTAL,  Triangulation::LINEAR, filter_tracks, perc_tresh, 5.0, anguar_thresh, refine_rotation_via_rcd, 320*240, false);
+        BifocalType::FUNDAMENTAL,  Triangulation::LINEAR, filter_tracks, perc_tresh, 5.0, anguar_thresh, refine_rotation_via_rcd, 320*240);
 
 
     let (initial_cam_motions_per_path,filtered_matches_per_path) = sfm_config.compute_lists_from_maps();

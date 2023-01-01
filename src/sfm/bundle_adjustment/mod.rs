@@ -35,7 +35,7 @@ pub fn run_ba<F: serde::Serialize + float::Float + Scalar + NumAssign + SimdReal
     };
 
     let mut feature_map = CameraFeatureMap::new(matches,unique_camera_ids_sorted, img_dim);
-    feature_map.add_matches(&path_id_pairs,matches, pyramid_scale, sfm_config.get_invert_y());
+    feature_map.add_matches(&path_id_pairs,matches, pyramid_scale);
 
     //TODO: switch impl
     //TODO: transative motions -> done?

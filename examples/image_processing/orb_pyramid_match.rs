@@ -146,7 +146,7 @@ fn main() -> Result<()> {
 
     //TODO: make this work with images of different sizes
     println!("{}",matches.len());
-    let match_display = display_matches_for_pyramid(&display, &display_2, &matches[0], true, display.buffer.max()/2.0, runtime_params.pyramid_scale);
+    let match_display = display_matches_for_pyramid(&display, &display_2, &matches[0], true, display.buffer.max()/2.0, runtime_params.pyramid_scale, false);
 
 
 
