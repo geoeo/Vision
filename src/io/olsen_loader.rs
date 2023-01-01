@@ -120,9 +120,9 @@ impl OlssenData {
             let p2_y = matches_split[3].trim().parse::<Float>().expect("could not parse p2 y");  
 
             let p1_x_target = (p1_x/img1_width)*target_width;
-            let p1_y_target = (p1_y/img1_height)*target_height;
+            let p1_y_target = target_height - 1.0 - (p1_y/img1_height)*target_height;
             let p2_x_target = (p2_x/img2_width)*target_width;
-            let p2_y_target = (p2_y/img2_height)*target_height;
+            let p2_y_target = target_height - 1.0 - (p2_y/img2_height)*target_height;
 
             let feature_one = ImageFeature::new(p1_x_target, p1_y_target);
             let feature_two = ImageFeature::new(p2_x_target, p2_y_target);
