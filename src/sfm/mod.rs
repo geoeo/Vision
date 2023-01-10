@@ -10,7 +10,7 @@ pub mod quest;
 pub mod rotation_avg;
 
 use std::collections::HashMap;
-use crate::image::{features::{Feature, Match, feature_track::FeatureTrack, solver_feature::SolverFeature}};
+use crate::image::{features::{Feature, Match, feature_track::FeatureTrack, solver_feature::SolverFeature, subsample_matches}};
 use crate::sfm::{epipolar::tensor, triangulation::Triangulation, rotation_avg::{optimize_rotations_with_rcd_per_track,optimize_rotations_with_rcd}};
 use crate::sensors::camera::Camera;
 use crate::numerics::{lie::angular_distance, pose::{to_parts,from_matrix,se3}};
@@ -30,8 +30,7 @@ pub struct SFMConfig<C, C2, Feat: Feature> {
     match_map: HashMap<(usize, usize), Vec<Match<Feat>>>,
     pose_map: HashMap<(usize, usize), Isometry3<Float>>,
     epipolar_alg: tensor::BifocalType,
-    triangulation: Triangulation,
-    image_size: usize
+    triangulation: Triangulation
 }
 
 impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverFeature> SFMConfig<C,C2, Feat> {
@@ -47,7 +46,8 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
         epipolar_thresh: Float, 
         angular_thresh: Float,
         refine_rotation_via_rcd: bool,
-        image_size: usize) -> SFMConfig<C,C2,Feat> {
+        image_width: usize,
+        image_height: usize) -> SFMConfig<C,C2,Feat> {
         for key in camera_map.keys() {
             assert!(camera_map_ba.contains_key(key));
         }
@@ -56,6 +56,7 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
             assert!(camera_map.contains_key(key));
         }
 
+        let image_size = image_width*image_height;
         // Filteres matches according to feature consitency along a path.
         let accepted_matches = match filter_tracks {
             true => Self::filter_by_max_tracks(&matches, image_size),
@@ -69,15 +70,16 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
             &accepted_matches,
             perc_tresh, 
             epipolar_thresh,
-            epipolar_alg
+            epipolar_alg,
+            image_width,
+            image_height
         );
 
         if refine_rotation_via_rcd {
             Self::refine_rotation_by_rcd(root, &paths, &mut pose_map, angular_thresh,);
         }
 
-
-        SFMConfig{root, paths, camera_map, camera_map_ba, match_map, pose_map, epipolar_alg, triangulation, image_size}
+        SFMConfig{root, paths, camera_map, camera_map_ba, match_map, pose_map, epipolar_alg, triangulation}
     }
 
 
@@ -87,7 +89,6 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
     pub fn camera_map_ba(&self) -> &HashMap<usize, C2> { &self.camera_map_ba }
     pub fn epipolar_alg(&self) -> tensor::BifocalType { self.epipolar_alg}
     pub fn triangulation(&self) -> Triangulation { self.triangulation}
-    pub fn image_size(&self) -> usize { self.image_size}
     pub fn match_map(&self) -> &HashMap<(usize, usize), Vec<Match<Feat>>> {&self.match_map}
     pub fn pose_map(&self) -> &HashMap<(usize, usize), Isometry3<Float>> {&self.pose_map}
 
@@ -178,6 +179,7 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
             if l > max { l } else { max }
         }).expect("filter_by_max_tracks: tracks is empty!")).collect::<Vec<usize>>();
 
+        println!("Max Track len: {:?}", max_track_lengths);
 
         let max_tracks: Vec<Vec<FeatureTrack<Feat>>> = feature_tracks.into_iter().zip(max_track_lengths).map(| (xs, max) | xs.into_iter().filter(|x| x.get_track_length() == max).collect()).collect();
 
@@ -256,7 +258,9 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
             matches: &Vec<Vec<Vec<Match<Feat>>>>,
             perc_tresh: Float, 
             epipolar_tresh: Float,
-            epipolar_alg: tensor::BifocalType) 
+            epipolar_alg: tensor::BifocalType,
+            image_width: usize,
+            image_height: usize) 
         ->  (HashMap<(usize, usize), Isometry3<Float>>, HashMap<(usize, usize), Vec<Match<Feat>>>) {
             let number_of_paths = paths.len();
             let map_capacity = 100*number_of_paths;
@@ -280,7 +284,7 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
                             let f = tensor::fundamental::eight_point_hartley(m, false, f0); //TODO: make this configurable
                             
                             // let f_corr = tensor::fundamental::optimal_correction(&f, m, 1.0);
-                            // let filtered = tensor::select_best_matches_from_fundamental(&f_corr,m,perc_tresh);
+                            // let filtered = tensor::select_best_matches_from_fundamental(&f,m,perc_tresh, epipolar_tresh);
                             // (tensor::compute_essential(&f_corr,&c1.get_projection(),&c2.get_projection()), filtered)
             
                             let filtered = tensor::select_best_matches_from_fundamental(&f,m,perc_tresh, epipolar_tresh);
@@ -298,12 +302,15 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
                         }
                     };
                     
+                    //TODO
+                    let f_m_subsampled = subsample_matches(f_m,image_width,image_height);
+                    
                     // The pose transforms id2 into the coordiante system of id1
-                    let (h,rotation,_) = tensor::decompose_essential_förstner(&e,&f_m,c1,c2);
+                    let (h,rotation,_) = tensor::decompose_essential_förstner(&e,&f_m_subsampled,c1,c2);
                     let se3 = se3(&h,&rotation);
                     let isometry = from_matrix(&se3);
                     let some_pose_old_val = pose_map.insert((id1, id2), isometry);
-                    let some_match_old_val = match_map.insert((id1, id2), f_m);
+                    let some_match_old_val = match_map.insert((id1, id2), f_m_subsampled);
                     assert!(some_pose_old_val.is_none());
                     assert!(some_match_old_val.is_none());
 

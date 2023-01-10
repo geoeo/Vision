@@ -86,7 +86,7 @@ fn main() -> Result<()> {
     //let sfm_config = SFMConfig::new(2, vec!(vec!(1), vec!(3), vec!(4), vec!(0)), camera_map.clone(), camera_map, vec!(vec!(matches_2_1),vec!(matches_2_3),vec!(matches_2_4),vec!(matches_2_0)),
     let sfm_config = SFMConfig::new(2, vec!(vec!(1,0), vec!(3,4)), camera_map.clone(), camera_map, vec!(vec!(matches_2_1,matches_1_0),vec!(matches_2_3,matches_3_4)),
     //let sfm_config = SFMConfig::new(3, vec!(vec!(4)), camera_map.clone(), camera_map, vec!(vec!(matches_3_4)),
-        BifocalType::FUNDAMENTAL,  Triangulation::LINEAR, filter_tracks, perc_tresh, 5.0, anguar_thresh, refine_rotation_via_rcd, 320*240);
+        BifocalType::FUNDAMENTAL,  Triangulation::LINEAR, filter_tracks, perc_tresh, 5.0, anguar_thresh, refine_rotation_via_rcd, 640, 480);
 
 
     let (initial_cam_motions_per_path,filtered_matches_per_path) = sfm_config.compute_lists_from_maps();

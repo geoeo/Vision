@@ -25,7 +25,7 @@ impl<T: Feature + Clone + PartialEq> FeatureTrack<T> {
         self.track.last().expect("FeatureTrack: Called get_current_id on empty track").2.feature_two.clone()
     }
 
-        /**
+    /**
      * Returns (path_idx, image_idx)
      */
     pub fn get_path_img_id(&self) -> (usize, usize) {
@@ -34,7 +34,7 @@ impl<T: Feature + Clone + PartialEq> FeatureTrack<T> {
     }
 
     pub fn get_track_length(&self) -> usize {
-        self.track.len()
+        self.track.len() + self.track.first().expect("FeatureTrack: Called get_track_length on empty track").1
     }
 
     pub fn get_track(&self) -> &Vec<(PathIdx, ImageIdx, Match<T>)> {

@@ -99,3 +99,8 @@ impl<T: Feature + PartialEq> PartialEq for Match<T> {
         (self.feature_one == other.feature_one) && (self.feature_two == other.feature_two)
     }
 }
+
+//TODO
+pub fn subsample_matches<T: Feature + Clone>(matches: Vec<Match<T>>, image_width: usize, image_height: usize) -> Vec<Match<T>> {
+    matches
+}
