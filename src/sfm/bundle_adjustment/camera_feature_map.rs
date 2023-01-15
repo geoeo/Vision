@@ -23,7 +23,7 @@ pub struct CameraFeatureMap {
     /**
      * The first map is a map of the cameras index by their unique ids.
      * The tuple is the internal cam id and a second map. 
-     * The second map is map of which other cam holds the same reference to that 3d point
+     * The second map is map of which other cams hold the same reference to that 3d point
      */
     pub camera_map: HashMap<usize, (usize, HashMap<usize,usize>)>,
     pub number_of_unique_points: usize,
@@ -122,7 +122,6 @@ impl CameraFeatureMap {
                 let match_a = &feature_match.feature_one;
                 let match_b = &feature_match.feature_two;
 
-
                 self.add_feature(*id_a, *id_b, 
                     match_a.get_x_image_float(), match_a.get_y_image_float(), match_a.get_closest_sigma_level(),
                     match_b.get_x_image_float(), match_b.get_y_image_float(), match_b.get_closest_sigma_level(),
@@ -163,7 +162,7 @@ impl CameraFeatureMap {
     }
 
     pub fn get_euclidean_landmark_state<F: float::Float + Scalar + NumAssign + SimdRealField + ComplexField + Mul<F> + From<F> + RealField + SubsetOf<Float> + SupersetOf<Float>, C : Camera<Float> + Copy>(
-        &self, initial_motions : Option<&Vec<Vec<((usize,usize),(Vector3<Float>,Matrix3<Float>))>>>,camera_map: &HashMap<usize, C>, triangulation: Triangulation) 
+        &self, initial_motions : Option<&Vec<Vec<((usize,usize),(Vector3<Float>,Matrix3<Float>))>>>, camera_intrinsics_map: &HashMap<usize, C>, triangulation: Triangulation) 
         -> State<F, EuclideanLandmark<F>,3> {
         
         let number_of_cameras = self.camera_map.keys().len();
@@ -176,14 +175,14 @@ impl CameraFeatureMap {
                         let motions = &all_motions[path_idx];
                         let mut pose_acc = Matrix4::<Float>::identity();
                         for i in 0..motions.len() {
-                            let ((id_s, cam_id),(h,rotation_matrix)) = &motions[i];
-                            let camera_matrix_s = camera_map[id_s];
-                            let camera_matrix_f = camera_map[cam_id];
+                            let ((id_s, id_f),(h,rotation_matrix)) = &motions[i];
+                            let camera_matrix_s = camera_intrinsics_map[id_s];
+                            let camera_matrix_f = camera_intrinsics_map[id_f];
         
-                            let (cam_idx_s, _) = self.camera_map[&id_s];
-                            let (cam_idx_f, _) = self.camera_map[&cam_id];
+                            let (local_cam_idx_s, _) = self.camera_map[&id_s];
+                            let (local_cam_idx_f, _) = self.camera_map[&id_f];
                             
-                            let (point_ids, im_s, im_f) = self.get_features_for_cam_pair(cam_idx_s, cam_idx_f);
+                            let (point_ids, im_s, im_f) = self.get_features_for_cam_pair(local_cam_idx_s, local_cam_idx_f);
                             assert_eq!(im_s.len(), im_f.len());
                             let local_landmarks = im_s.len();
                             let local_landmarks_as_float = local_landmarks as Float;
@@ -261,28 +260,24 @@ impl CameraFeatureMap {
                             let projection_1 = c1_intrinsics*(Matrix4::<Float>::identity().fixed_slice::<3,4>(0,0));
                             let projection_2 = c2_intrinsics*(se3.fixed_slice::<3,4>(0,0));
                             
-                            let triangulated_points = match triangulation {
-                                Triangulation::LINEAR =>  pose_acc*linear_triangulation_svd(&vec!((&normalized_image_points_s,&projection_1),(&normalized_image_points_f,&projection_2))),
-                                Triangulation::STEREO =>  pose_acc*stereo_triangulation((&normalized_image_points_s,&projection_1),(&normalized_image_points_f,&projection_2),f0,f0_prime).expect("get_euclidean_landmark_state: Stereo Triangulation Failed"),
+                            let triangulated_points = pose_acc * match triangulation {
+                                Triangulation::LINEAR => linear_triangulation_svd(&vec!((&normalized_image_points_s,&projection_1),(&normalized_image_points_f,&projection_2))),
+                                Triangulation::STEREO => stereo_triangulation((&normalized_image_points_s,&projection_1),(&normalized_image_points_f,&projection_2),f0,f0_prime).expect("get_euclidean_landmark_state: Stereo Triangulation Failed"),
                             };
-                            pose_acc = pose_acc*se3;
+
                             assert_eq!(triangulated_points.ncols(), point_ids.len());
-
-                            for j in 0..point_ids.len() {
+                            for j in 0..triangulated_points.ncols() {
                                 let point_id = point_ids[j];
-                                let mut point = triangulated_points.fixed_slice::<3, 1>(0, j).into_owned();
-                                let sign = match point[2].is_sign_positive() {
-                                    true => 1.0,
-                                    false => -1.0
-                                };
+                                let point = triangulated_points.fixed_slice::<3, 1>(0, j).into_owned();
 
-                                point *= -sign;
+                                //TODO:: add reprojection error to EuclideanLandmark
                                 triangualted_landmarks[point_id] = EuclideanLandmark::from_state(Vector3::<F>::new(
                                     convert(point[0]),
                                     convert(point[1]),
                                     convert(point[2])
                                 ));
-                            }                          
+                            }    
+                            pose_acc = pose_acc*se3;
                         }
                 }
                 let max_depth = triangualted_landmarks.iter().reduce(|acc, l| {

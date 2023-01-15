@@ -28,7 +28,7 @@ pub struct SFMConfig<C, C2, Feat: Feature> {
     camera_map: HashMap<usize, C>,
     camera_map_ba: HashMap<usize, C2>, //TODO: unfiy camera map
     match_map: HashMap<(usize, usize), Vec<Match<Feat>>>,
-    pose_map: HashMap<(usize, usize), Isometry3<Float>>,
+    pose_map: HashMap<(usize, usize), Isometry3<Float>>, // The pose transforms tuple id 2 into the coordiante system of tuple id 1
     epipolar_alg: tensor::BifocalType,
     triangulation: Triangulation
 }
@@ -75,8 +75,12 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
             image_height
         );
 
+        //TODO Trigulate and save reproj error
+
+
         if refine_rotation_via_rcd {
             Self::refine_rotation_by_rcd(root, &paths, &mut pose_map, angular_thresh,);
+            //Triangualte again and update 
         }
 
         SFMConfig{root, paths, camera_map, camera_map_ba, match_map, pose_map, epipolar_alg, triangulation}

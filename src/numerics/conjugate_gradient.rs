@@ -64,6 +64,6 @@ pub fn conjugate_gradient<F,StorageA, StorageB, StorageX, S>(A: &Matrix<F,S,S,St
         }
 
         println!("cg finished with it: {} and thesh: {}" , it, norm);
-        !norm.is_nan()
+        !(norm.is_nan() || norm.is_infinite())
 
 }
