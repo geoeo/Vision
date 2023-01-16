@@ -266,7 +266,7 @@ fn main() -> Result<()> {
             cg_max_it: 2e3 as usize
         };
 
-        let ((cam_positions,points),(s,debug_states_serialized)) = run_ba(&filtered_matches_per_path, &sfm_config_fundamental, Some(&initial_cam_motions_per_path), olsen_data.get_image_dim(), &runtime_parameters, 1.0);
+        let ((cam_positions,points),(s,debug_states_serialized)) = run_ba(&filtered_matches_per_path, &sfm_config_fundamental, olsen_data.get_image_dim(), &runtime_parameters, 1.0);
         fs::write(format!("{}/olsen.txt",runtime_conf.output_path), s?).expect("Unable to write file");
         if runtime_parameters.debug {
             fs::write(format!("{}/olsen_debug.txt",runtime_conf.output_path), debug_states_serialized?).expect("Unable to write file");

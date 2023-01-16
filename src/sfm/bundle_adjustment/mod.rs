@@ -20,19 +20,13 @@ pub mod state;
 
 //TODO: unify the two sfm configs!
 pub fn run_ba<F: serde::Serialize + float::Float + Scalar + NumAssign + SimdRealField + ComplexField + Mul<F> + From<F> + RealField + SubsetOf<Float> + SupersetOf<Float>, C : Camera<Float> + Copy, C2: Camera<F> + Copy, T : Feature + Clone + PartialEq + SolverFeature>(
-    matches: &Vec<Vec<Vec<Match<T>>>>, sfm_config: &SFMConfig<C, C2, T>, initial_cam_poses: Option<&Vec<Vec<((usize,usize),(Vector3<Float>,Matrix3<Float>))>>>,
-                                img_dim : (usize,usize) ,runtime_parameters: &RuntimeParameters<F>, pyramid_scale: Float) 
+    matches: &Vec<Vec<Vec<Match<T>>>>, sfm_config: &SFMConfig<C, C2, T>,img_dim : (usize,usize) ,runtime_parameters: &RuntimeParameters<F>, pyramid_scale: Float) 
                                 -> ((Vec<Isometry3<F>>, Vec<Vector3<F>>), (serde_yaml::Result<String>, serde_yaml::Result<String>)){
 
 
     let (unique_camera_ids_sorted,_) = sfm_config.compute_unqiue_ids_cameras_root_first();
     let (_,unique_cameras_sorted_by_id_ba) = sfm_config.compute_unqiue_ids_cameras_ba_root_first();
-    let path_id_pairs = match initial_cam_poses {
-        None => sfm_config.compute_path_id_pairs(),
-        Some(pose_list) => {
-            pose_list.iter().map(|v| v.iter().map(|((s,f),_)| (*s,*f)).collect::<Vec<_>>()).collect::<Vec<_>>()
-        }  
-    };
+    let path_id_pairs = sfm_config.compute_path_id_pairs();
 
     let mut feature_map = CameraFeatureMap::new(matches,unique_camera_ids_sorted, img_dim);
     feature_map.add_matches(&path_id_pairs,matches, pyramid_scale);
