@@ -166,7 +166,7 @@ impl CameraFeatureMap {
     }
 
     pub fn get_euclidean_landmark_state<F: float::Float + Scalar + NumAssign + SimdRealField + ComplexField + Mul<F> + From<F> + RealField + SubsetOf<Float> + SupersetOf<Float>, C : Camera<Float> + Copy, Feat: Feature>(
-        &self, paths: &Vec<Vec<(usize,usize)>>, match_map: &HashMap<(usize, usize), Vec<Match<Feat>>>, pose_map: &HashMap<(usize, usize), Isometry3<Float>>, camera_intrinsics_map: &HashMap<usize, C>, triangulation: Triangulation) 
+        &mut self, paths: &Vec<Vec<(usize,usize)>>, match_map: &HashMap<(usize, usize), Vec<Match<Feat>>>, pose_map: &HashMap<(usize, usize), Isometry3<Float>>, camera_intrinsics_map: &HashMap<usize, C>, triangulation: Triangulation) 
         -> State<F, EuclideanLandmark<F>,3> {
         
         let number_of_cameras = self.camera_map.keys().len();
@@ -180,7 +180,8 @@ impl CameraFeatureMap {
                 let (local_cam_idx_f, _) = self.camera_map[id_f];
     
                 let matches = match_map.get(&(*id_s, *id_f)).expect("not matches found for path pair");
-                let triangulated_matches = pose_acc*triangulate_matches((*id_s, *id_f),pose_map,match_map,camera_intrinsics_map,triangulation);
+                let (triangulated_matches, reprojection_errors) = triangulate_matches((*id_s, *id_f),pose_map,match_map,camera_intrinsics_map,triangulation);
+                let triangulated_matches = pose_acc*triangulated_matches;
     
                 for m_i in 0..matches.len() {
                     let m = &matches[m_i];
@@ -194,13 +195,29 @@ impl CameraFeatureMap {
                     let point_id = self.landmark_match_lookup.get(&(local_cam_idx_s,u_s,v_s,local_cam_idx_f,u_f,v_f)).expect("point id not found");
                     let point = triangulated_matches.fixed_slice::<3, 1>(0, m_i).into_owned();
                     
-                    //TODO Calc reprojection error
-                    // TODO if landmark_reprojection_error_map does not have and entry add -> else compare error
-                    landmarks[*point_id] = EuclideanLandmark::from_state(Vector3::<F>::new(
-                        convert(point[0]),
-                        convert(point[1]),
-                        convert(point[2])
-                    ));
+                    let reprojection_error = reprojection_errors[m_i];
+                    match self.landmark_reprojection_error_map.contains_key(point_id) {
+                        true => {
+                            let current_reproj_error =  *self.landmark_reprojection_error_map.get(point_id).unwrap();
+                            if reprojection_error < current_reproj_error {
+                                self.landmark_reprojection_error_map.insert(*point_id,reprojection_error);
+                                landmarks[*point_id] = EuclideanLandmark::from_state(Vector3::<F>::new(
+                                    convert(point[0]),
+                                    convert(point[1]),
+                                    convert(point[2])
+                                ));
+                            }
+                        },
+                        false => {
+                            self.landmark_reprojection_error_map.insert(*point_id,reprojection_error);
+                            landmarks[*point_id] = EuclideanLandmark::from_state(Vector3::<F>::new(
+                                convert(point[0]),
+                                convert(point[1]),
+                                convert(point[2])
+                            ));
+                        }
+                    }
+
                 }
 
                 let se3 = pose_map.get(&(*id_s, *id_f)).expect("pose not found for path pair").to_matrix();
@@ -211,7 +228,12 @@ impl CameraFeatureMap {
         let max_depth = landmarks.iter().reduce(|acc, l| {
             if float::Float::abs(l.get_state_as_vector().z) > float::Float::abs(acc.get_state_as_vector().z) { l } else { acc }
         }).expect("triangulated landmarks empty!").get_state_as_vector().z;
-        println!("Max depth: {} ", max_depth);
+
+        let max_reproj_error = self.landmark_reprojection_error_map.values().reduce(|acc, v|{
+            if v > acc { v } else { acc }
+        }).expect("reprojection map empty!");
+
+        println!("Max depth: {} , Max Reproj: {}", max_depth, max_reproj_error);
         let camera_positions = self.get_initial_camera_positions(paths,pose_map);
         State::new(camera_positions, landmarks, number_of_cameras, number_of_unqiue_landmarks)
     }

@@ -1,7 +1,7 @@
 use crate::image::features::geometry::point::Point;
 
 #[derive(Debug,Clone)]
-pub struct Line<T> where T: PartialOrd + PartialEq {
+pub struct Line<T> where T: PartialOrd + PartialEq + Clone {
     pub points: Vec<Point<T>>
 }
 

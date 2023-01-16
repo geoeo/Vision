@@ -1,7 +1,7 @@
 extern crate nalgebra as na;
 
 use std::collections::HashMap;
-use na::{Matrix4,SMatrix,SVector,Matrix3xX,Matrix4xX,MatrixXx4,OMatrix,RowOVector,U3,U4, Isometry3};
+use na::{DVector, Matrix4,SMatrix, SVector,Matrix3x4,Matrix3xX,Matrix4xX,MatrixXx4,OMatrix,RowOVector,U3,U4, Isometry3};
 use crate::image::features::{Match,Feature};
 use crate::sensors::camera::Camera;
 use crate::Float;
@@ -15,7 +15,7 @@ pub enum Triangulation {
 }
 
 pub fn triangulate_matches<Feat: Feature, C: Camera<Float>>(path_pair: (usize, usize), pose_map: &HashMap<(usize, usize), Isometry3<Float>>, 
-    match_map: &HashMap<(usize, usize), Vec<Match<Feat>>>, camera_map: &HashMap<usize, C>, triangulation_mode: Triangulation) -> Matrix4xX<Float>{
+    match_map: &HashMap<(usize, usize), Vec<Match<Feat>>>, camera_map: &HashMap<usize, C>, triangulation_mode: Triangulation) -> (Matrix4xX<Float>, DVector<Float>){
     let (id1, id2) = path_pair;
     let se3 = pose_map.get(&(id1,id2)).expect(format!("triangulate_matches: pose not found with key: ({},{})",id1,id2).as_str()).to_matrix();
     let ms = match_map.get(&(id1,id2)).expect(format!("triangulate_matches: matches not found with key: ({},{})",id1,id2).as_str());
@@ -34,17 +34,44 @@ pub fn triangulate_matches<Feat: Feature, C: Camera<Float>>(path_pair: (usize, u
     let f0 = 1.0;
     let f0_prime = 1.0;
     
-    let c1_intrinsics = camera_map.get(&id1).expect("triangulate_matches: camera 1 not found").get_projection();
-    let c2_intrinsics = camera_map.get(&id2).expect("triangulate_matches: camera 2 not found").get_projection();
+    let cam_1 = camera_map.get(&id1).expect("triangulate_matches: camera 1 not found");
+    let cam_2 = camera_map.get(&id2).expect("triangulate_matches: camera 2 not found");
+
+    let c1_intrinsics = cam_1.get_projection();
+    let c2_intrinsics = cam_2.get_projection();
 
     let projection_1 = c1_intrinsics*(Matrix4::<Float>::identity().fixed_slice::<3,4>(0,0));
     let projection_2 = c2_intrinsics*(se3.fixed_slice::<3,4>(0,0));
 
-    match triangulation_mode {
+    let landmarks = match triangulation_mode {
         Triangulation::LINEAR => linear_triangulation_svd(&vec!((&normalized_image_points_s,&projection_1),(&normalized_image_points_f,&projection_2))),
         Triangulation::STEREO => stereo_triangulation((&normalized_image_points_s,&projection_1),(&normalized_image_points_f,&projection_2),f0,f0_prime).expect("get_euclidean_landmark_state: Stereo Triangulation Failed"),
-    }
+    };
+ 
+    let reprojection_errors = calculate_reprojection_errors(&landmarks, ms, &projection_1, cam_1, &projection_2, cam_2);
+    (landmarks, reprojection_errors)
 }
+ 
+fn calculate_reprojection_errors<Feat: Feature, C: Camera<Float>>(landmarks: &Matrix4xX<Float>, matches: &Vec<Match<Feat>>, projection_1: &Matrix3x4<Float>, cam_1 :&C, projection_2: &Matrix3x4<Float>, cam_2 :&C) -> DVector<Float> {
+    let landmark_count = landmarks.ncols();
+    let mut reprojection_errors = DVector::<Float>::zeros(landmark_count);
+
+    for i in 0..landmarks.ncols() {
+        let p = landmarks.fixed_columns::<1>(i);
+        let m = &matches[i];
+        let feat_1 = &m.feature_one.get_as_2d_point();
+        let feat_2 = &m.feature_two.get_as_2d_point();
+        let p_cam_1 = projection_1*p;
+        let p_cam_2 = projection_2*p;
+        let projected_1 = cam_1.project(&p_cam_1).to_vector();
+        let projected_2 = cam_2.project(&p_cam_2).to_vector();
+
+        reprojection_errors[i] = (feat_1-projected_1).norm() + (feat_2-projected_2).norm()
+    }
+
+    reprojection_errors
+}
+
 
 //TODO: conditioning, also check what happens to zero entries more thoroughly
 /**
