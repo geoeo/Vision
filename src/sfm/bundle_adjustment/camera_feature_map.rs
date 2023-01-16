@@ -4,16 +4,15 @@ extern crate simba;
 
 use simba::scalar::{SubsetOf,SupersetOf};
 use std::{ops::Mul,convert::From};
-use na::{convert,Vector3, Matrix3, Matrix4, Matrix3xX, DVector, Isometry3, Rotation3, SimdRealField, ComplexField,base::Scalar, RealField};
+use na::{convert,Vector3, Matrix3, Matrix4, DVector, Isometry3, Rotation3, SimdRealField, ComplexField,base::Scalar, RealField};
 use num_traits::{float,NumAssign};
 use std::collections::HashMap;
 use crate::image::{
     features::{Feature, Match},
     features::geometry::point::Point
 };
-use crate::sfm::{triangulation::Triangulation,bundle_adjustment::state::State, landmark::{Landmark, euclidean_landmark::EuclideanLandmark, inverse_depth_landmark::InverseLandmark},epipolar::tensor::BifocalType,triangulation::{linear_triangulation_svd,stereo_triangulation}};
+use crate::sfm::{triangulation::{Triangulation, triangulate_matches},bundle_adjustment::state::State, landmark::{Landmark, euclidean_landmark::EuclideanLandmark, inverse_depth_landmark::InverseLandmark},epipolar::tensor::BifocalType,triangulation::{linear_triangulation_svd,stereo_triangulation}};
 use crate::sensors::camera::Camera;
-use crate::numerics::pose;
 use crate::{Float, reconstruct_original_coordiantes_for_float};
 
 /**
@@ -29,9 +28,13 @@ pub struct CameraFeatureMap {
     pub number_of_unique_points: usize,
     /**
      * 2d Vector of rows: point, cols: cam. Where the matrix elements are in (x,y) tuples. 
-     * First entry is all the cams assocaited with a point. point_cam_map[point_id][cam_id]
+     * First entry is all the cams assocaited with a point. feature_location_lookup[point_id][cam_id]
      */
-    pub point_cam_map: Vec<Vec<Option<(Float,Float)>>>,
+    pub feature_location_lookup: Vec<Vec<Option<(Float,Float)>>>,
+    /**
+     * Map from (internal cam id s, u_s, v_s interal cam id f, u_f, v_f) -> point id
+     */
+    pub landmark_match_lookup: HashMap<(usize,usize,usize,usize,usize,usize), usize>,
     pub image_row_col: (usize,usize)
 
 }
@@ -47,7 +50,8 @@ impl CameraFeatureMap {
         let mut camera_feature_map = CameraFeatureMap{
             camera_map:  HashMap::new(),
             number_of_unique_points: 0,
-            point_cam_map: vec![vec![None;n_cams]; max_number_of_points],
+            feature_location_lookup: vec![vec![None;n_cams]; max_number_of_points],
+            landmark_match_lookup: HashMap::new(),
             image_row_col
         };
 
@@ -78,44 +82,45 @@ impl CameraFeatureMap {
         let point_source_idx = self.linear_image_idx(&point_source);
         let point_other_idx = self.linear_image_idx(&point_other);
 
-        let source_cam_idx = self.camera_map.get(&source_cam_id).unwrap().0;
-        let other_cam_idx = self.camera_map.get(&other_cam_id).unwrap().0;
+        let internal_source_cam_id = self.camera_map.get(&source_cam_id).unwrap().0;
+        let internal_other_cam_id = self.camera_map.get(&other_cam_id).unwrap().0;
         
         let source_point_id =  self.camera_map.get(&source_cam_id).unwrap().1.get(&point_source_idx);
         let other_point_id = self.camera_map.get(&other_cam_id).unwrap().1.get(&point_other_idx);
         
-        
+        let key = (internal_source_cam_id, point_source.x.floor() as usize ,point_source.y.floor() as usize,
+        internal_other_cam_id,point_other.x.floor() as usize, point_other.y.floor() as usize);
         match (source_point_id.clone(),other_point_id.clone()) {
             //If the no point Id is present in either of the two camera it is a new 3D Point
             (None,None) => {
-                self.point_cam_map[self.number_of_unique_points][source_cam_idx] = Some((point_source.x,point_source.y));
-                self.point_cam_map[self.number_of_unique_points][other_cam_idx] = Some((point_other.x,point_other.y));
+                self.feature_location_lookup[self.number_of_unique_points][internal_source_cam_id] = Some((point_source.x,point_source.y));
+                self.feature_location_lookup[self.number_of_unique_points][internal_other_cam_id] = Some((point_other.x,point_other.y));
                 self.camera_map.get_mut(&source_cam_id).unwrap().1.insert(point_source_idx,self.number_of_unique_points);
                 self.camera_map.get_mut(&other_cam_id).unwrap().1.insert(point_other_idx, self.number_of_unique_points);
-
+                self.landmark_match_lookup.insert(key, self.number_of_unique_points);
                 self.number_of_unique_points += 1;
             },
             // Otherwise add it to the camera which observs it for the first time
             (Some(&point_id),_) => {
-                self.point_cam_map[point_id][other_cam_idx] = Some((point_other.x,point_other.y));
+                self.feature_location_lookup[point_id][internal_other_cam_id] = Some((point_other.x,point_other.y));
                 self.camera_map.get_mut(&other_cam_id).unwrap().1.insert(point_other_idx, point_id);
-
+                self.landmark_match_lookup.insert(key, point_id);
             },
             (None,Some(&point_id)) => {
                 self.camera_map.get_mut(&source_cam_id).unwrap().1.insert(point_source_idx,point_id);
-                self.point_cam_map[point_id][source_cam_idx] = Some((point_source.x,point_source.y));
-
+                self.feature_location_lookup[point_id][internal_source_cam_id] = Some((point_source.x,point_source.y));
+                self.landmark_match_lookup.insert(key, point_id);
             }
+
         }
 
     }
 
     pub fn add_matches<T: Feature>(&mut self, path_id_pairs: &Vec<Vec<(usize, usize)>>, matches: &Vec<Vec<Vec<Match<T>>>>, pyramid_scale: Float) -> () {
-        let path_id_pairs_flattened = path_id_pairs.iter().flatten().collect::<Vec<&(usize, usize)>>();
-        let matches_flattened = matches.iter().flatten().collect::<Vec<&Vec<Match<T>>>>();
+        let path_id_pairs_flattened = path_id_pairs.iter().flatten().collect::<Vec<&(usize, usize)>>();        let matches_flattened = matches.iter().flatten().collect::<Vec<&Vec<Match<T>>>>();
         assert_eq!(path_id_pairs_flattened.len(), matches_flattened.len());
         for i in 0..path_id_pairs_flattened.len(){
-            let (id_a,id_b) = path_id_pairs_flattened[i];
+            let (id_a, id_b) = path_id_pairs_flattened[i];
             let matches_for_pair = matches_flattened[i];
 
             for feature_match in matches_for_pair {
@@ -127,24 +132,22 @@ impl CameraFeatureMap {
                     match_b.get_x_image_float(), match_b.get_y_image_float(), match_b.get_closest_sigma_level(),
                     pyramid_scale);
             }
-
         }
-
     }
 
     /**
      * initial_motion should all be with respect to the first camera
      */
-    pub fn get_inverse_depth_landmark_state<C: Camera<Float>>(&self, initial_motions : Option<&Vec<Vec<((usize, usize),(Vector3<Float>,Matrix3<Float>))>>>, inverse_depth_prior: Float, cameras: &Vec<C>) -> State<Float,InverseLandmark<Float>,6> {
+    pub fn get_inverse_depth_landmark_state<C: Camera<Float>>(&self, paths: &Vec<Vec<(usize,usize)>>, pose_map: &HashMap<(usize, usize), Isometry3<Float>>, inverse_depth_prior: Float, cameras: &Vec<C>) -> State<Float,InverseLandmark<Float>,6> {
 
         let number_of_cameras = self.camera_map.keys().len();
         let number_of_unqiue_landmarks = self.number_of_unique_points;
-        let camera_positions = self.get_initial_camera_positions(initial_motions);
+        let camera_positions = self.get_initial_camera_positions(paths,pose_map);
         let n_points = self.number_of_unique_points;
         let mut landmarks = Vec::<InverseLandmark<Float>>::with_capacity(number_of_unqiue_landmarks);
 
         for landmark_idx in 0..n_points {
-            let observing_cams = &self.point_cam_map[landmark_idx];
+            let observing_cams = &self.feature_location_lookup[landmark_idx];
             let idx_point = observing_cams.iter().enumerate().find(|(_,item)| item.is_some()).expect("get_inverse_depth_landmark_state: No camera for this landmark found! This should not happen");
             let cam_idx = idx_point.0;
             let cam_state_idx = 6*cam_idx;
@@ -161,166 +164,82 @@ impl CameraFeatureMap {
         State::new(camera_positions,landmarks, number_of_cameras, number_of_unqiue_landmarks)
     }
 
-    pub fn get_euclidean_landmark_state<F: float::Float + Scalar + NumAssign + SimdRealField + ComplexField + Mul<F> + From<F> + RealField + SubsetOf<Float> + SupersetOf<Float>, C : Camera<Float> + Copy>(
-        &self, initial_motions : Option<&Vec<Vec<((usize,usize),(Vector3<Float>,Matrix3<Float>))>>>, camera_intrinsics_map: &HashMap<usize, C>, triangulation: Triangulation) 
+    pub fn get_euclidean_landmark_state<F: float::Float + Scalar + NumAssign + SimdRealField + ComplexField + Mul<F> + From<F> + RealField + SubsetOf<Float> + SupersetOf<Float>, C : Camera<Float> + Copy, Feat: Feature>(
+        &self, paths: &Vec<Vec<(usize,usize)>>, match_map: &HashMap<(usize, usize), Vec<Match<Feat>>>, pose_map: &HashMap<(usize, usize), Isometry3<Float>>, camera_intrinsics_map: &HashMap<usize, C>, triangulation: Triangulation) 
         -> State<F, EuclideanLandmark<F>,3> {
         
         let number_of_cameras = self.camera_map.keys().len();
         let number_of_unqiue_landmarks = self.number_of_unique_points;
 
-        let landmarks = match initial_motions {
-            Some(all_motions) => {
-                let mut triangualted_landmarks = vec![EuclideanLandmark::from_state(Vector3::<F>::new(F::zero(),F::zero(),-F::one())); number_of_unqiue_landmarks];       
-                for path_idx in 0..all_motions.len() {
-                        let motions = &all_motions[path_idx];
-                        let mut pose_acc = Matrix4::<Float>::identity();
-                        for i in 0..motions.len() {
-                            let ((id_s, id_f),(h,rotation_matrix)) = &motions[i];
-                            let camera_matrix_s = camera_intrinsics_map[id_s];
-                            let camera_matrix_f = camera_intrinsics_map[id_f];
-        
-                            let (local_cam_idx_s, _) = self.camera_map[&id_s];
-                            let (local_cam_idx_f, _) = self.camera_map[&id_f];
-                            
-                            let (point_ids, im_s, im_f) = self.get_features_for_cam_pair(local_cam_idx_s, local_cam_idx_f);
-                            assert_eq!(im_s.len(), im_f.len());
-                            let local_landmarks = im_s.len();
-                            let local_landmarks_as_float = local_landmarks as Float;
-                            let mut normalized_image_points_s = Matrix3xX::<Float>::zeros(local_landmarks);
-                            let mut normalized_image_points_f = Matrix3xX::<Float>::zeros(local_landmarks);
-        
-                            let mut normalization_matrix_one = Matrix3::<Float>::identity();
-                            let mut normalization_matrix_two = Matrix3::<Float>::identity();
-                        
-
-                            let projection_one = camera_matrix_s.get_projection();
-                            let projection_two = camera_matrix_f.get_projection();
-
-                            let cx_one = projection_one[(0,2)];
-                            let cy_one = projection_one[(1,2)];
-                            let cx_two = projection_two[(0,2)];
-                            let cy_two = projection_two[(1,2)];
-
-                            let mut avg_x_one = 0.0;
-                            let mut avg_y_one = 0.0;
-                            let mut avg_x_two = 0.0;
-                            let mut avg_y_two = 0.0;
-                        
-                            for landmark_id in 0..local_landmarks {
-                                let (x_s, y_s) = im_s[landmark_id];
-                                let (x_f, y_f) = im_f[landmark_id];
-                                let feat_s = Vector3::<Float>::new(x_s,y_s,-1.0);
-                                let feat_f = Vector3::<Float>::new(x_f,y_f,-1.0);
-                                avg_x_one += feat_s[0];
-                                avg_y_one += feat_s[1];
-                                avg_x_two += feat_f[0];
-                                avg_y_two += feat_f[1];
-                                normalized_image_points_s.column_mut(landmark_id).copy_from(&feat_s);
-                                normalized_image_points_f.column_mut(landmark_id).copy_from(&feat_f);
-                            }
-
-                            let max_dist_one = (cx_one.powi(2)+cy_one.powi(2)).sqrt();
-                            let max_dist_two = (cx_two.powi(2)+cy_two.powi(2)).sqrt();
-
-                            // let max_dist_one = cx_one*cy_one;
-                            // let max_dist_two = cx_two*cy_two;
-                            
-                            //TODO: unify with five_point and epipolar
-                            // normalization_matrix_one[(0,2)] = -avg_x_one/local_landmarks_as_float;
-                            // normalization_matrix_one[(1,2)] = -avg_y_one/local_landmarks_as_float;
-                            // normalization_matrix_one[(2,2)] = max_dist_one;
-                        
-                            // normalization_matrix_two[(0,2)] = -avg_x_two/local_landmarks_as_float;
-                            // normalization_matrix_two[(1,2)] = -avg_y_two/local_landmarks_as_float;
-                            // normalization_matrix_two[(2,2)] = max_dist_two;
-                        
-                            let f0 = normalization_matrix_one[(2,2)];
-                            let f0_prime = normalization_matrix_two[(2,2)];
-
-                            normalized_image_points_s = normalization_matrix_one*normalized_image_points_s/f0;
-                            normalized_image_points_f = normalization_matrix_two*normalized_image_points_f/f0_prime;
-        
-                            let se3 = pose::se3(&h,&rotation_matrix);
-                            let mut c1_intrinsics = camera_matrix_s.get_projection();
-                            let mut c2_intrinsics = camera_matrix_f.get_projection();
-
-
-                            //TODO: only relevant for stereo triangulation
-                            c1_intrinsics[(0,0)] /= f0;
-                            c1_intrinsics[(1,1)] /= f0;
-                            c1_intrinsics[(0,2)] /= f0;
-                            c1_intrinsics[(1,2)] /= f0;
-
-
-                            c2_intrinsics[(0,0)] /= f0_prime;
-                            c2_intrinsics[(1,1)] /= f0_prime;
-                            c2_intrinsics[(0,2)] /= f0_prime;
-                            c2_intrinsics[(1,2)] /= f0_prime;
-
-                            let projection_1 = c1_intrinsics*(Matrix4::<Float>::identity().fixed_slice::<3,4>(0,0));
-                            let projection_2 = c2_intrinsics*(se3.fixed_slice::<3,4>(0,0));
-                            
-                            let triangulated_points = pose_acc * match triangulation {
-                                Triangulation::LINEAR => linear_triangulation_svd(&vec!((&normalized_image_points_s,&projection_1),(&normalized_image_points_f,&projection_2))),
-                                Triangulation::STEREO => stereo_triangulation((&normalized_image_points_s,&projection_1),(&normalized_image_points_f,&projection_2),f0,f0_prime).expect("get_euclidean_landmark_state: Stereo Triangulation Failed"),
-                            };
-
-                            assert_eq!(triangulated_points.ncols(), point_ids.len());
-                            for j in 0..triangulated_points.ncols() {
-                                let point_id = point_ids[j];
-                                let point = triangulated_points.fixed_slice::<3, 1>(0, j).into_owned();
-
-                                //TODO:: add reprojection error to EuclideanLandmark
-                                triangualted_landmarks[point_id] = EuclideanLandmark::from_state(Vector3::<F>::new(
-                                    convert(point[0]),
-                                    convert(point[1]),
-                                    convert(point[2])
-                                ));
-                            }    
-                            pose_acc = pose_acc*se3;
-                        }
+        let mut landmarks = vec![EuclideanLandmark::from_state(Vector3::<F>::new(F::zero(),F::zero(),-F::one())); number_of_unqiue_landmarks];
+        for path in paths {
+            let mut pose_acc = Matrix4::<Float>::identity();
+            for (id_s, id_f) in path {
+                let (local_cam_idx_s, _) = self.camera_map[id_s];
+                let (local_cam_idx_f, _) = self.camera_map[id_f];
+    
+                let matches = match_map.get(&(*id_s, *id_f)).expect("not matches found for path pair");
+                let triangulated_matches = pose_acc*triangulate_matches((*id_s, *id_f),pose_map,match_map,camera_intrinsics_map,triangulation);
+    
+                for m_i in 0..matches.len() {
+                    let m = &matches[m_i];
+                    let feat_s = &m.feature_one;
+                    let u_s = feat_s.get_x_image();
+                    let v_s = feat_s.get_y_image();
+                    let feat_f = &m.feature_two;
+                    let u_f = feat_f.get_x_image();
+                    let v_f = feat_f.get_y_image();
+    
+                    let point_id = self.landmark_match_lookup.get(&(local_cam_idx_s,u_s,v_s,local_cam_idx_f,u_f,v_f)).expect("point id not found");
+                    let point = triangulated_matches.fixed_slice::<3, 1>(0, m_i).into_owned();
+                    
+                    //TODO check for reproj error
+                    landmarks[*point_id] = EuclideanLandmark::from_state(Vector3::<F>::new(
+                        convert(point[0]),
+                        convert(point[1]),
+                        convert(point[2])
+                    ));
                 }
-                let max_depth = triangualted_landmarks.iter().reduce(|acc, l| {
-                    if float::Float::abs(l.get_state_as_vector().z) > float::Float::abs(acc.get_state_as_vector().z) { l } else { acc }
-                }).expect("triangulated landmarks empty!").get_state_as_vector().z;
-                println!("Max depth: {} ", max_depth);
 
-                triangualted_landmarks
-            },
-            None => vec!(Vector3::<F>::new(F::zero(), F::zero(), -F::one());number_of_unqiue_landmarks).iter().map(|&v| EuclideanLandmark::from_state(v)).collect::<Vec<EuclideanLandmark<F>>>()  
-        };
+                let se3 = pose_map.get(&(*id_s, *id_f)).expect("pose not found for path pair").to_matrix();
+                pose_acc = pose_acc*se3;
+            }
+        }
 
-
-        let camera_positions = self.get_initial_camera_positions(initial_motions);
+        let max_depth = landmarks.iter().reduce(|acc, l| {
+            if float::Float::abs(l.get_state_as_vector().z) > float::Float::abs(acc.get_state_as_vector().z) { l } else { acc }
+        }).expect("triangulated landmarks empty!").get_state_as_vector().z;
+        println!("Max depth: {} ", max_depth);
+        let camera_positions = self.get_initial_camera_positions(paths,pose_map);
         State::new(camera_positions, landmarks, number_of_cameras, number_of_unqiue_landmarks)
     }
 
     fn get_initial_camera_positions<F: float::Float + Scalar + NumAssign + SimdRealField + ComplexField + Mul<F> + From<F> + RealField + SubsetOf<Float> + SupersetOf<Float>>(
-        &self,initial_motions : Option<&Vec<Vec<((usize,usize),(Vector3<Float>,Matrix3<Float>))>>>) 
+        &self,paths: &Vec<Vec<(usize,usize)>>, pose_map: &HashMap<(usize, usize), Isometry3<Float>>) 
         -> DVector::<F> {
 
         let number_of_cameras = self.camera_map.keys().len();
         let number_of_cam_parameters = 6*number_of_cameras;
         let mut camera_positions = DVector::<F>::zeros(number_of_cam_parameters);
-        if initial_motions.is_some() {
-            let all_motions = initial_motions.unwrap();
-            for motions in all_motions {
-                let mut rot_acc = Matrix3::<F>::identity();
-                let mut trans_acc = Vector3::<F>::zeros();
-                for ((_, cam_id),(h,rotation_matrix)) in motions {
-                    let (cam_idx,_) = self.camera_map[&cam_id];
-                    let cam_state_idx = 6*cam_idx;
-                    let h_cast: Vector3<F> = h.cast::<F>();
-                    let rotation_matrix_cast: Matrix3<F> = rotation_matrix.cast::<F>();
-                    trans_acc = rot_acc*h_cast + trans_acc;
-                    rot_acc = rot_acc*rotation_matrix_cast;
-                    let rotation = Rotation3::from_matrix_eps(&rot_acc, convert(2e-16), 100, Rotation3::identity());
-                    camera_positions.fixed_slice_mut::<3,1>(cam_state_idx,0).copy_from(&trans_acc);
-                    camera_positions.fixed_slice_mut::<3,1>(cam_state_idx+3,0).copy_from(&rotation.scaled_axis());
-                }
+        for path in paths {
+            let mut rot_acc = Matrix3::<F>::identity();
+            let mut trans_acc = Vector3::<F>::zeros();
+            for (id_s, id_f) in path {
+                let (cam_idx,_) = self.camera_map[&id_f];
+                let cam_state_idx = 6*cam_idx;
+                let pose = pose_map.get(&(*id_s, *id_f)).expect("pose not found for path pair");
+                let translation = pose.translation.vector;
+                let rotation_matrix = pose.rotation.to_rotation_matrix().matrix().clone();
+                let translation_cast: Vector3<F> = translation.cast::<F>();
+                let rotation_matrix_cast: Matrix3<F> = rotation_matrix.cast::<F>();
+                trans_acc = rot_acc*translation_cast + trans_acc;
+                rot_acc = rot_acc*rotation_matrix_cast;
+                let rotation = Rotation3::from_matrix_eps(&rot_acc, convert(2e-16), 100, Rotation3::identity());
+                camera_positions.fixed_slice_mut::<3,1>(cam_state_idx,0).copy_from(&trans_acc);
+                camera_positions.fixed_slice_mut::<3,1>(cam_state_idx+3,0).copy_from(&rotation.scaled_axis());
             }
         }
-
+    
         camera_positions
 
     }
@@ -335,7 +254,7 @@ impl CameraFeatureMap {
         let c_y = (self.image_row_col.0 - 1) as Float; 
 
         for landmark_idx in 0..n_points {
-            let observing_cams = &self.point_cam_map[landmark_idx];
+            let observing_cams = &self.feature_location_lookup[landmark_idx];
             let offset =  2*landmark_idx*n_cams;
             for c in 0..n_cams {
                 let feat_id = 2*c + offset;
@@ -360,7 +279,7 @@ impl CameraFeatureMap {
         let mut point_ids = Vec::<usize>::with_capacity(self.number_of_unique_points);
 
         for point_idx in 0..self.number_of_unique_points {
-            let cam_list = &self.point_cam_map[point_idx];
+            let cam_list = &self.feature_location_lookup[point_idx];
             let im_a = cam_list[cam_idx_a];
             let im_b = cam_list[cam_idx_b];
 

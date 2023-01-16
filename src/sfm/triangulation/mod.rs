@@ -1,7 +1,7 @@
 extern crate nalgebra as na;
 
 use std::collections::HashMap;
-use na::{Vector3,Matrix4,SMatrix,SVector,Matrix3xX,Matrix4xX,MatrixXx4,OMatrix,RowOVector,U3,U4, Isometry3};
+use na::{Matrix4,SMatrix,SVector,Matrix3xX,Matrix4xX,MatrixXx4,OMatrix,RowOVector,U3,U4, Isometry3};
 use crate::image::features::{Match,Feature};
 use crate::sensors::camera::Camera;
 use crate::Float;
@@ -14,39 +14,36 @@ pub enum Triangulation {
     STEREO
 }
 
-pub fn triangulate_matches<Feat: Feature, C: Camera<Float>>(path_pairs: &Vec<Vec<(usize,usize)>>, pose_map: &HashMap<(usize, usize), Isometry3<Float>>, 
-    match_map: &HashMap<(usize, usize), Vec<Match<Feat>>>, camera_map: HashMap<usize, C>, triangulation_mode: Triangulation) -> Vec<Vec<Matrix4xX<Float>>>{
-    path_pairs.iter().map(|path| {
-        path.iter().map(|(id1, id2)|{
-            let se3 = pose_map.get(&(*id1,*id2)).expect(format!("triangulate_matches: pose not found with key: ({},{})",id1,id2).as_str()).to_matrix();
-            let ms = match_map.get(&(*id1,*id2)).expect(format!("triangulate_matches: matches not found with key: ({},{})",id1,id2).as_str());
-            let mut normalized_image_points_s = Matrix3xX::<Float>::zeros(ms.len());
-            let mut normalized_image_points_f = Matrix3xX::<Float>::zeros(ms.len());
+pub fn triangulate_matches<Feat: Feature, C: Camera<Float>>(path_pair: (usize, usize), pose_map: &HashMap<(usize, usize), Isometry3<Float>>, 
+    match_map: &HashMap<(usize, usize), Vec<Match<Feat>>>, camera_map: &HashMap<usize, C>, triangulation_mode: Triangulation) -> Matrix4xX<Float>{
+    let (id1, id2) = path_pair;
+    let se3 = pose_map.get(&(id1,id2)).expect(format!("triangulate_matches: pose not found with key: ({},{})",id1,id2).as_str()).to_matrix();
+    let ms = match_map.get(&(id1,id2)).expect(format!("triangulate_matches: matches not found with key: ({},{})",id1,id2).as_str());
+    let mut normalized_image_points_s = Matrix3xX::<Float>::zeros(ms.len());
+    let mut normalized_image_points_f = Matrix3xX::<Float>::zeros(ms.len());
 
-            //TODO: unify normalization calc with five_point and epipolar and camera map
-            for i in 0..ms.len() {
-                let m = &ms[i];
-                let feat_s = m.feature_one.get_as_3d_point(-1.0);
-                let feat_f = m.feature_two.get_as_3d_point(-1.0);
-                normalized_image_points_s.column_mut(i).copy_from(&feat_s);
-                normalized_image_points_f.column_mut(i).copy_from(&feat_f);
-            }
+    //TODO: unify normalization calc with five_point and epipolar and camera map
+    for i in 0..ms.len() {
+        let m = &ms[i];
+        let feat_s = m.feature_one.get_as_3d_point(-1.0);
+        let feat_f = m.feature_two.get_as_3d_point(-1.0);
+        normalized_image_points_s.column_mut(i).copy_from(&feat_s);
+        normalized_image_points_f.column_mut(i).copy_from(&feat_f);
+    }
 
-            let f0 = 1.0;
-            let f0_prime = 1.0;
-            
-            let c1_intrinsics = camera_map.get(id1).expect("triangulate_matches: camera 1 not found").get_projection();
-            let c2_intrinsics = camera_map.get(id2).expect("triangulate_matches: camera 2 not found").get_projection();
+    let f0 = 1.0;
+    let f0_prime = 1.0;
+    
+    let c1_intrinsics = camera_map.get(&id1).expect("triangulate_matches: camera 1 not found").get_projection();
+    let c2_intrinsics = camera_map.get(&id2).expect("triangulate_matches: camera 2 not found").get_projection();
 
-            let projection_1 = c1_intrinsics*(Matrix4::<Float>::identity().fixed_slice::<3,4>(0,0));
-            let projection_2 = c2_intrinsics*(se3.fixed_slice::<3,4>(0,0));
+    let projection_1 = c1_intrinsics*(Matrix4::<Float>::identity().fixed_slice::<3,4>(0,0));
+    let projection_2 = c2_intrinsics*(se3.fixed_slice::<3,4>(0,0));
 
-            match triangulation_mode {
-                Triangulation::LINEAR => linear_triangulation_svd(&vec!((&normalized_image_points_s,&projection_1),(&normalized_image_points_f,&projection_2))),
-                Triangulation::STEREO => stereo_triangulation((&normalized_image_points_s,&projection_1),(&normalized_image_points_f,&projection_2),f0,f0_prime).expect("get_euclidean_landmark_state: Stereo Triangulation Failed"),
-            }
-        }).collect::<Vec<Matrix4xX<Float>>>()
-    }).collect::<Vec<Vec<Matrix4xX<Float>>>>()
+    match triangulation_mode {
+        Triangulation::LINEAR => linear_triangulation_svd(&vec!((&normalized_image_points_s,&projection_1),(&normalized_image_points_f,&projection_2))),
+        Triangulation::STEREO => stereo_triangulation((&normalized_image_points_s,&projection_1),(&normalized_image_points_f,&projection_2),f0,f0_prime).expect("get_euclidean_landmark_state: Stereo Triangulation Failed"),
+    }
 }
 
 //TODO: conditioning, also check what happens to zero entries more thoroughly

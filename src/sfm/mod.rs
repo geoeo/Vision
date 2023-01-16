@@ -11,7 +11,10 @@ pub mod rotation_avg;
 
 use std::collections::HashMap;
 use crate::image::{features::{Feature, Match, feature_track::FeatureTrack, solver_feature::SolverFeature, subsample_matches}};
-use crate::sfm::{epipolar::tensor, triangulation::Triangulation, rotation_avg::{optimize_rotations_with_rcd_per_track,optimize_rotations_with_rcd}};
+use crate::sfm::{epipolar::tensor, 
+    triangulation::{Triangulation, triangulate_matches}, 
+    rotation_avg::{optimize_rotations_with_rcd_per_track,optimize_rotations_with_rcd},
+    landmark::euclidean_landmark::EuclideanLandmark};
 use crate::sensors::camera::Camera;
 use crate::numerics::{lie::angular_distance, pose::{to_parts,from_matrix,se3}};
 
@@ -63,7 +66,7 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
             false => matches
         };
 
-        let (mut pose_map, match_map) = Self::compute_pose_and_feature_maps(
+        let (mut pose_map, match_map) = Self::compute_pose_and_feature_maps (
             root,
             &paths,
             &camera_map,
@@ -76,6 +79,7 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
         );
 
         //TODO Trigulate and save reproj error
+        let triangulated_match_map =  Self::compute_trigulated_match_map(root,&paths,&pose_map,&match_map,&camera_map,triangulation);
 
 
         if refine_rotation_via_rcd {
@@ -122,6 +126,25 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
         let keys_sorted = self.get_sorted_camera_keys();
         let cameras_sorted = keys_sorted.iter().map(|id| self.camera_map_ba.get(id).expect("compute_unqiue_ids_cameras_lowp_root_first: trying to get invalid camera")).collect::<Vec<&C2>>();
         (keys_sorted,cameras_sorted)
+    }
+
+    fn compute_trigulated_match_map(root: usize, paths: &Vec<Vec<usize>>, 
+        pose_map: &HashMap<(usize, usize), Isometry3<Float>>, 
+        match_map: &HashMap<(usize, usize), 
+        Vec<Match<Feat>>>, camera_map: &HashMap<usize, C>,
+        triangulation: Triangulation) -> HashMap<(usize,usize),EuclideanLandmark<Float>> {
+
+        let mut triangulated_match_map = HashMap::<(usize,usize),EuclideanLandmark<Float>>::with_capacity(match_map.len());
+        let path_pairs = compute_path_pairs_as_list(root,paths);
+
+        for path in &path_pairs{
+            for path_pair in path {
+                let trigulated_matches = triangulate_matches(*path_pair,&pose_map,&match_map,&camera_map,triangulation);
+            }
+        }
+
+
+        triangulated_match_map
     }
 
     fn get_sorted_camera_keys(&self) -> Vec<usize> {
@@ -204,25 +227,6 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
 
         filtered_matches
     } 
-
-    pub fn compute_path_pairs_as_list(&self) -> Vec<Vec<(usize,usize)>> {
-        let number_of_paths = self.paths.len();
-        let mut all_path_pairs = Vec::<Vec<(usize,usize)>>::with_capacity(number_of_paths);
-        for path_idx in 0..number_of_paths {
-            let path = &self.paths[path_idx];
-            let mut path_pair = Vec::<(usize,usize)>::with_capacity(path.len());
-            for j in 0..path.len() {
-                let id1 = match j {
-                    0 => self.root(),
-                    idx => path[idx-1]
-                };
-                let id2 = path[j];
-                path_pair.push((id1,id2));
-            }
-            all_path_pairs.push(path_pair);
-        }
-        all_path_pairs
-    }
 
     pub fn compute_lists_from_maps(&self)->  (Vec<Vec<((usize,usize),(Vector3<Float>, Matrix3<Float>))>>,Vec<Vec<Vec<Match<Feat>>>>){
         let number_of_paths = self.paths.len();
@@ -369,4 +373,23 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
 
     }
 
+}
+
+pub fn compute_path_pairs_as_list(root: usize, paths: &Vec<Vec<usize>>) -> Vec<Vec<(usize,usize)>> {
+    let number_of_paths = paths.len();
+    let mut all_path_pairs = Vec::<Vec<(usize,usize)>>::with_capacity(number_of_paths);
+    for path_idx in 0..number_of_paths {
+        let path = &paths[path_idx];
+        let mut path_pair = Vec::<(usize,usize)>::with_capacity(path.len());
+        for j in 0..path.len() {
+            let id1 = match j {
+                0 => root,
+                idx => path[idx-1]
+            };
+            let id2 = path[j];
+            path_pair.push((id1,id2));
+        }
+        all_path_pairs.push(path_pair);
+    }
+    all_path_pairs
 }
