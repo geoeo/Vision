@@ -25,7 +25,7 @@ pub struct CameraFeatureMap {
      * The second map is map of which other cams hold the same reference to that 3d point
      */
     pub camera_map: HashMap<usize, (usize, HashMap<usize,usize>)>,
-    pub number_of_unique_points: usize,
+    pub number_of_unique_landmarks: usize,
     /**
      * 2d Vector of rows: point, cols: cam. Where the matrix elements are in (x,y) tuples. 
      * First entry is all the cams assocaited with a point. feature_location_lookup[point_id][cam_id]
@@ -35,23 +35,24 @@ pub struct CameraFeatureMap {
      * Map from (internal cam id s, u_s, v_s interal cam id f, u_f, v_f) -> point id
      */
     pub landmark_match_lookup: HashMap<(usize,usize,usize,usize,usize,usize), usize>,
+    pub landmark_reprojection_error_map: HashMap<usize, Float>,
     pub image_row_col: (usize,usize)
 
 }
 
-//@TODO: Include transitive feature mappings not only 2 view!
 impl CameraFeatureMap {
 
     pub const NO_FEATURE_FLAG : Float = -1.0;
 
     pub fn new<T: Feature>(matches: & Vec<Vec<Vec<Match<T>>>>, cam_ids: Vec<usize>, image_row_col: (usize,usize)) -> CameraFeatureMap {
-        let max_number_of_points = matches.iter().flatten().fold(0,|acc,x| acc + x.len());
+        let number_of_landmarks = matches.iter().flatten().fold(0,|acc,x| acc + x.len());
         let n_cams = cam_ids.len();
         let mut camera_feature_map = CameraFeatureMap{
             camera_map:  HashMap::new(),
-            number_of_unique_points: 0,
-            feature_location_lookup: vec![vec![None;n_cams]; max_number_of_points],
+            number_of_unique_landmarks: 0,
+            feature_location_lookup: vec![vec![None;n_cams]; number_of_landmarks],
             landmark_match_lookup: HashMap::new(),
+            landmark_reprojection_error_map: HashMap::with_capacity(number_of_landmarks),
             image_row_col
         };
 
@@ -93,12 +94,12 @@ impl CameraFeatureMap {
         match (source_point_id.clone(),other_point_id.clone()) {
             //If the no point Id is present in either of the two camera it is a new 3D Point
             (None,None) => {
-                self.feature_location_lookup[self.number_of_unique_points][internal_source_cam_id] = Some((point_source.x,point_source.y));
-                self.feature_location_lookup[self.number_of_unique_points][internal_other_cam_id] = Some((point_other.x,point_other.y));
-                self.camera_map.get_mut(&source_cam_id).unwrap().1.insert(point_source_idx,self.number_of_unique_points);
-                self.camera_map.get_mut(&other_cam_id).unwrap().1.insert(point_other_idx, self.number_of_unique_points);
-                self.landmark_match_lookup.insert(key, self.number_of_unique_points);
-                self.number_of_unique_points += 1;
+                self.feature_location_lookup[self.number_of_unique_landmarks][internal_source_cam_id] = Some((point_source.x,point_source.y));
+                self.feature_location_lookup[self.number_of_unique_landmarks][internal_other_cam_id] = Some((point_other.x,point_other.y));
+                self.camera_map.get_mut(&source_cam_id).unwrap().1.insert(point_source_idx,self.number_of_unique_landmarks);
+                self.camera_map.get_mut(&other_cam_id).unwrap().1.insert(point_other_idx, self.number_of_unique_landmarks);
+                self.landmark_match_lookup.insert(key, self.number_of_unique_landmarks);
+                self.number_of_unique_landmarks += 1;
             },
             // Otherwise add it to the camera which observs it for the first time
             (Some(&point_id),_) => {
@@ -141,9 +142,9 @@ impl CameraFeatureMap {
     pub fn get_inverse_depth_landmark_state<C: Camera<Float>>(&self, paths: &Vec<Vec<(usize,usize)>>, pose_map: &HashMap<(usize, usize), Isometry3<Float>>, inverse_depth_prior: Float, cameras: &Vec<C>) -> State<Float,InverseLandmark<Float>,6> {
 
         let number_of_cameras = self.camera_map.keys().len();
-        let number_of_unqiue_landmarks = self.number_of_unique_points;
+        let number_of_unqiue_landmarks = self.number_of_unique_landmarks;
         let camera_positions = self.get_initial_camera_positions(paths,pose_map);
-        let n_points = self.number_of_unique_points;
+        let n_points = self.number_of_unique_landmarks;
         let mut landmarks = Vec::<InverseLandmark<Float>>::with_capacity(number_of_unqiue_landmarks);
 
         for landmark_idx in 0..n_points {
@@ -169,7 +170,7 @@ impl CameraFeatureMap {
         -> State<F, EuclideanLandmark<F>,3> {
         
         let number_of_cameras = self.camera_map.keys().len();
-        let number_of_unqiue_landmarks = self.number_of_unique_points;
+        let number_of_unqiue_landmarks = self.number_of_unique_landmarks;
 
         let mut landmarks = vec![EuclideanLandmark::from_state(Vector3::<F>::new(F::zero(),F::zero(),-F::one())); number_of_unqiue_landmarks];
         for path in paths {
@@ -193,7 +194,8 @@ impl CameraFeatureMap {
                     let point_id = self.landmark_match_lookup.get(&(local_cam_idx_s,u_s,v_s,local_cam_idx_f,u_f,v_f)).expect("point id not found");
                     let point = triangulated_matches.fixed_slice::<3, 1>(0, m_i).into_owned();
                     
-                    //TODO check for reproj error
+                    //TODO Calc reprojection error
+                    // TODO if landmark_reprojection_error_map does not have and entry add -> else compare error
                     landmarks[*point_id] = EuclideanLandmark::from_state(Vector3::<F>::new(
                         convert(point[0]),
                         convert(point[1]),
@@ -248,7 +250,7 @@ impl CameraFeatureMap {
      * This vector has ordering In the format [f1_cam1, f1_cam2,...] where cam_id(cam_n-1) < cam_id(cam_n) 
      */
     pub fn get_observed_features<F: float::Float + Scalar + NumAssign + SimdRealField + ComplexField + Mul<F> + From<F> + RealField + SubsetOf<Float> + SupersetOf<Float>>(&self, invert_feature_y: bool) -> DVector<F> {
-        let n_points = self.number_of_unique_points;
+        let n_points = self.number_of_unique_landmarks;
         let n_cams = self.camera_map.keys().len();
         let mut observed_features = DVector::<F>::zeros(n_points*n_cams*2); // some entries might be invalid
         let c_y = (self.image_row_col.0 - 1) as Float; 
@@ -274,11 +276,11 @@ impl CameraFeatureMap {
     }
 
     pub fn get_features_for_cam_pair(&self, cam_idx_a: usize, cam_idx_b: usize) -> (Vec<usize>, Vec<(Float,Float)>, Vec<(Float,Float)>) {
-        let mut image_coords_a = Vec::<(Float,Float)>::with_capacity(self.number_of_unique_points);
-        let mut image_coords_b = Vec::<(Float,Float)>::with_capacity(self.number_of_unique_points);
-        let mut point_ids = Vec::<usize>::with_capacity(self.number_of_unique_points);
+        let mut image_coords_a = Vec::<(Float,Float)>::with_capacity(self.number_of_unique_landmarks);
+        let mut image_coords_b = Vec::<(Float,Float)>::with_capacity(self.number_of_unique_landmarks);
+        let mut point_ids = Vec::<usize>::with_capacity(self.number_of_unique_landmarks);
 
-        for point_idx in 0..self.number_of_unique_points {
+        for point_idx in 0..self.number_of_unique_landmarks {
             let cam_list = &self.feature_location_lookup[point_idx];
             let im_a = cam_list[cam_idx_a];
             let im_b = cam_list[cam_idx_b];
