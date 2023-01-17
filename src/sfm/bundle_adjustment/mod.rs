@@ -31,9 +31,14 @@ pub fn run_ba<F: serde::Serialize + float::Float + Scalar + NumAssign + SimdReal
     let mut feature_map = CameraFeatureMap::new(matches,unique_camera_ids_sorted, img_dim);
     feature_map.add_matches(&path_id_pairs,matches, pyramid_scale);
 
-    //TODO: switch impl
-    //TODO: transative motions -> done?
-    let mut state = feature_map.get_euclidean_landmark_state(&path_id_pairs, sfm_config.match_map(), sfm_config.pose_map(), sfm_config.camera_map(), sfm_config.triangulation());
+    //TODO: switch impl on landmark state
+    let mut state = feature_map.get_euclidean_landmark_state(
+        &path_id_pairs, 
+        sfm_config.match_map(), 
+        sfm_config.pose_map(), 
+        sfm_config.landmark_map(), 
+        sfm_config.reprojection_error_map(),  
+    );
     //let mut state = feature_map.get_inverse_depth_landmark_state(Some(&initial_motion_decomp), depth_prior,&cameras);
     
     //TODO: check this

@@ -13,12 +13,11 @@ use std::collections::HashMap;
 use crate::image::{features::{Feature, Match, feature_track::FeatureTrack, solver_feature::SolverFeature, subsample_matches}};
 use crate::sfm::{epipolar::tensor, 
     triangulation::{Triangulation, triangulate_matches}, 
-    rotation_avg::{optimize_rotations_with_rcd_per_track,optimize_rotations_with_rcd},
-    landmark::euclidean_landmark::EuclideanLandmark};
+    rotation_avg::{optimize_rotations_with_rcd_per_track,optimize_rotations_with_rcd}};
 use crate::sensors::camera::Camera;
 use crate::numerics::{lie::angular_distance, pose::{to_parts,from_matrix,se3}};
 
-use na::{Vector3, Matrix3, Isometry3};
+use na::{DVector,Matrix4xX,Vector3, Matrix3, Isometry3};
 use crate::Float;
 
 
@@ -32,6 +31,8 @@ pub struct SFMConfig<C, C2, Feat: Feature> {
     camera_map_ba: HashMap<usize, C2>, //TODO: unfiy camera map
     match_map: HashMap<(usize, usize), Vec<Match<Feat>>>,
     pose_map: HashMap<(usize, usize), Isometry3<Float>>, // The pose transforms tuple id 2 into the coordiante system of tuple id 1
+    landmark_map: HashMap<(usize, usize), Matrix4xX<Float>>,
+    reprojection_error_map: HashMap<(usize, usize),DVector<Float>>,
     epipolar_alg: tensor::BifocalType,
     triangulation: Triangulation
 }
@@ -78,16 +79,14 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
             image_height
         );
 
-        //TODO Trigulate and save reproj error
-        let triangulated_match_map =  Self::compute_trigulated_match_map(root,&paths,&pose_map,&match_map,&camera_map,triangulation);
-
+        let (landmark_map,reprojection_error_map) =  Self::compute_trigulated_match_map(root,&paths,&pose_map,&match_map,&camera_map,triangulation);
 
         if refine_rotation_via_rcd {
             Self::refine_rotation_by_rcd(root, &paths, &mut pose_map, angular_thresh,);
             //Triangualte again and update 
         }
 
-        SFMConfig{root, paths, camera_map, camera_map_ba, match_map, pose_map, epipolar_alg, triangulation}
+        SFMConfig{root, paths, camera_map, camera_map_ba, match_map, pose_map, epipolar_alg, landmark_map, reprojection_error_map,triangulation}
     }
 
 
@@ -99,6 +98,8 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
     pub fn triangulation(&self) -> Triangulation { self.triangulation}
     pub fn match_map(&self) -> &HashMap<(usize, usize), Vec<Match<Feat>>> {&self.match_map}
     pub fn pose_map(&self) -> &HashMap<(usize, usize), Isometry3<Float>> {&self.pose_map}
+    pub fn landmark_map(&self) -> &HashMap<(usize, usize), Matrix4xX<Float>> {&self.landmark_map}
+    pub fn reprojection_error_map(&self) -> &HashMap<(usize, usize), DVector<Float>> {&self.reprojection_error_map}
 
     pub fn compute_path_id_pairs(&self) -> Vec<Vec<(usize, usize)>> {
         let mut path_id_paris = Vec::<Vec::<(usize,usize)>>::with_capacity(self.paths.len());
@@ -132,19 +133,21 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
         pose_map: &HashMap<(usize, usize), Isometry3<Float>>, 
         match_map: &HashMap<(usize, usize), 
         Vec<Match<Feat>>>, camera_map: &HashMap<usize, C>,
-        triangulation: Triangulation) -> HashMap<(usize,usize),EuclideanLandmark<Float>> {
+        triangulation: Triangulation) -> (HashMap<(usize,usize),Matrix4xX<Float>>,HashMap<(usize,usize),DVector<Float>>) {
 
-        let mut triangulated_match_map = HashMap::<(usize,usize),EuclideanLandmark<Float>>::with_capacity(match_map.len());
+        let mut triangulated_match_map = HashMap::<(usize,usize),Matrix4xX<Float>>::with_capacity(match_map.len());
+        let mut reprojection_map = HashMap::<(usize,usize),DVector<Float>>::with_capacity(match_map.len());
         let path_pairs = compute_path_pairs_as_list(root,paths);
 
         for path in &path_pairs{
             for path_pair in path {
-                let trigulated_matches = triangulate_matches(*path_pair,&pose_map,&match_map,&camera_map,triangulation);
+                let (trigulated_matches,reprojection_errors) = triangulate_matches(*path_pair,&pose_map,&match_map,&camera_map,triangulation);
+                triangulated_match_map.insert(*path_pair,trigulated_matches);
+                reprojection_map.insert(*path_pair,reprojection_errors);
             }
         }
 
-
-        triangulated_match_map
+        (triangulated_match_map, reprojection_map)
     }
 
     fn get_sorted_camera_keys(&self) -> Vec<usize> {

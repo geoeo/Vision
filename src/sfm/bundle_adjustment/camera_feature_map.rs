@@ -4,7 +4,7 @@ extern crate simba;
 
 use simba::scalar::{SubsetOf,SupersetOf};
 use std::{ops::Mul,convert::From};
-use na::{convert,Vector3, Matrix3, Matrix4, DVector, Isometry3, Rotation3, SimdRealField, ComplexField,base::Scalar, RealField};
+use na::{convert,Vector3, Matrix4xX, Matrix3, Matrix4, DVector, Isometry3, Rotation3, SimdRealField, ComplexField,base::Scalar, RealField};
 use num_traits::{float,NumAssign};
 use std::collections::HashMap;
 use crate::image::{
@@ -165,8 +165,12 @@ impl CameraFeatureMap {
         State::new(camera_positions,landmarks, number_of_cameras, number_of_unqiue_landmarks)
     }
 
-    pub fn get_euclidean_landmark_state<F: float::Float + Scalar + NumAssign + SimdRealField + ComplexField + Mul<F> + From<F> + RealField + SubsetOf<Float> + SupersetOf<Float>, C : Camera<Float> + Copy, Feat: Feature>(
-        &mut self, paths: &Vec<Vec<(usize,usize)>>, match_map: &HashMap<(usize, usize), Vec<Match<Feat>>>, pose_map: &HashMap<(usize, usize), Isometry3<Float>>, camera_intrinsics_map: &HashMap<usize, C>, triangulation: Triangulation) 
+    pub fn get_euclidean_landmark_state<F: float::Float + Scalar + NumAssign + SimdRealField + ComplexField + Mul<F> + From<F> + RealField + SubsetOf<Float> + SupersetOf<Float>, Feat: Feature>(
+        &mut self, paths: &Vec<Vec<(usize,usize)>>, 
+        match_map: &HashMap<(usize, usize), Vec<Match<Feat>>>, 
+        pose_map: &HashMap<(usize, usize), Isometry3<Float>>,
+        landmark_map: &HashMap<(usize, usize), Matrix4xX<Float>>,
+        reprojection_error_map: &HashMap<(usize, usize),DVector<Float>>) 
         -> State<F, EuclideanLandmark<F>,3> {
         
         let number_of_cameras = self.camera_map.keys().len();
@@ -180,8 +184,10 @@ impl CameraFeatureMap {
                 let (local_cam_idx_f, _) = self.camera_map[id_f];
     
                 let matches = match_map.get(&(*id_s, *id_f)).expect("not matches found for path pair");
-                let (triangulated_matches, reprojection_errors) = triangulate_matches((*id_s, *id_f),pose_map,match_map,camera_intrinsics_map,triangulation);
-                let triangulated_matches = pose_acc*triangulated_matches;
+                let landmark_key = (*id_s, *id_f);
+                let triangulated_matches = landmark_map.get(&landmark_key).expect(format!("no landmarks found for key: {:?}",landmark_key).as_str());
+                let reprojection_errors = reprojection_error_map.get(&landmark_key).expect(format!("no reprojection errors found for key: {:?}",landmark_key).as_str());
+                let root_aligned_triangulated_matches = pose_acc*triangulated_matches;
     
                 for m_i in 0..matches.len() {
                     let m = &matches[m_i];
@@ -193,7 +199,7 @@ impl CameraFeatureMap {
                     let v_f = feat_f.get_y_image();
     
                     let point_id = self.landmark_match_lookup.get(&(local_cam_idx_s,u_s,v_s,local_cam_idx_f,u_f,v_f)).expect("point id not found");
-                    let point = triangulated_matches.fixed_slice::<3, 1>(0, m_i).into_owned();
+                    let point = root_aligned_triangulated_matches.fixed_slice::<3, 1>(0, m_i).into_owned();
                     
                     let reprojection_error = reprojection_errors[m_i];
                     match self.landmark_reprojection_error_map.contains_key(point_id) {

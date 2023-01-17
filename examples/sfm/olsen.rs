@@ -25,17 +25,17 @@ fn main() -> Result<()> {
 
     let ceiling_barcelona = "Ceiling_Barcelona";
     let door = "Door_Lund";
-    let ahlströmer =  "Jonas_Ahlströmer";
-    let fountain =  "fountain";
-    let vasa =  "vasa_statue";
-    let ninjo =  "nijo";
+    let ahlströmer = "Jonas_Ahlströmer";
+    let fountain = "fountain";
+    let vasa = "vasa_statue";
+    let ninjo = "nijo";
     let de_guerre = "de_guerre";
     let fort_canning = "Fort_Channing_gate";
     let park_gate = "park_gate";
     let kronan = "kronan";
     let round_church = "round_church";
     
-    let olsen_dataset_name = ninjo;
+    let olsen_dataset_name = ahlströmer;
     let olsen_data_path = format!("{}/Olsen/{}/",runtime_conf.dataset_path,olsen_dataset_name);
 
     let feature_skip_count = 1;
