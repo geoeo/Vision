@@ -39,20 +39,21 @@ pub fn triangulate_matches<Feat: Feature, C: Camera<Float>>(path_pair: (usize, u
 
     let c1_intrinsics = cam_1.get_projection();
     let c2_intrinsics = cam_2.get_projection();
-
-    let projection_1 = c1_intrinsics*(Matrix4::<Float>::identity().fixed_slice::<3,4>(0,0));
-    let projection_2 = c2_intrinsics*(se3.fixed_slice::<3,4>(0,0));
+    let transform_c1 = Matrix4::<Float>::identity().fixed_slice::<3,4>(0,0).into_owned();
+    let transform_c2 = se3.fixed_slice::<3,4>(0,0).into_owned();
+    let projection_1 = c1_intrinsics*transform_c1;
+    let projection_2 = c2_intrinsics*transform_c2;
 
     let landmarks = match triangulation_mode {
         Triangulation::LINEAR => linear_triangulation_svd(&vec!((&normalized_image_points_s,&projection_1),(&normalized_image_points_f,&projection_2))),
         Triangulation::STEREO => stereo_triangulation((&normalized_image_points_s,&projection_1),(&normalized_image_points_f,&projection_2),f0,f0_prime).expect("get_euclidean_landmark_state: Stereo Triangulation Failed"),
     };
  
-    let reprojection_errors = calculate_reprojection_errors(&landmarks, ms, &projection_1, cam_1, &projection_2, cam_2);
+    let reprojection_errors = calculate_reprojection_errors(&landmarks, ms, &transform_c1, cam_1, &transform_c2, cam_2);
     (landmarks, reprojection_errors)
 }
  
-fn calculate_reprojection_errors<Feat: Feature, C: Camera<Float>>(landmarks: &Matrix4xX<Float>, matches: &Vec<Match<Feat>>, projection_1: &Matrix3x4<Float>, cam_1 :&C, projection_2: &Matrix3x4<Float>, cam_2 :&C) -> DVector<Float> {
+fn calculate_reprojection_errors<Feat: Feature, C: Camera<Float>>(landmarks: &Matrix4xX<Float>, matches: &Vec<Match<Feat>>, transform_c1: &Matrix3x4<Float>, cam_1 :&C, transform_c2: &Matrix3x4<Float>, cam_2 :&C) -> DVector<Float> {
     let landmark_count = landmarks.ncols();
     let mut reprojection_errors = DVector::<Float>::zeros(landmark_count);
 
@@ -61,8 +62,8 @@ fn calculate_reprojection_errors<Feat: Feature, C: Camera<Float>>(landmarks: &Ma
         let m = &matches[i];
         let feat_1 = &m.feature_one.get_as_2d_point();
         let feat_2 = &m.feature_two.get_as_2d_point();
-        let p_cam_1 = projection_1*p;
-        let p_cam_2 = projection_2*p;
+        let p_cam_1 = transform_c1*p;
+        let p_cam_2 = transform_c2*p;
         let projected_1 = cam_1.project(&p_cam_1).to_vector();
         let projected_2 = cam_2.project(&p_cam_2).to_vector();
 
