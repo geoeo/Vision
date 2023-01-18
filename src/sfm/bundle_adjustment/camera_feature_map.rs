@@ -35,7 +35,7 @@ pub struct CameraFeatureMap {
      * Map from (internal cam id s, u_s, v_s interal cam id f, u_f, v_f) -> point id
      */
     pub landmark_match_lookup: HashMap<(usize,usize,usize,usize,usize,usize), usize>,
-    pub landmark_reprojection_error_map: HashMap<usize, Float>,
+    pub landmark_reprojection_error_map: HashMap<usize, Float>, //TODO: could be local to method
     pub image_row_col: (usize,usize)
 
 }
@@ -239,7 +239,11 @@ impl CameraFeatureMap {
             if v > acc { v } else { acc }
         }).expect("reprojection map empty!");
 
-        println!("Max depth: {} , Max Reproj: {}", max_depth, max_reproj_error);
+        let min_reproj_error = self.landmark_reprojection_error_map.values().reduce(|acc, v|{
+            if v < acc { v } else { acc }
+        }).expect("reprojection map empty!");
+
+        println!("Max depth: {} , Max Reproj: {}, Min Reproj: {}", max_depth, max_reproj_error, min_reproj_error);
         let camera_positions = self.get_initial_camera_positions(paths,pose_map);
         State::new(camera_positions, landmarks, number_of_cameras, number_of_unqiue_landmarks)
     }

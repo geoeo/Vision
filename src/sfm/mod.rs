@@ -9,7 +9,7 @@ pub mod triangulation;
 pub mod quest;
 pub mod rotation_avg;
 
-use std::collections::HashMap;
+use std::collections::{HashMap,HashSet};
 use crate::image::{features::{Feature, Match, feature_track::FeatureTrack, solver_feature::SolverFeature, subsample_matches}};
 use crate::sfm::{epipolar::tensor, 
     triangulation::{Triangulation, triangulate_matches}, 
@@ -17,8 +17,8 @@ use crate::sfm::{epipolar::tensor,
 use crate::sensors::camera::Camera;
 use crate::numerics::{lie::angular_distance, pose::{to_parts,from_matrix,se3}};
 
-use na::{DVector,Matrix4xX,Vector3, Matrix3, Isometry3};
-use crate::Float;
+use na::{DVector, Matrix4xX, Vector3, Vector4, Matrix3, Isometry3};
+use crate::{float,Float};
 
 
 /**
@@ -67,7 +67,8 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
             false => matches
         };
 
-        let (mut pose_map, match_map) = Self::compute_pose_and_feature_maps (
+
+        let (mut pose_map, mut match_map) = Self::compute_pose_and_feature_maps (
             root,
             &paths,
             &camera_map,
@@ -79,10 +80,15 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
             image_height
         );
 
-        let (landmark_map,reprojection_error_map) =  Self::compute_trigulated_match_map(root,&paths,&pose_map,&match_map,&camera_map,triangulation);
+        let (mut landmark_map, mut reprojection_error_map, min_reprojection_error, max_reprojection_error) =  Self::compute_trigulated_match_map(root,&paths,&pose_map,&match_map,&camera_map,triangulation);
+        //let landmark_cutoff = 0.9*max_reprojection_error;
+        println!("SFM Config Max Reprojection Error: {}", max_reprojection_error);
+        let landmark_cutoff = 500.0;
+
+        Self::reject_landmark_outliers( &mut landmark_map, &mut reprojection_error_map, &mut match_map, landmark_cutoff);
 
         if refine_rotation_via_rcd {
-            Self::refine_rotation_by_rcd(root, &paths, &mut pose_map, angular_thresh,);
+            Self::refine_rotation_by_rcd(root, &paths, &mut pose_map, angular_thresh);
             //Triangualte again and update 
         }
 
@@ -129,25 +135,59 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
         (keys_sorted,cameras_sorted)
     }
 
+    fn reject_landmark_outliers(
+        landmark_map: &mut  HashMap<(usize, usize), Matrix4xX<Float>>, 
+        reprojection_error_map: &mut HashMap<(usize, usize),DVector<Float>>, 
+        match_map: &mut HashMap<(usize, usize), Vec<Match<Feat>>>,
+        landmark_cutoff: Float){
+            let keys = match_map.keys().map(|key| *key).collect::<Vec<_>>();
+            for key in &keys {
+                let reprojection_erros = reprojection_error_map.get(key).unwrap();
+                let matches = match_map.get(key).unwrap();
+                let landmarks = landmark_map.get(key).unwrap();
+
+                let accepted_indices = reprojection_erros.iter().enumerate().filter(|&(_,v)| *v < landmark_cutoff).map(|(idx,_)| idx).collect::<HashSet<usize>>();
+                let filtered_matches = matches.iter().enumerate().filter(|(idx,_)|accepted_indices.contains(idx)).map(|(_,v)| v.clone()).collect::<Vec<_>>();
+                assert!(!&filtered_matches.is_empty());
+
+                let filtered_reprojection_errors_vec = reprojection_erros.iter().enumerate().filter(|(idx,_)| accepted_indices.contains(idx)).map(|(_,v)| *v).collect::<Vec<Float>>();
+                assert!(!&filtered_reprojection_errors_vec.is_empty());
+                let filtered_reprojection_errors = DVector::<Float>::from_vec(filtered_reprojection_errors_vec);
+
+                let filtered_landmarks_vec = landmarks.column_iter().enumerate().filter(|(idx,_)| accepted_indices.contains(idx)).map(|(_,v)| v.into_owned()).collect::<Vec<Vector4<Float>>>();
+                assert!(!&filtered_landmarks_vec.is_empty());
+                let filtered_landmarks = Matrix4xX::<Float>::from_columns(&filtered_landmarks_vec);
+
+                match_map.insert(*key,filtered_matches);
+                reprojection_error_map.insert(*key,filtered_reprojection_errors);
+                landmark_map.insert(*key,filtered_landmarks);
+            }
+
+    }
+
     fn compute_trigulated_match_map(root: usize, paths: &Vec<Vec<usize>>, 
         pose_map: &HashMap<(usize, usize), Isometry3<Float>>, 
         match_map: &HashMap<(usize, usize), 
         Vec<Match<Feat>>>, camera_map: &HashMap<usize, C>,
-        triangulation: Triangulation) -> (HashMap<(usize,usize),Matrix4xX<Float>>,HashMap<(usize,usize),DVector<Float>>) {
+        triangulation: Triangulation) -> (HashMap<(usize,usize),Matrix4xX<Float>>,HashMap<(usize,usize),DVector<Float>>, Float, Float) {
 
         let mut triangulated_match_map = HashMap::<(usize,usize),Matrix4xX<Float>>::with_capacity(match_map.len());
         let mut reprojection_map = HashMap::<(usize,usize),DVector<Float>>::with_capacity(match_map.len());
         let path_pairs = compute_path_pairs_as_list(root,paths);
+        let mut max_reprojection_error = float::MIN;
+        let mut min_reprojection_error = float::MAX;
 
         for path in &path_pairs{
             for path_pair in path {
                 let (trigulated_matches,reprojection_errors) = triangulate_matches(*path_pair,&pose_map,&match_map,&camera_map,triangulation);
+                max_reprojection_error = max_reprojection_error.max(reprojection_errors.max()); 
+                min_reprojection_error = min_reprojection_error.min(reprojection_errors.min());
                 triangulated_match_map.insert(*path_pair,trigulated_matches);
                 reprojection_map.insert(*path_pair,reprojection_errors);
             }
         }
 
-        (triangulated_match_map, reprojection_map)
+        (triangulated_match_map, reprojection_map, min_reprojection_error, max_reprojection_error)
     }
 
     fn get_sorted_camera_keys(&self) -> Vec<usize> {
