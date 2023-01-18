@@ -81,13 +81,15 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
         );
 
         let (mut landmark_map, mut reprojection_error_map, min_reprojection_error, max_reprojection_error) =  Self::compute_trigulated_match_map(root,&paths,&pose_map,&match_map,&camera_map,triangulation);
-        //let landmark_cutoff = 0.9*max_reprojection_error;
-        println!("SFM Config Max Reprojection Error: {}", max_reprojection_error);
-        let landmark_cutoff = 500.0;
+
+        println!("SFM Config Max Reprojection Error: {}, Min Reprojection Error: {}", max_reprojection_error, min_reprojection_error);
+        let landmark_cutoff = 0.9*max_reprojection_error;
+        //let landmark_cutoff = 500.0;
 
         Self::reject_landmark_outliers( &mut landmark_map, &mut reprojection_error_map, &mut match_map, landmark_cutoff);
 
         if refine_rotation_via_rcd {
+            //TODO remove angular tresh and use reprojection error as acceptance metric
             Self::refine_rotation_by_rcd(root, &paths, &mut pose_map, angular_thresh);
             //Triangualte again and update 
         }
