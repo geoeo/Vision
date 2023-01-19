@@ -34,7 +34,7 @@ fn main() -> Result<()> {
     let kronan = "kronan";
     let round_church = "round_church";
     
-    let olsen_dataset_name = fort_canning;
+    let olsen_dataset_name = door;
     let olsen_data_path = format!("{}/Olsen/{}/",runtime_conf.dataset_path,olsen_dataset_name);
 
     let feature_skip_count = 1;
@@ -223,7 +223,7 @@ fn main() -> Result<()> {
     // let root_id = 5;
 
     let sfm_config_fundamental = SFMConfig::new(root_id, paths.clone(), camera_map, camera_map_ba, sfm_all_matches.clone(), 
-    BifocalType::FUNDAMENTAL, Triangulation::LINEAR, filter_tracks, 0.9, 5.0, true, olsen_data.width, olsen_data.height);
+    BifocalType::FUNDAMENTAL, Triangulation::LINEAR, filter_tracks, 0.8, 5.0, true, olsen_data.width, olsen_data.height);
     let (initial_cam_motions_per_path,filtered_matches_per_path) = sfm_config_fundamental.compute_lists_from_maps();
 
     //This is only to satisfy current interface in ba

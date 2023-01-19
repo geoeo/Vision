@@ -86,13 +86,13 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
             false => matches
         };
 
-        let mut match_map = Self::generate_match_map(root, &paths,accepted_matches);
+        let match_map_initial = Self::generate_match_map(root, &paths,accepted_matches);
 
-        let mut pose_map = Self::compute_pose_map(
+        let (mut pose_map,mut match_map) = Self::compute_pose_map(
             root,
             &paths,
             &camera_map,
-            &match_map,
+            match_map_initial,
             perc_tresh, 
             epipolar_thresh,
             epipolar_alg,
@@ -106,8 +106,9 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
         //TODO: think of a more streamlined approach
         let landmark_cutoff = 0.9*max_reprojection_error;
         //let landmark_cutoff = 500.0;
-
-        Self::reject_landmark_outliers( &mut landmark_map, &mut reprojection_error_map, &mut match_map, landmark_cutoff);
+        
+        //TODO: investigate this - seemst to degrade performance sometimes
+        //Self::reject_landmark_outliers( &mut landmark_map, &mut reprojection_error_map, &mut match_map, landmark_cutoff);
 
         if refine_rotation_via_rcd {
             //TODO remove angular tresh and use reprojection error as acceptance metric
@@ -362,13 +363,13 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
             root: usize,
             paths: &Vec<Vec<usize>>,
             camera_map: &HashMap<usize, C>,
-            match_map: &HashMap<(usize, usize), Vec<Match<Feat>>>,
+            mut match_map: HashMap<(usize, usize), Vec<Match<Feat>>>,
             perc_tresh: Float, 
             epipolar_tresh: Float,
             epipolar_alg: tensor::BifocalType,
             image_width: usize,
             image_height: usize) 
-        ->  HashMap<(usize, usize), Isometry3<Float>> {
+        ->  (HashMap<(usize, usize), Isometry3<Float>>,HashMap<(usize, usize), Vec<Match<Feat>>>) {
             let number_of_paths = paths.len();
             let map_capacity = calc_map_capacity(number_of_paths); //TODO expose this in function args
             let mut pose_map = HashMap::<(usize, usize), Isometry3<Float>>::with_capacity(map_capacity);
@@ -416,11 +417,12 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
                     let se3 = se3(&h,&rotation);
                     let isometry = from_matrix(&se3);
                     let some_pose_old_val = pose_map.insert((id1, id2), isometry);
+                    match_map.insert((id1, id2),f_m_subsampled);
                     assert!(some_pose_old_val.is_none());
 
                 }
             }
-        pose_map
+        (pose_map, match_map)
     }
 
     fn refine_rotation_by_rcd(root: usize, paths: &Vec<Vec<usize>>, pose_map: &HashMap<(usize, usize), Isometry3<Float>>) -> HashMap<(usize, usize), Isometry3<Float>> {

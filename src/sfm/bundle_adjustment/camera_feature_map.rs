@@ -234,6 +234,8 @@ impl CameraFeatureMap {
         let max_depth = landmarks.iter().reduce(|acc, l| {
             if float::Float::abs(l.get_state_as_vector().z) > float::Float::abs(acc.get_state_as_vector().z) { l } else { acc }
         }).expect("triangulated landmarks empty!").get_state_as_vector().z;
+
+        println!("Max depth: {}", max_depth);
         
         let camera_positions = self.get_initial_camera_positions(paths,pose_map);
         State::new(camera_positions, landmarks, number_of_cameras, number_of_unqiue_landmarks)
