@@ -41,7 +41,6 @@ pub fn conjugate_gradient<F,StorageA, StorageB, StorageX, S>(A: &Matrix<F,S,S,St
         StorageX: StorageMut<F, S, U1>,
         StorageB: Storage<F, S, U1>,
         DefaultAllocator: Allocator<F, S, S> + Allocator<F, S> + Allocator<F, U1, S>  {
-
         let mut s = b - A*(x as &Vector<F, S, StorageX>);
         let mut p = s.clone();
         let p_rows = p.nrows();

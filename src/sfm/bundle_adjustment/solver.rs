@@ -185,9 +185,9 @@ pub fn optimize<F, C : Camera<F>, L: Landmark<F, LANDMARK_PARAM_SIZE> + Copy + C
     let mut iteration_count = 0;
     while ((!runtime_parameters.lm && (float::Float::sqrt(cost) > runtime_parameters.eps[0])) || 
     (runtime_parameters.lm && delta_norm > delta_thresh && max_norm_delta > runtime_parameters.max_norm_eps && float::Float::sqrt(cost) > runtime_parameters.eps[0] ))  && iteration_count < max_iterations  {
+        println!("it: {}, avg_rmse: {}",iteration_count,float::Float::sqrt(cost));
         if runtime_parameters.debug {
             debug_state_list.as_mut().expect("Debug is true but state list is None!. This should not happen").push(state.to_serial());
-            println!("it: {}, avg_rmse: {}",iteration_count,float::Float::sqrt(cost));
         }
 
         target_arrowhead.fill(F::zero());
@@ -264,11 +264,8 @@ pub fn optimize<F, C : Camera<F>, L: Landmark<F, LANDMARK_PARAM_SIZE> + Copy + C
             None => (float::Float::nan(), float::Float::nan(), float::Float::nan(), float::Float::nan())
         };
 
-
-        if runtime_parameters.debug {
-            println!("cost: {}, new cost: {}, mu: {:?}, gain: {} , nu: {}, std: {:?}",cost,new_cost, mu, gain_ratio, nu, std);
-        }
-
+        println!("cost: {}, new cost: {}, mu: {:?}, gain: {} , nu: {}, std: {:?}",cost,new_cost, mu, gain_ratio, nu, std);
+        
         if (!gain_ratio.is_nan() && gain_ratio > F::zero() && cost_diff > F::zero()) || !runtime_parameters.lm {
             estimated_features.copy_from(&new_estimated_features);
             state.copy_from(&new_state); 

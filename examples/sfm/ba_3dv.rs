@@ -69,7 +69,6 @@ fn main() -> Result<()> {
     };
 
     let perc_tresh = 1.0;
-    let anguar_thresh = 0.3;
     let filter_tracks = true;
     let refine_rotation_via_rcd = true;
 
@@ -87,11 +86,9 @@ fn main() -> Result<()> {
     let sfm_config = SFMConfig::new(2, vec!(vec!(1,0), vec!(3,4)), camera_map.clone(), camera_map, vec!(vec!(matches_2_1,matches_1_0),vec!(matches_2_3,matches_3_4)),
     //let sfm_config = SFMConfig::new(3, vec!(vec!(4)), camera_map.clone(), camera_map, vec!(vec!(matches_3_4)),
 
-    BifocalType::QUEST,  Triangulation::LINEAR, filter_tracks, perc_tresh, 5.0, anguar_thresh, refine_rotation_via_rcd, 640, 480);
-
+    BifocalType::QUEST,  Triangulation::LINEAR, filter_tracks, perc_tresh, 5.0, refine_rotation_via_rcd, 640, 480);
 
     let (initial_cam_motions_per_path,filtered_matches_per_path) = sfm_config.compute_lists_from_maps();
-
 
     let ((cam_positions,points),(s,debug_states_serialized)) = run_ba(&filtered_matches_per_path, &sfm_config, (480,640), &runtime_parameters, 1.0);
     //let ((cam_positions,points),(s,debug_states_serialized)) = run_ba(&sfm_config.matches(), &sfm_config, None, (480,640), &runtime_parameters, 1.0,depth_prior);

@@ -234,16 +234,7 @@ impl CameraFeatureMap {
         let max_depth = landmarks.iter().reduce(|acc, l| {
             if float::Float::abs(l.get_state_as_vector().z) > float::Float::abs(acc.get_state_as_vector().z) { l } else { acc }
         }).expect("triangulated landmarks empty!").get_state_as_vector().z;
-
-        let max_reproj_error = self.landmark_reprojection_error_map.values().reduce(|acc, v|{
-            if v > acc { v } else { acc }
-        }).expect("reprojection map empty!");
-
-        let min_reproj_error = self.landmark_reprojection_error_map.values().reduce(|acc, v|{
-            if v < acc { v } else { acc }
-        }).expect("reprojection map empty!");
-
-        println!("Max depth: {} , Max Reproj: {}, Min Reproj: {}", max_depth, max_reproj_error, min_reproj_error);
+        
         let camera_positions = self.get_initial_camera_positions(paths,pose_map);
         State::new(camera_positions, landmarks, number_of_cameras, number_of_unqiue_landmarks)
     }

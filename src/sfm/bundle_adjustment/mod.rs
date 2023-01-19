@@ -18,7 +18,6 @@ pub mod camera_feature_map;
 pub mod solver;
 pub mod state;
 
-//TODO: unify the two sfm configs!
 pub fn run_ba<F: serde::Serialize + float::Float + Scalar + NumAssign + SimdRealField + ComplexField + Mul<F> + From<F> + RealField + SubsetOf<Float> + SupersetOf<Float>, C : Camera<Float> + Copy, C2: Camera<F> + Copy, T : Feature + Clone + PartialEq + SolverFeature>(
     matches: &Vec<Vec<Vec<Match<T>>>>, sfm_config: &SFMConfig<C, C2, T>,img_dim : (usize,usize) ,runtime_parameters: &RuntimeParameters<F>, pyramid_scale: Float) 
                                 -> ((Vec<Isometry3<F>>, Vec<Vector3<F>>), (serde_yaml::Result<String>, serde_yaml::Result<String>)){
