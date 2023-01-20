@@ -100,9 +100,10 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
             image_height
         );
 
-        let (mut landmark_map, mut reprojection_error_map, min_reprojection_error, max_reprojection_error) =  Self::compute_landmarks_and_reprojection_maps(root,&paths,&pose_map,&match_map,&camera_map,triangulation);
-        println!("SFM Config Max Reprojection Error: {}, Min Reprojection Error: {}", max_reprojection_error, min_reprojection_error);
-
+        let (mut landmark_map, mut reprojection_error_map, min_reprojection_error_initial, max_reprojection_error_initial) =  Self::compute_landmarks_and_reprojection_maps(root,&paths,&pose_map,&match_map,&camera_map,triangulation);
+        println!("SFM Config Max Reprojection Error: {}, Min Reprojection Error: {}", max_reprojection_error_initial, min_reprojection_error_initial);
+        let mut landmark_cutoff = Self::calc_landmark_cutoff(max_reprojection_error_initial);    
+        Self::reject_landmark_outliers( &mut landmark_map, &mut reprojection_error_map, &mut match_map, landmark_cutoff);
         if refine_rotation_via_rcd {
             let new_pose_map = Self::refine_rotation_by_rcd(root, &paths, &pose_map);
             let (new_landmark_map, new_reprojection_error_map, _, _) =  Self::compute_landmarks_and_reprojection_maps(root,&paths,&new_pose_map,&match_map,&camera_map,triangulation);
@@ -119,10 +120,10 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
             }
         }
 
-        let (min_reprojection_error, max_reprojection_error) = Self::compute_reprojection_ranges(&reprojection_error_map);
-        let landmark_cutoff = 0.9*max_reprojection_error;     //TODO: think of a more streamlined approach
+        let (min_reprojection_error_refined, max_reprojection_error_refined) = Self::compute_reprojection_ranges(&reprojection_error_map);
+        landmark_cutoff = Self::calc_landmark_cutoff(max_reprojection_error_refined);    
         Self::reject_landmark_outliers( &mut landmark_map, &mut reprojection_error_map, &mut match_map, landmark_cutoff);
-        println!("SFM Config Max Reprojection Error: {}, Min Reprojection Error: {}", max_reprojection_error, min_reprojection_error);
+        println!("SFM Config Max Reprojection Error: {}, Min Reprojection Error: {}", max_reprojection_error_refined, min_reprojection_error_refined);
 
         SFMConfig{root, paths, camera_map, camera_map_ba, match_map, pose_map, epipolar_alg, landmark_map, reprojection_error_map,triangulation}
     }
@@ -165,6 +166,11 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
         let keys_sorted = self.get_sorted_camera_keys();
         let cameras_sorted = keys_sorted.iter().map(|id| self.camera_map_ba.get(id).expect("compute_unqiue_ids_cameras_lowp_root_first: trying to get invalid camera")).collect::<Vec<&C2>>();
         (keys_sorted,cameras_sorted)
+    }
+
+    //TODO: think of a more streamlined approach
+    fn calc_landmark_cutoff(max_reprojection_error: Float) -> Float{
+        0.9*max_reprojection_error
     }
 
     fn generate_match_map(root: usize, paths: &Vec<Vec<usize>>, matches: Vec<Vec<Vec<Match<Feat>>>>) -> HashMap<(usize,usize), Vec<Match<Feat>>> {
