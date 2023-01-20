@@ -223,7 +223,6 @@ impl CameraFeatureMap {
                             ));
                         }
                     }
-
                 }
 
                 let se3 = pose_map.get(&(*id_s, *id_f)).expect("pose not found for path pair").to_matrix();

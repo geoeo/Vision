@@ -100,21 +100,12 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
             image_height
         );
 
-        let (mut landmark_map, mut reprojection_error_map, min_reprojection_error, max_reprojection_error) =  Self::compute_trigulated_match_map(root,&paths,&pose_map,&match_map,&camera_map,triangulation);
-
+        let (mut landmark_map, mut reprojection_error_map, min_reprojection_error, max_reprojection_error) =  Self::compute_landmarks_and_reprojection_maps(root,&paths,&pose_map,&match_map,&camera_map,triangulation);
         println!("SFM Config Max Reprojection Error: {}, Min Reprojection Error: {}", max_reprojection_error, min_reprojection_error);
-        //TODO: think of a more streamlined approach
-        let landmark_cutoff = 0.9*max_reprojection_error;
-        //let landmark_cutoff = 500.0;
-        
-        //TODO: investigate this - seemst to degrade performance sometimes
-        //Self::reject_landmark_outliers( &mut landmark_map, &mut reprojection_error_map, &mut match_map, landmark_cutoff);
 
         if refine_rotation_via_rcd {
-            //TODO remove angular tresh and use reprojection error as acceptance metric
             let new_pose_map = Self::refine_rotation_by_rcd(root, &paths, &pose_map);
-            let (new_landmark_map, new_reprojection_error_map, new_min_reprojection_error, new_max_reprojection_error) =  Self::compute_trigulated_match_map(root,&paths,&new_pose_map,&match_map,&camera_map,triangulation);
-            println!("SFM Config New Max Reprojection Error: {}, New Min Reprojection Error: {}", new_max_reprojection_error, new_min_reprojection_error);
+            let (new_landmark_map, new_reprojection_error_map, _, _) =  Self::compute_landmarks_and_reprojection_maps(root,&paths,&new_pose_map,&match_map,&camera_map,triangulation);
             let keys = landmark_map.keys().map(|k| *k).collect::<Vec<_>>();
             for key in keys {
                 let new_reprojection_errors = new_reprojection_error_map.get(&key).unwrap();
@@ -127,6 +118,11 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
                 }
             }
         }
+
+        let (min_reprojection_error, max_reprojection_error) = Self::compute_reprojection_ranges(&reprojection_error_map);
+        let landmark_cutoff = 0.9*max_reprojection_error;     //TODO: think of a more streamlined approach
+        Self::reject_landmark_outliers( &mut landmark_map, &mut reprojection_error_map, &mut match_map, landmark_cutoff);
+        println!("SFM Config Max Reprojection Error: {}, Min Reprojection Error: {}", max_reprojection_error, min_reprojection_error);
 
         SFMConfig{root, paths, camera_map, camera_map_ba, match_map, pose_map, epipolar_alg, landmark_map, reprojection_error_map,triangulation}
     }
@@ -222,11 +218,11 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
 
     }
 
-    fn compute_trigulated_match_map(root: usize, paths: &Vec<Vec<usize>>, 
+    fn compute_landmarks_and_reprojection_maps(root: usize, paths: &Vec<Vec<usize>>, 
         pose_map: &HashMap<(usize, usize), Isometry3<Float>>, 
         match_map: &HashMap<(usize, usize), 
         Vec<Match<Feat>>>, camera_map: &HashMap<usize, C>,
-        triangulation: Triangulation) -> (HashMap<(usize,usize),Matrix4xX<Float>>,HashMap<(usize,usize),DVector<Float>>, Float, Float) {
+        triangulation: Triangulation) -> (HashMap<(usize,usize),Matrix4xX<Float>>,HashMap<(usize,usize), DVector<Float>>, Float, Float) {
 
         let mut triangulated_match_map = HashMap::<(usize,usize),Matrix4xX<Float>>::with_capacity(match_map.len());
         let mut reprojection_map = HashMap::<(usize,usize),DVector<Float>>::with_capacity(match_map.len());
@@ -245,6 +241,18 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
         }
 
         (triangulated_match_map, reprojection_map, min_reprojection_error, max_reprojection_error)
+    }
+
+    fn compute_reprojection_ranges(reprojection_map: &HashMap<(usize,usize), DVector<Float>>) -> (Float, Float) {
+        let mut max_reprojection_error = float::MIN;
+        let mut min_reprojection_error = float::MAX;
+
+        for (k,reprojection_errors) in reprojection_map.iter(){
+            max_reprojection_error = max_reprojection_error.max(reprojection_errors.max()); 
+            min_reprojection_error = min_reprojection_error.min(reprojection_errors.min());   
+        }
+
+        (min_reprojection_error, max_reprojection_error)
     }
 
     fn get_sorted_camera_keys(&self) -> Vec<usize> {
