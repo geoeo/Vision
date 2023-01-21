@@ -18,7 +18,6 @@ pub fn quest_ransac<T: Feature + Clone, C: Camera<Float>>(matches: &Vec<Match<T>
     let mut max_inlier_count = 0;
     let mut best_essential: Option<Essential> = None;
     let sample_size = matches.len();
-    //let sample_size = 11;
     for _ in 0..ransac_it {
         let mut m1 = SMatrix::<Float,3,5>::zeros();
         let mut m2 = SMatrix::<Float,3,5>::zeros();

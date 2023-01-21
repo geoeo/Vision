@@ -169,8 +169,12 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
     }
 
     //TODO: think of a more streamlined approach
-    fn calc_landmark_cutoff(max_reprojection_error: Float) -> Float{
-        0.9*max_reprojection_error
+    fn calc_landmark_cutoff(max_reprojection_error: Float) -> Float {
+        500.0
+        // match max_reprojection_error {
+        //     v if v > 500.0 => 500.0,
+        //     v => v
+        // }
     }
 
     fn generate_match_map(root: usize, paths: &Vec<Vec<usize>>, matches: Vec<Vec<Vec<Match<Feat>>>>) -> HashMap<(usize,usize), Vec<Match<Feat>>> {
