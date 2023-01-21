@@ -64,13 +64,18 @@ fn main() -> Result<(),()> {
     // let all_states_as_string = fs::read_to_string(format!("{}/3dv_debug.txt",runtime_conf.local_data_path)).expect("Unable to read file");
 
     let final_state_as_string = fs::read_to_string(format!("{}/olsen.txt", runtime_conf.output_path)).expect("Unable to read file");
-    let all_states_as_string = fs::read_to_string(format!("{}/olsen_debug.txt", runtime_conf.output_path)).expect("Unable to read file");
-
+    let all_states_as_string_option = fs::read_to_string(format!("{}/olsen_debug.txt", runtime_conf.output_path));
 
     let loaded_state: (Vec<[Float;6]>,Vec<[Float;3]>) = serde_yaml::from_str(&final_state_as_string).unwrap();
     let ba_state = state::State::<Float,EuclideanLandmark<Float>,3>::from_serial(&loaded_state);
-    let loaded_all_states: Vec<(Vec<[Float;6]>,Vec<[Float;3]>)> = serde_yaml::from_str(&all_states_as_string).unwrap();
-    let all_ba_states = loaded_all_states.iter().map(|x|  state::State::<Float,EuclideanLandmark<Float>,3>::from_serial(x)).collect::<Vec< state::State::<Float,EuclideanLandmark<Float>,3>>>();
+
+    let all_ba_states_option = match all_states_as_string_option {
+        Ok(all_states_as_string) => {
+            let loaded_all_states: Vec<(Vec<[Float;6]>,Vec<[Float;3]>)> = serde_yaml::from_str(&all_states_as_string).unwrap();
+            Some(loaded_all_states.iter().map(|x|  state::State::<Float,EuclideanLandmark<Float>,3>::from_serial(x)).collect::<Vec< state::State::<Float,EuclideanLandmark<Float>,3>>>())
+        },
+        Err(_) => None
+    };
 
     // let loaded_state: (Vec<[Float;6]>,Vec<[Float;6]>) = serde_yaml::from_str(&final_state_as_string).unwrap();
     // let ba_state = state::State::<InverseLandmark,6>::from_serial(&loaded_state);
@@ -78,8 +83,6 @@ fn main() -> Result<(),()> {
     //let all_ba_states = loaded_all_states.iter().map(|x|  state::State::<InverseLandmark,6>::from_serial(x)).collect::<Vec< state::State::<InverseLandmark,6>>>();
 
     let (cams,points) = ba_state.as_matrix_point();
-
-
 
 
     let mut scene_nodes = Vec::<kiss3d::scene::SceneNode>::with_capacity(300);
@@ -108,13 +111,13 @@ fn main() -> Result<(),()> {
             &Point3::new(1.0, 1.0, 1.0),
         );
 
-        if recording_scene {
+        if recording_scene && all_ba_states_option.as_ref().is_some(){
             // the previously populated scene
             let file_name = format!("{}/screenshot_{}.png",runtime_conf.output_path,record_counter);
             make_screenshot(file_name.as_str(), &window);
             record_counter += 1;
 
-            if record_counter == all_ba_states.len() {
+            if record_counter == all_ba_states_option.as_ref().unwrap().len() {
                 clear_scene(&mut window, &mut scene_nodes);
                 populate_scene(&mut window,&mut scene_nodes,&cams,&points);
                 println!("finished taking screenshots");  
@@ -132,10 +135,13 @@ fn main() -> Result<(),()> {
                 },
                 WindowEvent::Key(Key::T, _, _) => recording_scene = true,
                 WindowEvent::Key(Key::S, _, _) => {
-                    let state = &all_ba_states[0];
-                    clear_scene(&mut window, &mut scene_nodes);
-                    let (debug_cams,debug_points) = state.as_matrix_point();
-                    populate_scene(&mut window,&mut scene_nodes,&debug_cams,&debug_points);
+                    if all_ba_states_option.as_ref().is_some() {
+                        let state = &all_ba_states_option.as_ref().unwrap()[0];
+                        clear_scene(&mut window, &mut scene_nodes);
+                        let (debug_cams,debug_points) = state.as_matrix_point();
+                        populate_scene(&mut window,&mut scene_nodes,&debug_cams,&debug_points);
+                    }
+
                 },
                 WindowEvent::Key(Key::Left, _, _) => {
                     arc_ball.set_up_axis_dir(-kiss3d::nalgebra::Vector3::x_axis());
@@ -155,8 +161,8 @@ fn main() -> Result<(),()> {
 
 
 
-        if recording_scene {
-            let state = &all_ba_states[record_counter];
+        if recording_scene &&  all_ba_states_option.is_some() {
+            let state = &all_ba_states_option.as_ref().unwrap()[record_counter];
             clear_scene(&mut window, &mut scene_nodes);
             let (debug_cams,debug_points) = state.as_matrix_point();
             populate_scene(&mut window,&mut scene_nodes,&debug_cams,&debug_points);
