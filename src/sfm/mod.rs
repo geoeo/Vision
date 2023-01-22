@@ -15,7 +15,7 @@ use crate::sfm::{epipolar::tensor,
     triangulation::{Triangulation, triangulate_matches}, 
     rotation_avg::{optimize_rotations_with_rcd_per_track,optimize_rotations_with_rcd}};
 use crate::sensors::camera::Camera;
-use crate::numerics::{lie::angular_distance, pose::{to_parts,from_matrix,se3}};
+use crate::numerics::{pose::{to_parts,from_matrix,se3}};
 
 use na::{DVector, Matrix4xX, Vector3, Vector4, Matrix3, Isometry3};
 use crate::{float,Float};
@@ -27,8 +27,8 @@ use crate::{float,Float};
 pub struct SFMConfig<C, C2, Feat: Feature> {
     root: usize,
     paths: Vec<Vec<usize>>,
-    camera_map: HashMap<usize, C>,
-    camera_map_ba: HashMap<usize, C2>, //TODO: unfiy camera map
+    camera_map_highp: HashMap<usize, C>,
+    camera_map_lowp: HashMap<usize, C2>,
     match_map: HashMap<(usize, usize), Vec<Match<Feat>>>,
     pose_map: HashMap<(usize, usize), Isometry3<Float>>, // The pose transforms tuple id 2 into the coordiante system of tuple id 1
     landmark_map: HashMap<(usize, usize), Matrix4xX<Float>>,
@@ -127,14 +127,14 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
         Self::reject_landmark_outliers( &mut landmark_map, &mut reprojection_error_map, &mut match_map, landmark_cutoff);
         println!("SFM Config Max Reprojection Error: {}, Min Reprojection Error: {}", max_reprojection_error_refined, min_reprojection_error_refined);
 
-        SFMConfig{root, paths, camera_map, camera_map_ba, match_map, pose_map, epipolar_alg, landmark_map, reprojection_error_map,triangulation}
+        SFMConfig{root, paths, camera_map_highp: camera_map, camera_map_lowp: camera_map_ba, match_map, pose_map, epipolar_alg, landmark_map, reprojection_error_map,triangulation}
     }
 
 
     pub fn root(&self) -> usize { self.root }
     pub fn paths(&self) -> &Vec<Vec<usize>> { &self.paths }
-    pub fn camera_map(&self) -> &HashMap<usize, C> { &self.camera_map }
-    pub fn camera_map_ba(&self) -> &HashMap<usize, C2> { &self.camera_map_ba }
+    pub fn camera_map_highp(&self) -> &HashMap<usize, C> { &self.camera_map_highp }
+    pub fn camera_map_lowp(&self) -> &HashMap<usize, C2> { &self.camera_map_lowp }
     pub fn epipolar_alg(&self) -> tensor::BifocalType { self.epipolar_alg}
     pub fn triangulation(&self) -> Triangulation { self.triangulation}
     pub fn match_map(&self) -> &HashMap<(usize, usize), Vec<Match<Feat>>> {&self.match_map}
@@ -160,13 +160,13 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
 
     pub fn compute_unqiue_ids_cameras_root_first(&self) -> (Vec<usize>, Vec<&C>) {
         let keys_sorted = self.get_sorted_camera_keys();
-        let cameras_sorted = keys_sorted.iter().map(|id| self.camera_map.get(id).expect("compute_unqiue_ids_cameras_root_first: trying to get invalid camera")).collect::<Vec<&C>>();
+        let cameras_sorted = keys_sorted.iter().map(|id| self.camera_map_highp.get(id).expect("compute_unqiue_ids_cameras_root_first: trying to get invalid camera")).collect::<Vec<&C>>();
         (keys_sorted,cameras_sorted)
     }
 
     pub fn compute_unqiue_ids_cameras_ba_root_first(&self) -> (Vec<usize>, Vec<&C2>) {
         let keys_sorted = self.get_sorted_camera_keys();
-        let cameras_sorted = keys_sorted.iter().map(|id| self.camera_map_ba.get(id).expect("compute_unqiue_ids_cameras_lowp_root_first: trying to get invalid camera")).collect::<Vec<&C2>>();
+        let cameras_sorted = keys_sorted.iter().map(|id| self.camera_map_lowp.get(id).expect("compute_unqiue_ids_cameras_lowp_root_first: trying to get invalid camera")).collect::<Vec<&C2>>();
         (keys_sorted,cameras_sorted)
     }
 
@@ -272,7 +272,7 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
     }
 
     fn get_sorted_camera_keys(&self) -> Vec<usize> {
-        let number_of_keys = self.camera_map_ba.keys().len();
+        let number_of_keys = self.camera_map_lowp.keys().len();
         let mut keys_sorted = Vec::<usize>::with_capacity(number_of_keys);
         // root has to first by design
         keys_sorted.push(self.root());
@@ -473,7 +473,7 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
             }
             initial_cam_motions_per_path.push(cam_motions);
         }
-        let initial_cam_rotations_per_path_rcd = optimize_rotations_with_rcd_per_track(&initial_cam_motions_per_path);
+        let (absolut_rotation_map, initial_cam_rotations_per_path_rcd) = optimize_rotations_with_rcd_per_track(&initial_cam_motions_per_path);
         for i in 0..initial_cam_rotations_per_path_rcd.len(){
             let path_len = initial_cam_rotations_per_path_rcd[i].len();
             for j in 0..path_len {

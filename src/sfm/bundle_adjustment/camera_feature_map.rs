@@ -176,6 +176,7 @@ impl CameraFeatureMap {
 
         let mut landmarks = vec![EuclideanLandmark::from_state(Vector3::<F>::new(F::zero(),F::zero(),-F::one())); number_of_unqiue_landmarks];
         let mut landmark_reprojection_error_map = HashMap::<usize, Float>::with_capacity(number_of_unqiue_landmarks);
+
         for path in paths {
             let mut pose_acc = Matrix4::<Float>::identity();
             for (id_s, id_f) in path {

@@ -7,7 +7,6 @@ use rand::{thread_rng, Rng};
 
 use std::collections::HashMap;
 use crate::{Float,float};
-use crate::numerics::{lie::angular_distance};
 
 
 /**
@@ -64,25 +63,38 @@ pub fn rcd(relative_rotations_csc: CscMatrix<Float>, number_of_absolute_rotation
     absolute_rotations
 }
 
-pub fn optimize_rotations_with_rcd(indexed_relative_rotations: &Vec<Vec<((usize, usize), Matrix3<Float>)>>) -> Vec<Vec<((usize, usize), Matrix3<Float>)>> {
+pub fn optimize_rotations_with_rcd(indexed_relative_rotations: &Vec<Vec<((usize, usize), Matrix3<Float>)>>) -> (HashMap<usize,Matrix3<Float>>,Vec<Vec<((usize, usize), Matrix3<Float>)>>) {
     let index_to_matrix_map = generate_path_indices_to_matrix_map(indexed_relative_rotations);
     let relative_rotations_csc = generate_relative_rotation_matrix(&index_to_matrix_map,indexed_relative_rotations);
     let number_of_absolute_rotations = index_to_matrix_map.len();
     let absolute_rotations = rcd(relative_rotations_csc,number_of_absolute_rotations);
     //println!("{}",absolute_rotations);
-    absolute_to_relative_rotations(&absolute_rotations, indexed_relative_rotations, &index_to_matrix_map)
+    (generate_absolute_rotation_map(&index_to_matrix_map, &absolute_rotations), absolute_to_relative_rotations(&absolute_rotations, indexed_relative_rotations, &index_to_matrix_map))
 }
 
-pub fn optimize_rotations_with_rcd_per_track(indexed_relative_rotations: &Vec<Vec<((usize, usize), Matrix3<Float>)>>) -> Vec<Vec<((usize, usize), Matrix3<Float>)>> {
-    indexed_relative_rotations.iter().map(|rotations_per_track| {
+pub fn optimize_rotations_with_rcd_per_track(indexed_relative_rotations: &Vec<Vec<((usize, usize), Matrix3<Float>)>>) -> (HashMap<usize,Matrix3<Float>>, Vec<Vec<((usize, usize), Matrix3<Float>)>>) {
+    let mut absolute_rotation_map = HashMap::<usize,Matrix3<Float>>::with_capacity(100);
+    let relative_rotation_list = indexed_relative_rotations.iter().map(|rotations_per_track| {
         let index_to_matrix_map = generate_path_indices_to_matrix_map_per_track(rotations_per_track);
         let relative_rotations_csc_per_track = generate_relative_rotation_matrix_per_track(&index_to_matrix_map, rotations_per_track);
         let number_of_absolute_rotations = index_to_matrix_map.len();
         let absolute_rotations = rcd(relative_rotations_csc_per_track,number_of_absolute_rotations);
         //println!("{}",absolute_rotations);
+        let sub_map = generate_absolute_rotation_map(&index_to_matrix_map, &absolute_rotations);
+        absolute_rotation_map.extend(sub_map);
         absolute_to_relative_rotations_per_track(&absolute_rotations, rotations_per_track, &index_to_matrix_map)
-    }).collect::<Vec<_>>()
+    }).collect::<Vec<_>>();
 
+    (absolute_rotation_map, relative_rotation_list)
+}
+
+fn generate_absolute_rotation_map(index_to_matrix_map: &HashMap<usize,usize>, absolute_rotations: &MatrixXx3<Float>) -> HashMap<usize, Matrix3<Float>> {
+    let mut abs_rot_map = HashMap::<usize, Matrix3<Float>>::with_capacity(index_to_matrix_map.capacity());
+    for (key,idx) in index_to_matrix_map {
+        let rot = get_absolute_rotation_at(absolute_rotations,*idx).transpose();
+        abs_rot_map.insert(*key,rot);
+    }
+    abs_rot_map
 }
 
 fn absolute_to_relative_rotations(absolute_rotations: &MatrixXx3<Float>, indexed_relative_rotations: &Vec<Vec<((usize, usize), Matrix3<Float>)>>, index_to_matrix_map: &HashMap<usize,usize>) -> Vec<Vec<((usize, usize), Matrix3<Float>)>>{

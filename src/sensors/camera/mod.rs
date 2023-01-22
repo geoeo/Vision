@@ -2,6 +2,7 @@ extern crate nalgebra as na;
 extern crate num_traits;
 extern crate simba;
 
+use std::f32;
 use na::{U1,U3,Vector,Vector3,Matrix2x3,Matrix3,Matrix3x4,Matrix4, base::storage::Storage, SimdRealField, ComplexField,base::Scalar};
 use num_traits::{float,NumAssign};
 use crate::image::features::geometry::point::Point;
