@@ -11,7 +11,7 @@ use crate::image::{
     features::{Feature, Match},
     features::geometry::point::Point
 };
-use crate::sfm::{triangulation::{Triangulation, triangulate_matches},bundle_adjustment::state::State, landmark::{Landmark, euclidean_landmark::EuclideanLandmark, inverse_depth_landmark::InverseLandmark},epipolar::tensor::BifocalType,triangulation::{linear_triangulation_svd,stereo_triangulation}};
+use crate::sfm::{bundle_adjustment::state::State, landmark::{Landmark, euclidean_landmark::EuclideanLandmark, inverse_depth_landmark::InverseLandmark}};
 use crate::sensors::camera::Camera;
 use crate::{Float, reconstruct_original_coordiantes_for_float};
 
@@ -35,7 +35,6 @@ pub struct CameraFeatureMap {
      * Map from (internal cam id s, u_s, v_s interal cam id f, u_f, v_f) -> point id
      */
     pub landmark_match_lookup: HashMap<(usize,usize,usize,usize,usize,usize), usize>,
-    pub landmark_reprojection_error_map: HashMap<usize, Float>, //TODO: could be local to method
     pub image_row_col: (usize,usize)
 
 }
@@ -52,7 +51,6 @@ impl CameraFeatureMap {
             number_of_unique_landmarks: 0,
             feature_location_lookup: vec![vec![None;n_cams]; number_of_landmarks],
             landmark_match_lookup: HashMap::new(),
-            landmark_reprojection_error_map: HashMap::with_capacity(number_of_landmarks),
             image_row_col
         };
 
@@ -177,6 +175,7 @@ impl CameraFeatureMap {
         let number_of_unqiue_landmarks = self.number_of_unique_landmarks;
 
         let mut landmarks = vec![EuclideanLandmark::from_state(Vector3::<F>::new(F::zero(),F::zero(),-F::one())); number_of_unqiue_landmarks];
+        let mut landmark_reprojection_error_map = HashMap::<usize, Float>::with_capacity(number_of_unqiue_landmarks);
         for path in paths {
             let mut pose_acc = Matrix4::<Float>::identity();
             for (id_s, id_f) in path {
@@ -202,11 +201,11 @@ impl CameraFeatureMap {
                     let point = root_aligned_triangulated_matches.fixed_slice::<3, 1>(0, m_i).into_owned();
                     
                     let reprojection_error = reprojection_errors[m_i];
-                    match self.landmark_reprojection_error_map.contains_key(point_id) {
+                    match landmark_reprojection_error_map.contains_key(point_id) {
                         true => {
-                            let current_reproj_error =  *self.landmark_reprojection_error_map.get(point_id).unwrap();
+                            let current_reproj_error =  *landmark_reprojection_error_map.get(point_id).unwrap();
                             if reprojection_error < current_reproj_error {
-                                self.landmark_reprojection_error_map.insert(*point_id,reprojection_error);
+                                landmark_reprojection_error_map.insert(*point_id,reprojection_error);
                                 landmarks[*point_id] = EuclideanLandmark::from_state(Vector3::<F>::new(
                                     convert(point[0]),
                                     convert(point[1]),
@@ -215,7 +214,7 @@ impl CameraFeatureMap {
                             }
                         },
                         false => {
-                            self.landmark_reprojection_error_map.insert(*point_id,reprojection_error);
+                            landmark_reprojection_error_map.insert(*point_id,reprojection_error);
                             landmarks[*point_id] = EuclideanLandmark::from_state(Vector3::<F>::new(
                                 convert(point[0]),
                                 convert(point[1]),
