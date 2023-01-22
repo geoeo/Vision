@@ -16,7 +16,7 @@ use crate::sensors::camera::Camera;
 use crate::{Float, reconstruct_original_coordiantes_for_float};
 
 /**
- * For only feature pairs between cams is assumed. Feature triplets etc. are not correctly supported
+ * For only feature pairs between cams is assumed.
  */
 pub struct CameraFeatureMap {
     /**

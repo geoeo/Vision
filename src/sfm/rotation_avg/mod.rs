@@ -18,7 +18,7 @@ pub fn rcd(relative_rotations_csc: CscMatrix<Float>, number_of_absolute_rotation
     let mut absolute_rotations = generate_absolute_rotation_matrix(number_of_absolute_rotations);
     let mut absolute_rotations_transpose = absolute_rotations.transpose();
 
-    println!("{}",absolute_rotations);
+    //println!("{}",absolute_rotations);
 
     let mut cost = float::MAX;
     let mut old_cost = -0.5*(&absolute_rotations_transpose * (&relative_rotations_csc * &absolute_rotations)).trace();
@@ -47,7 +47,7 @@ pub fn rcd(relative_rotations_csc: CscMatrix<Float>, number_of_absolute_rotation
         }
 
         cost = -0.5*(&absolute_rotations_transpose * (&relative_rotations_csc * &absolute_rotations)).trace();  
-        println!("RCD cost: {}", cost);
+        //println!("RCD cost: {}", cost);
         if (old_cost-cost) / old_cost.abs().max(1.0) <= eps {
             for i in 0..number_of_absolute_rotations {
                 let mut Ri = absolute_rotations.fixed_rows::<3>(3*i).into_owned();
@@ -60,8 +60,7 @@ pub fn rcd(relative_rotations_csc: CscMatrix<Float>, number_of_absolute_rotation
         }
         old_cost = cost; 
     }
-    
-    println!("RCD completed with cost: {}", cost);
+    //println!("RCD completed with cost: {}", cost);
     absolute_rotations
 }
 
@@ -70,7 +69,7 @@ pub fn optimize_rotations_with_rcd(indexed_relative_rotations: &Vec<Vec<((usize,
     let relative_rotations_csc = generate_relative_rotation_matrix(&index_to_matrix_map,indexed_relative_rotations);
     let number_of_absolute_rotations = index_to_matrix_map.len();
     let absolute_rotations = rcd(relative_rotations_csc,number_of_absolute_rotations);
-    println!("{}",absolute_rotations);
+    //println!("{}",absolute_rotations);
     absolute_to_relative_rotations(&absolute_rotations, indexed_relative_rotations, &index_to_matrix_map)
 }
 
@@ -80,7 +79,7 @@ pub fn optimize_rotations_with_rcd_per_track(indexed_relative_rotations: &Vec<Ve
         let relative_rotations_csc_per_track = generate_relative_rotation_matrix_per_track(&index_to_matrix_map, rotations_per_track);
         let number_of_absolute_rotations = index_to_matrix_map.len();
         let absolute_rotations = rcd(relative_rotations_csc_per_track,number_of_absolute_rotations);
-        println!("{}",absolute_rotations);
+        //println!("{}",absolute_rotations);
         absolute_to_relative_rotations_per_track(&absolute_rotations, rotations_per_track, &index_to_matrix_map)
     }).collect::<Vec<_>>()
 
@@ -160,7 +159,7 @@ fn populate_relative_rotation_matrix_per_track(index_to_matrix_map: &HashMap<usi
         let idx_s = index_to_matrix_map.get(i_s).expect("RCD: Index s not present");
         let idx_f = index_to_matrix_map.get(i_f).expect("RCD: Index f not present");
         assert!(idx_s < idx_f);
-        println!("rcd: Angular distance of {},{} is: {}",i_s,i_f,angular_distance(&rotation));
+        //println!("rcd: Angular distance of {},{} is: {}",i_s,i_f,angular_distance(&rotation));
         let rotation_transpose = rotation.transpose();
         // Symmetric Matrix of transpose R_ij
         rotations_coo.push_matrix(3*idx_f, 3*idx_s, &rotation_transpose);

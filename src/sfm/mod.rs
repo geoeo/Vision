@@ -118,6 +118,8 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
                     pose_map.insert(key,new_pose_map.get(&key).unwrap().clone());
                 }
             }
+
+            //TODO: Translation estimation via the Epipolar Equation
         }
 
         let (min_reprojection_error_refined, max_reprojection_error_refined) = Self::compute_reprojection_ranges(&reprojection_error_map);
@@ -168,9 +170,12 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
         (keys_sorted,cameras_sorted)
     }
 
-    //TODO: think of a more streamlined approach
+    //TODO: Doesnt really work robustly
     fn calc_landmark_cutoff(max_reprojection_error: Float) -> Float {
-        500.0
+        max_reprojection_error
+        //500.0
+        //1200.0
+        //0.92*max_reprojection_error
         // match max_reprojection_error {
         //     v if v > 500.0 => 500.0,
         //     v => v
@@ -228,6 +233,7 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
 
     }
 
+    //TODO: for all matches in a track 
     fn compute_landmarks_and_reprojection_maps(root: usize, paths: &Vec<Vec<usize>>, 
         pose_map: &HashMap<(usize, usize), Isometry3<Float>>, 
         match_map: &HashMap<(usize, usize), 
@@ -257,7 +263,7 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
         let mut max_reprojection_error = float::MIN;
         let mut min_reprojection_error = float::MAX;
 
-        for (k,reprojection_errors) in reprojection_map.iter(){
+        for (_,reprojection_errors) in reprojection_map.iter(){
             max_reprojection_error = max_reprojection_error.max(reprojection_errors.max()); 
             min_reprojection_error = min_reprojection_error.min(reprojection_errors.min());   
         }
@@ -429,14 +435,17 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
                     
                     //TODO subsample?
                     let f_m_subsampled = subsample_matches(f_m,image_width,image_height);
+                    println!("{:?}: Number of matches: {}", key, &f_m_subsampled.len());
+
                     
                     // The pose transforms id2 into the coordiante system of id1
                     let (h,rotation,_) = tensor::decompose_essential_förstner(&e,&f_m_subsampled,c1,c2);
                     let se3 = se3(&h,&rotation);
                     let isometry = from_matrix(&se3);
-                    let some_pose_old_val = pose_map.insert((id1, id2), isometry);
-                    match_map.insert((id1, id2),f_m_subsampled);
+                    let some_pose_old_val = pose_map.insert(key, isometry);
+                    let some_old_match_val = match_map.insert(key,f_m_subsampled);
                     assert!(some_pose_old_val.is_none());
+                    assert!(!some_old_match_val.is_none());
 
                 }
             }
@@ -470,14 +479,14 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
             for j in 0..path_len {
                 let (key,rcd_rot) = initial_cam_rotations_per_path_rcd[i][j];
                 let initial_pose = pose_map.get(&key).expect("No pose found for rcd rotation in pose map");
-                let initial_rot = initial_pose.rotation.to_rotation_matrix().matrix().to_owned();
-                let angular_distance_initial = angular_distance(&initial_rot);
-                let angular_distance_rcd = angular_distance(&rcd_rot);
 
-                println!("initial r : {}", initial_rot);
-                println!("rcd r : {}",rcd_rot);
-                println!("initial ang dist : {}", angular_distance_initial);
-                println!("rcd ang dist : {}", angular_distance_rcd);
+                //let initial_rot = initial_pose.rotation.to_rotation_matrix().matrix().to_owned();
+                //let angular_distance_initial = angular_distance(&initial_rot);
+                //let angular_distance_rcd = angular_distance(&rcd_rot);
+                //println!("initial r : {}", initial_rot);
+                //println!("rcd r : {}",rcd_rot);
+                //println!("initial ang dist : {}", angular_distance_initial);
+                //println!("rcd ang dist : {}", angular_distance_rcd);
 
                 let new_se3 = se3(&initial_pose.translation.vector,&rcd_rot);
                 new_pose_map.insert(key, from_matrix(&new_se3));
