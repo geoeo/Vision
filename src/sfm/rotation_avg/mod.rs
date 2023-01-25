@@ -63,16 +63,16 @@ pub fn rcd(relative_rotations_csc: CscMatrix<Float>, number_of_absolute_rotation
     absolute_rotations
 }
 
-pub fn optimize_rotations_with_rcd(indexed_relative_rotations: &Vec<Vec<((usize, usize), Matrix3<Float>)>>) -> (HashMap<usize,Matrix3<Float>>,Vec<Vec<((usize, usize), Matrix3<Float>)>>) {
+pub fn optimize_rotations_with_rcd(indexed_relative_rotations: &Vec<Vec<((usize, usize), Matrix3<Float>)>>) -> Vec<Vec<((usize, usize), Matrix3<Float>)>> {
     let index_to_matrix_map = generate_path_indices_to_matrix_map(indexed_relative_rotations);
     let relative_rotations_csc = generate_relative_rotation_matrix(&index_to_matrix_map,indexed_relative_rotations);
     let number_of_absolute_rotations = index_to_matrix_map.len();
     let absolute_rotations = rcd(relative_rotations_csc,number_of_absolute_rotations);
     //println!("{}",absolute_rotations);
-    (generate_absolute_rotation_map(&index_to_matrix_map, &absolute_rotations), absolute_to_relative_rotations(&absolute_rotations, indexed_relative_rotations, &index_to_matrix_map))
+    absolute_to_relative_rotations(&absolute_rotations, indexed_relative_rotations, &index_to_matrix_map)
 }
 
-pub fn optimize_rotations_with_rcd_per_track(indexed_relative_rotations: &Vec<Vec<((usize, usize), Matrix3<Float>)>>) -> (HashMap<usize,Matrix3<Float>>, Vec<Vec<((usize, usize), Matrix3<Float>)>>) {
+pub fn optimize_rotations_with_rcd_per_track(indexed_relative_rotations: &Vec<Vec<((usize, usize), Matrix3<Float>)>>) -> Vec<Vec<((usize, usize), Matrix3<Float>)>> {
     let mut absolute_rotation_map = HashMap::<usize,Matrix3<Float>>::with_capacity(100);
     let relative_rotation_list = indexed_relative_rotations.iter().map(|rotations_per_track| {
         let index_to_matrix_map = generate_path_indices_to_matrix_map_per_track(rotations_per_track);
@@ -85,7 +85,7 @@ pub fn optimize_rotations_with_rcd_per_track(indexed_relative_rotations: &Vec<Ve
         absolute_to_relative_rotations_per_track(&absolute_rotations, rotations_per_track, &index_to_matrix_map)
     }).collect::<Vec<_>>();
 
-    (absolute_rotation_map, relative_rotation_list)
+    relative_rotation_list
 }
 
 fn generate_absolute_rotation_map(index_to_matrix_map: &HashMap<usize,usize>, absolute_rotations: &MatrixXx3<Float>) -> HashMap<usize, Matrix3<Float>> {

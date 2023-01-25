@@ -3,7 +3,7 @@ extern crate rand;
 
 pub mod tensor;
 
-use na::{Vector3, Matrix3};
+use na::{Vector2, Vector3, Matrix3};
 use crate::sensors::camera::Camera;
 use crate::Float;
 use crate::image::features::{Feature,Match, ImageFeature};
@@ -11,54 +11,58 @@ use crate::image::features::{Feature,Match, ImageFeature};
 pub type Fundamental =  Matrix3<Float>;
 pub type Essential =  Matrix3<Float>;
 
-//TODO: Doenst work!
-pub fn compute_linear_normalization<T: Feature, C: Camera<Float>>(matches: &Vec<Match<T>>, camera_one: &C, camera_two: &C) -> (Matrix3<Float>, Matrix3<Float>) {
+pub fn compute_linear_normalization<T: Feature>(matches: &Vec<Match<T>>) -> (Matrix3<Float>, Matrix3<Float>, Matrix3<Float>, Matrix3<Float>) {
     let l = matches.len();
     let l_as_float = l as Float;
 
     let mut normalization_matrix_one = Matrix3::<Float>::identity();
     let mut normalization_matrix_two = Matrix3::<Float>::identity();
 
-    let mut avg_x_one = 0.0;
-    let mut avg_y_one = 0.0;
-    let mut avg_x_two = 0.0;
-    let mut avg_y_two = 0.0;
+    let mut normalization_matrix_one_inv = Matrix3::<Float>::identity();
+    let mut normalization_matrix_two_inv = Matrix3::<Float>::identity();
 
-    let projection_one =camera_one.get_projection();
-    let projection_two =camera_two.get_projection();
-
-    let cx_one = projection_one[(0,2)];
-    let cy_one = projection_one[(1,2)];
-    let cx_two = projection_two[(0,2)];
-    let cy_two = projection_two[(1,2)];
-
+    let mut avg_one = Vector2::<Float>::zeros();
+    let mut avg_two = Vector2::<Float>::zeros();
 
     for i in 0..l {
         let m = &matches[i];
-        let f_1 = m.feature_one.get_as_3d_point(-1.0);
-        let f_2 = m.feature_two.get_as_3d_point(-1.0);
-        avg_x_one += f_1[0];
-        avg_y_one += f_1[1];
-        avg_x_two += f_2[0];
-        avg_y_two += f_2[1];
+        let f_1 = m.feature_one.get_as_2d_point();
+        let f_2 = m.feature_two.get_as_2d_point();
+        avg_one[0] += f_1[0];
+        avg_one[1] += f_1[1];
+        avg_two[0] += f_2[0];
+        avg_two[1] += f_2[1];
     }
 
-    let max_dist_one = cx_one*cy_one;
-    let max_dist_two = cx_two*cy_two;
+    avg_one /= l_as_float;
+    avg_two /= l_as_float;
 
-    // let max_dist_one = cx_one.powi(2)+cy_one.powi(2);
-    // let max_dist_two = cx_two.powi(2)+cy_two.powi(2);
+    let (avg_dist_one, avg_dist_two) =  matches.iter().fold((0.0, 0.0), |acc, m| (acc.0 + (m.feature_one.get_as_2d_point()-avg_one).norm(), acc.1 + (m.feature_two.get_as_2d_point()-avg_two).norm()));
+    let sqrt_factor = (2.0 as Float).sqrt();
+    let s_one = sqrt_factor*l_as_float/avg_dist_one;
+    let s_two = sqrt_factor*l_as_float/avg_dist_two;
 
-    
-    normalization_matrix_one[(0,2)] = -avg_x_one/l_as_float;
-    normalization_matrix_one[(1,2)] = -avg_y_one/l_as_float;
-    normalization_matrix_one[(2,2)] = max_dist_one;
+    normalization_matrix_one[(0,0)] = s_one;
+    normalization_matrix_one[(1,1)] = s_one;
+    normalization_matrix_one[(0,2)] = -s_one*avg_one[0];
+    normalization_matrix_one[(1,2)] = -s_one*avg_one[1];
 
-    normalization_matrix_two[(0,2)] = -avg_x_two/l_as_float;
-    normalization_matrix_two[(1,2)] = -avg_y_two/l_as_float;
-    normalization_matrix_two[(2,2)] = max_dist_two;
+    normalization_matrix_one_inv[(0,0)] = 1.0/s_one;
+    normalization_matrix_one_inv[(1,1)] = 1.0/s_one;
+    normalization_matrix_one_inv[(0,2)] = avg_one[0];
+    normalization_matrix_one_inv[(1,2)] = avg_one[1];
 
-    (normalization_matrix_one,normalization_matrix_two)
+    normalization_matrix_two[(0,0)] = s_two;
+    normalization_matrix_two[(1,1)] = s_two;
+    normalization_matrix_two[(0,2)] = -s_two*avg_two[0];
+    normalization_matrix_two[(1,2)] = -s_two*avg_two[1];
+
+    normalization_matrix_two_inv[(0,0)] = 1.0/s_two;
+    normalization_matrix_two_inv[(1,1)] = 1.0/s_two;
+    normalization_matrix_two_inv[(0,2)] = avg_two[0];
+    normalization_matrix_two_inv[(1,2)] = avg_two[1];
+
+    (normalization_matrix_one, normalization_matrix_one_inv, normalization_matrix_two, normalization_matrix_two_inv)
 
 }
 

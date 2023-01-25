@@ -186,22 +186,24 @@ pub fn cheirality_check<T: Feature + Clone,  C: Camera<Float>>(
     let camera_2 = points_cam_2.1;
 
     //TODO: clean this up
-    let mut camera_matrix_1 = camera_1.get_projection();
-    let mut camera_matrix_2 = camera_2.get_projection();
-    let condition_matrix_1 = points_cam_1.2; 
-    let condition_matrix_2 = points_cam_2.2; 
-    let f0 = condition_matrix_1[(2,2)];
-    let f0_prime = condition_matrix_2[(2,2)];
+    let camera_matrix_1 = camera_1.get_projection();
+    let camera_matrix_2 = camera_2.get_projection();
+    let f0 = 1.0;
+    let f0_prime = 1.0;
+    // let condition_matrix_1 = points_cam_1.2; 
+    // let condition_matrix_2 = points_cam_2.2; 
+    // let f0 = condition_matrix_1[(2,2)];
+    // let f0_prime = condition_matrix_2[(2,2)];
 
-    camera_matrix_1[(0,0)] /= f0;
-    camera_matrix_1[(1,1)] /= f0;
-    camera_matrix_1[(0,2)] /= f0;
-    camera_matrix_1[(1,2)] /= f0;
+    // camera_matrix_1[(0,0)] /= f0;
+    // camera_matrix_1[(1,1)] /= f0;
+    // camera_matrix_1[(0,2)] /= f0;
+    // camera_matrix_1[(1,2)] /= f0;
 
-    camera_matrix_2[(0,0)] /= f0_prime;
-    camera_matrix_2[(1,1)] /= f0_prime;
-    camera_matrix_2[(0,2)] /= f0_prime;
-    camera_matrix_2[(1,2)] /= f0_prime;
+    // camera_matrix_2[(0,0)] /= f0_prime;
+    // camera_matrix_2[(1,1)] /= f0_prime;
+    // camera_matrix_2[(0,2)] /= f0_prime;
+    // camera_matrix_2[(1,2)] /= f0_prime;
 
 
     let number_of_points = matches.len();
@@ -212,8 +214,8 @@ pub fn cheirality_check<T: Feature + Clone,  C: Camera<Float>>(
         let projection_1 = camera_matrix_1*(Matrix4::<Float>::identity().fixed_slice::<3,4>(0,0));
         let projection_2 = camera_matrix_2*(se3.fixed_slice::<3,4>(0,0));
 
-        let p1_points = condition_matrix_1*points_cam_1.0/f0;
-        let p2_points = condition_matrix_2*points_cam_2.0/f0_prime;
+        let p1_points = points_cam_1.0/f0;
+        let p2_points = points_cam_2.0/f0_prime;
 
         //TODO make ENUM
         //let Xs_option = Some(linear_triangulation_svd(&vec!((&p1_points,&projection_1),(&p2_points,&projection_2))));

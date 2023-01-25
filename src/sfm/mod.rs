@@ -118,8 +118,6 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
                     pose_map.insert(key,new_pose_map.get(&key).unwrap().clone());
                 }
             }
-
-            //TODO: Translation estimation via the Epipolar Equation
         }
 
         let (min_reprojection_error_refined, max_reprojection_error_refined) = Self::compute_reprojection_ranges(&reprojection_error_map);
@@ -422,6 +420,7 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
                             (tensor::compute_essential(&f,&c1.get_projection(),&c2.get_projection()), filtered)
                         },
                         tensor::BifocalType::ESSENTIAL => {
+                            //let e = tensor::ransac_five_point_essential(m, c1, c2,1e-2,1e4 as usize);
                             let e = tensor::five_point_essential(m, c1, c2);
                             let f = tensor::compute_fundamental(&e, &c1.get_inverse_projection(), &c2.get_inverse_projection());
                             (e, tensor::select_best_matches_from_fundamental(&f,m,perc_tresh,epipolar_tresh))
@@ -473,7 +472,7 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
             }
             initial_cam_motions_per_path.push(cam_motions);
         }
-        let (absolut_rotation_map, initial_cam_rotations_per_path_rcd) = optimize_rotations_with_rcd_per_track(&initial_cam_motions_per_path);
+        let initial_cam_rotations_per_path_rcd = optimize_rotations_with_rcd_per_track(&initial_cam_motions_per_path);
         for i in 0..initial_cam_rotations_per_path_rcd.len(){
             let path_len = initial_cam_rotations_per_path_rcd[i].len();
             for j in 0..path_len {
