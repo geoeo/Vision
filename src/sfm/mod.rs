@@ -11,7 +11,7 @@ pub mod rotation_avg;
 
 use std::collections::{HashMap,HashSet};
 use crate::image::{features::{Feature, Match, feature_track::FeatureTrack, solver_feature::SolverFeature, subsample_matches}};
-use crate::sfm::{epipolar::tensor, 
+use crate::sfm::{epipolar::tensor, epipolar::compute_linear_normalization,
     triangulation::{Triangulation, triangulate_matches}, 
     rotation_avg::{optimize_rotations_with_rcd_per_track,optimize_rotations_with_rcd}};
 use crate::sensors::camera::Camera;
@@ -406,18 +406,20 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
                     let c1 = camera_map.get(&id1).expect("compute_pairwise_cam_motions_for_path: could not get previous cam");
                     let c2 = camera_map.get(&id2).expect("compute_pairwise_cam_motions_for_path: could not get second camera");
                     let key = (id1,id2);
-                    let m = match_map.get(&key).expect(format!("match not found with key: {:?}",key).as_str());
+                    let m_unnorm = match_map.get(&key).expect(format!("match not found with key: {:?}",key).as_str());
+                    let (norm_one, norm_one_inv, norm_two, norm_two_inv) = compute_linear_normalization(m_unnorm);
+                    let m = &m_unnorm.iter().map(|ma| ma.apply_normalisation(&norm_one, &norm_two, -1.0)).collect::<Vec<_>>();
+
                     let f0 = 1.0; // -> check this
                     let (e,f_m) = match epipolar_alg {
                         tensor::BifocalType::FUNDAMENTAL => {      
                             let f = tensor::fundamental::eight_point_hartley(m, false, f0); //TODO: make this configurable
-                            
-                            // let f_corr = tensor::fundamental::optimal_correction(&f, m, 1.0);
-                            // let filtered = tensor::select_best_matches_from_fundamental(&f,m,perc_tresh, epipolar_tresh);
-                            // (tensor::compute_essential(&f_corr,&c1.get_projection(),&c2.get_projection()), filtered)
-            
+                            let f_corr = tensor::fundamental::optimal_correction(&f, m, 1.0);
                             let filtered = tensor::select_best_matches_from_fundamental(&f,m,perc_tresh, epipolar_tresh);
-                            (tensor::compute_essential(&f,&c1.get_projection(),&c2.get_projection()), filtered)
+                            (tensor::compute_essential(&f_corr,&c1.get_projection(),&c2.get_projection()), filtered)
+            
+                            //let filtered = tensor::select_best_matches_from_fundamental(&f,m,perc_tresh, epipolar_tresh);
+                            //(tensor::compute_essential(&f,&c1.get_projection(),&c2.get_projection()), filtered)
                         },
                         tensor::BifocalType::ESSENTIAL => {
                             //let e = tensor::ransac_five_point_essential(m, c1, c2,1e-2,1e4 as usize);

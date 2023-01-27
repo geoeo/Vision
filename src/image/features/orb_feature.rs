@@ -18,8 +18,6 @@ pub struct OrbFeature {
 }
 
 impl Feature for OrbFeature {
-
-
     fn get_x_image_float(&self) -> Float { self.get_x_image() as Float}
 
     fn get_y_image_float(&self) -> Float { self.get_y_image() as Float}
@@ -34,6 +32,10 @@ impl Feature for OrbFeature {
 
     fn get_closest_sigma_level(&self) -> usize {
         self.sigma_level
+    }
+
+    fn apply_normalisation(&self, norm_one: &nalgebra::Matrix3<Float>, depth: Float) -> Self {
+        panic!("TODO: OrbFeature apply_normalisation")
     }
 
 

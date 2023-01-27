@@ -37,10 +37,15 @@ pub fn compute_linear_normalization<T: Feature>(matches: &Vec<Match<T>>) -> (Mat
     avg_one /= l_as_float;
     avg_two /= l_as_float;
 
-    let (avg_dist_one, avg_dist_two) =  matches.iter().fold((0.0, 0.0), |acc, m| (acc.0 + (m.feature_one.get_as_2d_point()-avg_one).norm(), acc.1 + (m.feature_two.get_as_2d_point()-avg_two).norm()));
+    let (avg_dist_one, avg_dist_two) =  matches.iter().fold((0.0, 0.0), |acc, m| (acc.0 + (m.feature_one.get_as_2d_point()-avg_one).norm_squared(), acc.1 + (m.feature_two.get_as_2d_point()-avg_two).norm_squared()));
     let sqrt_factor = (2.0 as Float).sqrt();
-    let s_one = sqrt_factor*l_as_float/avg_dist_one;
-    let s_two = sqrt_factor*l_as_float/avg_dist_two;
+
+    //TODO: Move landmark id to track generation. Currently scaled pixels map to a e.g 5x5 region
+    let s_one = 1.0/(avg_dist_one/(l_as_float-1.0)).sqrt();
+    let s_two = 1.0/(avg_dist_two/(l_as_float-1.0)).sqrt();
+
+    let s_one = 1.0;
+    let s_two = 1.0;
 
     normalization_matrix_one[(0,0)] = s_one;
     normalization_matrix_one[(1,1)] = s_one;

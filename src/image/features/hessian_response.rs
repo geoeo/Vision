@@ -6,7 +6,7 @@ use crate::{Float, GradientDirection};
 use crate::image::filter::{gradient_convolution_at_sample,prewitt_kernel::PrewittKernel,laplace_kernel::LaplaceKernel};
 use crate::image::features::Feature;
 
-pub fn hessian_matrix(images: &Vec<Image>,x_gradients: &Vec<Image>, feature: &dyn Feature) -> Matrix2<Float> {
+pub fn hessian_matrix<F: Feature>(images: &Vec<Image>,x_gradients: &Vec<Image>, feature: &F) -> Matrix2<Float> {
 
     let second_order_kernel = LaplaceKernel::new();
     let first_order_kernel = PrewittKernel::new();
@@ -26,12 +26,12 @@ pub fn eigenvalue_ratio(harris_matrix: &Matrix2<Float>, r: Float) -> (Float,Floa
     ( trace.powi(2)/determinant,(r+1.0).powi(2)/r)
 }
 
-pub fn reject_edge_response_filter(images: &Vec<Image>,x_gradients: &Vec<Image>, feature: &dyn Feature, r: Float) -> bool {
+pub fn reject_edge_response_filter<F: Feature>(images: &Vec<Image>,x_gradients: &Vec<Image>, feature: &F, r: Float) -> bool {
     let hessian = hessian_matrix(images,x_gradients,feature);
     reject_edge(&hessian, r)
 }
 
-pub fn accept_edge_response_filter(images: &Vec<Image>,x_gradients: &Vec<Image>, feature: &dyn Feature, r: Float) -> bool {
+pub fn accept_edge_response_filter<F: Feature>(images: &Vec<Image>,x_gradients: &Vec<Image>, feature: &F, r: Float) -> bool {
     let hessian = hessian_matrix(images,x_gradients,feature);
     accept_edge(&hessian, r)
 }

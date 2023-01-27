@@ -67,6 +67,7 @@ impl CameraFeatureMap {
     }
 
 
+    //TODO: move landmark id generation to track generation
     pub fn add_feature(&mut self, source_cam_id: usize, other_cam_id: usize, 
         x_source: Float, y_source: Float, octave_index_source: usize, 
         x_other: Float, y_other: Float, octave_index_other: usize,  

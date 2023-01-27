@@ -122,7 +122,7 @@ pub fn subpixel_refinement(source_octave: &SiftOctave, feature:  &SiftFeature) -
 
 }
 
-fn interpolate(source_octave: &SiftOctave, feature: &dyn Feature, first_order_kernel: &dyn Kernel, second_order_kernel: &dyn Kernel) -> Matrix3x1<Float> {
+fn interpolate<F: Feature>(source_octave: &SiftOctave, feature: &F, first_order_kernel: &dyn Kernel, second_order_kernel: &dyn Kernel) -> Matrix3x1<Float> {
 
     let sigma_level = feature.get_closest_sigma_level();
     let dx = source_octave.dog_x_gradient[sigma_level].buffer[(feature.get_y_image(),feature.get_x_image())];

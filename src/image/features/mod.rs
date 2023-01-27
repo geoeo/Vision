@@ -42,6 +42,8 @@ pub trait Feature {
     fn get_camera_ray(&self, inverse_intrinsics: &Matrix3<Float>) -> Vector3<Float> {
         inverse_intrinsics*Vector3::<Float>::new(self.get_x_image_float(), self.get_y_image_float(),-1.0)
     }
+
+    fn apply_normalisation(&self, norm: &Matrix3<Float>, depth: Float) -> Self;
 }
 
 
@@ -49,7 +51,7 @@ pub trait Oriented {
     fn get_orientation(&self) -> Float;
 }
 
-pub fn orientation(source_images: &Vec<Image>, feature: &dyn Feature) -> Float {
+pub fn orientation<F: Feature>(source_images: &Vec<Image>, feature: &F) -> Float {
     let kernel = PrewittKernel::new();
     let x_grad = gradient_convolution_at_sample(source_images,feature, &kernel, GradientDirection::HORIZINTAL);
     // We negate here because the y-axis of a matrix is inverted from the first quadrant of a cartesian plane
@@ -85,12 +87,26 @@ impl Feature for ImageFeature {
     fn get_x_image(&self) -> usize { self.location.x.trunc() as usize}
     fn get_y_image(&self) -> usize { self.location.y.trunc() as usize}
     fn get_closest_sigma_level(&self) -> usize {0}
+    fn apply_normalisation(&self, norm: &Matrix3<Float>, depth: Float) -> Self {
+        let v = norm*self.get_as_3d_point(depth);
+        ImageFeature::new(v[0], v[1])
+    }
+
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Match<T : Feature> {
     pub feature_one: T,
     pub feature_two: T
+}
+
+impl<T: Feature> Match<T> {
+    pub fn apply_normalisation(&self, norm_one: &Matrix3<Float>, norm_two: &Matrix3<Float>, depth: Float) -> Self {
+        let feature_one = self.feature_one.apply_normalisation(norm_one, depth);
+        let feature_two = self.feature_two.apply_normalisation(norm_two, depth);
+
+        Match {feature_one, feature_two}
+    }
 }
 
 

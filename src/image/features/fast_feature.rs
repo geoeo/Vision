@@ -30,6 +30,10 @@ impl Feature for FastFeature {
         0
     }
 
+    fn apply_normalisation(&self, norm_one: &nalgebra::Matrix3<Float>, depth: Float) -> Self {
+        panic!("TODO: FastFeature apply_normalisation")
+    }
+
 }
 
 impl FastFeature {

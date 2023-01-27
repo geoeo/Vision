@@ -8,7 +8,7 @@ use crate::image::features::{Feature,orb_feature::OrbFeature};
 use crate::image::features::geometry::point::Point;
 use crate::image::filter::kernel::Kernel;
 
-pub fn harris_matrix(images: &Vec<Image>, feature: &dyn Feature, window_size: usize) -> Matrix2<Float> {
+pub fn harris_matrix<F: Feature>(images: &Vec<Image>, feature: &F, window_size: usize) -> Matrix2<Float> {
     assert_eq!(images.len(),1);
     let first_order_kernel = PrewittKernel::new();
 
@@ -64,7 +64,7 @@ pub fn harris_response(harris_matrix: &Matrix2<Float>, k: Float) -> Float {
 }
 
 //TODO: this either pass in orientation or store it in the feature (actually not needed only to satisfy Orb creation)
-pub fn harris_response_for_feature(images: &Vec<Image>, feature: &dyn Feature,  k: Float, window_size: usize) -> Float {
+pub fn harris_response_for_feature<F: Feature>(images: &Vec<Image>, feature: &F,  k: Float, window_size: usize) -> Float {
     let harris_matrix = harris_matrix(images,feature,window_size);
     harris_response(&harris_matrix, k)
 }

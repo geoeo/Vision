@@ -74,7 +74,7 @@ pub fn filter_1d_convolution(source_images: &Vec<&Image>, sigma_level: usize, fi
 }
 
 //TODO: performance
-pub fn gradient_convolution_at_sample(source_images: &Vec<Image>,input_params: &dyn Feature, filter_kernel: &dyn Kernel, gradient_direction: GradientDirection) -> Float {
+pub fn gradient_convolution_at_sample<F: Feature>(source_images: &Vec<Image>,input_params: &F, filter_kernel: &dyn Kernel, gradient_direction: GradientDirection) -> Float {
 
     let x_input = input_params.get_x_image(); 
     let x_input_signed = x_input as isize; 
