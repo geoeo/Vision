@@ -10,7 +10,7 @@ edition = '2018'
 image = "*"
 openblas-src = {version = "*", features = ["static"]}
 nalgebra = {version="*", features=["rand-no-std"]}
-nalgebra-lapack = {version ="*", default-features=false, features = ["openblas"]}
+nalgebra-lapack = {version ="*"}
 nalgebra-sparse = {version ="*"}
 rand = {version = "*", features = ["small_rng"] }
 rand_distr = "*"
