@@ -208,7 +208,7 @@ pub fn cheirality_check<T: Feature + Clone,  C: Camera<Float>>(
 
     let number_of_points = matches.len();
     for e in all_essential_matricies {
-        let (t,R,e_corrected) = decompose_essential_förstner(&e,matches,camera_1,camera_2);
+        let (t,R,e_corrected) = decompose_essential_förstner(&e,matches,&camera_1.get_inverse_projection(),&camera_2.get_inverse_projection());
         let se3 = pose::se3(&t,&R);
 
         let projection_1 = camera_matrix_1*(Matrix4::<Float>::identity().fixed_slice::<3,4>(0,0));

@@ -35,7 +35,7 @@ impl Feature for SiftFeature {
         self.sigma_level.trunc() as usize
     }
 
-    fn apply_normalisation(&self, norm_one: &na::Matrix3<Float>, depth: Float) -> Self {
+    fn apply_normalisation(&self, _: &na::Matrix3<Float>, _: Float) -> Self {
         panic!("TODO: SiftFeature apply_normalisation")
     }
 

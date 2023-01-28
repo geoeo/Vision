@@ -29,7 +29,7 @@ impl Feature for KeyPoint {
         self.sigma_level
     }
 
-    fn apply_normalisation(&self, norm_one: &nalgebra::Matrix3<Float>, depth: Float) -> Self {
+    fn apply_normalisation(&self, _: &nalgebra::Matrix3<Float>, _: Float) -> Self {
         panic!("TODO: KeyPoint apply_normalisation")
     }
 

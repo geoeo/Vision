@@ -406,45 +406,57 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
                     let c1 = camera_map.get(&id1).expect("compute_pairwise_cam_motions_for_path: could not get previous cam");
                     let c2 = camera_map.get(&id2).expect("compute_pairwise_cam_motions_for_path: could not get second camera");
                     let key = (id1,id2);
-                    let m_unnorm = match_map.get(&key).expect(format!("match not found with key: {:?}",key).as_str());
-                    let (norm_one, norm_one_inv, norm_two, norm_two_inv) = compute_linear_normalization(m_unnorm);
-                    let m = &m_unnorm.iter().map(|ma| ma.apply_normalisation(&norm_one, &norm_two, -1.0)).collect::<Vec<_>>();
-
+                    let m = match_map.get(&key).expect(format!("match not found with key: {:?}",key).as_str());
+                    //let (norm_one, norm_one_inv, norm_two, norm_two_inv) = compute_linear_normalization(m);
+                    //let m_norm = &m.iter().map(|ma| ma.apply_normalisation(&norm_one, &norm_two, -1.0)).collect::<Vec<_>>();
                     let f0 = 1.0; // -> check this
-                    let (e,f_m) = match epipolar_alg {
+
+                    let (e, f_m) = match epipolar_alg {
                         tensor::BifocalType::FUNDAMENTAL => {      
                             let f = tensor::fundamental::eight_point_hartley(m, false, f0); //TODO: make this configurable
-                            let f_corr = tensor::fundamental::optimal_correction(&f, m, 1.0);
-                            let filtered = tensor::select_best_matches_from_fundamental(&f,m,perc_tresh, epipolar_tresh);
-                            (tensor::compute_essential(&f_corr,&c1.get_projection(),&c2.get_projection()), filtered)
-            
-                            //let filtered = tensor::select_best_matches_from_fundamental(&f,m,perc_tresh, epipolar_tresh);
-                            //(tensor::compute_essential(&f,&c1.get_projection(),&c2.get_projection()), filtered)
+
+                            let f_corr = tensor::fundamental::optimal_correction(&f, m, f0);
+                            let filtered_indices = tensor::select_best_matches_from_fundamental(&f_corr,m,perc_tresh, epipolar_tresh);
+
+                            //let filtered_indices = tensor::select_best_matches_from_fundamental(&f,m,perc_tresh, epipolar_tresh);
+                            let filtered = filtered_indices.iter().map(|i| m[*i].clone()).collect::<Vec<Match<Feat>>>();
+
+                            let e = tensor::compute_essential(&f,&c1.get_projection(),&c2.get_projection());
+
+                            (e, filtered)
                         },
                         tensor::BifocalType::ESSENTIAL => {
                             //let e = tensor::ransac_five_point_essential(m, c1, c2,1e-2,1e4 as usize);
                             let e = tensor::five_point_essential(m, c1, c2);
                             let f = tensor::compute_fundamental(&e, &c1.get_inverse_projection(), &c2.get_inverse_projection());
-                            (e, tensor::select_best_matches_from_fundamental(&f,m,perc_tresh,epipolar_tresh))
+
+                            let filtered_indices = tensor::select_best_matches_from_fundamental(&f,m,perc_tresh, epipolar_tresh);
+                            let filtered = filtered_indices.iter().map(|i| m[*i].clone()).collect::<Vec<Match<Feat>>>();
+
+                            (e, filtered)
                         },
                         tensor::BifocalType::QUEST => {
                             let e = quest::quest_ransac(m, c1, c2, 1e-2,1e4 as usize);
                             let f = tensor::compute_fundamental(&e, &c1.get_inverse_projection(), &c2.get_inverse_projection());
-                            (e, tensor::select_best_matches_from_fundamental(&f,m,perc_tresh,epipolar_tresh))
+
+                            let filtered_indices = tensor::select_best_matches_from_fundamental(&f,m,perc_tresh, epipolar_tresh);
+                            let filtered = filtered_indices.iter().map(|i| m[*i].clone()).collect::<Vec<Match<Feat>>>();
+
+                            (e, filtered)
                         }
                     };
                     
                     //TODO subsample?
-                    let f_m_subsampled = subsample_matches(f_m,image_width,image_height);
-                    println!("{:?}: Number of matches: {}", key, &f_m_subsampled.len());
+                    //let f_m_subsampled = subsample_matches(f_m,image_width,image_height);
+                    println!("{:?}: Number of matches: {}", key, &f_m.len());
 
                     
                     // The pose transforms id2 into the coordiante system of id1
-                    let (h,rotation,_) = tensor::decompose_essential_förstner(&e,&f_m_subsampled,c1,c2);
+                    let (h,rotation,_) = tensor::decompose_essential_förstner(&e,&f_m,&c1.get_inverse_projection(), &c2.get_inverse_projection());
                     let se3 = se3(&h,&rotation);
                     let isometry = from_matrix(&se3);
                     let some_pose_old_val = pose_map.insert(key, isometry);
-                    let some_old_match_val = match_map.insert(key,f_m_subsampled);
+                    let some_old_match_val = match_map.insert(key,f_m);
                     assert!(some_pose_old_val.is_none());
                     assert!(!some_old_match_val.is_none());
 

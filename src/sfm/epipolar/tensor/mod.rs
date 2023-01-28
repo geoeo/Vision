@@ -45,9 +45,8 @@ pub fn filter_matches_from_fundamental<T: Feature + Clone>(F: &Fundamental, matc
         }).cloned().collect::<Vec<Match<T>>>()
 }
 
-//TODO: Investigate why sorting the matched changes the solver convergence -> using set for now
 #[allow(non_snake_case)]
-pub fn select_best_matches_from_fundamental<T: Feature + Clone>(F: &Fundamental, matches: &Vec<Match<T>>, perc: Float, epipolar_thresh: Float) -> Vec<Match<T>> {
+pub fn select_best_matches_from_fundamental<T: Feature + Clone>(F: &Fundamental, matches: &Vec<Match<T>>, perc: Float, epipolar_thresh: Float) -> Vec<usize> {
     assert! (0.0 <= perc && perc <= 1.0);
 
     let mut sorted_indices = matches.iter().enumerate()
@@ -55,11 +54,14 @@ pub fn select_best_matches_from_fundamental<T: Feature + Clone>(F: &Fundamental,
     .map(|(i,m)| (i , calc_sampson_distance_for_fundamental(F,m)))
     .collect::<Vec<(usize,Float)>>();
 
+    sorted_indices.sort_unstable_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
+
     let num = sorted_indices.len();
     let take_num = (perc*(num as Float)) as usize;
-    sorted_indices.sort_unstable_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
-    let accepted_indices = HashSet::<usize>::from_iter(sorted_indices.iter().map(|(i,_)| i.clone()));
-    matches.iter().enumerate().filter(|(i,_)| accepted_indices.contains(i)).take(take_num).map(|(_,m)| m.clone()).collect::<Vec<Match<T>>>()
+    let sorted_indices_sub = sorted_indices.into_iter().take(take_num).collect::<Vec<_>>();
+    sorted_indices_sub.into_iter().map(|(i,_)| i).collect()
+
+    //sorted_indices_sub.into_iter().map(|(i,_)| matches[i].clone()).collect::<Vec<Match<T>>>()
 }
 
 pub fn ransac_five_point_essential<T: Feature + Clone, C: Camera<Float>>(matches: &Vec<Match<T>>, camera_one: &C, camera_two: &C, epipolar_thresh: Float, ransac_it: usize) -> Essential {
@@ -133,14 +135,11 @@ pub fn compute_fundamental(E: &Essential, inverse_projection_start: &Matrix3<Flo
  * @TODO: unify principal distance into enum
  */
 #[allow(non_snake_case)]
-pub fn decompose_essential_förstner<T : Feature, C : Camera<Float>>(
+pub fn decompose_essential_förstner<T : Feature>(
     E: &Essential, matches: &Vec<Match<T>>,
-    camera_start: &C,
-    camera_finish: &C) -> (Vector3<Float>, Matrix3<Float>,Matrix3<Float> ) {
+    inverse_camera_matrix_start: &Matrix3<Float>,
+    inverse_camera_matrix_finish: &Matrix3<Float>) -> (Vector3<Float>, Matrix3<Float>,Matrix3<Float> ) {
     assert!(matches.len() > 0);
-
-    let inverse_camera_matrix_start = camera_start.get_inverse_projection();
-    let inverse_camera_matrix_finish = camera_finish.get_inverse_projection();
 
     let svd = E.svd(true,true);
     let u = &svd.u.expect("SVD failed on E");

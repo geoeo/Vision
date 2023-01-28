@@ -117,6 +117,6 @@ impl<T: Feature + PartialEq> PartialEq for Match<T> {
 }
 
 //TODO
-pub fn subsample_matches<T: Feature + Clone>(matches: Vec<Match<T>>, image_width: usize, image_height: usize) -> Vec<Match<T>> {
+pub fn subsample_matches<T: Feature + Clone>(matches: Vec<Match<T>>, _: usize, _: usize) -> Vec<Match<T>> {
     matches
 }

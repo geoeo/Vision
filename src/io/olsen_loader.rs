@@ -1,7 +1,6 @@
 extern crate nalgebra as na;
 
 use na::{DMatrix,Matrix4,Matrix3,Matrix3x4, Vector3};
-use std::fmt::format;
 use std::fs::File;
 use std::io::{BufReader,BufRead};
 use crate::io::{ octave_loader::{load_matrices,load_matrix},load_images};
