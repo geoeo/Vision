@@ -65,7 +65,6 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
         camera_map_ba: HashMap<usize, C2>, matches: Vec<Vec<Vec<Match<Feat>>>>, 
         epipolar_alg: tensor::BifocalType, 
         triangulation: Triangulation, 
-        filter_tracks: bool,
         perc_tresh: Float, 
         epipolar_thresh: Float, 
         refine_rotation_via_rcd: bool,
@@ -81,12 +80,10 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
 
         let image_size = image_width*image_height;
         // Filteres matches according to feature consitency along a path.
-        let accepted_matches = match filter_tracks {
-            true => Self::filter_by_max_tracks(&matches, image_size),
-            false => matches
-        };
+        let accepted_matches = Self::filter_by_max_tracks(&matches, image_size);
 
-        Self::check_for_duplicate_pixel_entries(&accepted_matches);
+        let duplicates_found = Self::check_for_duplicate_pixel_entries(&accepted_matches);
+        assert!(!duplicates_found);
 
         let match_map_initial = Self::generate_match_map(root, &paths,accepted_matches);
 
@@ -168,7 +165,8 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
         (keys_sorted,cameras_sorted)
     }
 
-    fn check_for_duplicate_pixel_entries(matches: &Vec<Vec<Vec<Match<Feat>>>>) -> () {
+    fn check_for_duplicate_pixel_entries(matches: &Vec<Vec<Vec<Match<Feat>>>>) -> bool {
+        let mut duplicates_found = false;
         for path in matches{
             for tracks in path {
                 let mut pixel_map = HashMap::<(usize,usize), (Float, Float,Float, Float)>::with_capacity(1000*1000);
@@ -177,11 +175,13 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
                     let f2 = m.feature_two.get_as_2d_point();
                     let old_value = pixel_map.insert((f[0].trunc() as usize, f[1].trunc() as usize), (f[0], f[1], f2[0], f2[1]));
                     if old_value.is_some() {
+                        duplicates_found = true;
                         println!("Warning: duplicate source entries in track: new: (x: {} y: {}, x f: {} y f: {}), old: (x: {} y: {}, x f: {} y f: {})",  f[0], f[1], f2[0], f2[1], old_value.unwrap().0, old_value.unwrap().1,old_value.unwrap().2, old_value.unwrap().3);
                     }
                 }
             }
         }
+        duplicates_found
     }
 
     //TODO: Doesnt really work robustly
