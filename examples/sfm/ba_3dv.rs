@@ -58,7 +58,7 @@ fn main() -> Result<()> {
         delta_eps: 1e-30,
         taus: vec![1e0],
         lm: true,
-        debug: true,
+        debug: false,
 
         show_octave_result: true,
         loss_function: Box::new(loss::TrivialLoss { eps: 1e-16, approximate_gauss_newton_matrices: false}), 
@@ -92,9 +92,9 @@ fn main() -> Result<()> {
 
     let ((cam_positions,points),(s,debug_states_serialized)) = run_ba(&filtered_matches_per_path, &sfm_config, (480,640), &runtime_parameters, 1.0);
     //let ((cam_positions,points),(s,debug_states_serialized)) = run_ba(&sfm_config.matches(), &sfm_config, None, (480,640), &runtime_parameters, 1.0,depth_prior);
-    fs::write(format!("{}/{}",runtime_conf.local_data_path,"3dv.txt"), s?).expect("Unable to write file");
+    fs::write(format!("{}/{}",runtime_conf.output_path,"3dv.txt"), s?).expect("Unable to write file");
     if runtime_parameters.debug {
-        fs::write(format!("{}/{}",runtime_conf.local_data_path,"3dv_debug.txt"), debug_states_serialized?).expect("Unable to write file");
+        fs::write(format!("{}/{}",runtime_conf.output_path,"3dv_debug.txt"), debug_states_serialized?).expect("Unable to write file");
     }
    
     Ok(())

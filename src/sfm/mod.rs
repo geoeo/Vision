@@ -10,8 +10,8 @@ pub mod quest;
 pub mod rotation_avg;
 
 use std::collections::{HashMap,HashSet};
-use crate::image::{features::{Feature, Match, feature_track::FeatureTrack, solver_feature::SolverFeature, subsample_matches}};
-use crate::sfm::{epipolar::tensor, epipolar::compute_linear_normalization,
+use crate::image::{features::{Feature, Match, feature_track::FeatureTrack, solver_feature::SolverFeature}};
+use crate::sfm::{epipolar::tensor,
     triangulation::{Triangulation, triangulate_matches}, 
     rotation_avg::{optimize_rotations_with_rcd_per_track,optimize_rotations_with_rcd}};
 use crate::sensors::camera::Camera;
@@ -86,6 +86,8 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
             false => matches
         };
 
+        Self::check_for_duplicate_pixel_entries(&accepted_matches);
+
         let match_map_initial = Self::generate_match_map(root, &paths,accepted_matches);
 
         let (mut pose_map,mut match_map) = Self::compute_pose_map(
@@ -95,9 +97,7 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
             match_map_initial,
             perc_tresh, 
             epipolar_thresh,
-            epipolar_alg,
-            image_width,
-            image_height
+            epipolar_alg
         );
 
         let (mut landmark_map, mut reprojection_error_map, min_reprojection_error_initial, max_reprojection_error_initial) =  Self::compute_landmarks_and_reprojection_maps(root,&paths,&pose_map,&match_map,&camera_map,triangulation);
@@ -166,6 +166,22 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
         let keys_sorted = self.get_sorted_camera_keys();
         let cameras_sorted = keys_sorted.iter().map(|id| self.camera_map_lowp.get(id).expect("compute_unqiue_ids_cameras_lowp_root_first: trying to get invalid camera")).collect::<Vec<&C2>>();
         (keys_sorted,cameras_sorted)
+    }
+
+    fn check_for_duplicate_pixel_entries(matches: &Vec<Vec<Vec<Match<Feat>>>>) -> () {
+        for path in matches{
+            for tracks in path {
+                let mut pixel_map = HashMap::<(usize,usize), (Float, Float,Float, Float)>::with_capacity(1000*1000);
+                for m in tracks {
+                    let f = m.feature_one.get_as_2d_point();
+                    let f2 = m.feature_two.get_as_2d_point();
+                    let old_value = pixel_map.insert((f[0].trunc() as usize, f[1].trunc() as usize), (f[0], f[1], f2[0], f2[1]));
+                    if old_value.is_some() {
+                        println!("Warning: duplicate source entries in track: new: (x: {} y: {}, x f: {} y f: {}), old: (x: {} y: {}, x f: {} y f: {})",  f[0], f[1], f2[0], f2[1], old_value.unwrap().0, old_value.unwrap().1,old_value.unwrap().2, old_value.unwrap().3);
+                    }
+                }
+            }
+        }
     }
 
     //TODO: Doesnt really work robustly
@@ -294,30 +310,45 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
             }
         }
 
+        let mut landmark_id = 0;
         let max_path_len: usize = all_paths.iter().map(|x| x.len()).sum();
         for path_idx in 0..all_paths.len() {
             let matches_for_path = all_paths[path_idx].clone();
             let path_len = matches_for_path.len();
             for img_idx in 0..path_len {
                 let current_matches = matches_for_path[img_idx].clone();
+                let mut pixel_set = HashSet::<(usize,usize)>::with_capacity(current_matches.len());
                 for m in &current_matches {
+                    let f1_x = m.feature_one.get_x_image();
+                    let f1_y = m.feature_one.get_y_image();
+                    let k = (f1_x,f1_y);
                     match img_idx {
-                        0 => feature_tracks[path_idx].push(FeatureTrack::new(max_path_len, path_idx, m)),
-                        _ => {
-                                let current_feature_one = &m.feature_one;
-                                let mut found_track = false;
-                                //TODO: Speed up with caching
-                                for track in feature_tracks[path_idx].iter_mut() {
-                                    if (track.get_current_feature() == current_feature_one.clone()) && 
-                                        (track.get_path_img_id() == (path_idx, img_idx-1)) {
-                                        track.add(path_idx,img_idx, m);
-                                        found_track = true;
-                                        break;
-                                    }
+                        0 => {
+                            if !pixel_set.contains(&k) {
+                                feature_tracks[path_idx].push(FeatureTrack::new(max_path_len, path_idx, 0, landmark_id, m));
+                                landmark_id +=1;
+                                pixel_set.insert(k);
+                            }
+                        },
+                        img_idx => {
+                            let current_feature_one = &m.feature_one;
+                            let mut found_track = false;
+                            //TODO: Speed up with caching
+                            for track in feature_tracks[path_idx].iter_mut() {
+                                if (track.get_current_feature() == current_feature_one.clone()) && 
+                                    (track.get_path_img_id() == (path_idx, img_idx-1)) &&
+                                    !pixel_set.contains(&k) {
+                                    track.add(path_idx,img_idx, m);
+                                    found_track = true;
+                                    pixel_set.insert(k);
+                                    break;
                                 }
-                                if !found_track {
-                                    feature_tracks[path_idx].push(FeatureTrack::new(max_path_len, path_idx, m));
-                                }
+                            }
+                            if !(found_track || pixel_set.contains(&k)){
+                                feature_tracks[path_idx].push(FeatureTrack::new(max_path_len, path_idx, img_idx, landmark_id, m));
+                                landmark_id +=1;
+                                pixel_set.insert(k);
+                            }
                         }
                     };
                 }
@@ -388,9 +419,7 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
             mut match_map: HashMap<(usize, usize), Vec<Match<Feat>>>,
             perc_tresh: Float, 
             epipolar_tresh: Float,
-            epipolar_alg: tensor::BifocalType,
-            image_width: usize,
-            image_height: usize) 
+            epipolar_alg: tensor::BifocalType) 
         ->  (HashMap<(usize, usize), Isometry3<Float>>,HashMap<(usize, usize), Vec<Match<Feat>>>) {
             let number_of_paths = paths.len();
             let map_capacity = calc_map_capacity(number_of_paths); //TODO expose this in function args

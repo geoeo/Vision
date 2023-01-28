@@ -1,6 +1,7 @@
 extern crate nalgebra as na;
 
 use na::{DMatrix,Matrix4,Matrix3,Matrix3x4, Vector3};
+use std::collections::HashSet;
 use std::fs::File;
 use std::io::{BufReader,BufRead};
 use crate::io::{ octave_loader::{load_matrices,load_matrix},load_images};
@@ -70,6 +71,8 @@ impl OlssenData {
             assert_eq!(point_idx.fract(),0.0);
             point_correspondence_map[point_idx as usize].1 = Some(i);
         }
+
+
 
         // We flip the y-axis so that the features correspond to the RHS coordiante axis
         point_correspondence_map.iter().filter(|&(v1,v2)| v1.is_some() && v2.is_some()).map(|&(v1,v2)| {

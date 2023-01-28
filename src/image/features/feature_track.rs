@@ -3,14 +3,15 @@ type PathIdx = usize;
 type ImageIdx = usize;
 
 pub struct FeatureTrack<T: Feature> {
-    track: Vec<(PathIdx, ImageIdx, Match<T>)>
+    track: Vec<(PathIdx, ImageIdx, Match<T>)>,
+    landmark_id: usize
 }
 
 impl<T: Feature + Clone + PartialEq> FeatureTrack<T> {
-    pub fn new(capacity: usize,path_idx: usize , m: &Match<T>) -> FeatureTrack<T> {
+    pub fn new(capacity: usize, path_idx: PathIdx, img_idx: ImageIdx, landmark_id: usize, m: &Match<T>) -> FeatureTrack<T> {
         let mut track = Vec::<(PathIdx, ImageIdx, Match<T>)>::with_capacity(capacity);
-        track.push((path_idx ,0, m.clone()));
-        FeatureTrack{track}
+        track.push((path_idx, img_idx, m.clone()));
+        FeatureTrack{track, landmark_id}
     }
 
 
