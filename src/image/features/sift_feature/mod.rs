@@ -16,7 +16,6 @@ pub struct SiftFeature {
     pub y: Float,
     pub sigma_level: Float,
     pub id: Option<u64>
-    //pub sigma: Float
 } 
 
 impl Feature for SiftFeature {
@@ -33,10 +32,7 @@ impl Feature for SiftFeature {
     }
     fn apply_normalisation(&self, _: &na::Matrix3<Float>, _: Float) -> Self {
         panic!("TODO: SiftFeature apply_normalisation")
-    }
-    fn get_lanmark_id(&self) -> Option<usize> {
-        None
-    }
+    }  
 }
 
 impl fmt::Display for SiftFeature {

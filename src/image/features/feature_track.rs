@@ -10,13 +10,15 @@ pub struct FeatureTrack<T: Feature> {
 impl<T: Feature + Clone + PartialEq> FeatureTrack<T> {
     pub fn new(capacity: usize, path_idx: PathIdx, img_idx: ImageIdx, landmark_id: usize, m: &Match<T>) -> FeatureTrack<T> {
         let mut track = Vec::<(PathIdx, ImageIdx, Match<T>)>::with_capacity(capacity);
-        track.push((path_idx, img_idx, m.clone()));
+        let new_m = Match { feature_one: m.feature_one.clone(), feature_two: m.feature_two.clone(), landmark_id: Some(landmark_id)};
+        track.push((path_idx, img_idx, new_m));
         FeatureTrack{track, landmark_id}
     }
 
 
     pub fn add(&mut self, path_idx: PathIdx, image_idx: ImageIdx, m: &Match<T>) -> () {
-        self.track.push((path_idx, image_idx, m.clone()));
+        let new_m = Match { feature_one: m.feature_one.clone(), feature_two: m.feature_two.clone(), landmark_id: Some(self.landmark_id)};
+        self.track.push((path_idx, image_idx, new_m));
     }
 
     /**

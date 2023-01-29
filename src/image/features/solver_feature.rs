@@ -11,7 +11,7 @@ pub trait SolverFeature {
 }
 
 impl SolverFeature for ImageFeature { 
-    fn empty() -> ImageFeature { ImageFeature {location: Point {x: 0.0, y: 0.0}, landmark_id: None } }
+    fn empty() -> ImageFeature { ImageFeature {location: Point {x: 0.0, y: 0.0}} }
     fn update(&mut self, new_value: &Vector2<Float>) {
         self.location.x = new_value[0];
         self.location.y = new_value[1]; 

@@ -25,10 +25,7 @@ impl Feature for KeyPoint {
     }
     fn apply_normalisation(&self, _: &nalgebra::Matrix3<Float>, _: Float) -> Self {
         panic!("TODO: KeyPoint apply_normalisation")
-    }
-    fn get_lanmark_id(&self) -> Option<usize> {
-        None
-    }
+    } 
 }
 
 impl Oriented for KeyPoint {

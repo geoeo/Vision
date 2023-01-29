@@ -42,7 +42,6 @@ pub trait Feature {
         inverse_intrinsics*Vector3::<Float>::new(self.get_x_image_float(), self.get_y_image_float(),-1.0)
     }
     fn apply_normalisation(&self, norm: &Matrix3<Float>, depth: Float) -> Self;
-    fn get_lanmark_id(&self) -> Option<usize>;
 }
 
 
@@ -64,13 +63,12 @@ pub fn orientation<F: Feature>(source_images: &Vec<Image>, feature: &F) -> Float
 
 #[derive(Clone)]
 pub struct ImageFeature {
-    pub location: Point<Float>,
-    pub landmark_id: Option<usize>
+    pub location: Point<Float>
 }
 
 impl ImageFeature {
-    pub fn new(x: Float, y: Float, landmark_id: Option<usize>) -> ImageFeature {
-        ImageFeature{location: Point::new(x, y), landmark_id}
+    pub fn new(x: Float, y: Float) -> ImageFeature {
+        ImageFeature{location: Point::new(x, y)}
     }
 }
 
@@ -88,17 +86,15 @@ impl Feature for ImageFeature {
     fn get_closest_sigma_level(&self) -> usize {0}
     fn apply_normalisation(&self, norm: &Matrix3<Float>, depth: Float) -> Self {
         let v = norm*self.get_as_3d_point(depth);
-        ImageFeature::new(v[0], v[1], self.get_lanmark_id())
-    }
-    fn get_lanmark_id(&self) -> Option<usize> {
-        self.landmark_id
+        ImageFeature::new(v[0], v[1])
     }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Match<T : Feature> {
     pub feature_one: T,
-    pub feature_two: T
+    pub feature_two: T,
+    pub landmark_id: Option<usize>
 }
 
 impl<T: Feature> Match<T> {
@@ -106,7 +102,7 @@ impl<T: Feature> Match<T> {
         let feature_one = self.feature_one.apply_normalisation(norm_one, depth);
         let feature_two = self.feature_two.apply_normalisation(norm_two, depth);
 
-        Match {feature_one, feature_two}
+        Match {feature_one, feature_two, landmark_id: None}
     }
 }
 

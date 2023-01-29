@@ -77,11 +77,11 @@ impl OlssenData {
         // We flip the y-axis so that the features correspond to the RHS coordiante axis
         point_correspondence_map.iter().filter(|&(v1,v2)| v1.is_some() && v2.is_some()).map(|&(v1,v2)| {
             let coords_one = features_img_one.column(v1.unwrap());
-            let feature_one = ImageFeature::new(coords_one[0],(self.height as Float) - 1.0 - coords_one[1], None);
+            let feature_one = ImageFeature::new(coords_one[0],(self.height as Float) - 1.0 - coords_one[1]);
             let coords_two = features_img_two.column(v2.unwrap());
-            let feature_two = ImageFeature::new(coords_two[0],(self.height as Float) - 1.0 - coords_two[1], None);
+            let feature_two = ImageFeature::new(coords_two[0],(self.height as Float) - 1.0 - coords_two[1]);
 
-            Match{feature_one,feature_two}
+            Match{feature_one,feature_two, landmark_id: None}
         }).collect::<Vec<Match<ImageFeature>>>()
     }
 
@@ -127,10 +127,10 @@ impl OlssenData {
             let p2_x_target = (p2_x/img2_width)*target_width;
             let p2_y_target = target_height - 1.0 - (p2_y/img2_height)*target_height;
 
-            let feature_one = ImageFeature::new(p1_x_target, p1_y_target, None);
-            let feature_two = ImageFeature::new(p2_x_target, p2_y_target, None);
+            let feature_one = ImageFeature::new(p1_x_target, p1_y_target);
+            let feature_two = ImageFeature::new(p2_x_target, p2_y_target);
 
-            Match{feature_one,feature_two}
+            Match{feature_one,feature_two, landmark_id: None}
         }).collect::<Vec<_>>()
     }
 

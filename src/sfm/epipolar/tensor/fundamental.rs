@@ -119,7 +119,7 @@ pub fn optimal_correction<T : Feature + SolverFeature + Clone>(initial_F: &Funda
     let max_it = 50;
 
     let mut m_measured = m_measured_in.clone();
-    let mut matches_est = vec![Match { feature_one: T::empty(), feature_two: T::empty() }; m_measured.len()];
+    let mut matches_est = vec![Match { feature_one: T::empty(), feature_two: T::empty(), landmark_id: None }; m_measured.len()];
 
     let mut it = 0;
     let mut u = linearize_fundamental(initial_F);

@@ -32,9 +32,6 @@ impl Feature for OrbFeature {
     fn apply_normalisation(&self, _: &nalgebra::Matrix3<Float>, _: Float) -> Self {
         panic!("TODO: OrbFeature apply_normalisation")
     }
-    fn get_lanmark_id(&self) -> Option<usize> {
-        None
-    }
 }
 
 impl Oriented for OrbFeature {
@@ -44,7 +41,6 @@ impl Oriented for OrbFeature {
 }
 
 impl OrbFeature {
-
     pub fn new(images: &Vec<Image>, octave_idx: i32, runtime_parameters: &OrbRuntimeParameters) -> Vec<OrbFeature> {
         assert!(images.len() == 1);
 

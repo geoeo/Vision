@@ -43,11 +43,15 @@ impl CameraFeatureMap {
 
     pub const NO_FEATURE_FLAG : Float = -1.0;
 
-    pub fn new<T: Feature>(matches: & Vec<Vec<Vec<Match<T>>>>, cam_ids: Vec<usize>, image_row_col: (usize,usize)) -> CameraFeatureMap {
+    pub fn new<T: Feature>(matches: &Vec<Vec<Vec<Match<T>>>>, cam_ids: Vec<usize>, image_row_col: (usize,usize)) -> CameraFeatureMap {
+        // let number_of_landmarks = match_map.values().map(|ms| {
+        //     ms.iter().map(|m| m.landmark_id.expect("CameraFeatureMap: Error no landmark id present for match")).max().expect("CameraFeatureMap: Error computing max for matches")
+        // }).max().expect("CameraFeatureMap: Error computing max landmark id")+1;
         let number_of_landmarks = matches.iter().flatten().fold(0,|acc,x| acc + x.len());
         let n_cams = cam_ids.len();
         let mut camera_feature_map = CameraFeatureMap{
             camera_map:  HashMap::new(),
+            //number_of_unique_landmarks: number_of_landmarks,
             number_of_unique_landmarks: 0,
             feature_location_lookup: vec![vec![None;n_cams]; number_of_landmarks],
             landmark_match_lookup: HashMap::new(),
@@ -66,8 +70,6 @@ impl CameraFeatureMap {
         p_y*self.image_row_col.1+p_x
     }
 
-
-    //TODO: move landmark id generation to track generation! 
     pub fn add_feature<Feat: Feature>(&mut self, source_cam_id: usize, other_cam_id: usize, m: &Match<Feat>) -> () {
         
         let point_source_x = m.feature_one.get_x_image();
@@ -94,14 +96,16 @@ impl CameraFeatureMap {
         
         let key = (internal_source_cam_id, point_source_x, point_source_y,
         internal_other_cam_id,point_other_x, point_other_y);
+        let landmark_id_2 =  m.landmark_id.expect("Error: Landmark id empty in Camera Feature Maps"); // Track landmark id get assigned before feature filtering -> Bad source of bug
+        let landmark_id =  self.number_of_unique_landmarks;
         match (source_point_id.clone(),other_point_id.clone()) {
             //If the no point Id is present in either of the two camera it is a new 3D Point
             (None,None) => {
-                self.feature_location_lookup[self.number_of_unique_landmarks][internal_source_cam_id] = Some((point_source_x_float,point_source_y_float));
-                self.feature_location_lookup[self.number_of_unique_landmarks][internal_other_cam_id] = Some((point_other_x_float,point_other_y_float));
-                self.camera_map.get_mut(&source_cam_id).unwrap().1.insert(point_source_idx,self.number_of_unique_landmarks);
-                self.camera_map.get_mut(&other_cam_id).unwrap().1.insert(point_other_idx, self.number_of_unique_landmarks);
-                self.landmark_match_lookup.insert(key, self.number_of_unique_landmarks);
+                self.feature_location_lookup[landmark_id][internal_source_cam_id] = Some((point_source_x_float,point_source_y_float));
+                self.feature_location_lookup[landmark_id][internal_other_cam_id] = Some((point_other_x_float,point_other_y_float));
+                self.camera_map.get_mut(&source_cam_id).unwrap().1.insert(point_source_idx, landmark_id);
+                self.camera_map.get_mut(&other_cam_id).unwrap().1.insert(point_other_idx, landmark_id);
+                self.landmark_match_lookup.insert(key, landmark_id);
                 self.number_of_unique_landmarks += 1;
             },
             // Otherwise add it to the camera which observs it for the first time

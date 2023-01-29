@@ -14,7 +14,6 @@ pub struct FastFeature {
 }
 
 impl Feature for FastFeature {
-
     fn get_x_image_float(&self) -> Float { self.get_x_image() as Float}
     fn get_y_image_float(&self) -> Float { self.get_y_image() as Float}
     fn get_x_image(&self) -> usize {
@@ -28,9 +27,6 @@ impl Feature for FastFeature {
     }
     fn apply_normalisation(&self, _: &nalgebra::Matrix3<Float>, _: Float) -> Self {
         panic!("TODO: FastFeature apply_normalisation")
-    }
-    fn get_lanmark_id(&self) -> Option<usize> {
-        None
     }
 }
 
@@ -142,8 +138,6 @@ impl FastFeature {
 
 
     pub fn compute_valid_features(image: &Image,octave_idx: i32, runtime_parameters: &OrbRuntimeParameters) -> Vec<FastFeature> {
-
-
         let orig_offset = runtime_parameters.fast_offsets;
         let offset_scale = runtime_parameters.fast_offset_scale_base.powi(octave_idx) as Float;
         let x_offset_scaled = (orig_offset.0 as Float / offset_scale).trunc() as usize;
