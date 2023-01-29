@@ -17,23 +17,21 @@ impl Feature for FastFeature {
 
     fn get_x_image_float(&self) -> Float { self.get_x_image() as Float}
     fn get_y_image_float(&self) -> Float { self.get_y_image() as Float}
-
     fn get_x_image(&self) -> usize {
         self.location.x
     }
-
     fn get_y_image(&self) -> usize {
         self.location.y
     }
-
     fn get_closest_sigma_level(&self) -> usize {
         0
     }
-
     fn apply_normalisation(&self, _: &nalgebra::Matrix3<Float>, _: Float) -> Self {
         panic!("TODO: FastFeature apply_normalisation")
     }
-
+    fn get_lanmark_id(&self) -> Option<usize> {
+        None
+    }
 }
 
 impl FastFeature {
