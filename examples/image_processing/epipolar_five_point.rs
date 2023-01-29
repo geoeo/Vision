@@ -55,12 +55,12 @@ fn main() -> Result<()> {
     for i in 0..5 {
         let f1 = x1h.column(i);
         let f2 = x2h.column(i);
-        let feature_one = ImageFeature::new(f1[0],f1[1]);
-        let feature_two = ImageFeature::new(f2[0],f2[1]);
+        let feature_one = ImageFeature::new(f1[0],f1[1], None);
+        let feature_two = ImageFeature::new(f2[0],f2[1], None);
         let m = Match::<ImageFeature>{feature_one,feature_two};
         synth_matches.push(m);
     }
-    let all_feature_matches = epipolar::extract_matches(&synth_matches, 1.0); 
+    let all_feature_matches = synth_matches;
     let gt = epipolar::tensor::essential_matrix_from_motion(&t,&R);
     let factor = gt[(2,2)];
     let gt_norm = gt.map(|x| x/factor);

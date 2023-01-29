@@ -35,15 +35,14 @@ pub trait Feature {
     fn get_as_2d_point(&self) -> Vector2<Float> {
         Vector2::<Float>::new(self.get_x_image_float(), self.get_y_image_float())
     }
-
     /**
      * Gets the camera ray for image points which are assumed to lie on the focal plane with depth -1
      */
     fn get_camera_ray(&self, inverse_intrinsics: &Matrix3<Float>) -> Vector3<Float> {
         inverse_intrinsics*Vector3::<Float>::new(self.get_x_image_float(), self.get_y_image_float(),-1.0)
     }
-
     fn apply_normalisation(&self, norm: &Matrix3<Float>, depth: Float) -> Self;
+    fn get_lanmark_id(&self) -> Option<usize>;
 }
 
 
@@ -65,12 +64,13 @@ pub fn orientation<F: Feature>(source_images: &Vec<Image>, feature: &F) -> Float
 
 #[derive(Clone)]
 pub struct ImageFeature {
-    pub location: Point<Float>
+    pub location: Point<Float>,
+    pub landmark_id: Option<usize>
 }
 
 impl ImageFeature {
-    pub fn new(x: Float, y: Float) -> ImageFeature {
-        ImageFeature{location: Point::new(x, y)}
+    pub fn new(x: Float, y: Float, landmark_id: Option<usize>) -> ImageFeature {
+        ImageFeature{location: Point::new(x, y), landmark_id}
     }
 }
 
@@ -81,7 +81,6 @@ impl PartialEq for ImageFeature {
 }
 
 impl Feature for ImageFeature {
-
     fn get_x_image_float(&self) -> Float { self.location.x }
     fn get_y_image_float(&self) -> Float { self.location.y }
     fn get_x_image(&self) -> usize { self.location.x.trunc() as usize}
@@ -89,9 +88,11 @@ impl Feature for ImageFeature {
     fn get_closest_sigma_level(&self) -> usize {0}
     fn apply_normalisation(&self, norm: &Matrix3<Float>, depth: Float) -> Self {
         let v = norm*self.get_as_3d_point(depth);
-        ImageFeature::new(v[0], v[1])
+        ImageFeature::new(v[0], v[1], self.get_lanmark_id())
     }
-
+    fn get_lanmark_id(&self) -> Option<usize> {
+        self.landmark_id
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

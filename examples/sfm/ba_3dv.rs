@@ -89,7 +89,7 @@ fn main() -> Result<()> {
 
     let (initial_cam_motions_per_path,filtered_matches_per_path) = sfm_config.compute_lists_from_maps();
 
-    let ((cam_positions,points),(s,debug_states_serialized)) = run_ba(&filtered_matches_per_path, &sfm_config, (480,640), &runtime_parameters, 1.0);
+    let ((cam_positions,points),(s,debug_states_serialized)) = run_ba(&filtered_matches_per_path, &sfm_config, (480,640), &runtime_parameters);
     //let ((cam_positions,points),(s,debug_states_serialized)) = run_ba(&sfm_config.matches(), &sfm_config, None, (480,640), &runtime_parameters, 1.0,depth_prior);
     fs::write(format!("{}/{}",runtime_conf.output_path,"3dv.txt"), s?).expect("Unable to write file");
     if runtime_parameters.debug {

@@ -22,23 +22,21 @@ pub struct SiftFeature {
 impl Feature for SiftFeature {
     fn get_x_image_float(&self) -> Float { self.get_x_image() as Float}
     fn get_y_image_float(&self) -> Float { self.get_y_image() as Float}
-
     fn get_x_image(&self) -> usize {
         self.x.trunc() as usize
     }
-
     fn get_y_image(&self) -> usize {
         self.y.trunc() as usize
     }
-
     fn get_closest_sigma_level(&self) -> usize {
         self.sigma_level.trunc() as usize
     }
-
     fn apply_normalisation(&self, _: &na::Matrix3<Float>, _: Float) -> Self {
         panic!("TODO: SiftFeature apply_normalisation")
     }
-
+    fn get_lanmark_id(&self) -> Option<usize> {
+        None
+    }
 }
 
 impl fmt::Display for SiftFeature {

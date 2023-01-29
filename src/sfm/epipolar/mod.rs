@@ -40,7 +40,7 @@ pub fn compute_linear_normalization<T: Feature>(matches: &Vec<Match<T>>) -> (Mat
     let (avg_dist_one, avg_dist_two) =  matches.iter().fold((0.0, 0.0), |acc, m| (acc.0 + (m.feature_one.get_as_2d_point()-avg_one).norm_squared(), acc.1 + (m.feature_two.get_as_2d_point()-avg_two).norm_squared()));
     let sqrt_factor = (2.0 as Float).sqrt();
 
-    //TODO: Move landmark id to track generation. Currently scaled pixels map to a e.g 5x5 region
+    //TODO: Move landmark id to track generation. Currently scaled pixels map to very small region e.g 5x5 region
     let s_one = 1.0/(avg_dist_one/(l_as_float-1.0)).sqrt();
     let s_two = 1.0/(avg_dist_two/(l_as_float-1.0)).sqrt();
 
@@ -69,14 +69,6 @@ pub fn compute_linear_normalization<T: Feature>(matches: &Vec<Match<T>>) -> (Mat
 
     (normalization_matrix_one, normalization_matrix_one_inv, normalization_matrix_two, normalization_matrix_two_inv)
 
-}
-
-pub fn extract_matches<T: Feature>(matches: &Vec<Match<T>>, pyramid_scale: Float) -> Vec<Match<ImageFeature>> {
-    matches.iter().map(|feature| {
-        let (r_x, r_y) = feature.feature_two.reconstruct_original_coordiantes_for_float(pyramid_scale);
-        let (l_x, l_y) = feature.feature_one.reconstruct_original_coordiantes_for_float(pyramid_scale);
-        Match { feature_one: ImageFeature::new(l_x,l_y), feature_two: ImageFeature::new(r_x,r_y)}
-    }).collect()
 }
 
 #[allow(non_snake_case)]

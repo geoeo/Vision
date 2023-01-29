@@ -13,7 +13,7 @@ use crate::image::{
 };
 use crate::sfm::{bundle_adjustment::state::State, landmark::{Landmark, euclidean_landmark::EuclideanLandmark, inverse_depth_landmark::InverseLandmark}};
 use crate::sensors::camera::Camera;
-use crate::{Float, reconstruct_original_coordiantes_for_float};
+use crate::Float;
 
 /**
  * For only feature pairs between cams is assumed.
@@ -62,25 +62,29 @@ impl CameraFeatureMap {
         camera_feature_map
     }
 
-    fn linear_image_idx(&self, p: &Point<Float>) -> usize {
-        (p.y as usize)*self.image_row_col.1+(p.x as usize)
+    fn linear_image_idx(&self, p_x: usize, p_y: usize) -> usize {
+        p_y*self.image_row_col.1+p_x
     }
 
 
-    //TODO: move landmark id generation to track generation
-    pub fn add_feature(&mut self, source_cam_id: usize, other_cam_id: usize, 
-        x_source: Float, y_source: Float, octave_index_source: usize, 
-        x_other: Float, y_other: Float, octave_index_other: usize,  
-        pyramid_scale: Float) -> () {
+    //TODO: move landmark id generation to track generation! 
+    pub fn add_feature<Feat: Feature>(&mut self, source_cam_id: usize, other_cam_id: usize, m: &Match<Feat>) -> () {
+        
+        let point_source_x = m.feature_one.get_x_image();
+        let point_source_y = m.feature_one.get_y_image();
 
-        let (x_source_recon,y_source_recon) = reconstruct_original_coordiantes_for_float(x_source, y_source, pyramid_scale, octave_index_source as i32);
-        let (x_other_recon,y_other_recon) = reconstruct_original_coordiantes_for_float(x_other, y_other, pyramid_scale, octave_index_other as i32);
-        let point_source = Point::<Float>::new(x_source_recon,y_source_recon);
-        let point_other = Point::<Float>::new(x_other_recon,y_other_recon); 
+        let point_other_x = m.feature_two.get_x_image();
+        let point_other_y = m.feature_two.get_y_image();
+
+        let point_source_x_float = m.feature_one.get_x_image_float();
+        let point_source_y_float = m.feature_one.get_y_image_float();
+
+        let point_other_x_float = m.feature_two.get_x_image_float();
+        let point_other_y_float = m.feature_two.get_y_image_float();
         
         //Linearized Pixel Coordiante as Point ID
-        let point_source_idx = self.linear_image_idx(&point_source);
-        let point_other_idx = self.linear_image_idx(&point_other);
+        let point_source_idx = self.linear_image_idx(point_source_x,point_source_y);
+        let point_other_idx = self.linear_image_idx(point_other_x,point_other_y);
 
         let internal_source_cam_id = self.camera_map.get(&source_cam_id).unwrap().0;
         let internal_other_cam_id = self.camera_map.get(&other_cam_id).unwrap().0;
@@ -88,13 +92,13 @@ impl CameraFeatureMap {
         let source_point_id =  self.camera_map.get(&source_cam_id).unwrap().1.get(&point_source_idx);
         let other_point_id = self.camera_map.get(&other_cam_id).unwrap().1.get(&point_other_idx);
         
-        let key = (internal_source_cam_id, point_source.x.floor() as usize ,point_source.y.floor() as usize,
-        internal_other_cam_id,point_other.x.floor() as usize, point_other.y.floor() as usize);
+        let key = (internal_source_cam_id, point_source_x, point_source_y,
+        internal_other_cam_id,point_other_x, point_other_y);
         match (source_point_id.clone(),other_point_id.clone()) {
             //If the no point Id is present in either of the two camera it is a new 3D Point
             (None,None) => {
-                self.feature_location_lookup[self.number_of_unique_landmarks][internal_source_cam_id] = Some((point_source.x,point_source.y));
-                self.feature_location_lookup[self.number_of_unique_landmarks][internal_other_cam_id] = Some((point_other.x,point_other.y));
+                self.feature_location_lookup[self.number_of_unique_landmarks][internal_source_cam_id] = Some((point_source_x_float,point_source_y_float));
+                self.feature_location_lookup[self.number_of_unique_landmarks][internal_other_cam_id] = Some((point_other_x_float,point_other_y_float));
                 self.camera_map.get_mut(&source_cam_id).unwrap().1.insert(point_source_idx,self.number_of_unique_landmarks);
                 self.camera_map.get_mut(&other_cam_id).unwrap().1.insert(point_other_idx, self.number_of_unique_landmarks);
                 self.landmark_match_lookup.insert(key, self.number_of_unique_landmarks);
@@ -102,13 +106,13 @@ impl CameraFeatureMap {
             },
             // Otherwise add it to the camera which observs it for the first time
             (Some(&point_id),_) => {
-                self.feature_location_lookup[point_id][internal_other_cam_id] = Some((point_other.x,point_other.y));
+                self.feature_location_lookup[point_id][internal_other_cam_id] = Some((point_other_x_float,point_other_y_float));
                 self.camera_map.get_mut(&other_cam_id).unwrap().1.insert(point_other_idx, point_id);
                 self.landmark_match_lookup.insert(key, point_id);
             },
             (None,Some(&point_id)) => {
                 self.camera_map.get_mut(&source_cam_id).unwrap().1.insert(point_source_idx,point_id);
-                self.feature_location_lookup[point_id][internal_source_cam_id] = Some((point_source.x,point_source.y));
+                self.feature_location_lookup[point_id][internal_source_cam_id] = Some((point_source_x_float,point_source_y_float));
                 self.landmark_match_lookup.insert(key, point_id);
             }
 
@@ -116,7 +120,7 @@ impl CameraFeatureMap {
 
     }
 
-    pub fn add_matches<T: Feature>(&mut self, path_id_pairs: &Vec<Vec<(usize, usize)>>, matches: &Vec<Vec<Vec<Match<T>>>>, pyramid_scale: Float) -> () {
+    pub fn add_matches<T: Feature>(&mut self, path_id_pairs: &Vec<Vec<(usize, usize)>>, matches: &Vec<Vec<Vec<Match<T>>>>) -> () {
         let path_id_pairs_flattened = path_id_pairs.iter().flatten().collect::<Vec<&(usize, usize)>>();        let matches_flattened = matches.iter().flatten().collect::<Vec<&Vec<Match<T>>>>();
         assert_eq!(path_id_pairs_flattened.len(), matches_flattened.len());
         for i in 0..path_id_pairs_flattened.len(){
@@ -124,13 +128,7 @@ impl CameraFeatureMap {
             let matches_for_pair = matches_flattened[i];
 
             for feature_match in matches_for_pair {
-                let match_a = &feature_match.feature_one;
-                let match_b = &feature_match.feature_two;
-
-                self.add_feature(*id_a, *id_b, 
-                    match_a.get_x_image_float(), match_a.get_y_image_float(), match_a.get_closest_sigma_level(),
-                    match_b.get_x_image_float(), match_b.get_y_image_float(), match_b.get_closest_sigma_level(),
-                    pyramid_scale);
+                self.add_feature(*id_a, *id_b, feature_match);
             }
         }
     }
@@ -165,7 +163,7 @@ impl CameraFeatureMap {
     }
 
     pub fn get_euclidean_landmark_state<F: float::Float + Scalar + NumAssign + SimdRealField + ComplexField + Mul<F> + From<F> + RealField + SubsetOf<Float> + SupersetOf<Float>, Feat: Feature>(
-        &mut self, paths: &Vec<Vec<(usize,usize)>>, 
+        &self, paths: &Vec<Vec<(usize,usize)>>, 
         match_map: &HashMap<(usize, usize), Vec<Match<Feat>>>, 
         pose_map: &HashMap<(usize, usize), Isometry3<Float>>,
         landmark_map: &HashMap<(usize, usize), Matrix4xX<Float>>,
@@ -275,12 +273,11 @@ impl CameraFeatureMap {
      * This vector has ordering In the format [f1_cam1, f1_cam2,...] where cam_id(cam_n-1) < cam_id(cam_n) 
      */
     pub fn get_observed_features<F: float::Float + Scalar + NumAssign + SimdRealField + ComplexField + Mul<F> + From<F> + RealField + SubsetOf<Float> + SupersetOf<Float>>(&self, invert_feature_y: bool) -> DVector<F> {
-        let n_points = self.number_of_unique_landmarks;
         let n_cams = self.camera_map.keys().len();
-        let mut observed_features = DVector::<F>::zeros(n_points*n_cams*2); // some entries might be invalid
+        let mut observed_features = DVector::<F>::zeros(self.number_of_unique_landmarks*n_cams*2); // some entries might be invalid
         let c_y = (self.image_row_col.0 - 1) as Float; 
 
-        for landmark_idx in 0..n_points {
+        for landmark_idx in 0..self.number_of_unique_landmarks {
             let observing_cams = &self.feature_location_lookup[landmark_idx];
             let offset =  2*landmark_idx*n_cams;
             for c in 0..n_cams {

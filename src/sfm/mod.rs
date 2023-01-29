@@ -11,7 +11,7 @@ pub mod rotation_avg;
 
 use std::collections::{HashMap,HashSet};
 use crate::image::{features::{Feature, Match, feature_track::FeatureTrack, solver_feature::SolverFeature}};
-use crate::sfm::{epipolar::tensor,
+use crate::sfm::{epipolar::tensor, epipolar::compute_linear_normalization,
     triangulation::{Triangulation, triangulate_matches}, 
     rotation_avg::{optimize_rotations_with_rcd_per_track,optimize_rotations_with_rcd}};
 use crate::sensors::camera::Camera;
@@ -82,8 +82,7 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
         // Filteres matches according to feature consitency along a path.
         let accepted_matches = Self::filter_by_max_tracks(&matches, image_size);
 
-        let duplicates_found = Self::check_for_duplicate_pixel_entries(&accepted_matches);
-        assert!(!duplicates_found);
+        let _ = Self::check_for_duplicate_pixel_entries(&accepted_matches);
 
         let match_map_initial = Self::generate_match_map(root, &paths,accepted_matches);
 
@@ -98,7 +97,7 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
         );
 
         let (mut landmark_map, mut reprojection_error_map, min_reprojection_error_initial, max_reprojection_error_initial) =  Self::compute_landmarks_and_reprojection_maps(root,&paths,&pose_map,&match_map,&camera_map,triangulation);
-        println!("SFM Config Max Reprojection Error: {}, Min Reprojection Error: {}", max_reprojection_error_initial, min_reprojection_error_initial);
+        println!("SFM Config Max Reprojection Error 1): {}, Min Reprojection Error: {}", max_reprojection_error_initial, min_reprojection_error_initial);
         let mut landmark_cutoff = Self::calc_landmark_cutoff(max_reprojection_error_initial);    
         Self::reject_landmark_outliers( &mut landmark_map, &mut reprojection_error_map, &mut match_map, landmark_cutoff);
         if refine_rotation_via_rcd {
@@ -118,9 +117,10 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
         }
 
         let (min_reprojection_error_refined, max_reprojection_error_refined) = Self::compute_reprojection_ranges(&reprojection_error_map);
+        println!("SFM Config Max Reprojection Error 2): {}, Min Reprojection Error: {}", max_reprojection_error_refined, min_reprojection_error_refined);
         landmark_cutoff = Self::calc_landmark_cutoff(max_reprojection_error_refined);    
-        Self::reject_landmark_outliers( &mut landmark_map, &mut reprojection_error_map, &mut match_map, landmark_cutoff);
-        println!("SFM Config Max Reprojection Error: {}, Min Reprojection Error: {}", max_reprojection_error_refined, min_reprojection_error_refined);
+        Self::reject_landmark_outliers(&mut landmark_map, &mut reprojection_error_map, &mut match_map, landmark_cutoff);
+
 
         SFMConfig{root, paths, camera_map_highp: camera_map, camera_map_lowp: camera_map_ba, match_map, pose_map, epipolar_alg, landmark_map, reprojection_error_map,triangulation}
     }
@@ -449,6 +449,7 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
 
                             //let filtered_indices = tensor::select_best_matches_from_fundamental(&f,m,perc_tresh, epipolar_tresh);
                             let filtered = filtered_indices.iter().map(|i| m[*i].clone()).collect::<Vec<Match<Feat>>>();
+                            //let filtered_norm = filtered_indices.iter().map(|i| m_norm[*i].clone()).collect::<Vec<Match<Feat>>>();
 
                             let e = tensor::compute_essential(&f,&c1.get_projection(),&c2.get_projection());
 
@@ -461,6 +462,7 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
 
                             let filtered_indices = tensor::select_best_matches_from_fundamental(&f,m,perc_tresh, epipolar_tresh);
                             let filtered = filtered_indices.iter().map(|i| m[*i].clone()).collect::<Vec<Match<Feat>>>();
+                            //let filtered_norm = filtered_indices.iter().map(|i| m_norm[*i].clone()).collect::<Vec<Match<Feat>>>();
 
                             (e, filtered)
                         },
@@ -470,6 +472,7 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
 
                             let filtered_indices = tensor::select_best_matches_from_fundamental(&f,m,perc_tresh, epipolar_tresh);
                             let filtered = filtered_indices.iter().map(|i| m[*i].clone()).collect::<Vec<Match<Feat>>>();
+                            //let filtered_norm = filtered_indices.iter().map(|i| m_norm[*i].clone()).collect::<Vec<Match<Feat>>>();
 
                             (e, filtered)
                         }

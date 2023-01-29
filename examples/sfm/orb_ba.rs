@@ -91,7 +91,7 @@ fn main() -> Result<()> {
 
     let (_,filtered_matches) = sfm_config.compute_lists_from_maps();
 
-    let ((cam_positions,points),(s,debug_states_serialized)) = run_ba(&filtered_matches, &sfm_config, (image_1.buffer.nrows(),image_1.buffer.ncols()), &runtime_parameters, 1.0);
+    let ((cam_positions,points),(s,debug_states_serialized)) = run_ba(&filtered_matches, &sfm_config, (image_1.buffer.nrows(),image_1.buffer.ncols()), &runtime_parameters);
     fs::write(format!("D:/Workspace/Rust/Vision/output/orb_ba.txt"), s?).expect("Unable to write file");
     if runtime_parameters.debug {
         fs::write(format!("D:/Workspace/Rust/Vision/output/orb_ba_debug.txt"), debug_states_serialized?).expect("Unable to write file");

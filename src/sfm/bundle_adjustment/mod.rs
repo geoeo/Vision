@@ -19,7 +19,7 @@ pub mod solver;
 pub mod state;
 
 pub fn run_ba<F: serde::Serialize + float::Float + Scalar + NumAssign + SimdRealField + ComplexField + Mul<F> + From<F> + RealField + SubsetOf<Float> + SupersetOf<Float>, C : Camera<Float> + Copy, C2: Camera<F> + Copy, T : Feature + Clone + PartialEq + SolverFeature>(
-    matches: &Vec<Vec<Vec<Match<T>>>>, sfm_config: &SFMConfig<C, C2, T>,img_dim : (usize,usize) ,runtime_parameters: &RuntimeParameters<F>, pyramid_scale: Float) 
+    matches: &Vec<Vec<Vec<Match<T>>>>, sfm_config: &SFMConfig<C, C2, T>,img_dim : (usize,usize) ,runtime_parameters: &RuntimeParameters<F>) 
                                 -> ((Vec<Isometry3<F>>, Vec<Vector3<F>>), (serde_yaml::Result<String>, serde_yaml::Result<String>)){
 
 
@@ -28,7 +28,7 @@ pub fn run_ba<F: serde::Serialize + float::Float + Scalar + NumAssign + SimdReal
     let path_id_pairs = sfm_config.compute_path_id_pairs();
 
     let mut feature_map = CameraFeatureMap::new(matches,unique_camera_ids_sorted, img_dim);
-    feature_map.add_matches(&path_id_pairs,matches, pyramid_scale);
+    feature_map.add_matches(&path_id_pairs,matches);
 
     //TODO: switch impl on landmark state
     let mut state = feature_map.get_euclidean_landmark_state(
