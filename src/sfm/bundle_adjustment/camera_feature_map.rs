@@ -51,8 +51,8 @@ impl CameraFeatureMap {
         let n_cams = cam_ids.len();
         let mut camera_feature_map = CameraFeatureMap{
             camera_map:  HashMap::new(),
-            //number_of_unique_landmarks: number_of_landmarks,
-            number_of_unique_landmarks: 0,
+            number_of_unique_landmarks: number_of_landmarks,
+            //number_of_unique_landmarks: 0,
             feature_location_lookup: vec![vec![None;n_cams]; number_of_landmarks],
             landmark_match_lookup: HashMap::new(),
             image_row_col
@@ -71,7 +71,6 @@ impl CameraFeatureMap {
     }
 
     pub fn add_feature<Feat: Feature>(&mut self, source_cam_id: usize, other_cam_id: usize, m: &Match<Feat>) -> () {
-        
         let point_source_x = m.feature_one.get_x_image();
         let point_source_y = m.feature_one.get_y_image();
 
@@ -91,36 +90,44 @@ impl CameraFeatureMap {
         let internal_source_cam_id = self.camera_map.get(&source_cam_id).unwrap().0;
         let internal_other_cam_id = self.camera_map.get(&other_cam_id).unwrap().0;
         
-        let source_point_id =  self.camera_map.get(&source_cam_id).unwrap().1.get(&point_source_idx);
-        let other_point_id = self.camera_map.get(&other_cam_id).unwrap().1.get(&point_other_idx);
-        
         let key = (internal_source_cam_id, point_source_x, point_source_y,
         internal_other_cam_id,point_other_x, point_other_y);
-        //let landmark_id =  m.landmark_id.expect("Error: Landmark id empty in Camera Feature Maps"); // Track landmark id get assigned before feature filtering -> Bad source of bug
-        let landmark_id =  self.number_of_unique_landmarks;
-        match (source_point_id.clone(),other_point_id.clone()) {
-            //If the no point Id is present in either of the two camera it is a new 3D Point
-            (None,None) => {
-                self.feature_location_lookup[landmark_id][internal_source_cam_id] = Some((point_source_x_float,point_source_y_float));
-                self.feature_location_lookup[landmark_id][internal_other_cam_id] = Some((point_other_x_float,point_other_y_float));
-                self.camera_map.get_mut(&source_cam_id).unwrap().1.insert(point_source_idx, landmark_id);
-                self.camera_map.get_mut(&other_cam_id).unwrap().1.insert(point_other_idx, landmark_id);
-                self.landmark_match_lookup.insert(key, landmark_id);
-                self.number_of_unique_landmarks += 1;
-            },
-            // Otherwise add it to the camera which observs it for the first time
-            (Some(&point_id),_) => {
-                self.feature_location_lookup[point_id][internal_other_cam_id] = Some((point_other_x_float,point_other_y_float));
-                self.camera_map.get_mut(&other_cam_id).unwrap().1.insert(point_other_idx, point_id);
-                self.landmark_match_lookup.insert(key, point_id);
-            },
-            (None,Some(&point_id)) => {
-                self.camera_map.get_mut(&source_cam_id).unwrap().1.insert(point_source_idx,point_id);
-                self.feature_location_lookup[point_id][internal_source_cam_id] = Some((point_source_x_float,point_source_y_float));
-                self.landmark_match_lookup.insert(key, point_id);
-            }
 
-        }
+        let landmark_id = m.landmark_id.expect("Error: Landmark id empty in Camera Feature Maps"); // Track landmark id get assigned before feature filtering -> Bad source of bug
+        self.feature_location_lookup[landmark_id][internal_source_cam_id] = Some((point_source_x_float,point_source_y_float));
+        self.feature_location_lookup[landmark_id][internal_other_cam_id] = Some((point_other_x_float,point_other_y_float));
+        self.camera_map.get_mut(&source_cam_id).unwrap().1.insert(point_source_idx, landmark_id);
+        self.camera_map.get_mut(&other_cam_id).unwrap().1.insert(point_other_idx, landmark_id);
+        self.landmark_match_lookup.insert(key, landmark_id);
+
+
+        // let source_point_id =  self.camera_map.get(&source_cam_id).unwrap().1.get(&point_source_idx);
+        // let other_point_id = self.camera_map.get(&other_cam_id).unwrap().1.get(&point_other_idx);
+
+        //let landmark_id = self.number_of_unique_landmarks;
+        // match (source_point_id.clone(),other_point_id.clone()) {
+        //     //If the no point Id is present in either of the two camera it is a new 3D Point
+        //     (None,None) => {
+        //         self.feature_location_lookup[landmark_id][internal_source_cam_id] = Some((point_source_x_float,point_source_y_float));
+        //         self.feature_location_lookup[landmark_id][internal_other_cam_id] = Some((point_other_x_float,point_other_y_float));
+        //         self.camera_map.get_mut(&source_cam_id).unwrap().1.insert(point_source_idx, landmark_id);
+        //         self.camera_map.get_mut(&other_cam_id).unwrap().1.insert(point_other_idx, landmark_id);
+        //         self.landmark_match_lookup.insert(key, landmark_id);
+        //         self.number_of_unique_landmarks += 1;
+        //     },
+        //     // Otherwise add it to the camera which observs it for the first time
+        //     (Some(&point_id),_) => {
+        //         self.feature_location_lookup[point_id][internal_other_cam_id] = Some((point_other_x_float,point_other_y_float));
+        //         self.camera_map.get_mut(&other_cam_id).unwrap().1.insert(point_other_idx, point_id);
+        //         self.landmark_match_lookup.insert(key, point_id);
+        //     },
+        //     (None,Some(&point_id)) => {
+        //         self.camera_map.get_mut(&source_cam_id).unwrap().1.insert(point_source_idx,point_id);
+        //         self.feature_location_lookup[point_id][internal_source_cam_id] = Some((point_source_x_float,point_source_y_float));
+        //         self.landmark_match_lookup.insert(key, point_id);
+        //     }
+
+        //}
 
     }
 

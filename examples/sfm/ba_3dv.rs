@@ -82,7 +82,8 @@ fn main() -> Result<()> {
     //let sfm_config = SFMConfig::new(2, vec!(vec!(3,4), vec!(1)), camera_map.clone(), camera_map, vec!(vec!(matches_2_3,matches_3_4),vec!(matches_1_0)),
 
     //let sfm_config = SFMConfig::new(2, vec!(vec!(1), vec!(3), vec!(4), vec!(0)), camera_map.clone(), camera_map, vec!(vec!(matches_2_1),vec!(matches_2_3),vec!(matches_2_4),vec!(matches_2_0)),
-    let sfm_config = SFMConfig::new(2, vec!(vec!(1,0), vec!(3,4)), camera_map.clone(), camera_map, vec!(vec!(matches_2_1,matches_1_0),vec!(matches_2_3,matches_3_4)),
+    //let sfm_config = SFMConfig::new(2, vec!(vec!(1,0), vec!(3,4)), camera_map.clone(), camera_map, vec!(vec!(matches_2_1,matches_1_0),vec!(matches_2_3,matches_3_4)),
+    let sfm_config = SFMConfig::new(2, vec!(vec!(1,0,3,4)), camera_map.clone(), camera_map, vec!(vec!(matches_2_1,matches_1_0,matches_0_3,matches_3_4)),
     //let sfm_config = SFMConfig::new(3, vec!(vec!(4)), camera_map.clone(), camera_map, vec!(vec!(matches_3_4)),
 
     BifocalType::QUEST,  Triangulation::LINEAR, perc_tresh, 5.0, refine_rotation_via_rcd, 640, 480);

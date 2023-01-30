@@ -187,10 +187,10 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
 
     //TODO: Doesnt really work robustly
     fn calc_landmark_cutoff(max_reprojection_error: Float) -> Float {
-        max_reprojection_error
+        //max_reprojection_error
         //500.0
         //1200.0
-        //0.92*max_reprojection_error
+        0.9*max_reprojection_error
         // match max_reprojection_error {
         //     v if v > 500.0 => 500.0,
         //     v => v
@@ -248,7 +248,6 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
 
     }
 
-    //TODO: for all matches in a track 
     fn compute_landmarks_and_reprojection_maps(root: usize, paths: &Vec<Vec<usize>>, 
         pose_map: &HashMap<(usize, usize), Isometry3<Float>>, 
         match_map: &HashMap<(usize, usize), 
@@ -296,6 +295,7 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
         keys_sorted
     }
 
+    //TODO: merges in tracks originating at the root
     fn filter_by_max_tracks(all_paths: &Vec<Vec<Vec<Match<Feat>>>>,  image_size: usize) -> Vec<Vec<Vec<Match<Feat>>>> {
 
         let mut filtered_matches = Vec::<Vec<Vec<Match<Feat>>>>::with_capacity(all_paths.len()); 
@@ -403,7 +403,6 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
                 missing_id_set.remove(&m.landmark_id.unwrap());
             }
         }
-
 
         for (_,val) in match_map.iter_mut() {
             for m in val {
