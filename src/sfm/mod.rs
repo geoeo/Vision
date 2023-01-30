@@ -121,6 +121,7 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
         landmark_cutoff = Self::calc_landmark_cutoff(max_reprojection_error_refined);    
         Self::reject_landmark_outliers(&mut landmark_map, &mut reprojection_error_map, &mut match_map, landmark_cutoff);
 
+        Self::recompute_landmark_ids(&mut match_map);
 
         SFMConfig{root, paths, camera_map_highp: camera_map, camera_map_lowp: camera_map_ba, match_map, pose_map, epipolar_alg, landmark_map, reprojection_error_map,triangulation}
     }
@@ -380,6 +381,55 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
 
         filtered_matches
     } 
+
+    fn recompute_landmark_ids(match_map: &mut HashMap<(usize, usize), Vec<Match<Feat>>>) -> () {
+        let mut old_max_val = 0;
+
+        let mut existing_ids = HashSet::<usize>::with_capacity(100000);
+        for (_,val) in match_map.iter() {
+            for m in val {
+                let id = m.landmark_id.expect("recompute_landmark_ids: no landmark id");
+                old_max_val = old_max_val.max(id);
+                existing_ids.insert(id);
+            }
+        }
+
+        let mut old_new_map = HashMap::<usize,usize>::with_capacity(old_max_val);
+        let mut free_ids = (0..existing_ids.len()).collect::<HashSet<usize>>();
+
+        let mut missing_id_set = (0..old_max_val).collect::<HashSet<usize>>();
+        for (_,val) in match_map.iter() {
+            for m in val {
+                missing_id_set.remove(&m.landmark_id.unwrap());
+            }
+        }
+
+
+        for (_,val) in match_map.iter_mut() {
+            for m in val {
+                let old_id = m.landmark_id.expect("recompute_landmark_ids: no landmark id");
+                if old_new_map.contains_key(&old_id) {
+                    let new_id = old_new_map.get(&old_id).unwrap();
+                    m.landmark_id = Some(*new_id);
+                } else {
+                    let free_id = free_ids.iter().next().unwrap().clone();
+                    free_ids.remove(&free_id);
+                    m.landmark_id = Some(free_id);
+                    old_new_map.insert(old_id, free_id);
+                }
+            }
+        }
+        assert!(free_ids.is_empty());
+
+        let mut validation_set = (0..existing_ids.len()).collect::<HashSet<usize>>();
+        for (_,val) in match_map.iter() {
+            for m in val {
+                validation_set.remove(&m.landmark_id.unwrap());
+            }
+        }
+        assert!(validation_set.is_empty());
+
+    }
 
     pub fn compute_lists_from_maps(&self)->  (Vec<Vec<((usize,usize),(Vector3<Float>, Matrix3<Float>))>>,Vec<Vec<Vec<Match<Feat>>>>){
         let number_of_paths = self.paths.len();

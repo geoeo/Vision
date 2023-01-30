@@ -27,8 +27,8 @@ pub fn run_ba<F: serde::Serialize + float::Float + Scalar + NumAssign + SimdReal
     let (_,unique_cameras_sorted_by_id_ba) = sfm_config.compute_unqiue_ids_cameras_ba_root_first();
     let path_id_pairs = sfm_config.compute_path_id_pairs();
 
-    let mut feature_map = CameraFeatureMap::new(matches,unique_camera_ids_sorted, img_dim);
-    feature_map.add_matches(&path_id_pairs,matches);
+    let mut feature_map = CameraFeatureMap::new(sfm_config.match_map(),unique_camera_ids_sorted, img_dim);
+    feature_map.add_matches(sfm_config.match_map());
 
     //TODO: switch impl on landmark state
     let mut state = feature_map.get_euclidean_landmark_state(

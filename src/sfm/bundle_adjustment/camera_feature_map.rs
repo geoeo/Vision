@@ -3,7 +3,7 @@ extern crate num_traits;
 extern crate simba;
 
 use simba::scalar::{SubsetOf,SupersetOf};
-use std::{ops::Mul,convert::From};
+use std::{ops::Mul,convert::From, collections::HashSet};
 use na::{convert,Vector3, Matrix4xX, Matrix3, Matrix4, DVector, Isometry3, Rotation3, SimdRealField, ComplexField,base::Scalar, RealField};
 use num_traits::{float,NumAssign};
 use std::collections::HashMap;
@@ -43,11 +43,11 @@ impl CameraFeatureMap {
 
     pub const NO_FEATURE_FLAG : Float = -1.0;
 
-    pub fn new<T: Feature>(matches: &Vec<Vec<Vec<Match<T>>>>, cam_ids: Vec<usize>, image_row_col: (usize,usize)) -> CameraFeatureMap {
-        // let number_of_landmarks = match_map.values().map(|ms| {
-        //     ms.iter().map(|m| m.landmark_id.expect("CameraFeatureMap: Error no landmark id present for match")).max().expect("CameraFeatureMap: Error computing max for matches")
-        // }).max().expect("CameraFeatureMap: Error computing max landmark id")+1;
-        let number_of_landmarks = matches.iter().flatten().fold(0,|acc,x| acc + x.len());
+    //pub fn new<T: Feature>(matches: &Vec<Vec<Vec<Match<T>>>>, cam_ids: Vec<usize>, image_row_col: (usize,usize)) -> CameraFeatureMap {
+    pub fn new<T: Feature>(match_map: &HashMap<(usize, usize), Vec<Match<T>>>, cam_ids: Vec<usize>, image_row_col: (usize,usize)) -> CameraFeatureMap {
+        let number_of_landmarks = match_map.values().map(|ms| {
+            ms.iter().map(|m| m.landmark_id.expect("CameraFeatureMap: Error no landmark id present for match")).max().expect("CameraFeatureMap: Error computing max for matches")
+        }).max().expect("CameraFeatureMap: Error computing max landmark id")+1;
         let n_cams = cam_ids.len();
         let mut camera_feature_map = CameraFeatureMap{
             camera_map:  HashMap::new(),
@@ -96,7 +96,7 @@ impl CameraFeatureMap {
         
         let key = (internal_source_cam_id, point_source_x, point_source_y,
         internal_other_cam_id,point_other_x, point_other_y);
-        let landmark_id_2 =  m.landmark_id.expect("Error: Landmark id empty in Camera Feature Maps"); // Track landmark id get assigned before feature filtering -> Bad source of bug
+        //let landmark_id =  m.landmark_id.expect("Error: Landmark id empty in Camera Feature Maps"); // Track landmark id get assigned before feature filtering -> Bad source of bug
         let landmark_id =  self.number_of_unique_landmarks;
         match (source_point_id.clone(),other_point_id.clone()) {
             //If the no point Id is present in either of the two camera it is a new 3D Point
@@ -124,15 +124,11 @@ impl CameraFeatureMap {
 
     }
 
-    pub fn add_matches<T: Feature>(&mut self, path_id_pairs: &Vec<Vec<(usize, usize)>>, matches: &Vec<Vec<Vec<Match<T>>>>) -> () {
-        let path_id_pairs_flattened = path_id_pairs.iter().flatten().collect::<Vec<&(usize, usize)>>();        let matches_flattened = matches.iter().flatten().collect::<Vec<&Vec<Match<T>>>>();
-        assert_eq!(path_id_pairs_flattened.len(), matches_flattened.len());
-        for i in 0..path_id_pairs_flattened.len(){
-            let (id_a, id_b) = path_id_pairs_flattened[i];
-            let matches_for_pair = matches_flattened[i];
-
-            for feature_match in matches_for_pair {
-                self.add_feature(*id_a, *id_b, feature_match);
+    //TODO: move this to contructor
+    pub fn add_matches<T: Feature>(&mut self, match_map: &HashMap<(usize, usize), Vec<Match<T>>>) -> () {
+        for (key,val) in match_map {
+            for m in val {
+                self.add_feature(key.0, key.1, m);
             }
         }
     }
