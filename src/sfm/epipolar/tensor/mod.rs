@@ -70,7 +70,7 @@ pub fn ransac_five_point_essential<T: Feature + Clone, C: Camera<Float>>(matches
     let number_of_matches = matches.len();
     for _ in 0..ransac_it {
         let samples: Vec<_> = matches.choose_multiple(&mut rand::thread_rng(), number_of_matches).map(|x| x.clone()).collect();
-        let essential_option = five_point::five_point_essential(&samples[0..5].to_vec(),camera_one,camera_two);
+        let essential_option = five_point::five_point_essential(&samples[0..5].to_vec(),&camera_one.get_projection(),&camera_one.get_inverse_projection(),&camera_two.get_projection(),&camera_two.get_inverse_projection());
         match essential_option {
             Some(essential) => {
                 let f = compute_fundamental(&essential, &camera_one.get_inverse_projection(), &camera_two.get_inverse_projection());
@@ -106,8 +106,8 @@ pub fn calc_sampson_distance_inliers_for_fundamental<T: Feature>(F: &Fundamental
     matches.iter().map(|m| calc_sampson_distance_for_fundamental(F,m)).filter(|&v| v < thresh).count()
 }
 
-pub fn five_point_essential<T: Feature + Clone, C: Camera<Float>>(matches: &Vec<Match<T>>, camera_one: &C, camera_two: &C) -> Essential {
-    five_point::five_point_essential(&matches,camera_one,camera_two).expect("five_point_essential: failed")
+pub fn five_point_essential<T: Feature + Clone>(matches: &Vec<Match<T>>, projection_one: &Matrix3<Float>, inverse_projection_one: &Matrix3<Float>, projection_two:&Matrix3<Float>,inverse_projection_two: &Matrix3<Float>) -> Essential {
+    five_point::five_point_essential(&matches,projection_one,inverse_projection_one,projection_two,inverse_projection_two).expect("five_point_essential: failed")
 }
 
 pub fn essential_matrix_from_motion(translation: &Vector3<Float>, rotation: &Matrix3<Float>) -> Essential {

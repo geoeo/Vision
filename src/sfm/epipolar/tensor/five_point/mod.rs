@@ -3,7 +3,6 @@ extern crate nalgebra_lapack;
 
 use na::{Matrix3,Matrix4, OMatrix ,Matrix3xX, SVector, Dynamic, dimension::{U10,U20,U9,U3}};
 use crate::{Float,float};
-use crate::sensors::camera::Camera;
 use crate::image::features::{Feature,Match};
 use crate::sfm::{triangulation::{linear_triangulation_svd,stereo_triangulation},epipolar::{Essential,tensor::decompose_essential_förstner}};
 use crate::numerics::{to_matrix, pose};
@@ -16,12 +15,7 @@ mod constraints;
  * This only work on ubuntu. assert build version or something
  */
 #[allow(non_snake_case)]
-pub fn five_point_essential<T: Feature + Clone, C: Camera<Float>>(matches: &Vec<Match<T>>, camera_one: &C, camera_two: &C) -> Option<Essential> {
-    let inverse_projection_one = camera_one.get_inverse_projection();
-    let inverse_projection_two = camera_two.get_inverse_projection();
-    let projection_one = camera_one.get_projection();
-    let projection_two = camera_two.get_projection();
-
+pub fn five_point_essential<T: Feature + Clone>(matches: &Vec<Match<T>>, projection_one: &Matrix3<Float>, inverse_projection_one: &Matrix3<Float>, projection_two:&Matrix3<Float>,inverse_projection_two: &Matrix3<Float>) -> Option<Essential> {
     let l = matches.len();
     let l_as_float = l as Float;
     
@@ -167,27 +161,25 @@ pub fn five_point_essential<T: Feature + Clone, C: Camera<Float>>(matches: &Vec<
         let E_est = x*E1+y*E2+z*E3+E4;
         E_est
     }).collect::<Vec<Essential>>();
-    let best_essential = cheirality_check(&all_essential_matricies, matches,false,(&features_one, camera_one, &normalization_matrix_one), (&features_two, camera_two, &normalization_matrix_two));
+    let best_essential = cheirality_check(&all_essential_matricies, matches,false,(&features_one, projection_one, &normalization_matrix_one, inverse_projection_one), (&features_two, projection_two, &normalization_matrix_two,inverse_projection_two));
     
     best_essential
 }
 
 #[allow(non_snake_case)]
-pub fn cheirality_check<T: Feature + Clone,  C: Camera<Float>>(
+pub fn cheirality_check<T: Feature + Clone>(
         all_essential_matricies: &Vec<Essential>,
         matches: &Vec<Match<T>>,
         depth_positive: bool,
-         points_cam_1: (&OMatrix<Float, U3,Dynamic>, &C, &Matrix3<Float>), 
-         points_cam_2: (&OMatrix<Float, U3,Dynamic>, &C, &Matrix3<Float>)) -> Option<Essential> {
+         points_cam_1: (&OMatrix<Float, U3,Dynamic>, &Matrix3<Float>, &Matrix3<Float>,&Matrix3<Float>), 
+         points_cam_2: (&OMatrix<Float, U3,Dynamic>, &Matrix3<Float>, &Matrix3<Float>,&Matrix3<Float>)) -> Option<Essential> {
     let mut max_accepted_cheirality_count = 0;
     let mut best_e = None;
     let mut smallest_det = float::MAX;
-    let camera_1 = points_cam_1.1;
-    let camera_2 = points_cam_2.1;
 
     //TODO: clean this up
-    let camera_matrix_1 = camera_1.get_projection();
-    let camera_matrix_2 = camera_2.get_projection();
+    let camera_matrix_1 = points_cam_1.1;
+    let camera_matrix_2 = points_cam_2.1;
     let f0 = 1.0;
     let f0_prime = 1.0;
     // let condition_matrix_1 = points_cam_1.2; 
@@ -208,7 +200,7 @@ pub fn cheirality_check<T: Feature + Clone,  C: Camera<Float>>(
 
     let number_of_points = matches.len();
     for e in all_essential_matricies {
-        let (t,R,e_corrected) = decompose_essential_förstner(&e,matches,&camera_1.get_inverse_projection(),&camera_2.get_inverse_projection());
+        let (t,R,e_corrected) = decompose_essential_förstner(&e,matches,points_cam_1.3,points_cam_2.3);
         let se3 = pose::se3(&t,&R);
 
         let projection_1 = camera_matrix_1*(Matrix4::<Float>::identity().fixed_slice::<3,4>(0,0));

@@ -4,7 +4,6 @@ extern crate nalgebra_lapack;
 use na::{SMatrix, Matrix3, SVector, OMatrix, Dynamic, RowSVector, RowDVector, linalg::SVD, Quaternion, UnitQuaternion, Const};
 use nalgebra_lapack::Eigen;
 use rand::seq::SliceRandom;
-use crate::sensors::camera::Camera;
 use crate::sfm::{epipolar::Essential,tensor::{essential_matrix_from_motion,compute_fundamental,calc_sampson_distance_inliers_for_fundamental}};
 use crate::image::features::{Feature,Match};
 use crate::Float;
@@ -12,9 +11,7 @@ use crate::Float;
 pub mod constraints;
 
 
-pub fn quest_ransac<T: Feature + Clone, C: Camera<Float>>(matches: &Vec<Match<T>>, camera_one: &C, camera_two: &C, epipolar_thresh: Float, ransac_it: usize) -> Essential {
-    let inverse_projection_one = camera_one.get_inverse_projection();
-    let inverse_projection_two = camera_two.get_inverse_projection();
+pub fn quest_ransac<T: Feature + Clone>(matches: &Vec<Match<T>>, inverse_projection_one: &Matrix3<Float>, inverse_projection_two: &Matrix3<Float>, epipolar_thresh: Float, ransac_it: usize) -> Essential {
     let mut max_inlier_count = 0;
     let mut best_essential: Option<Essential> = None;
     let sample_size = matches.len();
@@ -32,7 +29,7 @@ pub fn quest_ransac<T: Feature + Clone, C: Camera<Float>>(matches: &Vec<Match<T>
             m2.column_mut(i).copy_from(&f_2);
         }
         let (essential, _, _) = quest(&m1,&m2);
-        let f = compute_fundamental(&essential, &camera_one.get_inverse_projection(), &camera_two.get_inverse_projection());
+        let f = compute_fundamental(&essential, &inverse_projection_one, &inverse_projection_two);
         let inliers = calc_sampson_distance_inliers_for_fundamental(&f,&samples[5..].to_vec(),epipolar_thresh);
         if inliers > max_inlier_count {
             max_inlier_count = inliers;

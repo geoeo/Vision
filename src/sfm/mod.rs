@@ -481,6 +481,13 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
                     let m = match_map.get(&key).expect(format!("match not found with key: {:?}",key).as_str());
                     let (norm_one, norm_one_inv, norm_two, norm_two_inv) = compute_linear_normalization(m);
                     let m_norm = &m.iter().map(|ma| ma.apply_normalisation(&norm_one, &norm_two, -1.0)).collect::<Vec<_>>();
+                    let camera_matrix_one = norm_one*c1.get_projection();
+                    let camera_matrix_two = norm_two*c2.get_projection();
+                    let inverse_camera_matrix_one = c1.get_inverse_projection()*norm_one_inv;
+                    let inverse_camera_matrix_two = c2.get_inverse_projection()*norm_two_inv;
+
+
+
                     let f0 = 1.0; // -> check this
 
                     let (e, f_m,f_m_norm) = match epipolar_alg {
@@ -494,29 +501,27 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
                             let filtered = filtered_indices.iter().map(|i| m[*i].clone()).collect::<Vec<Match<Feat>>>();
                             let filtered_norm = filtered_indices.iter().map(|i| m_norm[*i].clone()).collect::<Vec<Match<Feat>>>();
 
-                            let e = tensor::compute_essential(&f,&(norm_one*c1.get_projection()),&(norm_two*c2.get_projection()));
+                            let e = tensor::compute_essential(&f,&camera_matrix_one,&camera_matrix_two);
                             //let e = tensor::compute_essential(&f,&c1.get_projection(),&c2.get_projection());
 
                             (e, filtered, filtered_norm)
                         },
                         tensor::BifocalType::ESSENTIAL => {
-                            panic!("CANT USE WITH NORM ACTIVE");
                             //let e = tensor::ransac_five_point_essential(m, c1, c2,1e-2,1e4 as usize);
-                            let e = tensor::five_point_essential(m, c1, c2); //TODO refactor to take matricies instead of camera object
-                            let f = tensor::compute_fundamental(&e, &c1.get_inverse_projection(), &c2.get_inverse_projection());
+                            let e = tensor::five_point_essential(m_norm, &camera_matrix_one, &inverse_camera_matrix_one, &camera_matrix_two ,&inverse_camera_matrix_two); //TODO refactor to take matricies instead of camera object
+                            let f = tensor::compute_fundamental(&e, &inverse_camera_matrix_one, &inverse_camera_matrix_two);
 
-                            let filtered_indices = tensor::select_best_matches_from_fundamental(&f,m,perc_tresh, epipolar_tresh);
+                            let filtered_indices = tensor::select_best_matches_from_fundamental(&f,m_norm,perc_tresh, epipolar_tresh);
                             let filtered = filtered_indices.iter().map(|i| m[*i].clone()).collect::<Vec<Match<Feat>>>();
                             let filtered_norm = filtered_indices.iter().map(|i| m_norm[*i].clone()).collect::<Vec<Match<Feat>>>();
 
                             (e, filtered, filtered_norm)
                         },
                         tensor::BifocalType::QUEST => {
-                            panic!("CANT USE WITH NORM ACTIVE");
-                            let e = quest::quest_ransac(m, c1, c2, 1e-2,1e4 as usize); //TODO refactor to take matricies instead of camera object
-                            let f = tensor::compute_fundamental(&e, &c1.get_inverse_projection(), &c2.get_inverse_projection());
+                            let e = quest::quest_ransac(m_norm,  &inverse_camera_matrix_one, &inverse_camera_matrix_two, 1e-2,1e4 as usize); //TODO refactor to take matricies instead of camera object
+                            let f = tensor::compute_fundamental(&e, &inverse_camera_matrix_one, &inverse_camera_matrix_two);
 
-                            let filtered_indices = tensor::select_best_matches_from_fundamental(&f,m,perc_tresh, epipolar_tresh);
+                            let filtered_indices = tensor::select_best_matches_from_fundamental(&f,m_norm,perc_tresh, epipolar_tresh);
                             let filtered = filtered_indices.iter().map(|i| m[*i].clone()).collect::<Vec<Match<Feat>>>();
                             let filtered_norm = filtered_indices.iter().map(|i| m_norm[*i].clone()).collect::<Vec<Match<Feat>>>();
 
@@ -530,7 +535,7 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
 
                     
                     // The pose transforms id2 into the coordiante system of id1
-                    let (h,rotation,_) = tensor::decompose_essential_förstner(&e,&f_m_norm,&(c1.get_inverse_projection()*&norm_one_inv), &(c2.get_inverse_projection()*&norm_two_inv));
+                    let (h,rotation,_) = tensor::decompose_essential_förstner(&e,&f_m_norm,&inverse_camera_matrix_two, &inverse_camera_matrix_two);
                     //let (h,rotation,_) = tensor::decompose_essential_förstner(&e,&f_m_norm,&(c1.get_inverse_projection()), &(c2.get_inverse_projection()));
                     let se3 = se3(&h,&rotation);
                     let isometry = from_matrix(&se3);
