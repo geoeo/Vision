@@ -24,8 +24,12 @@ impl<T: Feature + Clone + PartialEq> FeatureTrack<T> {
     /**
      * Returns current feature
      */
-    pub fn get_current_feature(&self) -> T {
+    pub fn get_current_feature_dest(&self) -> T {
         self.track.last().expect("FeatureTrack: Called get_current_id on empty track").2.feature_two.clone()
+    }
+
+    pub fn get_first_feature_start(&self) -> T {
+        self.track.first().expect("FeatureTrack: Called get_first_feature on empty track").2.feature_one.clone()
     }
 
     /**
@@ -42,6 +46,10 @@ impl<T: Feature + Clone + PartialEq> FeatureTrack<T> {
 
     pub fn get_track(&self) -> &Vec<(PathIdx, ImageIdx, Match<T>)> {
         &self.track
+    }
+
+    pub fn get_track_id(&self) -> usize {
+        self.landmark_id
     }
 }
 

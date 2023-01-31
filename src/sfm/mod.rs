@@ -320,8 +320,27 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
                     match img_idx {
                         0 => {
                             if !pixel_set.contains(&k) {
-                                feature_tracks[path_idx].push(FeatureTrack::new(max_path_len, path_idx, 0, landmark_id, m));
-                                landmark_id +=1;
+                                let mut id : Option<usize> = None;
+                                for j in 0..feature_tracks.len() {
+                                    for i in 0..feature_tracks[j].len() {
+                                        let track = &feature_tracks[j][i];
+                                        if track.get_first_feature_start() == m.feature_one {
+                                            id = Some(track.get_track_id());
+                                            break;
+                                        } 
+                                    }
+                                    if id.is_some() {
+                                        break;
+                                    }
+                                }
+                                
+                                if id.is_some() {
+                                    feature_tracks[path_idx].push(FeatureTrack::new(max_path_len, path_idx, 0, id.unwrap(), m));
+                                } else {
+                                    feature_tracks[path_idx].push(FeatureTrack::new(max_path_len, path_idx, 0, landmark_id, m));
+                                    landmark_id +=1;
+
+                                }
                                 pixel_set.insert(k);
                             }
                         },
@@ -330,7 +349,7 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
                             let mut found_track = false;
                             //TODO: Speed up with caching
                             for track in feature_tracks[path_idx].iter_mut() {
-                                if (track.get_current_feature() == current_feature_one.clone()) && 
+                                if (track.get_current_feature_dest() == current_feature_one.clone()) && 
                                     (track.get_path_img_id() == (path_idx, img_idx-1)) &&
                                     !pixel_set.contains(&k) {
                                     track.add(path_idx,img_idx, m);
@@ -536,7 +555,6 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
                     
                     // The pose transforms id2 into the coordiante system of id1
                     let (h,rotation,_) = tensor::decompose_essential_förstner(&e,&f_m_norm,&inverse_camera_matrix_two, &inverse_camera_matrix_two);
-                    //let (h,rotation,_) = tensor::decompose_essential_förstner(&e,&f_m_norm,&(c1.get_inverse_projection()), &(c2.get_inverse_projection()));
                     let se3 = se3(&h,&rotation);
                     let isometry = from_matrix(&se3);
                     let some_pose_old_val = pose_map.insert(key, isometry);

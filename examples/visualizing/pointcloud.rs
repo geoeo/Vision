@@ -60,8 +60,8 @@ fn main() -> Result<(),()> {
     //let final_state_as_string = fs::read_to_string("D:/Workspace/Rust/Vision/output/orb_ba.txt").expect("Unable to read file");
     //let all_states_as_string = fs::read_to_string("D:/Workspace/Rust/Vision/output/orb_ba_debug.txt").expect("Unable to read file");
 
-    // let final_state_as_string = fs::read_to_string(format!("{}/3dv.txt",runtime_conf.output_path)).expect("Unable to read file");
-    // let all_states_as_string_option = fs::read_to_string(format!("{}/3dv_debug.txt",runtime_conf.output_path));
+    //let final_state_as_string = fs::read_to_string(format!("{}/3dv.txt",runtime_conf.output_path)).expect("Unable to read file");
+    //let all_states_as_string_option = fs::read_to_string(format!("{}/3dv_debug.txt",runtime_conf.output_path));
 
     let final_state_as_string = fs::read_to_string(format!("{}/olsen.txt", runtime_conf.output_path)).expect("Unable to read file");
     let all_states_as_string_option = fs::read_to_string(format!("{}/olsen_debug.txt", runtime_conf.output_path));
