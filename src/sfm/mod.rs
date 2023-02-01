@@ -499,11 +499,18 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
                     let key = (id1,id2);
                     let m = match_map.get(&key).expect(format!("match not found with key: {:?}",key).as_str());
                     let (norm_one, norm_one_inv, norm_two, norm_two_inv) = compute_linear_normalization(m);
+
                     let m_norm = &m.iter().map(|ma| ma.apply_normalisation(&norm_one, &norm_two, -1.0)).collect::<Vec<_>>();
                     let camera_matrix_one = norm_one*c1.get_projection();
                     let camera_matrix_two = norm_two*c2.get_projection();
                     let inverse_camera_matrix_one = c1.get_inverse_projection()*norm_one_inv;
                     let inverse_camera_matrix_two = c2.get_inverse_projection()*norm_two_inv;
+
+                    // let m_norm = &m.clone();
+                    // let camera_matrix_one = c1.get_projection();
+                    // let camera_matrix_two = c2.get_projection();
+                    // let inverse_camera_matrix_one = c1.get_inverse_projection();
+                    // let inverse_camera_matrix_two = c2.get_inverse_projection();
 
 
 
@@ -520,7 +527,7 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
                             let filtered = filtered_indices.iter().map(|i| m[*i].clone()).collect::<Vec<Match<Feat>>>();
                             let filtered_norm = filtered_indices.iter().map(|i| m_norm[*i].clone()).collect::<Vec<Match<Feat>>>();
 
-                            let e = tensor::compute_essential(&f,&camera_matrix_one,&camera_matrix_two);
+                            let e = tensor::compute_essential(&f_corr,&camera_matrix_one,&camera_matrix_two);
                             //let e = tensor::compute_essential(&f,&c1.get_projection(),&c2.get_projection());
 
                             (e, filtered, filtered_norm)

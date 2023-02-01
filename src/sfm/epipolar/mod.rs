@@ -44,8 +44,8 @@ pub fn compute_linear_normalization<T: Feature>(matches: &Vec<Match<T>>) -> (Mat
     let s_one = 1.0/(avg_dist_one/(l_as_float-1.0)).sqrt();
     let s_two = 1.0/(avg_dist_two/(l_as_float-1.0)).sqrt();
 
-    let s_one = 1.0;
-    let s_two = 1.0;
+    //let s_one = 1.0;
+    //let s_two = 1.0;
 
     normalization_matrix_one[(0,0)] = s_one;
     normalization_matrix_one[(1,1)] = s_one;
