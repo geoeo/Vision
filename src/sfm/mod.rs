@@ -187,8 +187,9 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
 
     //TODO: Doesnt really work robustly
     fn calc_landmark_cutoff(max_reprojection_error: Float) -> Float {
-        //max_reprojection_error
-        0.95*max_reprojection_error
+        max_reprojection_error
+        //0.9*max_reprojection_error
+        //400.0
     }
 
     fn generate_match_map(root: usize, paths: &Vec<Vec<usize>>, matches: Vec<Vec<Vec<Match<Feat>>>>) -> HashMap<(usize,usize), Vec<Match<Feat>>> {
@@ -520,15 +521,14 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
                         tensor::BifocalType::FUNDAMENTAL => {      
                             let f = tensor::fundamental::eight_point_hartley(m_norm, false, f0); //TODO: make this configurable
 
-                            let f_corr = tensor::fundamental::optimal_correction(&f, m_norm, f0);
-                            let filtered_indices = tensor::select_best_matches_from_fundamental(&f_corr,m_norm,perc_tresh, epipolar_tresh);
+                            //let f_corr = tensor::fundamental::optimal_correction(&f, m_norm, f0);
+                            let filtered_indices = tensor::select_best_matches_from_fundamental(&f,m_norm,perc_tresh, epipolar_tresh);
 
                             //let filtered_indices = tensor::select_best_matches_from_fundamental(&f,m_norm,perc_tresh, epipolar_tresh);
                             let filtered = filtered_indices.iter().map(|i| m[*i].clone()).collect::<Vec<Match<Feat>>>();
                             let filtered_norm = filtered_indices.iter().map(|i| m_norm[*i].clone()).collect::<Vec<Match<Feat>>>();
 
-                            let e = tensor::compute_essential(&f_corr,&camera_matrix_one,&camera_matrix_two);
-                            //let e = tensor::compute_essential(&f,&c1.get_projection(),&c2.get_projection());
+                            let e = tensor::compute_essential(&f,&camera_matrix_one,&camera_matrix_two);
 
                             (e, filtered, filtered_norm)
                         },
