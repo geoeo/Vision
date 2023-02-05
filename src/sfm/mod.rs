@@ -185,12 +185,11 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
         duplicates_found
     }
 
-    //TODO: Doesnt really work robustly
+    //TODO: expose to config
     fn calc_landmark_cutoff(max_reprojection_error: Float) -> Float {
         //max_reprojection_error
-        0.8*max_reprojection_error
-        //400.0
-        //600.0
+        //0.8*max_reprojection_error
+        400.0
     }
 
     fn generate_match_map(root: usize, paths: &Vec<Vec<usize>>, matches: Vec<Vec<Vec<Match<Feat>>>>) -> HashMap<(usize,usize), Vec<Match<Feat>>> {
@@ -220,14 +219,14 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
         match_map: &mut HashMap<(usize, usize), Vec<Match<Feat>>>,
         landmark_cutoff: Float){
             let keys = match_map.keys().map(|key| *key).collect::<Vec<_>>();
-            let mut accepted_landmark_ids = HashSet::<usize>::with_capacity(1000);
+            let mut rejected_landmark_ids = HashSet::<usize>::with_capacity(1000);
 
             for key in &keys {
                 let reprojection_erros = reprojection_error_map.get(key).unwrap();
                 let matches = match_map.get(key).unwrap();
                 
-                let accepted_indices = reprojection_erros.iter().enumerate().filter(|&(_,v)| *v < landmark_cutoff).map(|(idx,_)| idx).collect::<HashSet<usize>>();
-                accepted_landmark_ids.extend(matches.iter().enumerate().filter(|(idx,_)|accepted_indices.contains(idx)).map(|(_,v)| v.landmark_id.unwrap()).collect::<HashSet<_>>());
+                let rejected_indices = reprojection_erros.iter().enumerate().filter(|&(_,v)| *v >= landmark_cutoff).map(|(idx,_)| idx).collect::<HashSet<usize>>();
+                rejected_landmark_ids.extend(matches.iter().enumerate().filter(|(idx,_)|rejected_indices.contains(idx)).map(|(_,v)| v.landmark_id.unwrap()).collect::<HashSet<_>>());
             }
 
             for key in &keys {
@@ -235,7 +234,7 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
                 let matches = match_map.get(key).unwrap();
                 let landmarks = landmark_map.get(key).unwrap();
 
-                let accepted_indices = matches.iter().enumerate().filter(|&(_,v)| accepted_landmark_ids.contains(&v.landmark_id.unwrap())).map(|(idx,_)| idx).collect::<HashSet<usize>>();
+                let accepted_indices = matches.iter().enumerate().filter(|&(_,v)| !rejected_landmark_ids.contains(&v.landmark_id.unwrap())).map(|(idx,_)| idx).collect::<HashSet<usize>>();
                 let filtered_matches = matches.iter().enumerate().filter(|(idx,_)|accepted_indices.contains(idx)).map(|(_,v)| v.clone()).collect::<Vec<_>>();
                 assert!(!&filtered_matches.is_empty(), "reject outliers empty features for : {:?}", key);
 
