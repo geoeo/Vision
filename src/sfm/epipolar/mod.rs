@@ -39,6 +39,9 @@ pub fn compute_linear_normalization<T: Feature>(matches: &Vec<Match<T>>) -> (Mat
 
     let (dist_mean_norm_one, dist_mean_norm_two) =  matches.iter().fold((0.0, 0.0), |acc, m| (acc.0 + (m.feature_one.get_as_2d_point()-avg_one).norm_squared(), acc.1 + (m.feature_two.get_as_2d_point()-avg_two).norm_squared()));
 
+    // let s_one = ((l_as_float-1.0)/dist_mean_norm_one).sqrt();
+    // let s_two = ((l_as_float-1.0)/dist_mean_norm_two).sqrt();
+
     let s_one = ((2.0*l_as_float)/dist_mean_norm_one).sqrt();
     let s_two = ((2.0*l_as_float)/dist_mean_norm_two).sqrt();
 
