@@ -105,7 +105,7 @@ pub fn five_point_essential<T: Feature + Clone>(matches: &Vec<Match<T>>, project
             let u2 = vt.row(6).transpose();
             let u3 = vt.row(7).transpose();
             let u4 = vt.row(8).transpose();
-            (u1, u2, u3, u4)
+            (u4, u3, u2, u1)
         },
         _ => {
             let eigen = nalgebra_lapack::SymmetricEigen::new(A.transpose()*A);
@@ -210,8 +210,8 @@ pub fn cheirality_check<T: Feature + Clone>(
         let p2_points = points_cam_2.0/f0_prime;
 
         //TODO make ENUM
-        //let Xs_option = Some(linear_triangulation_svd(&vec!((&p1_points,&projection_1),(&p2_points,&projection_2))));
-        let Xs_option = stereo_triangulation((&p1_points,&projection_1),(&p2_points,&projection_2),f0,f0_prime);
+        let Xs_option = Some(linear_triangulation_svd(&vec!((&p1_points,&projection_1),(&p2_points,&projection_2))));
+        //let Xs_option = stereo_triangulation((&p1_points,&projection_1),(&p2_points,&projection_2),f0,f0_prime);
         match Xs_option {
             Some(Xs) => {
                 let p1_x = &Xs;
