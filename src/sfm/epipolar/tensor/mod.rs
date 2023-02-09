@@ -64,16 +64,16 @@ pub fn select_best_matches_from_fundamental<T: Feature + Clone>(F: &Fundamental,
     //sorted_indices_sub.into_iter().map(|(i,_)| matches[i].clone()).collect::<Vec<Match<T>>>()
 }
 
-pub fn ransac_five_point_essential<T: Feature + Clone, C: Camera<Float>>(matches: &Vec<Match<T>>, camera_one: &C, camera_two: &C, epipolar_thresh: Float, ransac_it: usize) -> Essential {
+pub fn ransac_five_point_essential<T: Feature + Clone>(matches: &Vec<Match<T>>,projection_one: &Matrix3<Float>, inverse_projection_one: &Matrix3<Float>, projection_two:&Matrix3<Float>,inverse_projection_two: &Matrix3<Float>, epipolar_thresh: Float, ransac_it: usize) -> Essential {
     let mut max_inlier_count = 0;
     let mut best_essential: Option<Essential> = None;
     let number_of_matches = matches.len();
     for _ in 0..ransac_it {
         let samples: Vec<_> = matches.choose_multiple(&mut rand::thread_rng(), number_of_matches).map(|x| x.clone()).collect();
-        let essential_option = five_point::five_point_essential(&samples[0..5].to_vec(),&camera_one.get_projection(),&camera_one.get_inverse_projection(),&camera_two.get_projection(),&camera_two.get_inverse_projection());
+        let essential_option = five_point::five_point_essential(&samples[0..5].to_vec(),projection_one,inverse_projection_one,projection_two,inverse_projection_two);
         match essential_option {
             Some(essential) => {
-                let f = compute_fundamental(&essential, &camera_one.get_inverse_projection(), &camera_two.get_inverse_projection());
+                let f = compute_fundamental(&essential, inverse_projection_one, inverse_projection_two);
                 let inliers = calc_sampson_distance_inliers_for_fundamental(&f,&samples[5..].to_vec(),epipolar_thresh);
                 if inliers > max_inlier_count {
                     max_inlier_count = inliers;
