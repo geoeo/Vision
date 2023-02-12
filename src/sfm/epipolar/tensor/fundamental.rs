@@ -44,7 +44,7 @@ pub fn eight_point_least_squares<T : Feature>(matches: &Vec<Match<T>>, f0: Float
 #[allow(non_snake_case)]
 pub fn eight_point_hartley<T : Feature>(matches: &Vec<Match<T>>, positive_principal_distance: bool, f0: Float) -> Fundamental {
     let number_of_matches = matches.len() as Float; 
-    assert!(number_of_matches >= 8.0);
+    assert!(number_of_matches >= 8.0, "Number of matches: {}", number_of_matches);
 
     let mut A = Matrix::<Float, Dynamic, U9, VecStorage<Float, Dynamic, U9>>::zeros(matches.len());
     for i in 0..A.nrows() {

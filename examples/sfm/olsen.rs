@@ -5,12 +5,10 @@ extern crate vision;
 use color_eyre::eyre::Result;
 
 use std::fs;
-use std::collections::HashMap;
 use na::{Vector3,Matrix3};
 use vision::io::olsen_loader::OlssenData;
-use vision::sensors::camera::perspective::Perspective;
 use vision::image::{features::{Match,ImageFeature}};
-use vision::sfm::{triangulation::Triangulation,SFMConfig, compute_path_pairs_as_list, bundle_adjustment::run_ba, epipolar::tensor::{BifocalType,EssentialDecomposition}};
+use vision::sfm::{triangulation::Triangulation,SFMConfig, compute_path_pairs_as_vec, bundle_adjustment::run_ba, epipolar::tensor::BifocalType};
 use vision::odometry::runtime_parameters::RuntimeParameters;
 use vision::numerics::{loss, weighting};
 use vision::{float,Float,load_runtime_conf};
@@ -40,208 +38,68 @@ fn main() -> Result<()> {
     let feature_skip_count = 1;
     let olsen_data = OlssenData::new(&olsen_data_path);
     let positive_principal_distance = false;
-    let invert_intrinsics = false; // they are already negative from decomp
+    let invert_focal_length = false; // they are already negative from decomp
     let normalize_features = false;
 
-    let (cam_intrinsics_0,cam_extrinsics_0) = olsen_data.get_camera_intrinsics_extrinsics(0,positive_principal_distance);
-    let (cam_intrinsics_1,cam_extrinsics_1) = olsen_data.get_camera_intrinsics_extrinsics(1,positive_principal_distance);
-    let (cam_intrinsics_2,cam_extrinsics_2) = olsen_data.get_camera_intrinsics_extrinsics(2,positive_principal_distance);
-    let (cam_intrinsics_3,cam_extrinsics_3) = olsen_data.get_camera_intrinsics_extrinsics(3,positive_principal_distance);
-    let (cam_intrinsics_4,cam_extrinsics_4) = olsen_data.get_camera_intrinsics_extrinsics(4,positive_principal_distance);
-    let (cam_intrinsics_5,cam_extrinsics_5) = olsen_data.get_camera_intrinsics_extrinsics(5,positive_principal_distance);
-    let (cam_intrinsics_6,cam_extrinsics_6) = olsen_data.get_camera_intrinsics_extrinsics(6,positive_principal_distance);
-    let (cam_intrinsics_7,cam_extrinsics_7) = olsen_data.get_camera_intrinsics_extrinsics(7,positive_principal_distance);
-    let (cam_intrinsics_8,cam_extrinsics_8) = olsen_data.get_camera_intrinsics_extrinsics(8,positive_principal_distance);
-    let (cam_intrinsics_9,cam_extrinsics_9) = olsen_data.get_camera_intrinsics_extrinsics(9,positive_principal_distance);
 
-    let (cam_intrinsics_10,cam_extrinsics_10) = olsen_data.get_camera_intrinsics_extrinsics(10,positive_principal_distance);
-    let (cam_intrinsics_11,cam_extrinsics_11) = olsen_data.get_camera_intrinsics_extrinsics(11,positive_principal_distance);
-
-    // let (cam_intrinsics_17,cam_extrinsics_17) = olsen_data.get_camera_intrinsics_extrinsics(17,positive_principal_distance);
-    // let (cam_intrinsics_18,cam_extrinsics_18) = olsen_data.get_camera_intrinsics_extrinsics(18,positive_principal_distance);
-    // let (cam_intrinsics_19,cam_extrinsics_19) = olsen_data.get_camera_intrinsics_extrinsics(19,positive_principal_distance);
-    // let (cam_intrinsics_20,cam_extrinsics_20) = olsen_data.get_camera_intrinsics_extrinsics(20,positive_principal_distance);
-    // let (cam_intrinsics_21,cam_extrinsics_21) = olsen_data.get_camera_intrinsics_extrinsics(21,positive_principal_distance);
-    // let (cam_intrinsics_22,cam_extrinsics_22) = olsen_data.get_camera_intrinsics_extrinsics(22,positive_principal_distance);
-    // let (cam_intrinsics_23,cam_extrinsics_23) = olsen_data.get_camera_intrinsics_extrinsics(23,positive_principal_distance);
-    // let (cam_intrinsics_24,cam_extrinsics_24) = olsen_data.get_camera_intrinsics_extrinsics(24,positive_principal_distance);
-    // let (cam_intrinsics_25,cam_extrinsics_25) = olsen_data.get_camera_intrinsics_extrinsics(25,positive_principal_distance);
-
-    // let matches_4_3 = olsen_data.get_loftr_matches_between_images(4,3, olsen_dataset_name);
-    // let matches_5_4 = olsen_data.get_loftr_matches_between_images(5,4, olsen_dataset_name);
-    // let matches_5_6 = olsen_data.get_loftr_matches_between_images(5,6, olsen_dataset_name);
-    // let matches_6_7 = olsen_data.get_loftr_matches_between_images(6,7, olsen_dataset_name);
-
-
-    let matches_3_2 = olsen_data.get_matches_between_images(3, 2);
-    let matches_4_3 = olsen_data.get_matches_between_images(4, 3);
-    let matches_5_4 = olsen_data.get_matches_between_images(5, 4);
-    let matches_5_6 = olsen_data.get_matches_between_images(5, 6);
-    let matches_6_7 = olsen_data.get_matches_between_images(6, 7);
-    let matches_6_8 = olsen_data.get_matches_between_images(6, 8);
-    let matches_7_8 = olsen_data.get_matches_between_images(7, 8);
-    let matches_7_9 = olsen_data.get_matches_between_images(7, 9);
-    let matches_8_9 = olsen_data.get_matches_between_images(8, 9);
-    let matches_9_10 = olsen_data.get_matches_between_images(9, 10);
-    let matches_10_11 = olsen_data.get_matches_between_images(10, 11);
-
-    // let matches_18_17 = olsen_data.get_matches_between_images(18, 17);
-    // let matches_19_18 = olsen_data.get_matches_between_images(19, 18);
-    // let matches_20_19 = olsen_data.get_matches_between_images(20, 19);
-    // let matches_20_21 = olsen_data.get_matches_between_images(20, 21);
-    // let matches_21_22 = olsen_data.get_matches_between_images(21, 22);
-    // let matches_22_23 = olsen_data.get_matches_between_images(22, 23);
-    // let matches_23_24 = olsen_data.get_matches_between_images(23, 24);
-    // let matches_22_23 = olsen_data.get_matches_between_images(22, 23);
-    // let matches_23_24 = olsen_data.get_matches_between_images(23, 24);
-
-    let matches_3_2_subvec = matches_3_2.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
-    let matches_4_3_subvec = matches_4_3.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
-    let matches_5_4_subvec = matches_5_4.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
-    let matches_5_6_subvec = matches_5_6.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
-    let matches_6_7_subvec = matches_6_7.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
-    let matches_6_8_subvec = matches_6_8.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
-    let matches_7_8_subvec = matches_7_8.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
-    let matches_7_9_subvec = matches_7_9.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
-    let matches_8_9_subvec = matches_8_9.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
-    let matches_9_10_subvec = matches_9_10.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
-    let matches_10_11_subvec = matches_10_11.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
-
-
-    // let matches_18_17_subvec = matches_19_18.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
-    // let matches_18_17_subvec = matches_19_18.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
-    // let matches_19_18_subvec = matches_19_18.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
-    // let matches_20_19_subvec = matches_20_19.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
-    // let matches_20_21_subvec = matches_20_21.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
-    // let matches_21_22_subvec = matches_21_22.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
-    // let matches_22_23_subvec = matches_22_23.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
-    // let matches_23_24_subvec = matches_23_24.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
-    // let matches_22_23_subvec = matches_22_23.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
-    // let matches_23_24_subvec = matches_23_24.iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
-
-    let pinhole_cam_0 = Perspective::from_matrix(&cam_intrinsics_0, invert_intrinsics);
-    let pinhole_cam_1 = Perspective::from_matrix(&cam_intrinsics_1, invert_intrinsics);
-    let pinhole_cam_2 = Perspective::from_matrix(&cam_intrinsics_2, invert_intrinsics);
-    let pinhole_cam_3 = Perspective::from_matrix(&cam_intrinsics_3, invert_intrinsics);
-    let pinhole_cam_4 = Perspective::from_matrix(&cam_intrinsics_4, invert_intrinsics);
-    let pinhole_cam_5 = Perspective::from_matrix(&cam_intrinsics_5, invert_intrinsics);
-    let pinhole_cam_6 = Perspective::from_matrix(&cam_intrinsics_6, invert_intrinsics);
-    let pinhole_cam_7 = Perspective::from_matrix(&cam_intrinsics_7, invert_intrinsics);
-    let pinhole_cam_8 = Perspective::from_matrix(&cam_intrinsics_8, invert_intrinsics);
-    let pinhole_cam_9 = Perspective::from_matrix(&cam_intrinsics_9, invert_intrinsics);
-    let pinhole_cam_10 = Perspective::from_matrix(&cam_intrinsics_10, invert_intrinsics);
-    let pinhole_cam_11 = Perspective::from_matrix(&cam_intrinsics_11, invert_intrinsics);
-
-
-    // let pinhole_cam_17 = Perspective::from_matrix(&cam_intrinsics_17, invert_intrinsics);
-    // let pinhole_cam_18 = Perspective::from_matrix(&cam_intrinsics_18, invert_intrinsics);
-    // let pinhole_cam_19 = Perspective::from_matrix(&cam_intrinsics_19, invert_intrinsics);
-    // let pinhole_cam_20 = Perspective::from_matrix(&cam_intrinsics_20, invert_intrinsics);
-    // let pinhole_cam_21 = Perspective::from_matrix(&cam_intrinsics_21, invert_intrinsics);
-    // let pinhole_cam_22 = Perspective::from_matrix(&cam_intrinsics_22, invert_intrinsics);
-    // let pinhole_cam_23 = Perspective::from_matrix(&cam_intrinsics_23, invert_intrinsics);
-    // let pinhole_cam_24 = Perspective::from_matrix(&cam_intrinsics_24, invert_intrinsics);
-    // let pinhole_cam_25 = Perspective::from_matrix(&cam_intrinsics_25, invert_intrinsics);
-
-    // let sfm_all_matches = vec!(vec!(matches_5_6_subvec));
-    // let camera_map = HashMap::from([(5, pinhole_cam_5), (4, pinhole_cam_4), (6, pinhole_cam_6)]);
-    // let camera_map_ba = HashMap::from([(5, pinhole_cam_5.cast::<f32>()), (4, pinhole_cam_4.cast::<f32>()), (6, pinhole_cam_6.cast::<f32>())]);
     // let paths = vec!(vec!(6));
     // let root_id = 5;
 
-    // let sfm_all_matches = vec!(vec!(matches_5_4_subvec),vec!(matches_5_6_subvec));
-    // let camera_map = HashMap::from([(5, pinhole_cam_5), (4, pinhole_cam_4), (6, pinhole_cam_6)]);
-    // let camera_map_ba = HashMap::from([(5, pinhole_cam_5.cast::<f32>()), (4, pinhole_cam_4.cast::<f32>()), (6, pinhole_cam_6.cast::<f32>())]);
     // let paths = vec!(vec!(4),vec!(6));
     // let root_id = 5;
 
-    // let sfm_all_matches = vec!(vec!(matches_5_4_subvec,matches_4_3_subvec));
-    // let camera_map = HashMap::from([(5, pinhole_cam_5), (4, pinhole_cam_4), (3, pinhole_cam_3)]);
-    // let camera_map_ba = HashMap::from([(5, pinhole_cam_5.cast::<f32>()), (4, pinhole_cam_4.cast::<f32>()), (3, pinhole_cam_3.cast::<f32>())]);
     // let paths = vec!(vec!(4,3));
     // let root_id = 5;
 
-    // let sfm_all_matches = vec!(vec!(matches_5_6_subvec,matches_6_7_subvec));
-    // let camera_map = HashMap::from([(5, pinhole_cam_5), (4, pinhole_cam_4), (6, pinhole_cam_6), (3, pinhole_cam_3),(2, pinhole_cam_2),(7, pinhole_cam_7),(8, pinhole_cam_8)]);  
-    // let camera_map_ba = HashMap::from([(5, pinhole_cam_5.cast::<f32>()), (4, pinhole_cam_4.cast::<f32>()), (6, pinhole_cam_6.cast::<f32>()), (3, pinhole_cam_3.cast::<f32>()),(2, pinhole_cam_2.cast::<f32>()),(7, pinhole_cam_7.cast::<f32>()),(8, pinhole_cam_8.cast::<f32>())]);  
     // let paths = vec!(vec!(6,7));
     // let root_id = 5;
 
-    // let sfm_all_matches = vec!(vec!(matches_5_6_subvec,matches_6_8_subvec));
-    // let camera_map = HashMap::from([(5, pinhole_cam_5), (4, pinhole_cam_4), (6, pinhole_cam_6), (3, pinhole_cam_3),(2, pinhole_cam_2),(7, pinhole_cam_7),(8, pinhole_cam_8)]);  
-    // let camera_map_ba = HashMap::from([(5, pinhole_cam_5.cast::<f32>()), (4, pinhole_cam_4.cast::<f32>()), (6, pinhole_cam_6.cast::<f32>()), (3, pinhole_cam_3.cast::<f32>()),(2, pinhole_cam_2.cast::<f32>()),(7, pinhole_cam_7.cast::<f32>()),(8, pinhole_cam_8.cast::<f32>())]);  
-    // let paths = vec!(vec!(6,8));
-    // let root_id = 5;
 
-    // let sfm_all_matches = vec!(vec!(matches_5_4_subvec),vec!(matches_5_6_subvec,matches_6_7_subvec));
-    // let camera_map = HashMap::from([(5, pinhole_cam_5), (4, pinhole_cam_4), (6, pinhole_cam_6), (3, pinhole_cam_3),(2, pinhole_cam_2),(7, pinhole_cam_7),(8, pinhole_cam_8)]);  
-    // let camera_map_ba = HashMap::from([(5, pinhole_cam_5.cast::<f32>()), (4, pinhole_cam_4.cast::<f32>()), (6, pinhole_cam_6.cast::<f32>()), (3, pinhole_cam_3.cast::<f32>()),(2, pinhole_cam_2.cast::<f32>()),(7, pinhole_cam_7.cast::<f32>()),(8, pinhole_cam_8.cast::<f32>())]);  
+    let paths = vec!(vec!(6,7));
+    let root_id = 5;
+
     // let paths = vec!(vec!(4),vec!(6,7));
     // let root_id = 5;
 
-    let sfm_all_matches = vec!(vec!(matches_5_4_subvec, matches_4_3_subvec),vec!(matches_5_6_subvec, matches_6_7_subvec));
-    let camera_map = HashMap::from([(5, pinhole_cam_5), (4, pinhole_cam_4), (6, pinhole_cam_6), (3, pinhole_cam_3),(2, pinhole_cam_2),(7, pinhole_cam_7),(8, pinhole_cam_8),(9, pinhole_cam_9)]);  
-    let camera_map_ba = HashMap::from([(5, pinhole_cam_5.cast::<f32>()), (4, pinhole_cam_4.cast::<f32>()), (6, pinhole_cam_6.cast::<f32>()), (3, pinhole_cam_3.cast::<f32>()),(2, pinhole_cam_2.cast::<f32>()),(7, pinhole_cam_7.cast::<f32>()),(8, pinhole_cam_8.cast::<f32>()),(9, pinhole_cam_9.cast::<f32>())]);  
-    let paths = vec!(vec!(4,3),vec!(6,7));
-    let root_id = 5;
+    // let paths = vec!(vec!(4,3),vec!(6,7));
+    // let root_id = 5;
 
-    // let sfm_all_matches = vec!(vec!(matches_5_4_subvec, matches_4_3_subvec,matches_3_2_subvec));
-    // let camera_map = HashMap::from([(5, pinhole_cam_5), (4, pinhole_cam_4), (6, pinhole_cam_6), (3, pinhole_cam_3),(2, pinhole_cam_2),(7, pinhole_cam_7),(8, pinhole_cam_8),(9, pinhole_cam_9)]);  
-    // let camera_map_ba = HashMap::from([(5, pinhole_cam_5.cast::<f32>()), (4, pinhole_cam_4.cast::<f32>()), (6, pinhole_cam_6.cast::<f32>()), (3, pinhole_cam_3.cast::<f32>()),(2, pinhole_cam_2.cast::<f32>()),(7, pinhole_cam_7.cast::<f32>()),(8, pinhole_cam_8.cast::<f32>()),(9, pinhole_cam_9.cast::<f32>())]);  
+    // let paths = vec!(vec!(4,3),vec!(6));
+    // let root_id = 5;
+
+    // let paths = vec!(vec!(4),vec!(6,7));
+    // let root_id = 5;
+
     // let paths = vec!(vec!(4,3,2));
     // let root_id = 5;
 
-    // let sfm_all_matches = vec!(vec!(matches_5_6_subvec, matches_6_7_subvec,matches_7_8_subvec));
-    // let camera_map = HashMap::from([(5, pinhole_cam_5), (4, pinhole_cam_4), (6, pinhole_cam_6), (3, pinhole_cam_3),(2, pinhole_cam_2),(7, pinhole_cam_7),(8, pinhole_cam_8),(9, pinhole_cam_9)]);  
-    // let camera_map_ba = HashMap::from([(5, pinhole_cam_5.cast::<f32>()), (4, pinhole_cam_4.cast::<f32>()), (6, pinhole_cam_6.cast::<f32>()), (3, pinhole_cam_3.cast::<f32>()),(2, pinhole_cam_2.cast::<f32>()),(7, pinhole_cam_7.cast::<f32>()),(8, pinhole_cam_8.cast::<f32>()),(9, pinhole_cam_9.cast::<f32>())]);  
     // let paths = vec!(vec!(6,7,8));
     // let root_id = 5;
 
-    // let sfm_all_matches = vec!(vec!(matches_5_6_subvec, matches_6_7_subvec,matches_7_9_subvec));
-    // let camera_map = HashMap::from([(5, pinhole_cam_5), (4, pinhole_cam_4), (6, pinhole_cam_6), (3, pinhole_cam_3),(2, pinhole_cam_2),(7, pinhole_cam_7),(8, pinhole_cam_8),(9, pinhole_cam_9)]);  
-    // let camera_map_ba = HashMap::from([(5, pinhole_cam_5.cast::<f32>()), (4, pinhole_cam_4.cast::<f32>()), (6, pinhole_cam_6.cast::<f32>()), (3, pinhole_cam_3.cast::<f32>()),(2, pinhole_cam_2.cast::<f32>()),(7, pinhole_cam_7.cast::<f32>()),(8, pinhole_cam_8.cast::<f32>()),(9, pinhole_cam_9.cast::<f32>())]);  
     // let paths = vec!(vec!(6,7,9));
     // let root_id = 5;
 
-    // let sfm_all_matches = vec!(vec!(matches_5_6_subvec, matches_6_7_subvec,matches_7_8_subvec,matches_8_9_subvec,matches_9_10_subvec,matches_10_11_subvec));
-    // let camera_map = HashMap::from([(5, pinhole_cam_5), (4, pinhole_cam_4), (6, pinhole_cam_6), (3, pinhole_cam_3),(2, pinhole_cam_2),(7, pinhole_cam_7),(8, pinhole_cam_8),(9, pinhole_cam_9),(10, pinhole_cam_10),(11, pinhole_cam_11)]);  
-    // let camera_map_ba = HashMap::from([(5, pinhole_cam_5.cast::<f32>()), (4, pinhole_cam_4.cast::<f32>()), (6, pinhole_cam_6.cast::<f32>()), (3, pinhole_cam_3.cast::<f32>()),(2, pinhole_cam_2.cast::<f32>()),(7, pinhole_cam_7.cast::<f32>()),(8, pinhole_cam_8.cast::<f32>()),(9, pinhole_cam_9.cast::<f32>()),(10, pinhole_cam_10.cast::<f32>()),(11, pinhole_cam_11.cast::<f32>())]);  
     // let paths = vec!(vec!(6,7,8,9,10,11));
     // let root_id = 5;
 
-
-    // let sfm_all_matches = vec!(vec!(matches_5_4_subvec, matches_4_3_subvec,matches_3_2_subvec),vec!(matches_5_6_subvec, matches_6_7_subvec,matches_7_8_subvec));
-    // let camera_map = HashMap::from([(5, pinhole_cam_5), (4, pinhole_cam_4), (6, pinhole_cam_6), (3, pinhole_cam_3),(2, pinhole_cam_2),(7, pinhole_cam_7),(8, pinhole_cam_8),(9, pinhole_cam_9)]);  
-    // let camera_map_ba = HashMap::from([(5, pinhole_cam_5.cast::<f32>()), (4, pinhole_cam_4.cast::<f32>()), (6, pinhole_cam_6.cast::<f32>()), (3, pinhole_cam_3.cast::<f32>()),(2, pinhole_cam_2.cast::<f32>()),(7, pinhole_cam_7.cast::<f32>()),(8, pinhole_cam_8.cast::<f32>()),(9, pinhole_cam_9.cast::<f32>())]);  
     // let paths = vec!(vec!(4,3,2),vec!(6,7,8));
     // let root_id = 5;
 
-
-    // let sfm_all_matches = vec!(vec!(matches_20_19_subvec,matches_19_18_subvec),vec!(matches_20_21_subvec, matches_21_22_subvec));
-    // let camera_map = HashMap::from([(17, pinhole_cam_17),(17, pinhole_cam_17),(18, pinhole_cam_18),(19, pinhole_cam_19),(20, pinhole_cam_20),(21, pinhole_cam_21),(22, pinhole_cam_22),(23, pinhole_cam_23),(24, pinhole_cam_24),(23, pinhole_cam_23),(24, pinhole_cam_24)]);  
-    // let camera_map_ba = HashMap::from([(17, pinhole_cam_17.cast::<f32>()),(17, pinhole_cam_17.cast::<f32>()),(18, pinhole_cam_18.cast::<f32>()),(19, pinhole_cam_19.cast::<f32>()),(20, pinhole_cam_20.cast::<f32>()),(21, pinhole_cam_21.cast::<f32>()),(22, pinhole_cam_22.cast::<f32>()),(23, pinhole_cam_23.cast::<f32>()),(24, pinhole_cam_24.cast::<f32>()),(23, pinhole_cam_23.cast::<f32>()),(24, pinhole_cam_24.cast::<f32>())]);  
     // let paths = vec!(vec!(19,18),vec!(21,22));
     // let root_id = 20;
 
-    // let sfm_all_matches = vec!(vec!(matches_20_19_subvec),vec!(matches_20_21_subvec));
-    // let camera_map = HashMap::from([(17, pinhole_cam_17),(18, pinhole_cam_18),(19, pinhole_cam_19),(20, pinhole_cam_20),(21, pinhole_cam_21),(22, pinhole_cam_22),(23, pinhole_cam_23),(24, pinhole_cam_24)]);  
-    // let camera_map_ba = HashMap::from([(17, pinhole_cam_17.cast::<f32>()),(18, pinhole_cam_18.cast::<f32>()),(19, pinhole_cam_19.cast::<f32>()),(20, pinhole_cam_20.cast::<f32>()),(21, pinhole_cam_21.cast::<f32>()),(22, pinhole_cam_22.cast::<f32>()),(23, pinhole_cam_23.cast::<f32>()),(24, pinhole_cam_24.cast::<f32>())]);  
     // let paths = vec!(vec!(19),vec!(21));
     // let root_id = 20;
 
-    // let sfm_all_matches = vec!(vec!(matches_20_19_subvec),vec!(matches_20_21_subvec));
-    // let camera_map = HashMap::from([(17, pinhole_cam_17),(18, pinhole_cam_18),(19, pinhole_cam_19),(20, pinhole_cam_20),(21, pinhole_cam_21),(22, pinhole_cam_22),(23, pinhole_cam_23),(24, pinhole_cam_24)]);  
-    // let camera_map_ba = HashMap::from([(17, pinhole_cam_17.cast::<f32>()),(18, pinhole_cam_18.cast::<f32>()),(19, pinhole_cam_19.cast::<f32>()),(20, pinhole_cam_20.cast::<f32>()),(21, pinhole_cam_21.cast::<f32>()),(22, pinhole_cam_22.cast::<f32>()),(23, pinhole_cam_23.cast::<f32>()),(24, pinhole_cam_24.cast::<f32>())]);  
     // let paths = vec!(vec!(19),vec!(21));
     // let root_id = 20;
 
-    // let sfm_all_matches = vec!(vec!(matches_5_4_subvec, matches_4_3_subvec),vec!(matches_5_6_subvec, matches_6_7_subvec,matches_7_8_subvec));
-    // let camera_map = HashMap::from([(5, pinhole_cam_5), (4, pinhole_cam_4), (6, pinhole_cam_6), (3, pinhole_cam_3),(2, pinhole_cam_2),(7, pinhole_cam_7),(8, pinhole_cam_8)]);  
-    // let paths = vec!(    let positive_principal_distance = false;vec!(4),vec!(6,7));
+    //vec!(4),vec!(6,7));
     // let root_id = 5;
 
-    let sfm_config_fundamental = SFMConfig::new(root_id, paths.clone(), camera_map, camera_map_ba, sfm_all_matches.clone(), 
-    BifocalType::FUNDAMENTAL, Triangulation::LINEAR, 1.0, 5e0, 1000.0, true, olsen_data.width, olsen_data.height);
+    let (match_map, camera_map, camera_map_ba) = olsen_data.get_data_for_sfm(root_id, &paths, positive_principal_distance, invert_focal_length, feature_skip_count);
+    let sfm_config_fundamental = SFMConfig::new(root_id, &paths, camera_map, camera_map_ba, &match_map, 
+    BifocalType::FUNDAMENTAL, Triangulation::LINEAR, 1.0, 3.0e0, 400.0, true);
     let (initial_cam_motions_per_path,filtered_matches_per_path) = sfm_config_fundamental.compute_lists_from_maps();
 
     //This is only to satisfy current interface in ba
@@ -256,7 +114,7 @@ fn main() -> Result<()> {
         }
     }
 
-    for (i,j) in compute_path_pairs_as_list(sfm_config_fundamental.root(),sfm_config_fundamental.paths()).into_iter().flatten().collect::<Vec<_>>() {
+    for (i,j) in compute_path_pairs_as_vec(sfm_config_fundamental.root(),sfm_config_fundamental.paths()).into_iter().flatten().collect::<Vec<_>>() {
         let im_1 = olsen_data.get_image(i);
         let im_2 = olsen_data.get_image(j);
         let matches = sfm_config_fundamental.match_map().get(&(i,j)).expect(format!("Match ({},{}) not present!",i,j).as_str());

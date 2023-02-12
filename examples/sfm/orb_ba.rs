@@ -62,13 +62,13 @@ fn main() -> Result<()> {
     let (orb_params_1_3,matches_1_3): (OrbRuntimeParameters,Vec<Vec<Match<OrbFeature>>>) = serde_yaml::from_str(&orb_matches_as_string_1_3)?;
     let (orb_params_1_4,matches_1_4): (OrbRuntimeParameters,Vec<Vec<Match<OrbFeature>>>) = serde_yaml::from_str(&orb_matches_as_string_1_4)?;
 
-    let mut all_matches = Vec::<Vec<Match<OrbFeature>>>::with_capacity(2);
-    all_matches.extend(matches_1_2);
+    //let mut all_matches = Vec::<Vec<Match<OrbFeature>>>::with_capacity(2);
+    //all_matches.extend(matches_1_2);
     //matches.extend(matches_1_3);
     //matches.extend(matches_1_4);
 
     let camera_map = HashMap::from([(1, intensity_camera_1), (2, intensity_camera_2)]);
-    let sfm_config = SFMConfig::new(1, vec!(vec!(2)), camera_map.clone(), camera_map, vec!(all_matches), BifocalType::ESSENTIAL, Triangulation::LINEAR, 0.8, 5.0, 100.0, true, 640, 480);
+    let sfm_config = SFMConfig::new(1, &vec!(vec!(2)), camera_map.clone(), camera_map, &HashMap::from([((1,2),matches_1_2[0].clone())]), BifocalType::ESSENTIAL, Triangulation::LINEAR, 0.8, 5.0, 100.0, true);
 
     let runtime_parameters = RuntimeParameters {
         pyramid_scale: orb_params_1_2.pyramid_scale,

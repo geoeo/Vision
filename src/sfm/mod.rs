@@ -17,7 +17,7 @@ use crate::sfm::{epipolar::tensor, epipolar::compute_linear_normalization,
 use crate::sensors::camera::Camera;
 use crate::numerics::{pose::{to_parts,from_matrix,se3}};
 
-use na::{DVector, Matrix4xX, Vector3, Vector4, Matrix3, Isometry3, SimdValue};
+use na::{DVector, Matrix4xX, Vector3, Vector4, Matrix3, Isometry3};
 use crate::{float,Float};
 
 
@@ -37,8 +37,7 @@ pub struct SFMConfig<C, C2, Feat: Feature> {
     triangulation: Triangulation
 }
 
-
-pub fn compute_path_pairs_as_list(root: usize, paths: &Vec<Vec<usize>>) -> Vec<Vec<(usize,usize)>> {
+pub fn compute_path_pairs_as_vec(root: usize, paths: &Vec<Vec<usize>>) -> Vec<Vec<(usize,usize)>> {
     let number_of_paths = paths.len();
     let mut all_path_pairs = Vec::<Vec<(usize,usize)>>::with_capacity(number_of_paths);
     for path_idx in 0..number_of_paths {
@@ -60,17 +59,17 @@ pub fn compute_path_pairs_as_list(root: usize, paths: &Vec<Vec<usize>>) -> Vec<V
 impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverFeature> SFMConfig<C,C2, Feat> {
 
     //TODO: rework casting to be part of camera trait or super struct 
-    pub fn new(root: usize, paths: Vec<Vec<usize>>, 
+    pub fn new(root: usize, 
+        paths: &Vec<Vec<usize>>, 
         camera_map: HashMap<usize, C>, 
-        camera_map_ba: HashMap<usize, C2>, matches: Vec<Vec<Vec<Match<Feat>>>>, 
+        camera_map_ba: HashMap<usize, C2>, 
+        match_map_no_landmarks: &HashMap<(usize,usize), Vec<Match<Feat>>>, 
         epipolar_alg: tensor::BifocalType, 
         triangulation: Triangulation, 
         perc_tresh: Float, 
         epipolar_thresh: Float, 
         landmark_cutoff_thresh: Float,
-        refine_rotation_via_rcd: bool,
-        image_width: usize,
-        image_height: usize) -> SFMConfig<C,C2,Feat> {
+        refine_rotation_via_rcd: bool) -> SFMConfig<C,C2,Feat> {
         for key in camera_map.keys() {
             assert!(camera_map_ba.contains_key(key));
         }
@@ -79,19 +78,17 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
             assert!(camera_map.contains_key(key));
         }
 
-        let image_size = image_width*image_height;
+        let paths_pairs_as_vec = compute_path_pairs_as_vec(root,paths);
         // Filteres matches according to feature consitency along a path.
-        let accepted_matches = Self::filter_by_max_tracks(&matches, image_size);
-
+        let accepted_matches = Self::filter_by_max_tracks(&paths_pairs_as_vec, &match_map_no_landmarks);
         let _ = Self::check_for_duplicate_pixel_entries(&accepted_matches);
+        let mut match_map = Self::generate_match_map_with_landmark_ids(root, &paths,accepted_matches);
 
-        let match_map_initial = Self::generate_match_map(root, &paths,accepted_matches);
-
-        let (mut pose_map,mut match_map) = Self::compute_pose_map(
+        let mut pose_map = Self::compute_pose_map(
             root,
             &paths,
             &camera_map,
-            match_map_initial,
+            &mut match_map,
             perc_tresh, 
             epipolar_thresh,
             epipolar_alg
@@ -122,7 +119,7 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
 
         Self::recompute_landmark_ids(&mut match_map);
 
-        SFMConfig{root, paths, camera_map_highp: camera_map, camera_map_lowp: camera_map_ba, match_map, pose_map, epipolar_alg, landmark_map, reprojection_error_map,triangulation}
+        SFMConfig{root, paths: paths.clone(), camera_map_highp: camera_map, camera_map_lowp: camera_map_ba, match_map, pose_map, epipolar_alg, landmark_map, reprojection_error_map,triangulation}
     }
 
 
@@ -184,7 +181,7 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
         duplicates_found
     }
 
-    fn generate_match_map(root: usize, paths: &Vec<Vec<usize>>, matches: Vec<Vec<Vec<Match<Feat>>>>) -> HashMap<(usize,usize), Vec<Match<Feat>>> {
+    fn generate_match_map_with_landmark_ids(root: usize, paths: &Vec<Vec<usize>>, matches: Vec<Vec<Vec<Match<Feat>>>>) -> HashMap<(usize,usize), Vec<Match<Feat>>> {
         let number_of_paths = paths.len();
         let map_capacity = calc_map_capacity(number_of_paths);
         let mut match_map = HashMap::<(usize, usize), Vec<Match<Feat>>>::with_capacity(map_capacity);
@@ -253,7 +250,7 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
 
         let mut triangulated_match_map = HashMap::<(usize,usize),Matrix4xX<Float>>::with_capacity(match_map.len());
         let mut reprojection_map = HashMap::<(usize,usize),DVector<Float>>::with_capacity(match_map.len());
-        let path_pairs = compute_path_pairs_as_list(root,paths);
+        let path_pairs = compute_path_pairs_as_vec(root,paths);
         let mut max_reprojection_error = float::MIN;
         let mut min_reprojection_error = float::MAX;
 
@@ -293,7 +290,7 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
     }
 
     //TODO: merges in tracks originating at the root
-    fn filter_by_max_tracks(all_paths: &Vec<Vec<Vec<Match<Feat>>>>,  image_size: usize) -> Vec<Vec<Vec<Match<Feat>>>> {
+    fn filter_by_max_tracks(all_paths: &Vec<Vec<(usize,usize)>>, match_map: &HashMap<(usize, usize), Vec<Match<Feat>>>) -> Vec<Vec<Vec<Match<Feat>>>> {
 
         let mut filtered_matches = Vec::<Vec<Vec<Match<Feat>>>>::with_capacity(all_paths.len()); 
         let mut feature_tracks = Vec::<Vec<FeatureTrack<Feat>>>::with_capacity(all_paths.len());
@@ -302,21 +299,24 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
             let path = &all_paths[path_idx];
             let path_len = path.len();
             filtered_matches.push(Vec::<Vec<Match<Feat>>>::with_capacity(path_len));
-            feature_tracks.push(Vec::<FeatureTrack<Feat>>::with_capacity(image_size));
-            for img_idx in 0..path_len {
-                filtered_matches[path_idx].push(Vec::<Match<Feat>>::with_capacity(path[img_idx].len()));
+            feature_tracks.push(Vec::<FeatureTrack<Feat>>::with_capacity(path_len));
+        
+            for pair_idx in 0..path_len {
+                let k = path[pair_idx];
+                filtered_matches[path_idx].push(Vec::<Match<Feat>>::with_capacity(match_map.get(&k).unwrap().len()));
             }
         }
 
         let mut landmark_id = 0;
         let max_path_len: usize = all_paths.iter().map(|x| x.len()).sum();
         for path_idx in 0..all_paths.len() {
-            let matches_for_path = all_paths[path_idx].clone();
-            let path_len = matches_for_path.len();
+            let path_pairs_for_path = all_paths[path_idx].clone();
+            let path_len = path_pairs_for_path.len();
             for img_idx in 0..path_len {
-                let current_matches = matches_for_path[img_idx].clone();
+                let current_pair_key = &path_pairs_for_path[img_idx].clone();
+                let current_matches = match_map.get(current_pair_key).unwrap();
                 let mut pixel_set = HashSet::<(usize,usize)>::with_capacity(current_matches.len());
-                for m in &current_matches {
+                for m in current_matches {
                     let f1_x = m.feature_one.get_x_image();
                     let f1_y = m.feature_one.get_y_image();
                     let k = (f1_x,f1_y);
@@ -481,11 +481,11 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
             root: usize,
             paths: &Vec<Vec<usize>>,
             camera_map: &HashMap<usize, C>,
-            mut match_map: HashMap<(usize, usize), Vec<Match<Feat>>>,
+            match_map: &mut HashMap<(usize, usize), Vec<Match<Feat>>>,
             perc_tresh: Float, 
             epipolar_tresh: Float,
             epipolar_alg: tensor::BifocalType) 
-        ->  (HashMap<(usize, usize), Isometry3<Float>>,HashMap<(usize, usize), Vec<Match<Feat>>>) {
+        ->  HashMap<(usize, usize), Isometry3<Float>> {
             let number_of_paths = paths.len();
             let map_capacity = calc_map_capacity(number_of_paths); //TODO expose this in function args
             let mut pose_map = HashMap::<(usize, usize), Isometry3<Float>>::with_capacity(map_capacity);
@@ -535,7 +535,7 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
                             (e, filtered, filtered_norm)
                         },
                         tensor::BifocalType::ESSENTIAL => {
-                            let e = tensor::ransac_five_point_essential(m_norm, &camera_matrix_one, &inverse_camera_matrix_one, &camera_matrix_two ,&inverse_camera_matrix_two,1e-2,1e4 as usize);
+                            let e = tensor::ransac_five_point_essential(m_norm, &camera_matrix_one, &inverse_camera_matrix_one, &camera_matrix_two ,&inverse_camera_matrix_two,1e-3,1e4 as usize);
                             //let e = tensor::five_point_essential(m_norm, &camera_matrix_one, &inverse_camera_matrix_one, &camera_matrix_two ,&inverse_camera_matrix_two); 
                             let f = tensor::compute_fundamental(&e, &inverse_camera_matrix_one, &inverse_camera_matrix_two);
 
@@ -573,7 +573,7 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
 
                 }
             }
-        (pose_map, match_map)
+        pose_map
     }
 
     fn refine_rotation_by_rcd(root: usize, paths: &Vec<Vec<usize>>, pose_map: &HashMap<(usize, usize), Isometry3<Float>>) -> HashMap<(usize, usize), Isometry3<Float>> {
@@ -597,7 +597,7 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
             }
             initial_cam_motions_per_path.push(cam_motions);
         }
-        let initial_cam_rotations_per_path_rcd = optimize_rotations_with_rcd_per_track(&initial_cam_motions_per_path);
+        let initial_cam_rotations_per_path_rcd = optimize_rotations_with_rcd(&initial_cam_motions_per_path);
         for i in 0..initial_cam_rotations_per_path_rcd.len(){
             let path_len = initial_cam_rotations_per_path_rcd[i].len();
             for j in 0..path_len {

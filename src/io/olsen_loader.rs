@@ -1,12 +1,13 @@
 extern crate nalgebra as na;
 
 use na::{DMatrix,Matrix4,Matrix3,Matrix3x4, Vector3};
-use std::collections::HashSet;
+use std::collections::HashMap;
 use std::fs::File;
+use std::hash::Hash;
 use std::io::{BufReader,BufRead};
 use crate::io::{ octave_loader::{load_matrices,load_matrix},load_images};
-use crate::image::{Image,features::{Match,ImageFeature}};
-use crate::sensors::camera::decompose_projection;
+use crate::image::{Image,features::{Match,ImageFeature, Feature}};
+use crate::sensors::camera::{decompose_projection, perspective::Perspective};
 use crate::numerics::pose;
 
 use crate::Float;
@@ -71,8 +72,6 @@ impl OlssenData {
             assert_eq!(point_idx.fract(),0.0);
             point_correspondence_map[point_idx as usize].1 = Some(i);
         }
-
-
 
         // We flip the y-axis so that the features correspond to the RHS coordiante axis
         point_correspondence_map.iter().filter(|&(v1,v2)| v1.is_some() && v2.is_some()).map(|&(v1,v2)| {
@@ -165,6 +164,36 @@ impl OlssenData {
             let decomp = pose::decomp(&p12);
             (*id2 as u64,decomp)
         }).collect()
+    }
+
+    pub fn get_data_for_sfm(&self, root_id: usize, paths: &Vec<Vec<usize>>, positive_principal_distance:bool, invert_focal_length: bool, feature_skip_count: usize) -> (HashMap<(usize,usize), Vec<Match<ImageFeature>>>, HashMap<usize, Perspective<f64>>, HashMap<usize, Perspective<f32>>) {
+        let root_cam =  Perspective::from_matrix(&self.get_camera_intrinsics_extrinsics(root_id, positive_principal_distance).0,invert_focal_length);
+        let other_cams = paths.iter().map(|path| path.iter().map(|&id| (id,Perspective::from_matrix(&self.get_camera_intrinsics_extrinsics(id, positive_principal_distance).0,invert_focal_length))).collect::<Vec<(usize,Perspective<f64>)>>()).flatten().collect::<Vec<(usize,Perspective<f64>)>>();
+        let number_of_paths = paths.len();
+
+        let mut cam_map = HashMap::<usize, Perspective<f64>>::with_capacity(other_cams.len()+1);
+        cam_map.insert(root_id, root_cam);
+        for (other_id,other_cam) in other_cams {
+            cam_map.insert(other_id, other_cam);
+        }
+        let cam_map_ba = cam_map.iter().map(|(k,v)| (*k, v.cast::<f32>())).collect::<HashMap<usize, Perspective<f32>>>();
+
+        let mut match_map = HashMap::<(usize,usize), Vec<Match<ImageFeature>>>::with_capacity(number_of_paths);
+        for path_idx in 0..number_of_paths {
+            let path = paths[path_idx].clone();
+            for j in 0..path.len() {
+                let id1 = match j {
+                    0 => root_id,
+                    idx => path[idx-1]
+                };
+                let id2 = path[j];
+                let matches = self.get_matches_between_images(id1, id2).iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
+                match_map.insert((id1,id2),matches);
+            }
+        }
+
+        (match_map,cam_map,cam_map_ba)
+
     }
 
 

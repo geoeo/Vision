@@ -72,21 +72,21 @@ fn main() -> Result<()> {
     let refine_rotation_via_rcd = true;
 
     let camera_map = HashMap::from([(0, intensity_camera_0), (1, intensity_camera_1),(2,intensity_camera_2),(3,intensity_camera_3),(4,intensity_camera_4)  ]);
-    //let sfm_config = SFMConfig::new(2, vec!(vec!(1), vec!(3)), camera_map.clone(), camera_map, vec!(vec!(matches_2_1),vec!(matches_2_3)),
-    //let sfm_config = SFMConfig::new(2, vec!(vec!(1)), camera_map.clone(), camera_map, vec!(vec!(matches_2_1)),
-    //let sfm_config = SFMConfig::new(2, vec!(vec!(3,4)), camera_map.clone(), camera_map, vec!(vec!(matches_2_3,matches_3_4)),
-    //let sfm_config = SFMConfig::new(2, vec!(vec!(3)), camera_map.clone(), camera_map, vec!(vec!(matches_2_3)),
-    //let sfm_config = SFMConfig::new(2, vec!(vec!(4)), camera_map.clone(), camera_map, vec!(vec!(matches_2_4)),
-    //let sfm_config = SFMConfig::new(2, vec!(vec!(1,0)), camera_map.clone(), camera_map, vec!(vec!(matches_2_1,matches_1_0)),
-    //let sfm_config = SFMConfig::new(2, vec!(vec!(1,0), vec!(3)), camera_map.clone(), camera_map, vec!(vec!(matches_2_1,matches_1_0),vec!(matches_2_3)),
-    //let sfm_config = SFMConfig::new(2, vec!(vec!(3,4), vec!(1)), camera_map.clone(), camera_map, vec!(vec!(matches_2_3,matches_3_4),vec!(matches_1_0)),
+    //let sfm_config = SFMConfig::new(2, &vec!(vec!(1), vec!(3)), camera_map.clone(), camera_map, vec!(vec!(matches_2_1),vec!(matches_2_3)),
+    //let sfm_config = SFMConfig::new(2, &vec!(vec!(1)), camera_map.clone(), camera_map, vec!(vec!(matches_2_1)),
+    //let sfm_config = SFMConfig::new(2, &vec!(vec!(3,4)), camera_map.clone(), camera_map, vec!(vec!(matches_2_3,matches_3_4)),
+    //let sfm_config = SFMConfig::new(2, &vec!(vec!(3)), camera_map.clone(), camera_map, vec!(vec!(matches_2_3)),
+    //let sfm_config = SFMConfig::new(2, &vec!(vec!(4)), camera_map.clone(), camera_map, vec!(vec!(matches_2_4)),
+    //let sfm_config = SFMConfig::new(2, &vec!(vec!(1,0)), camera_map.clone(), camera_map, vec!(vec!(matches_2_1,matches_1_0)),
+    //let sfm_config = SFMConfig::new(2, &vec!(vec!(1,0), vec!(3)), camera_map.clone(), camera_map, vec!(vec!(matches_2_1,matches_1_0),vec!(matches_2_3)),
+    //let sfm_config = SFMConfig::new(2, &vec!(vec!(3,4), vec!(1)), camera_map.clone(), camera_map, vec!(vec!(matches_2_3,matches_3_4),vec!(matches_1_0)),
 
-    //let sfm_config = SFMConfig::new(2, vec!(vec!(1), vec!(3), vec!(4), vec!(0)), camera_map.clone(), camera_map, vec!(vec!(matches_2_1),vec!(matches_2_3),vec!(matches_2_4),vec!(matches_2_0)),
-    let sfm_config = SFMConfig::new(2, vec!(vec!(1,0), vec!(3,4)), camera_map.clone(), camera_map, vec!(vec!(matches_2_1,matches_1_0),vec!(matches_2_3,matches_3_4)),
-    //let sfm_config = SFMConfig::new(2, vec!(vec!(1,0,3,4)), camera_map.clone(), camera_map, vec!(vec!(matches_2_1,matches_1_0,matches_0_3,matches_3_4)),
-    //let sfm_config = SFMConfig::new(3, vec!(vec!(4)), camera_map.clone(), camera_map, vec!(vec!(matches_3_4)),
+    //let sfm_config = SFMConfig::new(2, &vec!(vec!(1), vec!(3), vec!(4), vec!(0)), camera_map.clone(), camera_map, vec!(vec!(matches_2_1),vec!(matches_2_3),vec!(matches_2_4),vec!(matches_2_0)),
+    let sfm_config = SFMConfig::new(2, &vec!(vec!(1,0), vec!(3,4)), camera_map.clone(), camera_map, &HashMap::from([((2,1),matches_2_1),((1,0),matches_1_0),((2,3),matches_2_3),((3,4),matches_3_4)]),
+    //let sfm_config = SFMConfig::new(2, &vec!(vec!(1,0,3,4)), camera_map.clone(), camera_map, vec!(vec!(matches_2_1,matches_1_0,matches_0_3,matches_3_4)),
+    //let sfm_config = SFMConfig::new(3, &vec!(vec!(4)), camera_map.clone(), camera_map, vec!(vec!(matches_3_4)),
 
-    BifocalType::QUEST,  Triangulation::LINEAR, perc_tresh, 50.0, 100.0, refine_rotation_via_rcd, 640, 480);
+    BifocalType::FUNDAMENTAL,  Triangulation::LINEAR, perc_tresh, 50.0, float::INFINITY, refine_rotation_via_rcd);
 
     let ((cam_positions,points),(s,debug_states_serialized)) = run_ba(&sfm_config, (480,640), &runtime_parameters);
     //let ((cam_positions,points),(s,debug_states_serialized)) = run_ba(&sfm_config.matches(), &sfm_config, None, (480,640), &runtime_parameters, 1.0,depth_prior);
