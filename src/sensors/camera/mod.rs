@@ -2,9 +2,8 @@ extern crate nalgebra as na;
 extern crate num_traits;
 extern crate simba;
 
-use std::f32;
 use na::{U1,U3,Vector,Vector3,Matrix2x3,Matrix3,Matrix3x4,Matrix4, base::storage::Storage, SimdRealField, ComplexField,base::Scalar};
-use num_traits::{float,NumAssign};
+use num_traits::float;
 use crate::image::features::geometry::point::Point;
 
 pub mod pinhole;
@@ -12,7 +11,7 @@ pub mod perspective;
 pub mod camera_data_frame;
 
  //@TODO: unify principal distance into enum
-pub trait Camera<F: num_traits::float::Float + Scalar + NumAssign + SimdRealField + ComplexField> {
+pub trait Camera<F: float::Float + Scalar> {
     fn get_projection(&self) -> Matrix3<F>;
     fn get_inverse_projection(&self) -> Matrix3<F>; //@TODO: rename to camera/intrinsic matrix
     fn get_jacobian_with_respect_to_position_in_camera_frame<T>(&self, position: &Vector<F,U3,T>) -> Matrix2x3<F> where T: Storage<F,U3,U1>;
@@ -31,7 +30,7 @@ pub trait Camera<F: num_traits::float::Float + Scalar + NumAssign + SimdRealFiel
  * @TODO: unify principal distance into enum
  */
 #[allow(non_snake_case)]
-pub fn decompose_projection<F: float::Float + Scalar + NumAssign + SimdRealField + ComplexField>(projection_matrix: &Matrix3x4<F>, positive_principal_distance: bool) -> (Matrix3<F>, Matrix4<F>) {
+pub fn decompose_projection<F: float::Float + Scalar + SimdRealField + ComplexField>(projection_matrix: &Matrix3x4<F>, positive_principal_distance: bool) -> (Matrix3<F>, Matrix4<F>) {
 
     let s = match positive_principal_distance {
         true => F::one(),

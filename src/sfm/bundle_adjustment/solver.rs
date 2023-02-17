@@ -2,10 +2,9 @@ extern crate nalgebra as na;
 extern crate num_traits;
 extern crate simba;
 
-use simba::scalar::{SubsetOf,SupersetOf};
-use std::{ops::Mul,convert::From};
-use na::{DVector,DMatrix,Matrix, Dynamic, U4, VecStorage,Point3, Vector4, SimdRealField, ComplexField, base::Scalar, RealField, convert};
-use num_traits::{float,NumAssign};
+use simba::scalar::SupersetOf;
+use na::{DVector,DMatrix,Matrix, Dynamic, U4, VecStorage,Point3, Vector4, ComplexField, base::Scalar, RealField, convert};
+use num_traits::float;
 use crate::Float;
 use crate::sensors::camera::Camera;
 use crate::numerics::lie::left_jacobian_around_identity;
@@ -25,7 +24,7 @@ pub fn get_feature_index_in_residual(cam_id: usize, feature_id: usize, n_cams: u
  * */
 pub fn get_estimated_features<F, C : Camera<F>, L: Landmark<F,T> + Copy + Clone, const T: usize>(
     state: &State<F,L,T>, cameras: &Vec<&C>,observed_features: &DVector<F>, estimated_features: &mut DVector<F>) 
-    -> () where F: float::Float + Scalar + NumAssign + SimdRealField + ComplexField + Mul<F> + From<F> + RealField + SubsetOf<Float> + SupersetOf<Float>{
+    -> () where F: float::Float + Scalar + ComplexField + RealField + SupersetOf<Float> {
     let n_cams = state.n_cams;
     let n_points = state.n_points;
     assert_eq!(estimated_features.nrows(),2*n_points*n_cams);
@@ -58,7 +57,7 @@ pub fn get_estimated_features<F, C : Camera<F>, L: Landmark<F,T> + Copy + Clone,
 
 pub fn compute_residual<F>(
     estimated_features: &DVector<F>, observed_features: &DVector<F>, residual_vector: &mut DVector<F>) 
-    -> () where F: float::Float + Scalar + NumAssign + SimdRealField + ComplexField + Mul<F> + From<F> + RealField + SubsetOf<Float> + SupersetOf<Float> {
+    -> () where F: float::Float + Scalar + SupersetOf<Float> {
     assert_eq!(residual_vector.nrows(), estimated_features.nrows());
     for i in 0..residual_vector.nrows() {
         if observed_features[i] != convert(CameraFeatureMap::NO_FEATURE_FLAG) {
@@ -70,7 +69,7 @@ pub fn compute_residual<F>(
 }
 
 pub fn compute_jacobian_wrt_object_points<F, C : Camera<F>, L: Landmark<F, T> + Copy + Clone, const T: usize>(camera: &C, state: &State<F,L,T>, cam_idx: usize, point_idx: usize, i: usize, j: usize, jacobian: &mut DMatrix<F>) 
-    -> () where F: float::Float + Scalar + NumAssign + SimdRealField + ComplexField + Mul<F> + From<F> + RealField + SubsetOf<Float> + SupersetOf<Float>{
+    -> () where F: float::Float + Scalar + ComplexField + RealField + SupersetOf<Float> {
     let transformation = state.to_se3(cam_idx);
     let point = state.get_landmarks()[point_idx].get_euclidean_representation();
     let jacobian_world = state.jacobian_wrt_world_coordiantes(point_idx,cam_idx);
@@ -82,7 +81,7 @@ pub fn compute_jacobian_wrt_object_points<F, C : Camera<F>, L: Landmark<F, T> + 
 }
 
 pub fn compute_jacobian_wrt_camera_extrinsics<F, C : Camera<F>, L: Landmark<F, T> + Copy + Clone, const T: usize>(camera: &C, state: &State<F,L,T>, cam_idx: usize, point: &Point3<F> ,i: usize, j: usize, jacobian: &mut DMatrix<F>) 
-    -> () where F: float::Float + Scalar + NumAssign + SimdRealField + ComplexField + Mul<F> + From<F> + RealField + SubsetOf<Float> + SupersetOf<Float>{
+    -> () where F: float::Float + Scalar + ComplexField + RealField + SupersetOf<Float> {
     let transformation = state.to_se3(cam_idx);
     let transformed_point = transformation*Vector4::<F>::new(point[0],point[1],point[2],F::one());
     let lie_jacobian = left_jacobian_around_identity(&transformed_point.fixed_rows::<3>(0)); 
@@ -94,7 +93,7 @@ pub fn compute_jacobian_wrt_camera_extrinsics<F, C : Camera<F>, L: Landmark<F, T
 }
 
 pub fn compute_jacobian<F, C : Camera<F>, L: Landmark<F, T> + Copy + Clone, const T: usize>(state: &State<F,L,T>, cameras: &Vec<&C>, jacobian: &mut DMatrix<F>) 
-    -> ()  where F: float::Float + Scalar + NumAssign + SimdRealField + ComplexField + Mul<F> + From<F> + RealField + SubsetOf<Float> + SupersetOf<Float> {
+    -> ()  where F: float::Float + Scalar + ComplexField + RealField + SupersetOf<Float> {
     //cam
     let number_of_cam_params = 6*state.n_cams;
     for cam_state_idx in (0..number_of_cam_params).step_by(6) {
@@ -120,7 +119,7 @@ pub fn compute_jacobian<F, C : Camera<F>, L: Landmark<F, T> + Copy + Clone, cons
 }
 
 pub fn optimize<F, C : Camera<F>, L: Landmark<F, LANDMARK_PARAM_SIZE> + Copy + Clone, const LANDMARK_PARAM_SIZE: usize>(state: &mut State<F,L,LANDMARK_PARAM_SIZE>, cameras: &Vec<&C>, observed_features: &DVector<F>, runtime_parameters: &RuntimeParameters<F> ) 
-    -> Option<Vec<(Vec<[F; CAMERA_PARAM_SIZE]>, Vec<[F; LANDMARK_PARAM_SIZE]>)>> where F: float::Float + Scalar + NumAssign + SimdRealField + ComplexField + Mul<F> + From<F> + RealField + SubsetOf<Float> + SupersetOf<Float> {
+    -> Option<Vec<(Vec<[F; CAMERA_PARAM_SIZE]>, Vec<[F; LANDMARK_PARAM_SIZE]>)>> where F: float::Float + Scalar + ComplexField + RealField + SupersetOf<Float> {
     
 
     let max_iterations = runtime_parameters.max_iterations[0];

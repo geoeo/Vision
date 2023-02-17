@@ -1,7 +1,7 @@
 extern crate nalgebra as na;
 extern crate num_traits;
 
-use num_traits::{float,NumAssign};
+use num_traits::{float, NumAssign};
 use na::{convert, SimdRealField, ComplexField, zero, DMatrix, DVector , OVector, Dynamic, Matrix, SMatrix, SVector,Vector,Dim,storage::{Storage,StorageMut},base::{Scalar, default_allocator::DefaultAllocator, allocator::{Allocator}},
     VecStorage, Const, DimMin, U1
 };
@@ -16,7 +16,7 @@ pub fn calc_weight_vec<F, D, S1>(
     std: Option<F>,
     weight_function: &Box<dyn WeightingFunction<F>>,
     weights_vec: &mut Vector<F,D,S1>) -> () where 
-        F : float::Float + Scalar + NumAssign + SimdRealField + ComplexField,
+        F : float::Float + Scalar + SimdRealField + ComplexField,
         D: Dim,
         S1: StorageMut<F, D>{
     for i in 0..residuals.len() {
@@ -32,7 +32,7 @@ pub fn calc_weight_vec<F, D, S1>(
 pub fn weight_residuals_sparse<F, D, S1,S2>(
     residual_target: &mut Vector<F,D,S1>,
      weights_vec: &Vector<F,D,S2>) -> () where 
-        F : float::Float + Scalar + NumAssign + SimdRealField + ComplexField,
+        F : float::Float + Scalar + SimdRealField + ComplexField,
         D: Dim,
         S1: StorageMut<F, D>,
         S2: Storage<F, D> {
@@ -45,7 +45,7 @@ pub fn weight_residuals_sparse<F, D, S1,S2>(
 pub fn weight_jacobian_sparse<F, R,C,S1,S2>(
     jacobian: &mut Matrix<F, R, C, S1>,
     weights_vec: &Vector<F,R,S2>) -> () where
-    F : float::Float + Scalar + NumAssign + SimdRealField + ComplexField,
+    F : float::Float + Scalar + SimdRealField + ComplexField,
     R: Dim,
     C: Dim ,
     S1: StorageMut<F, R,C> ,
@@ -65,7 +65,7 @@ pub fn scale_to_diagonal<F, const T: usize>(
     residual: &DVector<F>,
     first_deriv: F,
     second_deriv: F,
-) -> () where F : float::Float + Scalar + NumAssign + SimdRealField + ComplexField {
+) -> () where F : float::Float + Scalar + SimdRealField + ComplexField {
     for j in 0..T {
         for i in 0..residual.nrows() {
             mat[(i, j)] *= first_deriv + convert::<f64,F>(2.0) * second_deriv * float::Float::powi(residual[i], 2);
@@ -74,19 +74,19 @@ pub fn scale_to_diagonal<F, const T: usize>(
 
 }
 
-pub fn compute_cost<F>(residuals: &DVector<F>, weight_function: &Box<dyn WeightingFunction<F>>) -> F where F : float::Float + Scalar + NumAssign + SimdRealField + ComplexField {
+pub fn compute_cost<F>(residuals: &DVector<F>, weight_function: &Box<dyn WeightingFunction<F>>) -> F where F : float::Float + Scalar + SimdRealField + ComplexField {
     weight_function.cost(residuals)
 }
 
 pub fn weight_residuals<F, const T: usize>(residual: &mut SVector<F, T>, weights: &SMatrix<F,T,T>) -> () where 
-    F : float::Float + Scalar + NumAssign + SimdRealField + ComplexField,
+    F : float::Float + Scalar + SimdRealField + ComplexField,
     Const<T>: DimMin<Const<T>, Output = Const<T>> {
     weights.mul_to(&residual.clone(),residual);
 }
 
 pub fn weight_jacobian<F, const M: usize, const N: usize>(jacobian: &mut SMatrix<F,M,N>, weights: &SMatrix<F,M,M>) -> () 
     where 
-    F : float::Float + Scalar + NumAssign + SimdRealField + ComplexField,
+    F : float::Float + Scalar + SimdRealField + ComplexField,
     Const<M>: DimMin<Const<M>, Output = Const<M>>,Const<N>: DimMin<Const<N>, Output = Const<N>> {
     weights.mul_to(&jacobian.clone(),jacobian);
 }
@@ -172,7 +172,7 @@ pub fn gauss_newton_step_with_schur<F, R, C, S1, S2,StorageTargetArrow, StorageT
     u_span: usize, 
     v_span: usize)-> Option<(F,F)>
      where 
-        F : float::Float + Scalar + NumAssign + SimdRealField + ComplexField,
+        F : float::Float + Scalar + ComplexField + SimdRealField,
         R: Dim, 
         C: Dim,
         S1: Storage<F, R>,
@@ -265,7 +265,7 @@ pub fn gauss_newton_step_with_conguate_gradient<F, R, C, S1, S2,StorageTargetArr
     cg_tresh: F,
     cg_max_it: usize)-> Option<(F,F)>
      where 
-        F : float::Float + Scalar + NumAssign + SimdRealField + ComplexField,
+        F : float::Float + Scalar + ComplexField + SimdRealField,
         R: Dim, 
         C: Dim,
         S1: Storage<F, R>,
@@ -340,7 +340,7 @@ pub fn gauss_newton_step_with_conguate_gradient<F, R, C, S1, S2,StorageTargetArr
 
 pub fn compute_gain_ratio<F,St, C>(perturb: &Vector<F,C, St>,residual: &Vector<F,C,St> , mu: F) -> F 
     where 
-        F : float::Float + Scalar + NumAssign + SimdRealField,
+        F : float::Float + Scalar + SimdRealField,
         C: Dim,
         St: StorageMut<F, C, U1>,
         DefaultAllocator: Allocator<F, C> + Allocator<F, U1, C> {

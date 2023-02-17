@@ -1,9 +1,8 @@
 extern crate nalgebra as na;
 extern crate num_traits;
 
-use std::{ops::Mul,convert::From};
-use na::{DVector, SMatrix, Matrix4, Vector3, Isometry3, Rotation3,SimdRealField, ComplexField,base::Scalar, RealField};
-use num_traits::{float,NumAssign};
+use na::{DVector, SMatrix, Matrix4, Vector3, Isometry3, Rotation3,base::Scalar, RealField};
+use num_traits::float;
 use crate::numerics::lie::exp_se3;
 use crate::sfm::landmark::Landmark;
 
@@ -20,13 +19,13 @@ pub struct State<F: Scalar, L: Landmark<F,T>, const T: usize> {
     pub n_points: usize,
 }
 
-impl<F: float::Float + Scalar + NumAssign + SimdRealField + ComplexField + Mul<F> + From<F> + RealField, L: Landmark<F,T> + Copy + Clone, const T: usize> Clone for State<F,L,T> {
+impl<F: float::Float + Scalar + RealField, L: Landmark<F,T> + Copy + Clone, const T: usize> Clone for State<F,L,T> {
     fn clone(&self) -> State<F,L,T> {
         State::<F,L,T>::new(self.camera_positions.clone(),self.landmarks.clone() , self.n_cams, self.n_points)
     }
 }
 
-impl<F: float::Float + Scalar + NumAssign + SimdRealField + ComplexField + Mul<F> + From<F> + RealField, L: Landmark<F,T> + Copy + Clone, const T: usize> State<F,L,T> {
+impl<F: float::Float + Scalar + RealField, L: Landmark<F,T> + Copy + Clone, const T: usize> State<F,L,T> {
     pub fn new(camera_positions: DVector<F>, landmarks:  Vec<L>, n_cams: usize, n_points: usize) -> State<F,L,T> {
         State{camera_positions, landmarks , n_cams, n_points}
     }
