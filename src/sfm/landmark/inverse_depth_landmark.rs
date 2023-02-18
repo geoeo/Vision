@@ -1,22 +1,21 @@
 extern crate nalgebra as na;
 extern crate num_traits;
 
-use na::{Vector3,Vector6,Matrix3x6, Isometry3, Point3,SVector, SMatrix, SimdRealField, ComplexField,base::Scalar};
+use na::{Vector3,Vector6,Matrix3x6, Isometry3, Point3,SVector, SMatrix, RealField,base::Scalar};
 use num_traits::{float,NumAssign};
-use std::{ops::Mul,convert::From};
 
 use crate::sfm::landmark::Landmark;
 use crate::image::features::geometry::point::Point;
 use crate::sensors::camera::Camera;
 
 #[derive(Copy,Clone)]
-pub struct InverseLandmark<F: num_traits::float::Float + Scalar + NumAssign + SimdRealField + ComplexField> {
+pub struct InverseLandmark<F: num_traits::float::Float + Scalar + NumAssign + RealField > {
     state: Vector6<F>,
     m : Vector3<F>
 }
 
 //We are not negating h_y because we will also not negate sin(phi)
-impl<F: float::Float + Scalar + NumAssign + SimdRealField + ComplexField + Mul<F> + From<F>> Landmark<F, 6> for InverseLandmark<F> {
+impl<F: float::Float + Scalar + NumAssign + RealField> Landmark<F, 6> for InverseLandmark<F> {
 
     fn from_state(state: SVector<F,6>) -> InverseLandmark<F> {
         let theta = state[3];
@@ -81,16 +80,16 @@ impl<F: float::Float + Scalar + NumAssign + SimdRealField + ComplexField + Mul<F
     }
 }
 
-impl<F: num_traits::float::Float + Scalar + NumAssign + SimdRealField + ComplexField> InverseLandmark<F> {
+impl<F: num_traits::float::Float + Scalar + NumAssign + RealField> InverseLandmark<F> {
 
     pub fn new<C: Camera<F>>(cam_to_world: &Isometry3<F>, image_coords: &Point<F>, inverse_depth_prior: F, camera: &C) -> InverseLandmark<F> {
         assert!(inverse_depth_prior > F::zero()); // Negative depth is induced by image_coords_homogeneous
         let image_coords_homogeneous = Vector3::<F>::new(image_coords.x,image_coords.y, -F::one());
         let h_c = camera.get_inverse_projection()*image_coords_homogeneous;
         let h_w = cam_to_world.transform_vector(&h_c);
-        let theta = h_w[0].atan2(h_w[2]);
+        let theta = float::Float::atan2(h_w[0],h_w[2]);
         //We are not negating h_w[1] here because we will also not negate sin(phi)
-        let phi = h_w[1].atan2(float::Float::sqrt(float::Float::powi(h_w[0],2)+float::Float::powi(h_w[2],2)));
+        let phi = float::Float::atan2(h_w[1],float::Float::sqrt(float::Float::powi(h_w[0],2)+float::Float::powi(h_w[2],2)));
         let m = InverseLandmark::direction(theta,phi);
         let state = Vector6::<F>::new(cam_to_world.translation.vector[0],cam_to_world.translation.vector[1],cam_to_world.translation.vector[2],theta,phi,inverse_depth_prior);
         InverseLandmark{state,m}

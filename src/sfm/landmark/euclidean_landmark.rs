@@ -1,17 +1,16 @@
 extern crate nalgebra as na;
 extern crate num_traits;
 
-use na::{Isometry3, Point3, Vector3,SVector, SMatrix, SimdRealField, ComplexField,base::Scalar};
+use na::{Isometry3, Point3, Vector3,SVector, SMatrix, RealField, base::Scalar};
 use num_traits::{float,NumAssign};
-use std::{convert::From};
 use crate::sfm::landmark::Landmark;
 
 #[derive(Copy,Clone)]
-pub struct EuclideanLandmark<F: float::Float + Scalar + NumAssign + SimdRealField + ComplexField> {
+pub struct EuclideanLandmark<F: float::Float + Scalar + NumAssign + RealField> {
     state: Point3<F>,
 }
 
-impl<F: float::Float + Scalar + NumAssign + SimdRealField + ComplexField> Landmark<F,3> for EuclideanLandmark<F> {
+impl<F: float::Float + Scalar + NumAssign + RealField> Landmark<F,3> for EuclideanLandmark<F> {
 
     fn from_state(state: SVector<F,3>) -> EuclideanLandmark<F> {
         EuclideanLandmark{state: Point3::<F>::from(state)}

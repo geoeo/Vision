@@ -1,9 +1,8 @@
 extern crate nalgebra as na;
 extern crate num_traits;
-extern crate simba;
 
-use na::{DVector,DMatrix,Matrix, Dynamic, U4, VecStorage,Point3, Vector4, ComplexField, base::Scalar, RealField};
-use num_traits::{float,cast};
+use na::{DVector,DMatrix,Matrix, Dynamic, U4, VecStorage,Point3, Vector4, ComplexField, base::Scalar, RealField, convert};
+use num_traits::float;
 use crate::sensors::camera::Camera;
 use crate::numerics::lie::left_jacobian_around_identity;
 use crate::numerics::{max_norm, least_squares::{compute_cost,weight_jacobian_sparse,weight_residuals_sparse, calc_weight_vec, gauss_newton_step_with_schur, gauss_newton_step_with_conguate_gradient}};
@@ -42,7 +41,7 @@ pub fn get_estimated_features<F, C : Camera<F>, L: Landmark<F,T> + Copy + Clone,
             
             let feat_id = get_feature_index_in_residual(i, j, n_cams);
             // If at least one camera has no match, skip
-            if !(observed_features[feat_id] == cast(CameraFeatureMap::NO_FEATURE_FLAG).unwrap() || observed_features[feat_id+1] == cast(CameraFeatureMap::NO_FEATURE_FLAG).unwrap()){
+            if !(observed_features[feat_id] == convert(CameraFeatureMap::NO_FEATURE_FLAG)|| observed_features[feat_id+1] == convert(CameraFeatureMap::NO_FEATURE_FLAG)){
                 estimated_features[feat_id] = estimated_feature.x;
                 estimated_features[feat_id+1] = estimated_feature.y;
             }
@@ -55,10 +54,10 @@ pub fn get_estimated_features<F, C : Camera<F>, L: Landmark<F,T> + Copy + Clone,
 
 pub fn compute_residual<F>(
     estimated_features: &DVector<F>, observed_features: &DVector<F>, residual_vector: &mut DVector<F>) 
-    -> () where F: float::Float + Scalar{
+    -> () where F: float::Float + Scalar + RealField{
     assert_eq!(residual_vector.nrows(), estimated_features.nrows());
     for i in 0..residual_vector.nrows() {
-        if observed_features[i] != cast(CameraFeatureMap::NO_FEATURE_FLAG).unwrap() {
+        if observed_features[i] != convert(CameraFeatureMap::NO_FEATURE_FLAG) {
             residual_vector[i] =  estimated_features[i] - observed_features[i];
         } else {
             residual_vector[i] = F::zero();
@@ -117,7 +116,7 @@ pub fn compute_jacobian<F, C : Camera<F>, L: Landmark<F, T> + Copy + Clone, cons
 }
 
 pub fn optimize<F, C : Camera<F>, L: Landmark<F, LANDMARK_PARAM_SIZE> + Copy + Clone, const LANDMARK_PARAM_SIZE: usize>(state: &mut State<F,L,LANDMARK_PARAM_SIZE>, cameras: &Vec<&C>, observed_features: &DVector<F>, runtime_parameters: &RuntimeParameters<F> ) 
-    -> Option<Vec<(Vec<[F; CAMERA_PARAM_SIZE]>, Vec<[F; LANDMARK_PARAM_SIZE]>)>> where F: float::Float + Scalar + ComplexField + RealField{
+    -> Option<Vec<(Vec<[F; CAMERA_PARAM_SIZE]>, Vec<[F; LANDMARK_PARAM_SIZE]>)>> where F: float::Float + Scalar + ComplexField + RealField {
     
 
     let max_iterations = runtime_parameters.max_iterations[0];
@@ -142,7 +141,7 @@ pub fn optimize<F, C : Camera<F>, L: Landmark<F, LANDMARK_PARAM_SIZE> + Copy + C
     };
     let mut v_star_inv = DMatrix::<F>::zeros(v_span,v_span); // a lot of memory - maybe use sparse format
     let mut preconditioner = DMatrix::<F>::zeros(u_span,u_span); // a lot of memory - maybe use sparse format
-    let two : F = num_traits::cast(2.0).unwrap();
+    let two : F = convert(2.0);
 
     println!("BA Memory Allocation Complete.");
 
@@ -282,7 +281,7 @@ pub fn optimize<F, C : Camera<F>, L: Landmark<F, LANDMARK_PARAM_SIZE> + Copy + C
                 weight_jacobian_sparse(&mut jacobian, &weights_vec);
             }
 
-            let v: F = cast(1.0 / 3.0).unwrap();
+            let v: F = convert(1.0 / 3.0);
             mu = Some(mu.unwrap() * float::Float::max(v,F::one() - float::Float::powi(two * gain_ratio - F::one(),3)));
             nu = two;
         } else {
