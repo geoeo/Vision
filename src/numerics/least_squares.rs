@@ -10,7 +10,6 @@ use std::ops::AddAssign;
 use crate::numerics::{loss::LossFunction, weighting::WeightingFunction, conjugate_gradient};
 use crate::Float;
 
-
 pub fn calc_weight_vec<F, D, S1>(
     residuals: &DVector<F>,
     std: Option<F>,
@@ -351,6 +350,7 @@ pub fn compute_gain_ratio<F,St, C>(perturb: &Vector<F,C, St>,residual: &Vector<F
     gain_ratio_denom
 }
 
+//TODO: Remove dep on Float
 #[allow(non_snake_case)]
 pub fn gauss_newton_step<R, C,S1, S2, S3>(
     residuals: &Vector<Float, R,S1>, 

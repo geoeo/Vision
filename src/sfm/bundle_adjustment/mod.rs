@@ -3,7 +3,6 @@ extern crate num_traits;
 extern crate simba;
 
 use na::{Vector3, Isometry3, SimdRealField, ComplexField,base::Scalar, RealField};
-use simba::scalar::{SubsetOf,SupersetOf};
 use std::{ops::Mul,convert::From};
 use num_traits::{float,NumAssign};
 use crate::image::features::solver_feature::SolverFeature;
@@ -18,7 +17,7 @@ pub mod camera_feature_map;
 pub mod solver;
 pub mod state;
 
-pub fn run_ba<F: serde::Serialize + float::Float + Scalar + NumAssign + SimdRealField + ComplexField + Mul<F> + From<F> + RealField + SubsetOf<Float> + SupersetOf<Float>, C : Camera<Float> + Copy, C2: Camera<F> + Copy, T : Feature + Clone + PartialEq + SolverFeature>(sfm_config: &SFMConfig<C, C2, T>,img_dim : (usize,usize) ,runtime_parameters: &RuntimeParameters<F>) 
+pub fn run_ba<F: serde::Serialize + float::Float + Scalar + NumAssign + SimdRealField + ComplexField + Mul<F> + From<F> + RealField, C : Camera<Float> + Copy, C2: Camera<F> + Copy, T : Feature + Clone + PartialEq + SolverFeature>(sfm_config: &SFMConfig<C, C2, T>,img_dim : (usize,usize) ,runtime_parameters: &RuntimeParameters<F>) 
                                 -> ((Vec<Isometry3<F>>, Vec<Vector3<F>>), (serde_yaml::Result<String>, serde_yaml::Result<String>)){
 
 
