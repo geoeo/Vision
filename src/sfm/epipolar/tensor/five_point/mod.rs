@@ -63,7 +63,6 @@ pub fn five_point_essential<T: Feature + Clone>(matches: &Vec<Match<T>>, project
     let (u1, u2, u3, u4) = match l {
         l if l < 5 => panic!("Five Point: Less than 5 features given!"),
         5 => {
-            //TODO: check order for strickly 5 points
             let vt = nalgebra_lapack::SVD::new(A).expect("Five Point: SVD failed on A!").vt;
             let u1 = vt.row(5).transpose(); 
             let u2 = vt.row(6).transpose();
@@ -81,11 +80,10 @@ pub fn five_point_essential<T: Feature + Clone>(matches: &Vec<Match<T>>, project
             let u3 = eigenvectors.column(indexed_eigenvalues[2].0).into_owned();
             let u4 = eigenvectors.column(indexed_eigenvalues[3].0).into_owned();
 
-            (u1, u2, u3, u4)
+            (u4, u3, u2, u1)
         }
 
     };
-
 
     let E1 = to_matrix::<_,3,3,9>(&u1);
     let E2 = to_matrix::<_,3,3,9>(&u2);
@@ -174,8 +172,8 @@ pub fn cheirality_check<T: Feature + Clone>(
         let p2_points = points_cam_2.0/f0_prime;
 
         //TODO make ENUM
-        let Xs_option = Some(linear_triangulation_svd(&vec!((&p1_points,&projection_1),(&p2_points,&projection_2))));
-        //let Xs_option = stereo_triangulation((&p1_points,&projection_1),(&p2_points,&projection_2),f0,f0_prime);
+        //let Xs_option = Some(linear_triangulation_svd(&vec!((&p1_points,&projection_1),(&p2_points,&projection_2))));
+        let Xs_option = stereo_triangulation((&p1_points,&projection_1),(&p2_points,&projection_2),f0,f0_prime);
         match Xs_option {
             Some(Xs) => {
                 let p1_x = &Xs;
@@ -185,7 +183,7 @@ pub fn cheirality_check<T: Feature + Clone>(
                 for i in 0..number_of_points {
                     let d1 = p1_x[(2,i)];
                     let d2 = p2_x[(2,i)];
-                    
+
                     //TODO: Coordinate System
                     if (depth_positive && d1 > 0.0 && d2 > 0.0) || (!depth_positive && d1 < 0.0 && d2 < 0.0) {
                         accepted_cheirality_count += 1 
