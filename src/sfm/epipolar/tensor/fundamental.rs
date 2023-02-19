@@ -149,6 +149,7 @@ pub fn optimal_correction<T : Feature + SolverFeature + Clone>(initial_F: &Funda
             let v_one_meas_in = m_measured_in[i].feature_one.get_as_2d_point();
             let v_two_meas_in = m_measured_in[i].feature_two.get_as_2d_point();
 
+            //TODO: Coordinate System
             let v_one_meas = m_meas.feature_one.get_as_3d_point(f0);
             let v_two_meas = m_meas.feature_two.get_as_3d_point(f0);
             

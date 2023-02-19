@@ -39,8 +39,10 @@ pub trait Feature {
      * Gets the camera ray for image points which are assumed to lie on the focal plane with depth -1
      */
     fn get_camera_ray(&self, inverse_intrinsics: &Matrix3<Float>) -> Vector3<Float> {
+        //TODO: Coordinate System
         inverse_intrinsics*Vector3::<Float>::new(self.get_x_image_float(), self.get_y_image_float(),-1.0)
     }
+    //TODO: Coordinate System
     fn apply_normalisation(&self, norm: &Matrix3<Float>, depth: Float) -> Self;
 }
 
@@ -85,6 +87,7 @@ impl Feature for ImageFeature {
     fn get_y_image(&self) -> usize { self.location.y.trunc() as usize}
     fn get_closest_sigma_level(&self) -> usize {0}
     fn apply_normalisation(&self, norm: &Matrix3<Float>, depth: Float) -> Self {
+        //TODO: Coordinate System
         let v = norm*self.get_as_3d_point(depth);
         ImageFeature::new(v[0], v[1])
     }
@@ -99,6 +102,7 @@ pub struct Match<T : Feature> {
 
 impl<T: Feature> Match<T> {
     pub fn apply_normalisation(&self, norm_one: &Matrix3<Float>, norm_two: &Matrix3<Float>, depth: Float) -> Self {
+        //TODO: Coordinate System
         let feature_one = self.feature_one.apply_normalisation(norm_one, depth);
         let feature_two = self.feature_two.apply_normalisation(norm_two, depth);
 

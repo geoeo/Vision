@@ -503,7 +503,7 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
                     let m = match_map.get(&key).expect(format!("match not found with key: {:?}",key).as_str());
                     let (norm_one, norm_one_inv, norm_two, norm_two_inv) = compute_linear_normalization(m);
 
-                    let m_norm = &m.iter().map(|ma| ma.apply_normalisation(&norm_one, &norm_two, -1.0)).collect::<Vec<_>>();
+                    let m_norm = &m.iter().map(|ma| ma.apply_normalisation(&norm_one, &norm_two, -1.0)).collect::<Vec<_>>(); //TODO: Coordinate System
                     let camera_matrix_one = norm_one*c1.get_projection();
                     let camera_matrix_two = norm_two*c2.get_projection();
                     let inverse_camera_matrix_one = c1.get_inverse_projection()*norm_one_inv;

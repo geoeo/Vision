@@ -17,21 +17,12 @@ mod constraints;
 #[allow(non_snake_case)]
 pub fn five_point_essential<T: Feature + Clone>(matches: &Vec<Match<T>>, projection_one: &Matrix3<Float>, inverse_projection_one: &Matrix3<Float>, projection_two:&Matrix3<Float>,inverse_projection_two: &Matrix3<Float>) -> Option<Essential> {
     let l = matches.len();
-    let l_as_float = l as Float;
     
     let mut camera_rays_one = Matrix3xX::<Float>::zeros(l);
     let mut camera_rays_two = Matrix3xX::<Float>::zeros(l);
     let mut features_one = Matrix3xX::<Float>::zeros(l);
     let mut features_two = Matrix3xX::<Float>::zeros(l);
     let mut A = OMatrix::<Float, Dynamic,U9>::zeros(l);
-
-    let mut normalization_matrix_one = Matrix3::<Float>::identity();
-    let mut normalization_matrix_two = Matrix3::<Float>::identity();
-
-    let mut avg_x_one = 0.0;
-    let mut avg_y_one = 0.0;
-    let mut avg_x_two = 0.0;
-    let mut avg_y_two = 0.0;
 
     let mut max_x_one: Float = 0.0;
     let mut max_y_one: Float = 0.0;
@@ -46,6 +37,7 @@ pub fn five_point_essential<T: Feature + Clone>(matches: &Vec<Match<T>>, project
         camera_rays_one.column_mut(i).copy_from(&f_1_reduced);
         camera_rays_two.column_mut(i).copy_from(&f_2_reduced);
 
+        //TODO: Coordinate System
         let f_1 = m.feature_one.get_as_3d_point(-1.0);
         let f_2 = m.feature_two.get_as_3d_point(-1.0);
 
@@ -55,38 +47,10 @@ pub fn five_point_essential<T: Feature + Clone>(matches: &Vec<Match<T>>, project
         max_x_two = max_x_two.max(f_2[0]);
         max_y_two = max_y_two.max(f_2[1]);
 
-        avg_x_one += f_1[0];
-        avg_y_one += f_1[1];
-        avg_x_two += f_2[0];
-        avg_y_two += f_2[1];
 
         features_one.column_mut(i).copy_from(&f_1);
         features_two.column_mut(i).copy_from(&f_2);
     }
-
-    // let cx_one = projection_one[(0,2)];
-    // let cy_one = projection_one[(1,2)];
-    // let cx_two = projection_two[(0,2)];
-    // let cy_two = projection_two[(1,2)];
-
-    // let max_dist_one = max_x_one*max_y_one;
-    // let max_dist_two = max_x_two*max_y_two;
-
-    // let max_dist_one = (cx_one.powi(2)+cy_one.powi(2)).sqrt();
-    // let max_dist_two = (cx_two.powi(2)+cy_two.powi(2)).sqrt();
-
-    // let max_dist_one = 1.0;
-    // let max_dist_two = 1.0;
-
-
-    //TODO: unify with five_point and epipolar
-    // normalization_matrix_one[(0,2)] = -avg_x_one/(l_as_float);
-    // normalization_matrix_one[(1,2)] = -avg_y_one/(l_as_float);
-    // normalization_matrix_one[(2,2)] = max_dist_one;
-
-    // normalization_matrix_two[(0,2)] = -avg_x_two/(l_as_float);
-    // normalization_matrix_two[(1,2)] = -avg_y_two/(l_as_float);
-    // normalization_matrix_two[(2,2)] = max_dist_two;
 
     for i in 0..l {
         let c_x_1 = &camera_rays_one.column(i);
@@ -161,7 +125,7 @@ pub fn five_point_essential<T: Feature + Clone>(matches: &Vec<Match<T>>, project
         let E_est = x*E1+y*E2+z*E3+E4;
         E_est
     }).collect::<Vec<Essential>>();
-    let best_essential = cheirality_check(&all_essential_matricies, matches,false,(&features_one, projection_one, &normalization_matrix_one, inverse_projection_one), (&features_two, projection_two, &normalization_matrix_two,inverse_projection_two));
+    let best_essential = cheirality_check(&all_essential_matricies, matches,false,(&features_one, projection_one, inverse_projection_one), (&features_two, projection_two,inverse_projection_two));
     
     best_essential
 }
@@ -171,8 +135,8 @@ pub fn cheirality_check<T: Feature + Clone>(
         all_essential_matricies: &Vec<Essential>,
         matches: &Vec<Match<T>>,
         depth_positive: bool,
-         points_cam_1: (&OMatrix<Float, U3,Dynamic>, &Matrix3<Float>, &Matrix3<Float>,&Matrix3<Float>), 
-         points_cam_2: (&OMatrix<Float, U3,Dynamic>, &Matrix3<Float>, &Matrix3<Float>,&Matrix3<Float>)) -> Option<Essential> {
+         points_cam_1: (&OMatrix<Float, U3,Dynamic>, &Matrix3<Float>,&Matrix3<Float>), 
+         points_cam_2: (&OMatrix<Float, U3,Dynamic>, &Matrix3<Float>,&Matrix3<Float>)) -> Option<Essential> {
     let mut max_accepted_cheirality_count = 0;
     let mut best_e = None;
     let mut smallest_det = float::MAX;
@@ -200,7 +164,7 @@ pub fn cheirality_check<T: Feature + Clone>(
 
     let number_of_points = matches.len();
     for e in all_essential_matricies {
-        let (t,R,e_corrected) = decompose_essential_förstner(&e,matches,points_cam_1.3,points_cam_2.3);
+        let (t,R,e_corrected) = decompose_essential_förstner(&e,matches,points_cam_1.2,points_cam_2.2);
         let se3 = pose::se3(&t,&R);
 
         let projection_1 = camera_matrix_1*(Matrix4::<Float>::identity().fixed_slice::<3,4>(0,0));
@@ -221,7 +185,8 @@ pub fn cheirality_check<T: Feature + Clone>(
                 for i in 0..number_of_points {
                     let d1 = p1_x[(2,i)];
                     let d2 = p2_x[(2,i)];
-        
+                    
+                    //TODO: Coordinate System
                     if (depth_positive && d1 > 0.0 && d2 > 0.0) || (!depth_positive && d1 < 0.0 && d2 < 0.0) {
                         accepted_cheirality_count += 1 
                     }

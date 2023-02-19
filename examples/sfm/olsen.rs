@@ -39,7 +39,6 @@ fn main() -> Result<()> {
     let olsen_data = OlssenData::new(&olsen_data_path);
     let positive_principal_distance = false;
     let invert_focal_length = false; // they are already negative from decomp
-    let normalize_features = false;
 
 
     // let paths = vec!(vec!(6));

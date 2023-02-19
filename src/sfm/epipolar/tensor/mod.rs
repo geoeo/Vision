@@ -32,8 +32,8 @@ pub enum EssentialDecomposition {
 
 #[allow(non_snake_case)]
 pub fn calc_epipolar_constraint<T: Feature + Clone>(F: &Fundamental, m: &Match<T>) -> Float {
-    let start = m.feature_one.get_as_3d_point(-1.0);
-    let finish = m.feature_two.get_as_3d_point(-1.0);
+    let start = m.feature_one.get_as_3d_point(-1.0); //TODO: Coordinate System
+    let finish = m.feature_two.get_as_3d_point(-1.0); //TODO: Coordinate System
     (start.transpose()*F*finish)[0].abs()
 }
 
@@ -90,8 +90,8 @@ pub fn ransac_five_point_essential<T: Feature + Clone>(matches: &Vec<Match<T>>,p
 
 #[allow(non_snake_case)]
 pub fn calc_sampson_distance_for_fundamental<T: Feature>(F: &Fundamental, m: &Match<T>) -> Float {
-    let m1 = m.feature_one.get_as_3d_point(-1.0);
-    let m2 = m.feature_two.get_as_3d_point(-1.0);
+    let m1 = m.feature_one.get_as_3d_point(-1.0); //TODO: Coordinate System
+    let m2 = m.feature_two.get_as_3d_point(-1.0); //TODO: Coordinate System
     
     let t1 = F*m2;
     let t2 = m1.transpose()*F;
@@ -225,7 +225,7 @@ pub fn decompose_essential_kanatani<T: Feature>(E: &Essential, matches: &Vec<Mat
     let mut h = u.column(min_idx).normalize();
 
     let sum_of_determinants = matches.iter().fold(0.0, |acc,m| {
-
+        //TODO: Coordinate System
         let (start_new,finish_new) = (m.feature_one.get_as_3d_point(-1.0),m.feature_one.get_as_3d_point(-1.0));
 
         let mat = Matrix3::from_columns(&[h,start_new,E*finish_new]);

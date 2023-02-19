@@ -25,8 +25,8 @@ pub fn triangulate_matches<Feat: Feature, C: Camera<Float>>(path_pair: (usize, u
     //TODO: unify normalization calc with five_point and epipolar and camera map
     for i in 0..ms.len() {
         let m = &ms[i];
-        let feat_s = m.feature_one.get_as_3d_point(-1.0);
-        let feat_f = m.feature_two.get_as_3d_point(-1.0);
+        let feat_s = m.feature_one.get_as_3d_point(-1.0); //TODO: Coordinate System
+        let feat_f = m.feature_two.get_as_3d_point(-1.0); //TODO: Coordinate System
         normalized_image_points_s.column_mut(i).copy_from(&feat_s);
         normalized_image_points_f.column_mut(i).copy_from(&feat_f);
     }
@@ -120,6 +120,7 @@ pub fn linear_triangulation_svd(image_points_and_projections: &Vec<(&Matrix3xX<F
         triangulated_points[(2,i)] = p[2]/p[3];
         triangulated_points[(3,i)] = 1.0;
 
+        //TODO: Coordinate System
         // We may triangulate points begind the camera. In our case that is a positive sign
         let sign = match triangulated_points[(2,i)].is_sign_negative() {
             true => 1.0,
