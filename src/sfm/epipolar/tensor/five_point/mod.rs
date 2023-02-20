@@ -37,9 +37,9 @@ pub fn five_point_essential<T: Feature + Clone>(matches: &Vec<Match<T>>, project
         camera_rays_two.column_mut(i).copy_from(&f_2_reduced);
 
         //TODO: Check Depth
+        //TODO: check if this can be skipped if the pass the identity matrix as intrinsics
         let f_1 = m.feature_one.get_as_3d_point(focal);
         let f_2 = m.feature_two.get_as_3d_point(focal);
-
 
         features_one.column_mut(i).copy_from(&f_1);
         features_two.column_mut(i).copy_from(&f_2);
@@ -135,24 +135,10 @@ pub fn cheirality_check<T: Feature + Clone>(
     //TODO: clean this up
     let camera_matrix_1 = points_cam_1.1;
     let camera_matrix_2 = points_cam_2.1;
-    let f0 = 1.0;
-    let f0_prime = 1.0;
-    // let condition_matrix_1 = points_cam_1.2; 
-    // let condition_matrix_2 = points_cam_2.2; 
-    // let f0 = condition_matrix_1[(2,2)];
-    // let f0_prime = condition_matrix_2[(2,2)];
-
-    // camera_matrix_1[(0,0)] /= f0;
-    // camera_matrix_1[(1,1)] /= f0;
-    // camera_matrix_1[(0,2)] /= f0;
-    // camera_matrix_1[(1,2)] /= f0;
-
-    // camera_matrix_2[(0,0)] /= f0_prime;
-    // camera_matrix_2[(1,1)] /= f0_prime;
-    // camera_matrix_2[(0,2)] /= f0_prime;
-    // camera_matrix_2[(1,2)] /= f0_prime;
-
-
+    let focal = match positive_principal_distance {
+        true => 1.0,
+        false => -1.0
+    };
     let number_of_points = matches.len();
     for e in all_essential_matricies {
         let (t,R,e_corrected) = decompose_essential_förstner(&e,matches,points_cam_1.2,points_cam_2.2,positive_principal_distance);
@@ -161,12 +147,12 @@ pub fn cheirality_check<T: Feature + Clone>(
         let projection_1 = camera_matrix_1*(Matrix4::<Float>::identity().fixed_slice::<3,4>(0,0));
         let projection_2 = camera_matrix_2*(se3.fixed_slice::<3,4>(0,0));
 
-        let p1_points = points_cam_1.0/f0;
-        let p2_points = points_cam_2.0/f0_prime;
+        let p1_points = points_cam_1.0;
+        let p2_points = points_cam_2.0;
 
         //TODO make ENUM
-        //let Xs_option = Some(linear_triangulation_svd(&vec!((&p1_points,&projection_1),(&p2_points,&projection_2))));
-        let Xs_option = stereo_triangulation((&p1_points,&projection_1),(&p2_points,&projection_2),f0,f0_prime);
+        let Xs_option = Some(linear_triangulation_svd(&vec!((&p1_points,&projection_1),(&p2_points,&projection_2))));
+        //let Xs_option = stereo_triangulation((&p1_points,&projection_1),(&p2_points,&projection_2),focal,focal);
         match Xs_option {
             Some(Xs) => {
                 let p1_x = &Xs;

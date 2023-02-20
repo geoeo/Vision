@@ -32,12 +32,12 @@ fn main() -> Result<()> {
     let kronan = "kronan";
     let round_church = "round_church";
     
-    let olsen_dataset_name = fountain;
+    let olsen_dataset_name = door;
     let olsen_data_path = format!("{}/Olsen/{}/",runtime_conf.dataset_path,olsen_dataset_name);
 
     let feature_skip_count = 1;
     let olsen_data = OlssenData::new(&olsen_data_path);
-    let positive_principal_distance = true;
+    let positive_principal_distance = false;
     let invert_y = !positive_principal_distance;
     let invert_focal_length = false; // they are already negative from decomp
 
