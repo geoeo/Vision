@@ -6,10 +6,7 @@ pub mod fundamental;
 
 use na::{Vector3, Matrix3, SMatrix};
 use rand::seq::SliceRandom;
-use std::collections::HashSet;
-use std::iter::FromIterator;
 
-use crate::sensors::camera::Camera;
 use crate::Float;
 use crate::image::features::{Feature,Match};
 use crate::numerics::pose::optimal_correction_of_rotation;
@@ -31,27 +28,27 @@ pub enum EssentialDecomposition {
 }
 
 #[allow(non_snake_case)]
-pub fn calc_epipolar_constraint<T: Feature + Clone>(F: &Fundamental, m: &Match<T>) -> Float {
-    let start = m.feature_one.get_as_3d_point(-1.0); //TODO: Coordinate System
-    let finish = m.feature_two.get_as_3d_point(-1.0); //TODO: Coordinate System
+pub fn calc_epipolar_constraint<T: Feature + Clone>(F: &Fundamental, m: &Match<T>, focal: Float) -> Float {
+    let start = m.feature_one.get_as_3d_point(focal);
+    let finish = m.feature_two.get_as_3d_point(focal); 
     (start.transpose()*F*finish)[0].abs()
 }
 
 #[allow(non_snake_case)]
-pub fn filter_matches_from_fundamental<T: Feature + Clone>(F: &Fundamental, matches: &Vec<Match<T>>, epipiolar_thresh: Float) -> Vec<Match<T>> {
+pub fn filter_matches_from_fundamental<T: Feature + Clone>(F: &Fundamental, matches: &Vec<Match<T>>, epipiolar_thresh: Float, focal: Float) -> Vec<Match<T>> {
     matches.iter().filter(|m| {
-            let val = calc_epipolar_constraint(F,m);
+            let val = calc_epipolar_constraint(F,m, focal);
             val < epipiolar_thresh
         }).cloned().collect::<Vec<Match<T>>>()
 }
 
 #[allow(non_snake_case)]
-pub fn select_best_matches_from_fundamental<T: Feature + Clone>(F: &Fundamental, matches: &Vec<Match<T>>, perc: Float, epipolar_thresh: Float) -> Vec<usize> {
+pub fn select_best_matches_from_fundamental<T: Feature + Clone>(F: &Fundamental, matches: &Vec<Match<T>>, perc: Float, epipolar_thresh: Float, focal: Float) -> Vec<usize> {
     assert! (0.0 <= perc && perc <= 1.0);
 
     let mut sorted_indices = matches.iter().enumerate()
-    .filter(|(_,m)|  calc_epipolar_constraint(F,m) < epipolar_thresh )
-    .map(|(i,m)| (i , calc_sampson_distance_for_fundamental(F,m)))
+    .filter(|(_,m)|  calc_epipolar_constraint(F, m, focal) < epipolar_thresh )
+    .map(|(i,m)| (i , calc_sampson_distance_for_fundamental(F,m,focal)))
     .collect::<Vec<(usize,Float)>>();
 
     sorted_indices.sort_unstable_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
@@ -64,17 +61,22 @@ pub fn select_best_matches_from_fundamental<T: Feature + Clone>(F: &Fundamental,
     //sorted_indices_sub.into_iter().map(|(i,_)| matches[i].clone()).collect::<Vec<Match<T>>>()
 }
 
-pub fn ransac_five_point_essential<T: Feature + Clone>(matches: &Vec<Match<T>>,projection_one: &Matrix3<Float>, inverse_projection_one: &Matrix3<Float>, projection_two:&Matrix3<Float>,inverse_projection_two: &Matrix3<Float>, epipolar_thresh: Float, ransac_it: usize) -> Essential {
+pub fn ransac_five_point_essential<T: Feature + Clone>(matches: &Vec<Match<T>>,projection_one: &Matrix3<Float>, inverse_projection_one: &Matrix3<Float>, projection_two:&Matrix3<Float>,inverse_projection_two: &Matrix3<Float>, epipolar_thresh: Float, ransac_it: usize, depth_positive: bool) -> Essential {
     let mut max_inlier_count = 0;
     let mut best_essential: Option<Essential> = None;
     let number_of_matches = matches.len();
     for _ in 0..ransac_it {
         let samples: Vec<_> = matches.choose_multiple(&mut rand::thread_rng(), number_of_matches).map(|x| x.clone()).collect();
-        let essential_option = five_point::five_point_essential(&samples[0..5].to_vec(),projection_one,inverse_projection_one,projection_two,inverse_projection_two);
+        let essential_option = five_point::five_point_essential(&samples[0..5].to_vec(),projection_one,inverse_projection_one,projection_two,inverse_projection_two, depth_positive);
         match essential_option {
             Some(essential) => {
                 let f = compute_fundamental(&essential, inverse_projection_one, inverse_projection_two);
-                let inliers = calc_sampson_distance_inliers_for_fundamental(&f,&samples[5..].to_vec(),epipolar_thresh);
+                //let focal = (projection_one[(0,0)].powi(2) + projection_one[(1,1)].powi(2)).sqrt(); //TODO: Check Depth
+                let focal = match depth_positive {
+                    true => 1.0,
+                    false => -1.0
+                };
+                let inliers = calc_sampson_distance_inliers_for_fundamental(&f,&samples[5..].to_vec(),epipolar_thresh,focal);
                 if inliers > max_inlier_count {
                     max_inlier_count = inliers;
                     best_essential = Some(essential);
@@ -89,9 +91,9 @@ pub fn ransac_five_point_essential<T: Feature + Clone>(matches: &Vec<Match<T>>,p
 }
 
 #[allow(non_snake_case)]
-pub fn calc_sampson_distance_for_fundamental<T: Feature>(F: &Fundamental, m: &Match<T>) -> Float {
-    let m1 = m.feature_one.get_as_3d_point(-1.0); //TODO: Coordinate System
-    let m2 = m.feature_two.get_as_3d_point(-1.0); //TODO: Coordinate System
+pub fn calc_sampson_distance_for_fundamental<T: Feature>(F: &Fundamental, m: &Match<T>, focal: Float) -> Float {
+    let m1 = m.feature_one.get_as_3d_point(focal); 
+    let m2 = m.feature_two.get_as_3d_point(focal);
     
     let t1 = F*m2;
     let t2 = m1.transpose()*F;
@@ -102,12 +104,12 @@ pub fn calc_sampson_distance_for_fundamental<T: Feature>(F: &Fundamental, m: &Ma
 }
 
 #[allow(non_snake_case)]
-pub fn calc_sampson_distance_inliers_for_fundamental<T: Feature>(F: &Fundamental, matches: &Vec<Match<T>>, thresh: Float) -> usize {
-    matches.iter().map(|m| calc_sampson_distance_for_fundamental(F,m)).filter(|&v| v < thresh).count()
+pub fn calc_sampson_distance_inliers_for_fundamental<T: Feature>(F: &Fundamental, matches: &Vec<Match<T>>, thresh: Float, focal: Float) -> usize {
+    matches.iter().map(|m| calc_sampson_distance_for_fundamental(F,m, focal)).filter(|&v| v < thresh).count()
 }
 
-pub fn five_point_essential<T: Feature + Clone>(matches: &Vec<Match<T>>, projection_one: &Matrix3<Float>, inverse_projection_one: &Matrix3<Float>, projection_two:&Matrix3<Float>,inverse_projection_two: &Matrix3<Float>) -> Essential {
-    five_point::five_point_essential(&matches,projection_one,inverse_projection_one,projection_two,inverse_projection_two).expect("five_point_essential: failed")
+pub fn five_point_essential<T: Feature + Clone>(matches: &Vec<Match<T>>, projection_one: &Matrix3<Float>, inverse_projection_one: &Matrix3<Float>, projection_two:&Matrix3<Float>,inverse_projection_two: &Matrix3<Float>, depth_positive: bool) -> Essential {
+    five_point::five_point_essential(&matches,projection_one,inverse_projection_one,projection_two,inverse_projection_two, depth_positive).expect("five_point_essential: failed")
 }
 
 pub fn essential_matrix_from_motion(translation: &Vector3<Float>, rotation: &Matrix3<Float>) -> Essential {
@@ -138,7 +140,8 @@ pub fn compute_fundamental(E: &Essential, inverse_projection_start: &Matrix3<Flo
 pub fn decompose_essential_förstner<T : Feature>(
     E: &Essential, matches: &Vec<Match<T>>,
     inverse_camera_matrix_start: &Matrix3<Float>,
-    inverse_camera_matrix_finish: &Matrix3<Float>) -> (Vector3<Float>, Matrix3<Float>,Matrix3<Float> ) {
+    inverse_camera_matrix_finish: &Matrix3<Float>,
+    depth_positive: bool) -> (Vector3<Float>, Matrix3<Float>,Matrix3<Float> ) {
     assert!(matches.len() > 0);
 
     let svd = E.svd(true,true);
@@ -170,8 +173,8 @@ pub fn decompose_essential_förstner<T : Feature>(
         let mut v_sign = 0.0;
         let mut u_sign = 0.0;
         for m in matches {
-            let f_start = m.feature_one.get_camera_ray(&inverse_camera_matrix_start);
-            let f_finish = m.feature_two.get_camera_ray(&inverse_camera_matrix_finish);
+            let f_start = m.feature_one.get_camera_ray(&inverse_camera_matrix_start, depth_positive);
+            let f_finish = m.feature_two.get_camera_ray(&inverse_camera_matrix_finish, depth_positive);
 
             let binormal = ((h.cross_matrix()*f_start).cross_matrix()*h).normalize();
             let mat = Matrix3::<Float>::from_columns(&[h,binormal,f_start.cross_matrix()*R.transpose()*f_finish]);

@@ -70,6 +70,7 @@ fn main() -> Result<()> {
 
     let perc_tresh = 1.0;
     let refine_rotation_via_rcd = true;
+    let depth_positive = false;
 
     let camera_map = HashMap::from([(0, intensity_camera_0), (1, intensity_camera_1),(2,intensity_camera_2),(3,intensity_camera_3),(4,intensity_camera_4)  ]);
     //let sfm_config = SFMConfig::new(2, &vec!(vec!(1), vec!(3)), camera_map.clone(), camera_map, vec!(vec!(matches_2_1),vec!(matches_2_3)),
@@ -86,7 +87,7 @@ fn main() -> Result<()> {
     //let sfm_config = SFMConfig::new(2, &vec!(vec!(1,0,3,4)), camera_map.clone(), camera_map, vec!(vec!(matches_2_1,matches_1_0,matches_0_3,matches_3_4)),
     //let sfm_config = SFMConfig::new(3, &vec!(vec!(4)), camera_map.clone(), camera_map, vec!(vec!(matches_3_4)),
 
-    BifocalType::ESSENTIAL,  Triangulation::LINEAR, perc_tresh, 1.0, float::INFINITY, refine_rotation_via_rcd);
+    BifocalType::ESSENTIAL,  Triangulation::LINEAR, perc_tresh, 1.0, float::INFINITY, refine_rotation_via_rcd, depth_positive);
 
     let ((cam_positions,points),(s,debug_states_serialized)) = run_ba(&sfm_config, (480,640), &runtime_parameters);
     //let ((cam_positions,points),(s,debug_states_serialized)) = run_ba(&sfm_config.matches(), &sfm_config, None, (480,640), &runtime_parameters, 1.0,depth_prior);

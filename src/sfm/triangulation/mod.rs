@@ -15,18 +15,22 @@ pub enum Triangulation {
 }
 
 pub fn triangulate_matches<Feat: Feature, C: Camera<Float>>(path_pair: (usize, usize), pose_map: &HashMap<(usize, usize), Isometry3<Float>>, 
-    match_map: &HashMap<(usize, usize), Vec<Match<Feat>>>, camera_map: &HashMap<usize, C>, triangulation_mode: Triangulation) -> (Matrix4xX<Float>, DVector<Float>){
+    match_map: &HashMap<(usize, usize), Vec<Match<Feat>>>, camera_map: &HashMap<usize, C>, triangulation_mode: Triangulation, depth_positive: bool) -> (Matrix4xX<Float>, DVector<Float>){
     let (id1, id2) = path_pair;
     let se3 = pose_map.get(&(id1,id2)).expect(format!("triangulate_matches: pose not found with key: ({},{})",id1,id2).as_str()).to_matrix();
     let ms = match_map.get(&(id1,id2)).expect(format!("triangulate_matches: matches not found with key: ({},{})",id1,id2).as_str());
     let mut normalized_image_points_s = Matrix3xX::<Float>::zeros(ms.len());
     let mut normalized_image_points_f = Matrix3xX::<Float>::zeros(ms.len());
+    let focal = match depth_positive {
+        true => 1.0,
+        false => -1.0
+    };
 
     //TODO: unify normalization calc with five_point and epipolar and camera map
     for i in 0..ms.len() {
         let m = &ms[i];
-        let feat_s = m.feature_one.get_as_3d_point(-1.0); //TODO: Coordinate System
-        let feat_f = m.feature_two.get_as_3d_point(-1.0); //TODO: Coordinate System
+        let feat_s = m.feature_one.get_as_3d_point(focal); //TODO: Check Depth
+        let feat_f = m.feature_two.get_as_3d_point(focal); //TODO: Check Depth
         normalized_image_points_s.column_mut(i).copy_from(&feat_s);
         normalized_image_points_f.column_mut(i).copy_from(&feat_f);
     }

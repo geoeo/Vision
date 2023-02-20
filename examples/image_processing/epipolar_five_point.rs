@@ -3,23 +3,15 @@ extern crate vision;
 extern crate color_eyre;
 extern crate nalgebra as na;
 
-use std::{fs,path::Path};
-use std::convert::TryInto;
 use color_eyre::eyre::Result;
-use na::{SVector,Vector3, Matrix3};
+use na::{SVector, Matrix3};
 use vision::image::{
-    Image,
-    features::{Match,orb_feature::OrbFeature,Feature, ImageFeature},
-    pyramid::orb::orb_runtime_parameters::OrbRuntimeParameters,
+    features::{Match, ImageFeature}
 };
 use vision::sfm::epipolar;
-use vision::sensors::camera::{pinhole::Pinhole, Camera, perspective::Perspective};
-use vision::io::{octave_loader,olsen_loader::OlssenData};
+use vision::sensors::camera::{pinhole::Pinhole, Camera};
+use vision::io::{octave_loader};
 use vision::{Float,load_runtime_conf};
-use vision::visualize;
-use vision::numerics::pose;
-
-
 
 fn main() -> Result<()> {
     color_eyre::install()?;
@@ -139,8 +131,8 @@ fn main() -> Result<()> {
         true => 1.0,
         false => -1.0
     };
-    let five_point_essential_matrix = epipolar::tensor::five_point_essential(&feature_matches,&intensity_camera_1.get_projection(),&intensity_camera_1.get_inverse_projection(),&intensity_camera_2.get_projection(),&intensity_camera_2.get_inverse_projection());
-    let (t_est,R_est,_) = epipolar::tensor::decompose_essential_förstner(&five_point_essential_matrix,&feature_matches,&intensity_camera_1.get_inverse_projection(),&intensity_camera_2.get_inverse_projection());
+    let five_point_essential_matrix = epipolar::tensor::five_point_essential(&feature_matches,&intensity_camera_1.get_projection(),&intensity_camera_1.get_inverse_projection(),&intensity_camera_2.get_projection(),&intensity_camera_2.get_inverse_projection(),depth_positive);
+    let (t_est,R_est,_) = epipolar::tensor::decompose_essential_förstner(&five_point_essential_matrix,&feature_matches,&intensity_camera_1.get_inverse_projection(),&intensity_camera_2.get_inverse_projection(),depth_positive);
     let factor = five_point_essential_matrix[(2,2)];
     let five_point_essential_matrix_norm = five_point_essential_matrix.map(|x| x/factor);
 

@@ -110,8 +110,12 @@ fn main() -> Result<()> {
     println!("{}",t_raw);
     println!("{}",&R);
     println!("----------------");
-
-
+    
+    //TODO: check this
+    let focal = match depth_positive {
+        true => 1.0,
+        false => -1.0
+    };
     let fundamental_matrix = epipolar::tensor::fundamental::eight_point_hartley(&feature_matches, depth_positive, 1.0);
     let factor = fundamental_matrix[(2,2)];
     let fundamental_matrix_norm = fundamental_matrix.map(|x| x/factor);
@@ -120,10 +124,10 @@ fn main() -> Result<()> {
     println!("{}",fundamental_matrix_norm);
 
     let essential_matrix = epipolar::tensor::compute_essential(&fundamental_matrix, &intensity_camera_1.get_inverse_projection(), &intensity_camera_2.get_inverse_projection());
-    let (h, R_est, e_corrected) = epipolar::tensor::decompose_essential_förstner(&essential_matrix,&feature_matches,&intensity_camera_1.get_inverse_projection(),&intensity_camera_2.get_inverse_projection());
+    let (h, R_est, e_corrected) = epipolar::tensor::decompose_essential_förstner(&essential_matrix,&feature_matches,&intensity_camera_1.get_inverse_projection(),&intensity_camera_2.get_inverse_projection(), depth_positive);
     //let feature_matches_vis = &feature_matches[0..20];
-    let feature_matches_vis = epipolar::tensor::filter_matches_from_fundamental(&fundamental_matrix, &feature_matches,0.00001); 
-    let epipolar_lines: Vec<(Vector3<Float>, Vector3<Float>)> = feature_matches_vis.iter().map(|m| epipolar::epipolar_lines(&fundamental_matrix_norm, m, &cam_intrinsics_0, &cam_intrinsics_1)).collect();
+    let feature_matches_vis = epipolar::tensor::filter_matches_from_fundamental(&fundamental_matrix, &feature_matches,0.00001, focal); 
+    let epipolar_lines: Vec<(Vector3<Float>, Vector3<Float>)> = feature_matches_vis.iter().map(|m| epipolar::epipolar_lines(&fundamental_matrix_norm, m, &cam_intrinsics_0, &cam_intrinsics_1, depth_positive)).collect();
 
     println!("{}",h);
     println!("-------");

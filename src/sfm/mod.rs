@@ -69,7 +69,8 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
         perc_tresh: Float, 
         epipolar_thresh: Float, 
         landmark_cutoff_thresh: Float,
-        refine_rotation_via_rcd: bool) -> SFMConfig<C,C2,Feat> {
+        refine_rotation_via_rcd: bool,
+        depth_positive: bool) -> SFMConfig<C,C2,Feat> {
         for key in camera_map.keys() {
             assert!(camera_map_ba.contains_key(key));
         }
@@ -91,15 +92,17 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
             &mut match_map,
             perc_tresh, 
             epipolar_thresh,
-            epipolar_alg
+            epipolar_alg,
+            depth_positive
         );
 
-        let (mut landmark_map, mut reprojection_error_map, min_reprojection_error_initial, max_reprojection_error_initial) =  Self::compute_landmarks_and_reprojection_maps(root,&paths,&pose_map,&match_map,&camera_map,triangulation);
+        let (mut landmark_map, mut reprojection_error_map, min_reprojection_error_initial, max_reprojection_error_initial) 
+            = Self::compute_landmarks_and_reprojection_maps(root,&paths,&pose_map,&match_map,&camera_map,triangulation, depth_positive);
         println!("SFM Config Max Reprojection Error 1): {}, Min Reprojection Error: {}", max_reprojection_error_initial, min_reprojection_error_initial);
         Self::reject_landmark_outliers( &mut landmark_map, &mut reprojection_error_map, &mut match_map, landmark_cutoff_thresh);
         if refine_rotation_via_rcd {
             let new_pose_map = Self::refine_rotation_by_rcd(root, &paths, &pose_map);
-            let (new_landmark_map, new_reprojection_error_map, _, _) =  Self::compute_landmarks_and_reprojection_maps(root,&paths,&new_pose_map,&match_map,&camera_map,triangulation);
+            let (new_landmark_map, new_reprojection_error_map, _, _) =  Self::compute_landmarks_and_reprojection_maps(root,&paths,&new_pose_map,&match_map,&camera_map,triangulation, depth_positive);
             let keys = landmark_map.keys().map(|k| *k).collect::<Vec<_>>();
             for key in keys {
                 let new_reprojection_errors = new_reprojection_error_map.get(&key).unwrap();
@@ -246,7 +249,8 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
         pose_map: &HashMap<(usize, usize), Isometry3<Float>>, 
         match_map: &HashMap<(usize, usize), 
         Vec<Match<Feat>>>, camera_map: &HashMap<usize, C>,
-        triangulation: Triangulation) -> (HashMap<(usize,usize),Matrix4xX<Float>>,HashMap<(usize,usize), DVector<Float>>, Float, Float) {
+        triangulation: Triangulation,
+        depth_positive: bool) -> (HashMap<(usize,usize),Matrix4xX<Float>>,HashMap<(usize,usize), DVector<Float>>, Float, Float) {
 
         let mut triangulated_match_map = HashMap::<(usize,usize),Matrix4xX<Float>>::with_capacity(match_map.len());
         let mut reprojection_map = HashMap::<(usize,usize),DVector<Float>>::with_capacity(match_map.len());
@@ -256,7 +260,7 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
 
         for path in &path_pairs{
             for path_pair in path {
-                let (trigulated_matches,reprojection_errors) = triangulate_matches(*path_pair,&pose_map,&match_map,&camera_map,triangulation);
+                let (trigulated_matches,reprojection_errors) = triangulate_matches(*path_pair,&pose_map,&match_map,&camera_map,triangulation, depth_positive);
                 max_reprojection_error = max_reprojection_error.max(reprojection_errors.max()); 
                 min_reprojection_error = min_reprojection_error.min(reprojection_errors.min());
                 triangulated_match_map.insert(*path_pair,trigulated_matches);
@@ -484,7 +488,8 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
             match_map: &mut HashMap<(usize, usize), Vec<Match<Feat>>>,
             perc_tresh: Float, 
             epipolar_tresh: Float,
-            epipolar_alg: tensor::BifocalType) 
+            epipolar_alg: tensor::BifocalType,
+            depth_positive: bool) 
         ->  HashMap<(usize, usize), Isometry3<Float>> {
             let number_of_paths = paths.len();
             let map_capacity = calc_map_capacity(number_of_paths); //TODO expose this in function args
@@ -503,7 +508,11 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
                     let m = match_map.get(&key).expect(format!("match not found with key: {:?}",key).as_str());
                     let (norm_one, norm_one_inv, norm_two, norm_two_inv) = compute_linear_normalization(m);
 
-                    let m_norm = &m.iter().map(|ma| ma.apply_normalisation(&norm_one, &norm_two, -1.0)).collect::<Vec<_>>(); //TODO: Coordinate System
+                    let focal_norm = match depth_positive {
+                        true => 1.0,
+                        false => -1.0
+                    };
+                    let m_norm = &m.iter().map(|ma| ma.apply_normalisation(&norm_one, &norm_two, focal_norm)).collect::<Vec<_>>();
                     let camera_matrix_one = norm_one*c1.get_projection();
                     let camera_matrix_two = norm_two*c2.get_projection();
                     let inverse_camera_matrix_one = c1.get_inverse_projection()*norm_one_inv;
@@ -516,15 +525,18 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
                     // let inverse_camera_matrix_two = c2.get_inverse_projection();
 
 
-
-                    let f0 = 1.0; // -> check this
+                    //TODO: check this
+                    let focal = match depth_positive {
+                        true => 1.0,
+                        false => -1.0
+                    };
 
                     let (e, f_m,f_m_norm) = match epipolar_alg {
                         tensor::BifocalType::FUNDAMENTAL => {      
-                            let f = tensor::fundamental::eight_point_hartley(m_norm, false, f0); //TODO: make this configurable
+                            let f = tensor::fundamental::eight_point_hartley(m_norm, false, 1.0); //TODO: make this configurable  + CHEKCK THIS 1.0!
 
                             //let f_corr = tensor::fundamental::optimal_correction(&f, m_norm, f0);
-                            let filtered_indices = tensor::select_best_matches_from_fundamental(&f,m_norm,perc_tresh, epipolar_tresh);
+                            let filtered_indices = tensor::select_best_matches_from_fundamental(&f,m_norm,perc_tresh, epipolar_tresh, focal);
 
                             //let filtered_indices = tensor::select_best_matches_from_fundamental(&f,m_norm,perc_tresh, epipolar_tresh);
                             let filtered = filtered_indices.iter().map(|i| m[*i].clone()).collect::<Vec<Match<Feat>>>();
@@ -535,21 +547,21 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
                             (e, filtered, filtered_norm)
                         },
                         tensor::BifocalType::ESSENTIAL => {
-                            let e = tensor::ransac_five_point_essential(m_norm, &camera_matrix_one, &inverse_camera_matrix_one, &camera_matrix_two ,&inverse_camera_matrix_two,1e-3,2e4 as usize);
+                            let e = tensor::ransac_five_point_essential(m_norm, &camera_matrix_one, &inverse_camera_matrix_one, &camera_matrix_two ,&inverse_camera_matrix_two,1e-3,2e4 as usize, depth_positive);
                             //let e = tensor::five_point_essential(m_norm, &camera_matrix_one, &inverse_camera_matrix_one, &camera_matrix_two ,&inverse_camera_matrix_two); 
                             let f = tensor::compute_fundamental(&e, &inverse_camera_matrix_one, &inverse_camera_matrix_two);
 
-                            let filtered_indices = tensor::select_best_matches_from_fundamental(&f,m_norm,perc_tresh, epipolar_tresh);
+                            let filtered_indices = tensor::select_best_matches_from_fundamental(&f,m_norm,perc_tresh, epipolar_tresh, focal);
                             let filtered = filtered_indices.iter().map(|i| m[*i].clone()).collect::<Vec<Match<Feat>>>();
                             let filtered_norm = filtered_indices.iter().map(|i| m_norm[*i].clone()).collect::<Vec<Match<Feat>>>();
 
                             (e, filtered, filtered_norm)
                         },
                         tensor::BifocalType::QUEST => {
-                            let e = quest::quest_ransac(m_norm,  &inverse_camera_matrix_one, &inverse_camera_matrix_two, 1e-3,1e4 as usize); 
+                            let e = quest::quest_ransac(m_norm,  &inverse_camera_matrix_one, &inverse_camera_matrix_two, 1e-3,1e4 as usize, depth_positive); 
                             let f = tensor::compute_fundamental(&e, &inverse_camera_matrix_one, &inverse_camera_matrix_two);
 
-                            let filtered_indices = tensor::select_best_matches_from_fundamental(&f,m_norm,perc_tresh, epipolar_tresh);
+                            let filtered_indices = tensor::select_best_matches_from_fundamental(&f,m_norm,perc_tresh, epipolar_tresh, focal);
                             let filtered = filtered_indices.iter().map(|i| m[*i].clone()).collect::<Vec<Match<Feat>>>();
                             let filtered_norm = filtered_indices.iter().map(|i| m_norm[*i].clone()).collect::<Vec<Match<Feat>>>();
 
@@ -563,7 +575,7 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
 
                     
                     // The pose transforms id2 into the coordiante system of id1
-                    let (h,rotation,_) = tensor::decompose_essential_förstner(&e,&f_m_norm,&inverse_camera_matrix_two, &inverse_camera_matrix_two);
+                    let (h,rotation,_) = tensor::decompose_essential_förstner(&e,&f_m_norm,&inverse_camera_matrix_two, &inverse_camera_matrix_two,depth_positive);
                     let se3 = se3(&h,&rotation);
                     let isometry = from_matrix(&se3);
                     let some_pose_old_val = pose_map.insert(key, isometry);

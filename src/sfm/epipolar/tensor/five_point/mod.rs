@@ -15,7 +15,7 @@ mod constraints;
  * This only work on ubuntu. assert build version or something
  */
 #[allow(non_snake_case)]
-pub fn five_point_essential<T: Feature + Clone>(matches: &Vec<Match<T>>, projection_one: &Matrix3<Float>, inverse_projection_one: &Matrix3<Float>, projection_two:&Matrix3<Float>,inverse_projection_two: &Matrix3<Float>) -> Option<Essential> {
+pub fn five_point_essential<T: Feature + Clone>(matches: &Vec<Match<T>>, projection_one: &Matrix3<Float>, inverse_projection_one: &Matrix3<Float>, projection_two:&Matrix3<Float>,inverse_projection_two: &Matrix3<Float>, depth_positive: bool) -> Option<Essential> {
     let l = matches.len();
     
     let mut camera_rays_one = Matrix3xX::<Float>::zeros(l);
@@ -23,29 +23,22 @@ pub fn five_point_essential<T: Feature + Clone>(matches: &Vec<Match<T>>, project
     let mut features_one = Matrix3xX::<Float>::zeros(l);
     let mut features_two = Matrix3xX::<Float>::zeros(l);
     let mut A = OMatrix::<Float, Dynamic,U9>::zeros(l);
-
-    let mut max_x_one: Float = 0.0;
-    let mut max_y_one: Float = 0.0;
-    let mut max_x_two: Float = 0.0;
-    let mut max_y_two: Float = 0.0;
+    let focal = match depth_positive {
+        true => 1.0,
+        false => -1.0
+    };
 
     for i in 0..l {
         let m = &matches[i];
-        let f_1_reduced = m.feature_one.get_camera_ray(&inverse_projection_one);
-        let f_2_reduced = m.feature_two.get_camera_ray(&inverse_projection_two);
+        let f_1_reduced = m.feature_one.get_camera_ray(&inverse_projection_one, depth_positive);
+        let f_2_reduced = m.feature_two.get_camera_ray(&inverse_projection_two, depth_positive);
 
         camera_rays_one.column_mut(i).copy_from(&f_1_reduced);
         camera_rays_two.column_mut(i).copy_from(&f_2_reduced);
 
-        //TODO: Coordinate System
-        let f_1 = m.feature_one.get_as_3d_point(-1.0);
-        let f_2 = m.feature_two.get_as_3d_point(-1.0);
-
-        max_x_one = max_x_one.max(f_1[0]);
-        max_y_one = max_y_one.max(f_1[1]);
-
-        max_x_two = max_x_two.max(f_2[0]);
-        max_y_two = max_y_two.max(f_2[1]);
+        //TODO: Check Depth
+        let f_1 = m.feature_one.get_as_3d_point(focal);
+        let f_2 = m.feature_two.get_as_3d_point(focal);
 
 
         features_one.column_mut(i).copy_from(&f_1);
@@ -133,8 +126,8 @@ pub fn cheirality_check<T: Feature + Clone>(
         all_essential_matricies: &Vec<Essential>,
         matches: &Vec<Match<T>>,
         depth_positive: bool,
-         points_cam_1: (&OMatrix<Float, U3,Dynamic>, &Matrix3<Float>,&Matrix3<Float>), 
-         points_cam_2: (&OMatrix<Float, U3,Dynamic>, &Matrix3<Float>,&Matrix3<Float>)) -> Option<Essential> {
+        points_cam_1: (&OMatrix<Float, U3,Dynamic>, &Matrix3<Float>,&Matrix3<Float>), 
+        points_cam_2: (&OMatrix<Float, U3,Dynamic>, &Matrix3<Float>,&Matrix3<Float>)) -> Option<Essential> {
     let mut max_accepted_cheirality_count = 0;
     let mut best_e = None;
     let mut smallest_det = float::MAX;
@@ -162,7 +155,7 @@ pub fn cheirality_check<T: Feature + Clone>(
 
     let number_of_points = matches.len();
     for e in all_essential_matricies {
-        let (t,R,e_corrected) = decompose_essential_förstner(&e,matches,points_cam_1.2,points_cam_2.2);
+        let (t,R,e_corrected) = decompose_essential_förstner(&e,matches,points_cam_1.2,points_cam_2.2,depth_positive);
         let se3 = pose::se3(&t,&R);
 
         let projection_1 = camera_matrix_1*(Matrix4::<Float>::identity().fixed_slice::<3,4>(0,0));
@@ -184,7 +177,6 @@ pub fn cheirality_check<T: Feature + Clone>(
                     let d1 = p1_x[(2,i)];
                     let d2 = p2_x[(2,i)];
 
-                    //TODO: Coordinate System
                     if (depth_positive && d1 > 0.0 && d2 > 0.0) || (!depth_positive && d1 < 0.0 && d2 < 0.0) {
                         accepted_cheirality_count += 1 
                     }

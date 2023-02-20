@@ -100,7 +100,7 @@ fn main() -> Result<()> {
 
     let (match_map, camera_map, camera_map_ba) = olsen_data.get_data_for_sfm(root_id, &paths, positive_principal_distance, invert_focal_length, invert_y, feature_skip_count);
     let sfm_config_fundamental = SFMConfig::new(root_id, &paths, camera_map, camera_map_ba, &match_map, 
-    BifocalType::FUNDAMENTAL, Triangulation::LINEAR, 1.0, 3.0e0, 400.0, true);
+    BifocalType::FUNDAMENTAL, Triangulation::LINEAR, 1.0, 3.0e0, 400.0, true, depth_positive);
     let (initial_cam_motions_per_path,filtered_matches_per_path) = sfm_config_fundamental.compute_lists_from_maps();
 
     //This is only to satisfy current interface in ba

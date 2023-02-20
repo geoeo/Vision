@@ -11,10 +11,14 @@ use crate::Float;
 pub mod constraints;
 
 
-pub fn quest_ransac<T: Feature + Clone>(matches: &Vec<Match<T>>, inverse_projection_one: &Matrix3<Float>, inverse_projection_two: &Matrix3<Float>, epipolar_thresh: Float, ransac_it: usize) -> Essential {
+pub fn quest_ransac<T: Feature + Clone>(matches: &Vec<Match<T>>, inverse_projection_one: &Matrix3<Float>, inverse_projection_two: &Matrix3<Float>, epipolar_thresh: Float, ransac_it: usize, depth_positive: bool) -> Essential {
     let mut max_inlier_count = 0;
     let mut best_essential: Option<Essential> = None;
     let sample_size = matches.len();
+    let focal = match depth_positive {
+        true => 1.0,
+        false => -1.0
+    };
     for _ in 0..ransac_it {
         let mut m1 = SMatrix::<Float,3,5>::zeros();
         let mut m2 = SMatrix::<Float,3,5>::zeros();
@@ -22,15 +26,15 @@ pub fn quest_ransac<T: Feature + Clone>(matches: &Vec<Match<T>>, inverse_project
         for i in 0..5 {
             let s = &samples[i];
 
-            let f_1 = s.feature_one.get_camera_ray(&inverse_projection_one);
-            let f_2 = s.feature_two.get_camera_ray(&inverse_projection_two);
+            let f_1 = s.feature_one.get_camera_ray(&inverse_projection_one, depth_positive);
+            let f_2 = s.feature_two.get_camera_ray(&inverse_projection_two, depth_positive);
 
             m1.column_mut(i).copy_from(&f_1);
             m2.column_mut(i).copy_from(&f_2);
         }
         let (essential, _, _) = quest(&m1,&m2);
         let f = compute_fundamental(&essential, &inverse_projection_one, &inverse_projection_two);
-        let inliers = calc_sampson_distance_inliers_for_fundamental(&f,&samples[5..].to_vec(),epipolar_thresh);
+        let inliers = calc_sampson_distance_inliers_for_fundamental(&f,&samples[5..].to_vec(),epipolar_thresh, focal);
         if inliers > max_inlier_count {
             max_inlier_count = inliers;
             best_essential = Some(essential);
