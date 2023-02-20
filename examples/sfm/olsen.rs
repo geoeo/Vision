@@ -37,7 +37,9 @@ fn main() -> Result<()> {
 
     let feature_skip_count = 1;
     let olsen_data = OlssenData::new(&olsen_data_path);
-    let positive_principal_distance = false;
+    let depth_positive = false;
+    let positive_principal_distance = depth_positive;
+    let invert_y = !depth_positive;
     let invert_focal_length = false; // they are already negative from decomp
 
 
@@ -96,7 +98,7 @@ fn main() -> Result<()> {
     //vec!(4),vec!(6,7));
     // let root_id = 5;
 
-    let (match_map, camera_map, camera_map_ba) = olsen_data.get_data_for_sfm(root_id, &paths, positive_principal_distance, invert_focal_length, feature_skip_count);
+    let (match_map, camera_map, camera_map_ba) = olsen_data.get_data_for_sfm(root_id, &paths, positive_principal_distance, invert_focal_length, invert_y, feature_skip_count);
     let sfm_config_fundamental = SFMConfig::new(root_id, &paths, camera_map, camera_map_ba, &match_map, 
     BifocalType::FUNDAMENTAL, Triangulation::LINEAR, 1.0, 3.0e0, 400.0, true);
     let (initial_cam_motions_per_path,filtered_matches_per_path) = sfm_config_fundamental.compute_lists_from_maps();

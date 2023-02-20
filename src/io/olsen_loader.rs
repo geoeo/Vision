@@ -52,7 +52,7 @@ impl OlssenData {
         OlssenData{P, images,point_indices,image_points, sorted_image_names, width, height, number_of_3d_points: U.len(), folder_path: folder_path.to_string()}
     }
 
-    pub fn get_matches_between_images(&self, first_index: usize, second_index: usize) -> Vec<Match<ImageFeature>> {
+    pub fn get_matches_between_images(&self, first_index: usize, second_index: usize, invert_y: bool) -> Vec<Match<ImageFeature>> {
         let features_img_one = &self.image_points[first_index];
         let features_img_two = &self.image_points[second_index];
 
@@ -73,18 +73,27 @@ impl OlssenData {
             point_correspondence_map[point_idx as usize].1 = Some(i);
         }
 
-        // We flip the y-axis so that the features correspond to the RHS coordiante axis
         point_correspondence_map.iter().filter(|&(v1,v2)| v1.is_some() && v2.is_some()).map(|&(v1,v2)| {
             let coords_one = features_img_one.column(v1.unwrap());
-            let feature_one = ImageFeature::new(coords_one[0],(self.height as Float) - 1.0 - coords_one[1]);
+            let one_x = coords_one[0];
+            let one_y = match invert_y {
+                true => (self.height as Float) - 1.0 - coords_one[1],
+                false => coords_one[1]
+            };
+            let feature_one = ImageFeature::new(one_x,one_y);
             let coords_two = features_img_two.column(v2.unwrap());
-            let feature_two = ImageFeature::new(coords_two[0],(self.height as Float) - 1.0 - coords_two[1]);
+            let two_x = coords_two[0];
+            let two_y = match invert_y {
+                true => (self.height as Float) - 1.0 - coords_two[1],
+                false => coords_two[1]
+            };
+            let feature_two = ImageFeature::new(two_x,two_y);
 
             Match{feature_one,feature_two, landmark_id: None}
         }).collect::<Vec<Match<ImageFeature>>>()
     }
 
-    pub fn get_loftr_matches_between_images(&self, first_index: usize, second_index: usize, olsen_dataset_name: &str) -> Vec<Match<ImageFeature>> {
+    pub fn get_loftr_matches_between_images(&self, first_index: usize, second_index: usize, olsen_dataset_name: &str, invert_y: bool) -> Vec<Match<ImageFeature>> {
         let target_width = self.width as Float;
         let target_height = self.height as Float;
 
@@ -122,10 +131,15 @@ impl OlssenData {
             let p2_y = matches_split[3].trim().parse::<Float>().expect("could not parse p2 y");  
 
             let p1_x_target = (p1_x/img1_width)*target_width;
-            let p1_y_target = target_height - 1.0 - (p1_y/img1_height)*target_height;
+            let p1_y_target = match invert_y {
+                true => target_height - 1.0 - (p1_y/img1_height)*target_height,
+                false => p1_y
+            };
             let p2_x_target = (p2_x/img2_width)*target_width;
-            let p2_y_target = target_height - 1.0 - (p2_y/img2_height)*target_height;
-
+            let p2_y_target = match invert_y {
+                true => target_height - 1.0 - (p2_y/img2_height)*target_height,
+                false => p2_y
+            };
             let feature_one = ImageFeature::new(p1_x_target, p1_y_target);
             let feature_two = ImageFeature::new(p2_x_target, p2_y_target);
 
@@ -166,7 +180,7 @@ impl OlssenData {
         }).collect()
     }
 
-    pub fn get_data_for_sfm(&self, root_id: usize, paths: &Vec<Vec<usize>>, positive_principal_distance:bool, invert_focal_length: bool, feature_skip_count: usize) -> (HashMap<(usize,usize), Vec<Match<ImageFeature>>>, HashMap<usize, Perspective<f64>>, HashMap<usize, Perspective<f32>>) {
+    pub fn get_data_for_sfm(&self, root_id: usize, paths: &Vec<Vec<usize>>, positive_principal_distance:bool, invert_focal_length: bool, invert_y: bool, feature_skip_count: usize) -> (HashMap<(usize,usize), Vec<Match<ImageFeature>>>, HashMap<usize, Perspective<f64>>, HashMap<usize, Perspective<f32>>) {
         let root_cam =  Perspective::from_matrix(&self.get_camera_intrinsics_extrinsics(root_id, positive_principal_distance).0,invert_focal_length);
         let other_cams = paths.iter().map(|path| path.iter().map(|&id| (id,Perspective::from_matrix(&self.get_camera_intrinsics_extrinsics(id, positive_principal_distance).0,invert_focal_length))).collect::<Vec<(usize,Perspective<f64>)>>()).flatten().collect::<Vec<(usize,Perspective<f64>)>>();
         let number_of_paths = paths.len();
@@ -187,7 +201,7 @@ impl OlssenData {
                     idx => path[idx-1]
                 };
                 let id2 = path[j];
-                let matches = self.get_matches_between_images(id1, id2).iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
+                let matches = self.get_matches_between_images(id1, id2, invert_y).iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
                 match_map.insert((id1,id2),matches);
             }
         }

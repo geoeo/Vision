@@ -276,7 +276,7 @@ impl CameraFeatureMap {
     /**
      * This vector has ordering In the format [f1_cam1, f1_cam2,...] where cam_id(cam_n-1) < cam_id(cam_n) 
      */
-    pub fn get_observed_features<F: float::Float + Scalar + NumAssign + RealField>(&self, invert_feature_y: bool) -> DVector<F> {
+    pub fn get_observed_features<F: float::Float + Scalar + NumAssign + RealField>(&self) -> DVector<F> {
         let n_cams = self.camera_map.keys().len();
         let mut observed_features = DVector::<F>::zeros(self.number_of_unique_landmarks*n_cams*2); // some entries might be invalid
         let c_y = (self.image_row_col.0 - 1) as Float; 
@@ -292,10 +292,7 @@ impl CameraFeatureMap {
                     _ => (CameraFeatureMap::NO_FEATURE_FLAG,CameraFeatureMap::NO_FEATURE_FLAG)  
                 };
                 observed_features[feat_id] = convert(x_val);
-                observed_features[feat_id+1] = match invert_feature_y {
-                    true => convert(c_y - y_val),
-                    false => convert(y_val)
-                };
+                observed_features[feat_id+1] = convert(y_val);
             }
         }
         observed_features
