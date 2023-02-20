@@ -86,9 +86,9 @@ pub fn compute_linear_normalization<T: Feature>(matches: &Vec<Match<T>>) -> (Mat
  * Computes the epipolar lines of a match.
  * Returns (line of first feature in second image, line of second feature in first image)
  */
-pub fn epipolar_lines<T: Feature>(bifocal_tensor: &Matrix3<Float>, feature_match: &Match<T>, cam_one_intrinsics: &Matrix3<Float>, cam_two_intrinsics: &Matrix3<Float>, depth_positive: bool) -> (Vector3<Float>, Vector3<Float>) {
-    let f_from = feature_match.feature_one.get_camera_ray(cam_one_intrinsics, depth_positive);
-    let f_to = feature_match.feature_two.get_camera_ray(cam_two_intrinsics, depth_positive);
+pub fn epipolar_lines<T: Feature>(bifocal_tensor: &Matrix3<Float>, feature_match: &Match<T>, cam_one_intrinsics: &Matrix3<Float>, cam_two_intrinsics: &Matrix3<Float>, positive_principal_distance: bool) -> (Vector3<Float>, Vector3<Float>) {
+    let f_from = feature_match.feature_one.get_camera_ray(cam_one_intrinsics, positive_principal_distance);
+    let f_to = feature_match.feature_two.get_camera_ray(cam_two_intrinsics, positive_principal_distance);
 
     ((f_from.transpose()*bifocal_tensor).transpose(), bifocal_tensor*f_to)
 }

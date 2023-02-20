@@ -15,7 +15,7 @@ mod constraints;
  * This only work on ubuntu. assert build version or something
  */
 #[allow(non_snake_case)]
-pub fn five_point_essential<T: Feature + Clone>(matches: &Vec<Match<T>>, projection_one: &Matrix3<Float>, inverse_projection_one: &Matrix3<Float>, projection_two:&Matrix3<Float>,inverse_projection_two: &Matrix3<Float>, depth_positive: bool) -> Option<Essential> {
+pub fn five_point_essential<T: Feature + Clone>(matches: &Vec<Match<T>>, projection_one: &Matrix3<Float>, inverse_projection_one: &Matrix3<Float>, projection_two:&Matrix3<Float>,inverse_projection_two: &Matrix3<Float>, positive_principal_distance: bool) -> Option<Essential> {
     let l = matches.len();
     
     let mut camera_rays_one = Matrix3xX::<Float>::zeros(l);
@@ -23,15 +23,15 @@ pub fn five_point_essential<T: Feature + Clone>(matches: &Vec<Match<T>>, project
     let mut features_one = Matrix3xX::<Float>::zeros(l);
     let mut features_two = Matrix3xX::<Float>::zeros(l);
     let mut A = OMatrix::<Float, Dynamic,U9>::zeros(l);
-    let focal = match depth_positive {
+    let focal = match positive_principal_distance {
         true => 1.0,
         false => -1.0
     };
 
     for i in 0..l {
         let m = &matches[i];
-        let f_1_reduced = m.feature_one.get_camera_ray(&inverse_projection_one, depth_positive);
-        let f_2_reduced = m.feature_two.get_camera_ray(&inverse_projection_two, depth_positive);
+        let f_1_reduced = m.feature_one.get_camera_ray(&inverse_projection_one, positive_principal_distance);
+        let f_2_reduced = m.feature_two.get_camera_ray(&inverse_projection_two, positive_principal_distance);
 
         camera_rays_one.column_mut(i).copy_from(&f_1_reduced);
         camera_rays_two.column_mut(i).copy_from(&f_2_reduced);
@@ -125,7 +125,7 @@ pub fn five_point_essential<T: Feature + Clone>(matches: &Vec<Match<T>>, project
 pub fn cheirality_check<T: Feature + Clone>(
         all_essential_matricies: &Vec<Essential>,
         matches: &Vec<Match<T>>,
-        depth_positive: bool,
+        positive_principal_distance: bool,
         points_cam_1: (&OMatrix<Float, U3,Dynamic>, &Matrix3<Float>,&Matrix3<Float>), 
         points_cam_2: (&OMatrix<Float, U3,Dynamic>, &Matrix3<Float>,&Matrix3<Float>)) -> Option<Essential> {
     let mut max_accepted_cheirality_count = 0;
@@ -155,7 +155,7 @@ pub fn cheirality_check<T: Feature + Clone>(
 
     let number_of_points = matches.len();
     for e in all_essential_matricies {
-        let (t,R,e_corrected) = decompose_essential_förstner(&e,matches,points_cam_1.2,points_cam_2.2,depth_positive);
+        let (t,R,e_corrected) = decompose_essential_förstner(&e,matches,points_cam_1.2,points_cam_2.2,positive_principal_distance);
         let se3 = pose::se3(&t,&R);
 
         let projection_1 = camera_matrix_1*(Matrix4::<Float>::identity().fixed_slice::<3,4>(0,0));
@@ -177,7 +177,7 @@ pub fn cheirality_check<T: Feature + Clone>(
                     let d1 = p1_x[(2,i)];
                     let d2 = p2_x[(2,i)];
 
-                    if (depth_positive && d1 > 0.0 && d2 > 0.0) || (!depth_positive && d1 < 0.0 && d2 < 0.0) {
+                    if (positive_principal_distance && d1 > 0.0 && d2 > 0.0) || (!positive_principal_distance && d1 < 0.0 && d2 < 0.0) {
                         accepted_cheirality_count += 1 
                     }
                 }

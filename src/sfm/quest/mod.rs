@@ -11,11 +11,11 @@ use crate::Float;
 pub mod constraints;
 
 
-pub fn quest_ransac<T: Feature + Clone>(matches: &Vec<Match<T>>, inverse_projection_one: &Matrix3<Float>, inverse_projection_two: &Matrix3<Float>, epipolar_thresh: Float, ransac_it: usize, depth_positive: bool) -> Essential {
+pub fn quest_ransac<T: Feature + Clone>(matches: &Vec<Match<T>>, inverse_projection_one: &Matrix3<Float>, inverse_projection_two: &Matrix3<Float>, epipolar_thresh: Float, ransac_it: usize, positive_principal_distance: bool) -> Essential {
     let mut max_inlier_count = 0;
     let mut best_essential: Option<Essential> = None;
     let sample_size = matches.len();
-    let focal = match depth_positive {
+    let focal = match positive_principal_distance {
         true => 1.0,
         false => -1.0
     };
@@ -26,8 +26,8 @@ pub fn quest_ransac<T: Feature + Clone>(matches: &Vec<Match<T>>, inverse_project
         for i in 0..5 {
             let s = &samples[i];
 
-            let f_1 = s.feature_one.get_camera_ray(&inverse_projection_one, depth_positive);
-            let f_2 = s.feature_two.get_camera_ray(&inverse_projection_two, depth_positive);
+            let f_1 = s.feature_one.get_camera_ray(&inverse_projection_one, positive_principal_distance);
+            let f_2 = s.feature_two.get_camera_ray(&inverse_projection_two, positive_principal_distance);
 
             m1.column_mut(i).copy_from(&f_1);
             m2.column_mut(i).copy_from(&f_2);

@@ -42,7 +42,7 @@ pub fn eight_point_least_squares<T : Feature>(matches: &Vec<Match<T>>, f0: Float
  * Fails if points are coplanar.
  */
 #[allow(non_snake_case)]
-pub fn eight_point_hartley<T : Feature>(matches: &Vec<Match<T>>, positive_principal_distance: bool, f0: Float) -> Fundamental {
+pub fn eight_point_hartley<T : Feature>(matches: &Vec<Match<T>>, f0: Float) -> Fundamental {
     let number_of_matches = matches.len() as Float; 
     assert!(number_of_matches >= 8.0, "Number of matches: {}", number_of_matches);
 
@@ -67,10 +67,7 @@ pub fn eight_point_hartley<T : Feature>(matches: &Vec<Match<T>>, positive_princi
     let acc = svd_f.singular_values[0].powi(2) + svd_f.singular_values[1].powi(2);
     svd_f.singular_values[2] = 0.0;
     svd_f.singular_values /= acc.sqrt();
-    match positive_principal_distance {
-        true => svd_f.recompose().ok().expect("SVD recomposition failed").transpose().normalize(),
-        false => svd_f.recompose().ok().expect("SVD recomposition failed").normalize()
-    }
+    svd_f.recompose().ok().expect("SVD recomposition failed").normalize()
     
 }
 

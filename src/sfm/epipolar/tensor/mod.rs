@@ -61,18 +61,17 @@ pub fn select_best_matches_from_fundamental<T: Feature + Clone>(F: &Fundamental,
     //sorted_indices_sub.into_iter().map(|(i,_)| matches[i].clone()).collect::<Vec<Match<T>>>()
 }
 
-pub fn ransac_five_point_essential<T: Feature + Clone>(matches: &Vec<Match<T>>,projection_one: &Matrix3<Float>, inverse_projection_one: &Matrix3<Float>, projection_two:&Matrix3<Float>,inverse_projection_two: &Matrix3<Float>, epipolar_thresh: Float, ransac_it: usize, depth_positive: bool) -> Essential {
+pub fn ransac_five_point_essential<T: Feature + Clone>(matches: &Vec<Match<T>>,projection_one: &Matrix3<Float>, inverse_projection_one: &Matrix3<Float>, projection_two:&Matrix3<Float>,inverse_projection_two: &Matrix3<Float>, epipolar_thresh: Float, ransac_it: usize, positive_principal_distance: bool) -> Essential {
     let mut max_inlier_count = 0;
     let mut best_essential: Option<Essential> = None;
     let number_of_matches = matches.len();
     for _ in 0..ransac_it {
         let samples: Vec<_> = matches.choose_multiple(&mut rand::thread_rng(), number_of_matches).map(|x| x.clone()).collect();
-        let essential_option = five_point::five_point_essential(&samples[0..5].to_vec(),projection_one,inverse_projection_one,projection_two,inverse_projection_two, depth_positive);
+        let essential_option = five_point::five_point_essential(&samples[0..5].to_vec(),projection_one,inverse_projection_one,projection_two,inverse_projection_two, positive_principal_distance);
         match essential_option {
             Some(essential) => {
                 let f = compute_fundamental(&essential, inverse_projection_one, inverse_projection_two);
-                //let focal = (projection_one[(0,0)].powi(2) + projection_one[(1,1)].powi(2)).sqrt(); //TODO: Check Depth
-                let focal = match depth_positive {
+                let focal = match positive_principal_distance {
                     true => 1.0,
                     false => -1.0
                 };
@@ -108,8 +107,8 @@ pub fn calc_sampson_distance_inliers_for_fundamental<T: Feature>(F: &Fundamental
     matches.iter().map(|m| calc_sampson_distance_for_fundamental(F,m, focal)).filter(|&v| v < thresh).count()
 }
 
-pub fn five_point_essential<T: Feature + Clone>(matches: &Vec<Match<T>>, projection_one: &Matrix3<Float>, inverse_projection_one: &Matrix3<Float>, projection_two:&Matrix3<Float>,inverse_projection_two: &Matrix3<Float>, depth_positive: bool) -> Essential {
-    five_point::five_point_essential(&matches,projection_one,inverse_projection_one,projection_two,inverse_projection_two, depth_positive).expect("five_point_essential: failed")
+pub fn five_point_essential<T: Feature + Clone>(matches: &Vec<Match<T>>, projection_one: &Matrix3<Float>, inverse_projection_one: &Matrix3<Float>, projection_two:&Matrix3<Float>,inverse_projection_two: &Matrix3<Float>, positive_principal_distance: bool) -> Essential {
+    five_point::five_point_essential(&matches,projection_one,inverse_projection_one,projection_two,inverse_projection_two, positive_principal_distance).expect("five_point_essential: failed")
 }
 
 pub fn essential_matrix_from_motion(translation: &Vector3<Float>, rotation: &Matrix3<Float>) -> Essential {
@@ -141,7 +140,7 @@ pub fn decompose_essential_förstner<T : Feature>(
     E: &Essential, matches: &Vec<Match<T>>,
     inverse_camera_matrix_start: &Matrix3<Float>,
     inverse_camera_matrix_finish: &Matrix3<Float>,
-    depth_positive: bool) -> (Vector3<Float>, Matrix3<Float>,Matrix3<Float> ) {
+    positive_principal_distance: bool) -> (Vector3<Float>, Matrix3<Float>,Matrix3<Float> ) {
     assert!(matches.len() > 0);
 
     let svd = E.svd(true,true);
@@ -173,8 +172,8 @@ pub fn decompose_essential_förstner<T : Feature>(
         let mut v_sign = 0.0;
         let mut u_sign = 0.0;
         for m in matches {
-            let f_start = m.feature_one.get_camera_ray(&inverse_camera_matrix_start, depth_positive);
-            let f_finish = m.feature_two.get_camera_ray(&inverse_camera_matrix_finish, depth_positive);
+            let f_start = m.feature_one.get_camera_ray(&inverse_camera_matrix_start, positive_principal_distance);
+            let f_finish = m.feature_two.get_camera_ray(&inverse_camera_matrix_finish, positive_principal_distance);
 
             let binormal = ((h.cross_matrix()*f_start).cross_matrix()*h).normalize();
             let mat = Matrix3::<Float>::from_columns(&[h,binormal,f_start.cross_matrix()*R.transpose()*f_finish]);
@@ -218,9 +217,9 @@ pub fn decompose_essential_förstner<T : Feature>(
  * Statistical Optimization for Geometric Computation p.338
  */
 #[allow(non_snake_case)]
-pub fn decompose_essential_kanatani<T: Feature>(E: &Essential, matches: &Vec<Match<T>>, is_depth_positive: bool) -> (Vector3<Float>, Matrix3<Float>, Matrix3<Float>) {
+pub fn decompose_essential_kanatani<T: Feature>(E: &Essential, matches: &Vec<Match<T>>, positive_principal_distance: bool) -> (Vector3<Float>, Matrix3<Float>, Matrix3<Float>) {
     assert!(matches.len() > 0);
-    assert!(!is_depth_positive);
+    assert!(!positive_principal_distance);
     println!("WARN: decompose_essential_kanatani is buggy");
     let svd = (E*E.transpose()).svd(true,false);
     let min_idx = svd.singular_values.imin();

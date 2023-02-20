@@ -32,7 +32,7 @@ fn main() -> Result<()> {
     let t_raw = octave_loader::load_vector(&format!("{}/5_point_synthetic/translation_neg.txt",runtime_conf.local_data_path));
     let x1h = octave_loader::load_matrix(&format!("{}/5_point_synthetic/cam1_features_neg.txt",runtime_conf.local_data_path));
     let x2h = octave_loader::load_matrix(&format!("{}/5_point_synthetic/cam2_features_neg.txt",runtime_conf.local_data_path));
-    let depth_positive = false; 
+    let positive_principal_distance = false; 
     let invert_focal_length = false;
 
     let t = SVector::<Float,3>::new(t_raw[(0,0)],t_raw[(1,0)],t_raw[(2,0)]);
@@ -127,12 +127,8 @@ fn main() -> Result<()> {
         feature_matches.push(all_feature_matches[i].clone());
     }
 
-    let principal_distance_sign = match depth_positive { 
-        true => 1.0,
-        false => -1.0
-    };
-    let five_point_essential_matrix = epipolar::tensor::five_point_essential(&feature_matches,&intensity_camera_1.get_projection(),&intensity_camera_1.get_inverse_projection(),&intensity_camera_2.get_projection(),&intensity_camera_2.get_inverse_projection(),depth_positive);
-    let (t_est,R_est,_) = epipolar::tensor::decompose_essential_förstner(&five_point_essential_matrix,&feature_matches,&intensity_camera_1.get_inverse_projection(),&intensity_camera_2.get_inverse_projection(),depth_positive);
+    let five_point_essential_matrix = epipolar::tensor::five_point_essential(&feature_matches,&intensity_camera_1.get_projection(),&intensity_camera_1.get_inverse_projection(),&intensity_camera_2.get_projection(),&intensity_camera_2.get_inverse_projection(),positive_principal_distance);
+    let (t_est,R_est,_) = epipolar::tensor::decompose_essential_förstner(&five_point_essential_matrix,&feature_matches,&intensity_camera_1.get_inverse_projection(),&intensity_camera_2.get_inverse_projection(),positive_principal_distance);
     let factor = five_point_essential_matrix[(2,2)];
     let five_point_essential_matrix_norm = five_point_essential_matrix.map(|x| x/factor);
 
