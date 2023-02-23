@@ -32,9 +32,10 @@ pub trait Camera<F: float::Float + Scalar> {
 #[allow(non_snake_case)]
 pub fn decompose_projection<F: float::Float + Scalar + SimdRealField + ComplexField>(projection_matrix: &Matrix3x4<F>, positive_principal_distance: bool) -> (Matrix3<F>, Matrix4<F>) {
 
+    //TODO: coordiante
     let s = match positive_principal_distance {
         true => F::one(),
-        false => -F::one()
+        false => F::one()
     };
 
     let A = projection_matrix.fixed_columns::<3>(0);

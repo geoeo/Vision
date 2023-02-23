@@ -23,14 +23,16 @@ impl<F: num_traits::float::Float + Scalar + NumAssign + SimdRealField + ComplexF
        };
        let fx_scaled = factor*fx;
        let fy_scaled = factor*fy;
-       let projection = Matrix3::<F>::new(fx_scaled, s, cx,
-                                              F::zero(), fy_scaled, cy,
+       let cx_scaled = cx;
+       let cy_scaled = cy;
+       let projection = Matrix3::<F>::new(fx_scaled, s, cx_scaled,
+                                              F::zero(), fy_scaled, cy_scaled,
                                               F::zero(),  F::zero(), F::one());
         
 
-       let k = -cx/fx_scaled + s*cy*fx_scaled/fy_scaled;
+       let k = -cx_scaled/fx_scaled + s*cy_scaled*fx_scaled/fy_scaled;
        let inverse_projection = Matrix3::<F>::new(F::one()/fx_scaled, -s*fx_scaled/fy_scaled, k,
-                                                  F::zero(), F::one()/fy_scaled, -cy/fy_scaled,
+                                                  F::zero(), F::one()/fy_scaled, -cy_scaled/fy_scaled,
                                                   F::zero(), F::zero(), F::one());
 
         Perspective{projection,inverse_projection}

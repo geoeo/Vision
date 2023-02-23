@@ -42,7 +42,7 @@ pub fn eight_point_least_squares<T : Feature>(matches: &Vec<Match<T>>, f0: Float
  * Fails if points are coplanar.
  */
 #[allow(non_snake_case)]
-pub fn eight_point_hartley<T : Feature>(matches: &Vec<Match<T>>, f0: Float) -> Fundamental {
+pub fn eight_point_hartley<T : Feature>(matches: &Vec<Match<T>>, focal: Float) -> Fundamental {
     let number_of_matches = matches.len() as Float; 
     assert!(number_of_matches >= 8.0, "Number of matches: {}", number_of_matches);
 
@@ -50,7 +50,8 @@ pub fn eight_point_hartley<T : Feature>(matches: &Vec<Match<T>>, f0: Float) -> F
     for i in 0..A.nrows() {
         let feature_right = matches[i].feature_two.get_as_2d_point();
         let feature_left = matches[i].feature_one.get_as_2d_point();
-        A.row_mut(i).copy_from(&linear_coefficients(&feature_left, &feature_right, f0));
+
+        A.row_mut(i).copy_from(&linear_coefficients(&feature_left, &feature_right, focal));
     }
 
     if A.rank(1e-3) < 8 {
@@ -58,7 +59,7 @@ pub fn eight_point_hartley<T : Feature>(matches: &Vec<Match<T>>, f0: Float) -> F
     }
 
     let svd = A.svd(false,true);
-    let v_t =  &svd.v_t.expect("SVD failed on A");
+    let v_t = &svd.v_t.expect("SVD failed on A");
     let f = &v_t.row(v_t.nrows()-1);
     
     let F = to_fundamental(&f.transpose());

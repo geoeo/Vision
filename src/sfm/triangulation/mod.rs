@@ -49,7 +49,7 @@ pub fn triangulate_matches<Feat: Feature, C: Camera<Float>>(path_pair: (usize, u
     let projection_2 = c2_intrinsics*transform_c2;
 
     let landmarks = match triangulation_mode {
-        Triangulation::LINEAR => linear_triangulation_svd(&vec!((&normalized_image_points_s,&projection_1),(&normalized_image_points_f,&projection_2))),
+        Triangulation::LINEAR => linear_triangulation_svd(&vec!((&normalized_image_points_s,&projection_1),(&normalized_image_points_f,&projection_2)),positive_principal_distance),
         Triangulation::STEREO => stereo_triangulation((&normalized_image_points_s,&projection_1),(&normalized_image_points_f,&projection_2),f0,f0_prime).expect("get_euclidean_landmark_state: Stereo Triangulation Failed"),
     };
  
@@ -84,7 +84,7 @@ fn calculate_reprojection_errors<Feat: Feature, C: Camera<Float>>(landmarks: &Ma
  * See Triangulation by Hartley et al.
  */
 #[allow(non_snake_case)]
-pub fn linear_triangulation_svd(image_points_and_projections: &Vec<(&Matrix3xX<Float>, &OMatrix<Float,U3,U4>)>) -> Matrix4xX<Float> {
+pub fn linear_triangulation_svd(image_points_and_projections: &Vec<(&Matrix3xX<Float>, &OMatrix<Float,U3,U4>)>, positive_principal_distance: bool) -> Matrix4xX<Float> {
     let n_cams = image_points_and_projections.len();
     let points_per_cam = image_points_and_projections.first().expect("linear_triangulation: no points!").0.ncols();
     let mut triangulated_points = Matrix4xX::<Float>::zeros(points_per_cam);
@@ -124,11 +124,12 @@ pub fn linear_triangulation_svd(image_points_and_projections: &Vec<(&Matrix3xX<F
         triangulated_points[(2,i)] = p[2]/p[3];
         triangulated_points[(3,i)] = 1.0;
 
-        //TODO: Coordinate System
-        // We may triangulate points begind the camera. In our case that is a positive sign
-        let sign = match triangulated_points[(2,i)].is_sign_negative() {
-            true => 1.0,
-            false => -1.0
+        // We may triangulate points begind the camera. So we flip them depending on the principal distance
+        let sign = match (positive_principal_distance,triangulated_points[(2,i)].is_sign_negative()) {
+            (false, true) => 1.0,
+            (false, false) => -1.0,
+            (true, true) => -1.0,
+            (true, false) => 1.0
         };
 
         triangulated_points[(0,i)] *= sign;

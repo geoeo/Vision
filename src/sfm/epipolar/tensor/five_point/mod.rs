@@ -135,10 +135,7 @@ pub fn cheirality_check<T: Feature + Clone>(
     //TODO: clean this up
     let camera_matrix_1 = points_cam_1.1;
     let camera_matrix_2 = points_cam_2.1;
-    let focal = match positive_principal_distance {
-        true => 1.0,
-        false => -1.0
-    };
+    
     let number_of_points = matches.len();
     for e in all_essential_matricies {
         let (t,R,e_corrected) = decompose_essential_förstner(&e,matches,points_cam_1.2,points_cam_2.2,positive_principal_distance);
@@ -151,7 +148,7 @@ pub fn cheirality_check<T: Feature + Clone>(
         let p2_points = points_cam_2.0;
 
         //TODO make ENUM
-        let Xs_option = Some(linear_triangulation_svd(&vec!((&p1_points,&projection_1),(&p2_points,&projection_2))));
+        let Xs_option = Some(linear_triangulation_svd(&vec!((&p1_points,&projection_1),(&p2_points,&projection_2)),positive_principal_distance));
         //let Xs_option = stereo_triangulation((&p1_points,&projection_1),(&p2_points,&projection_2),focal,focal);
         match Xs_option {
             Some(Xs) => {

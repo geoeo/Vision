@@ -509,10 +509,10 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
                     let (norm_one, norm_one_inv, norm_two, norm_two_inv) = compute_linear_normalization(m);
 
 
-                    //TODO: check this
+                    //TODO: coordiante system
                     let focal = match positive_principal_distance {
                         true => 1.0,
-                        false => -1.0
+                        false => 1.0
                     };
                     let m_norm = &m.iter().map(|ma| ma.apply_normalisation(&norm_one, &norm_two, focal)).collect::<Vec<_>>();
                     let camera_matrix_one = norm_one*c1.get_projection();
