@@ -15,10 +15,11 @@ pub fn quest_ransac<T: Feature + Clone>(matches: &Vec<Match<T>>, inverse_project
     let mut max_inlier_count = 0;
     let mut best_essential: Option<Essential> = None;
     let sample_size = matches.len();
-    let focal = match positive_principal_distance {
-        true => 1.0,
-        false => -1.0
+    let invert = match positive_principal_distance {
+        true => -1.0,
+        false => 1.0
     };
+    
     for _ in 0..ransac_it {
         let mut m1 = SMatrix::<Float,3,5>::zeros();
         let mut m2 = SMatrix::<Float,3,5>::zeros();
@@ -26,15 +27,15 @@ pub fn quest_ransac<T: Feature + Clone>(matches: &Vec<Match<T>>, inverse_project
         for i in 0..5 {
             let s = &samples[i];
 
-            let f_1 = s.feature_one.get_camera_ray(&inverse_projection_one, positive_principal_distance);
-            let f_2 = s.feature_two.get_camera_ray(&inverse_projection_two, positive_principal_distance);
+            let f_1 = invert*s.feature_one.get_camera_ray(&inverse_projection_one, positive_principal_distance);
+            let f_2 = invert*s.feature_two.get_camera_ray(&inverse_projection_two, positive_principal_distance);
 
             m1.column_mut(i).copy_from(&f_1);
             m2.column_mut(i).copy_from(&f_2);
         }
         let (essential, _, _) = quest(&m1,&m2);
         let f = compute_fundamental(&essential, &inverse_projection_one, &inverse_projection_two);
-        let inliers = calc_sampson_distance_inliers_for_fundamental(&f,&samples[5..].to_vec(),epipolar_thresh, focal);
+        let inliers = calc_sampson_distance_inliers_for_fundamental(&f,&samples[5..].to_vec(),epipolar_thresh, 1.0);
         if inliers > max_inlier_count {
             max_inlier_count = inliers;
             best_essential = Some(essential);

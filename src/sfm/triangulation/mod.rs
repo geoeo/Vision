@@ -78,7 +78,7 @@ fn calculate_reprojection_errors<Feat: Feature, C: Camera<Float>>(landmarks: &Ma
 }
 
 
-//TODO: conditioning, also check what happens to zero entries more thoroughly
+//TODO: maybe split up sign change
 /**
  * Linear Triangulartion up to scale. Assuming norm(X) = 1, where X is in homogeneous space.
  * See Triangulation by Hartley et al.

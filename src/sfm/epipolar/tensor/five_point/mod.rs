@@ -36,8 +36,6 @@ pub fn five_point_essential<T: Feature + Clone>(matches: &Vec<Match<T>>, project
         camera_rays_one.column_mut(i).copy_from(&f_1_reduced);
         camera_rays_two.column_mut(i).copy_from(&f_2_reduced);
 
-        //TODO: Check Depth
-        //TODO: check if this can be skipped if the pass the identity matrix as intrinsics
         let f_1 = m.feature_one.get_as_3d_point(focal);
         let f_2 = m.feature_two.get_as_3d_point(focal);
 
@@ -132,7 +130,6 @@ pub fn cheirality_check<T: Feature + Clone>(
     let mut best_e = None;
     let mut smallest_det = float::MAX;
 
-    //TODO: clean this up
     let camera_matrix_1 = points_cam_1.1;
     let camera_matrix_2 = points_cam_2.1;
     
@@ -149,7 +146,7 @@ pub fn cheirality_check<T: Feature + Clone>(
 
         //TODO make ENUM
         let Xs_option = Some(linear_triangulation_svd(&vec!((&p1_points,&projection_1),(&p2_points,&projection_2)),positive_principal_distance));
-        //let Xs_option = stereo_triangulation((&p1_points,&projection_1),(&p2_points,&projection_2),focal,focal);
+        //let Xs_option = stereo_triangulation((&p1_points,&projection_1),(&p2_points,&projection_2),1.0,1.0);
         match Xs_option {
             Some(Xs) => {
                 let p1_x = &Xs;

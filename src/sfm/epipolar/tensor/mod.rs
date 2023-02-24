@@ -71,11 +71,7 @@ pub fn ransac_five_point_essential<T: Feature + Clone>(matches: &Vec<Match<T>>,p
         match essential_option {
             Some(essential) => {
                 let f = compute_fundamental(&essential, inverse_projection_one, inverse_projection_two);
-                let focal = match positive_principal_distance {
-                    true => 1.0,
-                    false => -1.0
-                };
-                let inliers = calc_sampson_distance_inliers_for_fundamental(&f,&samples[5..].to_vec(),epipolar_thresh,focal);
+                let inliers = calc_sampson_distance_inliers_for_fundamental(&f,&samples[5..].to_vec(),epipolar_thresh,1.0);
                 if inliers > max_inlier_count {
                     max_inlier_count = inliers;
                     best_essential = Some(essential);

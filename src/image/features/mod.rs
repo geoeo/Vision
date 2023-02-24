@@ -36,11 +36,10 @@ pub trait Feature {
         Vector2::<Float>::new(self.get_x_image_float(), self.get_y_image_float())
     }
     /**
-     * Gets the camera ray for image points which are assumed to lie on the focal plane with depth -1
+     * Gets the camera ray for image points which are assumed to be opposite of the principal plane 
      */
     fn get_camera_ray(&self, inverse_intrinsics: &Matrix3<Float>, positive_principal_distance: bool) -> Vector3<Float> {
         match positive_principal_distance {
-            //TODO: coordniate - check with triangulation
             false => inverse_intrinsics*Vector3::<Float>::new(-self.get_x_image_float(), -self.get_y_image_float(),1.0),
             true => -1.0*inverse_intrinsics*Vector3::<Float>::new(self.get_x_image_float(), self.get_y_image_float(),1.0)
         }
@@ -90,7 +89,6 @@ impl Feature for ImageFeature {
     fn get_y_image(&self) -> usize { self.location.y.trunc() as usize}
     fn get_closest_sigma_level(&self) -> usize {0}
     fn apply_normalisation(&self, norm: &Matrix3<Float>, depth: Float) -> Self {
-        //TODO: Coordinate System
         let v = norm*self.get_as_3d_point(depth);
         ImageFeature::new(v[0], v[1])
     }
