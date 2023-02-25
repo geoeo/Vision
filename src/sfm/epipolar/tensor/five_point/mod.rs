@@ -23,10 +23,6 @@ pub fn five_point_essential<T: Feature + Clone>(matches: &Vec<Match<T>>, project
     let mut features_one = Matrix3xX::<Float>::zeros(l);
     let mut features_two = Matrix3xX::<Float>::zeros(l);
     let mut A = OMatrix::<Float, Dynamic,U9>::zeros(l);
-    let focal = match positive_principal_distance {
-        true => 1.0,
-        false => -1.0
-    };
 
     for i in 0..l {
         let m = &matches[i];
@@ -36,8 +32,8 @@ pub fn five_point_essential<T: Feature + Clone>(matches: &Vec<Match<T>>, project
         camera_rays_one.column_mut(i).copy_from(&f_1_reduced);
         camera_rays_two.column_mut(i).copy_from(&f_2_reduced);
 
-        let f_1 = m.feature_one.get_as_3d_point(focal);
-        let f_2 = m.feature_two.get_as_3d_point(focal);
+        let f_1 = m.feature_one.get_as_3d_point(1.0);
+        let f_2 = m.feature_two.get_as_3d_point(1.0);
 
         features_one.column_mut(i).copy_from(&f_1);
         features_two.column_mut(i).copy_from(&f_2);
@@ -62,6 +58,7 @@ pub fn five_point_essential<T: Feature + Clone>(matches: &Vec<Match<T>>, project
             (u4, u3, u2, u1)
         },
         _ => {
+            //TODO: not sure if this is correct
             let eigen = nalgebra_lapack::SymmetricEigen::new(A.transpose()*A);
             let eigenvectors = eigen.eigenvectors;
             let mut indexed_eigenvalues = eigen.eigenvalues.iter().enumerate().map(|(i,v)| (i,*v)).collect::<Vec<(usize, Float)>>();
@@ -71,7 +68,7 @@ pub fn five_point_essential<T: Feature + Clone>(matches: &Vec<Match<T>>, project
             let u3 = eigenvectors.column(indexed_eigenvalues[2].0).into_owned();
             let u4 = eigenvectors.column(indexed_eigenvalues[3].0).into_owned();
 
-            (u4, u3, u2, u1)
+            (u1, u2, u3, u4)
         }
 
     };
@@ -145,7 +142,7 @@ pub fn cheirality_check<T: Feature + Clone>(
         let p2_points = points_cam_2.0;
 
         //TODO make ENUM
-        let Xs_option = Some(linear_triangulation_svd(&vec!((&p1_points,&projection_1),(&p2_points,&projection_2)),positive_principal_distance));
+        let Xs_option = Some(linear_triangulation_svd(&vec!((&p1_points,&projection_1),(&p2_points,&projection_2)),positive_principal_distance, false));
         //let Xs_option = stereo_triangulation((&p1_points,&projection_1),(&p2_points,&projection_2),1.0,1.0);
         match Xs_option {
             Some(Xs) => {

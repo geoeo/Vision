@@ -21,16 +21,11 @@ pub fn triangulate_matches<Feat: Feature, C: Camera<Float>>(path_pair: (usize, u
     let ms = match_map.get(&(id1,id2)).expect(format!("triangulate_matches: matches not found with key: ({},{})",id1,id2).as_str());
     let mut normalized_image_points_s = Matrix3xX::<Float>::zeros(ms.len());
     let mut normalized_image_points_f = Matrix3xX::<Float>::zeros(ms.len());
-    let focal = match positive_principal_distance {
-        true => 1.0,
-        false => -1.0
-    };
 
-    //TODO: unify normalization calc with five_point and epipolar and camera map
     for i in 0..ms.len() {
         let m = &ms[i];
-        let feat_s = m.feature_one.get_as_3d_point(focal); //TODO: Check Depth
-        let feat_f = m.feature_two.get_as_3d_point(focal); //TODO: Check Depth
+        let feat_s = m.feature_one.get_as_3d_point(1.0);
+        let feat_f = m.feature_two.get_as_3d_point(1.0);
         normalized_image_points_s.column_mut(i).copy_from(&feat_s);
         normalized_image_points_f.column_mut(i).copy_from(&feat_f);
     }
@@ -49,7 +44,7 @@ pub fn triangulate_matches<Feat: Feature, C: Camera<Float>>(path_pair: (usize, u
     let projection_2 = c2_intrinsics*transform_c2;
 
     let landmarks = match triangulation_mode {
-        Triangulation::LINEAR => linear_triangulation_svd(&vec!((&normalized_image_points_s,&projection_1),(&normalized_image_points_f,&projection_2)),positive_principal_distance),
+        Triangulation::LINEAR => linear_triangulation_svd(&vec!((&normalized_image_points_s,&projection_1),(&normalized_image_points_f,&projection_2)),positive_principal_distance, true),
         Triangulation::STEREO => stereo_triangulation((&normalized_image_points_s,&projection_1),(&normalized_image_points_f,&projection_2),f0,f0_prime).expect("get_euclidean_landmark_state: Stereo Triangulation Failed"),
     };
  
@@ -84,7 +79,7 @@ fn calculate_reprojection_errors<Feat: Feature, C: Camera<Float>>(landmarks: &Ma
  * See Triangulation by Hartley et al.
  */
 #[allow(non_snake_case)]
-pub fn linear_triangulation_svd(image_points_and_projections: &Vec<(&Matrix3xX<Float>, &OMatrix<Float,U3,U4>)>, positive_principal_distance: bool) -> Matrix4xX<Float> {
+pub fn linear_triangulation_svd(image_points_and_projections: &Vec<(&Matrix3xX<Float>, &OMatrix<Float,U3,U4>)>, positive_principal_distance: bool, flip_points: bool) -> Matrix4xX<Float> {
     let n_cams = image_points_and_projections.len();
     let points_per_cam = image_points_and_projections.first().expect("linear_triangulation: no points!").0.ncols();
     let mut triangulated_points = Matrix4xX::<Float>::zeros(points_per_cam);
@@ -124,17 +119,20 @@ pub fn linear_triangulation_svd(image_points_and_projections: &Vec<(&Matrix3xX<F
         triangulated_points[(2,i)] = p[2]/p[3];
         triangulated_points[(3,i)] = 1.0;
 
-        // We may triangulate points begind the camera. So we flip them depending on the principal distance
-        let sign = match (positive_principal_distance,triangulated_points[(2,i)].is_sign_negative()) {
-            (false, true) => 1.0,
-            (false, false) => -1.0,
-            (true, true) => -1.0,
-            (true, false) => 1.0
-        };
+        if flip_points {
+            // We may triangulate points begind the camera. So we flip them depending on the principal distance
+            let sign = match (positive_principal_distance,triangulated_points[(2,i)].is_sign_negative()) {
+                (false, true) => 1.0,
+                (false, false) => -1.0,
+                (true, true) => -1.0,
+                (true, false) => 1.0
+            };
 
-        triangulated_points[(0,i)] *= sign;
-        triangulated_points[(1,i)] *= sign;
-        triangulated_points[(2,i)] *= sign;
+            triangulated_points[(0,i)] *= sign;
+            triangulated_points[(1,i)] *= sign;
+            triangulated_points[(2,i)] *= sign;
+        }
+
 
     }
     triangulated_points

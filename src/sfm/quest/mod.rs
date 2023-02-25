@@ -16,8 +16,8 @@ pub fn quest_ransac<T: Feature + Clone>(matches: &Vec<Match<T>>, inverse_project
     let mut best_essential: Option<Essential> = None;
     let sample_size = matches.len();
     let invert = match positive_principal_distance {
-        true => -1.0,
-        false => 1.0
+        true => 1.0,
+        false => -1.0
     };
     
     for _ in 0..ransac_it {
@@ -27,8 +27,9 @@ pub fn quest_ransac<T: Feature + Clone>(matches: &Vec<Match<T>>, inverse_project
         for i in 0..5 {
             let s = &samples[i];
 
-            let f_1 = invert*s.feature_one.get_camera_ray(&inverse_projection_one, positive_principal_distance);
-            let f_2 = invert*s.feature_two.get_camera_ray(&inverse_projection_two, positive_principal_distance);
+            // we want this to always be positive
+            let f_1 = invert*inverse_projection_one*s.feature_one.get_as_3d_point(invert);
+            let f_2 = invert*inverse_projection_two*s.feature_two.get_as_3d_point(invert);
 
             m1.column_mut(i).copy_from(&f_1);
             m2.column_mut(i).copy_from(&f_2);
