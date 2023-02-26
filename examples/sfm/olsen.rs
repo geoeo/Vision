@@ -40,6 +40,7 @@ fn main() -> Result<()> {
     let positive_principal_distance = true;
     let invert_y = !positive_principal_distance;
     let invert_focal_length = false;
+    let refince_rotation_via_rcd = true;
 
 
     // let paths = vec!(vec!(6));
@@ -79,14 +80,14 @@ fn main() -> Result<()> {
     // let paths = vec!(vec!(6,7,9));
     // let root_id = 5;
 
-    // let paths = vec!(vec!(6,7,8,9,10,11));
+    // let paths = vec!(vec!(6,7,8,9));
     // let root_id = 5;
 
-    let paths = vec!(vec!(4,3,2),vec!(6,7,8));
-    let root_id = 5;
+    // let paths = vec!(vec!(4,3,2,1),vec!(6,7,8,9));
+    // let root_id = 5;
 
-    // let paths = vec!(vec!(19,18),vec!(21,22));
-    // let root_id = 20;
+    let paths = vec!(vec!(7,6),vec!(9,10));
+    let root_id = 8;
 
     // let paths = vec!(vec!(19),vec!(21));
     // let root_id = 20;
@@ -97,9 +98,10 @@ fn main() -> Result<()> {
     //vec!(4),vec!(6,7));
     // let root_id = 5;
 
-    let (match_map, camera_map, camera_map_ba) = olsen_data.get_data_for_sfm(root_id, &paths, positive_principal_distance, invert_focal_length, invert_y, feature_skip_count);
+    //TODO: implement switch for loftr matches!
+    let (match_map, camera_map, camera_map_ba) = olsen_data.get_data_for_sfm(root_id, &paths, positive_principal_distance, invert_focal_length, invert_y, feature_skip_count, olsen_dataset_name);
     let sfm_config_fundamental = SFMConfig::new(root_id, &paths, camera_map, camera_map_ba, &match_map, 
-    BifocalType::FUNDAMENTAL, Triangulation::LINEAR, 1.0, 1.0e0, 20.0, true, positive_principal_distance);
+    BifocalType::FUNDAMENTAL, Triangulation::LINEAR, 1.0, 1.0e-1, 30.0, refince_rotation_via_rcd, positive_principal_distance);
     let (initial_cam_motions_per_path,filtered_matches_per_path) = sfm_config_fundamental.compute_lists_from_maps();
 
     //This is only to satisfy current interface in ba

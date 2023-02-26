@@ -100,8 +100,8 @@ impl OlssenData {
         let img_name_1 = self.sorted_image_names[first_index].split('.').collect::<Vec<&str>>()[0];
         let img_name_2 = self.sorted_image_names[second_index].split('.').collect::<Vec<&str>>()[0];
 
-        //let loftr_match_file_path = format!("{}loftr/{}_{}_{}.txt",self.folder_path,olsen_dataset_name,img_name_1,img_name_2);
-        let loftr_match_file_path = format!("{}loftr_funda/{}_{}_{}.txt",self.folder_path,olsen_dataset_name,img_name_1,img_name_2);
+        let loftr_match_file_path = format!("{}loftr/{}_{}_{}.txt",self.folder_path,olsen_dataset_name,img_name_1,img_name_2);
+        //let loftr_match_file_path = format!("{}loftr_funda/{}_{}_{}.txt",self.folder_path,olsen_dataset_name,img_name_1,img_name_2);
 
         let file = File::open(loftr_match_file_path).expect("loading loft match file failed!");
         let reader = BufReader::new(file);
@@ -180,7 +180,7 @@ impl OlssenData {
         }).collect()
     }
 
-    pub fn get_data_for_sfm(&self, root_id: usize, paths: &Vec<Vec<usize>>, positive_principal_distance:bool, invert_focal_length: bool, invert_y: bool, feature_skip_count: usize) -> (HashMap<(usize,usize), Vec<Match<ImageFeature>>>, HashMap<usize, Perspective<f64>>, HashMap<usize, Perspective<f32>>) {
+    pub fn get_data_for_sfm(&self, root_id: usize, paths: &Vec<Vec<usize>>, positive_principal_distance:bool, invert_focal_length: bool, invert_y: bool, feature_skip_count: usize,  olsen_dataset_name: &str) -> (HashMap<(usize,usize), Vec<Match<ImageFeature>>>, HashMap<usize, Perspective<f64>>, HashMap<usize, Perspective<f32>>) {
         let root_cam =  Perspective::from_matrix(&self.get_camera_intrinsics_extrinsics(root_id, positive_principal_distance).0,invert_focal_length);
         let other_cams = paths.iter().map(|path| path.iter().map(|&id| (id,Perspective::from_matrix(&self.get_camera_intrinsics_extrinsics(id, positive_principal_distance).0,invert_focal_length))).collect::<Vec<(usize,Perspective<f64>)>>()).flatten().collect::<Vec<(usize,Perspective<f64>)>>();
         let number_of_paths = paths.len();
@@ -202,6 +202,7 @@ impl OlssenData {
                 };
                 let id2 = path[j];
                 let matches = self.get_matches_between_images(id1, id2, invert_y).iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
+                //let matches = self.get_loftr_matches_between_images(id1, id2, olsen_dataset_name ,invert_y).iter().enumerate().filter(|&(i,_)| i % feature_skip_count == 0).map(|(_,x)| x.clone()).collect::<Vec<Match<ImageFeature>>>();
                 match_map.insert((id1,id2),matches);
             }
         }
