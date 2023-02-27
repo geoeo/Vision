@@ -8,6 +8,7 @@ pub mod epipolar;
 pub mod triangulation;
 pub mod quest;
 pub mod rotation_avg;
+pub mod outlier_rejection;
 
 use std::collections::{HashMap,HashSet};
 use crate::image::{features::{Feature, Match, feature_track::FeatureTrack, solver_feature::SolverFeature}};
@@ -117,8 +118,8 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
         }
 
         let (min_reprojection_error_refined, max_reprojection_error_refined) = Self::compute_reprojection_ranges(&reprojection_error_map);
-        println!("SFM Config Max Reprojection Error 2): {}, Min Reprojection Error: {}", max_reprojection_error_refined, min_reprojection_error_refined);
         Self::reject_landmark_outliers(&mut landmark_map, &mut reprojection_error_map, &mut match_map, landmark_cutoff_thresh);
+        println!("SFM Config Max Reprojection Error 2): {}, Min Reprojection Error: {}", max_reprojection_error_refined, min_reprojection_error_refined);
 
         Self::recompute_landmark_ids(&mut match_map);
 
