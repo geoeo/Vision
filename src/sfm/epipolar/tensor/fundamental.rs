@@ -54,7 +54,7 @@ pub fn eight_point_hartley<T : Feature>(matches: &Vec<Match<T>>, focal: Float) -
         A.row_mut(i).copy_from(&linear_coefficients(&feature_left, &feature_right, focal));
     }
 
-    if A.rank(1e-3) < 8 {
+    if A.rank(1e-6) < 8 {
         panic!("Eight Point: Degenerate Feature Configuration!");
     }
 

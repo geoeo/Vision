@@ -518,14 +518,20 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
                     let (e, f_m,f_m_norm) = match epipolar_alg {
                         tensor::BifocalType::FUNDAMENTAL => {      
                             let f = tensor::fundamental::eight_point_hartley(m_norm, 1.0); 
-
                             let f_corr = tensor::fundamental::optimal_correction(&f, m_norm, 1.0);
-                            let filtered_indices = tensor::select_best_matches_from_fundamental(&f_corr,m_norm,perc_tresh, epipolar_tresh, 1.0);
+                            
+                            let filtered_indices_orig = tensor::select_best_matches_from_fundamental(&f,m_norm,perc_tresh, epipolar_tresh, 1.0);
+                            let filtered_indices_corr = tensor::select_best_matches_from_fundamental(&f_corr,m_norm,perc_tresh, epipolar_tresh, 1.0);
 
-                            let filtered = filtered_indices.iter().map(|i| m[*i].clone()).collect::<Vec<Match<Feat>>>();
-                            let filtered_norm = filtered_indices.iter().map(|i| m_norm[*i].clone()).collect::<Vec<Match<Feat>>>();
+                            let (f_selected, filtered_indices_selected) = match filtered_indices_orig.len() > filtered_indices_corr.len() {
+                                true => (f,filtered_indices_orig),
+                                false => (f_corr, filtered_indices_corr)
+                            };
 
-                            let e = tensor::compute_essential(&f_corr,&camera_matrix_one,&camera_matrix_two);
+                            let filtered = filtered_indices_selected.iter().map(|i| m[*i].clone()).collect::<Vec<Match<Feat>>>();
+                            let filtered_norm = filtered_indices_selected.iter().map(|i| m_norm[*i].clone()).collect::<Vec<Match<Feat>>>();
+
+                            let e = tensor::compute_essential(&f_selected,&camera_matrix_one,&camera_matrix_two);
 
                             (e, filtered, filtered_norm)
                         },
