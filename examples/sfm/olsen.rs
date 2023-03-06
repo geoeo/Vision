@@ -32,7 +32,8 @@ fn main() -> Result<()> {
     let kronan = "kronan";
     let round_church = "round_church";
     
-    let olsen_dataset_name = fountain;
+    let olsen_dataset_name = door;
+
     let olsen_data_path = format!("{}/Olsen/{}/",runtime_conf.dataset_path,olsen_dataset_name);
 
     let feature_skip_count = 1;
@@ -61,8 +62,8 @@ fn main() -> Result<()> {
     // let paths = vec!(vec!(4),vec!(6,7));
     // let root_id = 5;
 
-    // let paths = vec!(vec!(4,3),vec!(6,7));
-    // let root_id = 5;
+    let paths = vec!(vec!(4),vec!(6,7));
+    let root_id = 5;
 
     // let paths = vec!(vec!(4,3),vec!(6));
     // let root_id = 5;
@@ -85,7 +86,8 @@ fn main() -> Result<()> {
     // let paths = vec!(vec!(4,3,2,1),vec!(6,7,8,9));
     // let root_id = 5;
 
-    // let paths = vec!(vec!(7,6),vec!(9,10));
+    // let paths = vec!(vec!(7,6,5),vec!(9,10,11));
+
     // let root_id = 8;
 
     // let paths = vec!(vec!(9,10,11,12,13));
