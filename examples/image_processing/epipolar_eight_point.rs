@@ -141,8 +141,8 @@ fn main() -> Result<()> {
     let mut image_2 = Image::from_gray_image(&gray_image_2, false, false, Some(image_name_2.to_string()));
 
     for m in feature_matches_vis.iter() {
-        let f1 = &m.feature_one;
-        let f2 = &m.feature_two;
+        let f1 = m.get_feature_one();
+        let f2 = m.get_feature_two();
 
         visualize::draw_circle(&mut image_1,f1.get_x_image(), f1.get_y_image(), 5.0, 255.0);
         visualize::draw_circle(&mut image_2,f2.get_x_image(), f2.get_y_image(), 5.0, 255.0);

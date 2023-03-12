@@ -29,8 +29,8 @@ pub enum EssentialDecomposition {
 
 #[allow(non_snake_case)]
 pub fn calc_epipolar_constraint<T: Feature + Clone>(F: &Fundamental, m: &Match<T>, focal: Float) -> Float {
-    let start = m.feature_one.get_as_3d_point(focal);
-    let finish = m.feature_two.get_as_3d_point(focal); 
+    let start = m.get_feature_one().get_as_3d_point(focal);
+    let finish = m.get_feature_two().get_as_3d_point(focal); 
     (start.transpose()*F*finish)[0].abs()
 }
 
@@ -87,8 +87,8 @@ pub fn ransac_five_point_essential<T: Feature + Clone>(matches: &Vec<Match<T>>,p
 
 #[allow(non_snake_case)]
 pub fn calc_sampson_distance_for_fundamental<T: Feature>(F: &Fundamental, m: &Match<T>, focal: Float) -> Float {
-    let m1 = m.feature_one.get_as_3d_point(focal); 
-    let m2 = m.feature_two.get_as_3d_point(focal);
+    let m1 = m.get_feature_one().get_as_3d_point(focal); 
+    let m2 = m.get_feature_two().get_as_3d_point(focal);
     
     let t1 = F*m2;
     let t2 = m1.transpose()*F;
@@ -168,8 +168,8 @@ pub fn decompose_essential_förstner<T : Feature>(
         let mut v_sign = 0.0;
         let mut u_sign = 0.0;
         for m in matches {
-            let f_start = m.feature_one.get_camera_ray(&inverse_camera_matrix_start, positive_principal_distance);
-            let f_finish = m.feature_two.get_camera_ray(&inverse_camera_matrix_finish, positive_principal_distance);
+            let f_start = m.get_feature_one().get_camera_ray(&inverse_camera_matrix_start, positive_principal_distance);
+            let f_finish = m.get_feature_two().get_camera_ray(&inverse_camera_matrix_finish, positive_principal_distance);
 
             let binormal = ((h.cross_matrix()*f_start).cross_matrix()*h).normalize();
             let mat = Matrix3::<Float>::from_columns(&[h,binormal,f_start.cross_matrix()*R.transpose()*f_finish]);
@@ -224,7 +224,7 @@ pub fn decompose_essential_kanatani<T: Feature>(E: &Essential, matches: &Vec<Mat
 
     let sum_of_determinants = matches.iter().fold(0.0, |acc,m| {
         //TODO: Coordinate System
-        let (start_new,finish_new) = (m.feature_one.get_as_3d_point(-1.0),m.feature_one.get_as_3d_point(-1.0));
+        let (start_new,finish_new) = (m.get_feature_one().get_as_3d_point(-1.0),m.get_feature_two().get_as_3d_point(-1.0));
 
         let mat = Matrix3::from_columns(&[h,start_new,E*finish_new]);
         match mat.determinant() {

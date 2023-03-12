@@ -168,8 +168,8 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
             for tracks in path {
                 let mut pixel_map = HashMap::<(usize,usize), (Float, Float,Float, Float)>::with_capacity(1000*1000);
                 for m in tracks {
-                    let f = m.feature_one.get_as_2d_point();
-                    let f2 = m.feature_two.get_as_2d_point();
+                    let f = m.get_feature_one().get_as_2d_point();
+                    let f2 = m.get_feature_two().get_as_2d_point();
                     let old_value = pixel_map.insert((f[0].trunc() as usize, f[1].trunc() as usize), (f[0], f[1], f2[0], f2[1]));
                     if old_value.is_some() {
                         duplicates_found = true;
@@ -215,7 +215,7 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
                 let matches = match_map.get(key).unwrap();
                 
                 let rejected_indices = reprojection_erros.iter().enumerate().filter(|&(_,v)| *v >= landmark_cutoff).map(|(idx,_)| idx).collect::<HashSet<usize>>();
-                rejected_landmark_ids.extend(matches.iter().enumerate().filter(|(idx,_)|rejected_indices.contains(idx)).map(|(_,v)| v.landmark_id.unwrap()).collect::<HashSet<_>>());
+                rejected_landmark_ids.extend(matches.iter().enumerate().filter(|(idx,_)|rejected_indices.contains(idx)).map(|(_,v)| v.get_landmark_id().unwrap()).collect::<HashSet<_>>());
             }
 
             for key in &keys {
@@ -223,7 +223,7 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
                 let matches = match_map.get(key).unwrap();
                 let landmarks = landmark_map.get(key).unwrap();
 
-                let accepted_indices = matches.iter().enumerate().filter(|&(_,v)| !rejected_landmark_ids.contains(&v.landmark_id.unwrap())).map(|(idx,_)| idx).collect::<HashSet<usize>>();
+                let accepted_indices = matches.iter().enumerate().filter(|&(_,v)| !rejected_landmark_ids.contains(&v.get_landmark_id().unwrap())).map(|(idx,_)| idx).collect::<HashSet<usize>>();
                 let filtered_matches = matches.iter().enumerate().filter(|(idx,_)|accepted_indices.contains(idx)).map(|(_,v)| v.clone()).collect::<Vec<_>>();
                 assert!(!&filtered_matches.is_empty(), "reject outliers empty features for : {:?}", key);
 
@@ -318,8 +318,9 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
                 let current_matches = match_map.get(current_pair_key).unwrap();
                 let mut pixel_set = HashSet::<(usize,usize)>::with_capacity(current_matches.len());
                 for m in current_matches {
-                    let f1_x = m.feature_one.get_x_image();
-                    let f1_y = m.feature_one.get_y_image();
+                    let f1 = m.get_feature_one();
+                    let f1_x = f1.get_x_image();
+                    let f1_y = f1.get_y_image();
                     let k = (f1_x,f1_y);
                     match img_idx {
                         0 => {
@@ -328,7 +329,7 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
                                 for j in 0..feature_tracks.len() {
                                     for i in 0..feature_tracks[j].len() {
                                         let track = &feature_tracks[j][i];
-                                        if track.get_first_feature_start() == m.feature_one {
+                                        if track.get_first_feature_start() == f1.clone() {
                                             id = Some(track.get_track_id());
                                             break;
                                         } 
@@ -349,7 +350,7 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
                             }
                         },
                         img_idx => {
-                            let current_feature_one = &m.feature_one;
+                            let current_feature_one = f1;
                             let mut found_track = false;
                             //TODO: Speed up with caching
                             for track in feature_tracks[path_idx].iter_mut() {
@@ -405,7 +406,7 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
         let mut existing_ids = HashSet::<usize>::with_capacity(100000);
         for (_,val) in match_map.iter() {
             for m in val {
-                let id = m.landmark_id.expect("recompute_landmark_ids: no landmark id");
+                let id = m.get_landmark_id().expect("recompute_landmark_ids: no landmark id");
                 old_max_val = old_max_val.max(id);
                 existing_ids.insert(id);
             }
@@ -417,20 +418,20 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
         let mut missing_id_set = (0..old_max_val).collect::<HashSet<usize>>();
         for (_,val) in match_map.iter() {
             for m in val {
-                missing_id_set.remove(&m.landmark_id.unwrap());
+                missing_id_set.remove(&m.get_landmark_id().unwrap());
             }
         }
 
         for (_,val) in match_map.iter_mut() {
             for m in val {
-                let old_id = m.landmark_id.expect("recompute_landmark_ids: no landmark id");
+                let old_id = m.get_landmark_id().expect("recompute_landmark_ids: no landmark id");
                 if old_new_map.contains_key(&old_id) {
                     let new_id = old_new_map.get(&old_id).unwrap();
-                    m.landmark_id = Some(*new_id);
+                    m.set_landmark_id(Some(*new_id));
                 } else {
                     let free_id = free_ids.iter().next().unwrap().clone();
                     free_ids.remove(&free_id);
-                    m.landmark_id = Some(free_id);
+                    m.set_landmark_id(Some(free_id));
                     old_new_map.insert(old_id, free_id);
                 }
             }
@@ -440,7 +441,7 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
         let mut validation_set = (0..existing_ids.len()).collect::<HashSet<usize>>();
         for (_,val) in match_map.iter() {
             for m in val {
-                validation_set.remove(&m.landmark_id.unwrap());
+                validation_set.remove(&m.get_landmark_id().unwrap());
             }
         }
         assert!(validation_set.is_empty());
@@ -646,7 +647,7 @@ fn compute_unique_landmark_id<Feat: Feature>(match_map: &HashMap<(usize,usize), 
     let mut unique_landmarks_ids = HashSet::<usize>::new();
     for ms in match_map.values() {
         for m in ms {
-            unique_landmarks_ids.insert(m.landmark_id.unwrap());
+            unique_landmarks_ids.insert(m.get_landmark_id().unwrap());
         }
     }
     unique_landmarks_ids
@@ -670,8 +671,8 @@ fn compute_features_per_image_map<Feat: Feature>(match_map: &HashMap<(usize,usiz
         let features_fwd = match_map.get(&(camera_id,id_next));
         if features_fwd.is_some(){
             for m in features_fwd.unwrap() {
-                let f = &m.feature_one;
-                let image_feature = ImageFeature::new(f.get_x_image_float(), f.get_y_image_float());
+                let f = &m.get_feature_one();
+                let image_feature = ImageFeature::new(f.get_x_image_float(), f.get_y_image_float(), f.get_landmark_id());
                 feature_map.get_mut(&camera_id).unwrap().insert(image_feature);
             }
         }
@@ -680,8 +681,8 @@ fn compute_features_per_image_map<Feat: Feature>(match_map: &HashMap<(usize,usiz
             let features_bck = match_map.get(&(id_prev.unwrap(),camera_id));
             if features_bck.is_some(){
                 for m in features_bck.unwrap() {
-                    let f = &m.feature_two;
-                    let image_feature = ImageFeature::new(f.get_x_image_float(), f.get_y_image_float());
+                    let f = &m.get_feature_two();
+                    let image_feature = ImageFeature::new(f.get_x_image_float(), f.get_y_image_float(), f.get_landmark_id());
                     feature_map.get_mut(&camera_id).unwrap().insert(image_feature);
                 }
             }

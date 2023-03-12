@@ -79,16 +79,16 @@ impl OlssenData {
                 true => (self.height as Float) - 1.0 - coords_one[1],
                 false => coords_one[1]
             };
-            let feature_one = ImageFeature::new(one_x,one_y);
+            let feature_one = ImageFeature::new(one_x,one_y, None);
             let coords_two = features_img_two.column(v2.unwrap());
             let two_x = coords_two[0];
             let two_y = match invert_y {
                 true => (self.height as Float) - 1.0 - coords_two[1],
                 false => coords_two[1]
             };
-            let feature_two = ImageFeature::new(two_x,two_y);
+            let feature_two = ImageFeature::new(two_x,two_y, None);
 
-            Match{feature_one,feature_two, landmark_id: None}
+            Match::new(feature_one,feature_two)
         }).collect::<Vec<Match<ImageFeature>>>()
     }
 
@@ -139,10 +139,10 @@ impl OlssenData {
                 true => target_height - 1.0 - (p2_y/img2_height)*target_height,
                 false => p2_y
             };
-            let feature_one = ImageFeature::new(p1_x_target, p1_y_target);
-            let feature_two = ImageFeature::new(p2_x_target, p2_y_target);
+            let feature_one = ImageFeature::new(p1_x_target, p1_y_target, None);
+            let feature_two = ImageFeature::new(p2_x_target, p2_y_target, None);
 
-            Match{feature_one,feature_two, landmark_id: None}
+            Match::new(feature_one,feature_two)
         }).collect::<Vec<_>>()
     }
 

@@ -61,8 +61,8 @@ pub fn display_oriented_matches_for_pyramid<T: Feature + Oriented>(image_a_origi
     }
 
     for i in 0..match_pyramid.len() {
-        let a= &match_pyramid[i].feature_one;
-        let b = &match_pyramid[i].feature_two;
+        let a= &match_pyramid[i].get_feature_one();
+        let b = &match_pyramid[i].get_feature_two();
         let level_a = a.get_closest_sigma_level();
         let level_b = b.get_closest_sigma_level();
         let (a_x_orig,a_y_orig) = reconstruct_original_coordiantes_for_float(a.get_x_image() as Float,a.get_y_image() as Float, pyramid_scale,level_a as i32);
@@ -98,8 +98,8 @@ pub fn display_matches_for_pyramid<T: Feature>(image_a_original: &Image, image_b
     }
 
     for i in 0..match_pyramid.len() {
-        let a = &match_pyramid[i].feature_one;
-        let b = &match_pyramid[i].feature_two;
+        let a = &match_pyramid[i].get_feature_one();
+        let b = &match_pyramid[i].get_feature_two();
         let level_a = a.get_closest_sigma_level();
         let level_b = b.get_closest_sigma_level();
         let (a_y, b_y) = match invert_y {
@@ -108,8 +108,8 @@ pub fn display_matches_for_pyramid<T: Feature>(image_a_original: &Image, image_b
         };
         let (a_x_orig, a_y_orig) = reconstruct_original_coordiantes_for_float(a.get_x_image() as Float, a_y, pyramid_scale,level_a as i32);
         let (b_x_orig, b_y_orig) = reconstruct_original_coordiantes_for_float(b.get_x_image() as Float, b_y as Float, pyramid_scale,level_b as i32);
-        let match_tuple = (ImageFeature{location: Point::new(a_x_orig.trunc() , a_y_orig.trunc())},
-        ImageFeature{location: Point::new((image_a_original.buffer.ncols() + (b_x_orig.trunc() as usize)) as Float, b_y_orig.trunc())});
+        let match_tuple = (ImageFeature{location: Point::new(a_x_orig.trunc() , a_y_orig.trunc()), landmark_id: None},
+        ImageFeature{location: Point::new((image_a_original.buffer.ncols() + (b_x_orig.trunc() as usize)) as Float, b_y_orig.trunc()), landmark_id: None});
         let radius_a = (level_a+1) as Float *10.0; 
         let radius_b = (level_b+1) as Float *10.0; 
     

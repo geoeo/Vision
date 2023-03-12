@@ -32,6 +32,14 @@ impl Feature for SiftFeature {
     }
     fn apply_normalisation(&self, _: &na::Matrix3<Float>, _: Float) -> Self {
         panic!("TODO: SiftFeature apply_normalisation")
+    }
+    //TODO
+    fn get_landmark_id(&self) -> Option<usize> {
+        None
+    }
+    //TODO
+    fn copy_with_landmark_id(&self, landmark_id: Option<usize>) -> Self {
+        self.clone()
     }  
 }
 

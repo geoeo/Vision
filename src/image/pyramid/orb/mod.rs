@@ -127,11 +127,10 @@ pub fn generate_matches_between_pyramid(feature_descriptor_pyramid_a: &Pyramid<V
     let matches_indices = cross_match(&matches_indices_scored_a_to_b,&matches_indices_scored_b_to_a, runtime_parameters, 0 as i32);
 
     matches_indices.into_iter().map(|(a_idx,b_idx)| 
-    Match::<OrbFeature>{
-            feature_one:all_features_a[a_idx],
-            feature_two:all_features_b[b_idx],
-            landmark_id: None
-        }).collect::<Vec<Match<OrbFeature>>>()
+    Match::<OrbFeature>::new(
+            all_features_a[a_idx],
+            all_features_b[b_idx],
+        )).collect::<Vec<Match<OrbFeature>>>()
 
 }
 

@@ -18,7 +18,7 @@ pub fn eight_point_least_squares<T : Feature>(matches: &Vec<Match<T>>, f0: Float
     let mut M = SMatrix::<Float,9,9>::zeros();
 
     for m in matches {
-        let eta = linear_coefficients(&m.feature_one.get_as_2d_point(), &m.feature_two.get_as_2d_point(), f0);
+        let eta = linear_coefficients(&m.get_feature_one().get_as_2d_point(), &m.get_feature_one().get_as_2d_point(), f0);
         M += eta.transpose()*eta;
     }
     let eigen = SymmetricEigen::new(M);
@@ -48,8 +48,8 @@ pub fn eight_point_hartley<T : Feature>(matches: &Vec<Match<T>>, focal: Float) -
 
     let mut A = Matrix::<Float, Dynamic, U9, VecStorage<Float, Dynamic, U9>>::zeros(matches.len());
     for i in 0..A.nrows() {
-        let feature_right = matches[i].feature_two.get_as_2d_point();
-        let feature_left = matches[i].feature_one.get_as_2d_point();
+        let feature_right = matches[i].get_feature_two().get_as_2d_point();
+        let feature_left = matches[i].get_feature_one().get_as_2d_point();
 
         A.row_mut(i).copy_from(&linear_coefficients(&feature_left, &feature_right, focal));
     }
@@ -117,7 +117,7 @@ pub fn optimal_correction<T : Feature + SolverFeature + Clone>(initial_F: &Funda
     let max_it = 50;
 
     let mut m_measured = m_measured_in.clone();
-    let mut matches_est = vec![Match { feature_one: T::empty(), feature_two: T::empty(), landmark_id: None }; m_measured.len()];
+    let mut matches_est = vec![Match::new(T::empty(), T::empty()); m_measured.len()];
 
     let mut it = 0;
     let mut u = linearize_fundamental(initial_F);
@@ -144,20 +144,20 @@ pub fn optimal_correction<T : Feature + SolverFeature + Clone>(initial_F: &Funda
             let eta = &etas[i];
             let eta_cov = &eta_covariances[i];
 
-            let v_one_meas_in = m_measured_in[i].feature_one.get_as_2d_point();
-            let v_two_meas_in = m_measured_in[i].feature_two.get_as_2d_point();
+            let v_one_meas_in = m_measured_in[i].get_feature_one().get_as_2d_point();
+            let v_two_meas_in = m_measured_in[i].get_feature_two().get_as_2d_point();
 
-            let v_one_meas = m_meas.feature_one.get_as_3d_point(1.0);
-            let v_two_meas = m_meas.feature_two.get_as_3d_point(1.0);
+            let v_one_meas = m_meas.get_feature_one().get_as_3d_point(1.0);
+            let v_two_meas = m_meas.get_feature_two().get_as_3d_point(1.0);
             
             let factor = u_new.dot(eta)/u_new.dot(&(eta_cov*u_new));
             let left_update = factor*SMatrix::<Float,2,3>::from_vec(vec![u_new[0],u_new[3],u_new[1],u_new[4],u_new[2],u_new[5]])*v_one_meas;
             let right_update = factor*SMatrix::<Float,2,3>::from_vec(vec![u_new[0],u_new[1],u_new[3],u_new[4],u_new[6],u_new[7]])*v_two_meas;
-            m_est.feature_one.update(&left_update);
-            m_est.feature_two.update(&right_update);
+            m_est.get_feature_one_mut().update(&left_update);
+            m_est.get_feature_two_mut().update(&right_update);
 
-            m_meas.feature_one.update(&(v_one_meas_in-left_update));
-            m_meas.feature_two.update(&(v_two_meas_in-right_update));
+            m_meas.get_feature_one_mut().update(&(v_one_meas_in-left_update));
+            m_meas.get_feature_two_mut().update(&(v_two_meas_in-right_update));
         }
 
         u.copy_from(&u_new);
@@ -208,10 +208,10 @@ fn linear_cofactor(u: &SVector<Float, 9>) ->  SVector<Float, 9> {
 }
 
 fn compute_eta<T : Feature>(m_measured: &Match<T>, m_est: &Match<T>, f0: Float) -> SVector<Float, 9> {
-    let feature_left_measured = m_measured.feature_one.get_as_2d_point()/f0;
-    let feature_right_measured = m_measured.feature_two.get_as_2d_point()/f0;
-    let feature_left_est = m_est.feature_one.get_as_2d_point()/f0;
-    let feature_right_est = m_est.feature_two.get_as_2d_point()/f0;
+    let feature_left_measured = m_measured.get_feature_one().get_as_2d_point()/f0;
+    let feature_right_measured = m_measured.get_feature_two().get_as_2d_point()/f0;
+    let feature_left_est = m_est.get_feature_one().get_as_2d_point()/f0;
+    let feature_right_est = m_est.get_feature_two().get_as_2d_point()/f0;
 
     let x_left_measured = feature_left_measured[0];
     let y_left_measured = feature_left_measured[1];
@@ -238,8 +238,8 @@ fn compute_eta<T : Feature>(m_measured: &Match<T>, m_est: &Match<T>, f0: Float) 
 
 fn compute_covariance_of_eta<T : Feature>(m_measured: &Match<T>, f0: Float) -> SMatrix<Float, 9, 9> {
 
-    let feature_left_measured = m_measured.feature_one.get_as_2d_point()/f0;
-    let feature_right_measured = m_measured.feature_two.get_as_2d_point()/f0;
+    let feature_left_measured = m_measured.get_feature_one().get_as_2d_point()/f0;
+    let feature_right_measured = m_measured.get_feature_two().get_as_2d_point()/f0;
 
     let x_left_measured = feature_left_measured[0];
     let y_left_measured = feature_left_measured[1];

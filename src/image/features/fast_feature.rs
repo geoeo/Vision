@@ -28,6 +28,14 @@ impl Feature for FastFeature {
     fn apply_normalisation(&self, _: &nalgebra::Matrix3<Float>, _: Float) -> Self {
         panic!("TODO: FastFeature apply_normalisation")
     }
+    //TODO
+    fn get_landmark_id(&self) -> Option<usize> {
+        None
+    }
+    //TODO
+    fn copy_with_landmark_id(&self, landmark_id: Option<usize>) -> Self {
+        self.clone()
+    }  
 }
 
 impl FastFeature {

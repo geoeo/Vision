@@ -43,7 +43,7 @@ impl CameraFeatureMap {
     //pub fn new<T: Feature>(matches: &Vec<Vec<Vec<Match<T>>>>, cam_ids: Vec<usize>, image_row_col: (usize,usize)) -> CameraFeatureMap {
     pub fn new<T: Feature>(match_map: &HashMap<(usize, usize), Vec<Match<T>>>, cam_ids: Vec<usize>, image_row_col: (usize,usize)) -> CameraFeatureMap {
         let number_of_landmarks = match_map.values().map(|ms| {
-            ms.iter().map(|m| m.landmark_id.expect("CameraFeatureMap: Error no landmark id present for match")).max().expect("CameraFeatureMap: Error computing max for matches")
+            ms.iter().map(|m| m.get_landmark_id().expect("CameraFeatureMap: Error no landmark id present for match")).max().expect("CameraFeatureMap: Error computing max for matches")
         }).max().expect("CameraFeatureMap: Error computing max landmark id")+1;
         let n_cams = cam_ids.len();
         let mut camera_feature_map = CameraFeatureMap{
@@ -68,17 +68,17 @@ impl CameraFeatureMap {
     }
 
     pub fn add_feature<Feat: Feature>(&mut self, source_cam_id: usize, other_cam_id: usize, m: &Match<Feat>) -> () {
-        let point_source_x = m.feature_one.get_x_image();
-        let point_source_y = m.feature_one.get_y_image();
+        let point_source_x = m.get_feature_one().get_x_image();
+        let point_source_y = m.get_feature_one().get_y_image();
 
-        let point_other_x = m.feature_two.get_x_image();
-        let point_other_y = m.feature_two.get_y_image();
+        let point_other_x = m.get_feature_two().get_x_image();
+        let point_other_y = m.get_feature_two().get_y_image();
 
-        let point_source_x_float = m.feature_one.get_x_image_float();
-        let point_source_y_float = m.feature_one.get_y_image_float();
+        let point_source_x_float = m.get_feature_one().get_x_image_float();
+        let point_source_y_float = m.get_feature_one().get_y_image_float();
 
-        let point_other_x_float = m.feature_two.get_x_image_float();
-        let point_other_y_float = m.feature_two.get_y_image_float();
+        let point_other_x_float = m.get_feature_two().get_x_image_float();
+        let point_other_y_float = m.get_feature_two().get_y_image_float();
         
         //Linearized Pixel Coordiante as Point ID
         let point_source_idx = self.linear_image_idx(point_source_x,point_source_y);
@@ -90,7 +90,7 @@ impl CameraFeatureMap {
         let key = (internal_source_cam_id, point_source_x, point_source_y,
         internal_other_cam_id,point_other_x, point_other_y);
 
-        let landmark_id = m.landmark_id.expect("Error: Landmark id empty in Camera Feature Maps"); // Track landmark id get assigned before feature filtering -> Bad source of bug
+        let landmark_id = m.get_landmark_id().expect("Error: Landmark id empty in Camera Feature Maps"); // Track landmark id get assigned before feature filtering -> Bad source of bug
         self.feature_location_lookup[landmark_id][internal_source_cam_id] = Some((point_source_x_float,point_source_y_float));
         self.feature_location_lookup[landmark_id][internal_other_cam_id] = Some((point_other_x_float,point_other_y_float));
         self.camera_map.get_mut(&source_cam_id).unwrap().1.insert(point_source_idx, landmark_id);
@@ -194,10 +194,10 @@ impl CameraFeatureMap {
     
                 for m_i in 0..matches.len() {
                     let m = &matches[m_i];
-                    let feat_s = &m.feature_one;
+                    let feat_s = &m.get_feature_one();
                     let u_s = feat_s.get_x_image();
                     let v_s = feat_s.get_y_image();
-                    let feat_f = &m.feature_two;
+                    let feat_f = &m.get_feature_two();
                     let u_f = feat_f.get_x_image();
                     let v_f = feat_f.get_y_image();
     

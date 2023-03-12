@@ -24,8 +24,8 @@ pub fn triangulate_matches<Feat: Feature, C: Camera<Float>>(path_pair: (usize, u
 
     for i in 0..ms.len() {
         let m = &ms[i];
-        let feat_s = m.feature_one.get_as_3d_point(1.0);
-        let feat_f = m.feature_two.get_as_3d_point(1.0);
+        let feat_s = m.get_feature_one().get_as_3d_point(1.0);
+        let feat_f = m.get_feature_two().get_as_3d_point(1.0);
         normalized_image_points_s.column_mut(i).copy_from(&feat_s);
         normalized_image_points_f.column_mut(i).copy_from(&feat_f);
     }
@@ -59,8 +59,8 @@ fn calculate_reprojection_errors<Feat: Feature, C: Camera<Float>>(landmarks: &Ma
     for i in 0..landmarks.ncols() {
         let p = landmarks.fixed_columns::<1>(i);
         let m = &matches[i];
-        let feat_1 = &m.feature_one.get_as_2d_point();
-        let feat_2 = &m.feature_two.get_as_2d_point();
+        let feat_1 = &m.get_feature_one().get_as_2d_point();
+        let feat_2 = &m.get_feature_two().get_as_2d_point();
         let p_cam_1 = transform_c1*p;
         let p_cam_2 = transform_c2*p;
         let projected_1 = cam_1.project(&p_cam_1).to_vector();

@@ -26,14 +26,14 @@ pub fn five_point_essential<T: Feature + Clone>(matches: &Vec<Match<T>>, project
 
     for i in 0..l {
         let m = &matches[i];
-        let f_1_reduced = m.feature_one.get_camera_ray(&inverse_projection_one, positive_principal_distance);
-        let f_2_reduced = m.feature_two.get_camera_ray(&inverse_projection_two, positive_principal_distance);
+        let f_1_reduced = m.get_feature_one().get_camera_ray(&inverse_projection_one, positive_principal_distance);
+        let f_2_reduced = m.get_feature_two().get_camera_ray(&inverse_projection_two, positive_principal_distance);
 
         camera_rays_one.column_mut(i).copy_from(&f_1_reduced);
         camera_rays_two.column_mut(i).copy_from(&f_2_reduced);
 
-        let f_1 = m.feature_one.get_as_3d_point(1.0);
-        let f_2 = m.feature_two.get_as_3d_point(1.0);
+        let f_1 = m.get_feature_one().get_as_3d_point(1.0);
+        let f_2 = m.get_feature_two().get_as_3d_point(1.0);
 
         features_one.column_mut(i).copy_from(&f_1);
         features_two.column_mut(i).copy_from(&f_2);

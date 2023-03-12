@@ -32,6 +32,14 @@ impl Feature for OrbFeature {
     fn apply_normalisation(&self, _: &nalgebra::Matrix3<Float>, _: Float) -> Self {
         panic!("TODO: OrbFeature apply_normalisation")
     }
+    //TODO
+    fn get_landmark_id(&self) -> Option<usize> {
+        None
+    }
+    //TODO
+    fn copy_with_landmark_id(&self, landmark_id: Option<usize>) -> Self {
+        self.clone()
+    }  
 }
 
 impl Oriented for OrbFeature {

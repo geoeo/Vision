@@ -10,12 +10,15 @@ use crate::Float;
 /**
  * Outlier Rejection Using Duality Olsen et al.
  */
-pub fn outlier_rejection_dual<Feat: Feature + Clone>(unique_landmark_ids: &HashSet<usize>, abs_pose_map: &HashMap<usize,Isometry3<Float>>, feature_map: &HashMap<usize, HashSet<Feat>>) {
-    let (a,b,c,a0,b0,c0) = generate_known_rotation_problem(unique_landmark_ids,abs_pose_map,feature_map);
+pub fn outlier_rejection_dual<Feat: Feature + Clone>(unique_landmark_ids: &HashSet<usize>, camera_ids_root_first: &Vec<usize>, abs_pose_map: &HashMap<usize,Isometry3<Float>>, feature_map: &HashMap<usize, HashSet<Feat>>) {
+    assert_eq!(camera_ids_root_first.len(),abs_pose_map.keys().len());
+    assert_eq!(camera_ids_root_first.len(),feature_map.keys().len());
+
+    let (a,b,c,a0,b0,c0) = generate_known_rotation_problem(unique_landmark_ids, camera_ids_root_first, abs_pose_map, feature_map);
     panic!("TODO");
 }
 
-fn generate_known_rotation_problem<Feat: Feature + Clone>(unique_landmark_ids: &HashSet<usize>, abs_pose_map: &HashMap<usize,Isometry3<Float>>, feature_map: &HashMap<usize, HashSet<Feat>>) -> (DMatrix<Float>,DMatrix<Float>,DMatrix<Float>,DVector<Float>,DVector<Float>,DVector<Float>) {
+fn generate_known_rotation_problem<Feat: Feature + Clone>(unique_landmark_ids: &HashSet<usize>, camera_ids_root_first: &Vec<usize>, abs_pose_map: &HashMap<usize,Isometry3<Float>>, feature_map: &HashMap<usize, HashSet<Feat>>) -> (DMatrix<Float>,DMatrix<Float>,DMatrix<Float>,DVector<Float>,DVector<Float>,DVector<Float>) {
     let number_of_unique_ids = unique_landmark_ids.len();
     let number_of_poses = abs_pose_map.len();
     let number_of_target_parameters = 3*number_of_unique_ids + 3*(number_of_poses-1); // The first pose is taken as identity (origin) hence we dont optimize it
@@ -29,6 +32,13 @@ fn generate_known_rotation_problem<Feat: Feature + Clone>(unique_landmark_ids: &
     let mut b0 = DVector::<Float>::zeros(number_of_residuals);
     let mut c0 = DVector::<Float>::zeros(number_of_residuals);
 
+    for i in 0..number_of_poses {
+        let cam_id = camera_ids_root_first[i];
+        let rotation = abs_pose_map.get(&cam_id).expect("generate_known_rotation_problem: No rotation found").rotation.to_rotation_matrix();
+        //TODO feature point index matters as the first N columns are landmarks
+
+        
+    }
 
 
     //TODO

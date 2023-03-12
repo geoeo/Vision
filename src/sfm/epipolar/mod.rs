@@ -26,8 +26,8 @@ pub fn compute_linear_normalization<T: Feature>(matches: &Vec<Match<T>>) -> (Mat
 
     for i in 0..l {
         let m = &matches[i];
-        let f_1 = m.feature_one.get_as_2d_point();
-        let f_2 = m.feature_two.get_as_2d_point();
+        let f_1 = m.get_feature_one().get_as_2d_point();
+        let f_2 = m.get_feature_two().get_as_2d_point();
         avg_one[0] += f_1[0];
         avg_one[1] += f_1[1];
         avg_two[0] += f_2[0];
@@ -37,7 +37,7 @@ pub fn compute_linear_normalization<T: Feature>(matches: &Vec<Match<T>>) -> (Mat
     avg_one /= l_as_float;
     avg_two /= l_as_float;
 
-    let (dist_mean_norm_one, dist_mean_norm_two) =  matches.iter().fold((0.0, 0.0), |acc, m| (acc.0 + (m.feature_one.get_as_2d_point()-avg_one).norm_squared(), acc.1 + (m.feature_two.get_as_2d_point()-avg_two).norm_squared()));
+    let (dist_mean_norm_one, dist_mean_norm_two) =  matches.iter().fold((0.0, 0.0), |acc, m| (acc.0 + (m.get_feature_one().get_as_2d_point()-avg_one).norm_squared(), acc.1 + (m.get_feature_two().get_as_2d_point()-avg_two).norm_squared()));
 
     let sqrt_2 = (2.0 as Float).sqrt();
     let s_one = (sqrt_2*l_as_float)/dist_mean_norm_one.sqrt();
@@ -88,8 +88,8 @@ pub fn compute_linear_normalization<T: Feature>(matches: &Vec<Match<T>>) -> (Mat
  * Returns (line of first feature in second image, line of second feature in first image)
  */
 pub fn epipolar_lines<T: Feature>(bifocal_tensor: &Matrix3<Float>, feature_match: &Match<T>, cam_one_intrinsics: &Matrix3<Float>, cam_two_intrinsics: &Matrix3<Float>, positive_principal_distance: bool) -> (Vector3<Float>, Vector3<Float>) {
-    let f_from = feature_match.feature_one.get_camera_ray(cam_one_intrinsics, positive_principal_distance);
-    let f_to = feature_match.feature_two.get_camera_ray(cam_two_intrinsics, positive_principal_distance);
+    let f_from = feature_match.get_feature_one().get_camera_ray(cam_one_intrinsics, positive_principal_distance);
+    let f_to = feature_match.get_feature_two().get_camera_ray(cam_two_intrinsics, positive_principal_distance);
 
     ((f_from.transpose()*bifocal_tensor).transpose(), bifocal_tensor*f_to)
 }

@@ -28,8 +28,8 @@ pub fn quest_ransac<T: Feature + Clone>(matches: &Vec<Match<T>>, inverse_project
             let s = &samples[i];
 
             // we want this to always be positive
-            let f_1 = invert*inverse_projection_one*s.feature_one.get_as_3d_point(invert);
-            let f_2 = invert*inverse_projection_two*s.feature_two.get_as_3d_point(invert);
+            let f_1 = invert*inverse_projection_one*s.get_feature_one().get_as_3d_point(invert);
+            let f_2 = invert*inverse_projection_two*s.get_feature_two().get_as_3d_point(invert);
 
             m1.column_mut(i).copy_from(&f_1);
             m2.column_mut(i).copy_from(&f_2);
@@ -190,7 +190,6 @@ pub fn quest(m1: &SMatrix<Float,3,5>, m2: &SMatrix<Float,3,5>) -> (Essential, SV
 
 #[allow(non_snake_case)]
 fn recover_translation_and_depth(m1: &SMatrix<Float,3,5>, m2: &SMatrix<Float,3,5>, Q: &OMatrix<Float,Const<4>,Dynamic>) ->(OMatrix<Float,Const<3>,Dynamic>, OMatrix<Float,Const<5>,Dynamic>, OMatrix<Float,Const<5>,Dynamic>) {
-
     let n = Q.ncols();
     let mut T = OMatrix::<Float,Const<3>,Dynamic>::zeros(n);
     let mut Z1 = OMatrix::<Float,Const<5>,Dynamic>::zeros(n);
