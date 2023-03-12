@@ -2,6 +2,7 @@ use nalgebra as na;
 
 use na::{Vector2,Vector3,Matrix3};
 use serde::{Serialize, Deserialize};
+use std::hash::{Hash, Hasher};
 use crate::{Float,float};
 use crate::image::Image;
 use crate::image::filter::{prewitt_kernel::PrewittKernel,gradient_convolution_at_sample};
@@ -64,8 +65,7 @@ pub fn orientation<F: Feature>(source_images: &Vec<Image>, feature: &F) -> Float
     }
 
 }
-
-#[derive(Clone)]
+#[derive(Clone,Eq)]
 pub struct ImageFeature {
     pub location: Point<Float>
 }
@@ -79,6 +79,14 @@ impl ImageFeature {
 impl PartialEq for ImageFeature {
     fn eq(&self, other: &Self) -> bool {
         self.location == other.location
+    }
+}
+
+impl Hash for ImageFeature {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        let x = self.get_x_image();
+        let y = self.get_y_image();
+        (x,y).hash(state);
     }
 }
 

@@ -3,10 +3,9 @@ extern crate nalgebra as na;
 use na::{DMatrix,Matrix4,Matrix3,Matrix3x4, Vector3};
 use std::collections::HashMap;
 use std::fs::File;
-use std::hash::Hash;
 use std::io::{BufReader,BufRead};
 use crate::io::{ octave_loader::{load_matrices,load_matrix},load_images};
-use crate::image::{Image,features::{Match,ImageFeature, Feature}};
+use crate::image::{Image,features::{Match,ImageFeature}};
 use crate::sensors::camera::{decompose_projection, perspective::Perspective};
 use crate::numerics::pose;
 

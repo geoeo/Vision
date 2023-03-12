@@ -2,6 +2,16 @@ extern crate nalgebra as na;
 extern crate num_traits;
 extern crate simba;
 
+use na::{DVector, Matrix4xX, Vector3, Vector4, Matrix3, Isometry3};
+use std::collections::{HashMap,HashSet};
+use crate::image::{features::{Feature, Match, feature_track::FeatureTrack, solver_feature::SolverFeature, ImageFeature}};
+use crate::sfm::{epipolar::tensor, epipolar::compute_linear_normalization,
+    triangulation::{Triangulation, triangulate_matches}, 
+    rotation_avg::{optimize_rotations_with_rcd_per_track,optimize_rotations_with_rcd}};
+use crate::sensors::camera::Camera;
+use crate::numerics::{pose::{to_parts,from_matrix,se3}};
+use crate::{float,Float};
+
 pub mod bundle_adjustment;
 pub mod landmark;
 pub mod epipolar;
@@ -9,18 +19,6 @@ pub mod triangulation;
 pub mod quest;
 pub mod rotation_avg;
 pub mod outlier_rejection;
-
-use std::collections::{HashMap,HashSet};
-use crate::image::{features::{Feature, Match, feature_track::FeatureTrack, solver_feature::SolverFeature}};
-use crate::sfm::{epipolar::tensor, epipolar::compute_linear_normalization,
-    triangulation::{Triangulation, triangulate_matches}, 
-    rotation_avg::{optimize_rotations_with_rcd_per_track,optimize_rotations_with_rcd}};
-use crate::sensors::camera::Camera;
-use crate::numerics::{pose::{to_parts,from_matrix,se3}};
-
-use na::{DVector, Matrix4xX, Vector3, Vector4, Matrix3, Isometry3};
-use crate::{float,Float};
-
 
 /**
  * We assume that the indices between paths and matches are consistent
@@ -58,8 +56,6 @@ pub fn compute_path_pairs_as_vec(root: usize, paths: &Vec<Vec<usize>>) -> Vec<Ve
 }
 
 impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverFeature> SFMConfig<C,C2, Feat> {
-
-    //TODO: rework casting to be part of camera trait or super struct 
     pub fn new(root: usize, 
         paths: &Vec<Vec<usize>>, 
         camera_map: HashMap<usize, C>, 
@@ -451,6 +447,7 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
 
     }
 
+    //TODO: remove this. This is a depreciated function which only satisfies some outdated interface requirements
     pub fn compute_lists_from_maps(&self)->  (Vec<Vec<((usize,usize),(Vector3<Float>, Matrix3<Float>))>>,Vec<Vec<Vec<Match<Feat>>>>){
         let number_of_paths = self.paths.len();
         let mut all_states = Vec::<Vec<((usize,usize),(Vector3<Float>,Matrix3<Float>))>>::with_capacity(number_of_paths);
@@ -624,6 +621,77 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
 
 }
 
+fn compute_absolute_poses_for_root(root: usize, paths: &Vec<Vec<usize>>, pose_map: &HashMap<(usize, usize), Isometry3<Float>>) -> HashMap<usize,Isometry3<Float>> {
+    let flattened_path_len = paths.iter().flatten().collect::<Vec<_>>().len();
+    let mut abs_pose_map = HashMap::<usize,Isometry3<Float>>::with_capacity(flattened_path_len+1);
+    abs_pose_map.insert(root, Isometry3::<Float>::identity());
+
+    for path in paths {
+        let mut pose_acc = Isometry3::<Float>::identity();
+        for i in 0..path.len() {
+            let source = path[i];
+            let key = match i {
+                0 => (root,source),
+                _ => (path[i-1],source)
+            };
+            let pose = pose_map.get(&key).expect("Error in compute_absolute_poses_for_root: Pose for key not found ");
+            pose_acc *= pose;
+            abs_pose_map.insert(source,pose_acc);
+        }
+    }
+    abs_pose_map
+}
+
+fn compute_unique_landmark_id<Feat: Feature>(match_map: &HashMap<(usize,usize), Vec<Match<Feat>>>) -> HashSet<usize> {
+    let mut unique_landmarks_ids = HashSet::<usize>::new();
+    for ms in match_map.values() {
+        for m in ms {
+            unique_landmarks_ids.insert(m.landmark_id.unwrap());
+        }
+    }
+    unique_landmarks_ids
+}
+
+fn compute_features_per_image_map<Feat: Feature>(match_map: &HashMap<(usize,usize), Vec<Match<Feat>>>) -> HashMap<usize, HashSet<ImageFeature>> {
+    let mut unique_cameras = HashSet::<usize>::new();
+    for key in match_map.keys() {
+        unique_cameras.insert(key.0);
+        unique_cameras.insert(key.1);
+    }
+    
+    let mut feature_map = HashMap::<usize, HashSet<ImageFeature>>::with_capacity(unique_cameras.len());
+    for camera_id in unique_cameras {
+        let id_prev = match camera_id {
+            0 => None,
+            i => Some(i-1)
+        };
+        let id_next = camera_id + 1;
+
+        let features_fwd = match_map.get(&(camera_id,id_next));
+        if features_fwd.is_some(){
+            for m in features_fwd.unwrap() {
+                let f = &m.feature_one;
+                let image_feature = ImageFeature::new(f.get_x_image_float(), f.get_y_image_float());
+                feature_map.get_mut(&camera_id).unwrap().insert(image_feature);
+            }
+        }
+
+        if id_prev.is_some() {
+            let features_bck = match_map.get(&(id_prev.unwrap(),camera_id));
+            if features_bck.is_some(){
+                for m in features_bck.unwrap() {
+                    let f = &m.feature_two;
+                    let image_feature = ImageFeature::new(f.get_x_image_float(), f.get_y_image_float());
+                    feature_map.get_mut(&camera_id).unwrap().insert(image_feature);
+                }
+            }
+        }
+    }
+
+    feature_map
+}
+
+//TODO: better calculation of capacity
 fn calc_map_capacity(number_of_paths: usize) -> usize {
     100*number_of_paths
 }
