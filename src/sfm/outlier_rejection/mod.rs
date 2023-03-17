@@ -19,18 +19,49 @@ pub fn outlier_rejection_dual<Feat: Feature + Clone>(unique_landmark_ids: &HashS
     panic!("TODO");
 }
 
+#[allow(non_snake_case)]
 fn sovlve_feasability_problem(a: &DMatrix<Float>, b: &DMatrix<Float>, c: &DMatrix<Float>, a0: &DVector<Float>, b0: &DVector<Float>, c0: &DVector<Float>, tol: Float, min_depth: Float, max_depth: Float) -> (DVector<Float>, DVector<Float>) {
+    let tol_c = tol*c;
+    let tol_c0 = tol*c0;
     let mut a1 = DMatrix::<Float>::zeros(2*a.nrows() + 2*b.nrows(),a.ncols());
-    a1.slice_mut((0, 0),a.shape()).copy_from(&(-a-tol*c));
-    a1.slice_mut((a.nrows(), 0),a.shape()).copy_from(&(a-tol*c));
-    a1.slice_mut((2*a.nrows(), 0),b.shape()).copy_from(&(-b-tol*c));
-    a1.slice_mut((2*a.nrows() + b.nrows(), 0),b.shape()).copy_from(&(b-tol*c));
+    a1.slice_mut((0, 0),a.shape()).copy_from(&(-a-&tol_c));
+    a1.slice_mut((a.nrows(), 0),a.shape()).copy_from(&(a-&tol_c));
+    a1.slice_mut((2*a.nrows(), 0),b.shape()).copy_from(&(-b-&tol_c));
+    a1.slice_mut((2*a.nrows() + b.nrows(), 0),b.shape()).copy_from(&(b-&tol_c));
 
     let mut b1 = DVector::<Float>::zeros(2*a0.nrows() + 2*b0.nrows());
-    b1.rows_mut(0, a0.nrows()).copy_from(&(a0+tol*c0));
-    b1.rows_mut(a0.nrows(), a0.nrows()).copy_from(&(-a0+tol*c0));
-    b1.rows_mut(2*a0.nrows(), b0.nrows()).copy_from(&(b0+tol*c0));
-    b1.rows_mut(2*a0.nrows() + b0.nrows(), b0.nrows()).copy_from(&(-b0+tol*c0));
+    b1.rows_mut(0, a0.nrows()).copy_from(&(a0+&tol_c0));
+    b1.rows_mut(a0.nrows(), a0.nrows()).copy_from(&(-a0+&tol_c0));
+    b1.rows_mut(2*a0.nrows(), b0.nrows()).copy_from(&(b0+&tol_c0));
+    b1.rows_mut(2*a0.nrows() + b0.nrows(), b0.nrows()).copy_from(&(-b0+&tol_c0));
+
+    let mut a2 = DMatrix::<Float>::zeros(2*c.nrows(),c.ncols());
+    a2.slice_mut((0,0), c.shape()).copy_from(&-c);
+    a2.slice_mut((c.nrows(),0), c.shape()).copy_from(&c);
+
+    let mut b2 = DVector::<Float>::zeros(2*c0.nrows());
+    b2.rows_mut(0,c0.nrows()).copy_from(&(c0.add_scalar(-min_depth)));
+    b2.rows_mut(c.nrows(),c0.nrows()).copy_from(&(-c0).add_scalar(max_depth));
+
+    let mut A_temp = DMatrix::<Float>::zeros(a1.nrows()+a2.nrows(),a1.ncols()+a2.ncols());
+    A_temp.slice_mut((0,0),a1.shape()).copy_from(&a1);
+    A_temp.slice_mut(a1.shape(),a2.shape()).copy_from(&a2);
+
+    let mut A = DMatrix::<Float>::zeros(2*A_temp.nrows(),2*A_temp.ncols() + 2*A_temp.nrows());
+    let id = -DMatrix::<Float>::identity(A_temp.nrows(), A_temp.nrows());
+    A.slice_mut((0,0),A_temp.shape()).copy_from(&A_temp);
+    A.slice_mut((0,A_temp.ncols()),id.shape()).copy_from(&id);
+    A.slice_mut((A_temp.nrows(),0),A_temp.shape()).copy_from(&DMatrix::<Float>::zeros(A_temp.nrows(), A_temp.ncols()));
+    A.slice_mut((A_temp.nrows(),A_temp.ncols()),id.shape()).copy_from(&id);
+
+    let mut C = DVector::<Float>::zeros(b1.nrows()+b2.nrows()+A_temp.nrows());
+    C.rows_mut(0,b1.nrows()).copy_from(&b1);
+    C.rows_mut(b1.nrows(),b2.nrows()).copy_from(&b2);
+
+    let mut B = DVector::<Float>::zeros(a1.ncols()+A_temp.nrows());
+    B.rows_mut(a1.ncols(),A_temp.nrows()).fill(1.0);
+
+
 
 
     panic!("TODO")
