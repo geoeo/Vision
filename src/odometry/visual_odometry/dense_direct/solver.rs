@@ -88,8 +88,8 @@ pub fn run<C: Camera<Float>, const T: usize>(
         println!("final: est_transform: {}", mat_result);
     }
 
-    let rotation = Rotation3::<Float>::from_matrix(&mat_result.fixed_slice::<3,3>(0,0).into_owned());
-    Isometry3::<Float>::new(mat_result.fixed_slice::<3,1>(0,3).into_owned(),rotation.scaled_axis())
+    let rotation = Rotation3::<Float>::from_matrix(&mat_result.fixed_view::<3,3>(0,0).into_owned());
+    Isometry3::<Float>::new(mat_result.fixed_view::<3,1>(0,3).into_owned(),rotation.scaled_axis())
 }
 
 //TODO: buffer all debug strings and print at the end. Also the numeric matricies could be buffered per octave level
@@ -219,8 +219,8 @@ fn estimate<C : Camera<Float>, const T: usize>(
 
         let pertb = step * delta;
         let new_est_transform = lie::exp_se3(
-            &pertb.fixed_slice::<3, 1>(0, 0),
-            &pertb.fixed_slice::<3, 1>(3, 0),
+            &pertb.fixed_view::<3, 1>(0, 0),
+            &pertb.fixed_view::<3, 1>(3, 0),
         ) * est_transform;
 
         runtime_memory.new_image_gradient_points.clear();

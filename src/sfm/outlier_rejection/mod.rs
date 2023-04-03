@@ -1,5 +1,6 @@
 
 extern crate nalgebra as na;
+extern crate linear_ip;
 
 use na::{MatrixXx3,Vector2,DMatrix,DVector,Isometry3, RowVector3};
 use std::collections::{HashMap,HashSet};
@@ -24,10 +25,10 @@ fn sovlve_feasability_problem(a: &DMatrix<Float>, b: &DMatrix<Float>, c: &DMatri
     let tol_c = tol*c;
     let tol_c0 = tol*c0;
     let mut a1 = DMatrix::<Float>::zeros(2*a.nrows() + 2*b.nrows(),a.ncols());
-    a1.slice_mut((0, 0),a.shape()).copy_from(&(-a-&tol_c));
-    a1.slice_mut((a.nrows(), 0),a.shape()).copy_from(&(a-&tol_c));
-    a1.slice_mut((2*a.nrows(), 0),b.shape()).copy_from(&(-b-&tol_c));
-    a1.slice_mut((2*a.nrows() + b.nrows(), 0),b.shape()).copy_from(&(b-&tol_c));
+    a1.view_mut((0, 0),a.shape()).copy_from(&(-a-&tol_c));
+    a1.view_mut((a.nrows(), 0),a.shape()).copy_from(&(a-&tol_c));
+    a1.view_mut((2*a.nrows(), 0),b.shape()).copy_from(&(-b-&tol_c));
+    a1.view_mut((2*a.nrows() + b.nrows(), 0),b.shape()).copy_from(&(b-&tol_c));
 
     let mut b1 = DVector::<Float>::zeros(2*a0.nrows() + 2*b0.nrows());
     b1.rows_mut(0, a0.nrows()).copy_from(&(a0+&tol_c0));
@@ -36,23 +37,23 @@ fn sovlve_feasability_problem(a: &DMatrix<Float>, b: &DMatrix<Float>, c: &DMatri
     b1.rows_mut(2*a0.nrows() + b0.nrows(), b0.nrows()).copy_from(&(-b0+&tol_c0));
 
     let mut a2 = DMatrix::<Float>::zeros(2*c.nrows(),c.ncols());
-    a2.slice_mut((0,0), c.shape()).copy_from(&-c);
-    a2.slice_mut((c.nrows(),0), c.shape()).copy_from(&c);
+    a2.view_mut((0,0), c.shape()).copy_from(&-c);
+    a2.view_mut((c.nrows(),0), c.shape()).copy_from(&c);
 
     let mut b2 = DVector::<Float>::zeros(2*c0.nrows());
     b2.rows_mut(0,c0.nrows()).copy_from(&(c0.add_scalar(-min_depth)));
     b2.rows_mut(c.nrows(),c0.nrows()).copy_from(&(-c0).add_scalar(max_depth));
 
     let mut A_temp = DMatrix::<Float>::zeros(a1.nrows()+a2.nrows(),a1.ncols()+a2.ncols());
-    A_temp.slice_mut((0,0),a1.shape()).copy_from(&a1);
-    A_temp.slice_mut(a1.shape(),a2.shape()).copy_from(&a2);
-
+    A_temp.view_mut((0,0),a1.shape()).copy_from(&a1);
+    A_temp.view_mut(a1.shape(),a2.shape()).copy_from(&a2);
+    
     let mut A = DMatrix::<Float>::zeros(2*A_temp.nrows(),2*A_temp.ncols() + 2*A_temp.nrows());
     let id = -DMatrix::<Float>::identity(A_temp.nrows(), A_temp.nrows());
-    A.slice_mut((0,0),A_temp.shape()).copy_from(&A_temp);
-    A.slice_mut((0,A_temp.ncols()),id.shape()).copy_from(&id);
-    A.slice_mut((A_temp.nrows(),0),A_temp.shape()).copy_from(&DMatrix::<Float>::zeros(A_temp.nrows(), A_temp.ncols()));
-    A.slice_mut((A_temp.nrows(),A_temp.ncols()),id.shape()).copy_from(&id);
+    A.view_mut((0,0),A_temp.shape()).copy_from(&A_temp);
+    A.view_mut((0,A_temp.ncols()),id.shape()).copy_from(&id);
+    A.view_mut((A_temp.nrows(),0),A_temp.shape()).copy_from(&DMatrix::<Float>::zeros(A_temp.nrows(), A_temp.ncols()));
+    A.view_mut((A_temp.nrows(),A_temp.ncols()),id.shape()).copy_from(&id);
 
     let mut C = DVector::<Float>::zeros(b1.nrows()+b2.nrows()+A_temp.nrows());
     C.rows_mut(0,b1.nrows()).copy_from(&b1);
@@ -61,7 +62,7 @@ fn sovlve_feasability_problem(a: &DMatrix<Float>, b: &DMatrix<Float>, c: &DMatri
     let mut B = DVector::<Float>::zeros(a1.ncols()+A_temp.nrows());
     B.rows_mut(a1.ncols(),A_temp.nrows()).fill(1.0);
 
-
+    let (X,Y) = linear_ip::solve_dyn(&A, &B, &C, 1e-8, 0.95, 0.1, 1000);
 
 
     panic!("TODO")
@@ -123,12 +124,12 @@ fn generate_known_rotation_problem<Feat: Feature + Clone>(unique_landmark_ids: &
             let r_idx = row_acc+p_idx;
             let column_l_idx = 3*col_id;
             let column_t_idx = 3*(number_of_unique_points+(cam_idx-1));
-            a.fixed_slice_mut::<1,3>(r_idx,column_l_idx).copy_from(&v_p_x);
-            a.fixed_slice_mut::<1,3>(r_idx,column_t_idx).copy_from(&v_t_x);
-            b.fixed_slice_mut::<1,3>(r_idx,column_l_idx).copy_from(&v_p_y);
-            b.fixed_slice_mut::<1,3>(r_idx,column_t_idx).copy_from(&v_t_y);
-            c.fixed_slice_mut::<1,3>(r_idx,column_l_idx).copy_from(&v_p_z);
-            c.fixed_slice_mut::<1,3>(r_idx,column_t_idx).copy_from(&v_t_z);
+            a.fixed_view_mut::<1,3>(r_idx,column_l_idx).copy_from(&v_p_x);
+            a.fixed_view_mut::<1,3>(r_idx,column_t_idx).copy_from(&v_t_x);
+            b.fixed_view_mut::<1,3>(r_idx,column_l_idx).copy_from(&v_p_y);
+            b.fixed_view_mut::<1,3>(r_idx,column_t_idx).copy_from(&v_t_y);
+            c.fixed_view_mut::<1,3>(r_idx,column_l_idx).copy_from(&v_p_z);
+            c.fixed_view_mut::<1,3>(r_idx,column_t_idx).copy_from(&v_t_z);
         }
 
         row_acc += number_of_points; 

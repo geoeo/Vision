@@ -155,8 +155,8 @@ impl CameraFeatureMap {
             let cam_state_idx = 6*cam_idx;
             let (x_val, y_val) = idx_point.1.unwrap();
             let point = Point::<Float>::new(x_val,y_val);
-            let cam_translation = camera_positions.fixed_slice::<3,1>(cam_state_idx,0).into();
-            let cam_axis_angle = camera_positions.fixed_slice::<3,1>(cam_state_idx+3,0).into();
+            let cam_translation = camera_positions.fixed_view::<3,1>(cam_state_idx,0).into();
+            let cam_axis_angle = camera_positions.fixed_view::<3,1>(cam_state_idx+3,0).into();
             let isometry = Isometry3::new(cam_translation, cam_axis_angle);
             let initial_inverse_landmark = InverseLandmark::new(&isometry,&point,inverse_depth_prior , &cameras[cam_idx]);
  
@@ -202,7 +202,7 @@ impl CameraFeatureMap {
                     let v_f = feat_f.get_y_image();
     
                     let point_id = self.landmark_match_lookup.get(&(local_cam_idx_s,u_s,v_s,local_cam_idx_f,u_f,v_f)).expect("point id not found");
-                    let point = root_aligned_triangulated_matches.fixed_slice::<3, 1>(0, m_i).into_owned();
+                    let point = root_aligned_triangulated_matches.fixed_view::<3, 1>(0, m_i).into_owned();
                     
                     let reprojection_error = reprojection_errors[m_i];
                     match landmark_reprojection_error_map.contains_key(point_id) {
@@ -264,8 +264,8 @@ impl CameraFeatureMap {
                 trans_acc = rot_acc*translation_cast + trans_acc;
                 rot_acc = rot_acc*rotation_matrix_cast;
                 let rotation = Rotation3::from_matrix_eps(&rot_acc, convert(2e-16), 100, Rotation3::identity());
-                camera_positions.fixed_slice_mut::<3,1>(cam_state_idx,0).copy_from(&trans_acc);
-                camera_positions.fixed_slice_mut::<3,1>(cam_state_idx+3,0).copy_from(&rotation.scaled_axis());
+                camera_positions.fixed_view_mut::<3,1>(cam_state_idx,0).copy_from(&trans_acc);
+                camera_positions.fixed_view_mut::<3,1>(cam_state_idx+3,0).copy_from(&rotation.scaled_axis());
             }
         }
     

@@ -203,10 +203,10 @@ fn recover_translation_and_depth(m1: &SMatrix<Float,3,5>, m2: &SMatrix<Float,3,5
         // Stack rigid motion constraints into matrix-vector form C * Y = 0
         let mut C = SMatrix::<Float,15,13>::zeros();
         for i in 0..5 {
-            C.fixed_slice_mut::<3,3>(i*3,0).copy_from(&I);
+            C.fixed_view_mut::<3,3>(i*3,0).copy_from(&I);
             for j in i*2+3..i*2+4{
-                C.fixed_slice_mut::<3,1>(i*3,j).copy_from(&(R*m1.column(i)));
-                C.fixed_slice_mut::<3,1>(i*3,j+1).copy_from(&-m2.column(i));
+                C.fixed_view_mut::<3,1>(i*3,j).copy_from(&(R*m1.column(i)));
+                C.fixed_view_mut::<3,1>(i*3,j+1).copy_from(&-m2.column(i));
             }
         }
 

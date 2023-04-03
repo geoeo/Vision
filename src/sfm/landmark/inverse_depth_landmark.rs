@@ -64,10 +64,10 @@ impl<F: float::Float + Scalar + NumAssign + RealField> Landmark<F, 6> for Invers
         let j_theta = Vector3::<F>::new(float::Float::cos(self.get_phi())*float::Float::cos(self.get_theta()),F::zero(),float::Float::cos(self.get_phi())*(-float::Float::sin(self.get_theta())));
         let j_phi = Vector3::<F>::new((-float::Float::sin(self.get_phi()))*float::Float::sin(self.get_theta()),float::Float::cos(self.get_phi()),(-float::Float::sin(self.get_phi()))*float::Float::cos(self.get_theta()));
 
-        jacobian.fixed_slice_mut::<3,3>(0,0).copy_from(&j_xyz);
-        jacobian.fixed_slice_mut::<3,1>(0,3).copy_from(&j_theta);
-        jacobian.fixed_slice_mut::<3,1>(0,4).copy_from(&j_phi);
-        jacobian.fixed_slice_mut::<3,1>(0,5).copy_from(&j_p);
+        jacobian.fixed_view_mut::<3,3>(0,0).copy_from(&j_xyz);
+        jacobian.fixed_view_mut::<3,1>(0,3).copy_from(&j_theta);
+        jacobian.fixed_view_mut::<3,1>(0,4).copy_from(&j_phi);
+        jacobian.fixed_view_mut::<3,1>(0,5).copy_from(&j_p);
         jacobian
     }
 

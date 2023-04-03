@@ -49,10 +49,10 @@ pub fn exp_se3<F, T>(u: &Vector<F,U3,T>, w: &Vector<F,U3,T>) -> Matrix4<F> where
     let t = V*u;
 
     let mut res = Matrix4::<F>::identity();
-    let mut R_slice = res.fixed_slice_mut::<3,3>(0,0);
+    let mut R_slice = res.fixed_view_mut::<3,3>(0,0);
     R_slice.copy_from(&R);
 
-    let mut t_slice = res.fixed_slice_mut::<3,1>(0,3);
+    let mut t_slice = res.fixed_view_mut::<3,1>(0,3);
     t_slice.copy_from(&t);
 
     res
@@ -95,7 +95,7 @@ pub fn ln_SO3<F, T>(R: &Matrix<F,U3,U3,T>) -> Matrix3<F> where T: Storage<F,U3,U
 
 #[allow(non_snake_case)]
 pub fn ln<F>(se3: &Matrix4<F>) -> Vector6<F> where F : float::Float + Scalar + NumAssign + RealField + SimdRealField + ComplexField {
-    let w_x = ln_SO3(&se3.fixed_slice::<3,3>(0,0));
+    let w_x = ln_SO3(&se3.fixed_view::<3,3>(0,0));
     let w_x_sqr = w_x*w_x;
     let two: F = convert(2.0);
     let w = vector_from_skew_symmetric(&w_x);
@@ -107,12 +107,12 @@ pub fn ln<F>(se3: &Matrix4<F>) -> Vector6<F> where F : float::Float + Scalar + N
 
     let I = Matrix3::<F>::identity();
     let V_inv = I-w_x.scale(convert(0.5)) +w_x_sqr.scale(factor);
-    let u = V_inv*se3.fixed_slice::<3,1>(0,3);
+    let u = V_inv*se3.fixed_view::<3,1>(0,3);
 
     let mut res = Vector6::<F>::zeros();
-    let mut u_slice = res.fixed_slice_mut::<3,1>(0,0);
+    let mut u_slice = res.fixed_view_mut::<3,1>(0,0);
     u_slice.copy_from(&u);
-    let mut w_slice = res.fixed_slice_mut::<3,1>(3,0);
+    let mut w_slice = res.fixed_view_mut::<3,1>(3,0);
     w_slice.copy_from(&w);
 
     res

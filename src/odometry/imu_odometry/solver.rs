@@ -17,8 +17,8 @@ pub fn run_trajectory(imu_data_measurements: &Vec<ImuDataFrame>, gravity_body: &
     imu_data_measurements.iter().enumerate().map(|(i,measurement)| {
         let (transform_est, bias_update) = run(i+1,measurement,&bias_delta,gravity_body,runtime_parameters);
         bias_delta = bias_delta.add_delta(&bias_update);
-        let rotation = Rotation3::<Float>::from_matrix(&transform_est.fixed_slice::<3,3>(0,0).into_owned());
-        Isometry3::<Float>::new(transform_est.fixed_slice::<3,1>(0,3).into_owned(),rotation.scaled_axis())
+        let rotation = Rotation3::<Float>::from_matrix(&transform_est.fixed_view::<3,3>(0,0).into_owned());
+        Isometry3::<Float>::new(transform_est.fixed_view::<3,1>(0,3).into_owned(),rotation.scaled_axis())
     }).collect::<Vec<Isometry3<Float>>>()
 }
 
@@ -110,8 +110,8 @@ fn estimate<const R: usize, const C: usize>(imu_data_measurement: &ImuDataFrame,
         }
 
         residuals_imu.fixed_rows_mut::<9>(0).copy_from(&residuals);
-        jacobian_full.fixed_slice_mut::<9,9>(0,0).copy_from(&jacobian);
-        jacobian_full.fixed_slice_mut::<9,6>(0,9).copy_from(&bias_jacobian);
+        jacobian_full.fixed_view_mut::<9,9>(0,0).copy_from(&jacobian);
+        jacobian_full.fixed_view_mut::<9,6>(0,9).copy_from(&bias_jacobian);
 
         let (delta,g,gain_ratio_denom, mu_val) 
             = gauss_newton_step(&residuals_imu, &jacobian_full, &identity, mu, tau);

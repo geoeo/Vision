@@ -27,7 +27,7 @@ pub fn get_estimated_features<F, C : Camera<F>, L: Landmark<F,T> + Copy + Clone,
     assert_eq!(estimated_features.nrows(),2*n_points*n_cams);
     let mut position_world = Matrix::<F,U4,Dynamic, VecStorage<F,U4,Dynamic>>::from_element(n_points, F::one());
     for j in 0..n_points {
-        position_world.fixed_slice_mut::<3,1>(0,j).copy_from(&state.get_landmarks()[j].get_euclidean_representation().coords); 
+        position_world.fixed_view_mut::<3,1>(0,j).copy_from(&state.get_landmarks()[j].get_euclidean_representation().coords); 
     };
     for i in 0..n_cams {
         let cam_idx = 6*i;
@@ -37,7 +37,7 @@ pub fn get_estimated_features<F, C : Camera<F>, L: Landmark<F,T> + Copy + Clone,
         //TODO: use transform_into_other_camera_frame
         let transformed_points = pose*&position_world;
         for j in 0..n_points {
-            let estimated_feature = camera.project(&transformed_points.fixed_slice::<3,1>(0,j));  
+            let estimated_feature = camera.project(&transformed_points.fixed_view::<3,1>(0,j));  
             
             let feat_id = get_feature_index_in_residual(i, j, n_cams);
             // If at least one camera has no match, skip
@@ -74,7 +74,7 @@ pub fn compute_jacobian_wrt_object_points<F, C : Camera<F>, L: Landmark<F, T> + 
     let projection_jacobian = camera.get_jacobian_with_respect_to_position_in_camera_frame(&transformed_point.fixed_rows::<3>(0));
     let local_jacobian = projection_jacobian*jacobian_world;
 
-    jacobian.fixed_slice_mut::<2,T>(i,j).copy_from(&local_jacobian.fixed_slice::<2,T>(0,0));
+    jacobian.fixed_view_mut::<2,T>(i,j).copy_from(&local_jacobian.fixed_view::<2,T>(0,0));
 }
 
 pub fn compute_jacobian_wrt_camera_extrinsics<F, C : Camera<F>, L: Landmark<F, T> + Copy + Clone, const T: usize>(camera: &C, state: &State<F,L,T>, cam_idx: usize, point: &Point3<F> ,i: usize, j: usize, jacobian: &mut DMatrix<F>) 
@@ -86,7 +86,7 @@ pub fn compute_jacobian_wrt_camera_extrinsics<F, C : Camera<F>, L: Landmark<F, T
     let projection_jacobian = camera.get_jacobian_with_respect_to_position_in_camera_frame(&transformed_point.fixed_rows::<3>(0));
     let local_jacobian = projection_jacobian*lie_jacobian;
 
-    jacobian.fixed_slice_mut::<2,6>(i,j).copy_from(&local_jacobian);
+    jacobian.fixed_view_mut::<2,6>(i,j).copy_from(&local_jacobian);
 }
 
 pub fn compute_jacobian<F, C : Camera<F>, L: Landmark<F, T> + Copy + Clone, const T: usize>(state: &State<F,L,T>, cameras: &Vec<&C>, jacobian: &mut DMatrix<F>) 

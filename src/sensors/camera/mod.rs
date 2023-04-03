@@ -66,8 +66,8 @@ pub fn decompose_projection<F: float::Float + Scalar + SimdRealField + ComplexFi
     K = K/K[(2,2)];
 
     let mut pose = Matrix4::<F>::identity();
-    pose.fixed_slice_mut::<3,3>(0,0).copy_from(&R);
-    pose.fixed_slice_mut::<3,1>(0,3).copy_from(&Z);
+    pose.fixed_view_mut::<3,3>(0,0).copy_from(&R);
+    pose.fixed_view_mut::<3,1>(0,3).copy_from(&Z);
 
     (K,pose)
 }

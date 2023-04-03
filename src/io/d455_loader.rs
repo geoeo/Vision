@@ -40,7 +40,7 @@ pub fn load_camera(root_path: &str, parameters: &ImageLoadingParameters) -> Came
     let target_depth_indices = target_rgb_ts.iter().map(|&x| closest_ts_index(x, &depth_ts)).collect::<Vec<usize>>(); //TODO: check out of range
 
     let mut depth_camera_transform = Matrix4::<Float>::identity();
-    depth_camera_transform.fixed_slice_mut::<3,1>(0,3).copy_from(&Vector3::<Float>::new(-0.059157,0.0,-0.000390));
+    depth_camera_transform.fixed_view_mut::<3,1>(0,3).copy_from(&Vector3::<Float>::new(-0.059157,0.0,-0.000390));
 
     CameraDataFrame {
         source_timestamps: source_rgb_ts,

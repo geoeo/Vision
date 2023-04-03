@@ -111,10 +111,10 @@ pub fn precompute_jacobians<C: Camera<Float>, T: Dim + DimName>(backprojected_po
 
     for i in 0..number_of_points {
         if backprojected_points_flags[i] {
-            let point = backprojected_points.fixed_slice::<3,1>(0,i);
+            let point = backprojected_points.fixed_view::<3,1>(0,i);
             let camera_jacobian = camera.get_jacobian_with_respect_to_position_in_camera_frame(&point);
             let lie_jacobian = lie::left_jacobian_around_identity(&point);
-            precomputed_jacobians.fixed_slice_mut::<2,6>(i*2,0).copy_from(&(camera_jacobian*lie_jacobian));
+            precomputed_jacobians.fixed_view_mut::<2,6>(i*2,0).copy_from(&(camera_jacobian*lie_jacobian));
         }
 
         
@@ -129,8 +129,8 @@ pub fn compute_full_jacobian<const D: usize>(image_gradients: &Matrix<Float,Dyna
     let number_of_elements = image_gradients.nrows();
 
     for i in 0..number_of_elements {
-        let jacobian_i = image_gradients.row(i)*const_jacobians.fixed_slice::<2, D>(i*2,0);
-        target.fixed_slice_mut::<1,D>(i,0).copy_from(&jacobian_i);
+        let jacobian_i = image_gradients.row(i)*const_jacobians.fixed_view::<2, D>(i*2,0);
+        target.fixed_view_mut::<1,D>(i,0).copy_from(&jacobian_i);
 
     }
 
@@ -146,8 +146,8 @@ pub fn compute_residuals<C>(target_image_buffer: &DMatrix<Float>,source_image_bu
     let (rows,cols) = source_image_buffer.shape();
     for i in 0..number_of_points {
         //let target_point = linear_to_image_index(i,image_width);
-        let target_point = camera.project(&backprojected_points.fixed_slice::<3,1>(0,i)); 
-        let transformed_point = camera.project(&transformed_points.fixed_slice::<3,1>(0,i)); 
+        let target_point = camera.project(&backprojected_points.fixed_view::<3,1>(0,i)); 
+        let transformed_point = camera.project(&transformed_points.fixed_view::<3,1>(0,i)); 
         let target_point_y = target_point.y.trunc() as usize;
         let target_point_x = target_point.x.trunc() as usize;
         let transformed_point_y = transformed_point.y.trunc() as usize;

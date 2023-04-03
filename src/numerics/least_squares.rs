@@ -188,28 +188,28 @@ pub fn gauss_newton_step_with_schur<F, R, C, S1, S2,StorageTargetArrow, StorageT
          *  
          */
 
-        let U_star = target_arrowhead.slice((0,0),(u_span,u_span));
-        let V_star = target_arrowhead.slice((u_span,u_span),(v_span,v_span));
+        let U_star = target_arrowhead.view((0,0),(u_span,u_span));
+        let V_star = target_arrowhead.view((u_span,u_span),(v_span,v_span));
 
-        let res_a = target_arrowhead_residual.slice((0,0),(u_span,1));
-        let res_b = target_arrowhead_residual.slice((u_span,0),(v_span,1));
+        let res_a = target_arrowhead_residual.view((0,0),(u_span,1));
+        let res_b = target_arrowhead_residual.view((u_span,0),(v_span,1));
 
         let mut inv_success = true;
         for i in (0..v_span).step_by(LANDMARK_PARAM_SIZE) {
-            let v_slice_cholesky = V_star.fixed_slice::<LANDMARK_PARAM_SIZE,LANDMARK_PARAM_SIZE>(i,i).cholesky();
+            let v_slice_cholesky = V_star.fixed_view::<LANDMARK_PARAM_SIZE,LANDMARK_PARAM_SIZE>(i,i).cholesky();
             let success = match v_slice_cholesky {
                 Some(chol) => {
-                    V_star_inv.fixed_slice_mut::<LANDMARK_PARAM_SIZE,LANDMARK_PARAM_SIZE>(i,i).copy_from(&chol.inverse());
+                    V_star_inv.fixed_view_mut::<LANDMARK_PARAM_SIZE,LANDMARK_PARAM_SIZE>(i,i).copy_from(&chol.inverse());
                     true
                 },
                 None => false
             };
 
 
-            // let v_slice_inv_opt = V_star.fixed_slice::<LANDMARK_PARAM_SIZE,LANDMARK_PARAM_SIZE>(i,i).try_inverse();
+            // let v_slice_inv_opt = V_star.fixed_view::<LANDMARK_PARAM_SIZE,LANDMARK_PARAM_SIZE>(i,i).try_inverse();
             // let success = match v_slice_inv_opt {
             //     Some(inv) => {
-            //         V_star_inv.fixed_slice_mut::<LANDMARK_PARAM_SIZE,LANDMARK_PARAM_SIZE>(i,i).copy_from(&inv);
+            //         V_star_inv.fixed_view_mut::<LANDMARK_PARAM_SIZE,LANDMARK_PARAM_SIZE>(i,i).copy_from(&inv);
             //         true
             //     },
             //     None => false
@@ -220,8 +220,8 @@ pub fn gauss_newton_step_with_schur<F, R, C, S1, S2,StorageTargetArrow, StorageT
 
         match inv_success {
             true => {
-                let W = target_arrowhead.slice((0,u_span),(u_span,v_span));
-                let W_t = target_arrowhead.slice((u_span,0),(v_span,u_span));
+                let W = target_arrowhead.view((0,u_span),(u_span,v_span));
+                let W_t = target_arrowhead.view((u_span,0),(v_span,u_span));
         
                 let schur_compliment = U_star - W*(V_star_inv as &DMatrix<F>)*W_t; // takes long time
                 let res_a_augment = res_a-W*(V_star_inv as &DMatrix<F>)*res_b; // takes long time
@@ -233,8 +233,8 @@ pub fn gauss_newton_step_with_schur<F, R, C, S1, S2,StorageTargetArrow, StorageT
                         let h_a = h_a_cholesky.solve(&res_a_augment);
                         let h_b = (V_star_inv as &DMatrix<F>)*(res_b-W_t*(&h_a));
         
-                        target_perturb.slice_mut((0,0),(u_span,1)).copy_from(&h_a);
-                        target_perturb.slice_mut((u_span,0),(v_span,1)).copy_from(&h_b);
+                        target_perturb.view_mut((0,0),(u_span,1)).copy_from(&h_a);
+                        target_perturb.view_mut((u_span,0),(v_span,1)).copy_from(&h_b);
                         
                         Some((compute_gain_ratio(target_perturb,target_arrowhead_residual,mu_val), mu_val))
                     }
@@ -281,15 +281,15 @@ pub fn gauss_newton_step_with_conguate_gradient<F, R, C, S1, S2,StorageTargetArr
          *  
          */
 
-        let U_star = target_arrowhead.slice((0,0),(u_span,u_span));
-        let V_star = target_arrowhead.slice((u_span,u_span),(v_span,v_span));
+        let U_star = target_arrowhead.view((0,0),(u_span,u_span));
+        let V_star = target_arrowhead.view((u_span,u_span),(v_span,v_span));
         
         let mut inv_success = true;
         for i in (0..v_span).step_by(LANDMARK_PARAM_SIZE) {
-            let v_slice_cholesky = V_star.fixed_slice::<LANDMARK_PARAM_SIZE,LANDMARK_PARAM_SIZE>(i,i).cholesky();
+            let v_slice_cholesky = V_star.fixed_view::<LANDMARK_PARAM_SIZE,LANDMARK_PARAM_SIZE>(i,i).cholesky();
             let success = match v_slice_cholesky {
                 Some(chol) => {
-                    V_star_inv.fixed_slice_mut::<LANDMARK_PARAM_SIZE,LANDMARK_PARAM_SIZE>(i,i).copy_from(&chol.inverse());
+                    V_star_inv.fixed_view_mut::<LANDMARK_PARAM_SIZE,LANDMARK_PARAM_SIZE>(i,i).copy_from(&chol.inverse());
                     true
                 },
                 None => false
@@ -298,18 +298,18 @@ pub fn gauss_newton_step_with_conguate_gradient<F, R, C, S1, S2,StorageTargetArr
             inv_success &= success;
         }
 
-        let W = target_arrowhead.slice((0,u_span),(u_span,v_span));
-        let W_t = target_arrowhead.slice((u_span,0),(v_span,u_span));
+        let W = target_arrowhead.view((0,u_span),(u_span,v_span));
+        let W_t = target_arrowhead.view((u_span,0),(v_span,u_span));
         let res_a = target_arrowhead_residual.rows(0, u_span);
         let res_b = target_arrowhead_residual.rows(u_span,v_span);
 
         let schur_compliment = U_star - W*(V_star_inv as &DMatrix<F>)*W_t; // takes long time
 
         for i in (0..u_span).step_by(CAMERA_PARAM_SIZE) {
-            let s_cholesky =  schur_compliment.fixed_slice::<CAMERA_PARAM_SIZE,CAMERA_PARAM_SIZE>(i,i).cholesky();
+            let s_cholesky =  schur_compliment.fixed_view::<CAMERA_PARAM_SIZE,CAMERA_PARAM_SIZE>(i,i).cholesky();
             let success = match s_cholesky {
                 Some(chol) => {
-                    preconditioner.fixed_slice_mut::<CAMERA_PARAM_SIZE,CAMERA_PARAM_SIZE>(i,i).copy_from(&chol.inverse());
+                    preconditioner.fixed_view_mut::<CAMERA_PARAM_SIZE,CAMERA_PARAM_SIZE>(i,i).copy_from(&chol.inverse());
                     true
                 },
                 None => false
@@ -324,7 +324,7 @@ pub fn gauss_newton_step_with_conguate_gradient<F, R, C, S1, S2,StorageTargetArr
                 match conjugate_gradient::conjugate_gradient::<_,_,_,_,Dynamic>(&schur_compliment_preconditioned, &res_a_augment, &mut target_perturb.rows_mut(0,u_span), cg_tresh, cg_max_it) {
                     true => {
                         let h_b = (V_star_inv as &DMatrix<F>)*(res_b-W_t*(&target_perturb.rows(0,u_span)));
-                        target_perturb.slice_mut((u_span,0),(v_span,1)).copy_from(&h_b);
+                        target_perturb.view_mut((u_span,0),(v_span,1)).copy_from(&h_b);
                         Some((compute_gain_ratio(target_perturb,target_arrowhead_residual,mu_val), mu_val))
                     },
                     false => None
@@ -408,30 +408,30 @@ fn compute_arrow_head_and_residuals<F,R, C,StorageTargetArrow, StorageTargetResi
             for i in (row_start..row_end).step_by(2*n_cams){
                 let feature_id = i/(2*n_cams);
 
-                let slice_a = jacobian.fixed_slice::<2,CAM_PARAM_SIZE>(i,j);
+                let slice_a = jacobian.fixed_view::<2,CAM_PARAM_SIZE>(i,j);
                 let slice_a_transpose = slice_a.transpose();
                 U_j += slice_a_transpose*slice_a;
                 
                 let v_idx = number_of_cam_params + feature_id*LANDMARK_PARAM_SIZE;
-                let slice_b = jacobian.fixed_slice::<2,LANDMARK_PARAM_SIZE>(i,v_idx);
+                let slice_b = jacobian.fixed_view::<2,LANDMARK_PARAM_SIZE>(i,v_idx);
                 let slice_b_transpose = slice_b.transpose();
                 
-                let V_i = target_arrowhead.fixed_slice::<LANDMARK_PARAM_SIZE,LANDMARK_PARAM_SIZE>(v_idx,v_idx)+ slice_b_transpose*slice_b;
-                target_arrowhead.fixed_slice_mut::<LANDMARK_PARAM_SIZE,LANDMARK_PARAM_SIZE>(v_idx,v_idx).copy_from(&V_i);
+                let V_i = target_arrowhead.fixed_view::<LANDMARK_PARAM_SIZE,LANDMARK_PARAM_SIZE>(v_idx,v_idx)+ slice_b_transpose*slice_b;
+                target_arrowhead.fixed_view_mut::<LANDMARK_PARAM_SIZE,LANDMARK_PARAM_SIZE>(v_idx,v_idx).copy_from(&V_i);
 
                 let W_j = slice_a_transpose*slice_b;
                 let W_j_transpose = W_j.transpose();
 
-                target_arrowhead.fixed_slice_mut::<CAM_PARAM_SIZE,CAM_PARAM_SIZE>(j,j).copy_from(&U_j);
-                target_arrowhead.fixed_slice_mut::<CAM_PARAM_SIZE,LANDMARK_PARAM_SIZE>(u_idx,v_idx).copy_from(&W_j);
-                target_arrowhead.fixed_slice_mut::<LANDMARK_PARAM_SIZE,CAM_PARAM_SIZE>(v_idx,u_idx).copy_from(&W_j_transpose);
+                target_arrowhead.fixed_view_mut::<CAM_PARAM_SIZE,CAM_PARAM_SIZE>(j,j).copy_from(&U_j);
+                target_arrowhead.fixed_view_mut::<CAM_PARAM_SIZE,LANDMARK_PARAM_SIZE>(u_idx,v_idx).copy_from(&W_j);
+                target_arrowhead.fixed_view_mut::<LANDMARK_PARAM_SIZE,CAM_PARAM_SIZE>(v_idx,u_idx).copy_from(&W_j_transpose);
 
-                let residual = -residuals.fixed_slice::<2,1>(i,0);
-                target_residual.fixed_slice_mut::<CAM_PARAM_SIZE,1>(u_idx,0).add_assign(&(slice_a_transpose*residual));
-                target_residual.fixed_slice_mut::<LANDMARK_PARAM_SIZE,1>(v_idx,0).add_assign(&(slice_b_transpose*residual));
+                let residual = -residuals.fixed_view::<2,1>(i,0);
+                target_residual.fixed_view_mut::<CAM_PARAM_SIZE,1>(u_idx,0).add_assign(&(slice_a_transpose*residual));
+                target_residual.fixed_view_mut::<LANDMARK_PARAM_SIZE,1>(v_idx,0).add_assign(&(slice_b_transpose*residual));
 
             }
-            target_arrowhead.fixed_slice_mut::<CAM_PARAM_SIZE,CAM_PARAM_SIZE>(u_idx,u_idx).copy_from(&U_j);
+            target_arrowhead.fixed_view_mut::<CAM_PARAM_SIZE,CAM_PARAM_SIZE>(u_idx,u_idx).copy_from(&U_j);
             U_j.fill(zero::<F>());
         }
 

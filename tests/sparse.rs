@@ -23,7 +23,7 @@ fn test_generate_dense_from_csc_slice() {
     let dense_slice = generate_dense_from_csc_slice(0,2,&csc_matrix);
 
     let mut ground_truth_slice = MatrixXx3::<Float>::zeros(6);
-    ground_truth_slice.fixed_slice_mut::<3,3>(3,0).copy_from(&rot_matrix);
+    ground_truth_slice.fixed_view_mut::<3,3>(3,0).copy_from(&rot_matrix);
 
     assert_eq!(ground_truth_slice,dense_slice);
 }

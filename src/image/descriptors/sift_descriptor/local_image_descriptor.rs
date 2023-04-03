@@ -33,8 +33,8 @@ impl LocalImageDescriptor {
             let column_submatrix = column_histogram * SUBMATRIX_LENGTH;
             let row_submatrix = row_histogram*SUBMATRIX_LENGTH;
 
-            let weighted_sample_gradient_slice = weighted_sample_gradients.fixed_slice::<4,4>(row_submatrix,column_submatrix);
-            let sample_orientations_slice = sample_orientation.fixed_slice::<4,4>(row_submatrix,column_submatrix);
+            let weighted_sample_gradient_slice = weighted_sample_gradients.fixed_view::<4,4>(row_submatrix,column_submatrix);
+            let sample_orientations_slice = sample_orientation.fixed_view::<4,4>(row_submatrix,column_submatrix);
             for r in 0..weighted_sample_gradient_slice.nrows() {
                 for c in 0..weighted_sample_gradient_slice.ncols() {
                     let weighted_gradient_orientation = (weighted_sample_gradient_slice[(r,c)],sample_orientations_slice[(r,c)]);
@@ -80,7 +80,7 @@ pub fn is_rotated_keypoint_within_image(octave: &SiftOctave, keypoint: &KeyPoint
     let mut valid = true;
 
     for i in 0..4 {
-        let coordiantes = rotated_corners.fixed_slice::<2,1>(0,i);
+        let coordiantes = rotated_corners.fixed_view::<2,1>(0,i);
         //TODO: refactor this into a method
         let x_norm = coordiantes[(0,0)]/(keypoint_sigma);
         let y_norm = coordiantes[(1,0)]/(keypoint_sigma);

@@ -60,8 +60,8 @@ fn main() -> Result<(),()> {
         let w = Vector3::new(w_1,w_2,w_3);
         let u = Vector3::new(u_1,u_2,u_3);
         let cam = lie::exp_se3(&u, &w);
-        let rotation = Rotation3::<Float>::from_matrix(&cam.fixed_slice::<3,3>(0,0).into_owned());
-        Isometry3::<Float>::new(cam.fixed_slice::<3,1>(0,3).into_owned(),rotation.scaled_axis()).inverse()
+        let rotation = Rotation3::<Float>::from_matrix(&cam.fixed_view::<3,3>(0,0).into_owned());
+        Isometry3::<Float>::new(cam.fixed_view::<3,1>(0,3).into_owned(),rotation.scaled_axis()).inverse()
 
 
     }).collect::<Vec<Isometry3<Float>>>();

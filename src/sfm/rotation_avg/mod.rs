@@ -37,11 +37,11 @@ pub fn rcd(relative_rotations_csc: CscMatrix<Float>, number_of_absolute_rotation
 
             let bottom_offset = 3*(number_of_absolute_rotations-k-1);
             absolute_rotations.rows_mut(0,3*k).copy_from(&aux.rows(0,3*k));
-            absolute_rotations.slice_mut((3*k,0),(3,3)).copy_from(&Matrix3::<Float>::identity());
+            absolute_rotations.view_mut((3*k,0),(3,3)).copy_from(&Matrix3::<Float>::identity());
             absolute_rotations.rows_mut(absolute_rotations.nrows()-bottom_offset,bottom_offset).copy_from(&aux.rows(aux.nrows()-bottom_offset,bottom_offset));
 
             absolute_rotations_transpose.columns_mut(0,3*k).copy_from(&absolute_rotations.rows(0,3*k).transpose());
-            absolute_rotations_transpose.slice_mut((0,3*k),(3,3)).copy_from(&Matrix3::<Float>::identity());
+            absolute_rotations_transpose.view_mut((0,3*k),(3,3)).copy_from(&Matrix3::<Float>::identity());
             absolute_rotations_transpose.columns_mut(absolute_rotations_transpose.ncols()-bottom_offset,bottom_offset).copy_from(&absolute_rotations.rows(absolute_rotations.nrows()-bottom_offset,bottom_offset).transpose())
         }
 

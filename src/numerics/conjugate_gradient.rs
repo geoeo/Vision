@@ -17,19 +17,19 @@ pub fn compute_block_matrix_preconditioner_inverse<F,PStorage,VStorage,WStorage,
     let v_dim = C.nrows();
 
     let omega_sqrd = float::Float::powi(omega, 2);
-    preconditioner.slice_mut((0,0),(p_dim,p_dim)).copy_from(P_inv);
+    preconditioner.view_mut((0,0),(p_dim,p_dim)).copy_from(P_inv);
     
     let temp = E*C;
-    preconditioner.slice_mut((0,p_dim),(p_dim,v_dim)).copy_from(&(P_inv*(&temp)));
-    preconditioner.slice_mut((0,p_dim),(p_dim,v_dim)).scale_mut(-omega);
+    preconditioner.view_mut((0,p_dim),(p_dim,v_dim)).copy_from(&(P_inv*(&temp)));
+    preconditioner.view_mut((0,p_dim),(p_dim,v_dim)).scale_mut(-omega);
     
     let temp_2 = C*E_t*P_inv;
-    preconditioner.slice_mut((p_dim,0),(v_dim,p_dim)).copy_from(&temp_2);
-    preconditioner.slice_mut((p_dim,0),(v_dim,p_dim)).scale_mut(-omega);
+    preconditioner.view_mut((p_dim,0),(v_dim,p_dim)).copy_from(&temp_2);
+    preconditioner.view_mut((p_dim,0),(v_dim,p_dim)).scale_mut(-omega);
 
-    preconditioner.slice_mut((p_dim,p_dim),(v_dim,v_dim)).copy_from(&((&temp_2)*(&temp)));
-    preconditioner.slice_mut((p_dim,p_dim),(v_dim,v_dim)).scale_mut(omega_sqrd);
-    preconditioner.slice_mut((p_dim,p_dim),(v_dim,v_dim)).add_assign(C);
+    preconditioner.view_mut((p_dim,p_dim),(v_dim,v_dim)).copy_from(&((&temp_2)*(&temp)));
+    preconditioner.view_mut((p_dim,p_dim),(v_dim,v_dim)).scale_mut(omega_sqrd);
+    preconditioner.view_mut((p_dim,p_dim),(v_dim,v_dim)).add_assign(C);
 }
 
 #[allow(non_snake_case)]

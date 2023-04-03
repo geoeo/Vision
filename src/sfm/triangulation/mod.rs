@@ -38,8 +38,8 @@ pub fn triangulate_matches<Feat: Feature, C: Camera<Float>>(path_pair: (usize, u
 
     let c1_intrinsics = cam_1.get_projection();
     let c2_intrinsics = cam_2.get_projection();
-    let transform_c1 = Matrix4::<Float>::identity().fixed_slice::<3,4>(0,0).into_owned();
-    let transform_c2 = se3.fixed_slice::<3,4>(0,0).into_owned();
+    let transform_c1 = Matrix4::<Float>::identity().fixed_view::<3,4>(0,0).into_owned();
+    let transform_c2 = se3.fixed_view::<3,4>(0,0).into_owned();
     let projection_1 = c1_intrinsics*transform_c1;
     let projection_2 = c2_intrinsics*transform_c2;
 

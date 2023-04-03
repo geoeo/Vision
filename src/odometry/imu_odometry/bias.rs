@@ -193,11 +193,11 @@ pub fn genrate_residual_jacobian(bias_delta: &BiasDelta, preintegrated_bias: &Bi
     let residual_rotation = residuals.fixed_rows::<3>(3);
     let residual_rotation_jacbobian_bias_g = -right_inverse_jacobian(&residual_rotation)*exp_so3(&residual_rotation).transpose()*j_r_b*preintegrated_bias.rotation_jacobian_bias_g;
 
-    jacobian.fixed_slice_mut::<3,3>(0,0).copy_from(&residual_position_jacobian_bias_a);
-    jacobian.fixed_slice_mut::<3,3>(0,3).copy_from(&residual_position_jacobian_bias_g);
-    jacobian.fixed_slice_mut::<3,3>(3,3).copy_from(&residual_rotation_jacbobian_bias_g);
-    jacobian.fixed_slice_mut::<3,3>(6,0).copy_from(&residual_velocity_jacobian_bias_a);
-    jacobian.fixed_slice_mut::<3,3>(6,3).copy_from(&residual_velocity_jacobian_bias_g);
+    jacobian.fixed_view_mut::<3,3>(0,0).copy_from(&residual_position_jacobian_bias_a);
+    jacobian.fixed_view_mut::<3,3>(0,3).copy_from(&residual_position_jacobian_bias_g);
+    jacobian.fixed_view_mut::<3,3>(3,3).copy_from(&residual_rotation_jacbobian_bias_g);
+    jacobian.fixed_view_mut::<3,3>(6,0).copy_from(&residual_velocity_jacobian_bias_a);
+    jacobian.fixed_view_mut::<3,3>(6,3).copy_from(&residual_velocity_jacobian_bias_g);
 
     jacobian
 

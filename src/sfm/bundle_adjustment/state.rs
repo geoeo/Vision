@@ -57,17 +57,17 @@ impl<F: float::Float + Scalar + RealField, L: Landmark<F,T> + Copy + Clone, cons
 
             let new_transform = delta_transform*current_transform;
 
-            let new_translation = new_transform.fixed_slice::<3,1>(0,3);
-            self.camera_positions.fixed_slice_mut::<3,1>(i,0).copy_from(&new_translation);
+            let new_translation = new_transform.fixed_view::<3,1>(0,3);
+            self.camera_positions.fixed_view_mut::<3,1>(i,0).copy_from(&new_translation);
 
-            let new_rotation = na::Rotation3::from_matrix(&new_transform.fixed_slice::<3,3>(0,0).into_owned());
-            self.camera_positions.fixed_slice_mut::<3,1>(i+3,0).copy_from(&(new_rotation.scaled_axis()));
+            let new_rotation = na::Rotation3::from_matrix(&new_transform.fixed_view::<3,3>(0,0).into_owned());
+            self.camera_positions.fixed_view_mut::<3,1>(i+3,0).copy_from(&(new_rotation.scaled_axis()));
         }
 
         let landmark_offset = self.camera_positions.nrows();
         for i in 0..self.landmarks.len() {
             let pertub_offset = i*L::LANDMARK_PARAM_SIZE;
-            self.landmarks[i].update(&perturb.fixed_slice::<T,1>(landmark_offset+pertub_offset,0).into());
+            self.landmarks[i].update(&perturb.fixed_view::<T,1>(landmark_offset+pertub_offset,0).into());
         }
     }
 
@@ -85,8 +85,8 @@ impl<F: float::Float + Scalar + RealField, L: Landmark<F,T> + Copy + Clone, cons
         let axis = na::Vector3::new(self.camera_positions[cam_idx+3],self.camera_positions[cam_idx+4],self.camera_positions[cam_idx+5]);
         let axis_angle = Rotation3::new(axis);
         let mut transform = Matrix4::<F>::identity();
-        transform.fixed_slice_mut::<3,3>(0,0).copy_from(axis_angle.matrix());
-        transform.fixed_slice_mut::<3,1>(0,3).copy_from(&translation);
+        transform.fixed_view_mut::<3,3>(0,0).copy_from(axis_angle.matrix());
+        transform.fixed_view_mut::<3,1>(0,3).copy_from(&translation);
         transform
     }
 
@@ -98,8 +98,8 @@ impl<F: float::Float + Scalar + RealField, L: Landmark<F,T> + Copy + Clone, cons
             let u = self.camera_positions.fixed_rows::<3>(i);
             let w = self.camera_positions.fixed_rows::<3>(i + 3);
             let se3 = exp_se3(&u, &w);
-            let rotation = Rotation3::<F>::from_matrix(&se3.fixed_slice::<3,3>(0,0).into_owned());
-            cam_positions.push(Isometry3::<F>::new(se3.fixed_slice::<3,1>(0,3).into_owned(),rotation.scaled_axis()));
+            let rotation = Rotation3::<F>::from_matrix(&se3.fixed_view::<3,3>(0,0).into_owned());
+            cam_positions.push(Isometry3::<F>::new(se3.fixed_view::<3,1>(0,3).into_owned(),rotation.scaled_axis()));
         }
 
         for i in 0..self.landmarks.len() {

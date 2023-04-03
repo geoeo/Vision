@@ -59,8 +59,8 @@ pub fn run_trajectory<Cam: Camera<Float>>(
                 runtime_parameters,
             );
             bias_delta = bias_delta.add_delta(&bias_update);
-            let rotation = Rotation3::<Float>::from_matrix(&transform_est.fixed_slice::<3,3>(0,0).into_owned());
-            Isometry3::<Float>::new(transform_est.fixed_slice::<3,1>(0,3).into_owned(),rotation.scaled_axis())
+            let rotation = Rotation3::<Float>::from_matrix(&transform_est.fixed_view::<3,3>(0,0).into_owned());
+            Isometry3::<Float>::new(transform_est.fixed_view::<3,1>(0,3).into_owned(),rotation.scaled_axis())
         })
         .collect::<Vec<Isometry3<Float>>>()
 }
@@ -301,8 +301,8 @@ fn estimate<Cam: Camera<Float>, const R: usize, const C: usize>(
             );
         }
         imu_residuals_full.fixed_rows_mut::<9>(0).copy_from(&imu_residuals);
-        imu_jacobian_full.fixed_slice_mut::<9,9>(0,0).copy_from(&imu_jacobian);
-        imu_jacobian_full.fixed_slice_mut::<9,6>(0,9).copy_from(&bias_jacobian);
+        imu_jacobian_full.fixed_view_mut::<9,9>(0,0).copy_from(&imu_jacobian);
+        imu_jacobian_full.fixed_view_mut::<9,6>(0,9).copy_from(&bias_jacobian);
 
         let (delta, g, gain_ratio_denom, mu_val) = gauss_newton_step_with_loss(
             &runtime_memory.residuals,
