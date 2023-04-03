@@ -1,7 +1,7 @@
 extern crate nalgebra as na;
 extern crate nalgebra_lapack;
 
-use na::{SMatrix, Matrix3, SVector, OMatrix, Dynamic, RowSVector, RowDVector, linalg::SVD, Quaternion, UnitQuaternion, Const};
+use na::{SMatrix, Matrix3, SVector, OMatrix, Dyn, RowSVector, RowDVector, linalg::SVD, Quaternion, UnitQuaternion, Const};
 use nalgebra_lapack::Eigen;
 use rand::seq::SliceRandom;
 use crate::sfm::{epipolar::Essential,tensor::{essential_matrix_from_motion,compute_fundamental,calc_sampson_distance_inliers_for_fundamental}};
@@ -161,7 +161,7 @@ pub fn quest(m1: &SMatrix<Float,3,5>, m2: &SMatrix<Float,3,5>) -> (Essential, SV
     let eigen = Eigen::new(b_x,false,true).expect("QuEST: Eigen Decomp Failed!");
     let (_,_,real_eigenvectors_option) = eigen.get_real_elements();
     let real_eigenvectors = real_eigenvectors_option.expect("QuEST: Extracting Right Eigenvectors Failed!");
-    let mut V = OMatrix::<Float,Const<35>,Dynamic>::from_columns(&real_eigenvectors);
+    let mut V = OMatrix::<Float,Const<35>,Dyn>::from_columns(&real_eigenvectors);
     // Correct the sign of each column s.t. the first element (i.e., w) is always positive
     for i in 0..V.ncols() {
         if V[(0,i)] < 0.0{
@@ -177,7 +177,7 @@ pub fn quest(m1: &SMatrix<Float,3,5>, m2: &SMatrix<Float,3,5>) -> (Essential, SV
     let z = V.row(3).component_div(&w3);
 
     // Each column represents a candidate rotation
-    let mut Q = OMatrix::<Float,Const<4>,Dynamic>::from_rows(&[w,x,y,z]);
+    let mut Q = OMatrix::<Float,Const<4>,Dyn>::from_rows(&[w,x,y,z]);
 
     // Normalize s.t. each column of Q has norm 1
     for mut c in Q.column_iter_mut() {
@@ -189,11 +189,11 @@ pub fn quest(m1: &SMatrix<Float,3,5>, m2: &SMatrix<Float,3,5>) -> (Essential, SV
 }
 
 #[allow(non_snake_case)]
-fn recover_translation_and_depth(m1: &SMatrix<Float,3,5>, m2: &SMatrix<Float,3,5>, Q: &OMatrix<Float,Const<4>,Dynamic>) ->(OMatrix<Float,Const<3>,Dynamic>, OMatrix<Float,Const<5>,Dynamic>, OMatrix<Float,Const<5>,Dynamic>) {
+fn recover_translation_and_depth(m1: &SMatrix<Float,3,5>, m2: &SMatrix<Float,3,5>, Q: &OMatrix<Float,Const<4>,Dyn>) ->(OMatrix<Float,Const<3>,Dyn>, OMatrix<Float,Const<5>,Dyn>, OMatrix<Float,Const<5>,Dyn>) {
     let n = Q.ncols();
-    let mut T = OMatrix::<Float,Const<3>,Dynamic>::zeros(n);
-    let mut Z1 = OMatrix::<Float,Const<5>,Dynamic>::zeros(n);
-    let mut Z2 = OMatrix::<Float,Const<5>,Dynamic>::zeros(n);
+    let mut T = OMatrix::<Float,Const<3>,Dyn>::zeros(n);
+    let mut Z1 = OMatrix::<Float,Const<5>,Dyn>::zeros(n);
+    let mut Z2 = OMatrix::<Float,Const<5>,Dyn>::zeros(n);
     let I = Matrix3::<Float>::identity();
 
     for k in 0..n{
@@ -231,7 +231,7 @@ fn recover_translation_and_depth(m1: &SMatrix<Float,3,5>, m2: &SMatrix<Float,3,5
 }
 
 #[allow(non_snake_case)]
-fn cheirality_check(Q: &OMatrix<Float,Const<4>,Dynamic>, T: &OMatrix<Float,Const<3>,Dynamic>,  Z1: &OMatrix<Float,Const<5>,Dynamic>, Z2: &OMatrix<Float,Const<5>,Dynamic>) -> (Essential, SVector<Float,5>, SVector<Float,5>) {
+fn cheirality_check(Q: &OMatrix<Float,Const<4>,Dyn>, T: &OMatrix<Float,Const<3>,Dyn>,  Z1: &OMatrix<Float,Const<5>,Dyn>, Z2: &OMatrix<Float,Const<5>,Dyn>) -> (Essential, SVector<Float,5>, SVector<Float,5>) {
 
     let mut best_essential = Essential::zeros();
     let mut best_depths_1 = SVector::<Float,5>::zeros();

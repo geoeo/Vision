@@ -3,7 +3,7 @@
 extern crate nalgebra as na;
 
 use na::{
-    DVector, Dynamic, Matrix, Matrix4,Isometry3,Rotation3, SMatrix, SVector,
+    DVector, Dyn, Matrix, Matrix4,Isometry3,Rotation3, SMatrix, SVector,
     VecStorage, Vector3, Const, DimMin
 };
 use std::boxed::Box;
@@ -440,7 +440,7 @@ fn estimate<Cam: Camera<Float>, const R: usize, const C: usize>(
 fn gauss_newton_step_with_loss<const R: usize, const C: usize>(
     residuals: &DVector<Float>, 
     imu_residuals: &SVector<Float, R>,
-    jacobian: &Matrix<Float, Dynamic, Const<C>, VecStorage<Float, Dynamic, Const<C>>>,
+    jacobian: &Matrix<Float, Dyn, Const<C>, VecStorage<Float, Dyn, Const<C>>>,
     imu_jacobian: &SMatrix<Float,R,C>,
     identity: &SMatrix<Float,C,C>,
     mu: Option<Float>,
@@ -449,9 +449,9 @@ fn gauss_newton_step_with_loss<const R: usize, const C: usize>(
     loss_function: &Box<dyn LossFunction>,
     rescaled_jacobian_target: &mut Matrix<
         Float,
-        Dynamic,
+        Dyn,
         Const<C>,
-        VecStorage<Float, Dynamic, Const<C>>,
+        VecStorage<Float, Dyn, Const<C>>,
     >,
     rescaled_residuals_target: &mut DVector<Float>
 ) -> (
@@ -487,9 +487,9 @@ fn gauss_newton_step_with_loss<const R: usize, const C: usize>(
                         * rescaled_jacobian_target
                             as &Matrix<
                                 Float,
-                                Dynamic,
+                                Dyn,
                                 Const<C>,
-                                VecStorage<Float, Dynamic, Const<C>>,
+                                VecStorage<Float, Dyn, Const<C>>,
                             >
                         + imu_jacobian.transpose()* imu_jacobian,
                     rescaled_jacobian_target.transpose()

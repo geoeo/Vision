@@ -1,7 +1,7 @@
 extern crate nalgebra as na;
 extern crate num_traits;
 
-use na::{DVector,DMatrix,Matrix, Dynamic, U4, VecStorage,Point3, Vector4, ComplexField, base::Scalar, RealField, convert};
+use na::{DVector,DMatrix,Matrix, Dyn, U4, VecStorage,Point3, Vector4, ComplexField, base::Scalar, RealField, convert};
 use num_traits::float;
 use crate::sensors::camera::Camera;
 use crate::numerics::lie::left_jacobian_around_identity;
@@ -25,7 +25,7 @@ pub fn get_estimated_features<F, C : Camera<F>, L: Landmark<F,T> + Copy + Clone,
     let n_cams = state.n_cams;
     let n_points = state.n_points;
     assert_eq!(estimated_features.nrows(),2*n_points*n_cams);
-    let mut position_world = Matrix::<F,U4,Dynamic, VecStorage<F,U4,Dynamic>>::from_element(n_points, F::one());
+    let mut position_world = Matrix::<F,U4,Dyn, VecStorage<F,U4,Dyn>>::from_element(n_points, F::one());
     for j in 0..n_points {
         position_world.fixed_view_mut::<3,1>(0,j).copy_from(&state.get_landmarks()[j].get_euclidean_representation().coords); 
     };

@@ -2,7 +2,7 @@ extern crate nalgebra as na;
 extern crate num_traits;
 
 use num_traits::{float, NumAssign};
-use na::{convert, SimdRealField, ComplexField, zero, DMatrix, DVector , OVector, Dynamic, Matrix, SMatrix, SVector,Vector,Dim,storage::{Storage,StorageMut},base::{Scalar, default_allocator::DefaultAllocator, allocator::{Allocator}},
+use na::{convert, SimdRealField, ComplexField, zero, DMatrix, DVector , OVector, Dyn, Matrix, SMatrix, SVector,Vector,Dim,storage::{Storage,StorageMut},base::{Scalar, default_allocator::DefaultAllocator, allocator::{Allocator}},
     VecStorage, Const, DimMin, U1
 };
 use std::boxed::Box;
@@ -60,7 +60,7 @@ pub fn weight_jacobian_sparse<F, R,C,S1,S2>(
 
 
 pub fn scale_to_diagonal<F, const T: usize>(
-    mat: &mut Matrix<F, Dynamic, Const<T>, VecStorage<F, Dynamic, Const<T>>>,
+    mat: &mut Matrix<F, Dyn, Const<T>, VecStorage<F, Dyn, Const<T>>>,
     residual: &DVector<F>,
     first_deriv: F,
     second_deriv: F,
@@ -205,16 +205,6 @@ pub fn gauss_newton_step_with_schur<F, R, C, S1, S2,StorageTargetArrow, StorageT
                 None => false
             };
 
-
-            // let v_slice_inv_opt = V_star.fixed_view::<LANDMARK_PARAM_SIZE,LANDMARK_PARAM_SIZE>(i,i).try_inverse();
-            // let success = match v_slice_inv_opt {
-            //     Some(inv) => {
-            //         V_star_inv.fixed_view_mut::<LANDMARK_PARAM_SIZE,LANDMARK_PARAM_SIZE>(i,i).copy_from(&inv);
-            //         true
-            //     },
-            //     None => false
-            // };
-
             inv_success &= success;
         }
 
@@ -321,7 +311,7 @@ pub fn gauss_newton_step_with_conguate_gradient<F, R, C, S1, S2,StorageTargetArr
             true => {
                 let schur_compliment_preconditioned = (preconditioner as &DMatrix<F>)*schur_compliment;
                 let res_a_augment = (preconditioner as &DMatrix<F>)*(res_a-W*(V_star_inv as &DMatrix<F>)*res_b); // takes long time
-                match conjugate_gradient::conjugate_gradient::<_,_,_,_,Dynamic>(&schur_compliment_preconditioned, &res_a_augment, &mut target_perturb.rows_mut(0,u_span), cg_tresh, cg_max_it) {
+                match conjugate_gradient::conjugate_gradient::<_,_,_,_,Dyn>(&schur_compliment_preconditioned, &res_a_augment, &mut target_perturb.rows_mut(0,u_span), cg_tresh, cg_max_it) {
                     true => {
                         let h_b = (V_star_inv as &DMatrix<F>)*(res_b-W_t*(&target_perturb.rows(0,u_span)));
                         target_perturb.view_mut((u_span,0),(v_span,1)).copy_from(&h_b);

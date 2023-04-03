@@ -1,6 +1,6 @@
 extern crate nalgebra as na;
 
-use na::{U2,U4,Dim,DimName,Const,RowVector2,Vector4,DVector,Matrix4,Matrix,DMatrix,Dynamic,VecStorage};
+use na::{U2,U4,Dim,DimName,Const,RowVector2,Vector4,DVector,Matrix4,Matrix,DMatrix,Dyn,VecStorage};
 
 use crate::image::pyramid::gd::{GDPyramid,gd_octave::GDOctave};
 use crate::sensors::camera::Camera;
@@ -14,11 +14,11 @@ pub struct RuntimeMemory<const C: usize> {
     pub weights_vec: DVector::<Float>,
     pub residuals: DVector::<Float>,
     pub new_residuals: DVector::<Float>,
-    pub full_jacobian: Matrix::<Float, Dynamic, Const<C>, VecStorage<Float, Dynamic, Const<C>>>,
-    pub image_gradients: Matrix::<Float, Dynamic, U2, VecStorage<Float, Dynamic, U2>>,
+    pub full_jacobian: Matrix::<Float, Dyn, Const<C>, VecStorage<Float, Dyn, Const<C>>>,
+    pub image_gradients: Matrix::<Float, Dyn, U2, VecStorage<Float, Dyn, U2>>,
     pub image_gradient_points: Vec::<Point<usize>>,
     pub new_image_gradient_points: Vec::<Point<usize>>,
-    pub rescaled_jacobian_target: Matrix::<Float, Dynamic, Const<C>, VecStorage<Float, Dynamic, Const<C>>>,
+    pub rescaled_jacobian_target: Matrix::<Float, Dyn, Const<C>, VecStorage<Float, Dyn, Const<C>>>,
     pub rescaled_residual_target: DVector::<Float>
 
 }
@@ -32,15 +32,15 @@ impl<const T: usize> RuntimeMemory<T> {
             residuals: DVector::<Float>::from_element(size, float::MAX),
             new_residuals: DVector::<Float>::from_element(size, float::MAX),
             full_jacobian:
-                Matrix::<Float, Dynamic, Const<T>, VecStorage<Float, Dynamic, Const<T>>>::zeros(
+                Matrix::<Float, Dyn, Const<T>, VecStorage<Float, Dyn, Const<T>>>::zeros(
                     size,
                 ),
             image_gradients:
-                Matrix::<Float, Dynamic, U2, VecStorage<Float, Dynamic, U2>>::zeros(size),
+                Matrix::<Float, Dyn, U2, VecStorage<Float, Dyn, U2>>::zeros(size),
             image_gradient_points: Vec::<Point<usize>>::with_capacity(size),
             new_image_gradient_points: Vec::<Point<usize>>::with_capacity(size),
             rescaled_jacobian_target:
-                Matrix::<Float, Dynamic, Const<T>, VecStorage<Float, Dynamic, Const<T>>>::zeros(
+                Matrix::<Float, Dyn, Const<T>, VecStorage<Float, Dyn, Const<T>>>::zeros(
                     size,
                 ),
             rescaled_residual_target: DVector::<Float>::zeros(size)
@@ -64,7 +64,7 @@ fn linear_to_image_index(idx: usize, cols: usize) -> Point<usize> {
     Point::<usize>::new(x ,y)
 }
 
-pub fn compute_image_gradients(x_gradients: &DMatrix<Float>, y_gradients: &DMatrix<Float>,image_gradient_points: &Vec<Point<usize>>, target: &mut Matrix<Float,Dynamic,U2, VecStorage<Float,Dynamic,U2>>) -> () {
+pub fn compute_image_gradients(x_gradients: &DMatrix<Float>, y_gradients: &DMatrix<Float>,image_gradient_points: &Vec<Point<usize>>, target: &mut Matrix<Float,Dyn,U2, VecStorage<Float,Dyn,U2>>) -> () {
     for (idx,point) in image_gradient_points.iter().enumerate() {
         let r = point.y;
         let c = point.x;
@@ -80,9 +80,9 @@ pub fn compute_image_gradients(x_gradients: &DMatrix<Float>, y_gradients: &DMatr
 
 }
 
-pub fn backproject_points<C : Camera<Float>>(source_image_buffer: &DMatrix<Float>,depth_image_buffer: &DMatrix<Float>,  camera: &C, pyramid_scale: Float,  octave_index: usize) -> (Matrix<Float,U4,Dynamic,VecStorage<Float,U4,Dynamic>>, Vec<bool>) {
+pub fn backproject_points<C : Camera<Float>>(source_image_buffer: &DMatrix<Float>,depth_image_buffer: &DMatrix<Float>,  camera: &C, pyramid_scale: Float,  octave_index: usize) -> (Matrix<Float,U4,Dyn,VecStorage<Float,U4,Dyn>>, Vec<bool>) {
     let (rows,cols) = source_image_buffer.shape();
-    let mut backproject_points =  Matrix::<Float,U4,Dynamic,VecStorage<Float,U4,Dynamic>>::zeros(rows*cols);
+    let mut backproject_points =  Matrix::<Float,U4,Dyn,VecStorage<Float,U4,Dyn>>::zeros(rows*cols);
     let mut backproject_points_flags =  vec![false;rows*cols];
     let number_of_points = rows*cols;
 
@@ -105,13 +105,13 @@ pub fn backproject_points<C : Camera<Float>>(source_image_buffer: &DMatrix<Float
     (backproject_points,backproject_points_flags)
 }
 
-pub fn precompute_jacobians<C: Camera<Float>, T: Dim + DimName>(backprojected_points: &Matrix<Float,U4,Dynamic,VecStorage<Float,U4,Dynamic>>,backprojected_points_flags: &Vec<bool>, camera: &C) -> Matrix<Float,Dynamic,T, VecStorage<Float,Dynamic,T>> {
+pub fn precompute_jacobians<C: Camera<Float>, T: Dim + DimName>(backprojected_points: &Matrix<Float,U4,Dyn,VecStorage<Float,U4,Dyn>>,backprojected_points_flags: &Vec<bool>, camera: &C) -> Matrix<Float,Dyn,T, VecStorage<Float,Dyn,T>> {
     let number_of_points = backprojected_points.ncols();
-    let mut precomputed_jacobians = Matrix::<Float,Dynamic,T, VecStorage<Float,Dynamic,T>>::zeros(2*number_of_points);
+    let mut precomputed_jacobians = Matrix::<Float,Dyn,T, VecStorage<Float,Dyn,T>>::zeros(2*number_of_points);
 
     for i in 0..number_of_points {
         if backprojected_points_flags[i] {
-            let point = backprojected_points.fixed_view::<3,1>(0,i);
+            let point = backprojected_points.fixed_slice::<3,1>(0,i);
             let camera_jacobian = camera.get_jacobian_with_respect_to_position_in_camera_frame(&point);
             let lie_jacobian = lie::left_jacobian_around_identity(&point);
             precomputed_jacobians.fixed_view_mut::<2,6>(i*2,0).copy_from(&(camera_jacobian*lie_jacobian));
@@ -125,11 +125,11 @@ pub fn precompute_jacobians<C: Camera<Float>, T: Dim + DimName>(backprojected_po
 }
 
 //TODO: performance offender
-pub fn compute_full_jacobian<const D: usize>(image_gradients: &Matrix<Float,Dynamic,U2, VecStorage<Float,Dynamic,U2>>, const_jacobians: &Matrix<Float,Dynamic,Const<D>, VecStorage<Float,Dynamic,Const<D>>>, target: &mut Matrix<Float,Dynamic,Const<D>, VecStorage<Float,Dynamic,Const<D>>>) -> () {
+pub fn compute_full_jacobian<const D: usize>(image_gradients: &Matrix<Float,Dyn,U2, VecStorage<Float,Dyn,U2>>, const_jacobians: &Matrix<Float,Dyn,Const<D>, VecStorage<Float,Dyn,Const<D>>>, target: &mut Matrix<Float,Dyn,Const<D>, VecStorage<Float,Dyn,Const<D>>>) -> () {
     let number_of_elements = image_gradients.nrows();
 
     for i in 0..number_of_elements {
-        let jacobian_i = image_gradients.row(i)*const_jacobians.fixed_view::<2, D>(i*2,0);
+        let jacobian_i = image_gradients.row(i)*const_jacobians.fixed_slice::<2, D>(i*2,0);
         target.fixed_view_mut::<1,D>(i,0).copy_from(&jacobian_i);
 
     }
@@ -137,7 +137,7 @@ pub fn compute_full_jacobian<const D: usize>(image_gradients: &Matrix<Float,Dyna
 }
 
 //TODO: highest performance offender
-pub fn compute_residuals<C>(target_image_buffer: &DMatrix<Float>,source_image_buffer: &DMatrix<Float>,backprojected_points: &Matrix<Float,U4,Dynamic,VecStorage<Float,U4,Dynamic>>,
+pub fn compute_residuals<C>(target_image_buffer: &DMatrix<Float>,source_image_buffer: &DMatrix<Float>,backprojected_points: &Matrix<Float,U4,Dyn,VecStorage<Float,U4,Dyn>>,
     backprojected_points_flags: &Vec<bool>, est_transform: &Matrix4<Float>, camera: &C, residual_target: &mut DVector<Float>, image_gradient_points: &mut Vec<Point<usize>>) -> () where C: Camera<Float> {
     let transformed_points = est_transform*backprojected_points;
     let number_of_points = transformed_points.ncols();
@@ -146,8 +146,8 @@ pub fn compute_residuals<C>(target_image_buffer: &DMatrix<Float>,source_image_bu
     let (rows,cols) = source_image_buffer.shape();
     for i in 0..number_of_points {
         //let target_point = linear_to_image_index(i,image_width);
-        let target_point = camera.project(&backprojected_points.fixed_view::<3,1>(0,i)); 
-        let transformed_point = camera.project(&transformed_points.fixed_view::<3,1>(0,i)); 
+        let target_point = camera.project(&backprojected_points.fixed_slice::<3,1>(0,i)); 
+        let transformed_point = camera.project(&transformed_points.fixed_slice::<3,1>(0,i)); 
         let target_point_y = target_point.y.trunc() as usize;
         let target_point_x = target_point.x.trunc() as usize;
         let transformed_point_y = transformed_point.y.trunc() as usize;

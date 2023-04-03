@@ -3,7 +3,7 @@ extern crate nalgebra_lapack;
 extern crate rand;
 
 use std::iter::zip;
-use na::{SVector, Vector, Matrix, SMatrix, Matrix3, Vector2, Dynamic, VecStorage, dimension::{U9,U1}, base::storage::Storage};
+use na::{SVector, Vector, Matrix, SMatrix, Matrix3, Vector2, Dyn, VecStorage, dimension::{U9,U1}, base::storage::Storage};
 use nalgebra::linalg::SymmetricEigen;
 
 use crate::Float;
@@ -46,7 +46,7 @@ pub fn eight_point_hartley<T : Feature>(matches: &Vec<Match<T>>, focal: Float) -
     let number_of_matches = matches.len() as Float; 
     assert!(number_of_matches >= 8.0, "Number of matches: {}", number_of_matches);
 
-    let mut A = Matrix::<Float, Dynamic, U9, VecStorage<Float, Dynamic, U9>>::zeros(matches.len());
+    let mut A = Matrix::<Float, Dyn, U9, VecStorage<Float, Dyn, U9>>::zeros(matches.len());
     for i in 0..A.nrows() {
         let feature_right = matches[i].get_feature_two().get_as_2d_point();
         let feature_left = matches[i].get_feature_one().get_as_2d_point();

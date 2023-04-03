@@ -1,7 +1,7 @@
 extern crate nalgebra as na;
 extern crate nalgebra_lapack;
 
-use na::{Matrix3,Matrix4, OMatrix ,Matrix3xX, SVector, Dynamic, dimension::{U10,U20,U9,U3}};
+use na::{Matrix3,Matrix4, OMatrix ,Matrix3xX, SVector, Dyn, dimension::{U10,U20,U9,U3}};
 use crate::{Float,float};
 use crate::image::features::{Feature,Match};
 use crate::sfm::{triangulation::{linear_triangulation_svd,stereo_triangulation},epipolar::{Essential,tensor::decompose_essential_förstner}};
@@ -22,7 +22,7 @@ pub fn five_point_essential<T: Feature + Clone>(matches: &Vec<Match<T>>, project
     let mut camera_rays_two = Matrix3xX::<Float>::zeros(l);
     let mut features_one = Matrix3xX::<Float>::zeros(l);
     let mut features_two = Matrix3xX::<Float>::zeros(l);
-    let mut A = OMatrix::<Float, Dynamic,U9>::zeros(l);
+    let mut A = OMatrix::<Float, Dyn,U9>::zeros(l);
 
     for i in 0..l {
         let m = &matches[i];
@@ -121,8 +121,8 @@ pub fn cheirality_check<T: Feature + Clone>(
         all_essential_matricies: &Vec<Essential>,
         matches: &Vec<Match<T>>,
         positive_principal_distance: bool,
-        points_cam_1: (&OMatrix<Float, U3,Dynamic>, &Matrix3<Float>,&Matrix3<Float>), 
-        points_cam_2: (&OMatrix<Float, U3,Dynamic>, &Matrix3<Float>,&Matrix3<Float>)) -> Option<Essential> {
+        points_cam_1: (&OMatrix<Float, U3,Dyn>, &Matrix3<Float>,&Matrix3<Float>), 
+        points_cam_2: (&OMatrix<Float, U3,Dyn>, &Matrix3<Float>,&Matrix3<Float>)) -> Option<Essential> {
     let mut max_accepted_cheirality_count = 0;
     let mut best_e = None;
     let mut smallest_det = float::MAX;

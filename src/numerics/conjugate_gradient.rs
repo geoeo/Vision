@@ -3,16 +3,16 @@ extern crate num_traits;
 
 use std::ops::{AddAssign,SubAssign};
 use num_traits::{float,NumAssign};
-use na::{SimdRealField, ComplexField, DMatrix, Matrix,Dynamic, storage::{Storage, StorageMut}, Vector ,U1, Dim, base::{Scalar, default_allocator::DefaultAllocator, allocator::{Allocator}}};
+use na::{SimdRealField, ComplexField, DMatrix, Matrix,Dyn, storage::{Storage, StorageMut}, Vector ,U1, Dim, base::{Scalar, default_allocator::DefaultAllocator, allocator::{Allocator}}};
 
 #[allow(non_snake_case)]
-pub fn compute_block_matrix_preconditioner_inverse<F,PStorage,VStorage,WStorage, WtStorage>(preconditioner: &mut DMatrix::<F>,P_inv: &Matrix::<F,Dynamic,Dynamic,PStorage> , C: &Matrix::<F,Dynamic,Dynamic, VStorage>, E: &Matrix::<F,Dynamic,Dynamic, WStorage>, E_t: &Matrix::<F,Dynamic,Dynamic, WtStorage>, omega: F) -> () 
+pub fn compute_block_matrix_preconditioner_inverse<F,PStorage,VStorage,WStorage, WtStorage>(preconditioner: &mut DMatrix::<F>,P_inv: &Matrix::<F,Dyn,Dyn,PStorage> , C: &Matrix::<F,Dyn,Dyn, VStorage>, E: &Matrix::<F,Dyn,Dyn, WStorage>, E_t: &Matrix::<F,Dyn,Dyn, WtStorage>, omega: F) -> () 
     where
         F : float::Float + Scalar + NumAssign + SimdRealField + ComplexField,
-        PStorage: Storage<F,Dynamic,Dynamic>,
-        VStorage: Storage<F,Dynamic,Dynamic> + Clone,
-        WStorage: Storage<F,Dynamic,Dynamic>,
-        WtStorage: Storage<F,Dynamic,Dynamic> {
+        PStorage: Storage<F,Dyn,Dyn>,
+        VStorage: Storage<F,Dyn,Dyn> + Clone,
+        WStorage: Storage<F,Dyn,Dyn>,
+        WtStorage: Storage<F,Dyn,Dyn> {
     let p_dim = P_inv.nrows();
     let v_dim = C.nrows();
 
