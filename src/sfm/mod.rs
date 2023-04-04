@@ -7,7 +7,8 @@ use std::collections::{HashMap,HashSet};
 use crate::image::{features::{Feature, Match, feature_track::FeatureTrack, solver_feature::SolverFeature, ImageFeature}};
 use crate::sfm::{epipolar::tensor, epipolar::compute_linear_normalization,
     triangulation::{Triangulation, triangulate_matches}, 
-    rotation_avg::{optimize_rotations_with_rcd_per_track,optimize_rotations_with_rcd}};
+    rotation_avg::{optimize_rotations_with_rcd_per_track,optimize_rotations_with_rcd},
+    outlier_rejection::outlier_rejection_dual};
 use crate::sensors::camera::Camera;
 use crate::numerics::{pose::{to_parts,from_matrix,se3}};
 use crate::{float,Float};
@@ -117,7 +118,14 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
         Self::reject_landmark_outliers(&mut landmark_map, &mut reprojection_error_map, &mut match_map, landmark_cutoff_thresh);
         println!("SFM Config Max Reprojection Error 2): {}, Min Reprojection Error: {}", max_reprojection_error_refined, min_reprojection_error_refined);
 
+
         Self::recompute_landmark_ids(&mut match_map);
+
+        let unique_landmark_ids = compute_unique_landmark_id(&match_map);
+        let camera_ids_root_first = Self::get_sorted_camera_keys(root, paths);
+        let abs_pose_map = compute_absolute_poses_for_root(root, paths, &pose_map);
+        let feature_map = compute_features_per_image_map(&match_map); 
+        outlier_rejection_dual(&unique_landmark_ids, &camera_ids_root_first, &abs_pose_map, &feature_map);
 
         SFMConfig{root, paths: paths.clone(), camera_map_highp: camera_map, camera_map_lowp: camera_map_ba, match_map, pose_map, epipolar_alg, landmark_map, reprojection_error_map,triangulation}
     }
@@ -151,13 +159,13 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
     }
 
     pub fn compute_unqiue_ids_cameras_root_first(&self) -> (Vec<usize>, Vec<&C>) {
-        let keys_sorted = self.get_sorted_camera_keys();
+        let keys_sorted = Self::get_sorted_camera_keys(self.root(), self.paths());
         let cameras_sorted = keys_sorted.iter().map(|id| self.camera_map_highp.get(id).expect("compute_unqiue_ids_cameras_root_first: trying to get invalid camera")).collect::<Vec<&C>>();
-        (keys_sorted,cameras_sorted)
+        (keys_sorted, cameras_sorted)
     }
 
     pub fn compute_unqiue_ids_cameras_ba_root_first(&self) -> (Vec<usize>, Vec<&C2>) {
-        let keys_sorted = self.get_sorted_camera_keys();
+        let keys_sorted = Self::get_sorted_camera_keys(self.root(), self.paths());
         let cameras_sorted = keys_sorted.iter().map(|id| self.camera_map_lowp.get(id).expect("compute_unqiue_ids_cameras_lowp_root_first: trying to get invalid camera")).collect::<Vec<&C2>>();
         (keys_sorted,cameras_sorted)
     }
@@ -280,12 +288,13 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
         (min_reprojection_error, max_reprojection_error)
     }
 
-    fn get_sorted_camera_keys(&self) -> Vec<usize> {
-        let number_of_keys = self.camera_map_lowp.keys().len();
+    fn get_sorted_camera_keys(root_id: usize, paths: &Vec<Vec<usize>>) -> Vec<usize> {
+        let ids_flat = paths.clone().into_iter().flatten().collect::<Vec<usize>>();
+        let number_of_keys = ids_flat.len() + 1;
         let mut keys_sorted = Vec::<usize>::with_capacity(number_of_keys);
         // root has to first by design
-        keys_sorted.push(self.root());
-        keys_sorted.extend(self.paths.clone().into_iter().flatten().collect::<Vec<usize>>());
+        keys_sorted.push(root_id);
+        keys_sorted.extend(ids_flat);
         keys_sorted.dedup();
         keys_sorted
     }
@@ -661,34 +670,37 @@ fn compute_features_per_image_map<Feat: Feature>(match_map: &HashMap<(usize,usiz
     }
     
     let mut feature_map = HashMap::<usize, HashSet<ImageFeature>>::with_capacity(unique_cameras.len());
-    for camera_id in unique_cameras {
+    for unique_cam_id in &unique_cameras {
+        feature_map.insert(unique_cam_id.clone(),  HashSet::<ImageFeature>::with_capacity(200)); //TODO: make an argument
+    }
+
+    for camera_id in &unique_cameras {
         let id_prev = match camera_id {
             0 => None,
             i => Some(i-1)
         };
         let id_next = camera_id + 1;
 
-        let features_fwd = match_map.get(&(camera_id,id_next));
+        let features_fwd = match_map.get(&(camera_id.clone(),id_next));
         if features_fwd.is_some(){
             for m in features_fwd.unwrap() {
                 let f = &m.get_feature_one();
                 let image_feature = ImageFeature::new(f.get_x_image_float(), f.get_y_image_float(), f.get_landmark_id());
-                feature_map.get_mut(&camera_id).unwrap().insert(image_feature);
+                feature_map.get_mut(&camera_id).expect("compute_features_per_image_map: Camera not found in fwd feature").insert(image_feature);
             }
         }
 
         if id_prev.is_some() {
-            let features_bck = match_map.get(&(id_prev.unwrap(),camera_id));
+            let features_bck = match_map.get(&(id_prev.unwrap(),camera_id.clone()));
             if features_bck.is_some(){
                 for m in features_bck.unwrap() {
                     let f = &m.get_feature_two();
                     let image_feature = ImageFeature::new(f.get_x_image_float(), f.get_y_image_float(), f.get_landmark_id());
-                    feature_map.get_mut(&camera_id).unwrap().insert(image_feature);
+                    feature_map.get_mut(&camera_id).expect("compute_features_per_image_map: Camera not found in bck feature").insert(image_feature);
                 }
             }
         }
     }
-
     feature_map
 }
 
