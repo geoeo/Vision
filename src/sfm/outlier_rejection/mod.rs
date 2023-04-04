@@ -2,7 +2,7 @@
 extern crate nalgebra as na;
 extern crate linear_ip;
 
-use na::{MatrixXx3,Vector2,DMatrix,DVector,Isometry3, RowVector3};
+use na::{MatrixXx3,DMatrix,DVector,Isometry3};
 use std::collections::{HashMap,HashSet};
 use crate::image::features::Feature;
 use crate::Float;
@@ -17,7 +17,7 @@ pub fn outlier_rejection_dual<Feat: Feature + Clone>(unique_landmark_ids: &HashS
     assert!(unique_landmark_ids.contains(&0)); // ids have to represent matrix indices
 
     let (a,b,c,a0,b0,c0) = generate_known_rotation_problem(unique_landmark_ids, camera_ids_root_first, abs_pose_map, feature_map);
-    panic!("TODO");
+    panic!("TODO: outlier_rejection_dual");
 }
 
 #[allow(non_snake_case)]
@@ -62,7 +62,7 @@ fn sovlve_feasability_problem(a: &DMatrix<Float>, b: &DMatrix<Float>, c: &DMatri
     let mut B = DVector::<Float>::zeros(a1.ncols()+A_temp.nrows());
     B.rows_mut(a1.ncols(),A_temp.nrows()).fill(1.0);
 
-    let (X,Y) = linear_ip::solve_dyn(&A, &B, &C, 1e-8, 0.95, 0.1, 1000);
+    let (X,Y) = linear_ip::solve(&A, &B, &C, 1e-8, 0.95, 0.1, 1000);
 
 
     panic!("TODO")
