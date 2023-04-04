@@ -11,17 +11,18 @@ use crate::Float;
 /**
  * Outlier Rejection Using Duality Olsen et al.
  */
-pub fn outlier_rejection_dual<Feat: Feature + Clone>(unique_landmark_ids: &HashSet<usize>, camera_ids_root_first: &Vec<usize>, abs_pose_map: &HashMap<usize,Isometry3<Float>>, feature_map: &HashMap<usize, HashSet<Feat>>) {
+pub fn outlier_rejection_dual<Feat: Feature + Clone>(unique_landmark_ids: &HashSet<usize>, camera_ids_root_first: &Vec<usize>, abs_pose_map: &HashMap<usize,Isometry3<Float>>, feature_map: &HashMap<usize, HashSet<Feat>>, tol: Float) {
     assert_eq!(camera_ids_root_first.len(),abs_pose_map.keys().len());
     assert_eq!(camera_ids_root_first.len(),feature_map.keys().len());
     assert!(unique_landmark_ids.contains(&0)); // ids have to represent matrix indices
 
     let (a,b,c,a0,b0,c0) = generate_known_rotation_problem(unique_landmark_ids, camera_ids_root_first, abs_pose_map, feature_map);
+    let temp = solve_feasability_problem(&a, &b, &c, &a0, &b0, &c0, tol, 0.1, 100.0);
     panic!("TODO: outlier_rejection_dual");
 }
 
 #[allow(non_snake_case)]
-fn sovlve_feasability_problem(a: &DMatrix<Float>, b: &DMatrix<Float>, c: &DMatrix<Float>, a0: &DVector<Float>, b0: &DVector<Float>, c0: &DVector<Float>, tol: Float, min_depth: Float, max_depth: Float) -> (DVector<Float>, DVector<Float>) {
+fn solve_feasability_problem(a: &DMatrix<Float>, b: &DMatrix<Float>, c: &DMatrix<Float>, a0: &DVector<Float>, b0: &DVector<Float>, c0: &DVector<Float>, tol: Float, min_depth: Float, max_depth: Float) -> (DVector<Float>, DVector<Float>) {
     let tol_c = tol*c;
     let tol_c0 = tol*c0;
     let mut a1 = DMatrix::<Float>::zeros(2*a.nrows() + 2*b.nrows(),a.ncols());
@@ -62,10 +63,10 @@ fn sovlve_feasability_problem(a: &DMatrix<Float>, b: &DMatrix<Float>, c: &DMatri
     let mut B = DVector::<Float>::zeros(a1.ncols()+A_temp.nrows());
     B.rows_mut(a1.ncols(),A_temp.nrows()).fill(1.0);
 
-    let (X,Y) = linear_ip::solve(&A, &B, &C, 1e-8, 0.95, 0.1, 1000);
+    let (X,Y) = linear_ip::solve(&A, &B, &C, 1e-8, 0.95, 0.1, 1000); // Leads to crash
 
 
-    panic!("TODO")
+    panic!("TODO: sovlve_feasability_problem")
 }
 
 fn generate_known_rotation_problem<Feat: Feature + Clone>(unique_landmark_ids: &HashSet<usize>, camera_ids_root_first: &Vec<usize>, abs_pose_map: &HashMap<usize,Isometry3<Float>>, feature_map: &HashMap<usize, HashSet<Feat>>) -> (DMatrix<Float>,DMatrix<Float>,DMatrix<Float>,DVector<Float>,DVector<Float>,DVector<Float>) {
