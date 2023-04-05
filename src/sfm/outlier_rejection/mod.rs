@@ -24,7 +24,6 @@ pub fn outlier_rejection_dual<Feat: Feature + Clone>(unique_landmark_ids: &HashS
 #[allow(non_snake_case)]
 fn solve_feasability_problem(a: DMatrix<Float>, b: DMatrix<Float>, c: DMatrix<Float>, a0: DVector<Float>, b0: DVector<Float>, c0: DVector<Float>, tol: Float, min_depth: Float, max_depth: Float) -> (DVector<Float>, DVector<Float>) {
     let (A,B,C) = construct_feasability_inputs(a, b, c, a0, b0, c0, tol, min_depth, max_depth);
-    let t = A.transpose();
     let (X, Y) = linear_ip::solve(&A, &B, &C, 1e-8, 0.95, 0.1, 1000); // Leads to crash -> goes OOM on wsl
 
 
