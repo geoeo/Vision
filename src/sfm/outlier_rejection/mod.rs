@@ -16,29 +16,39 @@ pub fn outlier_rejection_dual<Feat: Feature + Clone>(unique_landmark_ids: &HashS
     assert_eq!(camera_ids_root_first.len(),feature_map.keys().len());
     assert!(unique_landmark_ids.contains(&0)); // ids have to represent matrix indices
 
-    let (a,b,c,a0,b0,c0) = generate_known_rotation_problem(unique_landmark_ids, camera_ids_root_first, abs_pose_map, feature_map);
-    let temp = solve_feasability_problem(&a, &b, &c, &a0, &b0, &c0, tol, 0.1, 100.0);
+    let (a, b, c, a0, b0, c0) = generate_known_rotation_problem(unique_landmark_ids, camera_ids_root_first, abs_pose_map, feature_map);
+    let _ = solve_feasability_problem(a, b, c, a0, b0, c0, tol, 0.1, 100.0);
     panic!("TODO: outlier_rejection_dual");
 }
 
 #[allow(non_snake_case)]
-fn solve_feasability_problem(a: &DMatrix<Float>, b: &DMatrix<Float>, c: &DMatrix<Float>, a0: &DVector<Float>, b0: &DVector<Float>, c0: &DVector<Float>, tol: Float, min_depth: Float, max_depth: Float) -> (DVector<Float>, DVector<Float>) {
-    let tol_c = tol*c;
-    let tol_c0 = tol*c0;
+fn solve_feasability_problem(a: DMatrix<Float>, b: DMatrix<Float>, c: DMatrix<Float>, a0: DVector<Float>, b0: DVector<Float>, c0: DVector<Float>, tol: Float, min_depth: Float, max_depth: Float) -> (DVector<Float>, DVector<Float>) {
+    let (A,B,C) = construct_feasability_inputs(a, b, c, a0, b0, c0, tol, min_depth, max_depth);
+    let t = A.transpose();
+    let (X, Y) = linear_ip::solve(&A, &B, &C, 1e-8, 0.95, 0.1, 1000); // Leads to crash -> goes OOM on wsl
+
+
+    panic!("TODO: sovlve_feasability_problem")
+}
+
+#[allow(non_snake_case)]
+fn construct_feasability_inputs(a: DMatrix<Float>, b: DMatrix<Float>, c: DMatrix<Float>, a0: DVector<Float>, b0: DVector<Float>, c0: DVector<Float>, tol: Float, min_depth: Float, max_depth: Float) -> (DMatrix<Float>, DVector<Float>, DVector<Float>) {
+    let tol_c = tol*(&c);
+    let tol_c0 = tol*(&c0);
     let mut a1 = DMatrix::<Float>::zeros(2*a.nrows() + 2*b.nrows(),a.ncols());
-    a1.view_mut((0, 0),a.shape()).copy_from(&(-a-&tol_c));
-    a1.view_mut((a.nrows(), 0),a.shape()).copy_from(&(a-&tol_c));
-    a1.view_mut((2*a.nrows(), 0),b.shape()).copy_from(&(-b-&tol_c));
-    a1.view_mut((2*a.nrows() + b.nrows(), 0),b.shape()).copy_from(&(b-&tol_c));
+    a1.view_mut((0, 0),a.shape()).copy_from(&(-(&a)-&tol_c));
+    a1.view_mut((a.nrows(), 0),a.shape()).copy_from(&((&a)-&tol_c));
+    a1.view_mut((2*a.nrows(), 0),b.shape()).copy_from(&(-(&b)-&tol_c));
+    a1.view_mut((2*a.nrows() + b.nrows(), 0),b.shape()).copy_from(&((&b)-&tol_c));
 
     let mut b1 = DVector::<Float>::zeros(2*a0.nrows() + 2*b0.nrows());
-    b1.rows_mut(0, a0.nrows()).copy_from(&(a0+&tol_c0));
-    b1.rows_mut(a0.nrows(), a0.nrows()).copy_from(&(-a0+&tol_c0));
-    b1.rows_mut(2*a0.nrows(), b0.nrows()).copy_from(&(b0+&tol_c0));
-    b1.rows_mut(2*a0.nrows() + b0.nrows(), b0.nrows()).copy_from(&(-b0+&tol_c0));
+    b1.rows_mut(0, a0.nrows()).copy_from(&(&(a0)+&tol_c0));
+    b1.rows_mut(a0.nrows(), a0.nrows()).copy_from(&(-(&a0)+&tol_c0));
+    b1.rows_mut(2*a0.nrows(), b0.nrows()).copy_from(&((&b0)+&tol_c0));
+    b1.rows_mut(2*a0.nrows() + b0.nrows(), b0.nrows()).copy_from(&(-(&b0)+&tol_c0));
 
     let mut a2 = DMatrix::<Float>::zeros(2*c.nrows(),c.ncols());
-    a2.view_mut((0,0), c.shape()).copy_from(&-c);
+    a2.view_mut((0,0), c.shape()).copy_from(&-(&c));
     a2.view_mut((c.nrows(),0), c.shape()).copy_from(&c);
 
     let mut b2 = DVector::<Float>::zeros(2*c0.nrows());
@@ -63,10 +73,7 @@ fn solve_feasability_problem(a: &DMatrix<Float>, b: &DMatrix<Float>, c: &DMatrix
     let mut B = DVector::<Float>::zeros(a1.ncols()+A_temp.nrows());
     B.rows_mut(a1.ncols(),A_temp.nrows()).fill(1.0);
 
-    let (X,Y) = linear_ip::solve(&A, &B, &C, 1e-8, 0.95, 0.1, 1000); // Leads to crash
-
-
-    panic!("TODO: sovlve_feasability_problem")
+    (A, B, C)
 }
 
 fn generate_known_rotation_problem<Feat: Feature + Clone>(unique_landmark_ids: &HashSet<usize>, camera_ids_root_first: &Vec<usize>, abs_pose_map: &HashMap<usize,Isometry3<Float>>, feature_map: &HashMap<usize, HashSet<Feat>>) -> (DMatrix<Float>,DMatrix<Float>,DMatrix<Float>,DVector<Float>,DVector<Float>,DVector<Float>) {
