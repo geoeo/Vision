@@ -24,7 +24,7 @@ pub fn outlier_rejection_dual<Feat: Feature + Clone>(unique_landmark_ids: &HashS
 #[allow(non_snake_case)]
 fn solve_feasability_problem(a: DMatrix<Float>, b: DMatrix<Float>, c: DMatrix<Float>, a0: DVector<Float>, b0: DVector<Float>, c0: DVector<Float>, tol: Float, min_depth: Float, max_depth: Float) -> (DVector<Float>, DVector<Float>) {
     let (A,B,C) = construct_feasability_inputs(a, b, c, a0, b0, c0, tol, min_depth, max_depth);
-    let (X, Y) = linear_ip::solve(&A, &B, &C, 1e-8, 0.95, 0.1, 1000); // Leads to crash -> goes OOM on wsl
+    let (X, Y) = linear_ip::solve(&A, &(-B), &C, 1e-8, 0.95, 0.1, 1000); // goes OOM on wsl on large matricies
 
 
     panic!("TODO: sovlve_feasability_problem")
@@ -54,11 +54,11 @@ fn construct_feasability_inputs(a: DMatrix<Float>, b: DMatrix<Float>, c: DMatrix
     b2.rows_mut(0,c0.nrows()).copy_from(&(c0.add_scalar(-min_depth)));
     b2.rows_mut(c.nrows(),c0.nrows()).copy_from(&(-c0).add_scalar(max_depth));
 
-    let mut A_temp = DMatrix::<Float>::zeros(a1.nrows()+a2.nrows(),a1.ncols()+a2.ncols());
+    let mut A_temp = DMatrix::<Float>::zeros(a1.nrows()+a2.nrows(),a1.ncols());
     A_temp.view_mut((0,0),a1.shape()).copy_from(&a1);
-    A_temp.view_mut(a1.shape(),a2.shape()).copy_from(&a2);
+    A_temp.view_mut((a1.nrows(),0),a2.shape()).copy_from(&a2);
     
-    let mut A = DMatrix::<Float>::zeros(2*A_temp.nrows(),2*A_temp.ncols() + 2*A_temp.nrows());
+    let mut A = DMatrix::<Float>::zeros(2*A_temp.nrows(),A_temp.ncols() + A_temp.nrows());
     let id = -DMatrix::<Float>::identity(A_temp.nrows(), A_temp.nrows());
     A.view_mut((0,0),A_temp.shape()).copy_from(&A_temp);
     A.view_mut((0,A_temp.ncols()),id.shape()).copy_from(&id);
@@ -72,7 +72,7 @@ fn construct_feasability_inputs(a: DMatrix<Float>, b: DMatrix<Float>, c: DMatrix
     let mut B = DVector::<Float>::zeros(a1.ncols()+A_temp.nrows());
     B.rows_mut(a1.ncols(),A_temp.nrows()).fill(1.0);
 
-    (A, B, C)
+    (A.transpose(), B, C) //TODO: check this transpose
 }
 
 fn generate_known_rotation_problem<Feat: Feature + Clone>(unique_landmark_ids: &HashSet<usize>, camera_ids_root_first: &Vec<usize>, abs_pose_map: &HashMap<usize,Isometry3<Float>>, feature_map: &HashMap<usize, HashSet<Feat>>) -> (DMatrix<Float>,DMatrix<Float>,DMatrix<Float>,DVector<Float>,DVector<Float>,DVector<Float>) {

@@ -211,7 +211,7 @@ fn recover_translation_and_depth(m1: &SMatrix<Float,3,5>, m2: &SMatrix<Float,3,5
         }
 
         // The right singular vector corresponding to the zero singular value of C.
-        let Y = nalgebra_lapack::SVD::new(C).expect("Five Point: SVD failed on A!").vt.row(12).transpose();
+        let Y = nalgebra_lapack::SVD::new(C).expect("Five Point: SVD failed on A!").vt.row(12).transpose(); //TODO: return None of failure
 
         let t = Y.fixed_rows::<3>(0);  // Translation vector
         let z = Y.fixed_rows::<10>(3).into_owned();  // Depths in both camera frames
