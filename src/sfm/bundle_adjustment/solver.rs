@@ -2,12 +2,14 @@ extern crate nalgebra as na;
 extern crate num_traits;
 
 use na::{DVector,DMatrix,Matrix, Dyn, U4, VecStorage,Point3, Vector4, ComplexField, base::Scalar, RealField, convert};
+use simba::scalar::SupersetOf;
 use num_traits::float;
 use crate::sensors::camera::Camera;
 use crate::numerics::lie::left_jacobian_around_identity;
 use crate::numerics::{max_norm, least_squares::{compute_cost,weight_jacobian_sparse,weight_residuals_sparse, calc_weight_vec, gauss_newton_step_with_schur, gauss_newton_step_with_conguate_gradient}};
 use crate::sfm::{landmark::Landmark,bundle_adjustment::{state::State, camera_feature_map::CameraFeatureMap}};
 use crate::odometry::runtime_parameters::RuntimeParameters; //TODO remove dependency on odometry module
+use crate::Float;
 
 const CAMERA_PARAM_SIZE: usize = 6; //TODO make this generic with state
 
@@ -19,7 +21,7 @@ pub fn get_feature_index_in_residual(cam_id: usize, feature_id: usize, n_cams: u
  * In the format [f1_cam1, f1_cam2,...]
  * Some entries may be 0 since not all cams see all points
  * */
-pub fn get_estimated_features<F, C : Camera<F>, L: Landmark<F,T> + Copy + Clone, const T: usize>(
+pub fn get_estimated_features<F: SupersetOf<Float>, C : Camera<F>, L: Landmark<F,T> + Copy + Clone, const T: usize>(
     state: &State<F,L,T>, cameras: &Vec<&C>,observed_features: &DVector<F>, estimated_features: &mut DVector<F>) 
     -> () where F: float::Float + Scalar + ComplexField + RealField {
     let n_cams = state.n_cams;
@@ -52,7 +54,7 @@ pub fn get_estimated_features<F, C : Camera<F>, L: Landmark<F,T> + Copy + Clone,
 }
 
 
-pub fn compute_residual<F>(
+pub fn compute_residual<F: SupersetOf<Float>>(
     estimated_features: &DVector<F>, observed_features: &DVector<F>, residual_vector: &mut DVector<F>) 
     -> () where F: float::Float + Scalar + RealField{
     assert_eq!(residual_vector.nrows(), estimated_features.nrows());
@@ -115,7 +117,7 @@ pub fn compute_jacobian<F, C : Camera<F>, L: Landmark<F, T> + Copy + Clone, cons
 
 }
 
-pub fn optimize<F, C : Camera<F>, L: Landmark<F, LANDMARK_PARAM_SIZE> + Copy + Clone, const LANDMARK_PARAM_SIZE: usize>(state: &mut State<F,L,LANDMARK_PARAM_SIZE>, cameras: &Vec<&C>, observed_features: &DVector<F>, runtime_parameters: &RuntimeParameters<F> ) 
+pub fn optimize<F: SupersetOf<Float>, C : Camera<F>, L: Landmark<F, LANDMARK_PARAM_SIZE> + Copy + Clone, const LANDMARK_PARAM_SIZE: usize>(state: &mut State<F,L,LANDMARK_PARAM_SIZE>, cameras: &Vec<&C>, observed_features: &DVector<F>, runtime_parameters: &RuntimeParameters<F> ) 
     -> Option<Vec<(Vec<[F; CAMERA_PARAM_SIZE]>, Vec<[F; LANDMARK_PARAM_SIZE]>)>> where F: float::Float + Scalar + ComplexField + RealField {
     
 

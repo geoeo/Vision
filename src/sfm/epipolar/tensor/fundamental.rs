@@ -111,7 +111,7 @@ fn linear_coefficients(feature_left: &Vector2<Float>, feature_right: &Vector2<Fl
  */
 #[allow(non_snake_case)]
 pub fn optimal_correction<T : Feature + SolverFeature + Clone>(initial_F: &Fundamental, m_measured_in: &Vec<Match<T>>, f0: Float) -> Fundamental {
-    let error_threshold_efns = 1e-4;
+    let error_threshold_efns = 1e-3;
     let error_threshold = 1e-4;
     let max_it_efns = 100;
     let max_it = 50;

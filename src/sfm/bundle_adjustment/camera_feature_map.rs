@@ -3,6 +3,7 @@ extern crate num_traits;
 
 use na::{convert,Vector3, Matrix4xX, Matrix3, Matrix4, DVector, Isometry3, Rotation3,base::Scalar, RealField};
 use num_traits::{float,NumAssign};
+use simba::scalar::SupersetOf;
 use std::collections::HashMap;
 use crate::image::{
     features::{Feature, Match},
@@ -97,35 +98,6 @@ impl CameraFeatureMap {
         self.camera_map.get_mut(&other_cam_id).unwrap().1.insert(point_other_idx, landmark_id);
         self.landmark_match_lookup.insert(key, landmark_id);
 
-
-        // let source_point_id =  self.camera_map.get(&source_cam_id).unwrap().1.get(&point_source_idx);
-        // let other_point_id = self.camera_map.get(&other_cam_id).unwrap().1.get(&point_other_idx);
-
-        //let landmark_id = self.number_of_unique_landmarks;
-        // match (source_point_id.clone(),other_point_id.clone()) {
-        //     //If the no point Id is present in either of the two camera it is a new 3D Point
-        //     (None,None) => {
-        //         self.feature_location_lookup[landmark_id][internal_source_cam_id] = Some((point_source_x_float,point_source_y_float));
-        //         self.feature_location_lookup[landmark_id][internal_other_cam_id] = Some((point_other_x_float,point_other_y_float));
-        //         self.camera_map.get_mut(&source_cam_id).unwrap().1.insert(point_source_idx, landmark_id);
-        //         self.camera_map.get_mut(&other_cam_id).unwrap().1.insert(point_other_idx, landmark_id);
-        //         self.landmark_match_lookup.insert(key, landmark_id);
-        //         self.number_of_unique_landmarks += 1;
-        //     },
-        //     // Otherwise add it to the camera which observs it for the first time
-        //     (Some(&point_id),_) => {
-        //         self.feature_location_lookup[point_id][internal_other_cam_id] = Some((point_other_x_float,point_other_y_float));
-        //         self.camera_map.get_mut(&other_cam_id).unwrap().1.insert(point_other_idx, point_id);
-        //         self.landmark_match_lookup.insert(key, point_id);
-        //     },
-        //     (None,Some(&point_id)) => {
-        //         self.camera_map.get_mut(&source_cam_id).unwrap().1.insert(point_source_idx,point_id);
-        //         self.feature_location_lookup[point_id][internal_source_cam_id] = Some((point_source_x_float,point_source_y_float));
-        //         self.landmark_match_lookup.insert(key, point_id);
-        //     }
-
-        //}
-
     }
 
     //TODO: move this to contructor
@@ -166,7 +138,7 @@ impl CameraFeatureMap {
         State::new(camera_positions,landmarks, number_of_cameras, number_of_unqiue_landmarks)
     }
 
-    pub fn get_euclidean_landmark_state<F: float::Float + Scalar + NumAssign + RealField, Feat: Feature>(
+    pub fn get_euclidean_landmark_state<F: float::Float + Scalar + NumAssign + RealField + SupersetOf<Float>, Feat: Feature>(
         &self, paths: &Vec<Vec<(usize,usize)>>, 
         match_map: &HashMap<(usize, usize), Vec<Match<Feat>>>, 
         pose_map: &HashMap<(usize, usize), Isometry3<Float>>,
@@ -243,7 +215,7 @@ impl CameraFeatureMap {
         State::new(camera_positions, landmarks, number_of_cameras, number_of_unqiue_landmarks)
     }
 
-    fn get_initial_camera_positions<F: float::Float + Scalar + NumAssign + RealField>(
+    fn get_initial_camera_positions<F: float::Float + Scalar + NumAssign + RealField + SupersetOf<Float>>(
         &self,paths: &Vec<Vec<(usize,usize)>>, pose_map: &HashMap<(usize, usize), Isometry3<Float>>) 
         -> DVector::<F> {
 
@@ -276,7 +248,7 @@ impl CameraFeatureMap {
     /**
      * This vector has ordering In the format [f1_cam1, f1_cam2,...] where cam_id(cam_n-1) < cam_id(cam_n) 
      */
-    pub fn get_observed_features<F: float::Float + Scalar + NumAssign + RealField>(&self) -> DVector<F> {
+    pub fn get_observed_features<F: float::Float + Scalar + NumAssign + RealField + SupersetOf<Float>>(&self) -> DVector<F> {
         let n_cams = self.camera_map.keys().len();
         let mut observed_features = DVector::<F>::zeros(self.number_of_unique_landmarks*n_cams*2); // some entries might be invalid
         let c_y = (self.image_row_col.0 - 1) as Float; 

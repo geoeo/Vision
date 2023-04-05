@@ -127,7 +127,7 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
         let feature_map = compute_features_per_image_map(&match_map); 
         let root_cam = camera_map.get(&root).expect("Root Cam not found!");
         let tol = 5.0/root_cam.get_focal_x(); // rougly 5 pixels
-        outlier_rejection_dual(&unique_landmark_ids, &camera_ids_root_first, &abs_pose_map, &feature_map, tol);
+        // outlier_rejection_dual(&unique_landmark_ids, &camera_ids_root_first, &abs_pose_map, &feature_map, tol);
 
         SFMConfig{root, paths: paths.clone(), camera_map_highp: camera_map, camera_map_lowp: camera_map_ba, match_map, pose_map, epipolar_alg, landmark_map, reprojection_error_map,triangulation}
     }
