@@ -4,6 +4,7 @@ extern crate linear_ip;
 
 use na::{MatrixXx3,DMatrix,DVector,Isometry3};
 use std::collections::{HashMap,HashSet};
+use std::ops::AddAssign;
 use crate::image::features::Feature;
 use crate::Float;
 
@@ -23,15 +24,29 @@ pub fn outlier_rejection_dual<Feat: Feature + Clone>(unique_landmark_ids: &HashS
 
 #[allow(non_snake_case)]
 fn solve_feasability_problem(a: DMatrix<Float>, b: DMatrix<Float>, c: DMatrix<Float>, a0: DVector<Float>, b0: DVector<Float>, c0: DVector<Float>, tol: Float, min_depth: Float, max_depth: Float) -> (DVector<Float>, DVector<Float>) {
-    let (A,B,C) = construct_feasability_inputs(a, b, c, a0, b0, c0, tol, min_depth, max_depth);
-    let (X, Y) = linear_ip::solve(&A, &(-B), &C, 1e-8, 0.95, 0.1, 1000); // goes OOM on wsl on large matricies
+    let (A,B,C, a_nrows, a1_ncols) = construct_feasability_inputs(a, b, c, a0, b0, c0, tol, min_depth, max_depth);
+    let (_, Y) = linear_ip::solve(&A, &(-B), &C, 1e-8, 0.95, 0.1, 10); // goes OOM on wsl on large matricies
 
+    let mut s_temp = DVector::<Float>::zeros(Y.nrows()-a1_ncols);
+    let s_temp_size = s_temp.nrows();
+    assert_eq!(s_temp_size,6*a_nrows);
 
-    panic!("TODO: sovlve_feasability_problem")
+    let mut s = DVector::<Float>::zeros(a_nrows);
+    s_temp.rows_mut(0, s_temp.nrows()).copy_from(&Y.rows(a1_ncols,s_temp_size));
+    // s = s(1:size(a,1))+s(size(a,1)+1:2*size(a,1))+s(2*size(a,1)+1:3*size(a,1))+s(3*size(a,1)+1:4*size(a,1))+...
+    // s(4*size(a,1)+1:5*size(a,1))+s(5*size(a,1)+1:end);
+    for offset in 0..6 {
+        s.add_assign(s_temp.rows(offset*a_nrows,a_nrows));
+    }
+
+    let Y_new = Y.rows(0,a1_ncols).into_owned();
+
+    (Y_new, s)
 }
 
 #[allow(non_snake_case)]
-fn construct_feasability_inputs(a: DMatrix<Float>, b: DMatrix<Float>, c: DMatrix<Float>, a0: DVector<Float>, b0: DVector<Float>, c0: DVector<Float>, tol: Float, min_depth: Float, max_depth: Float) -> (DMatrix<Float>, DVector<Float>, DVector<Float>) {
+fn construct_feasability_inputs(a: DMatrix<Float>, b: DMatrix<Float>, c: DMatrix<Float>, a0: DVector<Float>, b0: DVector<Float>, c0: DVector<Float>, tol: Float, min_depth: Float, max_depth: Float) 
+    -> (DMatrix<Float>, DVector<Float>, DVector<Float>, usize, usize) {
     let tol_c = tol*(&c);
     let tol_c0 = tol*(&c0);
     let mut a1 = DMatrix::<Float>::zeros(2*a.nrows() + 2*b.nrows(),a.ncols());
@@ -72,7 +87,7 @@ fn construct_feasability_inputs(a: DMatrix<Float>, b: DMatrix<Float>, c: DMatrix
     let mut B = DVector::<Float>::zeros(a1.ncols()+A_temp.nrows());
     B.rows_mut(a1.ncols(),A_temp.nrows()).fill(1.0);
 
-    (A.transpose(), B, C) //TODO: check this transpose
+    (A.transpose(), B, C, a.nrows(), a1.ncols()) //TODO: transpose on construction
 }
 
 fn generate_known_rotation_problem<Feat: Feature + Clone>(unique_landmark_ids: &HashSet<usize>, camera_ids_root_first: &Vec<usize>, abs_pose_map: &HashMap<usize,Isometry3<Float>>, feature_map: &HashMap<usize, HashSet<Feat>>) -> (DMatrix<Float>,DMatrix<Float>,DMatrix<Float>,DVector<Float>,DVector<Float>,DVector<Float>) {
