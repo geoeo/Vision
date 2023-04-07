@@ -6,7 +6,7 @@ use na::{Matrix3, MatrixXx3, Rotation3, Vector3};
 use rand::{thread_rng, Rng};
 
 use std::collections::HashMap;
-use crate::{Float,float};
+use crate::Float;
 
 
 /**
@@ -18,8 +18,6 @@ pub fn rcd(relative_rotations_csc: CscMatrix<Float>, number_of_absolute_rotation
     let mut absolute_rotations_transpose = absolute_rotations.transpose();
 
     //println!("{}",absolute_rotations);
-
-    let mut cost = float::MAX;
     let mut old_cost = -0.5*(&absolute_rotations_transpose * (&relative_rotations_csc * &absolute_rotations)).trace();
 
     let max_epoch = 100; //TODO: config
@@ -45,7 +43,7 @@ pub fn rcd(relative_rotations_csc: CscMatrix<Float>, number_of_absolute_rotation
             absolute_rotations_transpose.columns_mut(absolute_rotations_transpose.ncols()-bottom_offset,bottom_offset).copy_from(&absolute_rotations.rows(absolute_rotations.nrows()-bottom_offset,bottom_offset).transpose())
         }
 
-        cost = -0.5*(&absolute_rotations_transpose * (&relative_rotations_csc * &absolute_rotations)).trace();  
+        let cost = -0.5*(&absolute_rotations_transpose * (&relative_rotations_csc * &absolute_rotations)).trace();  
         //println!("RCD cost: {}", cost);
         if (old_cost-cost) / old_cost.abs().max(1.0) <= eps {
             for i in 0..number_of_absolute_rotations {

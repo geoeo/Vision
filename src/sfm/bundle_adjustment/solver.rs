@@ -23,7 +23,7 @@ pub fn get_feature_index_in_residual(cam_id: usize, feature_id: usize, n_cams: u
  * */
 pub fn get_estimated_features<F: SupersetOf<Float>, C : Camera<F>, L: Landmark<F,T> + Copy + Clone, const T: usize>(
     state: &State<F,L,T>, cameras: &Vec<&C>,observed_features: &DVector<F>, estimated_features: &mut DVector<F>) 
-    -> () where F: float::Float + Scalar + ComplexField + RealField {
+    -> () where F: float::Float + Scalar + RealField {
     let n_cams = state.n_cams;
     let n_points = state.n_points;
     assert_eq!(estimated_features.nrows(),2*n_points*n_cams);
@@ -68,7 +68,7 @@ pub fn compute_residual<F: SupersetOf<Float>>(
 }
 
 pub fn compute_jacobian_wrt_object_points<F, C : Camera<F>, L: Landmark<F, T> + Copy + Clone, const T: usize>(camera: &C, state: &State<F,L,T>, cam_idx: usize, point_idx: usize, i: usize, j: usize, jacobian: &mut DMatrix<F>) 
-    -> () where F: float::Float + Scalar + ComplexField + RealField {
+    -> () where F: float::Float + Scalar + RealField {
     let transformation = state.to_se3(cam_idx);
     let point = state.get_landmarks()[point_idx].get_euclidean_representation();
     let jacobian_world = state.jacobian_wrt_world_coordiantes(point_idx,cam_idx);
@@ -80,7 +80,7 @@ pub fn compute_jacobian_wrt_object_points<F, C : Camera<F>, L: Landmark<F, T> + 
 }
 
 pub fn compute_jacobian_wrt_camera_extrinsics<F, C : Camera<F>, L: Landmark<F, T> + Copy + Clone, const T: usize>(camera: &C, state: &State<F,L,T>, cam_idx: usize, point: &Point3<F> ,i: usize, j: usize, jacobian: &mut DMatrix<F>) 
-    -> () where F: float::Float + Scalar + ComplexField + RealField {
+    -> () where F: float::Float + Scalar + RealField {
     let transformation = state.to_se3(cam_idx);
     let transformed_point = transformation*Vector4::<F>::new(point[0],point[1],point[2],F::one());
     let lie_jacobian = left_jacobian_around_identity(&transformed_point.fixed_rows::<3>(0)); 
@@ -92,7 +92,7 @@ pub fn compute_jacobian_wrt_camera_extrinsics<F, C : Camera<F>, L: Landmark<F, T
 }
 
 pub fn compute_jacobian<F, C : Camera<F>, L: Landmark<F, T> + Copy + Clone, const T: usize>(state: &State<F,L,T>, cameras: &Vec<&C>, jacobian: &mut DMatrix<F>) 
-    -> ()  where F: float::Float + Scalar + ComplexField + RealField {
+    -> ()  where F: float::Float + Scalar + RealField {
     //cam
     let number_of_cam_params = 6*state.n_cams;
     for cam_state_idx in (0..number_of_cam_params).step_by(6) {

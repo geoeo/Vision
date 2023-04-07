@@ -3,14 +3,14 @@ extern crate num_traits;
 extern crate simba;
 
 use std::{ops::Mul,convert::From};
-use na::{SimdRealField, ComplexField, base::Scalar, RealField};
+use na::{SimdRealField, base::Scalar, RealField};
 use num_traits::{float,NumAssign};
 use crate::numerics::{loss::LossFunction, weighting::WeightingFunction};
 use std::{fmt,boxed::Box};
 
 
 #[derive(Debug)]
-pub struct RuntimeParameters<F: float::Float + Scalar + NumAssign + SimdRealField + ComplexField + Mul<F> + From<F> + RealField>{
+pub struct RuntimeParameters<F: float::Float + Scalar + NumAssign + SimdRealField + Mul<F> + From<F> + RealField>{
     pub pyramid_scale: F,
     pub max_iterations: Vec<usize>,
     pub eps: Vec<F>,
@@ -27,7 +27,7 @@ pub struct RuntimeParameters<F: float::Float + Scalar + NumAssign + SimdRealFiel
     pub cg_max_it: usize
 }
 
-impl<F: float::Float + Scalar + NumAssign + SimdRealField + ComplexField + Mul<F> + From<F> + RealField+ fmt::LowerExp> fmt::Display for RuntimeParameters<F> {
+impl<F: float::Float + Scalar + NumAssign + SimdRealField + Mul<F> + From<F> + RealField+ fmt::LowerExp> fmt::Display for RuntimeParameters<F> {
 
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
 

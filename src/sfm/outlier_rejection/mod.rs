@@ -25,7 +25,8 @@ pub fn outlier_rejection_dual<Feat: Feature + Clone>(unique_landmark_ids: &HashS
 #[allow(non_snake_case)]
 fn solve_feasability_problem(a: DMatrix<Float>, b: DMatrix<Float>, c: DMatrix<Float>, a0: DVector<Float>, b0: DVector<Float>, c0: DVector<Float>, tol: Float, min_depth: Float, max_depth: Float) -> (DVector<Float>, DVector<Float>) {
     let (A,B,C, a_nrows, a1_ncols) = construct_feasability_inputs(a, b, c, a0, b0, c0, tol, min_depth, max_depth);
-    let (_, Y) = linear_ip::solve(&A, &(-B), &C, 1e-8, 0.95, 0.1, 10); // goes OOM on wsl on large matricies
+    let (_, Y, it, r_primal_norm, r_dual_norm) = linear_ip::solve(&A, &(-B), &C, 1e-8, 0.95, 0.1, 10, 1e-20); // goes OOM on wsl on large matricies
+    println!("linear ip - it: {}, primal_norm: {}, dual_norm: {}",it, r_primal_norm, r_dual_norm);
 
     let mut s_temp = DVector::<Float>::zeros(Y.nrows()-a1_ncols);
     let s_temp_size = s_temp.nrows();
@@ -33,8 +34,6 @@ fn solve_feasability_problem(a: DMatrix<Float>, b: DMatrix<Float>, c: DMatrix<Fl
 
     let mut s = DVector::<Float>::zeros(a_nrows);
     s_temp.rows_mut(0, s_temp.nrows()).copy_from(&Y.rows(a1_ncols,s_temp_size));
-    // s = s(1:size(a,1))+s(size(a,1)+1:2*size(a,1))+s(2*size(a,1)+1:3*size(a,1))+s(3*size(a,1)+1:4*size(a,1))+...
-    // s(4*size(a,1)+1:5*size(a,1))+s(5*size(a,1)+1:end);
     for offset in 0..6 {
         s.add_assign(s_temp.rows(offset*a_nrows,a_nrows));
     }
