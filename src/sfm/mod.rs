@@ -2,7 +2,7 @@ extern crate nalgebra as na;
 extern crate num_traits;
 extern crate simba;
 
-use na::{DVector, Matrix4xX, Vector3, Vector4, Matrix3, Isometry3, Matrix4};
+use na::{DVector, Matrix4xX, Vector3, Vector4, Matrix3, Isometry3};
 use std::collections::{HashMap,HashSet};
 use crate::image::{features::{Feature, Match, feature_track::FeatureTrack, solver_feature::SolverFeature, ImageFeature}};
 use crate::sfm::{epipolar::tensor, epipolar::compute_linear_normalization,
@@ -31,7 +31,6 @@ pub struct SFMConfig<C, C2, Feat: Feature> {
     camera_map_lowp: HashMap<usize, C2>,
     match_map: HashMap<(usize, usize), Vec<Match<Feat>>>,
     pose_map: HashMap<(usize, usize), Isometry3<Float>>, // The pose transforms tuple id 2 into the coordiante system of tuple id 1
-    landmark_map: HashMap<(usize, usize), Matrix4xX<Float>>,
     abs_landmark_map: HashMap<usize, Matrix4xX<Float>>,
     reprojection_error_map: HashMap<(usize, usize),DVector<Float>>,
     epipolar_alg: tensor::BifocalType,
@@ -117,15 +116,15 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
         Self::reject_landmark_outliers( &mut landmark_map, &mut reprojection_error_map, &mut match_map, landmark_cutoff_thresh);
         if refine_rotation_via_rcd {
             let new_pose_map = Self::refine_rotation_by_rcd(root, &paths, &pose_map);
-            let (new_landmark_map, new_reprojection_error_map, _, _) =  Self::compute_landmarks_and_reprojection_maps(root,&paths,&new_pose_map,&match_map,&camera_map,triangulation, positive_principal_distance);
+            let (mut new_landmark_map, mut new_reprojection_error_map , _, _) =  Self::compute_landmarks_and_reprojection_maps(root,&paths,&new_pose_map,&match_map,&camera_map,triangulation, positive_principal_distance);
             let keys = landmark_map.keys().map(|k| *k).collect::<Vec<_>>();
             for key in keys {
                 let new_reprojection_errors = new_reprojection_error_map.get(&key).unwrap();
                 let current_reprojection_errors = reprojection_error_map.get_mut(&key).unwrap();
 
-                if new_reprojection_errors.mean() < current_reprojection_errors.mean(){
-                    landmark_map.insert(key,new_landmark_map.get(&key).unwrap().clone());
-                    reprojection_error_map.insert(key,new_reprojection_error_map.get(&key).unwrap().clone());
+                if new_reprojection_errors.mean() < current_reprojection_errors.mean() {
+                    landmark_map.insert(key,new_landmark_map.remove(&key).unwrap());
+                    reprojection_error_map.insert(key,new_reprojection_error_map.remove(&key).unwrap());
                     pose_map.insert(key,new_pose_map.get(&key).unwrap().clone());
                 }
             }
@@ -135,20 +134,21 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
         Self::reject_landmark_outliers(&mut landmark_map, &mut reprojection_error_map, &mut match_map, landmark_cutoff_thresh);
         println!("SFM Config Max Reprojection Error 2): {}, Min Reprojection Error: {}", max_reprojection_error_refined, min_reprojection_error_refined);
 
-
+        //TODO: Comment recompute_landmark_ids this in more detail
         Self::recompute_landmark_ids(&mut match_map);
         let path_id_pairs = compute_path_id_pairs(root, paths);
 
         let camera_ids_root_first = Self::get_sorted_camera_keys(root, paths);
+        //TODO: check mapping between landmark ids and position in Matrix4xX!! - index of Match is the position in Matrix4xX!
         let mut unique_landmark_ids = compute_unique_landmark_id(&match_map);
         let mut abs_pose_map = compute_absolute_poses_for_root(root, &path_id_pairs, &pose_map);
         let mut feature_map = compute_features_per_image_map(&match_map); 
         let mut abs_landmark_map = compute_absolute_landmarks_for_root(&path_id_pairs,&landmark_map,&abs_pose_map);
         let root_cam = camera_map.get(&root).expect("Root Cam not found!");
         let tol = 5.0/root_cam.get_focal_x(); // rougly 5 pixels
-        outlier_rejection_dual(&camera_ids_root_first, &mut unique_landmark_ids, &mut abs_landmark_map, &mut abs_pose_map, &mut feature_map, tol);
+        //outlier_rejection_dual(&camera_ids_root_first, &mut unique_landmark_ids, &mut abs_landmark_map, &mut abs_pose_map, &mut feature_map, tol);
 
-        SFMConfig{root, paths: paths.clone(), camera_map_highp: camera_map, camera_map_lowp: camera_map_ba, match_map, pose_map, epipolar_alg, landmark_map, abs_landmark_map, reprojection_error_map,triangulation}
+        SFMConfig{root, paths: paths.clone(), camera_map_highp: camera_map, camera_map_lowp: camera_map_ba, match_map, pose_map, epipolar_alg, abs_landmark_map, reprojection_error_map, triangulation}
     }
 
 
@@ -160,7 +160,6 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
     pub fn triangulation(&self) -> Triangulation { self.triangulation}
     pub fn match_map(&self) -> &HashMap<(usize, usize), Vec<Match<Feat>>> {&self.match_map}
     pub fn pose_map(&self) -> &HashMap<(usize, usize), Isometry3<Float>> {&self.pose_map}
-    pub fn landmark_map(&self) -> &HashMap<(usize, usize), Matrix4xX<Float>> {&self.landmark_map}
     pub fn abs_landmark_map(&self) -> &HashMap<usize, Matrix4xX<Float>> {&self.abs_landmark_map}
     pub fn reprojection_error_map(&self) -> &HashMap<(usize, usize), DVector<Float>> {&self.reprojection_error_map}
 
@@ -645,11 +644,6 @@ fn compute_absolute_poses_for_root(root: usize, paths: &Vec<Vec<(usize,usize)>>,
     for path in paths {
         let mut pose_acc = Isometry3::<Float>::identity();
         for key in path {
-            // let source = path[i];
-            // let key = match i {
-            //     0 => (root,source),
-            //     _ => (path[i-1],source)
-            // };
             let pose = pose_map.get(key).expect("Error in compute_absolute_poses_for_root: Pose for key not found ");
             pose_acc *= pose;
             abs_pose_map.insert(key.1,pose_acc);
@@ -662,7 +656,6 @@ fn compute_absolute_landmarks_for_root(paths: &Vec<Vec<(usize,usize)>>, landmark
     let flattened_path_len = paths.iter().flatten().collect::<Vec<_>>().len();
     let mut abs_landmark_map = HashMap::<usize,Matrix4xX<Float>>::with_capacity(flattened_path_len+1);
     for path in paths {
-        //let mut pose_acc = Matrix4::<Float>::identity();
         for (id_s, id_f) in path {
             let landmark_key = (*id_s, *id_f);
             let triangulated_matches = landmark_map.get(&landmark_key).expect(format!("no landmarks found for key: {:?}",landmark_key).as_str());
@@ -705,20 +698,30 @@ fn compute_features_per_image_map<Feat: Feature>(match_map: &HashMap<(usize,usiz
 
         let features_fwd = match_map.get(&(camera_id.clone(),id_next));
         if features_fwd.is_some(){
-            for m in features_fwd.unwrap() {
+            let feature_vec = features_fwd.unwrap();
+            for idx in 0..feature_vec.len() {
+                let m = &feature_vec[idx];
                 let f = &m.get_feature_one();
                 let image_feature = ImageFeature::new(f.get_x_image_float(), f.get_y_image_float(), f.get_landmark_id());
-                feature_map.get_mut(&camera_id).expect("compute_features_per_image_map: Camera not found in fwd feature").insert(image_feature);
+                //TODO: Also save idx i.e. landmark idx in the abs map
+                // This can be inserted from multiple paths i.e. the index is no longer maps to the original vec
+                let new_val = feature_map.get_mut(&camera_id).expect("compute_features_per_image_map: Camera not found in fwd feature").insert(image_feature);
+                assert!(new_val)
             }
         }
 
         if id_prev.is_some() {
             let features_bck = match_map.get(&(id_prev.unwrap(),camera_id.clone()));
             if features_bck.is_some(){
-                for m in features_bck.unwrap() {
+                let feature_vec = features_bck.unwrap();
+                for idx in 0..feature_vec.len() {
+                    let m = &feature_vec[idx];
                     let f = &m.get_feature_two();
                     let image_feature = ImageFeature::new(f.get_x_image_float(), f.get_y_image_float(), f.get_landmark_id());
-                    feature_map.get_mut(&camera_id).expect("compute_features_per_image_map: Camera not found in bck feature").insert(image_feature);
+                    //TODO: Also save idx i.e. landmark idx in the abs map
+                    // This can be inserted from multiple paths i.e. the index is no longer maps to the original vec
+                    let new_val = feature_map.get_mut(&camera_id).expect("compute_features_per_image_map: Camera not found in bck feature").insert(image_feature);
+                    assert!(new_val);
                 }
             }
         }
