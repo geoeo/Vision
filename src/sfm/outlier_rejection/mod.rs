@@ -4,22 +4,23 @@ extern crate linear_ip;
 
 use na::{MatrixXx3,DMatrix,DVector,Isometry3};
 use std::collections::{HashMap,HashSet};
+use std::hash::Hash;
 use std::ops::AddAssign;
 use crate::image::features::Feature;
 use crate::Float;
 
-
 /**
  * Outlier Rejection Using Duality Olsen et al.
  */
-pub fn outlier_rejection_dual<Feat: Feature + Clone>(unique_landmark_ids: &HashSet<usize>, camera_ids_root_first: &Vec<usize>, abs_pose_map: &HashMap<usize,Isometry3<Float>>, feature_map: &HashMap<usize, HashSet<Feat>>, tol: Float) {
+pub fn outlier_rejection_dual<Feat: Feature + Clone + Hash + PartialEq + Eq>(unique_landmark_ids: &mut HashSet<usize>, camera_ids_root_first: &Vec<usize>, abs_pose_map: &mut HashMap<usize,Isometry3<Float>>, feature_map: &mut HashMap<usize, HashSet<Feat>>, tol: Float) -> DVector<Float> {
     assert_eq!(camera_ids_root_first.len(),abs_pose_map.keys().len());
     assert_eq!(camera_ids_root_first.len(),feature_map.keys().len());
     assert!(unique_landmark_ids.contains(&0)); // ids have to represent matrix indices
 
     let (a, b, c, a0, b0, c0) = generate_known_rotation_problem(unique_landmark_ids, camera_ids_root_first, abs_pose_map, feature_map);
-    let _ = solve_feasability_problem(a, b, c, a0, b0, c0, tol, 0.1, 100.0);
-    panic!("TODO: outlier_rejection_dual");
+    let (dual,slack) = solve_feasability_problem(a, b, c, a0, b0, c0, tol, 0.1, 100.0);
+    update_maps(abs_pose_map, feature_map,unique_landmark_ids, dual);
+    slack
 }
 
 #[allow(non_snake_case)]
@@ -89,7 +90,7 @@ fn construct_feasability_inputs(a: DMatrix<Float>, b: DMatrix<Float>, c: DMatrix
     (A.transpose(), B, C, a.nrows(), a1.ncols()) //TODO: transpose on construction
 }
 
-fn generate_known_rotation_problem<Feat: Feature + Clone>(unique_landmark_ids: &HashSet<usize>, camera_ids_root_first: &Vec<usize>, abs_pose_map: &HashMap<usize,Isometry3<Float>>, feature_map: &HashMap<usize, HashSet<Feat>>) -> (DMatrix<Float>,DMatrix<Float>,DMatrix<Float>,DVector<Float>,DVector<Float>,DVector<Float>) {
+fn generate_known_rotation_problem<Feat: Feature + Clone>(unique_landmark_ids: &HashSet<usize>, camera_ids_root_first: &Vec<usize>, abs_pose_map: &mut HashMap<usize,Isometry3<Float>>, feature_map: &HashMap<usize, HashSet<Feat>>) -> (DMatrix<Float>,DMatrix<Float>,DMatrix<Float>,DVector<Float>,DVector<Float>,DVector<Float>) {
     let number_of_unique_points = unique_landmark_ids.len();
     let number_of_poses = abs_pose_map.len();
     let number_of_target_parameters = 3*number_of_unique_points + 3*(number_of_poses-1); // The first translation is taken as identity (origin) hence we dont optimize it
@@ -157,4 +158,29 @@ fn generate_known_rotation_problem<Feat: Feature + Clone>(unique_landmark_ids: &
     }
 
     (a,b,c,a0,b0,c0)
+}
+
+fn update_maps<Feat: Feature + Clone + Hash + PartialEq + Eq>(abs_pose_map: &mut HashMap<usize,Isometry3<Float>>, feature_map: &mut HashMap<usize, HashSet<Feat>>, unique_landmark_ids: &mut HashSet<usize>, dual: DVector<Float>) -> () {
+    let num_cam = abs_pose_map.keys().len();
+    let num_landmarks = unique_landmark_ids.len();
+    let landmark_view = dual.view((0,0),(num_landmarks,0));
+    let translation_view = dual.view((num_landmarks,0),(dual.nrows(),0));
+    let mut rejected_landmarks = HashSet::<usize>::with_capacity(num_landmarks*0.1 as usize);
+
+    //TODO
+    // Update landmark positions
+    // Update translation part of camera pose
+    // generate rejected landmarks based on slack
+    // remove landmarks from set
+    
+
+    for (_, features) in feature_map {
+        let accepted_landmarks = features.drain().filter(|x| !rejected_landmarks.contains(&x.get_landmark_id().expect("update_maps: no landmark id found"))).collect::<Vec<Feat>>();
+        assert!(features.is_empty());
+        for accepted_l in accepted_landmarks {
+                features.insert(accepted_l); 
+        }
+    }
+
+    panic!("TODO: update_maps")
 }
