@@ -9,7 +9,7 @@ use crate::image::features::solver_feature::SolverFeature;
 use crate::image::features::Feature;
 use crate::sensors::camera::Camera;
 use crate::odometry::runtime_parameters::RuntimeParameters;
-use crate::sfm::{SFMConfig,landmark::Landmark,bundle_adjustment::{camera_feature_map::CameraFeatureMap}};
+use crate::sfm::{SFMConfig,compute_path_id_pairs,landmark::Landmark,bundle_adjustment::{camera_feature_map::CameraFeatureMap}};
 use crate::Float;
 
 
@@ -23,7 +23,7 @@ pub fn run_ba<F: serde::Serialize + float::Float + Scalar + NumAssign + RealFiel
 
     let (unique_camera_ids_sorted,_) = sfm_config.compute_unqiue_ids_cameras_root_first();
     let (_,unique_cameras_sorted_by_id_ba) = sfm_config.compute_unqiue_ids_cameras_ba_root_first();
-    let path_id_pairs = sfm_config.compute_path_id_pairs();
+    let path_id_pairs = compute_path_id_pairs(sfm_config.root(), sfm_config.paths());
 
     let mut feature_map = CameraFeatureMap::new(sfm_config.match_map(),unique_camera_ids_sorted, img_dim);
     feature_map.add_matches(sfm_config.match_map());
@@ -33,7 +33,7 @@ pub fn run_ba<F: serde::Serialize + float::Float + Scalar + NumAssign + RealFiel
         &path_id_pairs, 
         sfm_config.match_map(), 
         sfm_config.pose_map(), 
-        sfm_config.landmark_map(), 
+        sfm_config.abs_landmark_map(), 
         sfm_config.reprojection_error_map(),  
     );
     //let mut state = feature_map.get_inverse_depth_landmark_state(Some(&initial_motion_decomp), depth_prior,&cameras);

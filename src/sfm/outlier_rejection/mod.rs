@@ -2,7 +2,7 @@
 extern crate nalgebra as na;
 extern crate linear_ip;
 
-use na::{MatrixXx3,DMatrix,DVector,Isometry3};
+use na::{MatrixXx3,DMatrix,DVector,Isometry3,Matrix4xX};
 use std::collections::{HashMap,HashSet};
 use std::hash::Hash;
 use std::ops::AddAssign;
@@ -12,7 +12,14 @@ use crate::Float;
 /**
  * Outlier Rejection Using Duality Olsen et al.
  */
-pub fn outlier_rejection_dual<Feat: Feature + Clone + Hash + PartialEq + Eq>(unique_landmark_ids: &mut HashSet<usize>, camera_ids_root_first: &Vec<usize>, abs_pose_map: &mut HashMap<usize,Isometry3<Float>>, feature_map: &mut HashMap<usize, HashSet<Feat>>, tol: Float) -> DVector<Float> {
+pub fn outlier_rejection_dual<Feat: Feature + Clone + Hash + PartialEq + Eq>(
+        camera_ids_root_first: &Vec<usize>, 
+        unique_landmark_ids: &mut HashSet<usize>, 
+        abs_landmark_map: &mut HashMap<usize, Matrix4xX<Float>>,
+        abs_pose_map: &mut HashMap<usize,Isometry3<Float>>, 
+        feature_map: &mut HashMap<usize, HashSet<Feat>>,
+        tol: Float
+    ) -> DVector<Float> {
     assert_eq!(camera_ids_root_first.len(),abs_pose_map.keys().len());
     assert_eq!(camera_ids_root_first.len(),feature_map.keys().len());
     assert!(unique_landmark_ids.contains(&0)); // ids have to represent matrix indices
@@ -163,9 +170,18 @@ fn generate_known_rotation_problem<Feat: Feature + Clone>(unique_landmark_ids: &
 fn update_maps<Feat: Feature + Clone + Hash + PartialEq + Eq>(abs_pose_map: &mut HashMap<usize,Isometry3<Float>>, feature_map: &mut HashMap<usize, HashSet<Feat>>, unique_landmark_ids: &mut HashSet<usize>, dual: DVector<Float>) -> () {
     let num_cam = abs_pose_map.keys().len();
     let num_landmarks = unique_landmark_ids.len();
+    let mut rejected_landmarks = HashSet::<usize>::with_capacity(num_landmarks*0.1 as usize);
+
+
     let landmark_view = dual.view((0,0),(num_landmarks,0));
     let translation_view = dual.view((num_landmarks,0),(dual.nrows(),0));
-    let mut rejected_landmarks = HashSet::<usize>::with_capacity(num_landmarks*0.1 as usize);
+
+    for i in 0..num_landmarks {
+        let landmark = landmark_view.fixed_rows::<3>(i);
+
+
+
+    }
 
     //TODO
     // Update landmark positions

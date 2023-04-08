@@ -2,7 +2,7 @@ extern crate nalgebra as na;
 extern crate num_traits;
 extern crate simba;
 
-use na::{DVector, Matrix4xX, Vector3, Vector4, Matrix3, Isometry3};
+use na::{DVector, Matrix4xX, Vector3, Vector4, Matrix3, Isometry3, Matrix4};
 use std::collections::{HashMap,HashSet};
 use crate::image::{features::{Feature, Match, feature_track::FeatureTrack, solver_feature::SolverFeature, ImageFeature}};
 use crate::sfm::{epipolar::tensor, epipolar::compute_linear_normalization,
@@ -32,6 +32,7 @@ pub struct SFMConfig<C, C2, Feat: Feature> {
     match_map: HashMap<(usize, usize), Vec<Match<Feat>>>,
     pose_map: HashMap<(usize, usize), Isometry3<Float>>, // The pose transforms tuple id 2 into the coordiante system of tuple id 1
     landmark_map: HashMap<(usize, usize), Matrix4xX<Float>>,
+    abs_landmark_map: HashMap<usize, Matrix4xX<Float>>,
     reprojection_error_map: HashMap<(usize, usize),DVector<Float>>,
     epipolar_alg: tensor::BifocalType,
     triangulation: Triangulation
@@ -54,6 +55,22 @@ pub fn compute_path_pairs_as_vec(root: usize, paths: &Vec<Vec<usize>>) -> Vec<Ve
         all_path_pairs.push(path_pair);
     }
     all_path_pairs
+}
+
+pub fn compute_path_id_pairs(root_id: usize, paths: &Vec<Vec<usize>>) -> Vec<Vec<(usize, usize)>> {
+    let mut path_id_paris = Vec::<Vec::<(usize,usize)>>::with_capacity(paths.len());
+    for sub_path in paths {
+        path_id_paris.push(
+            sub_path.iter().enumerate().map(|(i,&id)| 
+                match i {
+                    0 => (root_id,id),
+                    idx => (sub_path[idx-1],id)
+                }
+            ).collect()
+        )
+    }
+
+    path_id_paris
 }
 
 impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverFeature> SFMConfig<C,C2, Feat> {
@@ -120,17 +137,18 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
 
 
         Self::recompute_landmark_ids(&mut match_map);
-
+        let path_id_pairs = compute_path_id_pairs(root, paths);
 
         let camera_ids_root_first = Self::get_sorted_camera_keys(root, paths);
         let mut unique_landmark_ids = compute_unique_landmark_id(&match_map);
-        let mut abs_pose_map = compute_absolute_poses_for_root(root, paths, &pose_map);
+        let mut abs_pose_map = compute_absolute_poses_for_root(root, &path_id_pairs, &pose_map);
         let mut feature_map = compute_features_per_image_map(&match_map); 
+        let mut abs_landmark_map = compute_absolute_landmarks_for_root(&path_id_pairs,&landmark_map,&abs_pose_map);
         let root_cam = camera_map.get(&root).expect("Root Cam not found!");
         let tol = 5.0/root_cam.get_focal_x(); // rougly 5 pixels
-        outlier_rejection_dual(&mut unique_landmark_ids, &camera_ids_root_first, &mut abs_pose_map, &mut feature_map, tol);
+        outlier_rejection_dual(&camera_ids_root_first, &mut unique_landmark_ids, &mut abs_landmark_map, &mut abs_pose_map, &mut feature_map, tol);
 
-        SFMConfig{root, paths: paths.clone(), camera_map_highp: camera_map, camera_map_lowp: camera_map_ba, match_map, pose_map, epipolar_alg, landmark_map, reprojection_error_map,triangulation}
+        SFMConfig{root, paths: paths.clone(), camera_map_highp: camera_map, camera_map_lowp: camera_map_ba, match_map, pose_map, epipolar_alg, landmark_map, abs_landmark_map, reprojection_error_map,triangulation}
     }
 
 
@@ -143,23 +161,8 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
     pub fn match_map(&self) -> &HashMap<(usize, usize), Vec<Match<Feat>>> {&self.match_map}
     pub fn pose_map(&self) -> &HashMap<(usize, usize), Isometry3<Float>> {&self.pose_map}
     pub fn landmark_map(&self) -> &HashMap<(usize, usize), Matrix4xX<Float>> {&self.landmark_map}
+    pub fn abs_landmark_map(&self) -> &HashMap<usize, Matrix4xX<Float>> {&self.abs_landmark_map}
     pub fn reprojection_error_map(&self) -> &HashMap<(usize, usize), DVector<Float>> {&self.reprojection_error_map}
-
-    pub fn compute_path_id_pairs(&self) -> Vec<Vec<(usize, usize)>> {
-        let mut path_id_paris = Vec::<Vec::<(usize,usize)>>::with_capacity(self.paths.len());
-        for sub_path in &self.paths {
-            path_id_paris.push(
-                sub_path.iter().enumerate().map(|(i,&id)| 
-                    match i {
-                        0 => (self.root,id),
-                        idx => (sub_path[idx-1],id)
-                    }
-                ).collect()
-            )
-        }
-
-        path_id_paris
-    }
 
     pub fn compute_unqiue_ids_cameras_root_first(&self) -> (Vec<usize>, Vec<&C>) {
         let keys_sorted = Self::get_sorted_camera_keys(self.root(), self.paths());
@@ -258,7 +261,7 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
         match_map: &HashMap<(usize, usize), 
         Vec<Match<Feat>>>, camera_map: &HashMap<usize, C>,
         triangulation: Triangulation,
-        positive_principal_distance: bool) -> (HashMap<(usize,usize),Matrix4xX<Float>>,HashMap<(usize,usize), DVector<Float>>, Float, Float) {
+        positive_principal_distance: bool) -> (HashMap<(usize,usize),Matrix4xX<Float>>, HashMap<(usize,usize), DVector<Float>>, Float, Float) {
 
         let mut triangulated_match_map = HashMap::<(usize,usize),Matrix4xX<Float>>::with_capacity(match_map.len());
         let mut reprojection_map = HashMap::<(usize,usize),DVector<Float>>::with_capacity(match_map.len());
@@ -634,25 +637,41 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
 
 }
 
-fn compute_absolute_poses_for_root(root: usize, paths: &Vec<Vec<usize>>, pose_map: &HashMap<(usize, usize), Isometry3<Float>>) -> HashMap<usize,Isometry3<Float>> {
+fn compute_absolute_poses_for_root(root: usize, paths: &Vec<Vec<(usize,usize)>>, pose_map: &HashMap<(usize, usize), Isometry3<Float>>) -> HashMap<usize,Isometry3<Float>> {
     let flattened_path_len = paths.iter().flatten().collect::<Vec<_>>().len();
     let mut abs_pose_map = HashMap::<usize,Isometry3<Float>>::with_capacity(flattened_path_len+1);
     abs_pose_map.insert(root, Isometry3::<Float>::identity());
 
     for path in paths {
         let mut pose_acc = Isometry3::<Float>::identity();
-        for i in 0..path.len() {
-            let source = path[i];
-            let key = match i {
-                0 => (root,source),
-                _ => (path[i-1],source)
-            };
-            let pose = pose_map.get(&key).expect("Error in compute_absolute_poses_for_root: Pose for key not found ");
+        for key in path {
+            // let source = path[i];
+            // let key = match i {
+            //     0 => (root,source),
+            //     _ => (path[i-1],source)
+            // };
+            let pose = pose_map.get(key).expect("Error in compute_absolute_poses_for_root: Pose for key not found ");
             pose_acc *= pose;
-            abs_pose_map.insert(source,pose_acc);
+            abs_pose_map.insert(key.1,pose_acc);
         }
     }
     abs_pose_map
+}
+
+fn compute_absolute_landmarks_for_root(paths: &Vec<Vec<(usize,usize)>>, landmark_map: &HashMap<(usize, usize), Matrix4xX<Float>>, abs_pose_map: &HashMap<usize,Isometry3<Float>>) -> HashMap<usize,Matrix4xX<Float>> {
+    let flattened_path_len = paths.iter().flatten().collect::<Vec<_>>().len();
+    let mut abs_landmark_map = HashMap::<usize,Matrix4xX<Float>>::with_capacity(flattened_path_len+1);
+    for path in paths {
+        //let mut pose_acc = Matrix4::<Float>::identity();
+        for (id_s, id_f) in path {
+            let landmark_key = (*id_s, *id_f);
+            let triangulated_matches = landmark_map.get(&landmark_key).expect(format!("no landmarks found for key: {:?}",landmark_key).as_str());
+            let pose = abs_pose_map.get(id_f).expect("compute_absolute_landmarks_for_root: pose not found").to_matrix();
+            let root_aligned_triangulated_matches = pose*triangulated_matches;
+            abs_landmark_map.insert(*id_f,root_aligned_triangulated_matches);
+        }
+    }
+    abs_landmark_map
 }
 
 fn compute_unique_landmark_id<Feat: Feature>(match_map: &HashMap<(usize,usize), Vec<Match<Feat>>>) -> HashSet<usize> {

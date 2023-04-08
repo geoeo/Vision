@@ -139,10 +139,11 @@ impl CameraFeatureMap {
     }
 
     pub fn get_euclidean_landmark_state<F: float::Float + Scalar + NumAssign + RealField + SupersetOf<Float>, Feat: Feature>(
-        &self, paths: &Vec<Vec<(usize,usize)>>, 
+        &self, 
+        paths: &Vec<Vec<(usize,usize)>>, 
         match_map: &HashMap<(usize, usize), Vec<Match<Feat>>>, 
         pose_map: &HashMap<(usize, usize), Isometry3<Float>>,
-        landmark_map: &HashMap<(usize, usize), Matrix4xX<Float>>,
+        abs_landmark_map: &HashMap<usize, Matrix4xX<Float>>,
         reprojection_error_map: &HashMap<(usize, usize),DVector<Float>>) 
         -> State<F, EuclideanLandmark<F>,3> {
         
@@ -153,16 +154,14 @@ impl CameraFeatureMap {
         let mut landmark_reprojection_error_map = HashMap::<usize, Float>::with_capacity(number_of_unqiue_landmarks);
 
         for path in paths {
-            let mut pose_acc = Matrix4::<Float>::identity();
             for (id_s, id_f) in path {
                 let (local_cam_idx_s, _) = self.camera_map[id_s];
                 let (local_cam_idx_f, _) = self.camera_map[id_f];
     
                 let matches = match_map.get(&(*id_s, *id_f)).expect("not matches found for path pair");
                 let landmark_key = (*id_s, *id_f);
-                let triangulated_matches = landmark_map.get(&landmark_key).expect(format!("no landmarks found for key: {:?}",landmark_key).as_str());
                 let reprojection_errors = reprojection_error_map.get(&landmark_key).expect(format!("no reprojection errors found for key: {:?}",landmark_key).as_str());
-                let root_aligned_triangulated_matches = pose_acc*triangulated_matches;
+                let root_aligned_triangulated_matches = abs_landmark_map.get(&id_f).expect(format!("no landmarks found for key: {:?}",landmark_key).as_str());
     
                 for m_i in 0..matches.len() {
                     let m = &matches[m_i];
@@ -199,9 +198,6 @@ impl CameraFeatureMap {
                         }
                     }
                 }
-
-                let se3 = pose_map.get(&(*id_s, *id_f)).expect("pose not found for path pair").to_matrix();
-                pose_acc = pose_acc*se3;
             }
         }
 
