@@ -34,12 +34,15 @@ pub fn quest_ransac<T: Feature + Clone>(matches: &Vec<Match<T>>, inverse_project
             m1.column_mut(i).copy_from(&f_1);
             m2.column_mut(i).copy_from(&f_2);
         }
-        let (essential, _, _) = quest(&m1,&m2);
-        let f = compute_fundamental(&essential, &inverse_projection_one, &inverse_projection_two);
-        let inliers = calc_sampson_distance_inliers_for_fundamental(&f,&samples[5..].to_vec(),epipolar_thresh, 1.0);
-        if inliers > max_inlier_count {
-            max_inlier_count = inliers;
-            best_essential = Some(essential);
+        let quest_result = quest(&m1,&m2);
+        if quest_result.is_some() {
+            let (essential, _, _) = quest_result.unwrap();
+            let f = compute_fundamental(&essential, &inverse_projection_one, &inverse_projection_two);
+            let inliers = calc_sampson_distance_inliers_for_fundamental(&f,&samples[5..].to_vec(),epipolar_thresh, 1.0);
+            if inliers > max_inlier_count {
+                max_inlier_count = inliers;
+                best_essential = Some(essential);
+            }
         }
     }
 
@@ -56,7 +59,7 @@ pub fn quest_ransac<T: Feature + Clone>(matches: &Vec<Match<T>>, inverse_project
 //          with one entries in the 3rd row.
  */
 #[allow(non_snake_case)]
-pub fn quest(m1: &SMatrix<Float,3,5>, m2: &SMatrix<Float,3,5>) -> (Essential, SVector<Float,5>, SVector<Float,5>) {
+pub fn quest(m1: &SMatrix<Float,3,5>, m2: &SMatrix<Float,3,5>) -> Option<(Essential, SVector<Float,5>, SVector<Float,5>)> {
 
     /*
         Let 
@@ -184,19 +187,26 @@ pub fn quest(m1: &SMatrix<Float,3,5>, m2: &SMatrix<Float,3,5>) -> (Essential, SV
         c /= c.apply_norm(&na::EuclideanNorm);
     }
 
-    let (candidate_translations, candidate_depth_1, candidate_depth_2) = recover_translation_and_depth(m1,m2,&Q);
-    cheirality_check(&Q, &candidate_translations, &candidate_depth_1, &candidate_depth_2)
+    let recover_translation_and_depth_result = recover_translation_and_depth(m1,m2,&Q);
+    match recover_translation_and_depth_result {
+        Some((candidate_translations, candidate_depth_1, candidate_depth_2)) => 
+            Some(cheirality_check(&Q, &candidate_translations, &candidate_depth_1, &candidate_depth_2))
+        ,
+        None => None
+    }
+
 }
 
 #[allow(non_snake_case)]
-fn recover_translation_and_depth(m1: &SMatrix<Float,3,5>, m2: &SMatrix<Float,3,5>, Q: &OMatrix<Float,Const<4>,Dyn>) ->(OMatrix<Float,Const<3>,Dyn>, OMatrix<Float,Const<5>,Dyn>, OMatrix<Float,Const<5>,Dyn>) {
+fn recover_translation_and_depth(m1: &SMatrix<Float,3,5>, m2: &SMatrix<Float,3,5>, Q: &OMatrix<Float,Const<4>,Dyn>) -> Option<(OMatrix<Float,Const<3>,Dyn>, OMatrix<Float,Const<5>,Dyn>, OMatrix<Float,Const<5>,Dyn>)> {
     let n = Q.ncols();
     let mut T = OMatrix::<Float,Const<3>,Dyn>::zeros(n);
     let mut Z1 = OMatrix::<Float,Const<5>,Dyn>::zeros(n);
     let mut Z2 = OMatrix::<Float,Const<5>,Dyn>::zeros(n);
     let I = Matrix3::<Float>::identity();
+    let mut failed = false;
 
-    for k in 0..n{
+    for k in 0..n {
         let quat = UnitQuaternion::from_quaternion(Quaternion::<Float>::new(Q[(0,k)],Q[(1,k)],Q[(2,k)],Q[(3,k)]));
         let R = quat.to_rotation_matrix().matrix().clone();
 
@@ -211,22 +221,34 @@ fn recover_translation_and_depth(m1: &SMatrix<Float,3,5>, m2: &SMatrix<Float,3,5
         }
 
         // The right singular vector corresponding to the zero singular value of C.
-        let Y = nalgebra_lapack::SVD::new(C).expect("Five Point: SVD failed on A!").vt.row(12).transpose(); //TODO: return None of failure
+        let Y_svd =  nalgebra_lapack::SVD::new(C);
 
-        let t = Y.fixed_rows::<3>(0);  // Translation vector
-        let z = Y.fixed_rows::<10>(3).into_owned();  // Depths in both camera frames
+        match Y_svd {
+            Some(svd) => {
+                let Y = svd.vt.row(12).transpose(); 
 
-
-        let z1 =  SVector::<Float,5>::new(z[0],z[2],z[4],z[6],z[8]); // Depths in camera frame 1
-        let z2 =  SVector::<Float,5>::new(z[1],z[3],z[5],z[7],z[9]); // Depths in camera frame 2
-
-        // Store the results
-        T.column_mut(k).copy_from(&t);
-        Z1.column_mut(k).copy_from(&z1);
-        Z2.column_mut(k).copy_from(&z2);
+                let t = Y.fixed_rows::<3>(0);  // Translation vector
+                let z = Y.fixed_rows::<10>(3).into_owned();  // Depths in both camera frames
+        
+                let z1 =  SVector::<Float,5>::new(z[0],z[2],z[4],z[6],z[8]); // Depths in camera frame 1
+                let z2 =  SVector::<Float,5>::new(z[1],z[3],z[5],z[7],z[9]); // Depths in camera frame 2
+        
+                // Store the results
+                T.column_mut(k).copy_from(&t);
+                Z1.column_mut(k).copy_from(&z1);
+                Z2.column_mut(k).copy_from(&z2);
+            },
+            None => {
+                failed = true;
+                break;
+            }
+        }
     }
 
-    (T,Z1,Z2)
+    match failed {
+        false => Some((T,Z1,Z2)),
+        true => None
+    }
 
 }
 
