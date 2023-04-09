@@ -124,7 +124,7 @@ fn generate_known_rotation_problem<Feat: Feature + Clone>(unique_landmark_ids: &
         let mut p_data_x = DVector::<Float>::zeros(number_of_points);
         let mut p_data_y = DVector::<Float>::zeros(number_of_points);
         let mut p_col_ids = DVector::<usize>::zeros(number_of_points);
-        // TODO: idx no longer representt he position in the sfm datastructures -> problem for update later
+        // TODO: idx no longer represent the position in the sfm datastructures -> problem for update later
         for (idx, feature) in features.iter().enumerate() {
             p_data_x[idx] = feature.get_x_image_float();
             p_data_y[idx] = feature.get_y_image_float();
