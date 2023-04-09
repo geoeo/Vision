@@ -101,11 +101,11 @@ impl CameraFeatureMap {
     /**
      * initial_motion should all be with respect to the first camera
      */
-    pub fn get_inverse_depth_landmark_state<C: Camera<Float>>(&self, paths: &Vec<Vec<(usize,usize)>>, pose_map: &HashMap<(usize, usize), Isometry3<Float>>, inverse_depth_prior: Float, cameras: &Vec<C>) -> State<Float,InverseLandmark<Float>,6> {
+    pub fn get_inverse_depth_landmark_state<C: Camera<Float>>(&self, paths: &Vec<Vec<(usize,usize)>>, abs_pose_map: &HashMap<usize, Isometry3<Float>>, inverse_depth_prior: Float, cameras: &Vec<C>) -> State<Float,InverseLandmark<Float>,6> {
 
         let number_of_cameras = self.camera_map.keys().len();
         let number_of_unqiue_landmarks = self.number_of_unique_landmarks;
-        let camera_positions = self.get_initial_camera_positions(paths,pose_map);
+        let camera_positions = self.get_initial_camera_positions(paths,abs_pose_map);
         let n_points = self.number_of_unique_landmarks;
         let mut landmarks = Vec::<InverseLandmark<Float>>::with_capacity(number_of_unqiue_landmarks);
 
@@ -131,7 +131,7 @@ impl CameraFeatureMap {
         &self, 
         paths: &Vec<Vec<(usize,usize)>>, 
         match_map: &HashMap<(usize, usize), Vec<Match<Feat>>>, 
-        pose_map: &HashMap<(usize, usize), Isometry3<Float>>,
+        abs_pose_map: &HashMap<usize, Isometry3<Float>>,
         abs_landmark_map: &HashMap<usize, Matrix4xX<Float>>,
         reprojection_error_map: &HashMap<(usize, usize),DVector<Float>>) 
         -> State<F, EuclideanLandmark<F>,3> {
@@ -186,32 +186,28 @@ impl CameraFeatureMap {
 
         println!("Max depth: {}", max_depth);
         
-        let camera_positions = self.get_initial_camera_positions(paths,pose_map);
+        let camera_positions = self.get_initial_camera_positions(paths,abs_pose_map);
         State::new(camera_positions, landmarks, number_of_cameras, number_of_unqiue_landmarks)
     }
 
     fn get_initial_camera_positions<F: float::Float + Scalar + NumAssign + RealField + SupersetOf<Float>>(
-        &self,paths: &Vec<Vec<(usize,usize)>>, pose_map: &HashMap<(usize, usize), Isometry3<Float>>) 
+        &self,paths: &Vec<Vec<(usize,usize)>>, pose_map: &HashMap<usize, Isometry3<Float>>) 
         -> DVector::<F> {
 
         let number_of_cameras = self.camera_map.keys().len();
         let number_of_cam_parameters = 6*number_of_cameras;
         let mut camera_positions = DVector::<F>::zeros(number_of_cam_parameters);
         for path in paths {
-            let mut rot_acc = Matrix3::<F>::identity();
-            let mut trans_acc = Vector3::<F>::zeros();
-            for (id_s, id_f) in path {
+            for (_, id_f) in path {
                 let (cam_idx,_) = self.camera_map[&id_f];
                 let cam_state_idx = 6*cam_idx;
-                let pose = pose_map.get(&(*id_s, *id_f)).expect("pose not found for path pair");
+                let pose = pose_map.get(&id_f).expect("pose not found for path pair");
                 let translation = pose.translation.vector;
                 let rotation_matrix = pose.rotation.to_rotation_matrix().matrix().clone();
                 let translation_cast: Vector3<F> = translation.cast::<F>();
                 let rotation_matrix_cast: Matrix3<F> = rotation_matrix.cast::<F>();
-                trans_acc = rot_acc*translation_cast + trans_acc;
-                rot_acc = rot_acc*rotation_matrix_cast;
-                let rotation = Rotation3::from_matrix_eps(&rot_acc, convert(2e-16), 100, Rotation3::identity());
-                camera_positions.fixed_view_mut::<3,1>(cam_state_idx,0).copy_from(&trans_acc);
+                let rotation = Rotation3::from_matrix_eps(&rotation_matrix_cast, convert(2e-16), 100, Rotation3::identity());
+                camera_positions.fixed_view_mut::<3,1>(cam_state_idx,0).copy_from(&translation_cast);
                 camera_positions.fixed_view_mut::<3,1>(cam_state_idx+3,0).copy_from(&rotation.scaled_axis());
             }
         }
@@ -226,8 +222,6 @@ impl CameraFeatureMap {
     pub fn get_observed_features<F: float::Float + Scalar + NumAssign + RealField + SupersetOf<Float>>(&self) -> DVector<F> {
         let n_cams = self.camera_map.keys().len();
         let mut observed_features = DVector::<F>::zeros(self.number_of_unique_landmarks*n_cams*2); // some entries might be invalid
-        let c_y = (self.image_row_col.0 - 1) as Float; 
-
         for landmark_idx in 0..self.number_of_unique_landmarks {
             let observing_cams = &self.feature_location_lookup[landmark_idx];
             let offset =  2*landmark_idx*n_cams;

@@ -30,7 +30,8 @@ pub struct SFMConfig<C, C2, Feat: Feature> {
     camera_map_highp: HashMap<usize, C>,
     camera_map_lowp: HashMap<usize, C2>,
     match_map: HashMap<(usize, usize), Vec<Match<Feat>>>,
-    pose_map: HashMap<(usize, usize), Isometry3<Float>>, // The pose transforms tuple id 2 into the coordiante system of tuple id 1
+    pose_map: HashMap<(usize,usize), Isometry3<Float>>, // The pose transforms tuple id 2 into the coordiante system of tuple id 1
+    abs_pose_map: HashMap<usize, Isometry3<Float>>, 
     abs_landmark_map: HashMap<usize, Matrix4xX<Float>>,
     reprojection_error_map: HashMap<(usize, usize),DVector<Float>>,
     epipolar_alg: tensor::BifocalType,
@@ -135,6 +136,7 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
         println!("SFM Config Max Reprojection Error 2): {}, Min Reprojection Error: {}", max_reprojection_error_refined, min_reprojection_error_refined);
 
         //TODO: Comment recompute_landmark_ids this in more detail
+        // Since landmarks may be rejected, this function recomputes the ids to be consecutive so that they may be used for matrix indexing.
         Self::recompute_landmark_ids(&mut match_map);
         let path_id_pairs = compute_path_id_pairs(root, paths);
 
@@ -148,7 +150,7 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
         let tol = 5.0/root_cam.get_focal_x(); // rougly 5 pixels
         //outlier_rejection_dual(&camera_ids_root_first, &mut unique_landmark_ids, &mut abs_landmark_map, &mut abs_pose_map, &mut feature_map, tol);
 
-        SFMConfig{root, paths: paths.clone(), camera_map_highp: camera_map, camera_map_lowp: camera_map_ba, match_map, pose_map, epipolar_alg, abs_landmark_map, reprojection_error_map, triangulation}
+        SFMConfig{root, paths: paths.clone(), camera_map_highp: camera_map, camera_map_lowp: camera_map_ba, match_map, abs_pose_map, pose_map, epipolar_alg, abs_landmark_map, reprojection_error_map, triangulation}
     }
 
 
@@ -159,7 +161,8 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
     pub fn epipolar_alg(&self) -> tensor::BifocalType { self.epipolar_alg}
     pub fn triangulation(&self) -> Triangulation { self.triangulation}
     pub fn match_map(&self) -> &HashMap<(usize, usize), Vec<Match<Feat>>> {&self.match_map}
-    pub fn pose_map(&self) -> &HashMap<(usize, usize), Isometry3<Float>> {&self.pose_map}
+    pub fn abs_pose_map(&self) -> &HashMap<usize, Isometry3<Float>> {&self.abs_pose_map}
+    pub fn pose_map(&self) -> &HashMap<(usize,usize), Isometry3<Float>> {&self.pose_map}
     pub fn abs_landmark_map(&self) -> &HashMap<usize, Matrix4xX<Float>> {&self.abs_landmark_map}
     pub fn reprojection_error_map(&self) -> &HashMap<(usize, usize), DVector<Float>> {&self.reprojection_error_map}
 
@@ -720,8 +723,7 @@ fn compute_features_per_image_map<Feat: Feature>(match_map: &HashMap<(usize,usiz
                     let image_feature = ImageFeature::new(f.get_x_image_float(), f.get_y_image_float(), f.get_landmark_id());
                     //TODO: Also save idx i.e. landmark idx in the abs map
                     // This can be inserted from multiple paths i.e. the index is no longer maps to the original vec
-                    let new_val = feature_map.get_mut(&camera_id).expect("compute_features_per_image_map: Camera not found in bck feature").insert(image_feature);
-                    assert!(new_val);
+                    feature_map.get_mut(&camera_id).expect("compute_features_per_image_map: Camera not found in bck feature").insert(image_feature);
                 }
             }
         }

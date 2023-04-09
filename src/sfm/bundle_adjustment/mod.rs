@@ -32,7 +32,7 @@ pub fn run_ba<F: serde::Serialize + float::Float + Scalar + NumAssign + RealFiel
     let mut state = feature_map.get_euclidean_landmark_state(
         &path_id_pairs, 
         sfm_config.match_map(), 
-        sfm_config.pose_map(), 
+        sfm_config.abs_pose_map(), 
         sfm_config.abs_landmark_map(), 
         sfm_config.reprojection_error_map(),  
     );
