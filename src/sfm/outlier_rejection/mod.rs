@@ -18,6 +18,7 @@ pub fn outlier_rejection_dual<Feat: Feature + Clone + Hash + PartialEq + Eq>(
         abs_landmark_map: &mut HashMap<usize, Matrix4xX<Float>>,
         abs_pose_map: &mut HashMap<usize,Isometry3<Float>>, 
         feature_map: &mut HashMap<usize, HashSet<Feat>>,
+        landmark_id_cam_pair_index_map: &HashMap<usize,Vec<((usize,usize),usize)>>,
         tol: Float
     ) -> DVector<Float> {
     assert_eq!(camera_ids_root_first.len(),abs_pose_map.keys().len());
