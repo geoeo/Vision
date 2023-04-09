@@ -29,10 +29,6 @@ pub struct CameraFeatureMap {
      * First entry is all the cams assocaited with a point. feature_location_lookup[point_id][cam_id]
      */
     pub feature_location_lookup: Vec<Vec<Option<(Float,Float)>>>,
-    /**
-     * Map from (internal cam id s, u_s, v_s interal cam id f, u_f, v_f) -> point id
-     */
-    pub landmark_match_lookup: HashMap<(usize,usize,usize,usize,usize,usize), usize>,
     pub image_row_col: (usize,usize)
 
 }
@@ -41,7 +37,6 @@ impl CameraFeatureMap {
 
     pub const NO_FEATURE_FLAG : Float = -1.0;
 
-    //pub fn new<T: Feature>(matches: &Vec<Vec<Vec<Match<T>>>>, cam_ids: Vec<usize>, image_row_col: (usize,usize)) -> CameraFeatureMap {
     pub fn new<T: Feature>(match_map: &HashMap<(usize, usize), Vec<Match<T>>>, cam_ids: Vec<usize>, image_row_col: (usize,usize)) -> CameraFeatureMap {
         let number_of_landmarks = match_map.values().map(|ms| {
             ms.iter().map(|m| m.get_landmark_id().expect("CameraFeatureMap: Error no landmark id present for match")).max().expect("CameraFeatureMap: Error computing max for matches")
@@ -50,9 +45,7 @@ impl CameraFeatureMap {
         let mut camera_feature_map = CameraFeatureMap{
             camera_map:  HashMap::new(),
             number_of_unique_landmarks: number_of_landmarks,
-            //number_of_unique_landmarks: 0,
             feature_location_lookup: vec![vec![None;n_cams]; number_of_landmarks],
-            landmark_match_lookup: HashMap::new(),
             image_row_col
         };
 
@@ -87,16 +80,12 @@ impl CameraFeatureMap {
 
         let internal_source_cam_id = self.camera_map.get(&source_cam_id).unwrap().0;
         let internal_other_cam_id = self.camera_map.get(&other_cam_id).unwrap().0;
-        
-        let key = (internal_source_cam_id, point_source_x, point_source_y,
-        internal_other_cam_id,point_other_x, point_other_y);
 
-        let landmark_id = m.get_landmark_id().expect("Error: Landmark id empty in Camera Feature Maps"); // Track landmark id get assigned before feature filtering -> Bad source of bug
+        let landmark_id = m.get_landmark_id().expect("Error: Landmark id empty in Camera Feature Maps");
         self.feature_location_lookup[landmark_id][internal_source_cam_id] = Some((point_source_x_float,point_source_y_float));
         self.feature_location_lookup[landmark_id][internal_other_cam_id] = Some((point_other_x_float,point_other_y_float));
         self.camera_map.get_mut(&source_cam_id).unwrap().1.insert(point_source_idx, landmark_id);
         self.camera_map.get_mut(&other_cam_id).unwrap().1.insert(point_other_idx, landmark_id);
-        self.landmark_match_lookup.insert(key, landmark_id);
 
     }
 
@@ -155,9 +144,6 @@ impl CameraFeatureMap {
 
         for path in paths {
             for (id_s, id_f) in path {
-                let (local_cam_idx_s, _) = self.camera_map[id_s];
-                let (local_cam_idx_f, _) = self.camera_map[id_f];
-    
                 let matches = match_map.get(&(*id_s, *id_f)).expect("not matches found for path pair");
                 let landmark_key = (*id_s, *id_f);
                 let reprojection_errors = reprojection_error_map.get(&landmark_key).expect(format!("no reprojection errors found for key: {:?}",landmark_key).as_str());
@@ -165,23 +151,16 @@ impl CameraFeatureMap {
     
                 for m_i in 0..matches.len() {
                     let m = &matches[m_i];
-                    let feat_s = &m.get_feature_one();
-                    let u_s = feat_s.get_x_image();
-                    let v_s = feat_s.get_y_image();
-                    let feat_f = &m.get_feature_two();
-                    let u_f = feat_f.get_x_image();
-                    let v_f = feat_f.get_y_image();
-    
-                    let point_id = self.landmark_match_lookup.get(&(local_cam_idx_s,u_s,v_s,local_cam_idx_f,u_f,v_f)).expect("point id not found");
+                    let landmark_id = &m.get_landmark_id().expect(format!("no landmark id found for match: {:?}",landmark_key).as_str());
                     let point = root_aligned_triangulated_matches.fixed_view::<3, 1>(0, m_i).into_owned();
                     
                     let reprojection_error = reprojection_errors[m_i];
-                    match landmark_reprojection_error_map.contains_key(point_id) {
+                    match landmark_reprojection_error_map.contains_key(landmark_id) {
                         true => {
-                            let current_reproj_error =  *landmark_reprojection_error_map.get(point_id).unwrap();
+                            let current_reproj_error =  *landmark_reprojection_error_map.get(&landmark_id).unwrap();
                             if reprojection_error < current_reproj_error {
-                                landmark_reprojection_error_map.insert(*point_id,reprojection_error);
-                                landmarks[*point_id] = EuclideanLandmark::from_state(Vector3::<F>::new(
+                                landmark_reprojection_error_map.insert(*landmark_id,reprojection_error);
+                                landmarks[*landmark_id] = EuclideanLandmark::from_state(Vector3::<F>::new(
                                     convert(point[0]),
                                     convert(point[1]),
                                     convert(point[2])
@@ -189,8 +168,8 @@ impl CameraFeatureMap {
                             }
                         },
                         false => {
-                            landmark_reprojection_error_map.insert(*point_id,reprojection_error);
-                            landmarks[*point_id] = EuclideanLandmark::from_state(Vector3::<F>::new(
+                            landmark_reprojection_error_map.insert(*landmark_id,reprojection_error);
+                            landmarks[*landmark_id] = EuclideanLandmark::from_state(Vector3::<F>::new(
                                 convert(point[0]),
                                 convert(point[1]),
                                 convert(point[2])
