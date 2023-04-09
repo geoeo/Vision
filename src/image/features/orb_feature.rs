@@ -37,7 +37,7 @@ impl Feature for OrbFeature {
         None
     }
     //TODO
-    fn copy_with_landmark_id(&self, landmark_id: Option<usize>) -> Self {
+    fn copy_with_landmark_id(&self, _: Option<usize>) -> Self {
         self.clone()
     }  
 }
