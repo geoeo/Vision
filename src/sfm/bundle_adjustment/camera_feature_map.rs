@@ -1,7 +1,7 @@
 extern crate nalgebra as na;
 extern crate num_traits;
 
-use na::{convert,Vector3, Matrix4xX, Matrix3, Matrix4, DVector, Isometry3, Rotation3,base::Scalar, RealField};
+use na::{convert,Vector3, Matrix4xX, Matrix3, DVector, Isometry3, Rotation3,base::Scalar, RealField};
 use num_traits::{float,NumAssign};
 use simba::scalar::SupersetOf;
 use std::collections::HashMap;

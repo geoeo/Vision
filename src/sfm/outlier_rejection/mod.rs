@@ -5,6 +5,7 @@ extern crate linear_ip;
 use na::{MatrixXx3,DMatrix,DVector,Isometry3,Matrix4xX};
 use std::collections::{HashMap,HashSet};
 use std::hash::Hash;
+use std::iter::FromIterator;
 use std::ops::AddAssign;
 use crate::image::features::Feature;
 use crate::Float;
@@ -27,14 +28,14 @@ pub fn outlier_rejection_dual<Feat: Feature + Clone + Hash + PartialEq + Eq>(
 
     let (a, b, c, a0, b0, c0) = generate_known_rotation_problem(unique_landmark_ids, camera_ids_root_first, abs_pose_map, feature_map);
     let (dual,slack) = solve_feasability_problem(a, b, c, a0, b0, c0, tol, 0.1, 100.0);
-    update_maps(abs_pose_map, feature_map,unique_landmark_ids, dual);
+    update_maps(abs_pose_map, feature_map,unique_landmark_ids, camera_ids_root_first, dual);
     slack
 }
 
 #[allow(non_snake_case)]
 fn solve_feasability_problem(a: DMatrix<Float>, b: DMatrix<Float>, c: DMatrix<Float>, a0: DVector<Float>, b0: DVector<Float>, c0: DVector<Float>, tol: Float, min_depth: Float, max_depth: Float) -> (DVector<Float>, DVector<Float>) {
     let (A,B,C, a_nrows, a1_ncols) = construct_feasability_inputs(a, b, c, a0, b0, c0, tol, min_depth, max_depth);
-    let (_, Y, it, r_primal_norm, r_dual_norm) = linear_ip::solve(&A, &(-B), &C, 1e-8, 0.95, 0.1, 10, 1e-20); // goes OOM on wsl on large matricies
+    let (_, Y, it, r_primal_norm, r_dual_norm) = linear_ip::solve(&A, &(-B), &C, 1e-8, 0.95, 0.1, 1, 1e-20); // goes OOM on wsl on large matricies
     println!("linear ip - it: {}, primal_norm: {}, dual_norm: {}",it, r_primal_norm, r_dual_norm);
 
     let mut s_temp = DVector::<Float>::zeros(Y.nrows()-a1_ncols);
@@ -114,22 +115,28 @@ fn generate_known_rotation_problem<Feat: Feature + Clone>(unique_landmark_ids: &
 
     let mut row_acc = 0;
     // Skip root cam since we assume origin (TOOD: Check this)
+    // TODO: check index mapping of camera!!
     for cam_idx in 1..number_of_poses {
         let cam_id = camera_ids_root_first[cam_idx];
         let rotation = abs_pose_map.get(&cam_id).expect("generate_known_rotation_problem: No rotation found").rotation.to_rotation_matrix();
         let rotation_matrix = rotation.matrix();
-        let features = feature_map.get(&cam_id).expect("generate_known_rotation_problem: No features found");
-        let number_of_points = features.len(); // asuming every feature's landmark id is distinct -> maybe make an explicit check?
+        let feature_set = feature_map.get(&cam_id).expect("generate_known_rotation_problem: No features found");
+        let number_of_points = feature_set.len(); // asuming every feature's landmark id is distinct -> maybe make an explicit check?
+        let mut feature_vec = Vec::<Feat>::with_capacity(number_of_points);
+        for feat in feature_set {
+            feature_vec.push(feat.clone());
+        }
         let ones = DVector::<Float>::repeat(number_of_points, 1.0);
 
         let mut p_data_x = DVector::<Float>::zeros(number_of_points);
         let mut p_data_y = DVector::<Float>::zeros(number_of_points);
         let mut p_col_ids = DVector::<usize>::zeros(number_of_points);
-        // TODO: idx no longer represent the position in the sfm datastructures -> problem for update later
-        for (idx, feature) in features.iter().enumerate() {
-            p_data_x[idx] = feature.get_x_image_float();
-            p_data_y[idx] = feature.get_y_image_float();
-            p_col_ids[idx] = feature.get_landmark_id().expect("generate_known_rotation_problem: no landmark id"); 
+
+        for p_idx in 0..number_of_points {
+            let feature = &feature_vec[p_idx];
+            p_data_x[p_idx] = feature.get_x_image_float();
+            p_data_y[p_idx] = feature.get_y_image_float();
+            p_col_ids[p_idx] = feature.get_landmark_id().expect("generate_known_rotation_problem: no landmark id"); 
         }
         let point_coeff_x = (&p_data_x)*rotation_matrix.row(2) - (&ones)*rotation_matrix.row(0);
         let point_coeff_y = (&p_data_y)*rotation_matrix.row(2) - (&ones)*rotation_matrix.row(1); 
@@ -169,20 +176,29 @@ fn generate_known_rotation_problem<Feat: Feature + Clone>(unique_landmark_ids: &
     (a,b,c,a0,b0,c0)
 }
 
-fn update_maps<Feat: Feature + Clone + Hash + PartialEq + Eq>(abs_pose_map: &mut HashMap<usize,Isometry3<Float>>, feature_map: &mut HashMap<usize, HashSet<Feat>>, unique_landmark_ids: &mut HashSet<usize>, dual: DVector<Float>) -> () {
-    let num_cam = abs_pose_map.keys().len();
+fn update_maps<Feat: Feature + Clone + Hash + PartialEq + Eq>(
+    abs_pose_map: &mut HashMap<usize,Isometry3<Float>>, 
+    feature_map: &mut HashMap<usize, HashSet<Feat>>, 
+    unique_landmark_ids: &mut HashSet<usize>, 
+    camera_ids_root_first: &Vec<usize>, 
+    dual: DVector<Float>
+) -> () {
+    let num_opt_pose = abs_pose_map.len()-1;  // We skipped the root cam since it is the identity pose by definition
     let num_landmarks = unique_landmark_ids.len();
     let mut rejected_landmarks = HashSet::<usize>::with_capacity(num_landmarks*0.1 as usize);
+    let mut landmarks = Matrix4xX::<Float>::from_element(num_landmarks,1.0);
 
-
-    let landmark_view = dual.view((0,0),(num_landmarks,0));
-    let translation_view = dual.view((num_landmarks,0),(dual.nrows(),0));
+    let landmark_view = dual.rows(0,3*num_landmarks);
+    let translation_view = dual.rows(3*num_landmarks,3*num_opt_pose);
 
     for i in 0..num_landmarks {
-        let landmark = landmark_view.fixed_rows::<3>(i);
+        let landmark = landmark_view.fixed_rows::<3>(3*i);
+        landmarks.fixed_view_mut::<3,1>(0, i).copy_from(&landmark);
+    }
 
-
-
+    for i in 0..num_opt_pose {
+        let cam_id = camera_ids_root_first[i+1];
+        let translation = translation_view.fixed_rows::<3>(3*i);
     }
 
     //TODO

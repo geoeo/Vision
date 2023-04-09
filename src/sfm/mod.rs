@@ -3,7 +3,7 @@ extern crate num_traits;
 extern crate simba;
 
 use na::{DVector, Matrix4xX, Vector3, Vector4, Matrix3, Isometry3};
-use std::{collections::{HashMap,HashSet}, hash::Hash};
+use std::{collections::{HashMap,HashSet}};
 use crate::image::{features::{Feature, Match, feature_track::FeatureTrack, solver_feature::SolverFeature, ImageFeature}};
 use crate::sfm::{epipolar::tensor, epipolar::compute_linear_normalization,
     triangulation::{Triangulation, triangulate_matches}, 
@@ -141,14 +141,13 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
         let path_id_pairs = compute_path_id_pairs(root, paths);
 
         let camera_ids_root_first = Self::get_sorted_camera_keys(root, paths);
-        //TODO: check mapping between landmark ids and position in Matrix4xX!! - index of Match is the position in Matrix4xX!
         let mut unique_landmark_ids = compute_unique_landmark_id(&match_map);
         let mut abs_pose_map = compute_absolute_poses_for_root(root, &path_id_pairs, &pose_map);
         let (mut feature_map, landmark_id_cam_pair_index_map) = compute_features_per_image_map(&match_map, &unique_landmark_ids); 
         let mut abs_landmark_map = compute_absolute_landmarks_for_root(&path_id_pairs,&landmark_map,&abs_pose_map);
         let root_cam = camera_map.get(&root).expect("Root Cam not found!");
         let tol = 5.0/root_cam.get_focal_x(); // rougly 5 pixels
-        //outlier_rejection_dual(&camera_ids_root_first, &mut unique_landmark_ids, &mut abs_landmark_map, &mut abs_pose_map, &mut feature_map, landmark_id_cam_pair_index_map, tol);
+        outlier_rejection_dual(&camera_ids_root_first, &mut unique_landmark_ids, &mut abs_landmark_map, &mut abs_pose_map, &mut feature_map, &landmark_id_cam_pair_index_map, tol);
 
         SFMConfig{root, paths: paths.clone(), camera_map_highp: camera_map, camera_map_lowp: camera_map_ba, match_map, abs_pose_map, pose_map, epipolar_alg, abs_landmark_map, reprojection_error_map, triangulation}
     }
