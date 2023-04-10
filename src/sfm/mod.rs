@@ -147,7 +147,7 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + PartialEq + Eq + Hash + Solve
         let mut abs_landmark_map = compute_absolute_landmarks_for_root(&path_id_pairs,&landmark_map,&abs_pose_map);
         let root_cam = camera_map.get(&root).expect("Root Cam not found!");
         let tol = 5.0/root_cam.get_focal_x(); // rougly 5 pixels
-        //outlier_rejection_dual(&camera_ids_root_first, &mut unique_landmark_ids, &mut abs_landmark_map, &mut abs_pose_map, &mut feature_map, &mut match_map, &landmark_id_cam_pair_index_map, tol);
+        outlier_rejection_dual(&camera_ids_root_first, &mut unique_landmark_ids, &mut abs_landmark_map, &mut abs_pose_map, &mut feature_map, &mut match_map, &landmark_id_cam_pair_index_map, tol);
 
         SFMConfig{root, paths: paths.clone(), camera_map_highp: camera_map, camera_map_lowp: camera_map_ba, match_map, abs_pose_map, pose_map, epipolar_alg, abs_landmark_map, reprojection_error_map, triangulation}
     }
@@ -679,10 +679,9 @@ fn compute_unique_landmark_id<Feat: Feature>(match_map: &HashMap<(usize,usize), 
     unique_landmarks_ids
 }
 
-fn compute_features_per_image_map<Feat: Feature + PartialEq + Eq + Hash>(match_map: &HashMap<(usize,usize), Vec<Match<Feat>>>, unique_landmark_ids: &HashSet<usize>) -> (HashMap<usize, Vec<Feat>>, HashMap<usize,Vec<((usize,usize),usize)>>) {
+fn compute_features_per_image_map<Feat: Feature + Clone>(match_map: &HashMap<(usize,usize), Vec<Match<Feat>>>, unique_landmark_ids: &HashSet<usize>) -> (HashMap<usize, Vec<Feat>>, HashMap<usize,Vec<((usize,usize),usize)>>) {
     let mut unique_cameras = HashSet::<usize>::new();
     let mut landmark_id_cam_pair_index_map = HashMap::<usize,Vec<((usize,usize),usize)>>::with_capacity(unique_landmark_ids.len());
-
 
     for key in match_map.keys() {
         unique_cameras.insert(key.0);
@@ -699,50 +698,46 @@ fn compute_features_per_image_map<Feat: Feature + PartialEq + Eq + Hash>(match_m
         feature_map.insert(unique_cam_id.clone(),  Vec::<Feat>::with_capacity(unique_landmark_ids.len())); 
     }
 
-    let mut feature_set =  HashSet::<Feat>::with_capacity(unique_landmark_ids.len());
     for camera_id in &unique_cameras {
         let id_prev = match camera_id {
             0 => None,
             i => Some(i-1)
         };
         let id_next = camera_id + 1;
-        let cam_pair_key = (camera_id.clone(),id_next);
-        let features_fwd = match_map.get(&cam_pair_key);
+        let cam_pair_fwd_key = (camera_id.clone(),id_next);
+        let features_fwd = match_map.get(&cam_pair_fwd_key);
         if features_fwd.is_some(){
             let matches = features_fwd.unwrap();
             for vec_idx in 0..matches.len() {
                 let m = &matches[vec_idx];
-                let f = &m.get_feature_one();
-                let landmark_id = f.get_landmark_id().expect("compute_features_per_image_map: fwd landmark id not found");
-                let image_feature = Feat::new(f.get_x_image_float(), f.get_y_image_float(), f.get_landmark_id());
-                let new_val = feature_set.insert(image_feature);
-                landmark_id_cam_pair_index_map.get_mut(&landmark_id).unwrap().push((cam_pair_key,vec_idx));
-                assert!(new_val)
+                let f_1 = m.get_feature_one();
+                let f_2 = m.get_feature_two();
+                let landmark_id = f_1.get_landmark_id().expect("compute_features_per_image_map: fwd landmark id not found");
+                feature_map.get_mut(&camera_id).expect("compute_features_per_image_map: Camera not found in bck feature").push(f_1.clone());
+                feature_map.get_mut(&id_next).expect("compute_features_per_image_map: Camera not found in bck feature").push(f_2.clone());
+                landmark_id_cam_pair_index_map.get_mut(&landmark_id).unwrap().push((cam_pair_fwd_key,vec_idx));
             }
         }
-
+        
         if id_prev.is_some() {
-            let campair_key = (id_prev.unwrap(),camera_id.clone());
-            let features_bck = match_map.get(&campair_key);
+            let id_prev_val = id_prev.unwrap();
+            let cam_pair_bck_key = (camera_id.clone(),id_prev_val);
+            let features_bck = match_map.get(&cam_pair_bck_key);
             if features_bck.is_some(){
                 let matches = features_bck.unwrap();
                 for vec_idx in 0..matches.len() {
                     let m = &matches[vec_idx];
-                    let f = &m.get_feature_two();
-                    let landmark_id = f.get_landmark_id().expect("compute_features_per_image_map: bck landmark id not found");
-                    let image_feature = Feat::new(f.get_x_image_float(), f.get_y_image_float(), f.get_landmark_id());
-                    feature_set.insert(image_feature);
-                    landmark_id_cam_pair_index_map.get_mut(&landmark_id).unwrap().push((cam_pair_key,vec_idx));
+                    let f_1 = m.get_feature_one();
+                    let f_2 = m.get_feature_two();
+                    let landmark_id = f_2.get_landmark_id().expect("compute_features_per_image_map: bck landmark id not found");
+                    landmark_id_cam_pair_index_map.get_mut(&landmark_id).unwrap().push((cam_pair_bck_key,vec_idx));
+                    feature_map.get_mut(&camera_id).expect("compute_features_per_image_map: Camera not found in bck feature").push(f_1.clone());
+                    feature_map.get_mut(&id_prev_val).expect("compute_features_per_image_map: Camera not found in bck feature").push(f_2.clone());
                 }
             }
         }
-
-        let features = feature_set.drain();
-        feature_map.get_mut(&camera_id).expect("compute_features_per_image_map: Camera not found in bck feature").extend(features);
-        assert!(feature_set.is_empty());
     }
 
-    //TODO: Convert set into a Vec!
     (feature_map, landmark_id_cam_pair_index_map)
 }
 
