@@ -30,6 +30,7 @@ Rotation Coordinate Descent - https://arxiv.org/abs/2103.08292
 ![door-ba-four](doc/door.png)
 ![door-ba-four-gif](doc/four_view_ba_door.gif)
 ![ninjo](doc/ninjo.png)
+![fort](doc/fort.png)
 
 
 ## Five Point (Data from Carl Olsson: https://www.maths.lth.se/matematiklth/personal/calle/)
