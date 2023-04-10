@@ -35,7 +35,7 @@ fn solve_feasability_problem(a: DMatrix<Float>, b: DMatrix<Float>, c: DMatrix<Fl
     let (A,B,C, a_nrows, a1_ncols) = construct_feasability_inputs(a, b, c, a0, b0, c0, tol, min_depth, max_depth);
     // goes OOM on wsl on large matricies and is very slow
     // More iterations change the scale a lot
-    let (_, Y, it, r_primal_norm, r_dual_norm) = linear_ip::solve(&A, &(-B), &C, 1e-8, 0.95, 0.1, 55, 1e-20); 
+    let (_, Y, it, r_primal_norm, r_dual_norm) = linear_ip::solve(&A, &(-B), &C, 1e-8, 0.95, 0.1, 100, 1e-20); 
     println!("linear ip - it: {}, primal_norm: {}, dual_norm: {}",it, r_primal_norm, r_dual_norm);
 
     let mut s_temp = DVector::<Float>::zeros(Y.nrows()-a1_ncols);
@@ -115,7 +115,7 @@ fn generate_known_rotation_problem<Feat: Feature + Clone>(unique_landmark_ids: &
 
     let mut row_acc = 0;
     // Skip root cam since we assume origin (TOOD: Check this)
-    // TODO: check index mapping of camera
+    // TODO: check index mapping of camera -> assumes to be consecutive!
     for cam_idx in 1..number_of_poses {
         let cam_id = camera_ids_root_first[cam_idx];
         let rotation = abs_pose_map.get(&cam_id).expect("generate_known_rotation_problem: No rotation found").rotation.to_rotation_matrix();
@@ -196,10 +196,12 @@ fn update_maps<Feat: Feature + Clone>(
         let landmark = landmark_view.fixed_rows::<3>(3*landmark_id).into_owned();
         println!("landmark: {:?}",landmark);
         landmarks.fixed_view_mut::<3,1>(0, landmark_id).copy_from(&landmark);
-        let cam_pairs_with_indices = landmark_id_cam_pair_index_map.get(&landmark_id).expect(format!("update_maps: no cam pair found for {}",landmark_id).as_str());
-        //TODO: update abs_landmark_map
-        //TODO: update match map
-
+        let cam_pairs_with_indices = landmark_id_cam_pair_index_map.get(&landmark_id).expect(format!("update_maps: no cam pair list found for {}",landmark_id).as_str());
+        for (cam_pair_key,abs_idx) in cam_pairs_with_indices {
+            let (_, id_f) = cam_pair_key;
+            let abs_landmarks = abs_landmark_map.get_mut(id_f).expect(format!("update_maps: no abs landmarks found for id f: {}",id_f).as_str());
+            abs_landmarks.fixed_view_mut::<3,1>(0,*abs_idx).copy_from(&landmark);
+        }
     }
 
     let mut res_offset = 0;
@@ -231,12 +233,7 @@ fn update_maps<Feat: Feature + Clone>(
 
     }
 
-    //TODO
-    // Update landmark positions
-    // remove landmarks from set
-    // Update any indices across the data structures
-
-
+    //TODO: update match map
     for (_, features) in feature_map {
         let accepted_landmarks = features.drain(..).filter(|x| !rejected_landmarks.contains(&x.get_landmark_id().expect("update_maps: no landmark id found"))).collect::<Vec<Feat>>();
         assert!(features.is_empty());
