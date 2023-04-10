@@ -196,6 +196,7 @@ fn update_maps<Feat: Feature + Clone>(
         let landmark = landmark_view.fixed_rows::<3>(3*landmark_id).into_owned();
         println!("landmark: {:?}",landmark);
         landmarks.fixed_view_mut::<3,1>(0, landmark_id).copy_from(&landmark);
+        let cam_pairs_with_indices = landmark_id_cam_pair_index_map.get(&landmark_id).expect(format!("update_maps: no cam pair found for {}",landmark_id).as_str());
         //TODO: update abs_landmark_map
         //TODO: update match map
 
