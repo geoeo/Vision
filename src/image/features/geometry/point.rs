@@ -13,7 +13,7 @@ pub struct Point<T> where T: PartialOrd + PartialEq + Clone {
 
 impl<T> PartialEq for Point<T> where T: PartialOrd + Clone{
     fn eq(&self, other: &Self) -> bool {
-        self.x == other.x && self.y== other.y
+        self.x == other.x && self.y == other.y
     }
 }
 

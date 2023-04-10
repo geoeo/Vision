@@ -49,6 +49,8 @@ pub trait Feature {
     fn apply_normalisation(&self, norm: &Matrix3<Float>, depth: Float) -> Self;
     fn get_landmark_id(&self) -> Option<usize>;
     fn copy_with_landmark_id(&self, landmark_id: Option<usize>) -> Self;
+    fn new(x: Float, y: Float, landmark_id: Option<usize>) -> Self;
+    fn get_location(&self) -> Point<Float>;
 }
 
 
@@ -73,15 +75,9 @@ pub struct ImageFeature {
     pub landmark_id: Option<usize>
 }
 
-impl ImageFeature {
-    pub fn new(x: Float, y: Float, landmark_id: Option<usize>) -> ImageFeature {
-        ImageFeature{location: Point::new(x, y), landmark_id}
-    }
-}
-
 impl PartialEq for ImageFeature {
     fn eq(&self, other: &Self) -> bool {
-        self.location == other.location
+        self.get_location() == other.get_location()
     }
 }
 
@@ -93,7 +89,13 @@ impl Hash for ImageFeature {
     }
 }
 
+impl ImageFeature {
+    pub fn new(x: Float, y: Float, landmark_id: Option<usize>) -> ImageFeature { ImageFeature{location: Point::new(x, y), landmark_id} }
+}
+
 impl Feature for ImageFeature {
+    fn new(x: Float, y: Float, landmark_id: Option<usize>) -> ImageFeature { ImageFeature{location: Point::new(x, y), landmark_id} }
+    fn get_location(&self) -> Point<Float> { self.location }
     fn get_x_image_float(&self) -> Float { self.location.x }
     fn get_y_image_float(&self) -> Float { self.location.y }
     fn get_x_image(&self) -> usize { self.location.x.trunc() as usize}

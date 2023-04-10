@@ -3,7 +3,7 @@ extern crate num_traits;
 extern crate simba;
 
 use na::{DVector, Matrix4xX, Vector3, Vector4, Matrix3, Isometry3};
-use std::{collections::{HashMap,HashSet}};
+use std::{collections::{HashMap,HashSet}, hash::Hash};
 use crate::image::{features::{Feature, Match, feature_track::FeatureTrack, solver_feature::SolverFeature, ImageFeature}};
 use crate::sfm::{epipolar::tensor, epipolar::compute_linear_normalization,
     triangulation::{Triangulation, triangulate_matches}, 
@@ -29,7 +29,7 @@ pub struct SFMConfig<C, C2, Feat: Feature> {
     paths: Vec<Vec<usize>>,
     camera_map_highp: HashMap<usize, C>,
     camera_map_lowp: HashMap<usize, C2>,
-    match_map: HashMap<(usize, usize), Vec<Match<Feat>>>,
+    match_map: HashMap<(usize, usize), Vec<Match<Feat>>>, 
     pose_map: HashMap<(usize,usize), Isometry3<Float>>, // The pose transforms tuple id 2 into the coordiante system of tuple id 1
     abs_pose_map: HashMap<usize, Isometry3<Float>>, 
     abs_landmark_map: HashMap<usize, Matrix4xX<Float>>,
@@ -73,7 +73,7 @@ pub fn compute_path_id_pairs(root_id: usize, paths: &Vec<Vec<usize>>) -> Vec<Vec
     path_id_paris
 }
 
-impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverFeature> SFMConfig<C,C2, Feat> {
+impl<C: Camera<Float>, C2, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFeature> SFMConfig<C,C2, Feat> {
     pub fn new(root: usize, 
         paths: &Vec<Vec<usize>>, 
         camera_map: HashMap<usize, C>, 
@@ -147,7 +147,7 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + std::cmp::PartialEq + SolverF
         let mut abs_landmark_map = compute_absolute_landmarks_for_root(&path_id_pairs,&landmark_map,&abs_pose_map);
         let root_cam = camera_map.get(&root).expect("Root Cam not found!");
         let tol = 5.0/root_cam.get_focal_x(); // rougly 5 pixels
-        outlier_rejection_dual(&camera_ids_root_first, &mut unique_landmark_ids, &mut abs_landmark_map, &mut abs_pose_map, &mut feature_map, &landmark_id_cam_pair_index_map, tol);
+        outlier_rejection_dual(&camera_ids_root_first, &mut unique_landmark_ids, &mut abs_landmark_map, &mut abs_pose_map, &mut feature_map, &mut match_map, &landmark_id_cam_pair_index_map, tol);
 
         SFMConfig{root, paths: paths.clone(), camera_map_highp: camera_map, camera_map_lowp: camera_map_ba, match_map, abs_pose_map, pose_map, epipolar_alg, abs_landmark_map, reprojection_error_map, triangulation}
     }
@@ -679,7 +679,7 @@ fn compute_unique_landmark_id<Feat: Feature>(match_map: &HashMap<(usize,usize), 
     unique_landmarks_ids
 }
 
-fn compute_features_per_image_map<Feat: Feature>(match_map: &HashMap<(usize,usize), Vec<Match<Feat>>>, unique_landmark_ids: &HashSet<usize>) -> (HashMap<usize, HashSet<ImageFeature>>, HashMap<usize,Vec<((usize,usize),usize)>>) {
+fn compute_features_per_image_map<Feat: Feature + PartialEq + Eq + Hash>(match_map: &HashMap<(usize,usize), Vec<Match<Feat>>>, unique_landmark_ids: &HashSet<usize>) -> (HashMap<usize, Vec<Feat>>, HashMap<usize,Vec<((usize,usize),usize)>>) {
     let mut unique_cameras = HashSet::<usize>::new();
     let mut landmark_id_cam_pair_index_map = HashMap::<usize,Vec<((usize,usize),usize)>>::with_capacity(unique_landmark_ids.len());
 
@@ -694,11 +694,12 @@ fn compute_features_per_image_map<Feat: Feature>(match_map: &HashMap<(usize,usiz
         landmark_id_cam_pair_index_map.insert(*landmark_id, Vec::<((usize,usize),usize)>::with_capacity(features_per_landmark));
     }
     
-    let mut feature_map = HashMap::<usize, HashSet<ImageFeature>>::with_capacity(unique_cameras.len());
+    let mut feature_map = HashMap::<usize, Vec<Feat>>::with_capacity(unique_cameras.len());
     for unique_cam_id in &unique_cameras {
-        feature_map.insert(unique_cam_id.clone(),  HashSet::<ImageFeature>::with_capacity(unique_landmark_ids.len())); 
+        feature_map.insert(unique_cam_id.clone(),  Vec::<Feat>::with_capacity(unique_landmark_ids.len())); 
     }
 
+    let mut feature_set =  HashSet::<Feat>::with_capacity(unique_landmark_ids.len());
     for camera_id in &unique_cameras {
         let id_prev = match camera_id {
             0 => None,
@@ -709,13 +710,13 @@ fn compute_features_per_image_map<Feat: Feature>(match_map: &HashMap<(usize,usiz
         let features_fwd = match_map.get(&cam_pair_key);
         if features_fwd.is_some(){
             let matches = features_fwd.unwrap();
-            for idx in 0..matches.len() {
-                let m = &matches[idx];
+            for vec_idx in 0..matches.len() {
+                let m = &matches[vec_idx];
                 let f = &m.get_feature_one();
                 let landmark_id = f.get_landmark_id().expect("compute_features_per_image_map: fwd landmark id not found");
-                let image_feature = ImageFeature::new(f.get_x_image_float(), f.get_y_image_float(), f.get_landmark_id());
-                let new_val = feature_map.get_mut(&camera_id).expect("compute_features_per_image_map: Camera not found in fwd feature").insert(image_feature);
-                landmark_id_cam_pair_index_map.get_mut(&landmark_id).unwrap().push((cam_pair_key,idx));
+                let image_feature = Feat::new(f.get_x_image_float(), f.get_y_image_float(), f.get_landmark_id());
+                let new_val = feature_set.insert(image_feature);
+                landmark_id_cam_pair_index_map.get_mut(&landmark_id).unwrap().push((cam_pair_key,vec_idx));
                 assert!(new_val)
             }
         }
@@ -725,17 +726,23 @@ fn compute_features_per_image_map<Feat: Feature>(match_map: &HashMap<(usize,usiz
             let features_bck = match_map.get(&campair_key);
             if features_bck.is_some(){
                 let matches = features_bck.unwrap();
-                for idx in 0..matches.len() {
-                    let m = &matches[idx];
+                for vec_idx in 0..matches.len() {
+                    let m = &matches[vec_idx];
                     let f = &m.get_feature_two();
                     let landmark_id = f.get_landmark_id().expect("compute_features_per_image_map: bck landmark id not found");
-                    let image_feature = ImageFeature::new(f.get_x_image_float(), f.get_y_image_float(), f.get_landmark_id());
-                    feature_map.get_mut(&camera_id).expect("compute_features_per_image_map: Camera not found in bck feature").insert(image_feature);
-                    landmark_id_cam_pair_index_map.get_mut(&landmark_id).unwrap().push((cam_pair_key,idx));
+                    let image_feature = Feat::new(f.get_x_image_float(), f.get_y_image_float(), f.get_landmark_id());
+                    feature_set.insert(image_feature);
+                    landmark_id_cam_pair_index_map.get_mut(&landmark_id).unwrap().push((cam_pair_key,vec_idx));
                 }
             }
         }
+
+        let features = feature_set.drain();
+        feature_map.get_mut(&camera_id).expect("compute_features_per_image_map: Camera not found in bck feature").extend(features);
+        assert!(feature_set.is_empty());
     }
+
+    //TODO: Convert set into a Vec!
     (feature_map, landmark_id_cam_pair_index_map)
 }
 

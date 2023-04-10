@@ -32,7 +32,7 @@ fn main() -> Result<()> {
     let kronan = "kronan";
     let round_church = "round_church";
     
-    let olsen_dataset_name = fountain;
+    let olsen_dataset_name = ahlströmer;
 
     let olsen_data_path = format!("{}/Olsen/{}/",runtime_conf.dataset_path,olsen_dataset_name);
 
@@ -121,7 +121,7 @@ fn main() -> Result<()> {
     if filtered_matches_per_path.len() > 0 {
         let runtime_parameters = RuntimeParameters {
             pyramid_scale: 1.0,
-            max_iterations: vec![5e4 as usize; 1],
+            max_iterations: vec![1 as usize; 1],
             eps: vec![10.0],
             step_sizes: vec![1e0],
             max_norm_eps: 1e-30, 

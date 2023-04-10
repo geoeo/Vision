@@ -2,6 +2,7 @@ extern crate nalgebra as na;
 extern crate num_traits;
 extern crate simba;
 
+use std::hash::Hash;
 use na::{Vector3, Isometry3,base::Scalar, RealField};
 use simba::scalar::SupersetOf;
 use num_traits::{float,NumAssign};
@@ -17,7 +18,7 @@ pub mod camera_feature_map;
 pub mod solver;
 pub mod state;
 
-pub fn run_ba<F: serde::Serialize + float::Float + Scalar + NumAssign + RealField + SupersetOf<Float>, C : Camera<Float> + Copy, C2: Camera<F> + Copy, T : Feature + Clone + PartialEq + SolverFeature>(sfm_config: &SFMConfig<C, C2, T>,img_dim : (usize,usize) ,runtime_parameters: &RuntimeParameters<F>) 
+pub fn run_ba<F: serde::Serialize + float::Float + Scalar + NumAssign + RealField + SupersetOf<Float>, C : Camera<Float> + Copy, C2: Camera<F> + Copy, T : Feature + Clone + PartialEq + Eq + Hash + SolverFeature>(sfm_config: &SFMConfig<C, C2, T>,img_dim : (usize,usize) ,runtime_parameters: &RuntimeParameters<F>) 
                                 -> ((Vec<Isometry3<F>>, Vec<Vector3<F>>), (serde_yaml::Result<String>, serde_yaml::Result<String>)){
 
 

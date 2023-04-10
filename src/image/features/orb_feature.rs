@@ -18,6 +18,8 @@ pub struct OrbFeature {
 }
 
 impl Feature for OrbFeature {
+    fn new(x: Float, y: Float, landmark_id: Option<usize>) -> OrbFeature { panic!("TODO: OrbFeature new") }
+    fn get_location(&self) -> Point<Float> { Point::<Float> { x: self.get_x_image_float(), y: self.get_y_image_float() } }
     fn get_x_image_float(&self) -> Float { self.get_x_image() as Float}
     fn get_y_image_float(&self) -> Float { self.get_y_image() as Float}
     fn get_x_image(&self) -> usize {

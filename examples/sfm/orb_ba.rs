@@ -67,35 +67,35 @@ fn main() -> Result<()> {
     //matches.extend(matches_1_3);
     //matches.extend(matches_1_4);
 
-    let camera_map = HashMap::from([(1, intensity_camera_1), (2, intensity_camera_2)]);
-    let sfm_config = SFMConfig::new(1, &vec!(vec!(2)), camera_map.clone(), camera_map, &HashMap::from([((1,2),matches_1_2[0].clone())]), BifocalType::ESSENTIAL, Triangulation::LINEAR, 0.8, 5.0, 100.0, true, false);
+    // let camera_map = HashMap::from([(1, intensity_camera_1), (2, intensity_camera_2)]);
+    // let sfm_config = SFMConfig::new(1, &vec!(vec!(2)), camera_map.clone(), camera_map, &HashMap::from([((1,2),matches_1_2[0].clone())]), BifocalType::ESSENTIAL, Triangulation::LINEAR, 0.8, 5.0, 100.0, true, false);
 
-    let runtime_parameters = RuntimeParameters {
-        pyramid_scale: orb_params_1_2.pyramid_scale,
-        max_iterations: vec![800; 1],
-        eps: vec![1e-3],
-        step_sizes: vec![1e-8],
-        max_norm_eps: 1e-30, 
-        delta_eps: 1e-30,
-        taus: vec![1e0],
-        lm: true,
-        debug: true,
+    // let runtime_parameters = RuntimeParameters {
+    //     pyramid_scale: orb_params_1_2.pyramid_scale,
+    //     max_iterations: vec![800; 1],
+    //     eps: vec![1e-3],
+    //     step_sizes: vec![1e-8],
+    //     max_norm_eps: 1e-30, 
+    //     delta_eps: 1e-30,
+    //     taus: vec![1e0],
+    //     lm: true,
+    //     debug: true,
 
-        show_octave_result: true,
-        loss_function: Box::new(loss::TrivialLoss { eps: 1e-16, approximate_gauss_newton_matrices: false }), 
-        intensity_weighting_function:  Box::new(weighting::SquaredWeight {}),
-        //intensity_weighting_function:  Box::new(weighting::HuberWeightForPos {delta:1.0})
-        cg_threshold: 1e-6,
-        cg_max_it: 200
-    };
+    //     show_octave_result: true,
+    //     loss_function: Box::new(loss::TrivialLoss { eps: 1e-16, approximate_gauss_newton_matrices: false }), 
+    //     intensity_weighting_function:  Box::new(weighting::SquaredWeight {}),
+    //     //intensity_weighting_function:  Box::new(weighting::HuberWeightForPos {delta:1.0})
+    //     cg_threshold: 1e-6,
+    //     cg_max_it: 200
+    // };
 
-    let (_,filtered_matches) = sfm_config.compute_lists_from_maps();
+    // let (_,filtered_matches) = sfm_config.compute_lists_from_maps();
 
-    let ((cam_positions,points),(s,debug_states_serialized)) = run_ba(&sfm_config, (image_1.buffer.nrows(),image_1.buffer.ncols()), &runtime_parameters);
-    fs::write(format!("D:/Workspace/Rust/Vision/output/orb_ba.txt"), s?).expect("Unable to write file");
-    if runtime_parameters.debug {
-        fs::write(format!("D:/Workspace/Rust/Vision/output/orb_ba_debug.txt"), debug_states_serialized?).expect("Unable to write file");
-    }
+    // let ((cam_positions,points),(s,debug_states_serialized)) = run_ba(&sfm_config, (image_1.buffer.nrows(),image_1.buffer.ncols()), &runtime_parameters);
+    // fs::write(format!("D:/Workspace/Rust/Vision/output/orb_ba.txt"), s?).expect("Unable to write file");
+    // if runtime_parameters.debug {
+    //     fs::write(format!("D:/Workspace/Rust/Vision/output/orb_ba_debug.txt"), debug_states_serialized?).expect("Unable to write file");
+    // }
 
 
 
