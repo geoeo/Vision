@@ -58,7 +58,7 @@ pub fn five_point_essential<T: Feature + Clone>(matches: &Vec<Match<T>>, project
             (u4, u3, u2, u1)
         },
         _ => {
-            //TODO: not sure if this is correct -> double check
+            // Seems to be more suceptible to errors of the camera intrinsic
             let eigen = nalgebra_lapack::SymmetricEigen::new(A.transpose()*A);
             let eigenvectors = eigen.eigenvectors;
             let mut indexed_eigenvalues = eigen.eigenvalues.iter().enumerate().map(|(i,v)| (i,*v)).collect::<Vec<(usize, Float)>>();
@@ -67,8 +67,7 @@ pub fn five_point_essential<T: Feature + Clone>(matches: &Vec<Match<T>>, project
             let u2 = eigenvectors.column(indexed_eigenvalues[1].0).into_owned();
             let u3 = eigenvectors.column(indexed_eigenvalues[2].0).into_owned();
             let u4 = eigenvectors.column(indexed_eigenvalues[3].0).into_owned();
-
-            (u4, u3, u2, u1)
+            (u1, u2, u3, u4)
         }
 
     };
