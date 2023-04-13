@@ -17,23 +17,23 @@ fn main() -> Result<()> {
     color_eyre::install()?;
     let runtime_conf = load_runtime_conf();
 
-    // let K = octave_loader::load_matrix(&format!("{}/5_point_synthetic/intrinsics.txt",runtime_conf.local_data_path));
-    // let R_raw = octave_loader::load_matrix(&format!("{}/5_point_synthetic/rotation.txt",runtime_conf.local_data_path));
-    // let t_raw = octave_loader::load_vector(&format!("{}/5_point_synthetic/translation.txt",runtime_conf.local_data_path));
-    // let x1h = octave_loader::load_matrix(&format!("{}/5_point_synthetic/cam1_features.txt",runtime_conf.local_data_path));
-    // let x2h = octave_loader::load_matrix(&format!("{}/5_point_synthetic/cam2_features.txt",runtime_conf.local_data_path));
-    // let depth_positive = true;
-    // let invert_focal_length = false;
+    let K = octave_loader::load_matrix(&format!("{}/5_point_synthetic/intrinsics.txt",runtime_conf.local_data_path));
+    let R_raw = octave_loader::load_matrix(&format!("{}/5_point_synthetic/rotation.txt",runtime_conf.local_data_path));
+    let t_raw = octave_loader::load_vector(&format!("{}/5_point_synthetic/translation.txt",runtime_conf.local_data_path));
+    let x1h = octave_loader::load_matrix(&format!("{}/5_point_synthetic/cam1_features.txt",runtime_conf.local_data_path));
+    let x2h = octave_loader::load_matrix(&format!("{}/5_point_synthetic/cam2_features.txt",runtime_conf.local_data_path));
+    let positive_principal_distance = true;
+    let invert_focal_length = false;
 
 
     //TODO: Check data generation - something went wrong
-    let K = octave_loader::load_matrix(&format!("{}/5_point_synthetic/intrinsics_neg.txt",runtime_conf.local_data_path));
-    let R_raw = octave_loader::load_matrix(&format!("{}/5_point_synthetic/rotation_neg.txt",runtime_conf.local_data_path));
-    let t_raw = octave_loader::load_vector(&format!("{}/5_point_synthetic/translation_neg.txt",runtime_conf.local_data_path));
-    let x1h = octave_loader::load_matrix(&format!("{}/5_point_synthetic/cam1_features_neg.txt",runtime_conf.local_data_path));
-    let x2h = octave_loader::load_matrix(&format!("{}/5_point_synthetic/cam2_features_neg.txt",runtime_conf.local_data_path));
-    let positive_principal_distance = false; 
-    let invert_focal_length = false;
+    // let K = octave_loader::load_matrix(&format!("{}/5_point_synthetic/intrinsics_neg.txt",runtime_conf.local_data_path));
+    // let R_raw = octave_loader::load_matrix(&format!("{}/5_point_synthetic/rotation_neg.txt",runtime_conf.local_data_path));
+    // let t_raw = octave_loader::load_vector(&format!("{}/5_point_synthetic/translation_neg.txt",runtime_conf.local_data_path));
+    // let x1h = octave_loader::load_matrix(&format!("{}/5_point_synthetic/cam1_features_neg.txt",runtime_conf.local_data_path));
+    // let x2h = octave_loader::load_matrix(&format!("{}/5_point_synthetic/cam2_features_neg.txt",runtime_conf.local_data_path));
+    // let positive_principal_distance = false; 
+    // let invert_focal_length = false;
 
     let t = SVector::<Float,3>::new(t_raw[(0,0)],t_raw[(1,0)],t_raw[(2,0)]);
     let R = Matrix3::<Float>::new(

@@ -19,7 +19,7 @@ pub mod d455_loader;
 pub mod image_loading_parameters;
 pub mod imu_loading_parameters;
 pub mod octave_loader;
-pub mod olsen_loader;
+pub mod olsson_loader;
 
 
 pub fn parse_to_float(string: &str, negate_value: bool) -> Float {

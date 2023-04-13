@@ -14,7 +14,7 @@ use vision::image::{
 };
 use vision::sfm::epipolar;
 use vision::sensors::camera::{pinhole::Pinhole, Camera, perspective::Perspective};
-use vision::io::{octave_loader,olsen_loader::OlssenData};
+use vision::io::{octave_loader,olsson_loader::OlssenData};
 use vision::{Float,load_runtime_conf};
 use vision::visualize;
 use vision::numerics::pose;
