@@ -84,8 +84,8 @@ name = "ba_3dv"
 path = "examples/sfm/ba_3dv.rs"
 
 [[example]]
-name = "olsen"
-path = "examples/sfm/olsen.rs"
+name = "olsson"
+path = "examples/sfm/olsson.rs"
 
 
 

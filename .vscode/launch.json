@@ -370,10 +370,10 @@
             "preLaunchTask": "build examples"
         },
         {
-            "name": "Olsen",
+            "name": "Olsson",
             "type": "lldb",
             "request": "launch",
-            "program": "${workspaceRoot}/target/debug/examples/olsen",
+            "program": "${workspaceRoot}/target/debug/examples/olsson",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",

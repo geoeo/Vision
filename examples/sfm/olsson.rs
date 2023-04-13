@@ -32,7 +32,7 @@ fn main() -> Result<()> {
     let kronan = "kronan";
     let round_church = "round_church";
     
-    let olsen_dataset_name = ahlströmer;
+    let olsen_dataset_name = fort_channing;
 
     let olsen_data_path = format!("{}/Olsen/{}/",runtime_conf.dataset_path,olsen_dataset_name);
 
@@ -47,8 +47,8 @@ fn main() -> Result<()> {
     // let paths = vec!(vec!(6));
     // let root_id = 5;
 
-    let paths = vec!(vec!(4),vec!(6));
-    let root_id = 5;
+    // let paths = vec!(vec!(4),vec!(6));
+    // let root_id = 5;
 
     // let paths = vec!(vec!(4,3));
     // let root_id = 5;
@@ -65,8 +65,8 @@ fn main() -> Result<()> {
     // let paths = vec!(vec!(4,3),vec!(6));
     // let root_id = 5;
 
-    // let paths = vec!(vec!(4,3),vec!(6,7));
-    // let root_id = 5;
+    let paths = vec!(vec!(4,3),vec!(6,7));
+    let root_id = 5;
 
     // let paths = vec!(vec!(4,3,2));
     // let root_id = 5;
@@ -121,7 +121,7 @@ fn main() -> Result<()> {
     if filtered_matches_per_path.len() > 0 {
         let runtime_parameters = RuntimeParameters {
             pyramid_scale: 1.0,
-            max_iterations: vec![1 as usize; 1],
+            max_iterations: vec![1e5 as usize; 1],
             eps: vec![10.0],
             step_sizes: vec![1e0],
             max_norm_eps: 1e-30, 
