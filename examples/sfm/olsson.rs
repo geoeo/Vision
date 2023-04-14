@@ -34,7 +34,7 @@ fn main() -> Result<()> {
     
     let olsen_dataset_name = fort_channing;
 
-    let olsen_data_path = format!("{}/Olsen/{}/",runtime_conf.dataset_path,olsen_dataset_name);
+    let olsen_data_path = format!("{}/Olsson/{}/",runtime_conf.dataset_path,olsen_dataset_name);
 
     let feature_skip_count = 1;
     let olsen_data = OlssenData::new(&olsen_data_path);
