@@ -1,12 +1,12 @@
 extern crate nalgebra as na;
 extern crate image as image_rs;
 
-use std::os::unix::prelude::FileExt;
+
 use std::path::Path;
 use std::fs::File;
-use std::io::{BufReader,Read, LineWriter, Write};
+use std::io::{BufReader,Read,BufRead, LineWriter, Write};
 use std::option::Option;
-use na::{RowDVector,DMatrix,Matrix4, Vector4, OMatrix, SimdValue, RealField, DimMin, Dim, Scalar, DefaultAllocator, allocator::Allocator};
+use na::{RowDVector,DMatrix,Matrix4, Vector4, OMatrix, SimdValue, RealField, Dim, Scalar, DefaultAllocator, allocator::Allocator};
 use crate::image::{Image,image_encoding::ImageEncoding};
 use crate::image::features::geometry::point::Point;
 use crate::sensors::camera::{Camera,pinhole::Pinhole};
@@ -184,4 +184,21 @@ pub fn write_matrix_to_file<T, M, N>(matrix: &OMatrix<T,M,N>, folder_path: &str,
         line.push('\n');
         file_line_writer.write_all(line.as_bytes()).expect("write_matrix_to_file: error writing matrix to file");
     }
+}
+
+pub fn load_matrix_from(folder_path: &str, file_name: &str) -> DMatrix<Float> {
+    let file_path = format!("{}/{}",folder_path,file_name);
+    let file = File::open(&file_path).expect(format!("load_matrix_from: {} could not be opened!",&file_path).as_str());
+    let reader = BufReader::new(file);
+    let mut matrix_vec = Vec::<Float>::new();
+    let mut row_iter = 0;
+
+    for line in reader.lines() {
+        let line_contents = line.expect("load_matrix_from: line could no be read");
+        let float_vec = line_contents.trim().split_whitespace().map(|x| parse_to_float(x,false));
+        matrix_vec.extend(float_vec);
+        row_iter +=1;
+    }
+    let ncols = matrix_vec.len() / row_iter;
+    DMatrix::<Float>::from_vec(row_iter, ncols, matrix_vec)
 }
