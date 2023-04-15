@@ -105,7 +105,6 @@ impl Image {
     }
 
     pub fn normalize(&self) -> Image {
-
         let (new_name, id) = match self.name.clone() {
             Some(v) => {
                 let mut hasher = DefaultHasher::new();

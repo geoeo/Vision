@@ -1,11 +1,12 @@
 extern crate nalgebra as na;
 extern crate image as image_rs;
 
+use std::os::unix::prelude::FileExt;
 use std::path::Path;
 use std::fs::File;
-use std::io::{BufReader,Read};
+use std::io::{BufReader,Read, LineWriter, Write};
 use std::option::Option;
-use na::{RowDVector,DMatrix,Matrix4, Vector4};
+use na::{RowDVector,DMatrix,Matrix4, Vector4, OMatrix, SimdValue, RealField, DimMin, Dim, Scalar, DefaultAllocator, allocator::Allocator};
 use crate::image::{Image,image_encoding::ImageEncoding};
 use crate::image::features::geometry::point::Point;
 use crate::sensors::camera::{Camera,pinhole::Pinhole};
@@ -48,8 +49,6 @@ pub fn load_depth_image_from_csv(file_path: &Path, negate_values: bool, invert_y
     reader.read_to_string(&mut contents).unwrap();
 
     let mut matrix = DMatrix::<Float>::zeros(height,width);
-
-
     let values = contents.trim().split(|c| c == ' ' || c == ',' || c=='\n').map(|x| parse_to_float(x.trim(),negate_values)).collect::<Vec<Float>>();
     let values_scaled = values.iter().map(|&x| x/scale).collect::<Vec<Float>>();
     assert_eq!(values_scaled.len(),height*width);
@@ -163,4 +162,26 @@ pub fn load_images(dir_path: &str, extension: &str) -> (Vec<Image>, Vec<String>)
     image_name_tuples.sort_unstable_by_key(|(_,name)| name.split(&['_', '.']).collect::<Vec<&str>>()[1].parse::<usize>().expect("Olsen: could not parse image name"));
 
     image_name_tuples.into_iter().unzip()
+}
+
+pub fn write_matrix_to_file<T, M, N>(matrix: &OMatrix<T,M,N>, folder_path: &str, file_name: &str) -> () 
+    where 
+        T: Scalar + RealField + Copy + SimdValue, 
+        M: Dim, 
+        N: Dim,
+        DefaultAllocator: Allocator<T, M, N> {
+    let file_path = format!("{}/{}",folder_path,file_name);
+    let file = File::create(&file_path).expect(format!("write_matrix_to_file: {} could not be created!",&file_path).as_str());
+    let mut file_line_writer = LineWriter::new(file);
+
+    for row in matrix.row_iter() {
+        let mut contents_as_str = String::new();
+        for elem in row.iter() {
+            let s = format!(" {} ",elem);
+            contents_as_str.push_str(&s);
+        }
+        let mut line = String::from(contents_as_str.trim());
+        line.push('\n');
+        file_line_writer.write_all(line.as_bytes()).expect("write_matrix_to_file: error writing matrix to file");
+    }
 }

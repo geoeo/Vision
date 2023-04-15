@@ -87,6 +87,10 @@ path = "examples/sfm/ba_3dv.rs"
 name = "olsson"
 path = "examples/sfm/olsson.rs"
 
+[[example]]
+name = "write_matrix"
+path = "examples/io/write_matrix.rs"
+
 
 
 

@@ -7,7 +7,6 @@ use color_eyre::eyre::Result;
 use std::fs;
 use na::{Vector3,Matrix3};
 use vision::io::olsson_loader::OlssenData;
-use vision::image::{features::{Match,ImageFeature}};
 use vision::sfm::{triangulation::Triangulation,SFMConfig, compute_path_pairs_as_vec, bundle_adjustment::run_ba, epipolar::tensor::BifocalType};
 use vision::odometry::runtime_parameters::RuntimeParameters;
 use vision::numerics::{loss, weighting};
