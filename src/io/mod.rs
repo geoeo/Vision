@@ -177,7 +177,7 @@ pub fn write_matrix_to_file<T, M, N>(matrix: &OMatrix<T,M,N>, folder_path: &str,
     for row in matrix.row_iter() {
         let mut contents_as_str = String::new();
         for elem in row.iter() {
-            let s = format!(" {} ",elem);
+            let s = format!("{} ",elem);
             contents_as_str.push_str(&s);
         }
         let mut line = String::from(contents_as_str.trim());
