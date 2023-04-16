@@ -73,7 +73,7 @@ fn main() -> Result<()> {
     let positive_principal_distance = true;
 
     let camera_map = HashMap::from([(0, intensity_camera_0), (1, intensity_camera_1),(2,intensity_camera_2),(3,intensity_camera_3),(4,intensity_camera_4)  ]);
-    //let sfm_config = SFMConfig::new(2, &vec!(vec!(1), vec!(3)), camera_map.clone(), camera_map, &HashMap::from([((2,1),matches_2_1),((2,3),matches_2_3)]),
+    let sfm_config = SFMConfig::new(2, &vec!(vec!(1), vec!(3)), camera_map.clone(), camera_map, &HashMap::from([((2,1),matches_2_1),((2,3),matches_2_3)]),
     //let sfm_config = SFMConfig::new(2, &vec!(vec!(1)), camera_map.clone(), camera_map, vec!(vec!(matches_2_1)),
     //let sfm_config = SFMConfig::new(2, &vec!(vec!(3,4)), camera_map.clone(), camera_map, vec!(vec!(matches_2_3,matches_3_4)),
     //let sfm_config = SFMConfig::new(2, &vec!(vec!(3)), camera_map.clone(), camera_map, vec!(vec!(matches_2_3)),
@@ -83,7 +83,7 @@ fn main() -> Result<()> {
     //let sfm_config = SFMConfig::new(2, &vec!(vec!(3,4), vec!(1)), camera_map.clone(), camera_map, vec!(vec!(matches_2_3,matches_3_4),vec!(matches_1_0)),
 
     //let sfm_config = SFMConfig::new(2, &vec!(vec!(1), vec!(3), vec!(4), vec!(0)), camera_map.clone(), camera_map, &HashMap::from([((2,1),matches_2_1),((2,3),matches_2_3),((2,4),matches_2_4),((2,0),matches_2_0)]),
-    let sfm_config = SFMConfig::new(2, &vec!(vec!(1,0), vec!(3,4)), camera_map.clone(), camera_map, &HashMap::from([((2,1),matches_2_1),((1,0),matches_1_0),((2,3),matches_2_3),((3,4),matches_3_4)]),
+    //let sfm_config = SFMConfig::new(2, &vec!(vec!(1,0), vec!(3,4)), camera_map.clone(), camera_map, &HashMap::from([((2,1),matches_2_1),((1,0),matches_1_0),((2,3),matches_2_3),((3,4),matches_3_4)]),
     //let sfm_config = SFMConfig::new(2, &vec!(vec!(1,0,3,4)), camera_map.clone(), camera_map, vec!(vec!(matches_2_1,matches_1_0,matches_0_3,matches_3_4)),
     //let sfm_config = SFMConfig::new(3, &vec!(vec!(4)), camera_map.clone(), camera_map, vec!(vec!(matches_3_4)),
 

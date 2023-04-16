@@ -134,5 +134,5 @@ pub fn load_vector(file_path: &str) -> DVector<Float> {
         vec_data.push(v);
     }
 
-    DVector::<Float>::from_vec( vec_data)
+    DVector::<Float>::from_vec(vec_data)
 }

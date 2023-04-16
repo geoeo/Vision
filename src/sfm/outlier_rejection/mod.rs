@@ -26,7 +26,7 @@ pub fn outlier_rejection_dual<Feat: Feature + Clone>(
     assert!(unique_landmark_ids.contains(&0)); // ids have to represent matrix indices
 
     let (a, b, c, a0, b0, c0) = generate_known_rotation_problem(unique_landmark_ids, camera_ids_root_first, abs_pose_map, feature_map);
-    let (dual, slack) = solve_feasability_problem(a, b, c, a0, b0, c0, tol, 0.1, 100.0);
+    let (dual, slack) = solve_feasability_problem(a, b, c, a0, b0, c0, tol, 1.0e-1, 100.0);
     update_maps(abs_landmark_map,abs_pose_map, feature_map ,unique_landmark_ids, match_map, camera_ids_root_first, landmark_id_cam_pair_index_map, dual, slack);
 }
 
@@ -35,6 +35,11 @@ fn solve_feasability_problem(a: DMatrix<Float>, b: DMatrix<Float>, c: DMatrix<Fl
     let (A,B,C, a_nrows, a1_ncols) = construct_feasability_inputs(a, b, c, a0, b0, c0, tol, min_depth, max_depth);
     // goes OOM on wsl on large matricies and is very slow
     // More iterations change the scale a lot
+    // crate::io::write_matrix_to_file(&A, "/home/marc/Workspace/Rust/Vision/output", "A_3dv_2.txt");
+    // crate::io::write_matrix_to_file(&B, "/home/marc/Workspace/Rust/Vision/output", "B_3dv_2.txt");
+    // crate::io::write_matrix_to_file(&C, "/home/marc/Workspace/Rust/Vision/output", "C_3dv_2.txt");
+    // println!("a_nrows: {}", a_nrows);
+    // println!("a1_ncols: {}", a1_ncols);
     let (_, Y, it, r_primal_norm, r_dual_norm) = linear_ip::solve(&A, &(-B), &C, 1e-8, 0.25, 0.5, 10, 1e-20); 
     println!("linear ip - it: {}, primal_norm: {}, dual_norm: {}",it, r_primal_norm, r_dual_norm);
 
