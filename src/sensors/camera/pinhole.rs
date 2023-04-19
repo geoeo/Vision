@@ -2,19 +2,20 @@ extern crate nalgebra as na;
 extern crate num_traits;
 extern crate simba;
 
-use na::{convert, U1,U3, Matrix2x3,Matrix3, Vector, Vector3, base::storage::Storage, SimdRealField, ComplexField,base::Scalar};
+use na::{convert, U1,U3, Matrix2x3,Matrix3, Vector, Vector3, base::storage::Storage, SimdRealField,base::Scalar};
 use num_traits::{float,NumAssign};
 use simba::scalar::{SubsetOf,SupersetOf};
 use crate::image::features::geometry::point::Point;
 use crate::sensors::camera::Camera; 
 
+//TODO: Remove this. Its just Pinhole with skew 0
 #[derive(Copy,Clone)]
-pub struct Pinhole<F: float::Float + Scalar + NumAssign + SimdRealField + ComplexField> {
+pub struct Pinhole<F: float::Float + Scalar + NumAssign + SimdRealField> {
     pub projection: Matrix3<F>,
     pub inverse_projection: Matrix3<F>
 }
 
-impl<F: float::Float + Scalar + NumAssign + SimdRealField + ComplexField> Pinhole<F> {
+impl<F: float::Float + Scalar + NumAssign + SimdRealField> Pinhole<F> {
     pub fn new(fx: F, fy: F, cx: F, cy: F, invert_focal_length: bool) -> Pinhole<F> {
        let factor = match invert_focal_length {
            true => -F::one(),
@@ -57,12 +58,17 @@ impl<F: float::Float + Scalar + NumAssign + SimdRealField + ComplexField> Pinhol
         self.projection[(1,2)]
     }
 
-    pub fn cast<F2: num_traits::float::Float + Scalar + NumAssign + SimdRealField + ComplexField + SubsetOf<F> + SupersetOf<F>>(&self) -> Pinhole<F2> {
+    pub fn cast<F2: num_traits::float::Float + Scalar + NumAssign + SimdRealField + SubsetOf<F> + SupersetOf<F>>(&self) -> Pinhole<F2> {
         Pinhole::<F2>::new(convert(self.get_fx()),convert(self.get_fy()),convert(self.get_cx()),convert(self.get_cy()),false)
     }
 }
 
-impl<F: float::Float + Scalar + NumAssign + SimdRealField + ComplexField> Camera<F> for Pinhole<F> {
+impl<F: float::Float + Scalar + NumAssign + SimdRealField> Camera<F> for Pinhole<F> {
+
+    fn from_matrices(projection: &Matrix3<F>, inverse_projection: &Matrix3<F>) -> Self {
+        Pinhole{projection: projection.clone(), inverse_projection: inverse_projection.clone()}
+    }
+
     fn get_projection(&self) -> Matrix3<F> {
         self.projection
     }
@@ -71,22 +77,26 @@ impl<F: float::Float + Scalar + NumAssign + SimdRealField + ComplexField> Camera
         self.inverse_projection
     }
 
-    fn get_jacobian_with_respect_to_position_in_camera_frame<T>(&self, position: &Vector<F,U3,T>) -> Matrix2x3<F> where T: Storage<F,U3,U1> {
+    fn get_jacobian_with_respect_to_position_in_camera_frame<T, F2: float::Float + Scalar + SupersetOf<F>>(&self, position: &Vector<F2,U3,T>) -> Matrix2x3<F2> where T: Storage<F2,U3,U1> {
         let x = position[0];
         let y = position[1];
         let z = position[2];
         let z_sqrd = float::Float::powi(z,2);
 
-        Matrix2x3::<F>::new(self.get_fx()/z, F::zero() , -(self.get_fx()*x)/z_sqrd,
-                                F::zero(), self.get_fy()/z,  -(self.get_fy()*y)/z_sqrd)
+        let fx = na::convert::<F,F2>(self.get_fx());
+        let fy = na::convert::<F,F2>(self.get_fy());
+
+        Matrix2x3::<F2>::new(fx/z, F2::zero(), -(fx*x)/z_sqrd,
+                                F2::zero(), fy/z,  -(fy*y)/z_sqrd)
 
     }
 
-    fn project<T>(&self, position: &Vector<F,U3,T>) -> Point<F> where T: Storage<F,U3,U1> {
+    fn project<T, F2: float::Float + Scalar + SupersetOf<F> + SimdRealField>(&self, position: &Vector<F2,U3,T>) -> Point<F2> where T: Storage<F2,U3,U1> {
         let z = position[2];
         let homogeneous = position/z;
-        let projected_coordiantes = self.projection*homogeneous;
-        Point::<F>::new(projected_coordiantes[0],projected_coordiantes[1])
+        let proj = Matrix3::<F2>::from_iterator(self.projection.iter().map(|v| na::convert::<F,F2>(*v)));
+        let projected_coordiantes = proj*homogeneous;
+        Point::<F2>::new(projected_coordiantes[0],projected_coordiantes[1])
     }
 
     fn backproject(&self, point: &Point<F>, depth: F) -> Vector3<F> {

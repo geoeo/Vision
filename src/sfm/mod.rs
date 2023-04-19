@@ -1,6 +1,6 @@
 extern crate nalgebra as na;
 extern crate num_traits;
-extern crate simba;
+
 
 use na::{DVector, Matrix4xX, Vector3, Vector4, Matrix3, Isometry3};
 use std::{collections::{HashMap,HashSet}, hash::Hash};
@@ -24,11 +24,10 @@ pub mod outlier_rejection;
 /**
  * We assume that the indices between paths and matches are consistent
  */
-pub struct SFMConfig<C, C2, Feat: Feature> {
+pub struct SFMConfig<C, Feat: Feature> {
     root: usize,
     paths: Vec<Vec<usize>>,
-    camera_map_highp: HashMap<usize, C>,
-    camera_map_lowp: HashMap<usize, C2>,
+    camera_map: HashMap<usize, C>,
     match_map: HashMap<(usize, usize), Vec<Match<Feat>>>, 
     pose_map: HashMap<(usize,usize), Isometry3<Float>>, // The pose transforms tuple id 2 into the coordiante system of tuple id 1
     abs_pose_map: HashMap<usize, Isometry3<Float>>, 
@@ -73,11 +72,10 @@ pub fn compute_path_id_pairs(root_id: usize, paths: &Vec<Vec<usize>>) -> Vec<Vec
     path_id_paris
 }
 
-impl<C: Camera<Float>, C2, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFeature> SFMConfig<C,C2, Feat> {
+impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFeature> SFMConfig<C, Feat> {
     pub fn new(root: usize, 
         paths: &Vec<Vec<usize>>, 
-        camera_map: HashMap<usize, C>, 
-        camera_map_ba: HashMap<usize, C2>, 
+        mut camera_map: HashMap<usize, C>, 
         match_map_no_landmarks: &HashMap<(usize,usize), Vec<Match<Feat>>>, 
         epipolar_alg: tensor::BifocalType, 
         triangulation: Triangulation, 
@@ -85,14 +83,7 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + PartialEq + Eq + Hash + Solve
         epipolar_thresh: Float, 
         landmark_cutoff_thresh: Float,
         refine_rotation_via_rcd: bool,
-        positive_principal_distance: bool) -> SFMConfig<C,C2,Feat> {
-        for key in camera_map.keys() {
-            assert!(camera_map_ba.contains_key(key));
-        }
-
-        for key in camera_map_ba.keys() {
-            assert!(camera_map.contains_key(key));
-        }
+        positive_principal_distance: bool) -> SFMConfig<C,Feat> {
 
         let paths_pairs_as_vec = compute_path_pairs_as_vec(root,paths);
         // Filteres matches according to feature consitency along a path.
@@ -103,7 +94,7 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + PartialEq + Eq + Hash + Solve
         let mut pose_map = Self::compute_pose_map(
             root,
             &paths,
-            &camera_map,
+            &mut camera_map,
             &mut match_map,
             perc_tresh, 
             epipolar_thresh,
@@ -149,14 +140,15 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + PartialEq + Eq + Hash + Solve
         let tol = 5.0/root_cam.get_focal_x(); // rougly 5 pixels
         //outlier_rejection_dual(&camera_ids_root_first, &mut unique_landmark_ids, &mut abs_landmark_map, &mut abs_pose_map, &mut feature_map, &mut match_map, &landmark_id_cam_pair_index_map, tol);
 
-        SFMConfig{root, paths: paths.clone(), camera_map_highp: camera_map, camera_map_lowp: camera_map_ba, match_map, abs_pose_map, pose_map, epipolar_alg, abs_landmark_map, reprojection_error_map, triangulation}
+
+        //let camera_map_ba = camera_map.iter().map(|(k,v)| (k,v))
+        SFMConfig{root, paths: paths.clone(), camera_map: camera_map, match_map, abs_pose_map, pose_map, epipolar_alg, abs_landmark_map, reprojection_error_map, triangulation}
     }
 
 
     pub fn root(&self) -> usize { self.root }
     pub fn paths(&self) -> &Vec<Vec<usize>> { &self.paths }
-    pub fn camera_map_highp(&self) -> &HashMap<usize, C> { &self.camera_map_highp }
-    pub fn camera_map_lowp(&self) -> &HashMap<usize, C2> { &self.camera_map_lowp }
+    pub fn camera_map_highp(&self) -> &HashMap<usize, C> { &self.camera_map}
     pub fn epipolar_alg(&self) -> tensor::BifocalType { self.epipolar_alg}
     pub fn triangulation(&self) -> Triangulation { self.triangulation}
     pub fn match_map(&self) -> &HashMap<(usize, usize), Vec<Match<Feat>>> {&self.match_map}
@@ -167,14 +159,8 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + PartialEq + Eq + Hash + Solve
 
     pub fn compute_unqiue_ids_cameras_root_first(&self) -> (Vec<usize>, Vec<&C>) {
         let keys_sorted = Self::get_sorted_camera_keys(self.root(), self.paths());
-        let cameras_sorted = keys_sorted.iter().map(|id| self.camera_map_highp.get(id).expect("compute_unqiue_ids_cameras_root_first: trying to get invalid camera")).collect::<Vec<&C>>();
+        let cameras_sorted = keys_sorted.iter().map(|id| self.camera_map.get(id).expect("compute_unqiue_ids_cameras_root_first: trying to get invalid camera")).collect::<Vec<&C>>();
         (keys_sorted, cameras_sorted)
-    }
-
-    pub fn compute_unqiue_ids_cameras_ba_root_first(&self) -> (Vec<usize>, Vec<&C2>) {
-        let keys_sorted = Self::get_sorted_camera_keys(self.root(), self.paths());
-        let cameras_sorted = keys_sorted.iter().map(|id| self.camera_map_lowp.get(id).expect("compute_unqiue_ids_cameras_lowp_root_first: trying to get invalid camera")).collect::<Vec<&C2>>();
-        (keys_sorted,cameras_sorted)
     }
 
     fn check_for_duplicate_pixel_entries(matches: &Vec<Vec<Vec<Match<Feat>>>>) -> bool {
@@ -499,7 +485,7 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + PartialEq + Eq + Hash + Solve
     fn compute_pose_map(
             root: usize,
             paths: &Vec<Vec<usize>>,
-            camera_map: &HashMap<usize, C>,
+            camera_map: & HashMap<usize, C>,
             match_map: &mut HashMap<(usize, usize), Vec<Match<Feat>>>,
             perc_tresh: Float, 
             epipolar_tresh: Float,
@@ -574,18 +560,21 @@ impl<C: Camera<Float>, C2, Feat: Feature + Clone + PartialEq + Eq + Hash + Solve
                     
                     //TODO subsample?
                     //let f_m_subsampled = subsample_matches(f_m,image_width,image_height);
-                    println!("{:?}: Number of matches: {}", key, &f_m.len());
+                    println!("{:?}: Number of matches: {}", key, &f_m_norm.len());
 
-                    
                     // The pose transforms id2 into the coordiante system of id1
                     let (h,rotation,_) = tensor::decompose_essential_förstner(&e,&f_m_norm,&inverse_camera_matrix_two, &inverse_camera_matrix_two,positive_principal_distance);
                     let se3 = se3(&h,&rotation);
                     let isometry = from_matrix(&se3);
                     let some_pose_old_val = pose_map.insert(key, isometry);
                     let some_old_match_val = match_map.insert(key,f_m);
+
+                    //let cam1_norm = C::from_matrices(&camera_matrix_one,&inverse_camera_matrix_one);
+                    //let cam2_norm = C::from_matrices(&camera_matrix_two,&inverse_camera_matrix_two);
+                    //camera_map.insert(id1, cam1_norm);
+                    //camera_map.insert(id2, cam2_norm);
                     assert!(some_pose_old_val.is_none());
                     assert!(!some_old_match_val.is_none());
-
                 }
             }
         pose_map

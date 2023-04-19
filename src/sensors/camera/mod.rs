@@ -3,6 +3,7 @@ extern crate num_traits;
 extern crate simba;
 
 use na::{U1,U3,Vector,Vector3,Matrix2x3,Matrix3,Matrix3x4,Matrix4, base::storage::Storage, SimdRealField, ComplexField,base::Scalar};
+use simba::scalar::SupersetOf;
 use num_traits::float;
 use crate::image::features::geometry::point::Point;
 
@@ -14,11 +15,12 @@ pub mod camera_data_frame;
 pub trait Camera<F: float::Float + Scalar> {
     fn get_projection(&self) -> Matrix3<F>;
     fn get_inverse_projection(&self) -> Matrix3<F>; //@TODO: rename to camera/intrinsic matrix
-    fn get_jacobian_with_respect_to_position_in_camera_frame<T>(&self, position: &Vector<F,U3,T>) -> Matrix2x3<F> where T: Storage<F,U3,U1>;
-    fn project<T>(&self, position: &Vector<F,U3,T>) -> Point<F> where T: Storage<F,U3,U1>;
+    fn get_jacobian_with_respect_to_position_in_camera_frame<T, F2: float::Float + Scalar + SupersetOf<F>>(&self, position: &Vector<F2,U3,T>) -> Matrix2x3<F2> where T: Storage<F2,U3,U1>;
+    fn project<T, F2: float::Float + Scalar + SupersetOf<F> + SimdRealField>(&self, position: &Vector<F2,U3,T>) -> Point<F2> where T: Storage<F2,U3,U1>;
     fn backproject(&self, point: &Point<F>, depth: F) -> Vector3<F>;
     fn get_focal_x(&self) -> F;
     fn get_focal_y(&self) -> F;
+    fn from_matrices(projection: &Matrix3<F>, inverse_projection: &Matrix3<F>) -> Self;
 }
 
 /**

@@ -4,7 +4,6 @@ extern crate rand;
 pub mod tensor;
 
 use na::{Vector2, Vector3, Matrix3};
-use crate::sensors::camera::Camera;
 use crate::Float;
 use crate::image::features::{Feature,Match};
 

@@ -18,12 +18,11 @@ pub mod camera_feature_map;
 pub mod solver;
 pub mod state;
 
-pub fn run_ba<F: serde::Serialize + float::Float + Scalar + NumAssign + RealField + SupersetOf<Float>, C : Camera<Float> + Copy, C2: Camera<F> + Copy, T : Feature + Clone + PartialEq + Eq + Hash + SolverFeature>(sfm_config: &SFMConfig<C, C2, T>,img_dim : (usize,usize) ,runtime_parameters: &RuntimeParameters<F>) 
+pub fn run_ba<F: serde::Serialize + float::Float + Scalar + NumAssign + RealField + SupersetOf<Float>, C : Camera<Float> + Copy, T : Feature + Clone + PartialEq + Eq + Hash + SolverFeature>(sfm_config: &SFMConfig<C, T>,img_dim : (usize,usize) ,runtime_parameters: &RuntimeParameters<F>) 
                                 -> ((Vec<Isometry3<F>>, Vec<Vector3<F>>), (serde_yaml::Result<String>, serde_yaml::Result<String>)){
 
 
-    let (unique_camera_ids_sorted,_) = sfm_config.compute_unqiue_ids_cameras_root_first();
-    let (_,unique_cameras_sorted_by_id_ba) = sfm_config.compute_unqiue_ids_cameras_ba_root_first();
+    let (unique_camera_ids_sorted,unique_cameras_sorted_by_id) = sfm_config.compute_unqiue_ids_cameras_root_first();
     let path_id_pairs = compute_path_id_pairs(sfm_config.root(), sfm_config.paths());
 
     let mut feature_map = CameraFeatureMap::new(sfm_config.match_map(),unique_camera_ids_sorted, img_dim);
@@ -42,7 +41,7 @@ pub fn run_ba<F: serde::Serialize + float::Float + Scalar + NumAssign + RealFiel
     //TODO: check this
     let observed_features = feature_map.get_observed_features::<F>();
     
-    let some_debug_state_list = solver::optimize::<_,_,_,3>(&mut state, &unique_cameras_sorted_by_id_ba, &observed_features, runtime_parameters);
+    let some_debug_state_list = solver::optimize::<_,_,_,3>(&mut state, &unique_cameras_sorted_by_id, &observed_features, runtime_parameters);
     let state_serialized = serde_yaml::to_string(&state.to_serial());
     let debug_states_serialized = serde_yaml::to_string(&some_debug_state_list);
 

@@ -21,7 +21,7 @@ pub fn get_feature_index_in_residual(cam_id: usize, feature_id: usize, n_cams: u
  * In the format [f1_cam1, f1_cam2,...]
  * Some entries may be 0 since not all cams see all points
  * */
-pub fn get_estimated_features<F: SupersetOf<Float>, C : Camera<F>, L: Landmark<F,T> + Copy + Clone, const T: usize>(
+pub fn get_estimated_features<F: SupersetOf<Float>, C : Camera<Float>, L: Landmark<F,T> + Copy + Clone, const T: usize>(
     state: &State<F,L,T>, cameras: &Vec<&C>,observed_features: &DVector<F>, estimated_features: &mut DVector<F>) 
     -> () where F: float::Float + Scalar + RealField {
     let n_cams = state.n_cams;
@@ -34,12 +34,12 @@ pub fn get_estimated_features<F: SupersetOf<Float>, C : Camera<F>, L: Landmark<F
     for i in 0..n_cams {
         let cam_idx = 6*i;
         let pose = state.to_se3(cam_idx);
-        let camera = &cameras[i];
+        let camera = cameras[i];
 
         //TODO: use transform_into_other_camera_frame
         let transformed_points = pose*&position_world;
         for j in 0..n_points {
-            let estimated_feature = camera.project(&transformed_points.fixed_view::<3,1>(0,j));  
+            let estimated_feature = camera.project(&transformed_points.fixed_view::<3,1>(0,j));    
             
             let feat_id = get_feature_index_in_residual(i, j, n_cams);
             // If at least one camera has no match, skip
@@ -67,7 +67,7 @@ pub fn compute_residual<F: SupersetOf<Float>>(
     }
 }
 
-pub fn compute_jacobian_wrt_object_points<F, C : Camera<F>, L: Landmark<F, T> + Copy + Clone, const T: usize>(camera: &C, state: &State<F,L,T>, cam_idx: usize, point_idx: usize, i: usize, j: usize, jacobian: &mut DMatrix<F>) 
+pub fn compute_jacobian_wrt_object_points<F, C : Camera<Float>, L: Landmark<F, T> + Copy + Clone, const T: usize>(camera: &C, state: &State<F,L,T>, cam_idx: usize, point_idx: usize, i: usize, j: usize, jacobian: &mut DMatrix<F>) 
     -> () where F: float::Float + Scalar + RealField {
     let transformation = state.to_se3(cam_idx);
     let point = state.get_landmarks()[point_idx].get_euclidean_representation();
@@ -79,7 +79,7 @@ pub fn compute_jacobian_wrt_object_points<F, C : Camera<F>, L: Landmark<F, T> + 
     jacobian.fixed_view_mut::<2,T>(i,j).copy_from(&local_jacobian.fixed_view::<2,T>(0,0));
 }
 
-pub fn compute_jacobian_wrt_camera_extrinsics<F, C : Camera<F>, L: Landmark<F, T> + Copy + Clone, const T: usize>(camera: &C, state: &State<F,L,T>, cam_idx: usize, point: &Point3<F> ,i: usize, j: usize, jacobian: &mut DMatrix<F>) 
+pub fn compute_jacobian_wrt_camera_extrinsics<F, C : Camera<Float>, L: Landmark<F, T> + Copy + Clone, const T: usize>(camera: &C, state: &State<F,L,T>, cam_idx: usize, point: &Point3<F> ,i: usize, j: usize, jacobian: &mut DMatrix<F>) 
     -> () where F: float::Float + Scalar + RealField {
     let transformation = state.to_se3(cam_idx);
     let transformed_point = transformation*Vector4::<F>::new(point[0],point[1],point[2],F::one());
@@ -91,7 +91,7 @@ pub fn compute_jacobian_wrt_camera_extrinsics<F, C : Camera<F>, L: Landmark<F, T
     jacobian.fixed_view_mut::<2,6>(i,j).copy_from(&local_jacobian);
 }
 
-pub fn compute_jacobian<F, C : Camera<F>, L: Landmark<F, T> + Copy + Clone, const T: usize>(state: &State<F,L,T>, cameras: &Vec<&C>, jacobian: &mut DMatrix<F>) 
+pub fn compute_jacobian<F, C : Camera<Float>, L: Landmark<F, T> + Copy + Clone, const T: usize>(state: &State<F,L,T>, cameras: &Vec<&C>, jacobian: &mut DMatrix<F>) 
     -> ()  where F: float::Float + Scalar + RealField {
     //cam
     let number_of_cam_params = 6*state.n_cams;
@@ -107,17 +107,15 @@ pub fn compute_jacobian<F, C : Camera<F>, L: Landmark<F, T> + Copy + Clone, cons
             let a_j = cam_state_idx;
             let b_j = number_of_cam_params+(T*point_id);
             
-
             compute_jacobian_wrt_camera_extrinsics(camera , state, cam_state_idx,&point,row,a_j, jacobian);
             compute_jacobian_wrt_object_points(camera, state, cam_state_idx ,point_id,row,b_j, jacobian);
-
         }
 
     }
 
 }
 
-pub fn optimize<F: SupersetOf<Float>, C : Camera<F>, L: Landmark<F, LANDMARK_PARAM_SIZE> + Copy + Clone, const LANDMARK_PARAM_SIZE: usize>(state: &mut State<F,L,LANDMARK_PARAM_SIZE>, cameras: &Vec<&C>, observed_features: &DVector<F>, runtime_parameters: &RuntimeParameters<F> ) 
+pub fn optimize<F: SupersetOf<Float>, C : Camera<Float>, L: Landmark<F, LANDMARK_PARAM_SIZE> + Copy + Clone, const LANDMARK_PARAM_SIZE: usize>(state: &mut State<F,L,LANDMARK_PARAM_SIZE>, cameras: &Vec<&C>, observed_features: &DVector<F>, runtime_parameters: &RuntimeParameters<F> ) 
     -> Option<Vec<(Vec<[F; CAMERA_PARAM_SIZE]>, Vec<[F; LANDMARK_PARAM_SIZE]>)>> where F: float::Float + Scalar + ComplexField + RealField {
     
 
