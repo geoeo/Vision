@@ -485,7 +485,7 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
     fn compute_pose_map(
             root: usize,
             paths: &Vec<Vec<usize>>,
-            camera_map: & HashMap<usize, C>,
+            camera_map: &mut HashMap<usize, C>,
             match_map: &mut HashMap<(usize, usize), Vec<Match<Feat>>>,
             perc_tresh: Float, 
             epipolar_tresh: Float,
@@ -507,7 +507,8 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
                     let c2 = camera_map.get(&id2).expect("compute_pairwise_cam_motions_for_path: could not get second camera");
                     let key = (id1,id2);
                     let m = match_map.get(&key).expect(format!("match not found with key: {:?}",key).as_str());
-                    let (norm_one, norm_one_inv, norm_two, norm_two_inv) = compute_linear_normalization(m);
+                    let (norm_one, norm_one_inv) = compute_linear_normalization(&m.iter().map(|m| m.get_feature_one().clone()).collect());
+                    let (norm_two, norm_two_inv) = compute_linear_normalization(&m.iter().map(|m| m.get_feature_two().clone()).collect());
 
                     let m_norm = &m.iter().map(|ma| ma.apply_normalisation(&norm_one, &norm_two, 1.0)).collect::<Vec<_>>();
                     let camera_matrix_one = norm_one*c1.get_projection();
@@ -518,20 +519,12 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
                     let (e, f_m,f_m_norm) = match epipolar_alg {
                         tensor::BifocalType::FUNDAMENTAL => {      
                             let f = tensor::fundamental::eight_point_hartley(m_norm, 1.0); 
-                            let f_corr = tensor::fundamental::optimal_correction(&f, m_norm, 1.0);
                             
-                            let filtered_indices_orig = tensor::select_best_matches_from_fundamental(&f,m_norm,perc_tresh, epipolar_tresh, 1.0);
-                            let filtered_indices_corr = tensor::select_best_matches_from_fundamental(&f_corr,m_norm,perc_tresh, epipolar_tresh, 1.0);
+                            let filtered_indices = tensor::select_best_matches_from_fundamental(&f,m_norm,perc_tresh, epipolar_tresh, 1.0);
+                            let filtered = filtered_indices.iter().map(|i| m[*i].clone()).collect::<Vec<Match<Feat>>>();
+                            let filtered_norm = filtered_indices.iter().map(|i| m_norm[*i].clone()).collect::<Vec<Match<Feat>>>();
 
-                            let (f_selected, filtered_indices_selected) = match filtered_indices_orig.len() > filtered_indices_corr.len() {
-                                true => (f,filtered_indices_orig),
-                                false => (f_corr, filtered_indices_corr)
-                            };
-
-                            let filtered = filtered_indices_selected.iter().map(|i| m[*i].clone()).collect::<Vec<Match<Feat>>>();
-                            let filtered_norm = filtered_indices_selected.iter().map(|i| m_norm[*i].clone()).collect::<Vec<Match<Feat>>>();
-
-                            let e = tensor::compute_essential(&f_selected,&camera_matrix_one,&camera_matrix_two);
+                            let e = tensor::compute_essential(&f,&camera_matrix_one,&camera_matrix_two);
 
                             (e, filtered, filtered_norm)
                         },
@@ -569,10 +562,6 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
                     let some_pose_old_val = pose_map.insert(key, isometry);
                     let some_old_match_val = match_map.insert(key,f_m);
 
-                    //let cam1_norm = C::from_matrices(&camera_matrix_one,&inverse_camera_matrix_one);
-                    //let cam2_norm = C::from_matrices(&camera_matrix_two,&inverse_camera_matrix_two);
-                    //camera_map.insert(id1, cam1_norm);
-                    //camera_map.insert(id2, cam2_norm);
                     assert!(some_pose_old_val.is_none());
                     assert!(!some_old_match_val.is_none());
                 }

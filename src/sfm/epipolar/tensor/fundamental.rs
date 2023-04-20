@@ -107,7 +107,7 @@ fn linear_coefficients(feature_left: &Vector2<Float>, feature_right: &Vector2<Fl
 }
 
 /**
- * Compact Fundamental Matrix Computation, Kanatani and Sugaya 
+ * Compact Fundamental Matrix Computation, Kanatani and Sugaya @Info: Doenst seem to cope well with noise
  */
 #[allow(non_snake_case)]
 pub fn optimal_correction<T : Feature + SolverFeature + Clone>(initial_F: &Fundamental, m_measured_in: &Vec<Match<T>>, f0: Float) -> Fundamental {

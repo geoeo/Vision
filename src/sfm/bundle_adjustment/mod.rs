@@ -10,7 +10,7 @@ use crate::image::features::solver_feature::SolverFeature;
 use crate::image::features::Feature;
 use crate::sensors::camera::Camera;
 use crate::odometry::runtime_parameters::RuntimeParameters;
-use crate::sfm::{SFMConfig,compute_path_id_pairs,landmark::Landmark,bundle_adjustment::{camera_feature_map::CameraFeatureMap}};
+use crate::sfm::{SFMConfig,compute_path_id_pairs,bundle_adjustment::{camera_feature_map::CameraFeatureMap}};
 use crate::Float;
 
 
