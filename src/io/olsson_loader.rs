@@ -179,7 +179,7 @@ impl OlssenData {
         }).collect()
     }
 
-    pub fn get_data_for_sfm(&self, root_id: usize, paths: &Vec<Vec<usize>>, positive_principal_distance:bool, invert_focal_length: bool, invert_y: bool, feature_skip_count: usize,  olsen_dataset_name: &str) -> (HashMap<(usize,usize), Vec<Match<ImageFeature>>>, HashMap<usize, Perspective<Float>>, HashMap<usize, Perspective<f32>>) {
+    pub fn get_data_for_sfm(&self, root_id: usize, paths: &Vec<Vec<usize>>, positive_principal_distance:bool, invert_focal_length: bool, invert_y: bool, feature_skip_count: usize,  olsen_dataset_name: &str) -> (HashMap<(usize,usize), Vec<Match<ImageFeature>>>, HashMap<usize, Perspective<Float>>) {
         let root_cam =  Perspective::from_matrix(&self.get_camera_intrinsics_extrinsics(root_id, positive_principal_distance).0,invert_focal_length);
         let other_cams = paths.iter().map(|path| path.iter().map(|&id| (id,Perspective::from_matrix(&self.get_camera_intrinsics_extrinsics(id, positive_principal_distance).0,invert_focal_length))).collect::<Vec<(usize,Perspective<Float>)>>()).flatten().collect::<Vec<(usize,Perspective<Float>)>>();
         let number_of_paths = paths.len();
@@ -189,7 +189,6 @@ impl OlssenData {
         for (other_id,other_cam) in other_cams {
             cam_map.insert(other_id, other_cam);
         }
-        let cam_map_ba = cam_map.iter().map(|(k,v)| (*k, v.cast::<f32>())).collect::<HashMap<usize, Perspective<f32>>>();
 
         let mut match_map = HashMap::<(usize,usize), Vec<Match<ImageFeature>>>::with_capacity(number_of_paths);
         for path_idx in 0..number_of_paths {
@@ -206,7 +205,7 @@ impl OlssenData {
             }
         }
 
-        (match_map,cam_map,cam_map_ba)
+        (match_map,cam_map)
 
     }
 
