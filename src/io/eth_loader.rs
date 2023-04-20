@@ -9,7 +9,7 @@ use std::io::{BufReader,Read,BufRead};
 use crate::Float;
 use crate::io::{image_loading_parameters::ImageLoadingParameters, parse_to_float};
 use crate::image::Image;
-use crate::sensors::camera::{camera_data_frame::CameraDataFrame,pinhole::Pinhole};
+use crate::sensors::camera::{camera_data_frame::CameraDataFrame,perspective::Perspective};
 use crate::io::{load_image_as_gray, load_depth_image_from_csv};
 
 
@@ -116,7 +116,7 @@ pub fn load_ground_truths(file_path: &Path,  gt_alignment_rot: &UnitQuaternion<F
 
 
 
-pub fn load_intrinsics_as_pinhole(file_path: &Path, invert_focal_lengths: bool) -> Pinhole<Float> {
+pub fn load_intrinsics_as_pinhole(file_path: &Path, invert_focal_lengths: bool) -> Perspective<Float> {
     let file = File::open(file_path).expect("load_intrinsics failed");
     let mut reader = BufReader::new(file);
     let mut contents = String::new();
@@ -129,6 +129,6 @@ pub fn load_intrinsics_as_pinhole(file_path: &Path, invert_focal_lengths: bool) 
     let cx = values[3].1;
     let cy = values[8].1;
 
-    Pinhole::new(fx, fy, cx, cy, invert_focal_lengths)
+    Perspective::new(fx, fy, cx, cy, 0.0, invert_focal_lengths)
 
 }

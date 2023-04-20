@@ -7,12 +7,11 @@ use simba::scalar::SupersetOf;
 use num_traits::float;
 use crate::image::features::geometry::point::Point;
 
-pub mod pinhole;
 pub mod perspective;
 pub mod camera_data_frame;
 
  //@TODO: unify principal distance into enum
-pub trait Camera<F: float::Float + Scalar> {
+pub trait Camera<F: float::Float + Scalar + SimdRealField> {
     fn get_projection(&self) -> Matrix3<F>;
     fn get_inverse_projection(&self) -> Matrix3<F>; //@TODO: rename to camera/intrinsic matrix
     fn get_jacobian_with_respect_to_position_in_camera_frame<T, F2: float::Float + Scalar + SupersetOf<F>>(&self, position: &Vector<F2,U3,T>) -> Matrix2x3<F2> where T: Storage<F2,U3,U1>;
@@ -33,7 +32,6 @@ pub trait Camera<F: float::Float + Scalar> {
  */
 #[allow(non_snake_case)]
 pub fn decompose_projection<F: float::Float + Scalar + SimdRealField + ComplexField>(projection_matrix: &Matrix3x4<F>, positive_principal_distance: bool) -> (Matrix3<F>, Matrix4<F>) {
-
     //TODO: coordiante
     let s = match positive_principal_distance {
         true => F::one(),

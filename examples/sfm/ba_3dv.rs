@@ -7,7 +7,7 @@ use std::fs;
 use std::collections::HashMap;
 use color_eyre::eyre::Result;
 use vision::sfm::{triangulation::Triangulation,bundle_adjustment::run_ba, epipolar::tensor::{BifocalType,EssentialDecomposition}, rotation_avg::{optimize_rotations_with_rcd_per_track,optimize_rotations_with_rcd}};
-use vision::sensors::camera::pinhole::Pinhole;
+use vision::sensors::camera::perspective::Perspective;
 use vision::odometry::runtime_parameters::RuntimeParameters;
 use vision::numerics::{loss, weighting};
 use vision::io::three_dv_loader;
@@ -42,11 +42,11 @@ fn main() -> Result<()> {
     // let matches_3_4 = three_dv_loader::load_matches(&format!("{}/3dv",runtime_conf.dataset_path), "image_formation_neg_z_noise_3.xyz", "image_formation_neg_z_noise_4.xyz");
 
 
-    let intensity_camera_0 = Pinhole::new(1000.0, 1000.0, 320.0, 240.0, true);
-    let intensity_camera_1 = Pinhole::new(1000.0, 1000.0, 320.0, 240.0, true);
-    let intensity_camera_2 = Pinhole::new(1000.0, 1000.0, 320.0, 240.0, true);
-    let intensity_camera_3 = Pinhole::new(1000.0, 1000.0, 320.0, 240.0, true);
-    let intensity_camera_4 = Pinhole::new(1000.0, 1000.0, 320.0, 240.0, true);
+    let intensity_camera_0 = Perspective::new(1000.0, 1000.0, 320.0, 240.0, 0.0, true);
+    let intensity_camera_1 = Perspective::new(1000.0, 1000.0, 320.0, 240.0, 0.0, true);
+    let intensity_camera_2 = Perspective::new(1000.0, 1000.0, 320.0, 240.0, 0.0, true);
+    let intensity_camera_3 = Perspective::new(1000.0, 1000.0, 320.0, 240.0, 0.0, true);
+    let intensity_camera_4 = Perspective::new(1000.0, 1000.0, 320.0, 240.0, 0.0, true);
 
 
     let runtime_parameters = RuntimeParameters {

@@ -9,7 +9,7 @@ use std::io::{BufReader,BufRead};
 use crate::Float;
 use crate::io::{image_loading_parameters::ImageLoadingParameters, parse_to_float, closest_ts_index};
 use crate::image::Image;
-use crate::sensors::camera::{camera_data_frame::CameraDataFrame,pinhole::Pinhole};
+use crate::sensors::camera::{camera_data_frame::CameraDataFrame,perspective::Perspective};
 use crate::io::{load_image_as_gray,load_depth_image};
 
 #[repr(u8)]
@@ -146,10 +146,10 @@ pub fn load_ground_truths_and_timestamps(file_path: &Path, gt_alignment_rot: &Un
     (timestamps,ground_truths)
 }
 
-pub fn load_intrinsics_as_pinhole(dataset: &Dataset, invert_focal_lengths: bool) -> Pinhole<Float> {
+pub fn load_intrinsics_as_pinhole(dataset: &Dataset, invert_focal_lengths: bool) -> Perspective<Float> {
     match dataset {
-        Dataset::FR1 => Pinhole::new(517.3, 516.5, 318.6, 255.3, invert_focal_lengths),
-        Dataset::FR2 => Pinhole::new(520.9, 521.0, 325.1, 249.7, invert_focal_lengths),
-        Dataset::FR3 => Pinhole::new(535.4, 539.2, 320.1, 247.6, invert_focal_lengths)
+        Dataset::FR1 => Perspective::new(517.3, 516.5, 318.6, 255.3, 0.0, invert_focal_lengths),
+        Dataset::FR2 => Perspective::new(520.9, 521.0, 325.1, 249.7, 0.0, invert_focal_lengths),
+        Dataset::FR3 => Perspective::new(535.4, 539.2, 320.1, 247.6, 0.0, invert_focal_lengths)
     }
 }

@@ -9,7 +9,7 @@ use vision::image::{
     features::{Match, ImageFeature}
 };
 use vision::sfm::epipolar;
-use vision::sensors::camera::{pinhole::Pinhole, Camera};
+use vision::sensors::camera::{perspective::Perspective, Camera};
 use vision::io::{octave_loader};
 use vision::{Float,load_runtime_conf};
 
@@ -41,7 +41,7 @@ fn main() -> Result<()> {
         R_raw[(1,0)], R_raw[(1,1)], R_raw[(1,2)],
         R_raw[(2,0)], R_raw[(2,1)], R_raw[(2,2)],
     );
-    let intensity_camera_1 = Pinhole::new(K[(0,0)],K[(1,1)],K[(0,2)],K[(1,2)], invert_focal_length);
+    let intensity_camera_1 = Perspective::new(K[(0,0)],K[(1,1)],K[(0,2)],K[(1,2)], 0.0, invert_focal_length);
     let intensity_camera_2 = intensity_camera_1.clone();
     let mut synth_matches = Vec::<Match::<ImageFeature>>::with_capacity(5);
     for i in 0..5 {

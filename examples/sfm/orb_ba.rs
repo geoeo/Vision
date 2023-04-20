@@ -11,7 +11,7 @@ use vision::image::pyramid::orb::{orb_runtime_parameters::OrbRuntimeParameters};
 use vision::image::features::{Match,orb_feature::OrbFeature};
 use vision::image::Image;
 use vision::sfm::{triangulation::Triangulation, bundle_adjustment::run_ba,epipolar::tensor::BifocalType};
-use vision::sensors::camera::{pinhole::Pinhole};
+use vision::sensors::camera::perspective::Perspective;
 use vision::odometry::runtime_parameters::RuntimeParameters;
 use vision::numerics::{loss, weighting};
 use vision::sfm::SFMConfig;
@@ -50,7 +50,7 @@ fn main() -> Result<()> {
     let image_4 = Image::from_gray_image(&gray_image_4, false, false, Some(image_name_4.to_string()));
 
     //TODO: camera intrinsics -investigate removing badly matched feature in the 2 image set
-    let intensity_camera_1 = Pinhole::new(389.2685546875, 389.2685546875, 319.049255371094, 241.347015380859, true);
+    let intensity_camera_1 = Perspective::new(389.2685546875, 389.2685546875, 319.049255371094, 241.347015380859, 0.0, true);
     let intensity_camera_2 = intensity_camera_1.clone();
     let intensity_camera_3 = intensity_camera_1.clone();
     let intensity_camera_4 = intensity_camera_1.clone();

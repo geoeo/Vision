@@ -9,7 +9,7 @@ use std::option::Option;
 use na::{RowDVector,DMatrix,Matrix4, Vector4, OMatrix, SimdValue, RealField, Dim, Scalar, DefaultAllocator, allocator::Allocator};
 use crate::image::{Image,image_encoding::ImageEncoding};
 use crate::image::features::geometry::point::Point;
-use crate::sensors::camera::{Camera,pinhole::Pinhole};
+use crate::sensors::camera::{Camera,perspective::Perspective};
 use crate::{float,Float};
 
 
@@ -42,7 +42,7 @@ pub fn parse_to_float(string: &str, negate_value: bool) -> Float {
 }
 
 //TODO: make this a generic camera arg
-pub fn load_depth_image_from_csv(file_path: &Path, negate_values: bool, invert_y: bool, width: usize, height: usize, scale: Float, normalize: bool, set_default_depth: bool, transform_camera_option: &Option<(&Matrix4<Float>,&Pinhole<Float>)>) -> Image {
+pub fn load_depth_image_from_csv(file_path: &Path, negate_values: bool, invert_y: bool, width: usize, height: usize, scale: Float, normalize: bool, set_default_depth: bool, transform_camera_option: &Option<(&Matrix4<Float>,&Perspective<Float>)>) -> Image {
     let file = File::open(file_path).expect("load_depth_map failed");
     let mut reader = BufReader::new(file);
     let mut contents = String::new();

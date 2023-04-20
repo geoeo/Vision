@@ -10,7 +10,7 @@ use na::{Vector3,Matrix4};
 use crate::Float;
 use crate::io::{image_loading_parameters::ImageLoadingParameters,imu_loading_parameters::ImuLoadingParameters, parse_to_float, closest_ts_index};
 use crate::image::{Image};
-use crate::sensors::camera::{camera_data_frame::CameraDataFrame,pinhole::Pinhole};
+use crate::sensors::camera::{camera_data_frame::CameraDataFrame,perspective::Perspective};
 use crate::sensors::imu::{imu_data_frame::ImuDataFrame,bmi005};
 use crate::sensors::DataFrame;
 use crate::io::{load_image_as_gray,load_depth_image_from_csv};
@@ -24,8 +24,8 @@ pub fn load_camera(root_path: &str, parameters: &ImageLoadingParameters) -> Came
     let color_image_folder = format!("{}/{}",root_path,"rgb");
 
     //let intensity_camera = Pinhole::new(381.963043212891, 381.700378417969, 320.757202148438, 245.415313720703, parameters.invert_focal_lengths);
-    let intensity_camera = Pinhole::new(389.2685546875, 389.2685546875, 319.049255371094, 241.347015380859, parameters.invert_focal_lengths);
-    let depth_camera = Pinhole::new(389.2685546875, 389.2685546875, 319.049255371094, 241.347015380859, parameters.invert_focal_lengths);
+    let intensity_camera = Perspective::new(389.2685546875, 389.2685546875, 319.049255371094, 241.347015380859,0.0, parameters.invert_focal_lengths);
+    let depth_camera = Perspective::new(389.2685546875, 389.2685546875, 319.049255371094, 241.347015380859, 0.0, parameters.invert_focal_lengths);
 
     let (rgb_ts,rgb_ts_string) = load_timestamps(Path::new(&color_image_folder),&color_image_format,false, true,1e-3);
     let (depth_ts,depth_ts_string) = load_timestamps(Path::new(&depth_image_folder),&depth_image_format,false, true,1e-3);
