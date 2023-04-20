@@ -157,10 +157,10 @@ pub fn stereo_triangulation(image_points_and_projection: (&Matrix3xX<Float>, &OM
     for i in 0..n {
         let im_point = image_points.column(i);
         let im_point_prime = image_points_prime.column(i);
-        let x = im_point[(0)];
-        let y = im_point[(1)];
-        let x_prime = image_points_prime[(0)];
-        let y_prime = im_point_prime[(1)];
+        let x = im_point[0];
+        let y = im_point[1];
+        let x_prime = image_points_prime[0];
+        let y_prime = im_point_prime[1];
 
         let P_11 = projection[(0,0)];
         let P_12 = projection[(0,1)];

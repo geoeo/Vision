@@ -46,8 +46,8 @@ fn main() -> Result<()> {
     // let paths = vec!(vec!(6));
     // let root_id = 5;
 
-    // let paths = vec!(vec!(4),vec!(6));
-    // let root_id = 5;
+    let paths = vec!(vec!(4),vec!(6));
+    let root_id = 5;
 
     // let paths = vec!(vec!(4,3));
     // let root_id = 5;
@@ -88,8 +88,8 @@ fn main() -> Result<()> {
     // let paths = vec!(vec!(7));
     // let root_id = 8;
 
-    let paths = vec!(vec!(7,6),vec!(9,10,11));
-    let root_id = 8;
+    // let paths = vec!(vec!(7,6),vec!(9,10,11));
+    // let root_id = 8;
 
     // let paths = vec!(vec!(7,6),vec!(9,10));
     // let root_id = 8;
@@ -128,7 +128,7 @@ fn main() -> Result<()> {
     if filtered_matches_per_path.len() > 0 {
         let runtime_parameters = RuntimeParameters {
             pyramid_scale: 1.0,
-            max_iterations: vec![1e5 as usize; 1],
+            max_iterations: vec![1 as usize; 1],
             eps: vec![10.0],
             step_sizes: vec![1e0],
             max_norm_eps: 1e-30, 

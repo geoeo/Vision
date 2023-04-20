@@ -509,8 +509,8 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
                     let m = match_map.get(&key).expect(format!("match not found with key: {:?}",key).as_str());
                     let (norm_one, norm_one_inv) = compute_linear_normalization(&m.iter().map(|m| m.get_feature_one().clone()).collect());
                     let (norm_two, norm_two_inv) = compute_linear_normalization(&m.iter().map(|m| m.get_feature_two().clone()).collect());
-
                     let m_norm = &m.iter().map(|ma| ma.apply_normalisation(&norm_one, &norm_two, 1.0)).collect::<Vec<_>>();
+                    
                     let camera_matrix_one = norm_one*c1.get_projection();
                     let camera_matrix_two = norm_two*c2.get_projection();
                     let inverse_camera_matrix_one = c1.get_inverse_projection()*norm_one_inv;
@@ -529,7 +529,6 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
                             (e, filtered, filtered_norm)
                         },
                         tensor::BifocalType::ESSENTIAL => {
-                            //let e = tensor::ransac_five_point_essential(m_norm, &camera_matrix_one, &inverse_camera_matrix_one, &camera_matrix_two ,&inverse_camera_matrix_two,1e-2,5e4 as usize, positive_principal_distance);
                             let e = tensor::five_point_essential(m_norm, &camera_matrix_one, &inverse_camera_matrix_one, &camera_matrix_two ,&inverse_camera_matrix_two, positive_principal_distance); 
                             let f = tensor::compute_fundamental(&e, &inverse_camera_matrix_one, &inverse_camera_matrix_two);
 

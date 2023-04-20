@@ -6,6 +6,7 @@ use na::{MatrixXx3,DMatrix,DVector,Isometry3,Matrix4xX, Translation};
 use std::collections::{HashMap,HashSet};
 use std::ops::AddAssign;
 use crate::image::features::{Feature, Match};
+use crate::sfm::epipolar::compute_linear_normalization;
 use crate::Float;
 
 /**
@@ -35,12 +36,12 @@ fn solve_feasability_problem(a: DMatrix<Float>, b: DMatrix<Float>, c: DMatrix<Fl
     let (A,B,C, a_nrows, a1_ncols) = construct_feasability_inputs(a, b, c, a0, b0, c0, tol, min_depth, max_depth);
     // goes OOM on wsl on large matricies and is very slow
     // More iterations change the scale a lot
-    // crate::io::write_matrix_to_file(&A, "/home/marc/Workspace/Rust/Vision/output", "A_3dv_2.txt");
-    // crate::io::write_matrix_to_file(&B, "/home/marc/Workspace/Rust/Vision/output", "B_3dv_2.txt");
-    // crate::io::write_matrix_to_file(&C, "/home/marc/Workspace/Rust/Vision/output", "C_3dv_2.txt");
+    // crate::io::write_matrix_to_file(&A, "/home/marc/Workspace/Rust/Vision/output", "A_3dv_norm.txt");
+    // crate::io::write_matrix_to_file(&B, "/home/marc/Workspace/Rust/Vision/output", "B_3dv_norm.txt");
+    // crate::io::write_matrix_to_file(&C, "/home/marc/Workspace/Rust/Vision/output", "C_3dv_norm.txt");
     // println!("a_nrows: {}", a_nrows);
     // println!("a1_ncols: {}", a1_ncols);
-    let (_, Y, it, r_primal_norm, r_dual_norm) = linear_ip::solve(&A, &(-B), &C, 1e-8, 0.25, 0.5, 10, 1e-20); 
+    let (_, Y, it, r_primal_norm, r_dual_norm) = linear_ip::solve(&A, &(-B), &C, 1e-8, 0.25, 0.5, 5, 1e-20); 
     println!("linear ip - it: {}, primal_norm: {}, dual_norm: {}",it, r_primal_norm, r_dual_norm);
 
     let mut s_temp = DVector::<Float>::zeros(Y.nrows()-a1_ncols);
@@ -126,7 +127,9 @@ fn generate_known_rotation_problem<Feat: Feature + Clone>(unique_landmark_ids: &
         let rotation = abs_pose_map.get(&cam_id).expect("generate_known_rotation_problem: No rotation found").rotation.to_rotation_matrix();
         let rotation_matrix = rotation.matrix();
         let feature_vec = feature_map.get(&cam_id).expect("generate_known_rotation_problem: No features found");
-        let number_of_points = feature_vec.len(); // asuming every feature's landmark id is distinct -> maybe make an explicit check?
+        let (norm, _) = compute_linear_normalization(&feature_vec);
+        let feature_vec_norm = feature_vec.iter().map(|f| f.apply_normalisation(&norm, 1.0)).collect::<Vec<Feat>>();
+        let number_of_points = feature_vec_norm.len(); // asuming every feature's landmark id is distinct -> maybe make an explicit check?
         let ones = DVector::<Float>::repeat(number_of_points, 1.0);
 
         let mut p_data_x = DVector::<Float>::zeros(number_of_points);
@@ -134,7 +137,7 @@ fn generate_known_rotation_problem<Feat: Feature + Clone>(unique_landmark_ids: &
         let mut p_col_ids = DVector::<usize>::zeros(number_of_points);
 
         for p_idx in 0..number_of_points {
-            let feature = &feature_vec[p_idx];
+            let feature = &feature_vec_norm[p_idx];
             p_data_x[p_idx] = feature.get_x_image_float();
             p_data_y[p_idx] = feature.get_y_image_float();
             p_col_ids[p_idx] = feature.get_landmark_id().expect("generate_known_rotation_problem: no landmark id"); 
