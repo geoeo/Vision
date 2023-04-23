@@ -450,37 +450,6 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
 
     }
 
-    //TODO: remove this. This is a depreciated function which only satisfies some outdated interface requirements
-    pub fn compute_lists_from_maps(&self)->  (Vec<Vec<((usize,usize),(Vector3<Float>, Matrix3<Float>))>>,Vec<Vec<Vec<Match<Feat>>>>){
-        let number_of_paths = self.paths.len();
-        let mut all_states = Vec::<Vec<((usize,usize),(Vector3<Float>,Matrix3<Float>))>>::with_capacity(number_of_paths);
-        let mut all_filtered_matches = Vec::<Vec<Vec<Match<Feat>>>>::with_capacity(number_of_paths);
-        for path_idx in 0..number_of_paths {
-            let path = self.paths[path_idx].clone();
-            let mut states = Vec::<((usize,usize),(Vector3<Float>,Matrix3<Float>))>::with_capacity(path.len());
-            let mut filtered_matches = Vec::<Vec<Match<Feat>>>::with_capacity(path.len());
-
-            for j in 0..path.len() {
-                let id1 = match j {
-                    0 => self.root(),
-                    idx => path[idx-1]
-                };
-                let id2 = path[j];
-                let key = (id1,id2);
-                let isometry = match self.pose_map.get(&key) {
-                    Some(iso) => iso.clone(),
-                    None => Isometry3::identity()
-                };
-                states.push((key,to_parts(&isometry)));
-                filtered_matches.push(self.match_map.get(&key).expect("invalid key for matches in SFM config").clone());
-            }
-            all_states.push(states);
-            all_filtered_matches.push(filtered_matches);
-
-        }
-        (all_states, all_filtered_matches)
-    }
-
     #[allow(non_snake_case)]
     fn compute_pose_map(
             root: usize,

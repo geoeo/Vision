@@ -103,19 +103,6 @@ fn main() -> Result<()> {
     let (match_map, camera_map) = olsen_data.get_data_for_sfm(root_id, &paths, positive_principal_distance, invert_focal_length, invert_y, feature_skip_count, olsen_dataset_name);
     let sfm_config_fundamental = SFMConfig::new(root_id, &paths, camera_map, &match_map, 
     BifocalType::FUNDAMENTAL, Triangulation::LINEAR, 1.0, 1.0e-1, 20.0, refince_rotation_via_rcd, positive_principal_distance);
-    let (initial_cam_motions_per_path,filtered_matches_per_path) = sfm_config_fundamental.compute_lists_from_maps();
-
-    //This is only to satisfy current interface in ba
-    let initial_cam_motions = initial_cam_motions_per_path.clone().into_iter().flatten().collect::<Vec<((usize,usize),(Vector3<Float>,Matrix3<Float>))>>();
-    let initial_cam_poses = Some(initial_cam_motions);
-
-    if initial_cam_poses.is_some(){
-        for (_,(t,r)) in initial_cam_poses.as_ref().unwrap() {
-            println!("t : {}",t);
-            println!("r : {}",r);
-            println!("-------");
-        }
-    }
 
     for (i,j) in compute_path_pairs_as_vec(sfm_config_fundamental.root(),sfm_config_fundamental.paths()).into_iter().flatten().collect::<Vec<_>>() {
         let im_1 = olsen_data.get_image(i);
@@ -125,34 +112,29 @@ fn main() -> Result<()> {
         vis_matches.to_image().save(format!("{}/olsen_matches_{}_{}_{}.jpg",runtime_conf.output_path,olsen_dataset_name,i,j)).unwrap();
     }
 
-    if filtered_matches_per_path.len() > 0 {
-        let runtime_parameters = RuntimeParameters {
-            pyramid_scale: 1.0,
-            max_iterations: vec![1 as usize; 1],
-            eps: vec![10.0],
-            step_sizes: vec![1e0],
-            max_norm_eps: 1e-30, 
-            delta_eps: 1e-30,
-            taus: vec![1.0e0],
-            lm: true,
-            debug: false,
-            show_octave_result: true,
-            loss_function: Box::new(loss::TrivialLoss { eps: 1e-16, approximate_gauss_newton_matrices: false }), 
-            intensity_weighting_function:  Box::new(weighting::SquaredWeight {}),
-            //intensity_weighting_function:  Box::new(weighting::HuberWeight {}),
-            cg_threshold: 1e-6,
-            cg_max_it: 2e3 as usize
-        };
+    let runtime_parameters = RuntimeParameters {
+        pyramid_scale: 1.0,
+        max_iterations: vec![1e5 as usize; 1],
+        eps: vec![10.0],
+        step_sizes: vec![1e0],
+        max_norm_eps: 1e-30, 
+        delta_eps: 1e-30,
+        taus: vec![1.0e0],
+        lm: true,
+        debug: false,
+        show_octave_result: true,
+        loss_function: Box::new(loss::TrivialLoss { eps: 1e-16, approximate_gauss_newton_matrices: false }), 
+        intensity_weighting_function:  Box::new(weighting::SquaredWeight {}),
+        //intensity_weighting_function:  Box::new(weighting::HuberWeight {}),
+        cg_threshold: 1e-6,
+        cg_max_it: 2e3 as usize
+    };
 
-        let ((cam_positions,points),(s,debug_states_serialized)) = run_ba(&sfm_config_fundamental, olsen_data.get_image_dim(), &runtime_parameters);
-        fs::write(format!("{}/olsen.txt",runtime_conf.output_path), s?).expect("Unable to write file");
-        if runtime_parameters.debug {
-            fs::write(format!("{}/olsen_debug.txt",runtime_conf.output_path), debug_states_serialized?).expect("Unable to write file");
-        }
+    let ((cam_positions,points),(s,debug_states_serialized)) = run_ba(&sfm_config_fundamental, olsen_data.get_image_dim(), &runtime_parameters);
+    fs::write(format!("{}/olsen.txt",runtime_conf.output_path), s?).expect("Unable to write file");
+    if runtime_parameters.debug {
+        fs::write(format!("{}/olsen_debug.txt",runtime_conf.output_path), debug_states_serialized?).expect("Unable to write file");
     }
-
-
-
 
     Ok(())
 }
