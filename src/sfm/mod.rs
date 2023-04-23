@@ -92,7 +92,6 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
         let mut match_map = Self::generate_match_map_with_landmark_ids(root, &paths,accepted_matches);
 
         let mut pose_map = Self::compute_pose_map(
-            root,
             &paths,
             &mut camera_map,
             &mut match_map,
@@ -451,7 +450,6 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
 
     #[allow(non_snake_case)]
     fn compute_pose_map(
-            root: usize,
             paths: &Vec<Vec<usize>>,
             camera_map: &mut HashMap<usize, C>,
             match_map: &mut HashMap<(usize, usize), Vec<Match<Feat>>>,
@@ -463,84 +461,96 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
             let number_of_paths = paths.len();
             let map_capacity = calc_map_capacity(number_of_paths); //TODO expose this in function args
             let mut pose_map = HashMap::<(usize, usize), Isometry3<Float>>::with_capacity(map_capacity);
-            for path_idx in 0..number_of_paths {
-                let path = paths[path_idx].clone();
-                for j in 0..path.len() {
-                    let id1 = match j {
-                        0 => root,
-                        idx => path[idx-1]
-                    };
-                    let id2 = path[j];
-                    let c1 = camera_map.get(&id1).expect("compute_pairwise_cam_motions_for_path: could not get previous cam");
-                    let c2 = camera_map.get(&id2).expect("compute_pairwise_cam_motions_for_path: could not get second camera");
-                    let key = (id1,id2);
-                    let m = match_map.get(&key).expect(format!("match not found with key: {:?}",key).as_str());
-                    let (norm_one, norm_one_inv) = compute_linear_normalization(&m.iter().map(|m| m.get_feature_one().clone()).collect());
-                    let (norm_two, norm_two_inv) = compute_linear_normalization(&m.iter().map(|m| m.get_feature_two().clone()).collect());
-                    let m_norm = &m.iter().map(|ma| ma.apply_normalisation(&norm_one, &norm_two, 1.0)).collect::<Vec<_>>();
-                    
-                    let camera_matrix_one = norm_one*c1.get_projection();
-                    let camera_matrix_two = norm_two*c2.get_projection();
-                    let inverse_camera_matrix_one = c1.get_inverse_projection()*norm_one_inv;
-                    let inverse_camera_matrix_two = c2.get_inverse_projection()*norm_two_inv;
+            let match_keys : Vec<_> = match_map.iter().map(|(k,_)| *k).collect();
+            for (id1,id2) in match_keys {
+                let c1 = camera_map.get(&id1).expect("compute_pairwise_cam_motions_for_path: could not get previous cam");
+                let c2 = camera_map.get(&id2).expect("compute_pairwise_cam_motions_for_path: could not get second camera");
+                let key = (id1,id2);
+                let m = match_map.get(&key).expect(format!("match not found with key: {:?}",key).as_str());
+                let (norm_one, norm_one_inv) = compute_linear_normalization(&m.iter().map(|m| m.get_feature_one().clone()).collect());
+                let (norm_two, norm_two_inv) = compute_linear_normalization(&m.iter().map(|m| m.get_feature_two().clone()).collect());
+                let m_norm = &m.iter().map(|ma| ma.apply_normalisation(&norm_one, &norm_two, 1.0)).collect::<Vec<_>>();
+                
+                let camera_matrix_one = norm_one*c1.get_projection();
+                let camera_matrix_two = norm_two*c2.get_projection();
+                let inverse_camera_matrix_one = c1.get_inverse_projection()*norm_one_inv;
+                let inverse_camera_matrix_two = c2.get_inverse_projection()*norm_two_inv;
 
-                    let (e, f_m,f_m_norm) = match epipolar_alg {
-                        tensor::BifocalType::FUNDAMENTAL => {      
-                            let f = tensor::fundamental::eight_point_hartley(m_norm, 1.0); 
-                            
-                            let filtered_indices = tensor::select_best_matches_from_fundamental(&f,m_norm,perc_tresh, epipolar_tresh, 1.0);
-                            let filtered = filtered_indices.iter().map(|i| m[*i].clone()).collect::<Vec<Match<Feat>>>();
-                            let filtered_norm = filtered_indices.iter().map(|i| m_norm[*i].clone()).collect::<Vec<Match<Feat>>>();
+                let (e, f_m,f_m_norm) = match epipolar_alg {
+                    tensor::BifocalType::FUNDAMENTAL => {      
+                        let f = tensor::fundamental::eight_point_hartley(m_norm, 1.0); 
+                        
+                        let filtered_indices = tensor::select_best_matches_from_fundamental(&f,m_norm,perc_tresh, epipolar_tresh, 1.0);
+                        let filtered = filtered_indices.iter().map(|i| m[*i].clone()).collect::<Vec<Match<Feat>>>();
+                        let filtered_norm = filtered_indices.iter().map(|i| m_norm[*i].clone()).collect::<Vec<Match<Feat>>>();
 
-                            let e = tensor::compute_essential(&f,&camera_matrix_one,&camera_matrix_two);
+                        let e = tensor::compute_essential(&f,&camera_matrix_one,&camera_matrix_two);
 
-                            (e, filtered, filtered_norm)
-                        },
-                        tensor::BifocalType::ESSENTIAL => {
-                            let e = tensor::five_point_essential(m_norm, &camera_matrix_one, &inverse_camera_matrix_one, &camera_matrix_two ,&inverse_camera_matrix_two, positive_principal_distance); 
-                            let f = tensor::compute_fundamental(&e, &inverse_camera_matrix_one, &inverse_camera_matrix_two);
+                        (e, filtered, filtered_norm)
+                    },
+                    tensor::BifocalType::ESSENTIAL => {
+                        let e = tensor::five_point_essential(m_norm, &camera_matrix_one, &inverse_camera_matrix_one, &camera_matrix_two ,&inverse_camera_matrix_two, positive_principal_distance); 
+                        let f = tensor::compute_fundamental(&e, &inverse_camera_matrix_one, &inverse_camera_matrix_two);
 
-                            let filtered_indices = tensor::select_best_matches_from_fundamental(&f,m_norm,perc_tresh, epipolar_tresh, 1.0);
-                            let filtered = filtered_indices.iter().map(|i| m[*i].clone()).collect::<Vec<Match<Feat>>>();
-                            let filtered_norm = filtered_indices.iter().map(|i| m_norm[*i].clone()).collect::<Vec<Match<Feat>>>();
+                        let filtered_indices = tensor::select_best_matches_from_fundamental(&f,m_norm,perc_tresh, epipolar_tresh, 1.0);
+                        let filtered = filtered_indices.iter().map(|i| m[*i].clone()).collect::<Vec<Match<Feat>>>();
+                        let filtered_norm = filtered_indices.iter().map(|i| m_norm[*i].clone()).collect::<Vec<Match<Feat>>>();
 
-                            (e, filtered, filtered_norm)
-                        },
-                        tensor::BifocalType::QUEST => {
-                            let e = quest::quest_ransac(m_norm,  &inverse_camera_matrix_one, &inverse_camera_matrix_two, 1e-2,1e4 as usize, positive_principal_distance); 
-                            let f = tensor::compute_fundamental(&e, &inverse_camera_matrix_one, &inverse_camera_matrix_two);
+                        (e, filtered, filtered_norm)
+                    },
+                    tensor::BifocalType::QUEST => {
+                        let e = quest::quest_ransac(m_norm,  &inverse_camera_matrix_one, &inverse_camera_matrix_two, 1e-2,1e4 as usize, positive_principal_distance); 
+                        let f = tensor::compute_fundamental(&e, &inverse_camera_matrix_one, &inverse_camera_matrix_two);
 
-                            let filtered_indices = tensor::select_best_matches_from_fundamental(&f,m_norm,perc_tresh, epipolar_tresh, 1.0);
-                            let filtered = filtered_indices.iter().map(|i| m[*i].clone()).collect::<Vec<Match<Feat>>>();
-                            let filtered_norm = filtered_indices.iter().map(|i| m_norm[*i].clone()).collect::<Vec<Match<Feat>>>();
+                        let filtered_indices = tensor::select_best_matches_from_fundamental(&f,m_norm,perc_tresh, epipolar_tresh, 1.0);
+                        let filtered = filtered_indices.iter().map(|i| m[*i].clone()).collect::<Vec<Match<Feat>>>();
+                        let filtered_norm = filtered_indices.iter().map(|i| m_norm[*i].clone()).collect::<Vec<Match<Feat>>>();
 
-                            (e, filtered, filtered_norm)
-                        }
-                    };
-                    
-                    //TODO subsample?
-                    //let f_m_subsampled = subsample_matches(f_m,image_width,image_height);
-                    println!("{:?}: Number of matches: {}", key, &f_m_norm.len());
+                        (e, filtered, filtered_norm)
+                    }
+                };
+                
+                //TODO subsample?
+                //let f_m_subsampled = subsample_matches(f_m,image_width,image_height);
+                println!("{:?}: Number of matches: {}", key, &f_m_norm.len());
 
-                    // The pose transforms id2 into the coordiante system of id1
-                    let (h,rotation,_) = tensor::decompose_essential_förstner(&e,&f_m_norm,&inverse_camera_matrix_two, &inverse_camera_matrix_two,positive_principal_distance);
-                    let se3 = se3(&h,&rotation);
-                    let isometry = from_matrix(&se3);
-                    let some_pose_old_val = pose_map.insert(key, isometry);
-                    let some_old_match_val = match_map.insert(key,f_m);
-                    
-                    //TODO: move this conditioning once all features are fixed to the origin frame / normalize with all features
-                    // let c1_norm: C = Camera::from_matrices(&camera_matrix_one, &inverse_camera_matrix_one);
-                    // let c2_norm: C = Camera::from_matrices(&camera_matrix_two, &inverse_camera_matrix_two);
-                    // let some_old_match_val = match_map.insert(key,f_m_norm);
-                    // camera_map.insert(id1, c1_norm);
-                    // camera_map.insert(id2, c2_norm);
+                // The pose transforms id2 into the coordiante system of id1
+                let (h,rotation,_) = tensor::decompose_essential_förstner(&e,&f_m_norm,&inverse_camera_matrix_two, &inverse_camera_matrix_two,positive_principal_distance);
+                let se3 = se3(&h,&rotation);
+                let isometry = from_matrix(&se3);
+                let some_pose_old_val = pose_map.insert(key, isometry);
+                let some_old_match_val = match_map.insert(key,f_m);
+                
+                //TODO: move this conditioning once all features are fixed to the origin frame / normalize with all features
+                // let c1_norm: C = Camera::from_matrices(&camera_matrix_one, &inverse_camera_matrix_one);
+                // let c2_norm: C = Camera::from_matrices(&camera_matrix_two, &inverse_camera_matrix_two);
+                // let some_old_match_val = match_map.insert(key,f_m_norm);
+                // camera_map.insert(id1, c1_norm);
+                // camera_map.insert(id2, c2_norm);
 
 
-                    assert!(some_pose_old_val.is_none());
-                    assert!(!some_old_match_val.is_none());
-                }
+                assert!(some_pose_old_val.is_none());
+                assert!(!some_old_match_val.is_none());
             }
+
+            // let mut feature_map = HashMap::<usize, Vec<Feat>>::with_capacity(camera_map.capacity());
+            // for key in camera_map.keys() {
+            //     //TODO: Better size estimation
+            //     feature_map.insert(*key, Vec::<Feat>::with_capacity(500));
+            // }
+
+            // for ((id1,id2),matches) in match_map.iter() {
+            //     feature_map.get_mut(id1).expect("compute_pose_map: camera doesnt exist").extend(matches.iter().map(|m| m.get_feature_one().clone()));
+            //     feature_map.get_mut(id2).expect("compute_pose_map: camera doesnt exist").extend(matches.iter().map(|m| m.get_feature_two().clone()));
+            // }
+
+            // for (cam_id, features) in feature_map.iter() {
+            //     let (norm, norm_inv) = compute_linear_normalization(features);
+            //     let c_norm: C = Camera::from_matrices(&norm, &norm_inv);
+            //     camera_map.insert(*cam_id, c_norm);
+            // }
+
+
         pose_map
     }
 
