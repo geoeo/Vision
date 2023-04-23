@@ -101,9 +101,9 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
             epipolar_alg,
             positive_principal_distance
         );
-
         let (mut landmark_map, mut reprojection_error_map, min_reprojection_error_initial, max_reprojection_error_initial) 
             = Self::compute_landmarks_and_reprojection_maps(root,&paths,&pose_map,&match_map,&camera_map,triangulation, positive_principal_distance);
+
         println!("SFM Config Max Reprojection Error 1): {}, Min Reprojection Error: {}", max_reprojection_error_initial, min_reprojection_error_initial);
         Self::reject_landmark_outliers( &mut landmark_map, &mut reprojection_error_map, &mut match_map, landmark_cutoff_thresh);
         if refine_rotation_via_rcd {
@@ -137,11 +137,10 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
         let (mut feature_map, landmark_id_cam_pair_index_map) = compute_features_per_image_map(&match_map, &unique_landmark_ids); 
         let mut abs_landmark_map = compute_absolute_landmarks_for_root(&path_id_pairs,&landmark_map,&abs_pose_map);
         let root_cam = camera_map.get(&root).expect("Root Cam not found!");
-        let tol = 5.0/root_cam.get_focal_x(); // rougly 5 pixels
+        // let tol = 5.0/root_cam.get_focal_x(); // rougly 5 pixels
         //outlier_rejection_dual(&camera_ids_root_first, &mut unique_landmark_ids, &mut abs_landmark_map, &mut abs_pose_map, &mut feature_map, &mut match_map, &landmark_id_cam_pair_index_map, tol);
 
 
-        //let camera_map_ba = camera_map.iter().map(|(k,v)| (k,v))
         SFMConfig{root, paths: paths.clone(), camera_map: camera_map, match_map, abs_pose_map, pose_map, epipolar_alg, abs_landmark_map, reprojection_error_map, triangulation}
     }
 
@@ -529,6 +528,14 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
                     let isometry = from_matrix(&se3);
                     let some_pose_old_val = pose_map.insert(key, isometry);
                     let some_old_match_val = match_map.insert(key,f_m);
+                    
+                    //TODO: move this conditioning once all features are fixed to the origin frame / normalize with all features
+                    // let c1_norm: C = Camera::from_matrices(&camera_matrix_one, &inverse_camera_matrix_one);
+                    // let c2_norm: C = Camera::from_matrices(&camera_matrix_two, &inverse_camera_matrix_two);
+                    // let some_old_match_val = match_map.insert(key,f_m_norm);
+                    // camera_map.insert(id1, c1_norm);
+                    // camera_map.insert(id2, c2_norm);
+
 
                     assert!(some_pose_old_val.is_none());
                     assert!(!some_old_match_val.is_none());

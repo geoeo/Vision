@@ -32,7 +32,6 @@ fn main() -> Result<()> {
     let round_church = "round_church";
     
     let olsen_dataset_name = vasa;
-
     let olsen_data_path = format!("{}/Olsson/{}/",runtime_conf.dataset_path,olsen_dataset_name);
 
     let feature_skip_count = 1;
@@ -41,13 +40,14 @@ fn main() -> Result<()> {
     let invert_y = !positive_principal_distance;
     let invert_focal_length = false;
     let refince_rotation_via_rcd = true;
+    let image_dim = olsen_data.get_image_dim();
 
 
-    // let paths = vec!(vec!(6));
-    // let root_id = 5;
-
-    let paths = vec!(vec!(4),vec!(6));
+    let paths = vec!(vec!(6));
     let root_id = 5;
+
+    // let paths = vec!(vec!(4),vec!(6));
+    // let root_id = 5;
 
     // let paths = vec!(vec!(4,3));
     // let root_id = 5;
@@ -102,12 +102,13 @@ fn main() -> Result<()> {
     //TODO: implement switch for loftr matches!
     let (match_map, camera_map) = olsen_data.get_data_for_sfm(root_id, &paths, positive_principal_distance, invert_focal_length, invert_y, feature_skip_count, olsen_dataset_name);
     let sfm_config_fundamental = SFMConfig::new(root_id, &paths, camera_map, &match_map, 
-    BifocalType::FUNDAMENTAL, Triangulation::LINEAR, 1.0, 1.0e-1, 20.0, refince_rotation_via_rcd, positive_principal_distance);
+    BifocalType::FUNDAMENTAL, Triangulation::LINEAR, 1.0, 1.0e-1, 5.0, refince_rotation_via_rcd, positive_principal_distance);
 
     for (i,j) in compute_path_pairs_as_vec(sfm_config_fundamental.root(),sfm_config_fundamental.paths()).into_iter().flatten().collect::<Vec<_>>() {
         let im_1 = olsen_data.get_image(i);
         let im_2 = olsen_data.get_image(j);
-        let matches = sfm_config_fundamental.match_map().get(&(i,j)).expect(format!("Match ({},{}) not present!",i,j).as_str());
+        //let matches = sfm_config_fundamental.match_map().get(&(i,j)).expect(format!("Match ({},{}) not present!",i,j).as_str());
+        let matches = match_map.get(&(i,j)).expect(format!("Match ({},{}) not present!",i,j).as_str());
         let vis_matches = visualize::display_matches_for_pyramid(im_1,im_2,&matches,true,125.0,1.0, true);
         vis_matches.to_image().save(format!("{}/olsen_matches_{}_{}_{}.jpg",runtime_conf.output_path,olsen_dataset_name,i,j)).unwrap();
     }
@@ -115,7 +116,7 @@ fn main() -> Result<()> {
     let runtime_parameters = RuntimeParameters {
         pyramid_scale: 1.0,
         max_iterations: vec![1e5 as usize; 1],
-        eps: vec![10.0],
+        eps: vec![5.0],
         step_sizes: vec![1e0],
         max_norm_eps: 1e-30, 
         delta_eps: 1e-30,
@@ -130,7 +131,7 @@ fn main() -> Result<()> {
         cg_max_it: 2e3 as usize
     };
 
-    let ((cam_positions,points),(s,debug_states_serialized)) = run_ba(&sfm_config_fundamental, olsen_data.get_image_dim(), &runtime_parameters);
+    let ((cam_positions,points),(s,debug_states_serialized)) = run_ba(&sfm_config_fundamental, image_dim, &runtime_parameters);
     fs::write(format!("{}/olsen.txt",runtime_conf.output_path), s?).expect("Unable to write file");
     if runtime_parameters.debug {
         fs::write(format!("{}/olsen_debug.txt",runtime_conf.output_path), debug_states_serialized?).expect("Unable to write file");
