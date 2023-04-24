@@ -25,11 +25,11 @@ pub fn run_ba<F: serde::Serialize + float::Float + Scalar + NumAssign + RealFiel
     let (unique_camera_ids_sorted,unique_cameras_sorted_by_id) = sfm_config.compute_unqiue_ids_cameras_root_first();
     let path_id_pairs = compute_path_id_pairs(sfm_config.root(), sfm_config.paths());
 
-    let mut feature_map = CameraFeatureMap::new(sfm_config.match_map(),unique_camera_ids_sorted, img_dim);
-    feature_map.add_matches(sfm_config.match_map());
+    let mut camera_feature_map = CameraFeatureMap::new(sfm_config.match_map(),unique_camera_ids_sorted, img_dim);
+    camera_feature_map.add_matches(sfm_config.match_map());
 
     //TODO: switch impl on landmark state
-    let mut state = feature_map.get_euclidean_landmark_state(
+    let (mut state, feature_location_lookup) = camera_feature_map.get_euclidean_landmark_state(
         &path_id_pairs, 
         sfm_config.match_map(), 
         sfm_config.abs_pose_map(), 
@@ -38,7 +38,7 @@ pub fn run_ba<F: serde::Serialize + float::Float + Scalar + NumAssign + RealFiel
     );
     //let mut state = feature_map.get_inverse_depth_landmark_state(Some(&initial_motion_decomp), depth_prior,&cameras);
     
-    let observed_features = feature_map.get_observed_features::<F>();
+    let observed_features = camera_feature_map.get_observed_features::<F>(&feature_location_lookup);
     
     let some_debug_state_list = solver::optimize::<_,_,_,3>(&mut state, &unique_cameras_sorted_by_id, &observed_features, runtime_parameters);
     let state_serialized = serde_yaml::to_string(&state.to_serial());
