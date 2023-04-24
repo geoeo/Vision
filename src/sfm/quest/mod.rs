@@ -15,10 +15,6 @@ pub fn quest_ransac<T: Feature + Clone>(matches: &Vec<Match<T>>, inverse_project
     let mut max_inlier_count = 0;
     let mut best_essential: Option<Essential> = None;
     let sample_size = matches.len();
-    let invert = match positive_principal_distance {
-        true => 1.0,
-        false => -1.0
-    };
     
     for _ in 0..ransac_it {
         let mut m1 = SMatrix::<Float,3,5>::zeros();
@@ -28,8 +24,8 @@ pub fn quest_ransac<T: Feature + Clone>(matches: &Vec<Match<T>>, inverse_project
             let s = &samples[i];
 
             // we want this to always be positive
-            let f_1 = invert*inverse_projection_one*s.get_feature_one().get_as_3d_point(invert);
-            let f_2 = invert*inverse_projection_two*s.get_feature_two().get_as_3d_point(invert);
+            let f_1 = inverse_projection_one*s.get_feature_one().get_as_3d_point(1.0);
+            let f_2 = inverse_projection_two*s.get_feature_two().get_as_3d_point(1.0);
 
             m1.column_mut(i).copy_from(&f_1);
             m2.column_mut(i).copy_from(&f_2);
@@ -54,7 +50,7 @@ pub fn quest_ransac<T: Feature + Clone>(matches: &Vec<Match<T>>, inverse_project
 /**
  * m, n:    Homogeneous coordinates of 5 matched feature points in the first  
 //          and second coordinate frames. Each column of m or n has the 
-//          format [u, v, -1]^T, where x and y are coordinates of the  
+//          format [u, v, 1]^T, where x and y are coordinates of the  
 //          feature point on the image plane. Thus, m and n are 3*5 matrices, 
 //          with one entries in the 3rd row.
  */
