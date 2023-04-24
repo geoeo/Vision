@@ -33,6 +33,7 @@ pub struct SFMConfig<C, Feat: Feature> {
     abs_pose_map: HashMap<usize, Isometry3<Float>>, 
     abs_landmark_map: HashMap<usize, Matrix4xX<Float>>,
     reprojection_error_map: HashMap<(usize, usize),DVector<Float>>,
+    unique_landmark_ids: HashSet<usize>,
     epipolar_alg: tensor::BifocalType,
     triangulation: Triangulation
 }
@@ -139,7 +140,7 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
         //outlier_rejection_dual(&camera_ids_root_first, &mut unique_landmark_ids, &mut abs_landmark_map, &mut abs_pose_map, &mut feature_map, &mut match_map, &landmark_id_cam_pair_index_map, tol);
 
 
-        SFMConfig{root, paths: paths.clone(), camera_map: camera_norm_map, match_map: match_norm_map, abs_pose_map, pose_map, epipolar_alg, abs_landmark_map, reprojection_error_map, triangulation}
+        SFMConfig{root, paths: paths.clone(), camera_map: camera_norm_map, match_map: match_norm_map, abs_pose_map, pose_map, epipolar_alg, abs_landmark_map, reprojection_error_map, unique_landmark_ids, triangulation}
     }
 
 
@@ -153,6 +154,7 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
     pub fn pose_map(&self) -> &HashMap<(usize,usize), Isometry3<Float>> {&self.pose_map}
     pub fn abs_landmark_map(&self) -> &HashMap<usize, Matrix4xX<Float>> {&self.abs_landmark_map}
     pub fn reprojection_error_map(&self) -> &HashMap<(usize, usize), DVector<Float>> {&self.reprojection_error_map}
+    pub fn unique_landmark_ids(&self) -> &HashSet<usize> {&self.unique_landmark_ids}
 
     pub fn compute_unqiue_ids_cameras_root_first(&self) -> (Vec<usize>, Vec<&C>) {
         let keys_sorted = Self::get_sorted_camera_keys(self.root(), self.paths());

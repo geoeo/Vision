@@ -7,7 +7,7 @@ use num_traits::float;
 use crate::sensors::camera::Camera;
 use crate::numerics::lie::left_jacobian_around_identity;
 use crate::numerics::{max_norm, least_squares::{compute_cost,weight_jacobian_sparse,weight_residuals_sparse, calc_weight_vec, gauss_newton_step_with_schur, gauss_newton_step_with_conguate_gradient}};
-use crate::sfm::{landmark::Landmark,bundle_adjustment::{state::State, camera_feature_map::CameraFeatureMap}};
+use crate::sfm::{landmark::Landmark,bundle_adjustment::{state::State, state_linearizer}};
 use crate::odometry::runtime_parameters::RuntimeParameters; //TODO remove dependency on odometry module
 use crate::Float;
 
@@ -43,7 +43,7 @@ pub fn get_estimated_features<F: SupersetOf<Float>, C : Camera<Float>, L: Landma
             
             let feat_id = get_feature_index_in_residual(i, j, n_cams);
             // If at least one camera has no match, skip
-            if !(observed_features[feat_id] == convert(CameraFeatureMap::NO_FEATURE_FLAG)|| observed_features[feat_id+1] == convert(CameraFeatureMap::NO_FEATURE_FLAG)){
+            if !(observed_features[feat_id] == convert(state_linearizer::NO_FEATURE_FLAG)|| observed_features[feat_id+1] == convert(state_linearizer::NO_FEATURE_FLAG)){
                 estimated_features[feat_id] = estimated_feature.x;
                 estimated_features[feat_id+1] = estimated_feature.y;
             }
@@ -59,7 +59,7 @@ pub fn compute_residual<F: SupersetOf<Float>>(
     -> () where F: float::Float + Scalar + RealField{
     assert_eq!(residual_vector.nrows(), estimated_features.nrows());
     for i in 0..residual_vector.nrows() {
-        if observed_features[i] != convert(CameraFeatureMap::NO_FEATURE_FLAG) {
+        if observed_features[i] != convert(state_linearizer::NO_FEATURE_FLAG) {
             residual_vector[i] =  estimated_features[i] - observed_features[i];
         } else {
             residual_vector[i] = F::zero();
