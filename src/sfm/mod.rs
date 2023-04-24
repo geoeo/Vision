@@ -89,7 +89,8 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
         let paths_pairs_as_vec = compute_path_pairs_as_vec(root,paths);
         // Filteres matches according to feature consitency along a path.
         let accepted_matches = Self::filter_by_max_tracks(&paths_pairs_as_vec, &match_map_no_landmarks);
-        let _ = Self::check_for_duplicate_pixel_entries(&accepted_matches);
+        let found_duplicates = Self::check_for_duplicate_pixel_entries(&accepted_matches);
+        assert!(!found_duplicates);
         let match_map = Self::generate_match_map_with_landmark_ids(root, &paths,accepted_matches);
 
         let (mut pose_map, camera_norm_map, mut match_norm_map) = Self::compute_pose_map_and_normalize(
@@ -136,8 +137,8 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
         let (mut feature_map, landmark_id_cam_pair_index_map) = compute_features_per_image_map(&match_norm_map, &unique_landmark_ids); 
         let mut abs_landmark_map = compute_absolute_landmarks_for_root(&path_id_pairs,&landmark_map,&abs_pose_map);
         let root_cam = camera_norm_map.get(&root).expect("Root Cam not found!");
-        // let tol = 5.0/root_cam.get_focal_x(); // rougly 5 pixels
-        //outlier_rejection_dual(&camera_ids_root_first, &mut unique_landmark_ids, &mut abs_landmark_map, &mut abs_pose_map, &mut feature_map, &mut match_map, &landmark_id_cam_pair_index_map, tol);
+        let tol = 5.0/root_cam.get_focal_x(); // rougly 5 pixels
+        //outlier_rejection_dual(&camera_ids_root_first, &mut unique_landmark_ids, &mut abs_landmark_map, &mut abs_pose_map, &mut feature_map, &mut match_norm_map, &landmark_id_cam_pair_index_map, tol);
 
 
         SFMConfig{root, paths: paths.clone(), camera_map: camera_norm_map, match_map: match_norm_map, abs_pose_map, pose_map, epipolar_alg, abs_landmark_map, reprojection_error_map, unique_landmark_ids, triangulation}
@@ -449,6 +450,7 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
 
     }
 
+    //TODO: move normalization into a separate function
     #[allow(non_snake_case)]
     fn compute_pose_map_and_normalize(
             camera_map: HashMap<usize, C>,
