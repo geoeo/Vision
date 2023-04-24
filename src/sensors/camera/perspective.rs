@@ -82,27 +82,37 @@ impl<F: float::Float + Scalar + NumAssign + SimdRealField> Camera<F> for Perspec
         self.inverse_projection
     }
 
-    fn get_jacobian_with_respect_to_position_in_camera_frame<T, F2: float::Float + Scalar + SupersetOf<F>>(&self, position: &Vector<F2,U3,T>) -> Matrix2x3<F2> where T: Storage<F2,U3,U1> {
+    fn get_jacobian_with_respect_to_position_in_camera_frame<T, F2: float::Float + Scalar + SupersetOf<F>>(&self, position: &Vector<F2,U3,T>) -> Option<Matrix2x3<F2>> where T: Storage<F2,U3,U1> {
         let x = position[0];
         let y = position[1];
         let z = position[2];
-        let z_sqrd = F2::powi(z,2);
+        match z {
+            z if z.abs() > F2::zero() => {
+                let z_sqrd = F2::powi(z,2);
 
-        let fx = na::convert::<F,F2>(self.get_fx());
-        let fy = na::convert::<F,F2>(self.get_fy());
-        let s = na::convert::<F,F2>(self.get_s());
-
-        Matrix2x3::<F2>::new(fx/z, s/z , -(fx*x)/z_sqrd,
-                                F2::zero(), fy/z,  -(fy*y)/z_sqrd)
-
+                let fx = na::convert::<F,F2>(self.get_fx());
+                let fy = na::convert::<F,F2>(self.get_fy());
+                let s = na::convert::<F,F2>(self.get_s());
+        
+                Some(Matrix2x3::<F2>::new(fx/z, s/z , -(fx*x)/z_sqrd,
+                                        F2::zero(), fy/z,  -(fy*y)/z_sqrd))
+            },
+            _ => None
+        }
     }
 
-    fn project<T, F2: float::Float + Scalar + SupersetOf<F> + SimdRealField>(&self, position: &Vector<F2,U3,T>) -> Point<F2> where T: Storage<F2,U3,U1> {
+    fn project<T, F2: float::Float + Scalar + SupersetOf<F> + SimdRealField>(&self, position: &Vector<F2,U3,T>) -> Option<Point<F2>> where T: Storage<F2,U3,U1> {
         let z = position[2];
-        let homogeneous = position/z;
-        let proj = Matrix3::<F2>::from_iterator(self.projection.iter().map(|v| na::convert::<F,F2>(*v)));
-        let projected_coordiantes = proj*homogeneous;
-        Point::<F2>::new(projected_coordiantes[0],projected_coordiantes[1])
+        match z {
+            z if z.abs() > F2::zero() => {
+                let homogeneous = position/z;
+                let proj = Matrix3::<F2>::from_iterator(self.projection.iter().map(|v| na::convert::<F,F2>(*v)));
+                let projected_coordiantes = proj*homogeneous;
+                Some(Point::<F2>::new(projected_coordiantes[0],projected_coordiantes[1]))
+            },
+            _ => None
+        }
+
     }
 
     fn backproject(&self, point: &Point<F>, depth: F) -> Vector3<F> {

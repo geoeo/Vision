@@ -3,7 +3,7 @@ extern crate num_traits;
 extern crate simba;
 
 use simba::scalar::{SubsetOf,SupersetOf};
-use na::{convert, Matrix2,Matrix3,Matrix1x2,Matrix3x1,SMatrix, Vector,SVector,Dim, storage::Storage,DVector, SimdRealField, ComplexField,base::Scalar};
+use na::{convert, Matrix2,Matrix3,Matrix1x2,Matrix3x1,SMatrix, Vector,SVector,Dim, storage::Storage,DVector, ComplexField , SimdRealField,base::Scalar};
 use num_traits::{float,NumAssign, identities};
 use crate::image::Image;
 use crate::Float;
@@ -15,7 +15,7 @@ pub mod least_squares;
 pub mod weighting;
 pub mod conjugate_gradient;
 
-pub fn to_matrix<F, const N: usize, const M: usize, const D: usize>(vec: &SVector<F,D>) -> SMatrix<F,N,M> where F : num_traits::float::Float + Scalar + NumAssign + SimdRealField + ComplexField {
+pub fn to_matrix<F, const N: usize, const M: usize, const D: usize>(vec: &SVector<F,D>) -> SMatrix<F,N,M> where F : num_traits::float::Float + Scalar + NumAssign + SimdRealField {
     assert_eq!(D,N*M);
 
     let mut m = SMatrix::<F,N,M>::zeros();
@@ -28,7 +28,7 @@ pub fn to_matrix<F, const N: usize, const M: usize, const D: usize>(vec: &SVecto
     m 
 }
 
-pub fn quadratic_roots<F>(a: F, b: F, c: F) -> (F,F) where F : num_traits::float::Float + Scalar + NumAssign + SimdRealField + ComplexField {
+pub fn quadratic_roots<F>(a: F, b: F, c: F) -> (F,F) where F : num_traits::float::Float + Scalar + NumAssign + SimdRealField {
     let two: F = convert(2.0);
     let four: F = convert(4.0);
     let det = float::Float::powi(b,2)-four*a*c;
@@ -46,17 +46,17 @@ pub fn quadratic_roots<F>(a: F, b: F, c: F) -> (F,F) where F : num_traits::float
     }
 }
 
-pub fn estimate_std<F>(data: &DVector<F>) -> F where F : num_traits::float::Float + Scalar + NumAssign + SimdRealField + ComplexField + identities::One {
+pub fn estimate_std<F>(data: &DVector<F>) -> F where F : num_traits::float::Float + Scalar + NumAssign + SimdRealField  + identities::One {
     median_absolute_deviation(data)/convert::<f64,F>(0.67449) 
 }
 
-pub fn median_absolute_deviation<F>(data: &DVector<F>) -> F where F : num_traits::float::Float + Scalar + NumAssign + SimdRealField + ComplexField + identities::One {
+pub fn median_absolute_deviation<F>(data: &DVector<F>) -> F where F : num_traits::float::Float + Scalar + NumAssign + SimdRealField + identities::One {
     let median_value = median(data.data.as_vec().clone(), true);
     let absolute_deviation: Vec<F> = data.iter().map(|&x| num_traits::float::Float::abs(x-median_value)).collect();
     median(absolute_deviation,false)
 }
 
-pub fn median<F>(data: Vec<F>, sort_data: bool) -> F where F : num_traits::float::Float + Scalar + NumAssign + SimdRealField + ComplexField + identities::One  {
+pub fn median<F>(data: Vec<F>, sort_data: bool) -> F where F : num_traits::float::Float + Scalar + NumAssign + SimdRealField + identities::One  {
     let mut mut_data = data;
     if sort_data {
         mut_data.sort_unstable_by(|a, b| a.partial_cmp(b).unwrap());
@@ -65,25 +65,25 @@ pub fn median<F>(data: Vec<F>, sort_data: bool) -> F where F : num_traits::float
     mut_data[middle]
 }
 
-pub fn round<F>(number: F, dp: i32) -> F where F : num_traits::float::Float + Scalar + NumAssign + SimdRealField + ComplexField{
+pub fn round<F>(number: F, dp: i32) -> F where F : num_traits::float::Float + Scalar + NumAssign + SimdRealField {
     let ten: F = convert(10.0);
     let n = float::Float::powi(ten,dp);
     float::Float::round(number * n)/n
 }
 
-pub fn calc_sigma_from_z<F>(z: F, x: F, mean: F) -> F  where F : num_traits::float::Float + Scalar + NumAssign + SimdRealField + ComplexField {
+pub fn calc_sigma_from_z<F>(z: F, x: F, mean: F) -> F  where F : num_traits::float::Float + Scalar + NumAssign + SimdRealField  {
     assert!(z > F::zero());
     (x-mean)/z
 }
 
-pub fn rotation_matrix_2d_from_orientation<F>(orientation: F) -> Matrix2<F> where F : num_traits::float::Float + Scalar + NumAssign + SimdRealField + ComplexField {
+pub fn rotation_matrix_2d_from_orientation<F>(orientation: F) -> Matrix2<F> where F : num_traits::float::Float + Scalar + NumAssign + SimdRealField {
 
     Matrix2::new(float::Float::cos(orientation), -float::Float::sin(orientation),
                  float::Float::sin(orientation), float::Float::cos(orientation))
 
 }
 
-pub fn gradient_and_orientation<F>(x_gradient: &Image, y_gradient: &Image, x: usize, y: usize) -> (F,F) where F : num_traits::float::Float + Scalar + NumAssign + SimdRealField + ComplexField + SubsetOf<Float> + SupersetOf<Float> {
+pub fn gradient_and_orientation<F>(x_gradient: &Image, y_gradient: &Image, x: usize, y: usize) -> (F,F) where F : num_traits::float::Float + Scalar + NumAssign + SimdRealField + SubsetOf<Float> + SupersetOf<Float> {
     let x_sample: F = convert(x_gradient.buffer.index((y,x)).clone());
     let y_sample: F = convert(y_gradient.buffer.index((y,x)).clone());
     let two: F = convert(2.0);
@@ -101,7 +101,7 @@ pub fn gradient_and_orientation<F>(x_gradient: &Image, y_gradient: &Image, x: us
 }
 
 //TODO: Doesnt seem to work as well as lagrange -> produces out  of scope results
-pub fn newton_interpolation_quadratic<F>(a: F, b: F, c: F, f_a: F, f_b: F, f_c: F, range_min: F, range_max: F) -> F where F : num_traits::float::Float + Scalar + NumAssign + SimdRealField + ComplexField {
+pub fn newton_interpolation_quadratic<F>(a: F, b: F, c: F, f_a: F, f_b: F, f_c: F, range_min: F, range_max: F) -> F where F : num_traits::float::Float + Scalar + NumAssign + SimdRealField {
 
     let a_corrected = if a > b { a - range_max} else {a};
     let c_corrected = if b > c { c + range_max} else {c};
@@ -125,7 +125,7 @@ pub fn newton_interpolation_quadratic<F>(a: F, b: F, c: F, f_a: F, f_b: F, f_c: 
 
 
 // http://fourier.eng.hmc.edu/e176/lectures/NM/node25.html
-pub fn lagrange_interpolation_quadratic<F>(a: F, b: F, c: F, f_a: F, f_b: F, f_c: F, range_min: F, range_max: F) -> F where F : num_traits::float::Float + Scalar + NumAssign + SimdRealField + ComplexField {
+pub fn lagrange_interpolation_quadratic<F>(a: F, b: F, c: F, f_a: F, f_b: F, f_c: F, range_min: F, range_max: F) -> F where F : num_traits::float::Float + Scalar + NumAssign + SimdRealField {
 
     let a_corrected = if a > b { a - range_max} else {a};
     let c_corrected = if b > c { c + range_max} else {c};
@@ -169,7 +169,7 @@ pub fn quadatric_interpolation<F>(a: F, b: F, c: F, f_a: F, f_b: F, f_c: F, rang
     }
 }
 
-pub fn gauss_2d<F>(x_center: F, y_center: F, x: F, y: F, sigma: F) -> F where F : num_traits::float::Float + Scalar + NumAssign + SimdRealField + ComplexField {
+pub fn gauss_2d<F>(x_center: F, y_center: F, x: F, y: F, sigma: F) -> F where F : num_traits::float::Float + Scalar + NumAssign + SimdRealField {
     let offset = Matrix1x2::<F>::new(x-x_center,y-y_center);
     let offset_transpose = offset.transpose();
     let sigma_sqr = float::Float::powi(sigma, 2);
@@ -187,7 +187,7 @@ pub fn gauss_2d<F>(x_center: F, y_center: F, x: F, y: F, sigma: F) -> F where F 
     exp/denom
 }
 
-pub fn max_norm<F,D,S>(vector: &Vector<F,D,S>) -> F where D: Dim, S: Storage<F,D>, F : float::Float + Scalar + NumAssign + SimdRealField + ComplexField  {
+pub fn max_norm<F,D,S>(vector: &Vector<F,D,S>) -> F where D: Dim, S: Storage<F,D>, F : float::Float + Scalar + NumAssign + SimdRealField  {
 
     vector.iter().fold(F::zero(),|max,&v| 
         match float::Float::abs(v) {

@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use na::{DVector, Matrix4,SMatrix, SVector,Matrix3x4,Matrix3xX,Matrix4xX,MatrixXx4,OMatrix,RowOVector,U3,U4, Isometry3};
 use crate::image::features::{Match,Feature};
 use crate::sensors::camera::Camera;
-use crate::Float;
+use crate::{float,Float};
 
 
 
@@ -59,16 +59,23 @@ fn calculate_reprojection_errors<Feat: Feature, C: Camera<Float>>(landmarks: &Ma
     let mut reprojection_errors = DVector::<Float>::zeros(landmark_count);
 
     for i in 0..landmarks.ncols() {
-        let p = landmarks.fixed_columns::<1>(i);
+        let p = landmarks.fixed_columns::<1>(i).into_owned();
         let m = &matches[i];
         let feat_1 = &m.get_feature_one().get_as_2d_point();
         let feat_2 = &m.get_feature_two().get_as_2d_point();
         let p_cam_1 = transform_c1*p;
         let p_cam_2 = transform_c2*p;
-        let projected_1 = cam_1.project(&p_cam_1).to_vector();
-        let projected_2 = cam_2.project(&p_cam_2).to_vector();
 
-        reprojection_errors[i] = (feat_1-projected_1).norm() + (feat_2-projected_2).norm()
+        let projected_1 = cam_1.project(&p_cam_1);
+        let projected_2 = cam_2.project(&p_cam_2);
+
+        if projected_1.is_some() && projected_2.is_some() {
+            let projected_1 = projected_1.unwrap().to_vector();
+            let projected_2 = projected_2.unwrap().to_vector();
+            reprojection_errors[i] = (feat_1-projected_1).norm() + (feat_2-projected_2).norm()
+        } else {
+            reprojection_errors[i] = float::INFINITY;
+        }
     }
 
     reprojection_errors

@@ -540,6 +540,9 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
                 // The pose transforms id2 into the coordiante system of id1
                 let (h,rotation,_) = tensor::decompose_essential_förstner(&e,&f_m_norm,&inverse_camera_matrix_two, &inverse_camera_matrix_two,positive_principal_distance);
                 let se3 = se3(&h,&rotation);
+                if se3.is_identity(1e-15) {
+                    println!("Warning: Decomposition of essential matrix failed for pair ({},{})",id1,id2);
+                }
                 let isometry = from_matrix(&se3);
                 let _ = pose_map.insert(key, isometry);
                 let _ = match_norm_map.insert(key,f_m_norm);

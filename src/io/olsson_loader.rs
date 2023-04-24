@@ -99,8 +99,8 @@ impl OlssenData {
         let img_name_1 = self.sorted_image_names[first_index].split('.').collect::<Vec<&str>>()[0];
         let img_name_2 = self.sorted_image_names[second_index].split('.').collect::<Vec<&str>>()[0];
 
-        //let loftr_match_file_path = format!("{}loftr/{}_{}_{}.txt",self.folder_path,olsen_dataset_name,img_name_1,img_name_2);
-        let loftr_match_file_path = format!("{}loftr_funda/{}_{}_{}.txt",self.folder_path,olsen_dataset_name,img_name_1,img_name_2);
+        let loftr_match_file_path = format!("{}loftr/{}_{}_{}.txt",self.folder_path,olsen_dataset_name,img_name_1,img_name_2);
+        //let loftr_match_file_path = format!("{}loftr_funda/{}_{}_{}.txt",self.folder_path,olsen_dataset_name,img_name_1,img_name_2);
 
         let file = File::open(loftr_match_file_path).expect("loading loft match file failed!");
         let reader = BufReader::new(file);
