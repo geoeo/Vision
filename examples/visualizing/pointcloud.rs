@@ -57,11 +57,8 @@ fn main() -> Result<(),()> {
     let mut window = Window::new("BA: Pointcloud");
     let runtime_conf = load_runtime_conf();
 
-    //let final_state_as_string = fs::read_to_string("D:/Workspace/Rust/Vision/output/orb_ba.txt").expect("Unable to read file");
-    //let all_states_as_string = fs::read_to_string("D:/Workspace/Rust/Vision/output/orb_ba_debug.txt").expect("Unable to read file");
-
-    //let final_state_as_string = fs::read_to_string(format!("{}/3dv.txt",runtime_conf.output_path)).expect("Unable to read file");
-    //let all_states_as_string_option = fs::read_to_string(format!("{}/3dv_debug.txt",runtime_conf.output_path));
+    // let final_state_as_string = fs::read_to_string(format!("{}/3dv.txt",runtime_conf.output_path)).expect("Unable to read file");
+    // let all_states_as_string_option = fs::read_to_string(format!("{}/3dv_debug.txt",runtime_conf.output_path));
 
     let final_state_as_string = fs::read_to_string(format!("{}/olsen.txt", runtime_conf.output_path)).expect("Unable to read file");
     let all_states_as_string_option = fs::read_to_string(format!("{}/olsen_debug.txt", runtime_conf.output_path));
@@ -97,7 +94,7 @@ fn main() -> Result<(),()> {
         cams.len() + points.len()
     );
 
-    let at = Point3::new(0.0, 0.0, -1.0);
+    let at = Point3::new(0.0, 0.0, 1.0);
     let eye = Point3::origin();
     let mut arc_ball = ArcBall::new(eye, at);
     arc_ball.set_dist_step(5.0);

@@ -2,7 +2,7 @@ extern crate nalgebra as na;
 extern crate num_traits;
 extern crate simba;
 
-use na::{convert,U1,U3, Matrix2x3,Matrix3, Vector, Vector3, base::storage::Storage, SimdRealField,base::Scalar, RealField};
+use na::{convert,U1,U3, Matrix2x3,Matrix3, Vector, Vector3, base::storage::Storage, SimdRealField,base::Scalar};
 use num_traits::{float,NumAssign};
 use simba::scalar::{SubsetOf,SupersetOf};
 use crate::image::features::geometry::point::Point;

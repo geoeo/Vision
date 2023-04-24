@@ -127,9 +127,7 @@ fn generate_known_rotation_problem<Feat: Feature + Clone>(unique_landmark_ids: &
         let rotation = abs_pose_map.get(&cam_id).expect("generate_known_rotation_problem: No rotation found").rotation.to_rotation_matrix();
         let rotation_matrix = rotation.matrix();
         let feature_vec = feature_map.get(&cam_id).expect("generate_known_rotation_problem: No features found");
-        let (norm, _) = compute_linear_normalization(&feature_vec);
-        let feature_vec_norm = feature_vec.iter().map(|f| f.apply_normalisation(&norm, 1.0)).collect::<Vec<Feat>>();
-        let number_of_points = feature_vec_norm.len(); // asuming every feature's landmark id is distinct -> maybe make an explicit check?
+        let number_of_points = feature_vec.len(); // asuming every feature's landmark id is distinct -> maybe make an explicit check?
         let ones = DVector::<Float>::repeat(number_of_points, 1.0);
 
         let mut p_data_x = DVector::<Float>::zeros(number_of_points);
@@ -137,7 +135,7 @@ fn generate_known_rotation_problem<Feat: Feature + Clone>(unique_landmark_ids: &
         let mut p_col_ids = DVector::<usize>::zeros(number_of_points);
 
         for p_idx in 0..number_of_points {
-            let feature = &feature_vec_norm[p_idx];
+            let feature = &feature_vec[p_idx];
             p_data_x[p_idx] = feature.get_x_image_float();
             p_data_y[p_idx] = feature.get_y_image_float();
             p_col_ids[p_idx] = feature.get_landmark_id().expect("generate_known_rotation_problem: no landmark id"); 
