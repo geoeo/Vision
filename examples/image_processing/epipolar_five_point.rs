@@ -128,7 +128,8 @@ fn main() -> Result<()> {
     }
 
     let five_point_essential_matrix = epipolar::tensor::five_point_essential(&feature_matches,&intensity_camera_1.get_projection(),&intensity_camera_1.get_inverse_projection(),&intensity_camera_2.get_projection(),&intensity_camera_2.get_inverse_projection(),positive_principal_distance);
-    let (t_est,R_est,_) = epipolar::tensor::decompose_essential_förstner(&five_point_essential_matrix,&feature_matches,&intensity_camera_1.get_inverse_projection(),&intensity_camera_2.get_inverse_projection(),positive_principal_distance);
+    let (iso3_opt,_) = epipolar::tensor::decompose_essential_förstner(&five_point_essential_matrix,&feature_matches,&intensity_camera_1.get_inverse_projection(),&intensity_camera_2.get_inverse_projection(),positive_principal_distance);
+    let iso3 = iso3_opt.unwrap();
     let factor = five_point_essential_matrix[(2,2)];
     let five_point_essential_matrix_norm = five_point_essential_matrix.map(|x| x/factor);
 
@@ -137,10 +138,10 @@ fn main() -> Result<()> {
     println!("best five point: ");
     println!("{}",five_point_essential_matrix);
     println!("{}",five_point_essential_matrix_norm);
-    
+
     println!("----------------");
-    println!("{}",t_est);
-    println!("{}",R_est);
+    println!("{}",iso3.translation);
+    println!("{}",iso3.rotation.to_rotation_matrix());
 
     //let fundamental_matrix = epipolar::compute_fundamental(&five_point_essential_matrix, &intensity_camera_1.get_inverse_projection(), &intensity_camera_2.get_inverse_projection());
     //let feature_matches_vis = &feature_matches[200..220];

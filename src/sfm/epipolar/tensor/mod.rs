@@ -4,12 +4,12 @@ extern crate rand;
 mod five_point;
 pub mod fundamental;
 
-use na::{Vector3, Matrix3, SMatrix};
+use na::{Vector3, Matrix3, SMatrix, Isometry3};
 use rand::seq::SliceRandom;
 
 use crate::Float;
 use crate::image::features::{Feature,Match};
-use crate::numerics::pose::optimal_correction_of_rotation;
+use crate::numerics::pose::isometry3;
 
 pub type Fundamental =  Matrix3<Float>;
 pub type Essential =  Matrix3<Float>;
@@ -57,8 +57,6 @@ pub fn select_best_matches_from_fundamental<T: Feature + Clone>(F: &Fundamental,
     let take_num = (perc*(num as Float)) as usize;
     let sorted_indices_sub = sorted_indices.into_iter().take(take_num).collect::<Vec<_>>();
     sorted_indices_sub.into_iter().map(|(i,_)| i).collect()
-
-    //sorted_indices_sub.into_iter().map(|(i,_)| matches[i].clone()).collect::<Vec<Match<T>>>()
 }
 
 pub fn ransac_five_point_essential<T: Feature + Clone>(matches: &Vec<Match<T>>,projection_one: &Matrix3<Float>, inverse_projection_one: &Matrix3<Float>, projection_two:&Matrix3<Float>,inverse_projection_two: &Matrix3<Float>, epipolar_thresh: Float, ransac_it: usize, positive_principal_distance: bool) -> Essential {
@@ -136,7 +134,7 @@ pub fn decompose_essential_förstner<T : Feature>(
     E: &Essential, matches: &Vec<Match<T>>,
     inverse_camera_matrix_start: &Matrix3<Float>,
     inverse_camera_matrix_finish: &Matrix3<Float>,
-    positive_principal_distance: bool) -> (Vector3<Float>, Matrix3<Float>,Matrix3<Float> ) {
+    positive_principal_distance: bool) -> (Option<Isometry3<Float>>, Matrix3<Float>) {
     assert!(matches.len() > 0);
 
     let svd = E.svd(true,true);
@@ -160,8 +158,8 @@ pub fn decompose_essential_förstner<T : Feature>(
     let R_matrices = vec!(V_norm*W*U_norm.transpose(), V_norm*W*U_norm.transpose(),V_norm*W.transpose()*U_norm.transpose(), V_norm*W.transpose()*U_norm.transpose());
     let h_vecs = vec!(b,-b, b, -b);
 
-    let mut translation = Vector3::<Float>::zeros();
-    let mut rotation = Matrix3::<Float>::identity();
+    let mut translation : Option<Vector3<Float>> = None;
+    let mut rotation : Option<Matrix3<Float>> = None;
     for i in 0..4 {
         let h = h_vecs[i];
         let R = R_matrices[i];
@@ -198,14 +196,18 @@ pub fn decompose_essential_förstner<T : Feature>(
         let v_sign_avg = v_sign /matches.len() as Float;
 
         if u_sign_avg > 0.0 && v_sign_avg > 0.0 {
-            translation = h;
-            rotation = R;
+            translation = Some(h);
+            rotation = Some(R);
             break;
         } 
     }
-    
-    (translation,optimal_correction_of_rotation(&rotation),e_corrected)
 
+    let iso3_option = match (translation, rotation) {
+        (Some(t), Some(r)) => Some(isometry3(&t,&r)),
+        _ => None,
+    };
+    
+    (iso3_option,e_corrected)
 }
 
 //TODO: this is still a little unclear depending on positive or negative depth

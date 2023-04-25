@@ -131,8 +131,8 @@ pub fn cheirality_check<T: Feature + Clone>(
     
     let number_of_points = matches.len();
     for e in all_essential_matricies {
-        let (t,R,e_corrected) = decompose_essential_förstner(&e,matches,points_cam_1.2,points_cam_2.2,positive_principal_distance);
-        let se3 = pose::se3(&t,&R);
+        let (iso3_option,e_corrected) = decompose_essential_förstner(&e,matches,points_cam_1.2,points_cam_2.2,positive_principal_distance);
+        let se3 = iso3_option.expect("five point cheirality_check: essential decomp failed").to_matrix();
 
         let projection_1 = camera_matrix_1*(Matrix4::<Float>::identity().fixed_view::<3,4>(0,0));
         let projection_2 = camera_matrix_2*(se3.fixed_view::<3,4>(0,0));
