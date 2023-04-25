@@ -4,7 +4,7 @@ extern crate num_traits;
 
 use na::{DVector, Matrix4xX, Vector4, Matrix3, Isometry3};
 use std::{collections::{HashMap,HashSet}, hash::Hash};
-use crate::image::{features::{Feature, Match, feature_track::FeatureTrack, solver_feature::SolverFeature}};
+use crate::image::{features::{Feature, matches::Match, feature_track::FeatureTrack, solver_feature::SolverFeature}};
 use crate::sfm::{epipolar::tensor, epipolar::compute_linear_normalization,
     triangulation::{Triangulation, triangulate_matches}, 
     rotation_avg::{optimize_rotations_with_rcd_per_track,optimize_rotations_with_rcd},

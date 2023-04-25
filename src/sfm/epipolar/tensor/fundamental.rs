@@ -7,7 +7,7 @@ use na::{SVector, Vector, Matrix, SMatrix, Matrix3, Vector2, Dyn, VecStorage, di
 use nalgebra::linalg::SymmetricEigen;
 
 use crate::Float;
-use crate::image::features::{Feature,solver_feature::SolverFeature,Match};
+use crate::image::features::{Feature,solver_feature::SolverFeature,matches::Match};
 use crate::sfm::epipolar::tensor::Fundamental;
 
 #[allow(non_snake_case)]

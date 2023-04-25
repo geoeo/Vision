@@ -2,7 +2,7 @@ use std::collections::{VecDeque,HashMap};
 use self::{orb_octave::OrbOctave, orb_runtime_parameters::OrbRuntimeParameters};
 use crate::image::Image;
 use crate::image::pyramid::Pyramid;
-use crate::image::features::{geometry::point::Point,orb_feature::OrbFeature,Match};
+use crate::image::features::{geometry::point::Point,orb_feature::OrbFeature,matches::Match};
 use crate::image::descriptors::brief_descriptor::BriefDescriptor;
 use crate::Float;
 

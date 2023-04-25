@@ -3,15 +3,10 @@ extern crate vision;
 extern crate color_eyre;
 extern crate nalgebra as na;
 
-use std::{fs,path::Path};
-use std::convert::TryInto;
+use std::{path::Path};
 use color_eyre::eyre::Result;
-use na::{SVector,Vector3};
-use vision::image::{
-    Image,
-    features::{Match,orb_feature::OrbFeature,Feature, ImageFeature},
-    pyramid::orb::orb_runtime_parameters::OrbRuntimeParameters,
-};
+use na::Vector3;
+use vision::image::{Image,features::Feature};
 use vision::sfm::epipolar;
 use vision::sensors::camera::{Camera, perspective::Perspective};
 use vision::io::{octave_loader,olsson_loader::OlssenData};

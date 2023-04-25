@@ -8,7 +8,7 @@ use std::collections::HashMap;
 use color_eyre::eyre::Result;
 use std::path::Path;
 use vision::image::pyramid::orb::{orb_runtime_parameters::OrbRuntimeParameters};
-use vision::image::features::{Match,orb_feature::OrbFeature};
+use vision::image::features::{matches::Match,orb_feature::OrbFeature};
 use vision::image::Image;
 use vision::sfm::{triangulation::Triangulation, bundle_adjustment::run_ba,epipolar::tensor::BifocalType};
 use vision::sensors::camera::perspective::Perspective;

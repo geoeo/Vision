@@ -5,8 +5,7 @@ extern crate linear_ip;
 use na::{MatrixXx3,DMatrix,DVector,Isometry3,Matrix4xX, Translation};
 use std::collections::{HashMap,HashSet};
 use std::ops::AddAssign;
-use crate::image::features::{Feature, Match};
-use crate::sfm::epipolar::compute_linear_normalization;
+use crate::image::features::{Feature, matches::Match};
 use crate::Float;
 
 /**

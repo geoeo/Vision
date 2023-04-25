@@ -5,7 +5,7 @@ use na::{SMatrix, Matrix3, SVector, OMatrix, Dyn, RowSVector, RowDVector, linalg
 use nalgebra_lapack::Eigen;
 use rand::seq::SliceRandom;
 use crate::sfm::{epipolar::Essential,tensor::{essential_matrix_from_motion,compute_fundamental,calc_sampson_distance_inliers_for_fundamental}};
-use crate::image::features::{Feature,Match};
+use crate::image::features::{Feature,matches::Match};
 use crate::Float;
 
 pub mod constraints;

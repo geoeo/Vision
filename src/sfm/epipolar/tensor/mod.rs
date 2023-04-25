@@ -8,7 +8,7 @@ use na::{Vector3, Matrix3, SMatrix, Isometry3};
 use rand::seq::SliceRandom;
 
 use crate::Float;
-use crate::image::features::{Feature,Match};
+use crate::image::features::{Feature,matches::Match};
 use crate::numerics::pose::isometry3;
 
 pub type Fundamental =  Matrix3<Float>;

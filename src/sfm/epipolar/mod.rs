@@ -5,73 +5,16 @@ pub mod tensor;
 
 use na::{Vector2, Vector3, Matrix3};
 use crate::Float;
-use crate::image::features::{Feature,Match};
+use crate::image::features::{Feature,matches::Match};
 
 pub type Fundamental =  Matrix3<Float>;
 pub type Essential =  Matrix3<Float>;
-
-// pub fn compute_linear_normalization<T: Feature>(matches: &Vec<Match<T>>) -> (Matrix3<Float>, Matrix3<Float>, Matrix3<Float>, Matrix3<Float>) {
-//     let l = matches.len();
-//     let l_as_float = l as Float;
-
-//     let mut normalization_matrix_one = Matrix3::<Float>::identity();
-//     let mut normalization_matrix_two = Matrix3::<Float>::identity();
-
-//     let mut normalization_matrix_one_inv = Matrix3::<Float>::identity();
-//     let mut normalization_matrix_two_inv = Matrix3::<Float>::identity();
-
-//     let mut avg_one = Vector2::<Float>::zeros();
-//     let mut avg_two = Vector2::<Float>::zeros();
-
-//     for i in 0..l {
-//         let m = &matches[i];
-//         let f_1 = m.get_feature_one().get_as_2d_point();
-//         let f_2 = m.get_feature_two().get_as_2d_point();
-//         avg_one[0] += f_1[0];
-//         avg_one[1] += f_1[1];
-//         avg_two[0] += f_2[0];
-//         avg_two[1] += f_2[1];
-//     }
-
-//     avg_one /= l_as_float;
-//     avg_two /= l_as_float;
-
-//     let (dist_mean_norm_one, dist_mean_norm_two) =  matches.iter().fold((0.0, 0.0), |acc, m| (acc.0 + (m.get_feature_one().get_as_2d_point()-avg_one).norm_squared(), acc.1 + (m.get_feature_two().get_as_2d_point()-avg_two).norm_squared()));
-
-//     let sqrt_2 = (2.0 as Float).sqrt();
-//     let s_one = (sqrt_2*l_as_float)/dist_mean_norm_one.sqrt();
-//     let s_two = (sqrt_2*l_as_float)/dist_mean_norm_two.sqrt();
-
-//     normalization_matrix_one[(0,0)] = s_one;
-//     normalization_matrix_one[(1,1)] = s_one;
-//     normalization_matrix_one[(0,2)] = -s_one*avg_one[0];
-//     normalization_matrix_one[(1,2)] = -s_one*avg_one[1];
-
-//     normalization_matrix_one_inv[(0,0)] = 1.0/s_one;
-//     normalization_matrix_one_inv[(1,1)] = 1.0/s_one;
-//     normalization_matrix_one_inv[(0,2)] = avg_one[0];
-//     normalization_matrix_one_inv[(1,2)] = avg_one[1];
-
-//     normalization_matrix_two[(0,0)] = s_two;
-//     normalization_matrix_two[(1,1)] = s_two;
-//     normalization_matrix_two[(0,2)] = -s_two*avg_two[0];
-//     normalization_matrix_two[(1,2)] = -s_two*avg_two[1];
-
-//     normalization_matrix_two_inv[(0,0)] = 1.0/s_two;
-//     normalization_matrix_two_inv[(1,1)] = 1.0/s_two;
-//     normalization_matrix_two_inv[(0,2)] = avg_two[0];
-//     normalization_matrix_two_inv[(1,2)] = avg_two[1];
-
-//     (normalization_matrix_one, normalization_matrix_one_inv, normalization_matrix_two, normalization_matrix_two_inv)
-
-// }
 
 pub fn compute_linear_normalization<Feat: Feature>(features: &Vec<Feat>) -> (Matrix3<Float>, Matrix3<Float>) {
     let l = features.len();
     let l_as_float = l as Float;
 
     let mut normalization_matrix = Matrix3::<Float>::identity();
-
     let mut normalization_matrix_inv= Matrix3::<Float>::identity();
 
     let mut avg = Vector2::<Float>::zeros();

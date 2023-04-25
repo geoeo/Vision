@@ -6,7 +6,7 @@ extern crate nalgebra as na;
 use color_eyre::eyre::Result;
 use na::{SVector, Matrix3};
 use vision::image::{
-    features::{Match, ImageFeature}
+    features::{matches::Match, ImageFeature}
 };
 use vision::sfm::epipolar;
 use vision::sensors::camera::{perspective::Perspective, Camera};

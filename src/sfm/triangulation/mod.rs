@@ -2,7 +2,7 @@ extern crate nalgebra as na;
 
 use std::collections::HashMap;
 use na::{DVector, Matrix4,SMatrix, SVector,Matrix3x4,Matrix3xX,Matrix4xX,MatrixXx4,OMatrix,RowOVector,U3,U4, Isometry3};
-use crate::image::features::{Match,Feature};
+use crate::image::features::{matches::Match,Feature};
 use crate::sensors::camera::Camera;
 use crate::{float,Float};
 
