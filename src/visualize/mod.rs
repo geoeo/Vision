@@ -3,7 +3,7 @@ extern crate nalgebra as na;
 
 use rand::distributions::{Distribution, Uniform};
 use na::Vector3;
-use crate::{image::features::{ImageFeature,Feature,matches::Match, Oriented,orb_feature::OrbFeature, geometry::{point::Point,shape::circle::circle_bresenham,line::line_bresenham}}};
+use crate::{image::features::{image_feature::ImageFeature,Feature,matches::Match, Oriented,orb_feature::OrbFeature, geometry::{point::Point,shape::circle::circle_bresenham,line::line_bresenham}}};
 use crate::image::{Image,image_encoding::ImageEncoding};
 use crate::image::descriptors::sift_descriptor::{orientation_histogram::OrientationHistogram};
 use crate::{Float,float,reconstruct_original_coordiantes_for_float};

@@ -1,7 +1,7 @@
 extern crate nalgebra as na;
 
 use na::Vector2;
-use crate::image::features::{ImageFeature, orb_feature::OrbFeature};
+use crate::image::features::{image_feature::ImageFeature, orb_feature::OrbFeature};
 use crate::image::features::geometry::point::Point;
 use crate::Float;
 

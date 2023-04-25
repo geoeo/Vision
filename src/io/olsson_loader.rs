@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io::{BufReader,BufRead};
 use crate::io::{ octave_loader::{load_matrices,load_matrix},load_images};
-use crate::image::{Image,features::{matches::Match,ImageFeature}};
+use crate::image::{Image,features::{matches::Match,image_feature::ImageFeature}};
 use crate::sensors::camera::{decompose_projection, perspective::Perspective};
 use crate::numerics::pose;
 
