@@ -11,7 +11,7 @@ use crate::Float;
 pub mod constraints;
 
 
-pub fn quest_ransac<T: Feature + Clone>(matches: &Vec<Match<T>>, inverse_projection_one: &Matrix3<Float>, inverse_projection_two: &Matrix3<Float>, epipolar_thresh: Float, ransac_it: usize, positive_principal_distance: bool) -> Essential {
+pub fn quest_ransac<T: Feature + Clone>(matches: &Vec<Match<T>>, inverse_projection_one: &Matrix3<Float>, inverse_projection_two: &Matrix3<Float>, epipolar_thresh: Float, ransac_it: usize) -> Essential {
     let mut max_inlier_count = 0;
     let mut best_essential: Option<Essential> = None;
     let sample_size = matches.len();

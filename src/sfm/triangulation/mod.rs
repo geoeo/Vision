@@ -6,8 +6,6 @@ use crate::image::features::{matches::Match,Feature};
 use crate::sensors::camera::Camera;
 use crate::{float,Float};
 
-
-
 #[derive(Clone, Copy)]
 pub enum Triangulation {
     LINEAR,
@@ -20,16 +18,16 @@ pub fn triangulate_matches<Feat: Feature, C: Camera<Float>>(path_pair: (usize, u
     let (id1, id2) = path_pair;
     let se3 = pose_map.get(&(id1,id2)).expect(format!("triangulate_matches: pose not found with key: ({},{})",id1,id2).as_str()).to_matrix();
     let ms = match_map.get(&(id1,id2)).expect(format!("triangulate_matches: matches not found with key: ({},{})",id1,id2).as_str());
-    let mut normalized_image_points_s = Matrix3xX::<Float>::zeros(ms.len());
-    let mut normalized_image_points_f = Matrix3xX::<Float>::zeros(ms.len());
+    let mut image_points_s = Matrix3xX::<Float>::zeros(ms.len());
+    let mut image_points_f = Matrix3xX::<Float>::zeros(ms.len());
     
     // The position of the match in its vector indexes the value in the matrix
     for i in 0..ms.len() {
         let m = &ms[i];
         let feat_s = m.get_feature_one().get_as_3d_point(1.0);
         let feat_f = m.get_feature_two().get_as_3d_point(1.0);
-        normalized_image_points_s.column_mut(i).copy_from(&feat_s);
-        normalized_image_points_f.column_mut(i).copy_from(&feat_f);
+        image_points_s.column_mut(i).copy_from(&feat_s);
+        image_points_f.column_mut(i).copy_from(&feat_f);
     }
 
     let f0 = 1.0;
@@ -46,8 +44,8 @@ pub fn triangulate_matches<Feat: Feature, C: Camera<Float>>(path_pair: (usize, u
     let projection_2 = c2_intrinsics*transform_c2;
 
     let landmarks = match triangulation_mode {
-        Triangulation::LINEAR => linear_triangulation_svd(&vec!((&normalized_image_points_s,&projection_1),(&normalized_image_points_f,&projection_2)),positive_principal_distance, true),
-        Triangulation::STEREO => stereo_triangulation((&normalized_image_points_s,&projection_1),(&normalized_image_points_f,&projection_2),f0,f0_prime).expect("get_euclidean_landmark_state: Stereo Triangulation Failed"),
+        Triangulation::LINEAR => linear_triangulation_svd(&vec!((&image_points_s,&projection_1),(&image_points_f,&projection_2)),positive_principal_distance, true),
+        Triangulation::STEREO => stereo_triangulation((&image_points_s,&projection_1),(&image_points_f,&projection_2),f0,f0_prime).expect("get_euclidean_landmark_state: Stereo Triangulation Failed"),
     };
  
     let reprojection_errors = calculate_reprojection_errors(&landmarks, ms, &transform_c1, cam_1, &transform_c2, cam_2);
