@@ -7,7 +7,7 @@ use std::{collections::{HashMap,HashSet}, hash::Hash};
 use crate::image::{features::{Feature, compute_linear_normalization, matches::Match, feature_track::FeatureTrack, solver_feature::SolverFeature}};
 use crate::sfm::{epipolar::tensor, 
     triangulation::{Triangulation, triangulate_matches}, 
-    rotation_avg::{optimize_rotations_with_rcd_per_track,optimize_rotations_with_rcd},
+    rotation_avg::optimize_rotations_with_rcd,
     outlier_rejection::outlier_rejection_dual};
 use crate::sensors::camera::Camera;
 use crate::numerics::{pose::{from_matrix,se3}};
@@ -29,6 +29,7 @@ pub struct SFMConfig<C, Feat: Feature> {
     paths: Vec<Vec<usize>>,
     camera_map: HashMap<usize, C>,
     match_map: HashMap<(usize, usize), Vec<Match<Feat>>>, 
+    match_norm_map: HashMap<(usize, usize), Vec<Match<Feat>>>, 
     pose_map: HashMap<(usize,usize), Isometry3<Float>>, // The pose transforms tuple id 2 into the coordiante system of tuple id 1
     abs_pose_map: HashMap<usize, Isometry3<Float>>, 
     abs_landmark_map: HashMap<usize, Matrix4xX<Float>>,
@@ -91,10 +92,11 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
         let accepted_matches = Self::filter_by_max_tracks(&paths_pairs_as_vec, &match_map_no_landmarks);
         let found_duplicates = Self::check_for_duplicate_pixel_entries(&accepted_matches);
         assert!(!found_duplicates);
-        let match_map = Self::generate_match_map_with_landmark_ids(root, &paths,accepted_matches);
+        let mut match_map = Self::generate_match_map_with_landmark_ids(root, &paths,accepted_matches);
         let (camera_norm_map, mut match_norm_map) = Self::normalize_features_and_cameras(&camera_map, &match_map);
 
         let mut pose_map = Self::compute_initial_pose_map_and_filter_matches(
+            &mut match_map,
             &mut match_norm_map,
             &camera_norm_map,
             perc_tresh, 
@@ -106,7 +108,7 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
             = Self::compute_landmarks_and_reprojection_maps(root,&paths,&pose_map,&match_norm_map,&camera_norm_map,triangulation, positive_principal_distance);
 
         println!("SFM Config Max Reprojection Error 1): {}, Min Reprojection Error: {}", max_reprojection_error_initial, min_reprojection_error_initial);
-        Self::reject_landmark_outliers( &mut landmark_map, &mut reprojection_error_map, &mut match_norm_map, landmark_cutoff_thresh);
+        Self::reject_landmark_outliers( &mut landmark_map, &mut reprojection_error_map, &mut match_map ,&mut match_norm_map, landmark_cutoff_thresh);
         if refine_rotation_via_rcd {
             let new_pose_map = Self::refine_rotation_by_rcd(root, &paths, &pose_map);
             let (mut new_landmark_map, mut new_reprojection_error_map , _, _) =  Self::compute_landmarks_and_reprojection_maps(root,&paths,&new_pose_map,&match_norm_map,&camera_norm_map,triangulation, positive_principal_distance);
@@ -123,13 +125,13 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
             }
         }
 
-        Self::reject_landmark_outliers(&mut landmark_map, &mut reprojection_error_map, &mut match_norm_map, landmark_cutoff_thresh);
+        Self::reject_landmark_outliers(&mut landmark_map, &mut reprojection_error_map, &mut match_map, &mut match_norm_map, landmark_cutoff_thresh);
         let (min_reprojection_error_refined, max_reprojection_error_refined) = Self::compute_reprojection_ranges(&reprojection_error_map);
         println!("SFM Config Max Reprojection Error 2): {}, Min Reprojection Error: {}", max_reprojection_error_refined, min_reprojection_error_refined);
 
         //TODO: Comment recompute_landmark_ids this in more detail
         // Since landmarks may be rejected, this function recomputes the ids to be consecutive so that they may be used for matrix indexing.
-        Self::recompute_landmark_ids(&mut match_norm_map);
+        Self::recompute_landmark_ids(&mut match_norm_map, &mut match_map);
         let path_id_pairs = compute_path_id_pairs(root, paths);
 
         let camera_ids_root_first = Self::get_sorted_camera_keys(root, paths);
@@ -142,7 +144,7 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
         //outlier_rejection_dual(&camera_ids_root_first, &mut unique_landmark_ids, &mut abs_landmark_map, &mut abs_pose_map, &mut feature_map, &mut match_norm_map, &landmark_id_cam_pair_index_map, tol);
 
 
-        SFMConfig{root, paths: paths.clone(), camera_map: camera_norm_map, match_map: match_norm_map, abs_pose_map, pose_map, epipolar_alg, abs_landmark_map, reprojection_error_map, unique_landmark_ids, triangulation}
+        SFMConfig{root, paths: paths.clone(), camera_map: camera_norm_map, match_map, match_norm_map, abs_pose_map, pose_map, epipolar_alg, abs_landmark_map, reprojection_error_map, unique_landmark_ids, triangulation}
     }
 
 
@@ -151,6 +153,7 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
     pub fn camera_map_highp(&self) -> &HashMap<usize, C> { &self.camera_map}
     pub fn epipolar_alg(&self) -> tensor::BifocalType { self.epipolar_alg}
     pub fn triangulation(&self) -> Triangulation { self.triangulation}
+    pub fn match_norm_map(&self) -> &HashMap<(usize, usize), Vec<Match<Feat>>> {&self.match_norm_map}
     pub fn match_map(&self) -> &HashMap<(usize, usize), Vec<Match<Feat>>> {&self.match_map}
     pub fn abs_pose_map(&self) -> &HashMap<usize, Isometry3<Float>> {&self.abs_pose_map}
     pub fn pose_map(&self) -> &HashMap<(usize,usize), Isometry3<Float>> {&self.pose_map}
@@ -208,13 +211,14 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
         landmark_map: &mut  HashMap<(usize, usize), Matrix4xX<Float>>, 
         reprojection_error_map: &mut HashMap<(usize, usize),DVector<Float>>, 
         match_map: &mut HashMap<(usize, usize), Vec<Match<Feat>>>,
+        match_norm_map: &mut HashMap<(usize, usize), Vec<Match<Feat>>>,
         landmark_cutoff: Float){
-            let keys = match_map.keys().map(|key| *key).collect::<Vec<_>>();
+            let keys = match_norm_map.keys().map(|key| *key).collect::<Vec<_>>();
             let mut rejected_landmark_ids = HashSet::<usize>::with_capacity(1000);
 
             for key in &keys {
                 let reprojection_erros = reprojection_error_map.get(key).unwrap();
-                let matches = match_map.get(key).unwrap();
+                let matches = match_norm_map.get(key).unwrap();
                 
                 let rejected_indices = reprojection_erros.iter().enumerate().filter(|&(_,v)| *v >= landmark_cutoff).map(|(idx,_)| idx).collect::<HashSet<usize>>();
                 rejected_landmark_ids.extend(matches.iter().enumerate().filter(|(idx,_)|rejected_indices.contains(idx)).map(|(_,v)| v.get_landmark_id().unwrap()).collect::<HashSet<_>>());
@@ -222,12 +226,14 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
 
             for key in &keys {
                 let reprojection_erros = reprojection_error_map.get(key).unwrap();
+                let matches_norm = match_norm_map.get(key).unwrap();
                 let matches = match_map.get(key).unwrap();
                 let landmarks = landmark_map.get(key).unwrap();
 
-                let accepted_indices = matches.iter().enumerate().filter(|&(_,v)| !rejected_landmark_ids.contains(&v.get_landmark_id().unwrap())).map(|(idx,_)| idx).collect::<HashSet<usize>>();
-                let filtered_matches = matches.iter().enumerate().filter(|(idx,_)|accepted_indices.contains(idx)).map(|(_,v)| v.clone()).collect::<Vec<_>>();
-                assert!(!&filtered_matches.is_empty(), "reject outliers empty features for : {:?}", key);
+                let accepted_indices = matches_norm.iter().enumerate().filter(|&(_,v)| !rejected_landmark_ids.contains(&v.get_landmark_id().unwrap())).map(|(idx,_)| idx).collect::<HashSet<usize>>();
+                let filtered_matches_norm = matches_norm.iter().enumerate().filter(|(idx,_)| accepted_indices.contains(idx)).map(|(_,v)| v.clone()).collect::<Vec<_>>();
+                let filtered_matches = matches.iter().enumerate().filter(|(idx,_)| accepted_indices.contains(idx)).map(|(_,v)| v.clone()).collect::<Vec<_>>();
+                assert!(!&filtered_matches_norm.is_empty(), "reject outliers empty features for : {:?}", key);
 
                 let filtered_reprojection_errors_vec = reprojection_erros.iter().enumerate().filter(|(idx,_)| accepted_indices.contains(idx)).map(|(_,v)| *v).collect::<Vec<Float>>();
                 assert!(!&filtered_reprojection_errors_vec.is_empty());
@@ -237,6 +243,7 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
                 assert!(!&filtered_landmarks_vec.is_empty());
                 let filtered_landmarks = Matrix4xX::<Float>::from_columns(&filtered_landmarks_vec);
 
+                match_norm_map.insert(*key,filtered_matches_norm);
                 match_map.insert(*key,filtered_matches);
                 reprojection_error_map.insert(*key,filtered_reprojection_errors);
                 landmark_map.insert(*key,filtered_landmarks);
@@ -403,11 +410,11 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
         filtered_matches
     } 
 
-    fn recompute_landmark_ids(match_map: &mut HashMap<(usize, usize), Vec<Match<Feat>>>) -> () {
+    fn recompute_landmark_ids(match_norm_map: &mut HashMap<(usize, usize), Vec<Match<Feat>>>, match_map: &mut HashMap<(usize, usize), Vec<Match<Feat>>>) -> () {
         let mut old_max_val = 0;
 
         let mut existing_ids = HashSet::<usize>::with_capacity(100000);
-        for (_,val) in match_map.iter() {
+        for (_,val) in match_norm_map.iter() {
             for m in val {
                 let id = m.get_landmark_id().expect("recompute_landmark_ids: no landmark id");
                 old_max_val = old_max_val.max(id);
@@ -419,13 +426,13 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
         let mut free_ids = (0..existing_ids.len()).collect::<HashSet<usize>>();
 
         let mut missing_id_set = (0..old_max_val).collect::<HashSet<usize>>();
-        for (_,val) in match_map.iter() {
+        for (_,val) in match_norm_map.iter() {
             for m in val {
                 missing_id_set.remove(&m.get_landmark_id().unwrap());
             }
         }
 
-        for (_,val) in match_map.iter_mut() {
+        for (_,val) in match_norm_map.iter_mut() {
             for m in val {
                 let old_id = m.get_landmark_id().expect("recompute_landmark_ids: no landmark id");
                 if old_new_map.contains_key(&old_id) {
@@ -442,12 +449,22 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
         assert!(free_ids.is_empty());
 
         let mut validation_set = (0..existing_ids.len()).collect::<HashSet<usize>>();
-        for (_,val) in match_map.iter() {
+        for (_,val) in match_norm_map.iter() {
             for m in val {
                 validation_set.remove(&m.get_landmark_id().unwrap());
             }
         }
         assert!(validation_set.is_empty());
+
+        // Make sure normalized matches and matches are consistent
+        for (key, ms_norm) in match_norm_map {
+            let ms = match_map.get_mut(key).expect("match missing in recompute_landmark_ids");
+            assert_eq!(ms_norm.len(), ms.len());
+            for i in 0..ms.len() {
+                ms[i].set_landmark_id(ms_norm[i].get_landmark_id());
+            }
+
+        }
 
     }
 
@@ -495,6 +512,7 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
 
     #[allow(non_snake_case)]
     fn compute_initial_pose_map_and_filter_matches(
+            match_map: &mut HashMap<(usize, usize), Vec<Match<Feat>>>,
             match_norm_map: &mut HashMap<(usize, usize), Vec<Match<Feat>>>,
             camera_norm_map: &HashMap<usize, C>,
             perc_tresh: Float, 
@@ -509,23 +527,25 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
                 let c1 = camera_norm_map.get(&id1).expect("compute_pose_map: could not get previous cam");
                 let c2 = camera_norm_map.get(&id2).expect("compute_pose_map: could not get second camera");
                 let key = (id1,id2);
-                let m_norm = match_norm_map.get(&key).expect(format!("match not found with key: {:?}",key).as_str());
+                let m_norm = match_norm_map.get(&key).expect(format!("norm match not found with key: {:?}",key).as_str());
+                let m = match_map.get(&key).expect(format!("match not found with key: {:?}",key).as_str());
 
                 let camera_matrix_one = c1.get_projection();
                 let camera_matrix_two = c2.get_projection();
                 let inverse_camera_matrix_one = c1.get_inverse_projection();
                 let inverse_camera_matrix_two = c2.get_inverse_projection();
 
-                let (e,f_m_norm) = match epipolar_alg {
+                let (e,f_m_norm, f_m) = match epipolar_alg {
                     tensor::BifocalType::FUNDAMENTAL => {      
                         let f = tensor::fundamental::eight_point_hartley(m_norm, 1.0); 
                         
                         let filtered_indices = tensor::select_best_matches_from_fundamental(&f,m_norm,perc_tresh, epipolar_tresh, 1.0);
                         let filtered_norm = filtered_indices.iter().map(|i| m_norm[*i].clone()).collect::<Vec<Match<Feat>>>();
+                        let filtered = filtered_indices.iter().map(|i| m[*i].clone()).collect::<Vec<Match<Feat>>>();
 
                         let e = tensor::compute_essential(&f,&camera_matrix_one,&camera_matrix_two);
 
-                        (e, filtered_norm)
+                        (e, filtered_norm, filtered)
                     },
                     tensor::BifocalType::ESSENTIAL => {
                         let e = tensor::five_point_essential(m_norm, &camera_matrix_one, &inverse_camera_matrix_one, &camera_matrix_two ,&inverse_camera_matrix_two, positive_principal_distance); 
@@ -533,8 +553,9 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
 
                         let filtered_indices = tensor::select_best_matches_from_fundamental(&f,m_norm,perc_tresh, epipolar_tresh, 1.0);
                         let filtered_norm = filtered_indices.iter().map(|i| m_norm[*i].clone()).collect::<Vec<Match<Feat>>>();
+                        let filtered = filtered_indices.iter().map(|i| m[*i].clone()).collect::<Vec<Match<Feat>>>();
 
-                        (e, filtered_norm)
+                        (e, filtered_norm, filtered)
                     },
                     tensor::BifocalType::QUEST => {
                         let e = quest::quest_ransac(m_norm,  &inverse_camera_matrix_one, &inverse_camera_matrix_two, 1e-2,1e4 as usize); 
@@ -542,8 +563,9 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
 
                         let filtered_indices = tensor::select_best_matches_from_fundamental(&f,m_norm,perc_tresh, epipolar_tresh, 1.0);
                         let filtered_norm = filtered_indices.iter().map(|i| m_norm[*i].clone()).collect::<Vec<Match<Feat>>>();
+                        let filtered = filtered_indices.iter().map(|i| m[*i].clone()).collect::<Vec<Match<Feat>>>();
 
-                        (e, filtered_norm)
+                        (e, filtered_norm, filtered)
                     }
                 };
                 
@@ -560,6 +582,7 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
                     }
                 };
                 let _ = match_norm_map.insert(key,f_m_norm);
+                let _ = match_map.insert(key,f_m);
             }
 
         pose_map

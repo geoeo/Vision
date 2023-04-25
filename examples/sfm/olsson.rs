@@ -30,7 +30,7 @@ fn main() -> Result<()> {
     let kronan = "kronan";
     let round_church = "round_church";
     
-    let olsen_dataset_name = vasa;
+    let olsen_dataset_name = park_gate;
     let olsen_data_path = format!("{}/Olsson/{}/",runtime_conf.dataset_path,olsen_dataset_name);
 
     let feature_skip_count = 1;
@@ -45,14 +45,14 @@ fn main() -> Result<()> {
     // let paths = vec!(vec!(6));
     // let root_id = 5;
 
-    let paths = vec!(vec!(4),vec!(6));
-    let root_id = 5;
+    // let paths = vec!(vec!(4),vec!(6));
+    // let root_id = 5;
 
     // let paths = vec!(vec!(4,3));
     // let root_id = 5;
 
-    // let paths = vec!(vec!(6,7));
-    // let root_id = 5;
+    let paths = vec!(vec!(6,7));
+    let root_id = 5;
 
     // let paths = vec!(vec!(5,7));
     // let root_id = 6;
@@ -100,7 +100,7 @@ fn main() -> Result<()> {
     //TODO: implement switch for loftr matches!
     let (match_map, camera_map) = olsen_data.get_data_for_sfm(root_id, &paths, positive_principal_distance, invert_focal_length, invert_y, feature_skip_count, olsen_dataset_name);
     let sfm_config_fundamental = SFMConfig::new(root_id, &paths, camera_map, &match_map, 
-    BifocalType::FUNDAMENTAL, Triangulation::LINEAR, 1.0, 1.0e-1, 5.0*1.0e0, refince_rotation_via_rcd, positive_principal_distance);
+    BifocalType::FUNDAMENTAL, Triangulation::LINEAR, 1.0, 1.0e-1, 5.0*1.0e1, refince_rotation_via_rcd, positive_principal_distance);
 
     for (i,j) in compute_path_pairs_as_vec(sfm_config_fundamental.root(),sfm_config_fundamental.paths()).into_iter().flatten().collect::<Vec<_>>() {
         let im_1 = olsen_data.get_image(i);
