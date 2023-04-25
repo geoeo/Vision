@@ -30,7 +30,7 @@ fn main() -> Result<()> {
     let kronan = "kronan";
     let round_church = "round_church";
     
-    let olsen_dataset_name = kronan;
+    let olsen_dataset_name = vasa;
     let olsen_data_path = format!("{}/Olsson/{}/",runtime_conf.dataset_path,olsen_dataset_name);
 
     let feature_skip_count = 1;
@@ -66,8 +66,8 @@ fn main() -> Result<()> {
     // let paths = vec!(vec!(4,3),vec!(6));
     // let root_id = 5;
 
-    let paths = vec!(vec!(4,3),vec!(6,7));
-    let root_id = 5;
+    // let paths = vec!(vec!(4,3),vec!(6,7));
+    // let root_id = 5;
 
     // let paths = vec!(vec!(4,3,2));
     // let root_id = 5;
@@ -78,8 +78,8 @@ fn main() -> Result<()> {
     // let paths = vec!(vec!(6,7,9));
     // let root_id = 5;
 
-    // let paths = vec!(vec!(6,7,8,9));
-    // let root_id = 5;
+    let paths = vec!(vec!(6,7,8,9,10,11));
+    let root_id = 5;
 
     // let paths = vec!(vec!(4,3,2,1),vec!(6,7,8,9));
     // let root_id = 5;
@@ -105,9 +105,9 @@ fn main() -> Result<()> {
     for (i,j) in compute_path_pairs_as_vec(sfm_config_fundamental.root(),sfm_config_fundamental.paths()).into_iter().flatten().collect::<Vec<_>>() {
         let im_1 = olsen_data.get_image(i);
         let im_2 = olsen_data.get_image(j);
-        //let matches = sfm_config_fundamental.match_map().get(&(i,j)).expect(format!("Match ({},{}) not present!",i,j).as_str());
-        let matches = match_map.get(&(i,j)).expect(format!("Match ({},{}) not present!",i,j).as_str());
-        let vis_matches = visualize::display_matches_for_pyramid(im_1,im_2,&matches,true,125.0,1.0, true);
+        let matches = sfm_config_fundamental.match_map().get(&(i,j)).expect(format!("Match ({},{}) not present!",i,j).as_str());
+        //let matches = match_map.get(&(i,j)).expect(format!("Match ({},{}) not present!",i,j).as_str());
+        let vis_matches = visualize::display_matches_for_pyramid(im_1,im_2,&matches,true,125.0,1.0, invert_y);
         vis_matches.to_image().save(format!("{}/olsen_matches_{}_{}_{}.jpg",runtime_conf.output_path,olsen_dataset_name,i,j)).unwrap();
     }
 
@@ -117,6 +117,7 @@ fn main() -> Result<()> {
         eps: vec![1.0*1e0],
         step_sizes: vec![1e0],
         max_norm_eps: 1e-30, 
+
         delta_eps: 1e-30,
         taus: vec![1.0e0],
         lm: true,
