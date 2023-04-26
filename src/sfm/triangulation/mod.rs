@@ -1,10 +1,10 @@
 extern crate nalgebra as na;
 
 use std::collections::HashMap;
-use na::{DVector, Matrix4,SMatrix, SVector,Matrix3x4,Matrix3xX,Matrix4xX,MatrixXx4,OMatrix,RowOVector,U3,U4, Isometry3};
+use na::{Matrix4,SMatrix, SVector,Matrix3xX,Matrix4xX,MatrixXx4,OMatrix,RowOVector,U3,U4, Isometry3};
 use crate::image::features::{matches::Match,Feature};
 use crate::sensors::camera::Camera;
-use crate::{float,Float};
+use crate::Float;
 
 #[derive(Clone, Copy)]
 pub enum Triangulation {
@@ -14,7 +14,7 @@ pub enum Triangulation {
 
 pub fn triangulate_matches<Feat: Feature, C: Camera<Float>>(path_pair: (usize, usize), pose_map: &HashMap<(usize, usize), Isometry3<Float>>, 
     match_map: &HashMap<(usize, usize), Vec<Match<Feat>>>, camera_map: &HashMap<usize, C>, triangulation_mode: Triangulation, positive_principal_distance: bool) 
-    -> (Matrix4xX<Float>, DVector<Float>){
+    -> Matrix4xX<Float> {
     let (id1, id2) = path_pair;
     let se3 = pose_map.get(&(id1,id2)).expect(format!("triangulate_matches: pose not found with key: ({},{})",id1,id2).as_str()).to_matrix();
     let ms = match_map.get(&(id1,id2)).expect(format!("triangulate_matches: matches not found with key: ({},{})",id1,id2).as_str());
@@ -40,7 +40,6 @@ pub fn triangulate_matches<Feat: Feature, C: Camera<Float>>(path_pair: (usize, u
     let projection_1 = c1_intrinsics*transform_c1;
     let projection_2 = c2_intrinsics*transform_c2;
 
-    
     let f0 = c1_intrinsics[(0,0)];
     let f0_prime = c2_intrinsics[(0,0)];
 
@@ -48,38 +47,9 @@ pub fn triangulate_matches<Feat: Feature, C: Camera<Float>>(path_pair: (usize, u
         Triangulation::LINEAR => linear_triangulation_svd(&vec!((&image_points_s,&projection_1),(&image_points_f,&projection_2)),positive_principal_distance, true),
         Triangulation::STEREO => stereo_triangulation((&image_points_s,&projection_1),(&image_points_f,&projection_2),f0,f0_prime,positive_principal_distance, true).expect("get_euclidean_landmark_state: Stereo Triangulation Failed"),
     };
- 
-    let reprojection_errors = calculate_reprojection_errors(&landmarks, ms, &transform_c1, cam_1, &transform_c2, cam_2);
-    (landmarks, reprojection_errors)
+
+    landmarks
 }
- 
-fn calculate_reprojection_errors<Feat: Feature, C: Camera<Float>>(landmarks: &Matrix4xX<Float>, matches: &Vec<Match<Feat>>, transform_c1: &Matrix3x4<Float>, cam_1 :&C, transform_c2: &Matrix3x4<Float>, cam_2 :&C) -> DVector<Float> {
-    let landmark_count = landmarks.ncols();
-    let mut reprojection_errors = DVector::<Float>::zeros(landmark_count);
-
-    for i in 0..landmarks.ncols() {
-        let p = landmarks.fixed_columns::<1>(i).into_owned();
-        let m = &matches[i];
-        let feat_1 = &m.get_feature_one().get_as_2d_point();
-        let feat_2 = &m.get_feature_two().get_as_2d_point();
-        let p_cam_1 = transform_c1*p;
-        let p_cam_2 = transform_c2*p;
-
-        let projected_1 = cam_1.project(&p_cam_1);
-        let projected_2 = cam_2.project(&p_cam_2);
-
-        if projected_1.is_some() && projected_2.is_some() {
-            let projected_1 = projected_1.unwrap().to_vector();
-            let projected_2 = projected_2.unwrap().to_vector();
-            reprojection_errors[i] = (feat_1-projected_1).norm() + (feat_2-projected_2).norm()
-        } else {
-            reprojection_errors[i] = float::INFINITY;
-        }
-    }
-
-    reprojection_errors
-}
-
 
 //TODO: maybe split up sign change
 /**
@@ -140,8 +110,6 @@ pub fn linear_triangulation_svd(image_points_and_projections: &Vec<(&Matrix3xX<F
             triangulated_points[(1,i)] *= sign;
             triangulated_points[(2,i)] *= sign;
         }
-
-
     }
     triangulated_points
 }
@@ -212,8 +180,7 @@ pub fn stereo_triangulation(image_points_and_projection: (&Matrix3xX<Float>, &OM
         );
         let T_transpose = T.transpose();
         let b = T_transpose*p;
-
-        //match (T_transpose*T).svd_unordered(true,true).solve(&b,1e-20).ok() {
+        
         match (T_transpose*T).qr().solve(&b) {
             Some(x) => {
                 triangulated_points[(0,i)] = x[(0,0)];

@@ -2,13 +2,14 @@ extern crate nalgebra as na;
 extern crate num_traits;
 
 
-use na::{DVector, Matrix4xX, Vector4, Matrix3, Isometry3};
+use na::{DVector, Matrix4xX, Vector4, Matrix3, Matrix4, Isometry3};
 use std::{collections::{HashMap,HashSet}, hash::Hash};
 use crate::image::{features::{Feature, compute_linear_normalization, matches::Match, feature_track::FeatureTrack, solver_feature::SolverFeature}};
 use crate::sfm::{epipolar::tensor, 
     triangulation::{Triangulation, triangulate_matches}, 
     rotation_avg::optimize_rotations_with_rcd,
-    outlier_rejection::outlier_rejection_dual};
+    outlier_rejection::dual::outlier_rejection_dual};
+use crate::sfm::outlier_rejection::{calculate_reprojection_errors,calcualte_disparities};
 use crate::sensors::camera::Camera;
 use crate::numerics::{pose::{from_matrix,se3}};
 use crate::{float,Float};
@@ -260,17 +261,30 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
 
         let mut triangulated_match_map = HashMap::<(usize,usize),Matrix4xX<Float>>::with_capacity(match_map.len());
         let mut reprojection_map = HashMap::<(usize,usize),DVector<Float>>::with_capacity(match_map.len());
+        let mut disparity_map = HashMap::<(usize,usize),Vec<Float>>::with_capacity(match_map.len());
+
         let path_pairs = compute_path_pairs_as_vec(root,paths);
         let mut max_reprojection_error = float::MIN;
         let mut min_reprojection_error = float::MAX;
 
         for path in &path_pairs{
             for path_pair in path {
-                let (trigulated_matches,reprojection_errors) = triangulate_matches(*path_pair,&pose_map,&match_map,&camera_map,triangulation, positive_principal_distance);
+                let trigulated_matches = triangulate_matches(*path_pair,&pose_map,&match_map,&camera_map,triangulation, positive_principal_distance);
+
+                let se3 = pose_map.get(path_pair).expect(format!("triangulate_matches: pose not found with key: {:?}",path_pair).as_str()).to_matrix();
+                let ms = match_map.get(path_pair).expect(format!("triangulate_matches: matches not found with key: {:?}",path_pair).as_str());
+                let cam_1 = camera_map.get(&path_pair.0).expect("triangulate_matches: camera 1 not found");
+                let cam_2 = camera_map.get(&path_pair.1).expect("triangulate_matches: camera 2 not found");
+                let transform_c1 = Matrix4::<Float>::identity().fixed_view::<3,4>(0,0).into_owned();
+                let transform_c2 = se3.fixed_view::<3,4>(0,0).into_owned();
+                let reprojection_errors = calculate_reprojection_errors(&trigulated_matches, ms, &transform_c1, cam_1, &transform_c2, cam_2);
+                let disparities = calcualte_disparities(ms);
+
                 max_reprojection_error = max_reprojection_error.max(reprojection_errors.max()); 
                 min_reprojection_error = min_reprojection_error.min(reprojection_errors.min());
                 triangulated_match_map.insert(*path_pair,trigulated_matches);
                 reprojection_map.insert(*path_pair,reprojection_errors);
+                disparity_map.insert(*path_pair,disparities);
             }
         }
 
