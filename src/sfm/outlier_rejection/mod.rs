@@ -33,8 +33,11 @@ pub fn calculate_reprojection_errors<Feat: Feature, C: Camera<Float>>(landmarks:
     reprojection_errors
 }
 
-pub fn calcualte_disparities<Feat: Feature>(matches: &Vec<Match<Feat>>) -> Vec<Float> {
-    matches.iter().map(|m| {
-        (m.get_feature_one().get_as_2d_point() - m.get_feature_two().get_as_2d_point()).norm()
-    }).collect()
+pub fn calcualte_disparities<Feat: Feature>(matches: &Vec<Match<Feat>>) -> DVector<Float> {
+    let mut disparities = DVector::<Float>::zeros(matches.len());
+    for i in 0..matches.len() {
+        let m = &matches[i];
+        disparities[i] = (m.get_feature_one().get_as_2d_point() - m.get_feature_two().get_as_2d_point()).norm()
+    }
+    disparities
 }
