@@ -29,9 +29,6 @@ pub fn triangulate_matches<Feat: Feature, C: Camera<Float>>(path_pair: (usize, u
         image_points_s.column_mut(i).copy_from(&feat_s);
         image_points_f.column_mut(i).copy_from(&feat_f);
     }
-
-    let f0 = 1.0;
-    let f0_prime = 1.0;
     
     let cam_1 = camera_map.get(&id1).expect("triangulate_matches: camera 1 not found");
     let cam_2 = camera_map.get(&id2).expect("triangulate_matches: camera 2 not found");
@@ -43,9 +40,13 @@ pub fn triangulate_matches<Feat: Feature, C: Camera<Float>>(path_pair: (usize, u
     let projection_1 = c1_intrinsics*transform_c1;
     let projection_2 = c2_intrinsics*transform_c2;
 
+    
+    let f0 = c1_intrinsics[(0,0)];
+    let f0_prime = c2_intrinsics[(0,0)];
+
     let landmarks = match triangulation_mode {
         Triangulation::LINEAR => linear_triangulation_svd(&vec!((&image_points_s,&projection_1),(&image_points_f,&projection_2)),positive_principal_distance, true),
-        Triangulation::STEREO => stereo_triangulation((&image_points_s,&projection_1),(&image_points_f,&projection_2),f0,f0_prime).expect("get_euclidean_landmark_state: Stereo Triangulation Failed"),
+        Triangulation::STEREO => stereo_triangulation((&image_points_s,&projection_1),(&image_points_f,&projection_2),f0,f0_prime,positive_principal_distance, true).expect("get_euclidean_landmark_state: Stereo Triangulation Failed"),
     };
  
     let reprojection_errors = calculate_reprojection_errors(&landmarks, ms, &transform_c1, cam_1, &transform_c2, cam_2);
@@ -150,7 +151,7 @@ pub fn linear_triangulation_svd(image_points_and_projections: &Vec<(&Matrix3xX<F
  * See 3D Rotations - Kanatani
  */
 #[allow(non_snake_case)]
-pub fn stereo_triangulation(image_points_and_projection: (&Matrix3xX<Float>, &OMatrix<Float,U3,U4>), image_points_and_projection_prime: (&Matrix3xX<Float>, &OMatrix<Float,U3,U4>), f0: Float, f0_prime: Float) -> Option<Matrix4xX<Float>> {
+pub fn stereo_triangulation(image_points_and_projection: (&Matrix3xX<Float>, &OMatrix<Float,U3,U4>), image_points_and_projection_prime: (&Matrix3xX<Float>, &OMatrix<Float,U3,U4>), f0: Float, f0_prime: Float,  positive_principal_distance: bool, flip_points: bool) -> Option<Matrix4xX<Float>> {
     let (image_points, projection) =  image_points_and_projection;
     let (image_points_prime, projection_prime) =  image_points_and_projection_prime;
 
@@ -212,12 +213,28 @@ pub fn stereo_triangulation(image_points_and_projection: (&Matrix3xX<Float>, &OM
         let T_transpose = T.transpose();
         let b = T_transpose*p;
 
-        match (T_transpose*T).lu().solve(&b) {
+        //match (T_transpose*T).svd_unordered(true,true).solve(&b,1e-20).ok() {
+        match (T_transpose*T).qr().solve(&b) {
             Some(x) => {
                 triangulated_points[(0,i)] = x[(0,0)];
                 triangulated_points[(1,i)] = x[(1,0)];
                 triangulated_points[(2,i)] = x[(2,0)];
                 triangulated_points[(3,i)] = 1.0;
+
+                if flip_points {
+                    // We may triangulate points begind the camera. So we flip them depending on the principal distance
+                    let sign = match (positive_principal_distance,triangulated_points[(2,i)].is_sign_negative()) {
+                        (false, true) => 1.0,
+                        (false, false) => -1.0,
+                        (true, true) => -1.0,
+                        (true, false) => 1.0
+                    };
+        
+                    triangulated_points[(0,i)] *= sign;
+                    triangulated_points[(1,i)] *= sign;
+                    triangulated_points[(2,i)] *= sign;
+                }
+
             },
             _ => {success = false;}
         };
