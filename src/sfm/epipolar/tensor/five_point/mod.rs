@@ -55,7 +55,7 @@ pub fn five_point_essential<T: Feature + Clone>(matches: &Vec<Match<T>>, project
             let u2 = vt.row(6).transpose();
             let u3 = vt.row(7).transpose();
             let u4 = vt.row(8).transpose();
-            (u4, u3, u2, u1)
+            (u1, u2, u3, u4)
         },
         _ => {
             // Seems to be more suceptible to errors of the camera intrinsic
@@ -67,7 +67,7 @@ pub fn five_point_essential<T: Feature + Clone>(matches: &Vec<Match<T>>, project
             let u2 = eigenvectors.column(indexed_eigenvalues[1].0).into_owned();
             let u3 = eigenvectors.column(indexed_eigenvalues[2].0).into_owned();
             let u4 = eigenvectors.column(indexed_eigenvalues[3].0).into_owned();
-            (u1, u2, u3, u4)
+            (u4, u3, u2, u1)
         }
 
     };
