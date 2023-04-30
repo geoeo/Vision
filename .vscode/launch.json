@@ -18,10 +18,10 @@
             "preLaunchTask": "build examples"
         },
         {
-            "name": "BA 3DV",
+            "name": "BA Synthetic",
             "type": "lldb",
             "request": "launch",
-            "program": "${workspaceRoot}/target/debug/examples/ba_3dv",
+            "program": "${workspaceRoot}/target/debug/examples/ba_synthetic",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",

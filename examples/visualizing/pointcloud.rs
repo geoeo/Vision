@@ -57,11 +57,11 @@ fn main() -> Result<(),()> {
     let mut window = Window::new("BA: Pointcloud");
     let runtime_conf = load_runtime_conf();
 
-    // let final_state_as_string = fs::read_to_string(format!("{}/3dv.txt",runtime_conf.output_path)).expect("Unable to read file");
-    // let all_states_as_string_option = fs::read_to_string(format!("{}/3dv_debug.txt",runtime_conf.output_path));
+    let final_state_as_string = fs::read_to_string(format!("{}/ba_synthetic.txt",runtime_conf.output_path)).expect("Unable to read file");
+    let all_states_as_string_option = fs::read_to_string(format!("{}/ba_synthetic_debug.txt",runtime_conf.output_path));
 
-    let final_state_as_string = fs::read_to_string(format!("{}/olsen.txt", runtime_conf.output_path)).expect("Unable to read file");
-    let all_states_as_string_option = fs::read_to_string(format!("{}/olsen_debug.txt", runtime_conf.output_path));
+/*     let final_state_as_string = fs::read_to_string(format!("{}/olsen.txt", runtime_conf.output_path)).expect("Unable to read file");
+    let all_states_as_string_option = fs::read_to_string(format!("{}/olsen_debug.txt", runtime_conf.output_path)); */
 
     let loaded_state: (Vec<[Float;6]>,Vec<[Float;3]>) = serde_yaml::from_str(&final_state_as_string).unwrap();
     let ba_state = state::State::<Float,EuclideanLandmark<Float>,3>::from_serial(&loaded_state);
