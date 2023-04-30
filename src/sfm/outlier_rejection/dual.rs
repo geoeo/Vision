@@ -1,4 +1,6 @@
 extern crate nalgebra as na;
+extern crate nalgebra_sparse;
+extern crate clarabel;
 extern crate linear_ip;
 
 use na::{MatrixXx3,DMatrix,DVector,Isometry3,Matrix4xX, Translation};
@@ -39,8 +41,26 @@ fn solve_feasability_problem(a: DMatrix<Float>, b: DMatrix<Float>, c: DMatrix<Fl
     // crate::io::write_matrix_to_file(&C, "/home/marc/Workspace/Rust/Vision/output", "C_3dv_norm.txt");
     // println!("a_nrows: {}", a_nrows);
     // println!("a1_ncols: {}", a1_ncols);
-    let (_, Y, it, r_primal_norm, r_dual_norm) = linear_ip::solve(&A, &(-B), &C, 1e-8, 0.25, 0.5, 5, 1e-20); 
+    let (_, Y, it, r_primal_norm, r_dual_norm) = linear_ip::solve(&A, &B, &C, 1e-8, 0.25, 0.5, 5, 1e-20); 
+
     println!("linear ip - it: {}, primal_norm: {}, dual_norm: {}",it, r_primal_norm, r_dual_norm);
+
+
+    // let P_cl = clarabel::algebra::CscMatrix::<Float>::spalloc(C.nrows(), C.nrows(), 0);
+    // let (A_cl, B_cl, C_cl, cones) = convert_to_clarabel(A,B,C);
+    // let settings_cl = clarabel::solver::DefaultSettingsBuilder::<Float>::default()
+    // .equilibrate_enable(true)
+    //.presolve_enable(true)
+    //.direct_kkt_solver(true)
+    // .max_iter(50)
+    // .build()
+    // .unwrap();
+    // let mut solver_cl = clarabel::solver::DefaultSolver::new(&P_cl, &C_cl, &A_cl, &B_cl, &cones, settings_cl);
+    // solver_cl.solve();
+
+    // println!("{:?}", solver_cl.info);
+    // println!("{:?}", solver_cl.solution.s);
+    panic!("stop");
 
     let mut s_temp = DVector::<Float>::zeros(Y.nrows()-a1_ncols);
     let s_temp_size = s_temp.nrows();
@@ -98,7 +118,7 @@ fn construct_feasability_inputs(a: DMatrix<Float>, b: DMatrix<Float>, c: DMatrix
     C.rows_mut(b1.nrows(),b2.nrows()).copy_from(&b2);
 
     let mut B = DVector::<Float>::zeros(a1.ncols()+A_temp.nrows());
-    B.rows_mut(a1.ncols(),A_temp.nrows()).fill(1.0);
+    B.rows_mut(a1.ncols(),A_temp.nrows()).fill(-1.0); // Implicit Multiplying by -1
 
     (A.transpose(), B, C, a.nrows(), a1.ncols()) //TODO: transpose on construction
 }
@@ -244,4 +264,31 @@ fn update_maps<Feat: Feature + Clone>(
         features.extend(accepted_landmarks.into_iter())
     }
 
+}
+
+#[allow(non_snake_case)]
+fn convert_to_clarabel(A: DMatrix<Float>, B: DVector<Float>, C: DVector<Float>) -> (clarabel::algebra::CscMatrix<Float>, Vec<Float>, Vec<Float>, [clarabel::solver::SupportedConeT<Float>;1]) {
+
+    let B_vec = B.iter().map(|v| *v).collect::<Vec<_>>();
+    let C_vec = C.iter().map(|v| *v).collect::<Vec<_>>();
+
+    let mut A_coo_na = nalgebra_sparse::CooMatrix::<Float>::new(A.nrows(),A.ncols());
+    for r in 0..A.nrows() {
+        for c in 0..A.ncols() {
+            A_coo_na.push(r,c,A[(r,c)]);
+        }
+    }
+    let A_csc_na = nalgebra_sparse::CscMatrix::<Float>::from(&A_coo_na);
+
+    let A_scs_clarabel = clarabel::algebra::CscMatrix::<Float>::new(
+        A.nrows(),
+        A.ncols(),
+        A_csc_na.col_offsets().to_vec(),
+        A_csc_na.row_indices().to_vec(),
+        A_csc_na.values().to_vec()
+    );
+
+    let cones = [clarabel::solver::NonnegativeConeT::<Float>(A.nrows())];
+
+    (A_scs_clarabel,B_vec,C_vec,cones)
 }
