@@ -29,6 +29,7 @@ pub fn outlier_rejection_dual<Feat: Feature + Clone>(
     let (a, b, c, a0, b0, c0) = generate_known_rotation_problem(unique_landmark_ids, camera_ids_root_first, abs_pose_map, feature_map);
     let (dual, slack) = solve_feasability_problem(a, b, c, a0, b0, c0, tol, 1.0e-1, 100.0);
     update_maps(abs_landmark_map,abs_pose_map, feature_map ,unique_landmark_ids, match_map, camera_ids_root_first, landmark_id_cam_pair_index_map, dual, slack);
+    panic!("stop");
 }
 
 #[allow(non_snake_case)]
@@ -60,7 +61,6 @@ fn solve_feasability_problem(a: DMatrix<Float>, b: DMatrix<Float>, c: DMatrix<Fl
 
     // println!("{:?}", solver_cl.info);
     // println!("{:?}", solver_cl.solution.s);
-    panic!("stop");
 
     let mut s_temp = DVector::<Float>::zeros(Y.nrows()-a1_ncols);
     let s_temp_size = s_temp.nrows();
