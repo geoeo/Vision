@@ -77,6 +77,7 @@ path = "examples/visualizing/pointcloud.rs"
 
 [[example]]
 name = "ba_synthetic"
+path = "examples/sfm/ba_synthetic.rs"
 
 [[example]]
 name = "olsson"
