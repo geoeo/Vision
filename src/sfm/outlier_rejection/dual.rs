@@ -3,6 +3,7 @@ extern crate nalgebra_sparse;
 extern crate clarabel;
 extern crate linear_ip;
 
+use clarabel::solver::IPSolver;
 use na::{MatrixXx3,DMatrix,DVector,Isometry3,Matrix4xX, Translation};
 use std::collections::{HashMap,HashSet};
 use std::ops::AddAssign;
@@ -29,7 +30,7 @@ pub fn outlier_rejection_dual<Feat: Feature + Clone>(
     let (a, b, c, a0, b0, c0) = generate_known_rotation_problem(unique_landmark_ids, camera_ids_root_first, abs_pose_map, feature_map);
     let (dual, slack) = solve_feasability_problem(a, b, c, a0, b0, c0, tol, 1.0e-1, 100.0);
     update_maps(abs_landmark_map,abs_pose_map, feature_map ,unique_landmark_ids, match_map, camera_ids_root_first, landmark_id_cam_pair_index_map, dual, slack);
-    panic!("stop");
+    panic!("DUAL Buggy Dont Use");
 }
 
 #[allow(non_snake_case)]
@@ -37,31 +38,32 @@ fn solve_feasability_problem(a: DMatrix<Float>, b: DMatrix<Float>, c: DMatrix<Fl
     let (A,B,C, a_nrows, a1_ncols) = construct_feasability_inputs(a, b, c, a0, b0, c0, tol, min_depth, max_depth);
     // goes OOM on wsl on large matricies and is very slow
     // More iterations change the scale a lot
-    // crate::io::write_matrix_to_file(&A, "/home/marc/Workspace/Rust/Vision/output", "A_3dv_norm.txt");
-    // crate::io::write_matrix_to_file(&B, "/home/marc/Workspace/Rust/Vision/output", "B_3dv_norm.txt");
-    // crate::io::write_matrix_to_file(&C, "/home/marc/Workspace/Rust/Vision/output", "C_3dv_norm.txt");
+    // crate::io::write_matrix_to_file(&A, "/home/marc/Workspace/Rust/Vision/output", "A_synthetic.txt");
+    // crate::io::write_matrix_to_file(&B, "/home/marc/Workspace/Rust/Vision/output", "B_synthetic.txt");
+    // crate::io::write_matrix_to_file(&C, "/home/marc/Workspace/Rust/Vision/output", "C_synthetic.txt");
     // println!("a_nrows: {}", a_nrows);
     // println!("a1_ncols: {}", a1_ncols);
-    let (_, Y, it, r_primal_norm, r_dual_norm) = linear_ip::solve(&A, &B, &C, 1e-8, 0.25, 0.5, 5, 1e-20); 
+    //let (_, Y, it, r_primal_norm, r_dual_norm) = linear_ip::solve(&A, &B, &C, 1e-8, 0.25, 0.5, 5, 1e-20); 
 
-    println!("linear ip - it: {}, primal_norm: {}, dual_norm: {}",it, r_primal_norm, r_dual_norm);
+    //println!("linear ip - it: {}, primal_norm: {}, dual_norm: {}",it, r_primal_norm, r_dual_norm);
 
 
-    // let P_cl = clarabel::algebra::CscMatrix::<Float>::spalloc(C.nrows(), C.nrows(), 0);
-    // let (A_cl, B_cl, C_cl, cones) = convert_to_clarabel(A,B,C);
-    // let settings_cl = clarabel::solver::DefaultSettingsBuilder::<Float>::default()
-    // .equilibrate_enable(true)
+
+    let (P_cl, A_cl, B_cl, C_cl, cones) = convert_to_clarabel(A,B,C);
+    let settings_cl = clarabel::solver::DefaultSettingsBuilder::<Float>::default()
+    .equilibrate_enable(true)
     //.presolve_enable(true)
     //.direct_kkt_solver(true)
-    // .max_iter(50)
-    // .build()
-    // .unwrap();
-    // let mut solver_cl = clarabel::solver::DefaultSolver::new(&P_cl, &C_cl, &A_cl, &B_cl, &cones, settings_cl);
-    // solver_cl.solve();
+    .max_iter(50)
+    .build()
+    .unwrap();
+    let mut solver_cl = clarabel::solver::DefaultSolver::new(&P_cl, &C_cl, &A_cl, &B_cl, &cones, settings_cl);
+    solver_cl.solve();
 
     // println!("{:?}", solver_cl.info);
     // println!("{:?}", solver_cl.solution.s);
 
+    let Y = DVector::<Float>::zeros(5); // temp
     let mut s_temp = DVector::<Float>::zeros(Y.nrows()-a1_ncols);
     let s_temp_size = s_temp.nrows();
     assert_eq!(s_temp_size,6*a_nrows);
@@ -267,7 +269,7 @@ fn update_maps<Feat: Feature + Clone>(
 }
 
 #[allow(non_snake_case)]
-fn convert_to_clarabel(A: DMatrix<Float>, B: DVector<Float>, C: DVector<Float>) -> (clarabel::algebra::CscMatrix<Float>, Vec<Float>, Vec<Float>, [clarabel::solver::SupportedConeT<Float>;1]) {
+fn convert_to_clarabel(A: DMatrix<Float>, B: DVector<Float>, C: DVector<Float>) -> (clarabel::algebra::CscMatrix<Float>, clarabel::algebra::CscMatrix<Float>, Vec<Float>, Vec<Float>, [clarabel::solver::SupportedConeT<Float>;1]) {
 
     let B_vec = B.iter().map(|v| *v).collect::<Vec<_>>();
     let C_vec = C.iter().map(|v| *v).collect::<Vec<_>>();
@@ -289,6 +291,7 @@ fn convert_to_clarabel(A: DMatrix<Float>, B: DVector<Float>, C: DVector<Float>) 
     );
 
     let cones = [clarabel::solver::NonnegativeConeT::<Float>(A.nrows())];
+    let P_cl = clarabel::algebra::CscMatrix::<Float>::spalloc(C.nrows(), C.nrows(), 0);
 
-    (A_scs_clarabel,B_vec,C_vec,cones)
+    (P_cl, A_scs_clarabel,B_vec,C_vec,cones)
 }
