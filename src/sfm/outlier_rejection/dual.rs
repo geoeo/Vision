@@ -277,7 +277,11 @@ fn convert_to_clarabel(A: DMatrix<Float>, B: DVector<Float>, C: DVector<Float>) 
     let mut A_coo_na = nalgebra_sparse::CooMatrix::<Float>::new(A.nrows(),A.ncols());
     for r in 0..A.nrows() {
         for c in 0..A.ncols() {
-            A_coo_na.push(r,c,A[(r,c)]);
+            let elem = A[(r,c)];
+            if elem != 0.0 {
+                A_coo_na.push(r,c,elem);
+            }
+
         }
     }
     let A_csc_na = nalgebra_sparse::CscMatrix::<Float>::from(&A_coo_na);
