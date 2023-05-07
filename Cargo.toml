@@ -22,7 +22,7 @@ serde_yaml = "0.8"
 num-traits = "*"
 simba = "*"
 num-complex = "*"
-clarabel =  { git = "https://github.com/oxfordcontrol/Clarabel.rs.git", branch = "pg/csc_direct_indexing" } 
+clarabel =  { git = "https://github.com/oxfordcontrol/Clarabel.rs.git"} 
 
 
 [dev-dependencies]
