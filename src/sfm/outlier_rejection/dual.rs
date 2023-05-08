@@ -34,7 +34,7 @@ pub fn outlier_rejection_dual<Feat: Feature + Clone>(
 
 #[allow(non_snake_case)]
 fn solve_feasability_problem(a: DMatrix<Float>, b: DMatrix<Float>, c: DMatrix<Float>, a0: DVector<Float>, b0: DVector<Float>, c0: DVector<Float>, tol: Float, min_depth: Float, max_depth: Float) -> (DVector<Float>, DVector<Float>) {
-    let (A,B,C, a_nrows, a1_ncols) = construct_feasability_inputs(a, b, c, a0, b0, c0, tol, min_depth, max_depth);
+    let (A,B,C, a_nrows, a1_ncols) = construct_feasability_inputs(a, b, c, a0, b0, c0, tol, min_depth, max_depth); // TODO: Takes a lot of memory -> generate sparse
     let b_rows = B.nrows();
     let (P_cl, A_cl, B_cl, C_cl, cones) = convert_to_clarabel(A,B,C);
     let settings_cl = clarabel::solver::DefaultSettingsBuilder::<Float>::default()
@@ -233,6 +233,7 @@ fn update_maps<Feat: Feature + Clone>(
             println!("s: {}",s);
             // if s > 1e-7 landmark associated with f is possibly an outlier
             if s > 1e-7 {
+                panic!("Outlier");
                 // Enable once the whole pipeline is done
                 //rejected_landmarks.insert(f.get_landmark_id().expect("update_maps: no landmark id"));
             }
