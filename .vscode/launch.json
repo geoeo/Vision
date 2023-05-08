@@ -8,39 +8,27 @@
             "name": "BA Pointcloud",
             "type": "lldb",
             "request": "launch",
-            "program": "${workspaceRoot}/target/debug/examples/pointcloud",
+            "program": "${workspaceFolder}/target/debug/examples/pointcloud",
             "args": [],
-            "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
-            "environment": [],
-            "externalConsole": false,
-            "env": {"RUST_BACKTRACE":"1", "RUST_BACKTRACE":"full"},
             "preLaunchTask": "build examples"
         },
         {
             "name": "BA Synthetic",
             "type": "lldb",
             "request": "launch",
-            "program": "${workspaceRoot}/target/debug/examples/ba_synthetic",
+            "program": "${workspaceFolder}/target/debug/examples/ba_synthetic",
             "args": [],
-            "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
-            "environment": [],
-            "externalConsole": false,
-            "env": {"RUST_BACKTRACE":"1", "RUST_BACKTRACE":"full"},
-            "preLaunchTask": "build examples"
+            //"preLaunchTask": "build examples"
         },
         {
             "name": "Olsson",
             "type": "lldb",
             "request": "launch",
-            "program": "${workspaceRoot}/target/debug/examples/olsson",
+            "program": "${workspaceFolder}/target/debug/examples/olsson",
             "args": [],
-            "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
-            "environment": [],
-            "externalConsole": false,
-            "env": {"RUST_BACKTRACE":"1", "RUST_BACKTRACE":"full"},
             "preLaunchTask": "build examples"
         },
         {
@@ -49,11 +37,7 @@
             "request": "launch",
             "program": "${workspaceRoot}/target/debug/examples/io_matrix",
             "args": [],
-            "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
-            "environment": [],
-            "externalConsole": false,
-            "env": {"RUST_BACKTRACE":"1", "RUST_BACKTRACE":"full"},
             "preLaunchTask": "build examples"
         }
     ]

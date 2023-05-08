@@ -16,7 +16,6 @@ use vision::{float,Float,load_runtime_conf};
 
 
 fn main() -> Result<()> {
-
     color_eyre::install()?;
     let runtime_conf = load_runtime_conf();
 
