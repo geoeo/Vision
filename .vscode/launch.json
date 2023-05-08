@@ -20,7 +20,7 @@
             "program": "${workspaceFolder}/target/debug/examples/ba_synthetic",
             "args": [],
             "cwd": "${workspaceFolder}",
-            //"preLaunchTask": "build examples"
+            "preLaunchTask": "build examples"
         },
         {
             "name": "Olsson",
