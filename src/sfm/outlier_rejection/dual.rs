@@ -73,6 +73,16 @@ fn construct_feasability_inputs(a: DMatrix<Float>, b: DMatrix<Float>, c: DMatrix
     a1.view_mut((a.nrows(), 0),a.shape()).copy_from(&((&a)-&tol_c));
     a1.view_mut((2*a.nrows(), 0),b.shape()).copy_from(&(-(&b)-&tol_c));
     a1.view_mut((2*a.nrows() + b.nrows(), 0),b.shape()).copy_from(&((&b)-&tol_c));
+    let a1_ncols = a1.ncols();
+
+    let mut a2 = DMatrix::<Float>::zeros(2*c.nrows(),c.ncols());
+    a2.view_mut((0,0), c.shape()).copy_from(&-(&c));
+    a2.view_mut((c.nrows(),0), c.shape()).copy_from(&c);
+
+    let mut A_temp = DMatrix::<Float>::zeros(a1.nrows()+a2.nrows(),a1.ncols());
+    A_temp.view_mut((0,0),a1.shape()).copy_from(&a1);
+    A_temp.view_mut((a1.nrows(),0),a2.shape()).copy_from(&a2);
+    let (A_temp_nrows, A_temp_ncols) = A_temp.shape();
 
     let mut b1 = DVector::<Float>::zeros(2*a0.nrows() + 2*b0.nrows());
     b1.rows_mut(0, a0.nrows()).copy_from(&(&(a0)+&tol_c0));
@@ -80,33 +90,26 @@ fn construct_feasability_inputs(a: DMatrix<Float>, b: DMatrix<Float>, c: DMatrix
     b1.rows_mut(2*a0.nrows(), b0.nrows()).copy_from(&((&b0)+&tol_c0));
     b1.rows_mut(2*a0.nrows() + b0.nrows(), b0.nrows()).copy_from(&(-(&b0)+&tol_c0));
 
-    let mut a2 = DMatrix::<Float>::zeros(2*c.nrows(),c.ncols());
-    a2.view_mut((0,0), c.shape()).copy_from(&-(&c));
-    a2.view_mut((c.nrows(),0), c.shape()).copy_from(&c);
-
     let mut b2 = DVector::<Float>::zeros(2*c0.nrows());
     b2.rows_mut(0,c0.nrows()).copy_from(&(c0.add_scalar(-min_depth)));
     b2.rows_mut(c.nrows(),c0.nrows()).copy_from(&(-c0).add_scalar(max_depth));
 
-    let mut A_temp = DMatrix::<Float>::zeros(a1.nrows()+a2.nrows(),a1.ncols());
-    A_temp.view_mut((0,0),a1.shape()).copy_from(&a1);
-    A_temp.view_mut((a1.nrows(),0),a2.shape()).copy_from(&a2);
-    
-    let mut A = DMatrix::<Float>::zeros(2*A_temp.nrows(),A_temp.ncols() + A_temp.nrows());
-    let id = -DMatrix::<Float>::identity(A_temp.nrows(), A_temp.nrows());
-    A.view_mut((0,0),A_temp.shape()).copy_from(&A_temp);
-    A.view_mut((0,A_temp.ncols()),id.shape()).copy_from(&id);
-    A.view_mut((A_temp.nrows(),0),A_temp.shape()).copy_from(&DMatrix::<Float>::zeros(A_temp.nrows(), A_temp.ncols()));
-    A.view_mut((A_temp.nrows(),A_temp.ncols()),id.shape()).copy_from(&id);
-
-    let mut C = DVector::<Float>::zeros(b1.nrows()+b2.nrows()+A_temp.nrows());
+    let mut C = DVector::<Float>::zeros(b1.nrows()+b2.nrows()+A_temp_nrows);
     C.rows_mut(0,b1.nrows()).copy_from(&b1);
     C.rows_mut(b1.nrows(),b2.nrows()).copy_from(&b2);
 
-    let mut B = DVector::<Float>::zeros(a1.ncols()+A_temp.nrows());
-    B.rows_mut(a1.ncols(),A_temp.nrows()).fill(-1.0); // Implicit Multiplying by -1
+    let mut A = DMatrix::<Float>::zeros(2*A_temp_nrows,A_temp_ncols + A_temp_nrows);
+    let id = -DMatrix::<Float>::identity(A_temp_nrows, A_temp_nrows);
+    A.view_mut((0,0),(A_temp_nrows, A_temp_ncols)).copy_from(&A_temp);
+    A.view_mut((0,A_temp_ncols),id.shape()).copy_from(&id);
+    A.view_mut((A_temp_nrows,0),A_temp.shape()).copy_from(&DMatrix::<Float>::zeros(A_temp_nrows, A_temp_ncols));
+    A.view_mut((A_temp_nrows,A_temp_ncols),id.shape()).copy_from(&id);
 
-    (A.transpose(), B, C, a.nrows(), a1.ncols()) //TODO: transpose on construction
+
+    let mut B = DVector::<Float>::zeros(a1_ncols+A_temp_nrows);
+    B.rows_mut(a1_ncols,A_temp_nrows).fill(-1.0); // Implicit Multiplying by -1
+
+    (A.transpose(), B, C, a.nrows(), a1_ncols) //TODO: transpose on construction
 }
 
 fn generate_known_rotation_problem<Feat: Feature + Clone>(unique_landmark_ids: &HashSet<usize>, camera_ids_root_first: &Vec<usize>, abs_pose_map: &mut HashMap<usize,Isometry3<Float>>, feature_map: &HashMap<usize, Vec<Feat>>) -> (DMatrix<Float>,DMatrix<Float>,DMatrix<Float>,DVector<Float>,DVector<Float>,DVector<Float>) {
