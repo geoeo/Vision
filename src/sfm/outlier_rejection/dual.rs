@@ -3,7 +3,8 @@ extern crate nalgebra_sparse;
 extern crate clarabel;
 
 use clarabel::solver::IPSolver;
-use na::{MatrixXx3,DMatrix,DVector,Isometry3,Matrix4xX, Translation};
+use num_traits::Zero;
+use na::{MatrixXx3,DMatrix,DVector,Isometry3,Matrix4xX, Translation,Matrix,Scalar, Dim, storage::RawStorage};
 use std::collections::{HashMap,HashSet};
 use std::ops::AddAssign;
 use crate::image::features::{Feature, matches::Match};
@@ -65,7 +66,7 @@ fn solve_feasability_problem(a: DMatrix<Float>, b: DMatrix<Float>, c: DMatrix<Fl
 
 #[allow(non_snake_case)]
 fn construct_feasability_inputs(a: DMatrix<Float>, b: DMatrix<Float>, c: DMatrix<Float>, a0: DVector<Float>, b0: DVector<Float>, c0: DVector<Float>, tol: Float, min_depth: Float, max_depth: Float) 
-    -> (DMatrix<Float>, DVector<Float>, DVector<Float>, usize, usize) {
+    -> (nalgebra_sparse::CscMatrix<Float>, nalgebra_sparse::CscMatrix<Float>, nalgebra_sparse::CscMatrix<Float>, usize, usize) {
     let tol_c = tol*(&c);
     let tol_c0 = tol*(&c0);
     let mut a1 = DMatrix::<Float>::zeros(2*a.nrows() + 2*b.nrows(),a.ncols());
@@ -73,43 +74,73 @@ fn construct_feasability_inputs(a: DMatrix<Float>, b: DMatrix<Float>, c: DMatrix
     a1.view_mut((a.nrows(), 0),a.shape()).copy_from(&((&a)-&tol_c));
     a1.view_mut((2*a.nrows(), 0),b.shape()).copy_from(&(-(&b)-&tol_c));
     a1.view_mut((2*a.nrows() + b.nrows(), 0),b.shape()).copy_from(&((&b)-&tol_c));
-    let a1_ncols = a1.ncols();
+    let (a1_nrows,a1_ncols) = a1.shape();
+    let a1_csc = to_csc_owned(a1);
 
     let mut a2 = DMatrix::<Float>::zeros(2*c.nrows(),c.ncols());
     a2.view_mut((0,0), c.shape()).copy_from(&-(&c));
     a2.view_mut((c.nrows(),0), c.shape()).copy_from(&c);
+    let (a2_nrows, a2_ncols) = a2.shape();
+    let a2_csc = to_csc_owned(a2);
 
-    let mut A_temp = DMatrix::<Float>::zeros(a1.nrows()+a2.nrows(),a1.ncols());
-    A_temp.view_mut((0,0),a1.shape()).copy_from(&a1);
-    A_temp.view_mut((a1.nrows(),0),a2.shape()).copy_from(&a2);
-    let (A_temp_nrows, A_temp_ncols) = A_temp.shape();
+    let mut A_temp_coo = nalgebra_sparse::CooMatrix::<Float>::new(a1_nrows+a2_nrows,a1_ncols); 
+    for (r,c,v) in a1_csc.triplet_iter() {
+        A_temp_coo.push(r, c, *v);
+    }
+
+    for (r,c,v) in a2_csc.triplet_iter() {
+        //A_temp[(a1_nrows+r,c)] = *v;
+        A_temp_coo.push(r+a1_nrows, c, *v);
+    }
+    let A_temp_csc = nalgebra_sparse::CscMatrix::from(&A_temp_coo);
+    let (A_temp_nrows, A_temp_ncols) = (A_temp_csc.nrows(),A_temp_csc.ncols());
 
     let mut b1 = DVector::<Float>::zeros(2*a0.nrows() + 2*b0.nrows());
     b1.rows_mut(0, a0.nrows()).copy_from(&(&(a0)+&tol_c0));
     b1.rows_mut(a0.nrows(), a0.nrows()).copy_from(&(-(&a0)+&tol_c0));
     b1.rows_mut(2*a0.nrows(), b0.nrows()).copy_from(&((&b0)+&tol_c0));
     b1.rows_mut(2*a0.nrows() + b0.nrows(), b0.nrows()).copy_from(&(-(&b0)+&tol_c0));
+    let b1_csc = to_csc_owned(b1);
 
     let mut b2 = DVector::<Float>::zeros(2*c0.nrows());
     b2.rows_mut(0,c0.nrows()).copy_from(&(c0.add_scalar(-min_depth)));
     b2.rows_mut(c.nrows(),c0.nrows()).copy_from(&(-c0).add_scalar(max_depth));
+    let b2_csc = to_csc_owned(b2);
 
-    let mut C = DVector::<Float>::zeros(b1.nrows()+b2.nrows()+A_temp_nrows);
-    C.rows_mut(0,b1.nrows()).copy_from(&b1);
-    C.rows_mut(b1.nrows(),b2.nrows()).copy_from(&b2);
+    let mut C_coo = nalgebra_sparse::CooMatrix::<Float>::new(b1_csc.nrows()+b2_csc.nrows()+A_temp_nrows,1); 
+    for (r,c,v) in b1_csc.triplet_iter() {
+        C_coo.push(r,c,*v);
+    }
+    for (r,c,v) in b2_csc.triplet_iter() {
+        C_coo.push(r+b1_csc.nrows(),c,*v);
+    }
+    let C_csc = nalgebra_sparse::CscMatrix::from(&C_coo);
 
-    let mut A = DMatrix::<Float>::zeros(2*A_temp_nrows,A_temp_ncols + A_temp_nrows);
-    let id = -DMatrix::<Float>::identity(A_temp_nrows, A_temp_nrows);
-    A.view_mut((0,0),(A_temp_nrows, A_temp_ncols)).copy_from(&A_temp);
-    A.view_mut((0,A_temp_ncols),id.shape()).copy_from(&id);
-    A.view_mut((A_temp_nrows,0),A_temp.shape()).copy_from(&DMatrix::<Float>::zeros(A_temp_nrows, A_temp_ncols));
-    A.view_mut((A_temp_nrows,A_temp_ncols),id.shape()).copy_from(&id);
+    let mut A_coo = nalgebra_sparse::CooMatrix::new(2*A_temp_nrows,A_temp_ncols + A_temp_nrows);
+    for (r,c,v) in A_temp_csc.triplet_iter() {
+        A_coo.push(r,c,*v);
+    }
+
+    for i in 0..A_temp_nrows {
+        A_coo.push(i,i+A_temp_ncols,-1.0);
+    }
+
+    for i in 0..A_temp_nrows {
+        A_coo.push(i+A_temp_nrows,i+A_temp_ncols,-1.0);
+    }
+
+    let mut A_coo_transpose = nalgebra_sparse::CooMatrix::new(A_temp_ncols + A_temp_nrows,2*A_temp_nrows);
+    for (r,c,v) in A_coo.triplet_iter() {
+        A_coo_transpose.push(c,r,*v);
+    }
+    let A_transpose_csc = nalgebra_sparse::CscMatrix::from(&A_coo_transpose);
 
 
     let mut B = DVector::<Float>::zeros(a1_ncols+A_temp_nrows);
     B.rows_mut(a1_ncols,A_temp_nrows).fill(-1.0); // Implicit Multiplying by -1
+    let B_csc = to_csc_owned(B);
 
-    (A.transpose(), B, C, a.nrows(), a1_ncols) //TODO: transpose on construction
+    (A_transpose_csc, B_csc, C_csc, a.nrows(), a1_ncols) 
 }
 
 fn generate_known_rotation_problem<Feat: Feature + Clone>(unique_landmark_ids: &HashSet<usize>, camera_ids_root_first: &Vec<usize>, abs_pose_map: &mut HashMap<usize,Isometry3<Float>>, feature_map: &HashMap<usize, Vec<Feat>>) -> (DMatrix<Float>,DMatrix<Float>,DMatrix<Float>,DVector<Float>,DVector<Float>,DVector<Float>) {
@@ -257,10 +288,17 @@ fn update_maps<Feat: Feature + Clone>(
 }
 
 #[allow(non_snake_case)]
-fn convert_to_clarabel(A: DMatrix<Float>, B: DVector<Float>, C: DVector<Float>) -> (clarabel::algebra::CscMatrix<Float>, clarabel::algebra::CscMatrix<Float>, Vec<Float>, Vec<Float>, [clarabel::solver::SupportedConeT<Float>;2]) {
+fn convert_to_clarabel(A: nalgebra_sparse::CscMatrix<Float>, B: nalgebra_sparse::CscMatrix<Float>, C: nalgebra_sparse::CscMatrix<Float>) -> (clarabel::algebra::CscMatrix<Float>, clarabel::algebra::CscMatrix<Float>, Vec<Float>, Vec<Float>, [clarabel::solver::SupportedConeT<Float>;2]) {
 
-    let mut B_vec = B.iter().map(|v| *v).collect::<Vec<_>>();
-    let C_vec = C.iter().map(|v| *v).collect::<Vec<_>>();
+    let mut B_vec = vec![0.0;B.nrows()];
+    for (r,_,v) in B.triplet_iter() {
+        B_vec[r] = *v;
+    }
+
+    let mut C_vec = vec![0.0;C.nrows()];
+    for (r,_,v) in C.triplet_iter() {
+        C_vec[r] = *v;
+    }
 
     let B_extension : Vec<Float> = vec![0.0;C.nrows()];
     B_vec.extend(B_extension);
@@ -268,10 +306,11 @@ fn convert_to_clarabel(A: DMatrix<Float>, B: DVector<Float>, C: DVector<Float>) 
     let mut A_coo_na = nalgebra_sparse::CooMatrix::<Float>::new(A.nrows()+C.nrows(),A.ncols());
     for r in 0..A.nrows() {
         for c in 0..A.ncols() {
-            let elem = A[(r,c)];
-            if elem != 0.0 {
-                A_coo_na.push(r,c,elem);
-            }
+            let elem = A.index_entry(r, c);
+            match elem {
+                nalgebra_sparse::SparseEntry::NonZero(v) => A_coo_na.push(r,c,*v),
+                _ => ()
+            };
         }
     }
 
@@ -295,4 +334,12 @@ fn convert_to_clarabel(A: DMatrix<Float>, B: DVector<Float>, C: DVector<Float>) 
     let P_cl = clarabel::algebra::CscMatrix::<Float>::spalloc(C.nrows(), C.nrows(), 0);
 
     (P_cl, A_scs_clarabel,B_vec,C_vec,cones)
+}
+
+fn to_csc_owned<T, R, C, S>(mat: Matrix<T, R, C, S>) -> nalgebra_sparse::CscMatrix<T> where
+    T: Scalar + Zero,
+    R: Dim,
+    C: Dim,
+    S: RawStorage<T, R, C> {
+    nalgebra_sparse::CscMatrix::<T>::from(&mat)
 }
