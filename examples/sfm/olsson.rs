@@ -45,11 +45,11 @@ fn main() -> Result<()> {
     // let paths = vec!(vec!(6));
     // let root_id = 5;
 
-    // let paths = vec!(vec!(4),vec!(6));
-    // let root_id = 5;
-
-    let paths = vec!(vec!(4,3));
+    let paths = vec!(vec!(4),vec!(6));
     let root_id = 5;
+
+    // let paths = vec!(vec!(4,3));
+    // let root_id = 5;
 
     // let paths = vec!(vec!(6,7));
     // let root_id = 5;

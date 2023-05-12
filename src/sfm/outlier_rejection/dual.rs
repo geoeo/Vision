@@ -4,10 +4,10 @@ extern crate clarabel;
 
 use clarabel::solver::IPSolver;
 use num_traits::Zero;
-use na::{MatrixXx3,DMatrix,DVector,Isometry3,Matrix4xX, Translation,Matrix,Scalar, Dim, storage::RawStorage};
+use na::{MatrixXx3,DMatrix,DVector,Isometry3,Matrix,Scalar, Dim, storage::RawStorage};
 use std::collections::{HashMap,HashSet};
 use std::ops::AddAssign;
-use crate::image::features::{Feature, matches::Match};
+use crate::image::features::{Feature};
 use crate::Float;
 
 /**
@@ -16,26 +16,22 @@ use crate::Float;
 pub fn outlier_rejection_dual<Feat: Feature + Clone>(
         camera_ids_root_first: &Vec<usize>, 
         unique_landmark_ids: &mut HashSet<usize>, 
-        abs_landmark_map: &mut HashMap<usize, Matrix4xX<Float>>,
         abs_pose_map: &mut HashMap<usize,Isometry3<Float>>, 
         feature_map: &mut HashMap<usize, Vec<Feat>>,
-        match_map: &mut HashMap<(usize, usize), Vec<Match<Feat>>>,
-        landmark_id_cam_pair_index_map: &HashMap<usize,Vec<((usize,usize),usize)>>,
         tol: Float
-    ) -> () {
+    ) -> HashSet<usize> {
     assert_eq!(camera_ids_root_first.len(),abs_pose_map.keys().len());
     assert_eq!(camera_ids_root_first.len(),feature_map.keys().len());
     assert!(unique_landmark_ids.contains(&0)); // ids have to represent matrix indices
 
     let (a, b, c, a0, b0, c0) = generate_known_rotation_problem(unique_landmark_ids, camera_ids_root_first, abs_pose_map, feature_map);
-    let (dual, slack) = solve_feasability_problem(a, b, c, a0, b0, c0, tol, 1.0e-1, 100.0);
-    update_maps(abs_landmark_map,abs_pose_map, feature_map ,unique_landmark_ids, match_map, camera_ids_root_first, landmark_id_cam_pair_index_map, dual, slack);
-
+    let (_, slack) = solve_feasability_problem(a, b, c, a0, b0, c0, tol, 1.0e-1, 100.0);
+    compute_receted_landmark_ids(abs_pose_map, feature_map ,unique_landmark_ids, camera_ids_root_first, slack)
 }
 
 #[allow(non_snake_case)]
 fn solve_feasability_problem(a: DMatrix<Float>, b: DMatrix<Float>, c: DMatrix<Float>, a0: DVector<Float>, b0: DVector<Float>, c0: DVector<Float>, tol: Float, min_depth: Float, max_depth: Float) -> (DVector<Float>, DVector<Float>) {
-    let (A,B,C, a_nrows, a1_ncols) = construct_feasability_inputs(a, b, c, a0, b0, c0, tol, min_depth, max_depth); // TODO: Takes a lot of memory -> generate sparse
+    let (A,B,C, a_nrows, a1_ncols) = construct_feasability_inputs(a, b, c, a0, b0, c0, tol, min_depth, max_depth);
     let b_rows = B.nrows();
     let (P_cl, A_cl, B_cl, C_cl, cones) = convert_to_clarabel(A,B,C);
     let settings_cl = clarabel::solver::DefaultSettingsBuilder::<Float>::default()
@@ -89,7 +85,6 @@ fn construct_feasability_inputs(a: DMatrix<Float>, b: DMatrix<Float>, c: DMatrix
     }
 
     for (r,c,v) in a2_csc.triplet_iter() {
-        //A_temp[(a1_nrows+r,c)] = *v;
         A_temp_coo.push(r+a1_nrows, c, *v);
     }
     let A_temp_csc = nalgebra_sparse::CscMatrix::from(&A_temp_coo);
@@ -216,45 +211,20 @@ fn generate_known_rotation_problem<Feat: Feature + Clone>(unique_landmark_ids: &
     (a,b,c,a0,b0,c0)
 }
 
-fn update_maps<Feat: Feature + Clone>(
-    abs_landmark_map: &mut HashMap<usize, Matrix4xX<Float>>,
+fn compute_receted_landmark_ids<Feat: Feature + Clone>(
     abs_pose_map: &mut HashMap<usize,Isometry3<Float>>, 
     feature_map: &mut HashMap<usize, Vec<Feat>>, 
     unique_landmark_ids: &mut HashSet<usize>, 
-    match_map: &mut HashMap<(usize, usize), Vec<Match<Feat>>>,
     camera_ids_root_first: &Vec<usize>, 
-    landmark_id_cam_pair_index_map: &HashMap<usize,Vec<((usize,usize),usize)>>,
-    dual: DVector<Float>,
     slack: DVector<Float>
-) -> () {
+) -> HashSet<usize> {
     let num_opt_pose = abs_pose_map.len()-1;  // We skipped the root cam since it is the identity pose by definition
     let num_landmarks = unique_landmark_ids.len();
     let mut rejected_landmarks = HashSet::<usize>::with_capacity(num_landmarks*0.1 as usize);
-    let mut landmarks = Matrix4xX::<Float>::from_element(num_landmarks,1.0);
-
-    let landmark_view = dual.rows(0,3*num_landmarks);
-    let translation_view = dual.rows(3*num_landmarks,3*num_opt_pose);
-
-    // Landmark_id is matrix index by design
-    for landmark_id in 0..num_landmarks {
-        let landmark = landmark_view.fixed_rows::<3>(3*landmark_id).into_owned();
-        println!("landmark: {:?}",landmark);
-        landmarks.fixed_view_mut::<3,1>(0, landmark_id).copy_from(&landmark);
-        let cam_pairs_with_indices = landmark_id_cam_pair_index_map.get(&landmark_id).expect(format!("update_maps: no cam pair list found for {}",landmark_id).as_str());
-        for (cam_pair_key,abs_idx) in cam_pairs_with_indices {
-            let (_, id_f) = cam_pair_key;
-            let abs_landmarks = abs_landmark_map.get_mut(id_f).expect(format!("update_maps: no abs landmarks found for id f: {}",id_f).as_str());
-            abs_landmarks.fixed_view_mut::<3,1>(0,*abs_idx).copy_from(&landmark);
-        }
-    }
 
     let mut res_offset = 0;
     for i in 0..num_opt_pose {
         let cam_id = camera_ids_root_first[i+1];
-        let translation = translation_view.fixed_rows::<3>(3*i).into_owned();
-        println!("translation: {:?}",translation);
-        let mut current_pose = abs_pose_map.get_mut(&cam_id).expect("update_maps: no abs pose found!");
-        current_pose.translation = Translation::from(translation);
 
         let feature_vec = feature_map.get(&cam_id).expect("generate_known_rotation_problem: No features found");
         let number_of_landmarks_in_view = feature_vec.len();
@@ -267,9 +237,9 @@ fn update_maps<Feat: Feature + Clone>(
             println!("s: {}",s);
             // if s > 1e-7 landmark associated with f is possibly an outlier
             if s > 1e-7 {
-                panic!("Outlier");
+                println!("Outlier");
                 // Enable once the whole pipeline is done
-                //rejected_landmarks.insert(f.get_landmark_id().expect("update_maps: no landmark id"));
+                rejected_landmarks.insert(f.get_landmark_id().expect("update_maps: no landmark id"));
             }
 
         }
@@ -278,12 +248,7 @@ fn update_maps<Feat: Feature + Clone>(
 
     }
 
-    //TODO: update match map
-    for (_, features) in feature_map {
-        let accepted_landmarks = features.drain(..).filter(|x| !rejected_landmarks.contains(&x.get_landmark_id().expect("update_maps: no landmark id found"))).collect::<Vec<Feat>>();
-        assert!(features.is_empty());
-        features.extend(accepted_landmarks.into_iter())
-    }
+    rejected_landmarks
 
 }
 
