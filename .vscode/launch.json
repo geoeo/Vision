@@ -11,7 +11,8 @@
             "program": "${workspaceFolder}/target/debug/examples/pointcloud",
             "args": [],
             "cwd": "${workspaceFolder}",
-            "preLaunchTask": "build examples"
+            "preLaunchTask": "build examples",
+            "env": {"RUST_BACKTRACE":"full"}
         },
         {
             "name": "BA Synthetic",
@@ -20,7 +21,8 @@
             "program": "${workspaceFolder}/target/debug/examples/ba_synthetic",
             "args": [],
             "cwd": "${workspaceFolder}",
-            "preLaunchTask": "build examples"
+            "preLaunchTask": "build examples",
+            "env": {"RUST_BACKTRACE":"full"}
         },
         {
             "name": "Olsson",
@@ -29,7 +31,8 @@
             "program": "${workspaceFolder}/target/debug/examples/olsson",
             "args": [],
             "cwd": "${workspaceFolder}",
-            "preLaunchTask": "build examples"
+            "preLaunchTask": "build examples",
+            "env": {"RUST_BACKTRACE":"full"}
         },
         {
             "name": "IO Matrix",
@@ -38,7 +41,8 @@
             "program": "${workspaceRoot}/target/debug/examples/io_matrix",
             "args": [],
             "cwd": "${workspaceFolder}",
-            "preLaunchTask": "build examples"
+            "preLaunchTask": "build examples",
+            "env": {"RUST_BACKTRACE":"full"}
         }
     ]
 }
