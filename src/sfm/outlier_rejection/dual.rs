@@ -234,7 +234,7 @@ fn compute_receted_landmark_ids<Feat: Feature + Clone>(
             let s = current_slack[j];
             let f = &feature_vec[j];
 
-            println!("s: {}",s);
+            //println!("s: {}",s);
             // if s > 1e-7 landmark associated with f is possibly an outlier
             if s > 1e-7 {
                 println!("Outlier");
