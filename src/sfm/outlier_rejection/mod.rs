@@ -144,21 +144,19 @@ pub fn filter_by_rejected_landmark_ids<Feat: Feature + Clone>(
         
         // There wont be an entry for root
         let abs_landmarks_option = abs_landmark_map.get(cam_id);
-        if abs_landmarks_option.is_some() {
-            let abs_landmarks = abs_landmarks_option.unwrap();
-            let abs_landmarks_filtered_as_vec : Vec<Vector4<Float>> = abs_landmarks.column_iter().enumerate().filter(|(i,_)| accepted_indices.contains(i)).map(|(_,c)| c.into_owned()).collect();
-            let abs_landmarks_filtered = Matrix4xX::<Float>::from_columns(&abs_landmarks_filtered_as_vec[..]);
-            abs_landmark_map.insert(*cam_id, abs_landmarks_filtered);
-        }
-
+        match abs_landmarks_option {
+            Some(abs_landmarks) => {
+                let abs_landmarks_filtered_as_vec : Vec<Vector4<Float>> = abs_landmarks.column_iter().enumerate().filter(|(i,_)| accepted_indices.contains(i)).map(|(_,c)| c.into_owned()).collect();
+                let abs_landmarks_filtered = Matrix4xX::<Float>::from_columns(&abs_landmarks_filtered_as_vec[..]);
+                abs_landmark_map.insert(*cam_id, abs_landmarks_filtered);
+            },
+            _ => ()
+        };
     }
 
     //TODO: update rejected_landmark_ids
     unique_landmark_ids.retain(|v| !rejected_landmark_ids.contains(v));
     *unique_landmark_ids = unique_landmark_ids.iter().map(|v| *old_new_map.get(&v).expect("filter_by_rejected_landmark_ids: no id for unique_landmark_ids")).collect::<HashSet<_>>();
-
-
-
 }
 
 pub fn recompute_landmark_ids_for_matches<Feat: Feature>(match_norm_map: &mut HashMap<(usize, usize), Vec<Match<Feat>>>, match_map: &mut HashMap<(usize, usize), Vec<Match<Feat>>>) -> HashMap<usize,usize> {
