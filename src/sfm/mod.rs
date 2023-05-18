@@ -9,7 +9,7 @@ use crate::sfm::{epipolar::tensor,
     triangulation::{Triangulation, triangulate_matches}, 
     rotation_avg::optimize_rotations_with_rcd,
     outlier_rejection::dual::outlier_rejection_dual};
-use crate::sfm::outlier_rejection::{calculate_reprojection_errors,calcualte_disparities, reject_landmark_outliers, filter_by_rejected_landmark_ids};
+use crate::sfm::outlier_rejection::{calculate_reprojection_errors,calcualte_disparities, reject_landmark_outliers, filter_by_rejected_landmark_ids, recompute_landmark_ids};
 use crate::sensors::camera::Camera;
 use crate::numerics::{pose::{from_matrix,se3}};
 use crate::{float,Float};
@@ -136,9 +136,9 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
         let (min_reprojection_error_refined, max_reprojection_error_refined) = Self::compute_reprojection_ranges(&reprojection_error_map);
         println!("SFM Config Max Reprojection Error 2): {}, Min Reprojection Error: {}", max_reprojection_error_refined, min_reprojection_error_refined);
 
-        //TODO: Comment recompute_landmark_ids this in more detail
+        //TODO: Comment recompute_landmark_ids this in more detail & maybe move this to state_linearizer
         // Since landmarks may be rejected, this function recomputes the ids to be consecutive so that they may be used for matrix indexing.
-        Self::recompute_landmark_ids(&mut match_norm_map, &mut match_map);
+        recompute_landmark_ids(&mut match_norm_map, &mut match_map);
         let path_id_pairs = compute_path_id_pairs(root, paths);
 
         let camera_ids_root_first = Self::get_sorted_camera_keys(root, paths);
@@ -408,64 +408,6 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
 
         filtered_matches
     } 
-
-    fn recompute_landmark_ids(match_norm_map: &mut HashMap<(usize, usize), Vec<Match<Feat>>>, match_map: &mut HashMap<(usize, usize), Vec<Match<Feat>>>) -> () {
-        let mut old_max_val = 0;
-
-        let mut existing_ids = HashSet::<usize>::with_capacity(100000);
-        for (_,val) in match_norm_map.iter() {
-            for m in val {
-                let id = m.get_landmark_id().expect("recompute_landmark_ids: no landmark id");
-                old_max_val = old_max_val.max(id);
-                existing_ids.insert(id);
-            }
-        }
-
-        let mut old_new_map = HashMap::<usize,usize>::with_capacity(old_max_val);
-        let mut free_ids = (0..existing_ids.len()).collect::<HashSet<usize>>();
-
-        let mut missing_id_set = (0..old_max_val).collect::<HashSet<usize>>();
-        for (_,val) in match_norm_map.iter() {
-            for m in val {
-                missing_id_set.remove(&m.get_landmark_id().unwrap());
-            }
-        }
-
-        for (_,val) in match_norm_map.iter_mut() {
-            for m in val {
-                let old_id = m.get_landmark_id().expect("recompute_landmark_ids: no landmark id");
-                if old_new_map.contains_key(&old_id) {
-                    let new_id = old_new_map.get(&old_id).unwrap();
-                    m.set_landmark_id(Some(*new_id));
-                } else {
-                    let free_id = free_ids.iter().next().unwrap().clone();
-                    free_ids.remove(&free_id);
-                    m.set_landmark_id(Some(free_id));
-                    old_new_map.insert(old_id, free_id);
-                }
-            }
-        }
-        assert!(free_ids.is_empty());
-
-        let mut validation_set = (0..existing_ids.len()).collect::<HashSet<usize>>();
-        for (_,val) in match_norm_map.iter() {
-            for m in val {
-                validation_set.remove(&m.get_landmark_id().unwrap());
-            }
-        }
-        assert!(validation_set.is_empty());
-
-        // Make sure normalized matches and matches are consistent
-        for (key, ms_norm) in match_norm_map {
-            let ms = match_map.get_mut(key).expect("match missing in recompute_landmark_ids");
-            assert_eq!(ms_norm.len(), ms.len());
-            for i in 0..ms.len() {
-                ms[i].set_landmark_id(ms_norm[i].get_landmark_id());
-            }
-
-        }
-
-    }
 
     fn normalize_features_and_cameras(camera_map: &HashMap<usize, C>,match_map: &HashMap<(usize, usize), Vec<Match<Feat>>>) 
         -> (HashMap<usize, C>,HashMap<(usize, usize), Vec<Match<Feat>>>) {
