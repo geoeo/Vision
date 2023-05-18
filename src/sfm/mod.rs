@@ -9,7 +9,7 @@ use crate::sfm::{epipolar::tensor,
     triangulation::{Triangulation, triangulate_matches}, 
     rotation_avg::optimize_rotations_with_rcd,
     outlier_rejection::dual::outlier_rejection_dual};
-use crate::sfm::outlier_rejection::{calculate_reprojection_errors,calcualte_disparities, reject_landmark_outliers, filter_by_rejected_landmark_ids, recompute_landmark_ids};
+use crate::sfm::outlier_rejection::{calculate_reprojection_errors,calcualte_disparities, reject_landmark_outliers, filter_by_rejected_landmark_ids, recompute_landmark_ids_for_matches};
 use crate::sensors::camera::Camera;
 use crate::numerics::{pose::{from_matrix,se3}};
 use crate::{float,Float};
@@ -136,9 +136,9 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
         let (min_reprojection_error_refined, max_reprojection_error_refined) = Self::compute_reprojection_ranges(&reprojection_error_map);
         println!("SFM Config Max Reprojection Error 2): {}, Min Reprojection Error: {}", max_reprojection_error_refined, min_reprojection_error_refined);
 
-        //TODO: Comment recompute_landmark_ids this in more detail & maybe move this to state_linearizer
+        //TODO: Comment recompute_landmark_ids this in more detail & maybe move this to state_linearizer (needed for outlier detection)
         // Since landmarks may be rejected, this function recomputes the ids to be consecutive so that they may be used for matrix indexing.
-        recompute_landmark_ids(&mut match_norm_map, &mut match_map);
+        let _ = recompute_landmark_ids_for_matches(&mut match_norm_map, &mut match_map);
         let path_id_pairs = compute_path_id_pairs(root, paths);
 
         let camera_ids_root_first = Self::get_sorted_camera_keys(root, paths);
@@ -150,7 +150,10 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
         let tol = 5.0/root_cam.get_focal_x(); // rougly 5 pixels
 
         let rejected_landmark_ids = outlier_rejection_dual(&camera_ids_root_first, &mut unique_landmark_ids, &mut abs_pose_map, &mut feature_map, tol);
-        filter_by_rejected_landmark_ids(&rejected_landmark_ids, &mut unique_landmark_ids, &mut abs_landmark_map, &mut match_norm_map, &mut match_map, &mut landmark_map, &mut feature_map, &mut reprojection_error_map);
+        if !rejected_landmark_ids.is_empty() {
+            filter_by_rejected_landmark_ids(&rejected_landmark_ids, &mut unique_landmark_ids, &mut abs_landmark_map, &mut match_norm_map, &mut match_map, &mut landmark_map, &mut feature_map, &mut reprojection_error_map);
+        }
+
 
         SFMConfig{root, paths: paths.clone(), camera_map: camera_norm_map, match_map, match_norm_map, abs_pose_map, pose_map, epipolar_alg, abs_landmark_map, reprojection_error_map, unique_landmark_ids, triangulation}
     }
