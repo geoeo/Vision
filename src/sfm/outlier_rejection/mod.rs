@@ -142,7 +142,7 @@ pub fn filter_by_rejected_landmark_ids<Feat: Feature + Clone>(
 
     // Recomputes ids to be consecutive -> unique landmark ids, match_norm_map, match_map, feature_map
     let (old_new_map, new_unique_landmark_ids) = compute_continuous_landmark_ids_for_matches(match_norm_map, match_map, Some(unique_landmark_ids), Some(rejected_landmark_ids));
-    assert!(old_new_map.len() < unique_landmark_ids.len());
+    assert!(new_unique_landmark_ids.len() < unique_landmark_ids.len());
     // Update rejected_landmark_ids
     *unique_landmark_ids = new_unique_landmark_ids;
 
