@@ -162,6 +162,7 @@ pub fn filter_by_rejected_landmark_ids<Feat: Feature + Clone>(
         match abs_landmarks_option {
             Some(abs_landmarks) => {
                 let abs_landmarks_filtered_as_vec : Vec<Vector4<Float>> = abs_landmarks.column_iter().enumerate().filter(|(i,_)| accepted_indices.contains(i)).map(|(_,c)| c.into_owned()).collect();
+                assert!(!abs_landmarks_filtered_as_vec.is_empty());
                 let abs_landmarks_filtered = Matrix4xX::<Float>::from_columns(&abs_landmarks_filtered_as_vec[..]);
                 abs_landmark_map.insert(*cam_id, abs_landmarks_filtered);
             },
