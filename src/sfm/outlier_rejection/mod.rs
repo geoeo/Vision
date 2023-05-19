@@ -34,6 +34,17 @@ pub fn calculate_reprojection_errors<Feat: Feature, C: Camera<Float>>(landmarks:
     reprojection_errors
 }
 
+pub fn reject_matches_via_disparity<Feat: Feature + Clone>(disparitiy_map: HashMap<(usize, usize),DVector<Float>>, match_map: &mut HashMap<(usize, usize), Vec<Match<Feat>>>, disparity_cutoff: Float) {
+    let keys = match_map.keys().map(|key| *key).collect::<Vec<_>>();
+    for key in &keys {
+        let disparities = disparitiy_map.get(key).unwrap();
+        let matches = match_map.get(key).unwrap();
+        assert_eq!(disparities.nrows(), matches.len());
+        let filtered_matches = matches.iter().enumerate().filter(|&(idx,_)| disparities[idx] >= disparity_cutoff).map(|(_,v)| v.clone()).collect::<Vec<Match<Feat>>>();
+        match_map.insert(*key,filtered_matches);
+    }
+}
+
 pub fn calcualte_disparities<Feat: Feature>(matches: &Vec<Match<Feat>>) -> DVector<Float> {
     let mut disparities = DVector::<Float>::zeros(matches.len());
     for i in 0..matches.len() {
@@ -99,7 +110,7 @@ pub fn filter_by_rejected_landmark_ids<Feat: Feature + Clone>(
     reprojection_error_map: &mut HashMap<(usize, usize),DVector<Float>>
 ) -> () {
 
-    //TODO: update match map, match_norm_map, landmark_map -> group 1
+    // Update match map, match_norm_map, landmark_map -> group 1
     let cam_pairs = match_norm_map.keys().map(|(id1,id2)| (*id1,*id2)).collect::<Vec<_>>();
     for cam_key in cam_pairs {
         let matches_norm = match_norm_map.get(&cam_key).expect("filter_by_rejected_landmark_ids: matches norm, missing cam pair");
@@ -113,6 +124,7 @@ pub fn filter_by_rejected_landmark_ids<Feat: Feature + Clone>(
             = matches.iter().filter(|m| !rejected_landmark_ids.contains(&m.get_landmark_id().expect("filter_by_rejected_landmark_ids: no landmark it for filtering"))).map(|m| m.clone()).collect();
 
         let landmarks_filterd_as_vec : Vec<_> = landmarks.column_iter().enumerate().filter(|(i,_)| match_indices_filtered.contains(i)).map(|(_,c)| c).collect();
+        assert!(!landmarks_filterd_as_vec.is_empty());
         let reprojections_filterd_as_vec: Vec<_> = reprojections.into_iter().enumerate().filter(|(i,_)| match_indices_filtered.contains(i)).map(|(_,c)| *c).collect();
         
         let landmarks_filtered = Matrix4xX::<Float>::from_columns(&landmarks_filterd_as_vec[..]);
@@ -128,10 +140,13 @@ pub fn filter_by_rejected_landmark_ids<Feat: Feature + Clone>(
         reprojection_error_map.insert(cam_key, reprojections_filterd);
     }
 
-    //TODO: recomputes ids to be consecutive -> unique landmark ids, match_norm_map, match_map, feature_map
-    let old_new_map = recompute_landmark_ids_for_matches(match_norm_map, match_map);
+    // Recomputes ids to be consecutive -> unique landmark ids, match_norm_map, match_map, feature_map
+    let (old_new_map, new_unique_landmark_ids) = compute_continuous_landmark_ids_for_matches(match_norm_map, match_map, Some(unique_landmark_ids), Some(rejected_landmark_ids));
+    assert!(old_new_map.len() < unique_landmark_ids.len());
+    // Update rejected_landmark_ids
+    *unique_landmark_ids = new_unique_landmark_ids;
 
-    //TODO: update feature_map, abs_landmark_map -> group 2
+    // Update feature_map, abs_landmark_map -> group 2
     for (cam_id, features) in feature_map {
         let accepted_enumerated_features 
             = features.drain(..).enumerate()
@@ -153,13 +168,14 @@ pub fn filter_by_rejected_landmark_ids<Feat: Feature + Clone>(
             _ => ()
         };
     }
-
-    //TODO: update rejected_landmark_ids
-    unique_landmark_ids.retain(|v| !rejected_landmark_ids.contains(v));
-    *unique_landmark_ids = unique_landmark_ids.iter().map(|v| *old_new_map.get(&v).expect("filter_by_rejected_landmark_ids: no id for unique_landmark_ids")).collect::<HashSet<_>>();
 }
 
-pub fn recompute_landmark_ids_for_matches<Feat: Feature>(match_norm_map: &mut HashMap<(usize, usize), Vec<Match<Feat>>>, match_map: &mut HashMap<(usize, usize), Vec<Match<Feat>>>) -> HashMap<usize,usize> {
+pub fn compute_continuous_landmark_ids_for_matches<Feat: Feature + Clone>(
+    match_norm_map: &mut HashMap<(usize, usize), Vec<Match<Feat>>>, 
+    match_map: &mut HashMap<(usize, usize), Vec<Match<Feat>>>, 
+    unique_landmark_ids_option: Option<&HashSet<usize>>,
+    rejected_landmark_ids_option: Option<&HashSet<usize>>) 
+    -> (HashMap<usize,usize>, HashSet<usize>) {
     let mut old_max_val = 0;
 
     let mut existing_ids = HashSet::<usize>::with_capacity(100000);
@@ -213,7 +229,11 @@ pub fn recompute_landmark_ids_for_matches<Feat: Feature>(match_norm_map: &mut Ha
             ms[i].set_landmark_id(ms_norm[i].get_landmark_id());
         }
     }
-
-    old_new_map
+    let new_unique_landmark_ids = match (unique_landmark_ids_option,rejected_landmark_ids_option) {
+        (Some(unique_landmark_ids), Some(rejected_landmark_ids)) => unique_landmark_ids.iter().filter(|v| !rejected_landmark_ids.contains(v)).map(|v| *old_new_map.get(&v).expect("filter_by_rejected_landmark_ids: no id for unique_landmark_ids")).collect::<HashSet<_>>(),
+        _ => old_new_map.values().copied().collect()
+    };
+    (old_new_map, new_unique_landmark_ids)
 
 }
+

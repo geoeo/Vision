@@ -76,7 +76,7 @@ fn construct_feasability_inputs(a: DMatrix<Float>, b: DMatrix<Float>, c: DMatrix
     let mut a2 = DMatrix::<Float>::zeros(2*c.nrows(),c.ncols());
     a2.view_mut((0,0), c.shape()).copy_from(&-(&c));
     a2.view_mut((c.nrows(),0), c.shape()).copy_from(&c);
-    let (a2_nrows, a2_ncols) = a2.shape();
+    let (a2_nrows, _) = a2.shape();
     let a2_csc = to_csc_owned(a2);
 
     let mut A_temp_coo = nalgebra_sparse::CooMatrix::<Float>::new(a1_nrows+a2_nrows,a1_ncols); 
@@ -234,18 +234,15 @@ fn compute_receted_landmark_ids<Feat: Feature + Clone>(
             let s = current_slack[j];
             let f = &feature_vec[j];
 
-            //println!("s: {}",s);
             // if s > 1e-7 landmark associated with f is possibly an outlier
-            if s > 1e-7 {
-                println!("Outlier");
+            if s > 0.0 {
+                println!("Outlier: {}",s);
                 // Enable once the whole pipeline is done
                 rejected_landmarks.insert(f.get_landmark_id().expect("update_maps: no landmark id"));
             }
 
         }
-
         res_offset += number_of_landmarks_in_view;
-
     }
 
     rejected_landmarks
