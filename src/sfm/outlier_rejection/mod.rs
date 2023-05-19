@@ -229,6 +229,7 @@ pub fn compute_continuous_landmark_ids_for_matches<Feat: Feature + Clone>(
             ms[i].set_landmark_id(ms_norm[i].get_landmark_id());
         }
     }
+    
     let new_unique_landmark_ids = match (unique_landmark_ids_option,rejected_landmark_ids_option) {
         (Some(unique_landmark_ids), Some(rejected_landmark_ids)) => unique_landmark_ids.iter().filter(|v| !rejected_landmark_ids.contains(v)).map(|v| *old_new_map.get(&v).expect("filter_by_rejected_landmark_ids: no id for unique_landmark_ids")).collect::<HashSet<_>>(),
         _ => old_new_map.values().copied().collect()

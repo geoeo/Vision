@@ -108,26 +108,20 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
             epipolar_thresh,
             epipolar_alg,
             positive_principal_distance);
-        
-
-
+    
         let (mut landmark_map, mut reprojection_error_map) 
             = Self::compute_landmarks_and_reprojection_maps(root,&paths,&pose_map,&match_norm_map,&camera_norm_map,triangulation, positive_principal_distance);
         let (min_reprojection_error_initial, max_reprojection_error_initial) = Self::compute_reprojection_ranges(&reprojection_error_map);
+        println!("SFM Config Max Reprojection Error 1): {}, Min Reprojection Error: {}", max_reprojection_error_initial, min_reprojection_error_initial);
 
         let path_id_pairs = compute_path_id_pairs(root, paths);
-
-
         let mut abs_pose_map = compute_absolute_poses_for_root(root, &path_id_pairs, &pose_map);
         let mut abs_landmark_map = compute_absolute_landmarks_for_root(&path_id_pairs,&landmark_map,&abs_pose_map);
 
-       
-        println!("SFM Config Max Reprojection Error 1): {}, Min Reprojection Error: {}", max_reprojection_error_initial, min_reprojection_error_initial);
-        reject_landmark_outliers(&mut landmark_map, &mut reprojection_error_map ,&mut match_map ,&mut match_norm_map, landmark_cutoff_thresh);
-
         let (_,mut unique_landmark_ids) = compute_continuous_landmark_ids_for_matches(&mut match_norm_map, &mut match_map,None, None);
         Self::filter_outliers_by_dual(root,paths,&camera_norm_map,&mut unique_landmark_ids,&mut abs_pose_map,&mut abs_landmark_map,&mut match_norm_map,&mut match_map, &mut landmark_map, &mut reprojection_error_map);
-        
+
+        reject_landmark_outliers(&mut landmark_map, &mut reprojection_error_map ,&mut match_map ,&mut match_norm_map, landmark_cutoff_thresh);
         if refine_rotation_via_rcd {
             let new_pose_map = Self::refine_rotation_by_rcd(root, &paths, &pose_map);
             let (mut new_landmark_map, mut new_reprojection_error_map) 
@@ -148,9 +142,6 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
 
         let (min_reprojection_error_refined, max_reprojection_error_refined) = Self::compute_reprojection_ranges(&reprojection_error_map);
         println!("SFM Config Max Reprojection Error 2): {}, Min Reprojection Error: {}", max_reprojection_error_refined, min_reprojection_error_refined);
-
-        //let (_, unique_landmark_ids) = compute_continuous_landmark_ids_for_matches(&mut match_norm_map, &mut match_map,Some(&unique_landmark_ids), None);
-        //Self::filter_outliers_by_dual(root,paths,&camera_norm_map,&mut unique_landmark_ids,&mut abs_pose_map,&mut abs_landmark_map,&mut match_norm_map,&mut match_map, &mut landmark_map, &mut reprojection_error_map);
 
         // Since landmarks may be rejected, this function recomputes the ids to be consecutive so that they may be used for matrix indexing.
         let (_, unique_landmark_ids) = compute_continuous_landmark_ids_for_matches(&mut match_norm_map, &mut match_map,Some(&unique_landmark_ids), None);
