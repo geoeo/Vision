@@ -233,7 +233,6 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
                 let transform_c1 = Matrix4::<Float>::identity().fixed_view::<3,4>(0,0).into_owned();
                 let transform_c2 = se3.fixed_view::<3,4>(0,0).into_owned();
                 let reprojection_errors = calculate_reprojection_errors(&trigulated_matches, ms, &transform_c1, cam_1, &transform_c2, cam_2);
-                //let disparities = calcualte_disparities(ms);
 
                 triangulated_match_map.insert(*path_pair,trigulated_matches);
                 reprojection_map.insert(*path_pair,reprojection_errors);
@@ -573,7 +572,7 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
         let tol = 5.0/root_cam.get_focal_x(); // rougly 5 pixels
         let rejected_landmark_ids = outlier_rejection_dual(&camera_ids_root_first, unique_landmark_ids,abs_pose_map, &mut feature_map, tol);
         if !rejected_landmark_ids.is_empty() {
-            //TODO: investigate outlier detection only on cam pairs
+            //TODO: investigate outlier detection only on cam pairs / Check if reprojections actually decreased since we have to theoretical guarantee
             filter_by_rejected_landmark_ids(&rejected_landmark_ids, unique_landmark_ids, abs_landmark_map,  match_norm_map,  match_map, landmark_map, &mut feature_map, reprojection_error_map);
         }
     }
