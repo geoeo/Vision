@@ -110,13 +110,14 @@ pub fn filter_by_rejected_landmark_ids<Feat: Feature + Clone>(
     reprojection_error_map: &mut HashMap<(usize, usize),DVector<Float>>
 ) -> () {
 
-    // Update match map, match_norm_map, landmark_map -> group 1
+    // Update match map, match_norm_map, landmark_map, abs_landmark_map -> group 1
     let cam_pairs = match_norm_map.keys().map(|(id1,id2)| (*id1,*id2)).collect::<Vec<_>>();
     for cam_key in cam_pairs {
         let matches_norm = match_norm_map.get(&cam_key).expect("filter_by_rejected_landmark_ids: matches norm, missing cam pair");
         let matches = match_map.get(&cam_key).expect("filter_by_rejected_landmark_ids: matches, missing cam pair");
         let landmarks = landmark_map.get(&cam_key).expect("filter_by_rejected_landmark_ids: landmarks, missing cam pair");
         let reprojections = reprojection_error_map.get(&cam_key).expect("filter_by_rejected_landmark_ids: reprojection_error_map, missing cam pair");
+        let abs_landmarks = abs_landmark_map.get(&cam_key.1).expect("filter_by_rejected_landmark_ids: abs_landmarks_map, missing cam pair");;
 
         let (match_indices_filtered, matches_norm_filterd) : (HashSet<_>, Vec<_>) 
             = matches_norm.iter().enumerate().filter(|(_, m)| !rejected_landmark_ids.contains(&m.get_landmark_id().expect("filter_by_rejected_landmark_ids: no landmark it for filtering"))).map(|(i,m)| (i, m.clone())).unzip();
@@ -126,17 +127,23 @@ pub fn filter_by_rejected_landmark_ids<Feat: Feature + Clone>(
         let landmarks_filterd_as_vec : Vec<_> = landmarks.column_iter().enumerate().filter(|(i,_)| match_indices_filtered.contains(i)).map(|(_,c)| c).collect();
         assert!(!landmarks_filterd_as_vec.is_empty());
         let reprojections_filterd_as_vec: Vec<_> = reprojections.into_iter().enumerate().filter(|(i,_)| match_indices_filtered.contains(i)).map(|(_,c)| *c).collect();
+
+        let abs_landmarks_filterd_as_vec : Vec<_> = abs_landmarks.column_iter().enumerate().filter(|(i,_)| match_indices_filtered.contains(i)).map(|(_,c)| c).collect();
+        assert!(!abs_landmarks_filterd_as_vec.is_empty());
         
         let landmarks_filtered = Matrix4xX::<Float>::from_columns(&landmarks_filterd_as_vec[..]);
+        let abs_landmarks_filtered = Matrix4xX::<Float>::from_columns(&abs_landmarks_filterd_as_vec[..]);
         let reprojections_filterd = DVector::<Float>::from_vec(reprojections_filterd_as_vec);
 
         assert_eq!(matches_norm_filterd.len(), matches_filterd.len());
         assert_eq!(matches_norm_filterd.len(), landmarks_filtered.ncols());
+        assert_eq!(matches_norm_filterd.len(), abs_landmarks_filtered.ncols());
         assert_eq!(matches_norm_filterd.len(), reprojections_filterd.nrows());
 
         match_norm_map.insert(cam_key, matches_norm_filterd);
         match_map.insert(cam_key, matches_filterd);
         landmark_map.insert(cam_key, landmarks_filtered);
+        abs_landmark_map.insert(cam_key.1, abs_landmarks_filtered);
         reprojection_error_map.insert(cam_key, reprojections_filterd);
     }
 
@@ -146,7 +153,7 @@ pub fn filter_by_rejected_landmark_ids<Feat: Feature + Clone>(
     // Update rejected_landmark_ids
     *unique_landmark_ids = new_unique_landmark_ids;
 
-    // Update feature_map, abs_landmark_map -> group 2
+    // Update feature_map -> group 2
     for (cam_id, features) in feature_map {
         let accepted_enumerated_features 
             = features.drain(..).enumerate()
@@ -156,18 +163,6 @@ pub fn filter_by_rejected_landmark_ids<Feat: Feature + Clone>(
         assert!(features.is_empty());
         let (accepted_indices,accepted_features): (HashSet<usize>,Vec<Feat>) = accepted_enumerated_features.into_iter().unzip();
         features.extend(accepted_features.into_iter());
-        
-        // There wont be an entry for root
-        let abs_landmarks_option = abs_landmark_map.get(cam_id);
-        match abs_landmarks_option {
-            Some(abs_landmarks) => {
-                let abs_landmarks_filtered_as_vec : Vec<Vector4<Float>> = abs_landmarks.column_iter().enumerate().filter(|(i,_)| accepted_indices.contains(i)).map(|(_,c)| c.into_owned()).collect();
-                assert!(!abs_landmarks_filtered_as_vec.is_empty());
-                let abs_landmarks_filtered = Matrix4xX::<Float>::from_columns(&abs_landmarks_filtered_as_vec[..]);
-                abs_landmark_map.insert(*cam_id, abs_landmarks_filtered);
-            },
-            _ => ()
-        };
     }
 }
 
