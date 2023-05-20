@@ -19,6 +19,8 @@ QuEst - https://www.researchgate.net/publication/322410414_QuEst_A_Quaternion-Ba
 
 Rotation Coordinate Descent - https://arxiv.org/abs/2103.08292
 
+Outlier removal using duality - https://ieeexplore.ieee.org/abstract/document/5539800/
+
 ## Orb
 ![billa_cereal_far](doc/cereal_far.png)![billa_cereal_tilted](doc/cereal_tilted.png)
 
