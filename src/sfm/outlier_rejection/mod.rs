@@ -154,14 +154,13 @@ pub fn filter_by_rejected_landmark_ids<Feat: Feature + Clone>(
     *unique_landmark_ids = new_unique_landmark_ids;
 
     // Update feature_map -> group 2
-    for (cam_id, features) in feature_map {
-        let accepted_enumerated_features 
-            = features.drain(..).enumerate()
-                    .filter(|(_,x)| !rejected_landmark_ids.contains(&x.get_landmark_id()
+    for (_, features) in feature_map {
+        let accepted_features 
+            = features.drain(..)
+                    .filter(|x| !rejected_landmark_ids.contains(&x.get_landmark_id()
                     .expect("update_maps: no landmark id found")))
-                    .map(|(i,f)| (i,f.copy_with_landmark_id(Some(*old_new_map.get(&f.get_landmark_id().unwrap()).expect("filter_by_rejected_landmark_ids: no id for features"))))).collect::<Vec<(usize,Feat)>>();
+                    .map(|f| f.copy_with_landmark_id(Some(*old_new_map.get(&f.get_landmark_id().unwrap()).expect("filter_by_rejected_landmark_ids: no id for features")))).collect::<Vec<Feat>>();
         assert!(features.is_empty());
-        let (accepted_indices,accepted_features): (HashSet<usize>,Vec<Feat>) = accepted_enumerated_features.into_iter().unzip();
         features.extend(accepted_features.into_iter());
     }
 }

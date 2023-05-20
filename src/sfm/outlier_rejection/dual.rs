@@ -234,7 +234,7 @@ fn compute_rejected_landmark_ids<Feat: Feature + Clone>(
             let f = &feature_vec[j];
 
             // if s > 1e-7 landmark associated with f is possibly an outlier
-            if s > 1e-7 {
+            if s > 1e-7 { //TODO: expose this as top level param
                 println!("Outlier: {}",s);
                 rejected_landmarks.insert(f.get_landmark_id().expect("update_maps: no landmark id")); 
             }
