@@ -569,7 +569,7 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
         let camera_ids_root_first = Self::get_sorted_camera_keys(root, paths);
         let (mut feature_map, _) = compute_features_per_image_map(&match_norm_map, &unique_landmark_ids); 
         let root_cam = camera_norm_map.get(&root).expect("Root Cam not found!");
-        let tol = 5.0/root_cam.get_focal_x(); // rougly 5 pixels
+        let tol = 5.0/root_cam.get_focal_x(); // rougly 5 pixels //TODO expose this
         let rejected_landmark_ids = outlier_rejection_dual(&camera_ids_root_first, unique_landmark_ids,abs_pose_map, &mut feature_map, tol);
         if !rejected_landmark_ids.is_empty() {
             //TODO: investigate outlier detection only on cam pairs / Check if reprojections actually decreased since we have to theoretical guarantee

@@ -41,7 +41,15 @@ impl<T: Feature + Clone + PartialEq> FeatureTrack<T> {
     }
 
     pub fn get_track_length(&self) -> usize {
-        self.track.len() + self.track.first().expect("FeatureTrack: Called get_track_length on empty track").1
+        let max_track_len = self.track.capacity();
+        let start_offset = self.track.first().expect("FeatureTrack: Called get_track_length on empty track").1;
+
+        // penalizing last frame more
+        match self.track.len() {
+            l if l == max_track_len => l,
+            l if l > 2 => l + start_offset,
+            l => l
+        }
     }
 
     pub fn get_track(&self) -> &Vec<(PathIdx, ImageIdx, Match<T>)> {
