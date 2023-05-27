@@ -2,8 +2,8 @@ extern crate nalgebra as na;
 extern crate num_traits;
 extern crate simba;
 
-use std::{hash::Hash,sync::mpsc,marker::{Send,Sync},thread,io::{Write,stdin,stdout}};
-use termion::{event::Key,input::TermRead,raw::IntoRawMode};
+use std::{hash::Hash,sync::mpsc,marker::{Send,Sync},thread};
+use termion::input::TermRead;
 use na::{Vector3, Isometry3,base::Scalar, RealField};
 use simba::scalar::SupersetOf;
 use num_traits::float;
@@ -56,7 +56,6 @@ pub fn run_ba<F: serde::Serialize + float::Float + Scalar + RealField + Superset
         // Use asynchronous stdin
         let mut stdin = termion::async_stdin().keys();
         let mut solver_block = true;
-
         while solver_block {
           let input = stdin.next();
 
