@@ -20,7 +20,7 @@ pub mod state_linearizer;
 pub mod solver;
 pub mod state;
 
-pub fn run_ba<F: serde::Serialize + float::Float + Scalar + NumAssign + RealField + SupersetOf<Float> + Send + Sync, C : Camera<Float> + Copy + Send + Sync, T : Feature + Clone + PartialEq + Eq + Hash + SolverFeature + Send + Sync>(
+pub fn run_ba<F: serde::Serialize + float::Float + Scalar + NumAssign + RealField + SupersetOf<Float>, C : Camera<Float> + Copy + Send + Sync, T : Feature + Clone + PartialEq + Eq + Hash + SolverFeature>(
     sfm_config: &SFMConfig<C, T> ,runtime_parameters: &RuntimeParameters<F>
   ) -> ((Vec<Isometry3<F>>, Vec<Vector3<F>>), (serde_yaml::Result<String>, serde_yaml::Result<String>)){
 
@@ -32,7 +32,6 @@ pub fn run_ba<F: serde::Serialize + float::Float + Scalar + NumAssign + RealFiel
 
     //TODO: switch impl on landmark state
 
-    //let mut state = feature_map.get_inverse_depth_landmark_state(Some(&initial_motion_decomp), depth_prior,&cameras);
     let (mut state, feature_location_lookup) = state_linearizer.get_euclidean_landmark_state(
       &path_id_pairs, 
       sfm_config.match_norm_map(), 

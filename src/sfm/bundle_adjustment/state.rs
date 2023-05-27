@@ -1,7 +1,6 @@
 extern crate nalgebra as na;
 extern crate num_traits;
 
-use std::marker::{Send,Sync};
 use na::{DVector, SMatrix, Matrix4, Vector3, Isometry3, Rotation3,base::Scalar, RealField};
 use num_traits::float;
 use crate::numerics::lie::exp_se3;
@@ -13,20 +12,20 @@ use crate::sfm::landmark::Landmark;
  * cam is parameterized by [u_1,u_2,u_3,w_1,w_2,w_3]
  * point is parameterized by [x,y,z]
  * */
-pub struct State<F: Scalar + Send + Sync, L: Landmark<F,T> + Send + Sync, const T: usize> {
+pub struct State<F: Scalar, L: Landmark<F,T>, const T: usize> {
     camera_positions: DVector<F>, //TOOD: make this vector of Isometry
     landmarks: Vec<L>,
     pub n_cams: usize,
     pub n_points: usize,
 }
 
-impl<F: float::Float + Scalar + RealField + Send + Sync, L: Landmark<F,T> + Copy + Clone + Send + Sync, const T: usize> Clone for State<F,L,T> {
+impl<F: float::Float + Scalar + RealField, L: Landmark<F,T> + Copy + Clone, const T: usize> Clone for State<F,L,T> {
     fn clone(&self) -> State<F,L,T> {
         State::<F,L,T>::new(self.camera_positions.clone(),self.landmarks.clone() , self.n_cams, self.n_points)
     }
 }
 
-impl<F: float::Float + Scalar + RealField + Send, L: Landmark<F,T> + Copy + Clone + Send + Sync, const T: usize> State<F,L,T> {
+impl<F: float::Float + Scalar + RealField, L: Landmark<F,T> + Copy + Clone, const T: usize> State<F,L,T> {
     pub fn new(camera_positions: DVector<F>, landmarks:  Vec<L>, n_cams: usize, n_points: usize) -> State<F,L,T> {
         State{camera_positions, landmarks , n_cams, n_points}
     }
@@ -47,8 +46,6 @@ impl<F: float::Float + Scalar + RealField + Send, L: Landmark<F,T> + Copy + Clon
     }
 
     pub fn update(&mut self, perturb: &DVector<F>) -> () {
-
-
         for i in (0..self.camera_positions.nrows()).step_by(6) {
             let u = perturb.fixed_rows::<3>(i);
             let w = perturb.fixed_rows::<3>(i + 3);
