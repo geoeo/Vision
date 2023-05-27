@@ -45,7 +45,6 @@ pub fn run_ba<F: serde::Serialize + float::Float + Scalar + RealField + Superset
     let (tx_abort, rx_abort) = mpsc::channel::<bool>();
     let (tx_done, rx_done) = mpsc::channel::<bool>();
 
-    // TODO replace with while loop and keyboard input
     thread::scope(|s| {
       s.spawn(move || {
         let some_debug_state_list = solver::optimize::<_,_,_,3>(&mut state, &unique_cameras_sorted_by_id, &observed_features, runtime_parameters, Some(&rx_abort), Some(&tx_done));
@@ -54,23 +53,26 @@ pub fn run_ba<F: serde::Serialize + float::Float + Scalar + RealField + Superset
       });
 
       s.spawn(move || {
+        // Use asynchronous stdin
+        let mut stdin = termion::async_stdin().keys();
         let mut solver_block = true;
-        let mut input_string = String::new();
-        while solver_block {
-          stdin().read_line(&mut input_string).unwrap();
-          println!("wrote: {}",input_string);
-          if input_string.contains('q') {
-            solver_block &= match tx_abort.send(true) {
-              Ok(()) => true,
-              Err(_) => false
-            };
-          }
 
+        while solver_block {
+          let input = stdin.next();
+
+          if let Some(Ok(key)) = input {
+            match key {
+                termion::event::Key::Char('q') =>  {
+                  let _ = tx_abort.send(true);
+                  ()
+                },
+                _ => ()
+            }
+          }
           solver_block &= match rx_done.try_recv() {
             Ok(b) => !b,
             _ => true
           };
-          input_string.clear();
         }
       });
     });
