@@ -1,6 +1,7 @@
 extern crate nalgebra as na;
 extern crate num_traits;
 
+use std::marker::{Send,Sync};
 use na::{DVector,DMatrix,Matrix, Dyn, U4, VecStorage,Point3, Vector4, base::Scalar, RealField, convert};
 use simba::scalar::SupersetOf;
 use num_traits::float;
@@ -21,7 +22,7 @@ pub fn get_feature_index_in_residual(cam_id: usize, feature_id: usize, n_cams: u
  * In the format [f1_cam1, f1_cam2,...]
  * Some entries may be 0 since not all cams see all points
  * */
-pub fn get_estimated_features<F: SupersetOf<Float>, C : Camera<Float>, L: Landmark<F,T> + Copy + Clone, const T: usize>(
+pub fn get_estimated_features<F: SupersetOf<Float>, C : Camera<Float>, L: Landmark<F,T> + Copy + Clone + Send + Sync, const T: usize>(
     state: &State<F,L,T>, cameras: &Vec<&C>,observed_features: &DVector<F>, estimated_features: &mut DVector<F>) 
     -> () where F: float::Float + Scalar + RealField {
     let n_cams = state.n_cams;
@@ -71,7 +72,7 @@ pub fn compute_residual<F: SupersetOf<Float>>(
 
 }
 
-pub fn compute_jacobian_wrt_object_points<F, C : Camera<Float>, L: Landmark<F, T> + Copy + Clone, const T: usize>(camera: &C, state: &State<F,L,T>, cam_idx: usize, point_idx: usize, i: usize, j: usize, jacobian: &mut DMatrix<F>) 
+pub fn compute_jacobian_wrt_object_points<F, C : Camera<Float>, L: Landmark<F, T> + Copy + Clone + Send + Sync, const T: usize>(camera: &C, state: &State<F,L,T>, cam_idx: usize, point_idx: usize, i: usize, j: usize, jacobian: &mut DMatrix<F>) 
     -> () where F: float::Float + Scalar + RealField {
     let transformation = state.to_se3(cam_idx);
     let point = state.get_landmarks()[point_idx].get_euclidean_representation();
@@ -83,7 +84,7 @@ pub fn compute_jacobian_wrt_object_points<F, C : Camera<Float>, L: Landmark<F, T
     jacobian.fixed_view_mut::<2,T>(i,j).copy_from(&local_jacobian.fixed_view::<2,T>(0,0));
 }
 
-pub fn compute_jacobian_wrt_camera_extrinsics<F, C : Camera<Float>, L: Landmark<F, T> + Copy + Clone, const T: usize>(camera: &C, state: &State<F,L,T>, cam_idx: usize, point: &Point3<F> ,i: usize, j: usize, jacobian: &mut DMatrix<F>) 
+pub fn compute_jacobian_wrt_camera_extrinsics<F, C : Camera<Float>, L: Landmark<F, T> + Copy + Clone + Send + Sync, const T: usize>(camera: &C, state: &State<F,L,T>, cam_idx: usize, point: &Point3<F> ,i: usize, j: usize, jacobian: &mut DMatrix<F>) 
     -> () where F: float::Float + Scalar + RealField {
     let transformation = state.to_se3(cam_idx);
     let transformed_point = transformation*Vector4::<F>::new(point[0],point[1],point[2],F::one());
@@ -95,7 +96,7 @@ pub fn compute_jacobian_wrt_camera_extrinsics<F, C : Camera<Float>, L: Landmark<
     jacobian.fixed_view_mut::<2,6>(i,j).copy_from(&local_jacobian);
 }
 
-pub fn compute_jacobian<F, C : Camera<Float>, L: Landmark<F, T> + Copy + Clone, const T: usize>(state: &State<F,L,T>, cameras: &Vec<&C>, jacobian: &mut DMatrix<F>) 
+pub fn compute_jacobian<F, C : Camera<Float>, L: Landmark<F, T> + Copy + Clone + Send + Sync, const T: usize>(state: &State<F,L,T>, cameras: &Vec<&C>, jacobian: &mut DMatrix<F>) 
     -> ()  where F: float::Float + Scalar + RealField {
     //cam
     let number_of_cam_params = 6*state.n_cams;
@@ -119,7 +120,7 @@ pub fn compute_jacobian<F, C : Camera<Float>, L: Landmark<F, T> + Copy + Clone, 
 
 }
 
-pub fn optimize<F: SupersetOf<Float>, C : Camera<Float>, L: Landmark<F, LANDMARK_PARAM_SIZE> + Copy + Clone, const LANDMARK_PARAM_SIZE: usize>(state: &mut State<F,L,LANDMARK_PARAM_SIZE>, cameras: &Vec<&C>, observed_features: &DVector<F>, runtime_parameters: &RuntimeParameters<F> ) 
+pub fn optimize<F: SupersetOf<Float>, C : Camera<Float>, L: Landmark<F, LANDMARK_PARAM_SIZE> + Copy + Clone + Send + Sync, const LANDMARK_PARAM_SIZE: usize>(state: &mut State<F,L,LANDMARK_PARAM_SIZE>, cameras: &Vec<&C>, observed_features: &DVector<F>, runtime_parameters: &RuntimeParameters<F> ) 
     -> Option<Vec<(Vec<[F; CAMERA_PARAM_SIZE]>, Vec<[F; LANDMARK_PARAM_SIZE]>)>> where F: float::Float + Scalar + RealField {
     
 

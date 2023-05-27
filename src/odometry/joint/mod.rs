@@ -7,7 +7,7 @@ use na::{
     VecStorage, Vector3, Const, DimMin
 };
 use std::boxed::Box;
-
+use std::marker::{Send,Sync};
 use crate::image::Image;
 use crate::numerics::{lie, loss::LossFunction, max_norm, least_squares::{calc_weight_vec,weight_jacobian_sparse,weight_residuals_sparse,weight_jacobian,weight_residuals}};
 use crate::odometry::runtime_parameters::RuntimeParameters;
@@ -446,7 +446,7 @@ fn gauss_newton_step_with_loss<const R: usize, const C: usize>(
     mu: Option<Float>,
     tau: Float,
     current_cost: Float,
-    loss_function: &Box<dyn LossFunction>,
+    loss_function: &Box<dyn LossFunction + Send + Sync>,
     rescaled_jacobian_target: &mut Matrix<
         Float,
         Dyn,
@@ -528,7 +528,7 @@ fn compute_cost<const T: usize>(
     imu_residuals: &SVector<Float,T>,
     bias_a_residuals: &Vector3<Float>,
     bias_g_residuals: &Vector3<Float>,
-    loss_function: &Box<dyn LossFunction>,
+    loss_function: &Box<dyn LossFunction + Send + Sync>,
 ) -> Float {
     loss_function.cost((visual_residuals.transpose() * visual_residuals)[0]) + 
     (imu_residuals.transpose() * imu_residuals)[0] + bias::compute_cost_for_weighted(bias_a_residuals, bias_g_residuals)

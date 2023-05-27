@@ -5,7 +5,7 @@ use na::{
     VecStorage,Const, Isometry3, Rotation3
 };
 use std::boxed::Box;
-
+use std::marker::{Send,Sync};
 use crate::image::Image;
 use crate::numerics::{lie, loss::LossFunction, max_norm, least_squares::{calc_weight_vec, weight_jacobian_sparse, weight_residuals_sparse, compute_cost}};
 use crate::odometry::runtime_parameters::RuntimeParameters;
@@ -313,7 +313,7 @@ fn gauss_newton_step_with_loss<const T: usize>(
     mu: Option<Float>,
     tau: Float,
     current_cost: Float,
-    loss_function: &Box<dyn LossFunction>,
+    loss_function: &Box<dyn LossFunction + Send + Sync>,
     rescaled_jacobian_target: &mut Matrix<
         Float,
         Dyn,

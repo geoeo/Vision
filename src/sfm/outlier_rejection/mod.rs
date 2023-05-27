@@ -117,7 +117,7 @@ pub fn filter_by_rejected_landmark_ids<Feat: Feature + Clone>(
         let matches = match_map.get(&cam_key).expect("filter_by_rejected_landmark_ids: matches, missing cam pair");
         let landmarks = landmark_map.get(&cam_key).expect("filter_by_rejected_landmark_ids: landmarks, missing cam pair");
         let reprojections = reprojection_error_map.get(&cam_key).expect("filter_by_rejected_landmark_ids: reprojection_error_map, missing cam pair");
-        let abs_landmarks = abs_landmark_map.get(&cam_key.1).expect("filter_by_rejected_landmark_ids: abs_landmarks_map, missing cam pair");;
+        let abs_landmarks = abs_landmark_map.get(&cam_key.1).expect("filter_by_rejected_landmark_ids: abs_landmarks_map, missing cam pair");
 
         let (match_indices_filtered, matches_norm_filterd) : (HashSet<_>, Vec<_>) 
             = matches_norm.iter().enumerate().filter(|(_, m)| !rejected_landmark_ids.contains(&m.get_landmark_id().expect("filter_by_rejected_landmark_ids: no landmark it for filtering"))).map(|(i,m)| (i, m.clone())).unzip();

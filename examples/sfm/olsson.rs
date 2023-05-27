@@ -9,7 +9,7 @@ use vision::io::olsson_loader::OlssenData;
 use vision::sfm::{triangulation::Triangulation,SFMConfig, compute_path_pairs_as_vec, bundle_adjustment::run_ba, epipolar::tensor::BifocalType};
 use vision::odometry::runtime_parameters::RuntimeParameters;
 use vision::numerics::{loss, weighting};
-use vision::{float,Float,load_runtime_conf};
+use vision::load_runtime_conf;
 use vision::visualize;
 
 fn main() -> Result<()> {
@@ -28,9 +28,9 @@ fn main() -> Result<()> {
     let fort_channing = "Fort_Channing_gate";
     let park_gate = "park_gate";
     let kronan = "kronan";
-    let round_church = "round_church";
+    let round_church = "fort_channing";
 
-    let olsen_dataset_name = vasa;
+    let olsen_dataset_name = park_gate;
     let olsen_data_path = format!("{}/Olsson/{}/",runtime_conf.dataset_path,olsen_dataset_name);
 
     let feature_skip_count = 1;
@@ -45,8 +45,8 @@ fn main() -> Result<()> {
     // let paths = vec!(vec!(6));
     // let root_id = 5;
 
-    let paths = vec!(vec!(4),vec!(6));
-    let root_id = 5;
+    // let paths = vec!(vec!(4),vec!(6));
+    // let root_id = 5;
 
     // let paths = vec!(vec!(4,3));
     // let root_id = 5;
@@ -54,11 +54,8 @@ fn main() -> Result<()> {
     // let paths = vec!(vec!(6,7));
     // let root_id = 5;
 
-    // let paths = vec!(vec!(5,7));
+    // let paths = vec!(vec!(5),vec!(7));
     // let root_id = 6;
-
-    // let paths = vec!(vec!(4),vec!(6,7));
-    // let root_id = 5;
 
     // let paths = vec!(vec!(4),vec!(6,7));
     // let root_id = 5;
@@ -66,7 +63,10 @@ fn main() -> Result<()> {
     // let paths = vec!(vec!(4,3),vec!(6));
     // let root_id = 5;
 
-    // let paths = vec!(vec!(4,3),vec!(6,7));
+    // let paths = vec!(vec!(4,3),vec!(6));
+    // let root_id = 5;
+
+    // let paths = vec!(vec!(4),vec!(6,7));
     // let root_id = 5;
 
     // let paths = vec!(vec!(4,3,2));
@@ -75,8 +75,8 @@ fn main() -> Result<()> {
     // let paths = vec!(vec!(6,7,8));
     // let root_id = 5;
 
-    // let paths = vec!(vec!(6,7,9));
-    // let root_id = 5;
+    let paths = vec!(vec!(6,7,8));
+    let root_id = 5;
 
     // let paths = vec!(vec!(6,7,8,9,10,11));
     // let root_id = 5;
@@ -84,7 +84,7 @@ fn main() -> Result<()> {
     // let paths = vec!(vec!(4,3,2,1),vec!(6,7,8,9));
     // let root_id = 5;
 
-    // let paths = vec!(vec!(7));
+    // let paths = vec!(vec!(7),vec!(9,10));
     // let root_id = 8;
 
     // let paths = vec!(vec!(7,6),vec!(9,10,11));
@@ -101,21 +101,20 @@ fn main() -> Result<()> {
     //TODO: implement switch for loftr matches!
     let (match_map, camera_map) = olsen_data.get_data_for_sfm(root_id, &paths, positive_principal_distance, invert_focal_length, invert_y, feature_skip_count, olsen_dataset_name);
     let sfm_config_fundamental = SFMConfig::new(root_id, &paths, camera_map, &match_map, 
-    BifocalType::FUNDAMENTAL, Triangulation::LINEAR, 1.0, 1.0e-1, 5e1, 5.0, refince_rotation_via_rcd, positive_principal_distance);
+    BifocalType::QUEST, Triangulation::LINEAR, 1.0, 1.0e-1, 5e1, 5.0, refince_rotation_via_rcd, positive_principal_distance);
 
     for (i,j) in compute_path_pairs_as_vec(sfm_config_fundamental.root(),sfm_config_fundamental.paths()).into_iter().flatten().collect::<Vec<_>>() {
         let im_1 = olsen_data.get_image(i);
         let im_2 = olsen_data.get_image(j);
         let matches = sfm_config_fundamental.match_map().get(&(i,j)).expect(format!("Match ({},{}) not present!",i,j).as_str());
-        //let matches = match_map.get(&(i,j)).expect(format!("Match ({},{}) not present!",i,j).as_str());
         let vis_matches = visualize::display_matches_for_pyramid(im_1,im_2,&matches,true,125.0,1.0, invert_y);
         vis_matches.to_image().save(format!("{}/olsen_matches_{}_{}_{}.jpg",runtime_conf.output_path,olsen_dataset_name,i,j)).unwrap();
     }
 
     let runtime_parameters = RuntimeParameters {
         pyramid_scale: 1.0,
-        max_iterations: vec![1e5 as usize; 1],
-        eps: vec![1.0*1e0],
+        max_iterations: vec![5e4 as usize; 1],
+        eps: vec![1e-1],
         step_sizes: vec![1e0],
         max_norm_eps: 1e-30, 
 
@@ -131,7 +130,7 @@ fn main() -> Result<()> {
         cg_max_it: 2e3 as usize
     };
 
-    let ((cam_positions,points),(s,debug_states_serialized)) = run_ba(&sfm_config_fundamental, image_dim, &runtime_parameters);
+    let ((cam_positions,points),(s,debug_states_serialized)) = run_ba(&sfm_config_fundamental, &runtime_parameters);
     fs::write(format!("{}/olsen.txt",runtime_conf.output_path), s?).expect("Unable to write file");
     if runtime_parameters.debug {
         fs::write(format!("{}/olsen_debug.txt",runtime_conf.output_path), debug_states_serialized?).expect("Unable to write file");

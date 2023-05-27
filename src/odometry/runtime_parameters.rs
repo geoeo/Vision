@@ -3,6 +3,7 @@ extern crate num_traits;
 extern crate simba;
 
 use std::{ops::Mul,convert::From};
+use std::marker::{Send,Sync};
 use na::{SimdRealField, base::Scalar, RealField};
 use num_traits::{float,NumAssign};
 use crate::numerics::{loss::LossFunction, weighting::WeightingFunction};
@@ -10,7 +11,7 @@ use std::{fmt,boxed::Box};
 
 
 #[derive(Debug)]
-pub struct RuntimeParameters<F: float::Float + Scalar + NumAssign + SimdRealField + Mul<F> + From<F> + RealField>{
+pub struct RuntimeParameters<F: float::Float + Scalar + NumAssign + SimdRealField + Mul<F> + From<F> + RealField + Send>{
     pub pyramid_scale: F,
     pub max_iterations: Vec<usize>,
     pub eps: Vec<F>,
@@ -21,8 +22,8 @@ pub struct RuntimeParameters<F: float::Float + Scalar + NumAssign + SimdRealFiel
     pub debug: bool,
     pub show_octave_result: bool,
     pub lm: bool,
-    pub loss_function: Box<dyn LossFunction>,
-    pub intensity_weighting_function: Box<dyn WeightingFunction<F>>,
+    pub loss_function: Box<dyn LossFunction + Send + Sync>,
+    pub intensity_weighting_function: Box<dyn WeightingFunction<F> + Send + Sync>,
     pub cg_threshold: F,
     pub cg_max_it: usize
 }

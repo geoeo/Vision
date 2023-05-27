@@ -28,13 +28,13 @@ pub trait LossFunction {
     fn name(&self) -> &str;
 }
 
-impl Debug for dyn LossFunction {
+impl Debug for dyn LossFunction + Send + Sync {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(f, "{}", self.name())
     }
 }
 
-impl Display for dyn LossFunction {
+impl Display for dyn LossFunction + Send + Sync {
 
     fn fmt(&self, f: &mut Formatter) -> Result {
 

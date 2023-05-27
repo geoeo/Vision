@@ -14,13 +14,13 @@ pub trait WeightingFunction<F : float::Float + Scalar + NumAssign + SimdRealFiel
     fn name(&self) -> &str;
 }
 
-impl<F> Debug for dyn WeightingFunction<F> where F : float::Float + Scalar + NumAssign + SimdRealField {
+impl<F> Debug for dyn WeightingFunction<F>  + Send + Sync where F : float::Float + Scalar + NumAssign + SimdRealField {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(f, "{}", self.name())
     }
 }
 
-impl<F> Display for dyn WeightingFunction<F> where F : float::Float + Scalar + NumAssign + SimdRealField {
+impl<F> Display for dyn WeightingFunction<F>  + Send + Sync where F : float::Float + Scalar + NumAssign + SimdRealField {
 
     fn fmt(&self, f: &mut Formatter) -> Result {
 

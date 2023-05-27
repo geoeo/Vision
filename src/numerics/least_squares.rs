@@ -1,6 +1,7 @@
 extern crate nalgebra as na;
 extern crate num_traits;
 
+use std::marker::{Send,Sync};
 use num_traits::{float, NumAssign};
 use na::{convert, SimdRealField, ComplexField, zero, DMatrix, DVector , OVector, Dyn, Matrix, SMatrix, SVector,Vector,Dim,storage::{Storage,StorageMut},base::{Scalar, default_allocator::DefaultAllocator, allocator::{Allocator}},
     VecStorage, Const, DimMin, U1
@@ -13,7 +14,7 @@ use crate::Float;
 pub fn calc_weight_vec<F, D, S1>(
     residuals: &DVector<F>,
     std: Option<F>,
-    weight_function: &Box<dyn WeightingFunction<F>>,
+    weight_function: &Box<dyn WeightingFunction<F> + Send + Sync>,
     weights_vec: &mut Vector<F,D,S1>) -> () where 
         F : float::Float + Scalar + SimdRealField + ComplexField,
         D: Dim,
@@ -73,7 +74,7 @@ pub fn scale_to_diagonal<F, const T: usize>(
 
 }
 
-pub fn compute_cost<F>(residuals: &DVector<F>, weight_function: &Box<dyn WeightingFunction<F>>) -> F where F : float::Float + Scalar + SimdRealField + ComplexField {
+pub fn compute_cost<F>(residuals: &DVector<F>, weight_function: &Box<dyn WeightingFunction<F> + Send + Sync>) -> F where F : float::Float + Scalar + SimdRealField + ComplexField {
     weight_function.cost(residuals)
 }
 

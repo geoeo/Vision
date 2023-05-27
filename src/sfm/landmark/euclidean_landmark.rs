@@ -3,10 +3,11 @@ extern crate num_traits;
 
 use na::{Isometry3, Point3, Vector3,SVector, SMatrix, RealField, base::Scalar};
 use num_traits::{float,NumAssign};
+use std::marker::Send;
 use crate::sfm::landmark::Landmark;
 
 #[derive(Copy,Clone)]
-pub struct EuclideanLandmark<F: float::Float + Scalar + NumAssign + RealField> {
+pub struct EuclideanLandmark<F: float::Float + Scalar + NumAssign + RealField + Send> {
     state: Point3<F>,
 }
 
