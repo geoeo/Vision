@@ -12,7 +12,7 @@ use vision::odometry::runtime_parameters::RuntimeParameters;
 use vision::numerics::{loss, weighting};
 use vision::io::three_dv_loader;
 use vision::sfm::SFMConfig;
-use vision::{float,Float,load_runtime_conf};
+use vision::load_runtime_conf;
 
 
 fn main() -> Result<()> {

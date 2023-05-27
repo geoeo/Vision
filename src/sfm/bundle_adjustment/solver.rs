@@ -1,10 +1,13 @@
 extern crate nalgebra as na;
 extern crate num_traits;
 
+
 use std::marker::{Send,Sync};
+use std::sync::mpsc;
 use na::{DVector,DMatrix,Matrix, Dyn, U4, VecStorage,Point3, Vector4, base::Scalar, RealField, convert};
 use simba::scalar::SupersetOf;
 use num_traits::float;
+
 use crate::sensors::camera::Camera;
 use crate::numerics::lie::left_jacobian_around_identity;
 use crate::numerics::{max_norm, least_squares::{compute_cost,weight_jacobian_sparse,weight_residuals_sparse, calc_weight_vec, gauss_newton_step_with_schur, gauss_newton_step_with_conguate_gradient}};
@@ -72,8 +75,9 @@ pub fn compute_residual<F: SupersetOf<Float>>(
 
 }
 
-pub fn compute_jacobian_wrt_object_points<F, C : Camera<Float>, L: Landmark<F, T> + Copy + Clone + Send + Sync, const T: usize>(camera: &C, state: &State<F,L,T>, cam_idx: usize, point_idx: usize, i: usize, j: usize, jacobian: &mut DMatrix<F>) 
-    -> () where F: float::Float + Scalar + RealField {
+pub fn compute_jacobian_wrt_object_points<F, C : Camera<Float>, L: Landmark<F, T> + Copy + Clone + Send + Sync, const T: usize>(
+    camera: &C, state: &State<F,L,T>, cam_idx: usize, point_idx: usize, i: usize, j: usize, jacobian: &mut DMatrix<F>
+)   -> () where F: float::Float + Scalar + RealField {
     let transformation = state.to_se3(cam_idx);
     let point = state.get_landmarks()[point_idx].get_euclidean_representation();
     let jacobian_world = state.jacobian_wrt_world_coordiantes(point_idx,cam_idx);
@@ -90,7 +94,7 @@ pub fn compute_jacobian_wrt_camera_extrinsics<F, C : Camera<Float>, L: Landmark<
     let transformed_point = transformation*Vector4::<F>::new(point[0],point[1],point[2],F::one());
     let lie_jacobian = left_jacobian_around_identity(&transformed_point.fixed_rows::<3>(0)); 
 
-    let projection_jacobian = camera.get_jacobian_with_respect_to_position_in_camera_frame(&transformed_point.fixed_rows::<3>(0)).expect("get_jacobian_with_respect_to_position_in_camera_frame failed!");;
+    let projection_jacobian = camera.get_jacobian_with_respect_to_position_in_camera_frame(&transformed_point.fixed_rows::<3>(0)).expect("get_jacobian_with_respect_to_position_in_camera_frame failed!");
     let local_jacobian = projection_jacobian*lie_jacobian;
 
     jacobian.fixed_view_mut::<2,6>(i,j).copy_from(&local_jacobian);
@@ -120,12 +124,12 @@ pub fn compute_jacobian<F, C : Camera<Float>, L: Landmark<F, T> + Copy + Clone +
 
 }
 
-pub fn optimize<F: SupersetOf<Float>, C : Camera<Float>, L: Landmark<F, LANDMARK_PARAM_SIZE> + Copy + Clone + Send + Sync, const LANDMARK_PARAM_SIZE: usize>(state: &mut State<F,L,LANDMARK_PARAM_SIZE>, cameras: &Vec<&C>, observed_features: &DVector<F>, runtime_parameters: &RuntimeParameters<F> ) 
-    -> Option<Vec<(Vec<[F; CAMERA_PARAM_SIZE]>, Vec<[F; LANDMARK_PARAM_SIZE]>)>> where F: float::Float + Scalar + RealField {
+pub fn optimize<F: SupersetOf<Float>, C : Camera<Float>, L: Landmark<F, LANDMARK_PARAM_SIZE> + Copy + Clone + Send + Sync, const LANDMARK_PARAM_SIZE: usize>(
+    state: &mut State<F,L,LANDMARK_PARAM_SIZE>, cameras: &Vec<&C>, observed_features: &DVector<F>, runtime_parameters: &RuntimeParameters<F>, abort_receiver: Option<&mpsc::Receiver<bool>>, done_transmission: Option<&mpsc::Sender<bool>>
+) -> Option<Vec<(Vec<[F; CAMERA_PARAM_SIZE]>, Vec<[F; LANDMARK_PARAM_SIZE]>)>> where F: float::Float + Scalar + RealField {
     
 
     let max_iterations = runtime_parameters.max_iterations[0];
-
     let u_span = CAMERA_PARAM_SIZE*state.n_cams;
     let v_span = LANDMARK_PARAM_SIZE*state.n_points;
     
@@ -184,8 +188,9 @@ pub fn optimize<F: SupersetOf<Float>, C : Camera<Float>, L: Landmark<F, LANDMARK
 
     let mut cost = compute_cost(&residuals,&runtime_parameters.intensity_weighting_function);
     let mut iteration_count = 0;
+    let mut run = true;
     while ((!runtime_parameters.lm && (float::Float::sqrt(cost) > runtime_parameters.eps[0])) || 
-    (runtime_parameters.lm && delta_norm > delta_thresh && max_norm_delta > runtime_parameters.max_norm_eps && float::Float::sqrt(cost) > runtime_parameters.eps[0] ))  && iteration_count < max_iterations  {
+    (runtime_parameters.lm && delta_norm > delta_thresh && max_norm_delta > runtime_parameters.max_norm_eps && float::Float::sqrt(cost) > runtime_parameters.eps[0] ))  && iteration_count < max_iterations && run {
         println!("it: {}, avg_rmse: {}",iteration_count,float::Float::sqrt(cost));
         if runtime_parameters.debug {
             debug_state_list.as_mut().expect("Debug is true but state list is None!. This should not happen").push(state.to_serial());
@@ -304,8 +309,19 @@ pub fn optimize<F: SupersetOf<Float>, C : Camera<Float>, L: Landmark<F, LANDMARK
             break;
         }
 
+        if abort_receiver.is_some() {
+            let rx = abort_receiver.unwrap();
+            run = match rx.try_recv() {
+                Err(_) => true,
+                Ok(b) => !b
+            };
+        }
     }
     println!("Solver Converged: it: {}, avg_rmse: {}",iteration_count,float::Float::sqrt(cost));
+    if done_transmission.is_some() {
+        done_transmission.unwrap().send(true).unwrap();
+    }
+    
     debug_state_list
 }
 

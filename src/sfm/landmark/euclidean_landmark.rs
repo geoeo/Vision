@@ -6,7 +6,7 @@ use num_traits::{float,NumAssign};
 use crate::sfm::landmark::Landmark;
 
 #[derive(Copy,Clone)]
-pub struct EuclideanLandmark<F: float::Float + Scalar + NumAssign + RealField> {
+pub struct EuclideanLandmark<F: float::Float + Scalar + RealField> {
     state: Point3<F>,
 }
 

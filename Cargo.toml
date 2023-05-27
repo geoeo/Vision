@@ -23,6 +23,7 @@ num-traits = "*"
 simba = "*"
 num-complex = "*"
 clarabel =  { git = "https://github.com/oxfordcontrol/Clarabel.rs.git"} 
+termion = "*"
 
 
 [dev-dependencies]

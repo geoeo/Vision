@@ -67,7 +67,7 @@ impl StateLinearizer {
      * @Return: An object holding camera positions and 3d landmarks, 2d Vector of rows: point, cols: cam. Where the matrix elements are in (x,y) tuples. 
      *  First entry in 2d Vector is all the cams assocaited with a point. feature_location_lookup[point_id][cam_id]
      */
-    pub fn get_euclidean_landmark_state<F: float::Float + Scalar + NumAssign + RealField + SupersetOf<Float>, Feat: Feature>(
+    pub fn get_euclidean_landmark_state<F: float::Float + Scalar + RealField + SupersetOf<Float>, Feat: Feature>(
         &self, 
         paths: &Vec<Vec<(usize,usize)>>, 
         match_map: &HashMap<(usize, usize), Vec<Match<Feat>>>, 
@@ -146,7 +146,7 @@ impl StateLinearizer {
         (State::new(camera_positions, landmarks, number_of_cameras, number_of_unqiue_landmarks), feature_location_lookup)
     }
 
-    fn get_initial_camera_positions<F: float::Float + Scalar + NumAssign + RealField + SupersetOf<Float>>(
+    fn get_initial_camera_positions<F: float::Float + Scalar + RealField + SupersetOf<Float>>(
         &self,paths: &Vec<Vec<(usize,usize)>>, pose_map: &HashMap<usize, Isometry3<Float>>) 
         -> DVector::<F> {
 
@@ -175,7 +175,7 @@ impl StateLinearizer {
     /**
      * This vector has ordering In the format [f1_cam1, f1_cam2,...] where cam_id(cam_n-1) < cam_id(cam_n) 
      */
-    pub fn get_observed_features<F: float::Float + Scalar + NumAssign + RealField + SupersetOf<Float>>(&self, feature_location_lookup: &Vec<Vec<Option<(Float,Float)>>>, number_of_unique_landmarks: usize) -> DVector<F> {
+    pub fn get_observed_features<F: float::Float + Scalar + NumAssign + SupersetOf<Float>>(&self, feature_location_lookup: &Vec<Vec<Option<(Float,Float)>>>, number_of_unique_landmarks: usize) -> DVector<F> {
         let n_cams = self.camera_to_linear_id_map.keys().len();
         let mut observed_features = DVector::<F>::zeros(number_of_unique_landmarks*n_cams*2); // some entries might be invalid
         for landmark_idx in 0..number_of_unique_landmarks {
