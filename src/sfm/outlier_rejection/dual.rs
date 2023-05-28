@@ -23,10 +23,28 @@ pub fn outlier_rejection_dual<Feat: Feature + Clone>(
     assert_eq!(camera_ids_root_first.len(),abs_pose_map.keys().len());
     assert_eq!(camera_ids_root_first.len(),feature_map.keys().len());
     assert!(unique_landmark_ids.contains(&0)); // ids have to represent matrix indices
-
+    
     let (a, b, c, a0, b0, c0) = generate_known_rotation_problem(unique_landmark_ids, camera_ids_root_first, abs_pose_map, feature_map);
     let (_, slack) = solve_feasability_problem(a, b, c, a0, b0, c0, tol, 1.0e-1, 100.0);
     compute_rejected_landmark_ids(abs_pose_map, feature_map ,unique_landmark_ids, camera_ids_root_first, slack)
+}
+
+pub fn outlier_rejection_dual_pairwise<Feat: Feature + Clone>(
+    camera_ids_root_first: &Vec<usize>, 
+    unique_landmark_ids: &mut HashSet<usize>, 
+    abs_pose_map: &mut HashMap<usize,Isometry3<Float>>, 
+    feature_map: &mut HashMap<usize, Vec<Feat>>,
+    tol: Float
+) -> HashSet<usize> {
+assert_eq!(camera_ids_root_first.len(),abs_pose_map.keys().len());
+assert_eq!(camera_ids_root_first.len(),feature_map.keys().len());
+assert!(unique_landmark_ids.contains(&0)); // ids have to represent matrix indices
+
+//TODO: Global -> pair-wise - get data subset and recompute ids to be continuous
+let (a, b, c, a0, b0, c0) = generate_known_rotation_problem(unique_landmark_ids, camera_ids_root_first, abs_pose_map, feature_map);
+let (_, slack) = solve_feasability_problem(a, b, c, a0, b0, c0, tol, 1.0e-1, 100.0);
+//TODO: pair-wise  -> Global recompute ids to be continuous
+compute_rejected_landmark_ids(abs_pose_map, feature_map ,unique_landmark_ids, camera_ids_root_first, slack)
 }
 
 #[allow(non_snake_case)]
@@ -35,7 +53,6 @@ fn solve_feasability_problem(a: DMatrix<Float>, b: DMatrix<Float>, c: DMatrix<Fl
     let b_rows = B.nrows();
     let (P_cl, A_cl, B_cl, C_cl, cones) = convert_to_clarabel(A,B,C);
     let settings_cl = clarabel::solver::DefaultSettingsBuilder::<Float>::default()
-    .equilibrate_enable(true)
     .max_iter(100)
     .build()
     .unwrap();
