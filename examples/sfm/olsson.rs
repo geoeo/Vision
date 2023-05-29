@@ -41,8 +41,8 @@ fn main() -> Result<()> {
     let refince_rotation_via_rcd = true;
 
 
-    let paths = vec!(vec!(6));
-    let root_id = 5;
+    // let paths = vec!(vec!(6));
+    // let root_id = 5;
 
     // let paths = vec!(vec!(4),vec!(6));
     // let root_id = 5;
@@ -50,8 +50,8 @@ fn main() -> Result<()> {
     // let paths = vec!(vec!(4,3));
     // let root_id = 5;
 
-    // let paths = vec!(vec!(6,7));
-    // let root_id = 5;
+    let paths = vec!(vec!(6,7));
+    let root_id = 5;
 
     // let paths = vec!(vec!(5),vec!(7));
     // let root_id = 6;
@@ -74,7 +74,7 @@ fn main() -> Result<()> {
     // let paths = vec!(vec!(6,7,8));
     // let root_id = 5;
 
-    // let paths = vec!(vec!(6,7,8,9));
+    // let paths = vec!(vec!(6,8,9,10));
     // let root_id = 5;
 
     // let paths = vec!(vec!(6,7,8,9,10,11));
@@ -94,8 +94,6 @@ fn main() -> Result<()> {
 
     // let paths = vec!(vec!(9,10,11,12,13));
     // let root_id = 8;
-
-
 
     //TODO: implement switch for loftr matches!
     let (match_map, camera_map) = olsen_data.get_data_for_sfm(root_id, &paths, positive_principal_distance, invert_focal_length, invert_y, feature_skip_count, olsen_dataset_name);

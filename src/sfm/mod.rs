@@ -86,8 +86,8 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
 
         let (_,mut unique_landmark_ids) = compute_continuous_landmark_ids_from_matches(&mut match_norm_map, &mut match_map,None, None);
         let tol = 5.0/camera_map.get(&root).expect("Root Cam missing").get_focal_x(); // rougly 5 pixels //TODO expose this
-        Self::filter_outliers_by_dual(root,tol,paths,&mut unique_landmark_ids,&mut abs_pose_map,&mut abs_landmark_map,&mut match_norm_map,&mut match_map, &mut landmark_map, &mut reprojection_error_map);
-        //Self::filter_outliers_by_dual_pairwise(tol,&path_id_pairs_flat,&mut unique_landmark_ids,&mut abs_pose_map,&mut abs_landmark_map,&mut match_norm_map,&mut match_map, &mut landmark_map, &mut reprojection_error_map);
+        //Self::filter_outliers_by_dual(root,tol,paths,&mut unique_landmark_ids,&mut abs_pose_map,&mut abs_landmark_map,&mut match_norm_map,&mut match_map, &mut landmark_map, &mut reprojection_error_map);
+        Self::filter_outliers_by_dual_pairwise(tol,&path_id_pairs_flat,&mut unique_landmark_ids,&mut abs_pose_map,&mut abs_landmark_map,&mut match_norm_map,&mut match_map, &mut landmark_map, &mut reprojection_error_map);
 
         reject_landmark_outliers(&mut landmark_map, &mut reprojection_error_map ,&mut match_map ,&mut match_norm_map, landmark_cutoff_thresh);
         if refine_rotation_via_rcd {
@@ -557,26 +557,38 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
     let (mut feature_map, _) = compute_features_per_image_map(&match_norm_map, &unique_landmark_ids); 
     //TODO: Global -> pair-wise - get data subset and recompute ids to be continuous
 
-    let pair = path_pairs[0]; //TODO: just one for now
-    let new_root = pair.0;
-    let new_target = pair.1;
-    let new_camera_ids_root_first = vec![new_root,new_target];
-    let new_root_pose = Isometry3::<Float>::identity();
-    let new_target_pose = abs_pose_map.get(&new_root).expect("outlier_rejection_dual_pairwise: root pose not found").inverse()*abs_pose_map.get(&new_target).expect("outlier_rejection_dual_pairwise: target pose not found");
-    let new_abs_pose_map = HashMap::<usize,Isometry3<Float>>::from([(new_root, new_root_pose), (new_target, new_target_pose)]);
-    
-    // Get all current ids from feature map
-    // recompute current abs pose 
-    // Remap the ids and keep mapping struct
-    let feature_map_filtered = feature_map.iter().filter(|(&k,_)| (pair.0 == k) || (pair.1 == k)).map(|(k,v)| (*k,v.clone())).collect::<HashMap<_,_>>();
-    let landmark_ids_filtered = feature_map_filtered.values().flat_map(|features|{
-        features.iter().map(|f|f.get_landmark_id().unwrap())
-    }).collect::<HashSet<_>>();
-    let (old_new_id_map, new_unique_landmark_ids) = compute_continuous_landmark_ids_from_unique_landmarks(&landmark_ids_filtered,None);
-    
-    let new_rejected_landmark_ids = outlier_rejection_dual(&new_camera_ids_root_first, &new_unique_landmark_ids,&new_abs_pose_map, &feature_map_filtered, tol);
-    let rejected_landmark_ids = unique_landmark_ids.clone().into_iter().filter(|&id| new_rejected_landmark_ids.contains(old_new_id_map.get(&id).expect("filter_outliers_by_dual_pairwise: new id not present in old new map"))).collect::<HashSet<_>>();
+    // let pair = path_pairs[0]; //TODO: just one for now
+    // let new_root = pair.0;
+    // let new_target = pair.1;
 
+
+    let rejected_landmark_ids = path_pairs.clone().into_iter().map(|&(new_root,new_target)| {
+        let new_camera_ids_root_first = vec![new_root,new_target];
+        let new_root_pose = Isometry3::<Float>::identity();
+        let new_target_pose = abs_pose_map.get(&new_root).expect("outlier_rejection_dual_pairwise: root pose not found").inverse()*abs_pose_map.get(&new_target).expect("outlier_rejection_dual_pairwise: target pose not found");
+        let new_abs_pose_map = HashMap::<usize,Isometry3<Float>>::from([(new_root, new_root_pose), (new_target, new_target_pose)]);
+        
+        // Get all current ids from feature map
+        // recompute current abs pose 
+        // Remap the ids and keep mapping struct
+        let mut feature_map_filtered = feature_map.iter().filter(|(&k,_)| (new_root == k) || (new_target == k)).map(|(k,v)| (*k,v.clone())).collect::<HashMap<_,_>>();
+        let landmark_ids_filtered = feature_map_filtered.values().flat_map(|features|{
+            features.iter().map(|f|f.get_landmark_id().unwrap())
+        }).collect::<HashSet<_>>();
+        let (old_new_id_map, new_unique_landmark_ids) = compute_continuous_landmark_ids_from_unique_landmarks(&landmark_ids_filtered,None);
+
+        for features in feature_map_filtered.values_mut() {
+            for i in 0..features.len() {
+                let f = &features[i];
+                let old_id = f.get_landmark_id().unwrap();
+                let new_id = old_new_id_map.get(&old_id).unwrap();
+                features[i] = f.copy_with_landmark_id(Some(*new_id));
+            }
+        }
+        
+        let new_rejected_landmark_ids = outlier_rejection_dual(&new_camera_ids_root_first, &new_unique_landmark_ids,&new_abs_pose_map, &feature_map_filtered, tol);
+        landmark_ids_filtered.clone().into_iter().filter(|&id| new_rejected_landmark_ids.contains(old_new_id_map.get(&id).expect("filter_outliers_by_dual_pairwise: new id not present in old new map"))).collect::<HashSet<_>>()
+    }).flatten().collect::<HashSet<_>>();
 
     if !rejected_landmark_ids.is_empty() {
         //TODO: investigate outlier detection only on cam pairs / Check if reprojections actually decreased since we have to theoretical guarantee

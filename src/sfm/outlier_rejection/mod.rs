@@ -119,32 +119,32 @@ pub fn filter_by_rejected_landmark_ids<Feat: Feature + Clone>(
         let reprojections = reprojection_error_map.get(&cam_key).expect("filter_by_rejected_landmark_ids: reprojection_error_map, missing cam pair");
         let abs_landmarks = abs_landmark_map.get(&cam_key.1).expect("filter_by_rejected_landmark_ids: abs_landmarks_map, missing cam pair");
 
-        let (match_indices_filtered, matches_norm_filterd) : (HashSet<_>, Vec<_>) 
+        let (match_indices_filtered, matches_norm_filtered) : (HashSet<_>, Vec<_>) 
             = matches_norm.iter().enumerate().filter(|(_, m)| !rejected_landmark_ids.contains(&m.get_landmark_id().expect("filter_by_rejected_landmark_ids: no landmark it for filtering"))).map(|(i,m)| (i, m.clone())).unzip();
-        let matches_filterd : Vec<_> 
+        let matches_filtered : Vec<_> 
             = matches.iter().filter(|m| !rejected_landmark_ids.contains(&m.get_landmark_id().expect("filter_by_rejected_landmark_ids: no landmark it for filtering"))).map(|m| m.clone()).collect();
 
-        let landmarks_filterd_as_vec : Vec<_> = landmarks.column_iter().enumerate().filter(|(i,_)| match_indices_filtered.contains(i)).map(|(_,c)| c).collect();
-        assert!(!landmarks_filterd_as_vec.is_empty());
-        let reprojections_filterd_as_vec: Vec<_> = reprojections.into_iter().enumerate().filter(|(i,_)| match_indices_filtered.contains(i)).map(|(_,c)| *c).collect();
+        let landmarks_filtered_as_vec : Vec<_> = landmarks.column_iter().enumerate().filter(|(i,_)| match_indices_filtered.contains(i)).map(|(_,c)| c).collect();
+        assert!(!landmarks_filtered_as_vec.is_empty());
+        let reprojections_filtered_as_vec: Vec<_> = reprojections.into_iter().enumerate().filter(|(i,_)| match_indices_filtered.contains(i)).map(|(_,c)| *c).collect();
 
-        let abs_landmarks_filterd_as_vec : Vec<_> = abs_landmarks.column_iter().enumerate().filter(|(i,_)| match_indices_filtered.contains(i)).map(|(_,c)| c).collect();
-        assert!(!abs_landmarks_filterd_as_vec.is_empty());
+        let abs_landmarks_filtered_as_vec : Vec<_> = abs_landmarks.column_iter().enumerate().filter(|(i,_)| match_indices_filtered.contains(i)).map(|(_,c)| c).collect();
+        assert!(!abs_landmarks_filtered_as_vec.is_empty());
         
-        let landmarks_filtered = Matrix4xX::<Float>::from_columns(&landmarks_filterd_as_vec[..]);
-        let abs_landmarks_filtered = Matrix4xX::<Float>::from_columns(&abs_landmarks_filterd_as_vec[..]);
-        let reprojections_filterd = DVector::<Float>::from_vec(reprojections_filterd_as_vec);
+        let landmarks_filtered = Matrix4xX::<Float>::from_columns(&landmarks_filtered_as_vec[..]);
+        let abs_landmarks_filtered = Matrix4xX::<Float>::from_columns(&abs_landmarks_filtered_as_vec[..]);
+        let reprojections_filtered = DVector::<Float>::from_vec(reprojections_filtered_as_vec);
 
-        assert_eq!(matches_norm_filterd.len(), matches_filterd.len());
-        assert_eq!(matches_norm_filterd.len(), landmarks_filtered.ncols());
-        assert_eq!(matches_norm_filterd.len(), abs_landmarks_filtered.ncols());
-        assert_eq!(matches_norm_filterd.len(), reprojections_filterd.nrows());
+        assert_eq!(matches_norm_filtered.len(), matches_filtered.len());
+        assert_eq!(matches_norm_filtered.len(), landmarks_filtered.ncols());
+        assert_eq!(matches_norm_filtered.len(), abs_landmarks_filtered.ncols());
+        assert_eq!(matches_norm_filtered.len(), reprojections_filtered.nrows());
 
-        match_norm_map.insert(cam_key, matches_norm_filterd);
-        match_map.insert(cam_key, matches_filterd);
+        match_norm_map.insert(cam_key, matches_norm_filtered);
+        match_map.insert(cam_key, matches_filtered);
         landmark_map.insert(cam_key, landmarks_filtered);
         abs_landmark_map.insert(cam_key.1, abs_landmarks_filtered);
-        reprojection_error_map.insert(cam_key, reprojections_filterd);
+        reprojection_error_map.insert(cam_key, reprojections_filtered);
     }
 
     // Recomputes ids to be consecutive -> unique landmark ids, match_norm_map, match_map, feature_map
@@ -227,20 +227,19 @@ pub fn compute_continuous_landmark_ids_from_unique_landmarks(
 
     let mut old_new_map = HashMap::<usize,usize>::with_capacity(old_max_val);
     for old_id in unique_landmark_ids {
-        if !old_new_map.contains_key(&old_id) {
-            let free_id = free_ids.iter().next().unwrap().clone();
-            free_ids.remove(&free_id);
-            old_new_map.insert(*old_id, free_id);
-        }
+        assert!(!old_new_map.contains_key(&old_id));
+        let free_id = free_ids.iter().next().unwrap().clone();
+        free_ids.remove(&free_id);
+        old_new_map.insert(*old_id, free_id);
     }
     
     assert!(free_ids.is_empty());
-
 
     let new_unique_landmark_ids = match (unique_landmark_ids,rejected_landmark_ids_option) {
         (unique_landmark_ids, Some(rejected_landmark_ids)) => unique_landmark_ids.iter().filter(|v| !rejected_landmark_ids.contains(v)).map(|v| *old_new_map.get(&v).expect("filter_by_rejected_landmark_ids: no id for unique_landmark_ids")).collect::<HashSet<_>>(),
         _ => old_new_map.values().copied().collect()
     };
+
     (old_new_map, new_unique_landmark_ids)
 
 }
