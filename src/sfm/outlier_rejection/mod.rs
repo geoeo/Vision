@@ -148,7 +148,7 @@ pub fn filter_by_rejected_landmark_ids<Feat: Feature + Clone>(
     }
 
     // Recomputes ids to be consecutive -> unique landmark ids, match_norm_map, match_map, feature_map
-    let (old_new_map, new_unique_landmark_ids) = compute_continuous_landmark_ids_for_matches(match_norm_map, match_map, Some(unique_landmark_ids), Some(rejected_landmark_ids));
+    let (old_new_map, new_unique_landmark_ids) = compute_continuous_landmark_ids_from_matches(match_norm_map, match_map, Some(unique_landmark_ids), Some(rejected_landmark_ids));
     assert!(new_unique_landmark_ids.len() < unique_landmark_ids.len());
     // Update rejected_landmark_ids
     *unique_landmark_ids = new_unique_landmark_ids;
@@ -165,7 +165,7 @@ pub fn filter_by_rejected_landmark_ids<Feat: Feature + Clone>(
     }
 }
 
-pub fn compute_continuous_landmark_ids_for_matches<Feat: Feature + Clone>(
+pub fn compute_continuous_landmark_ids_from_matches<Feat: Feature + Clone>(
     match_norm_map: &mut HashMap<(usize, usize), Vec<Match<Feat>>>, 
     match_map: &mut HashMap<(usize, usize), Vec<Match<Feat>>>, 
     unique_landmark_ids_option: Option<&HashSet<usize>>,
@@ -182,16 +182,8 @@ pub fn compute_continuous_landmark_ids_for_matches<Feat: Feature + Clone>(
         }
     }
 
-    let mut old_new_map = HashMap::<usize,usize>::with_capacity(old_max_val);
     let mut free_ids = (0..existing_ids.len()).collect::<HashSet<usize>>();
-
-    let mut missing_id_set = (0..old_max_val).collect::<HashSet<usize>>();
-    for (_,val) in match_norm_map.iter() {
-        for m in val {
-            missing_id_set.remove(&m.get_landmark_id().unwrap());
-        }
-    }
-
+    let mut old_new_map = HashMap::<usize,usize>::with_capacity(old_max_val);
     for (_,val) in match_norm_map.iter_mut() {
         for m in val {
             let old_id = m.get_landmark_id().expect("recompute_landmark_ids: no landmark id");
@@ -207,15 +199,6 @@ pub fn compute_continuous_landmark_ids_for_matches<Feat: Feature + Clone>(
         }
     }
     assert!(free_ids.is_empty());
-
-    let mut validation_set = (0..existing_ids.len()).collect::<HashSet<usize>>();
-    for (_,val) in match_norm_map.iter() {
-        for m in val {
-            validation_set.remove(&m.get_landmark_id().unwrap());
-        }
-    }
-    assert!(validation_set.is_empty());
-
     // Make sure normalized matches and matches are consistent
     for (key, ms_norm) in match_norm_map {
         let ms = match_map.get_mut(key).expect("match missing in recompute_landmark_ids");
@@ -227,6 +210,35 @@ pub fn compute_continuous_landmark_ids_for_matches<Feat: Feature + Clone>(
     
     let new_unique_landmark_ids = match (unique_landmark_ids_option,rejected_landmark_ids_option) {
         (Some(unique_landmark_ids), Some(rejected_landmark_ids)) => unique_landmark_ids.iter().filter(|v| !rejected_landmark_ids.contains(v)).map(|v| *old_new_map.get(&v).expect("filter_by_rejected_landmark_ids: no id for unique_landmark_ids")).collect::<HashSet<_>>(),
+        _ => old_new_map.values().copied().collect()
+    };
+    (old_new_map, new_unique_landmark_ids)
+
+}
+
+pub fn compute_continuous_landmark_ids_from_unique_landmarks(
+    unique_landmark_ids: &HashSet<usize>, rejected_landmark_ids_option: Option<&HashSet<usize>>) 
+    -> (HashMap<usize,usize>, HashSet<usize>) {
+    let old_max_val = unique_landmark_ids.len();
+    let existing_ids = unique_landmark_ids;
+
+
+    let mut free_ids = (0..existing_ids.len()).collect::<HashSet<usize>>();
+
+    let mut old_new_map = HashMap::<usize,usize>::with_capacity(old_max_val);
+    for old_id in unique_landmark_ids {
+        if !old_new_map.contains_key(&old_id) {
+            let free_id = free_ids.iter().next().unwrap().clone();
+            free_ids.remove(&free_id);
+            old_new_map.insert(*old_id, free_id);
+        }
+    }
+    
+    assert!(free_ids.is_empty());
+
+
+    let new_unique_landmark_ids = match (unique_landmark_ids,rejected_landmark_ids_option) {
+        (unique_landmark_ids, Some(rejected_landmark_ids)) => unique_landmark_ids.iter().filter(|v| !rejected_landmark_ids.contains(v)).map(|v| *old_new_map.get(&v).expect("filter_by_rejected_landmark_ids: no id for unique_landmark_ids")).collect::<HashSet<_>>(),
         _ => old_new_map.values().copied().collect()
     };
     (old_new_map, new_unique_landmark_ids)

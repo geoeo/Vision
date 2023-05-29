@@ -30,7 +30,7 @@ fn main() -> Result<()> {
     let kronan = "kronan";
     let round_church = "fort_channing";
 
-    let olsen_dataset_name = park_gate;
+    let olsen_dataset_name = fountain;
     let olsen_data_path = format!("{}/Olsson/{}/",runtime_conf.dataset_path,olsen_dataset_name);
 
     let feature_skip_count = 1;
@@ -41,8 +41,8 @@ fn main() -> Result<()> {
     let refince_rotation_via_rcd = true;
 
 
-    // let paths = vec!(vec!(6));
-    // let root_id = 5;
+    let paths = vec!(vec!(6));
+    let root_id = 5;
 
     // let paths = vec!(vec!(4),vec!(6));
     // let root_id = 5;
@@ -74,8 +74,8 @@ fn main() -> Result<()> {
     // let paths = vec!(vec!(6,7,8));
     // let root_id = 5;
 
-    let paths = vec!(vec!(6,7,8));
-    let root_id = 5;
+    // let paths = vec!(vec!(6,7,8,9));
+    // let root_id = 5;
 
     // let paths = vec!(vec!(6,7,8,9,10,11));
     // let root_id = 5;
