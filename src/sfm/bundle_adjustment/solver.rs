@@ -149,7 +149,7 @@ pub fn optimize<F: SupersetOf<Float>, C : Camera<Float>, L: Landmark<F, LANDMARK
         false => None
     };
     let mut v_star_inv = DMatrix::<F>::zeros(v_span,v_span); // a lot of memory - maybe use sparse format
-    let mut preconditioner = DMatrix::<F>::zeros(u_span,u_span); // a lot of memory - maybe use sparse format
+    //let mut preconditioner = DMatrix::<F>::zeros(u_span,u_span); // a lot of memory - maybe use sparse format
     let two : F = convert(2.0);
 
     println!("BA Memory Allocation Complete.");
@@ -202,31 +202,12 @@ pub fn optimize<F: SupersetOf<Float>, C : Camera<Float>, L: Landmark<F, LANDMARK
         v_star_inv.fill(F::zero());
 
         //TODO: switch in runtime parameters
-    // let gauss_newton_result 
-    //     = gauss_newton_step_with_schur::<_,_,_,_,_,_,_,LANDMARK_PARAM_SIZE, CAMERA_PARAM_SIZE>(
-    //         &mut target_arrowhead,
-    //         &mut g,
-    //         &mut delta,
-    //         &mut v_star_inv,
-    //         &residuals,
-    //         &jacobian,
-    //         mu,
-    //         tau,
-    //         state.n_cams,
-    //         state.n_points,
-    //         u_span,
-    //         v_span
-    //     ); 
-
-
-    preconditioner.fill(F::zero());
     let gauss_newton_result 
-        = gauss_newton_step_with_conguate_gradient::<_,_,_,_,_,_,_,LANDMARK_PARAM_SIZE, CAMERA_PARAM_SIZE>(
+        = gauss_newton_step_with_schur::<_,_,_,_,_,_,_,LANDMARK_PARAM_SIZE, CAMERA_PARAM_SIZE>(
             &mut target_arrowhead,
             &mut g,
             &mut delta,
             &mut v_star_inv,
-            &mut preconditioner,
             &residuals,
             &jacobian,
             mu,
@@ -234,10 +215,29 @@ pub fn optimize<F: SupersetOf<Float>, C : Camera<Float>, L: Landmark<F, LANDMARK
             state.n_cams,
             state.n_points,
             u_span,
-            v_span,
-            runtime_parameters.cg_threshold,
-            runtime_parameters.cg_max_it
-           ); 
+            v_span
+        ); 
+
+
+    //preconditioner.fill(F::zero());
+    // let gauss_newton_result 
+    //     = gauss_newton_step_with_conguate_gradient::<_,_,_,_,_,_,_,LANDMARK_PARAM_SIZE, CAMERA_PARAM_SIZE>(
+    //         &mut target_arrowhead,
+    //         &mut g,
+    //         &mut delta,
+    //         &mut v_star_inv,
+    //         &mut preconditioner,
+    //         &residuals,
+    //         &jacobian,
+    //         mu,
+    //         tau,
+    //         state.n_cams,
+    //         state.n_points,
+    //         u_span,
+    //         v_span,
+    //         runtime_parameters.cg_threshold,
+    //         runtime_parameters.cg_max_it
+    //        ); 
 
         let (gain_ratio, new_cost, pertb_norm, cost_diff) = match gauss_newton_result {
             Some((gain_ratio_denom, mu_val)) => {
