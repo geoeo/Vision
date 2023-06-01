@@ -140,12 +140,12 @@ pub fn cheirality_check<T: Feature + Clone>(
         let p1_points = points_cam_1.0;
         let p2_points = points_cam_2.0;
 
-        let f0 = camera_matrix_1[(0,0)];
-        let f0_prime = camera_matrix_2[(0,0)];
-
         //TODO make ENUM
         let Xs_option = Some(linear_triangulation_svd(&vec!((&p1_points,&projection_1),(&p2_points,&projection_2)),positive_principal_distance, false));
-        //let Xs_option = stereo_triangulation((&p1_points,&projection_1),(&p2_points,&projection_2),f0,f0_prime,positive_principal_distance, false);
+
+        // let f0 = camera_matrix_1[(0,0)];
+        // let f0_prime = camera_matrix_2[(0,0)];
+        // let Xs_option = stereo_triangulation((&p1_points,&projection_1),(&p2_points,&projection_2),f0,f0_prime,positive_principal_distance, false);
         match Xs_option {
             Some(Xs) => {
                 let p1_x = &Xs;

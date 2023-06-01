@@ -210,7 +210,7 @@ pub fn compute_continuous_landmark_ids_from_matches<Feat: Feature + Clone>(
     
     let new_unique_landmark_ids = match (unique_landmark_ids_option,rejected_landmark_ids_option) {
         (Some(unique_landmark_ids), Some(rejected_landmark_ids)) => unique_landmark_ids.iter().filter(|v| !rejected_landmark_ids.contains(v)).map(|v| *old_new_map.get(&v).expect("filter_by_rejected_landmark_ids: no id for unique_landmark_ids")).collect::<HashSet<_>>(),
-        _ => old_new_map.values().copied().collect()
+        _ => (0..existing_ids.len()).collect::<HashSet<usize>>()
     };
     (old_new_map, new_unique_landmark_ids)
 
@@ -219,13 +219,10 @@ pub fn compute_continuous_landmark_ids_from_matches<Feat: Feature + Clone>(
 pub fn compute_continuous_landmark_ids_from_unique_landmarks(
     unique_landmark_ids: &HashSet<usize>, rejected_landmark_ids_option: Option<&HashSet<usize>>) 
     -> (HashMap<usize,usize>, HashSet<usize>) {
-    let old_max_val = unique_landmark_ids.len();
-    let existing_ids = unique_landmark_ids;
+    assert!(!unique_landmark_ids.is_empty());
+    let mut free_ids = (0..unique_landmark_ids.len()).collect::<HashSet<usize>>();
 
-
-    let mut free_ids = (0..existing_ids.len()).collect::<HashSet<usize>>();
-
-    let mut old_new_map = HashMap::<usize,usize>::with_capacity(old_max_val);
+    let mut old_new_map = HashMap::<usize,usize>::with_capacity(unique_landmark_ids.len());
     for old_id in unique_landmark_ids {
         assert!(!old_new_map.contains_key(&old_id));
         let free_id = free_ids.iter().next().unwrap().clone();
@@ -237,8 +234,9 @@ pub fn compute_continuous_landmark_ids_from_unique_landmarks(
 
     let new_unique_landmark_ids = match (unique_landmark_ids,rejected_landmark_ids_option) {
         (unique_landmark_ids, Some(rejected_landmark_ids)) => unique_landmark_ids.iter().filter(|v| !rejected_landmark_ids.contains(v)).map(|v| *old_new_map.get(&v).expect("filter_by_rejected_landmark_ids: no id for unique_landmark_ids")).collect::<HashSet<_>>(),
-        _ => old_new_map.values().copied().collect()
+        _ => (0..unique_landmark_ids.len()).collect::<HashSet<usize>>()
     };
+
 
     (old_new_map, new_unique_landmark_ids)
 

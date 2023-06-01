@@ -55,6 +55,7 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
         positive_principal_distance: bool) -> SFMConfig<C,Feat> {
 
         let paths_pairs_as_vec = compute_path_pairs_as_vec(root,paths);
+        let camera_ids_root_first = Self::get_sorted_camera_keys(root, paths);
         // Filteres matches according to feature consitency along a path.
         let accepted_matches = Self::filter_by_max_tracks(&paths_pairs_as_vec, &match_map_no_landmarks);
         let found_duplicates = Self::check_for_duplicate_pixel_entries(&accepted_matches);
@@ -86,8 +87,8 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
 
         let (_,mut unique_landmark_ids) = compute_continuous_landmark_ids_from_matches(&mut match_norm_map, &mut match_map,None, None);
         let tol = 5.0/camera_map.get(&root).expect("Root Cam missing").get_focal_x(); // rougly 5 pixels //TODO expose this
-        //Self::filter_outliers_by_dual(root,tol,paths,&mut unique_landmark_ids,&mut abs_pose_map,&mut abs_landmark_map,&mut match_norm_map,&mut match_map, &mut landmark_map, &mut reprojection_error_map);
-        Self::filter_outliers_by_dual_pairwise(tol,&path_id_pairs_flat,&mut unique_landmark_ids,&mut abs_pose_map,&mut abs_landmark_map,&mut match_norm_map,&mut match_map, &mut landmark_map, &mut reprojection_error_map);
+        //Self::filter_outliers_by_dual(tol,&camera_ids_root_first,&mut unique_landmark_ids,&mut abs_pose_map,&mut abs_landmark_map,&mut match_norm_map,&mut match_map, &mut landmark_map, &mut reprojection_error_map);
+        Self::filter_outliers_by_dual_pairwise(tol,&path_id_pairs_flat,&camera_ids_root_first , &mut unique_landmark_ids,&mut abs_pose_map,&mut abs_landmark_map,&mut match_norm_map,&mut match_map, &mut landmark_map, &mut reprojection_error_map);
 
         reject_landmark_outliers(&mut landmark_map, &mut reprojection_error_map ,&mut match_map ,&mut match_norm_map, landmark_cutoff_thresh);
         if refine_rotation_via_rcd {
@@ -523,9 +524,8 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
     }
 
     fn filter_outliers_by_dual(
-        root: usize, 
         tol: Float,
-        paths: &Vec<Vec<usize>>,
+        unique_camera_ids_root_first: &Vec<usize>,
         unique_landmark_ids: &mut HashSet<usize>,
         abs_pose_map: &mut HashMap<usize,Isometry3<Float>>,
         abs_landmark_map: &mut HashMap::<usize,Matrix4xX<Float>>,
@@ -534,9 +534,9 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
         landmark_map: &mut  HashMap<(usize, usize), Matrix4xX<Float>>, 
         reprojection_error_map: &mut HashMap<(usize, usize),DVector<Float>>
     ) -> () {
-        let camera_ids_root_first = Self::get_sorted_camera_keys(root, paths);
-        let (mut feature_map, _) = compute_features_per_image_map(&match_norm_map, &unique_landmark_ids); 
-        let rejected_landmark_ids = outlier_rejection_dual(&camera_ids_root_first, unique_landmark_ids,abs_pose_map, &feature_map, tol);
+
+        let mut feature_map = compute_features_per_image_map(&match_norm_map, &unique_landmark_ids,unique_camera_ids_root_first); 
+        let rejected_landmark_ids = outlier_rejection_dual(unique_camera_ids_root_first, unique_landmark_ids,abs_pose_map, &feature_map, tol);
         if !rejected_landmark_ids.is_empty() {
             //TODO: Check if reprojections actually decreased since we have to theoretical guarantee
             filter_by_rejected_landmark_ids(&rejected_landmark_ids, unique_landmark_ids, abs_landmark_map,  match_norm_map,  match_map, landmark_map, &mut feature_map, reprojection_error_map);
@@ -546,6 +546,7 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
     pub fn filter_outliers_by_dual_pairwise(
         tol: Float,
         path_pairs: &Vec<&(usize, usize)>,
+        unique_camera_ids: &Vec<usize>, 
         unique_landmark_ids: &mut HashSet<usize>, 
         abs_pose_map: &HashMap<usize,Isometry3<Float>>, 
         abs_landmark_map: &mut HashMap::<usize,Matrix4xX<Float>>,
@@ -554,13 +555,7 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
         landmark_map: &mut  HashMap<(usize, usize), Matrix4xX<Float>>, 
         reprojection_error_map: &mut HashMap<(usize, usize),DVector<Float>>
     ) -> () {
-    let (mut feature_map, _) = compute_features_per_image_map(&match_norm_map, &unique_landmark_ids); 
-    //TODO: Global -> pair-wise - get data subset and recompute ids to be continuous
-
-    // let pair = path_pairs[0]; //TODO: just one for now
-    // let new_root = pair.0;
-    // let new_target = pair.1;
-
+    let mut feature_map = compute_features_per_image_map(&match_norm_map, &unique_landmark_ids, unique_camera_ids); 
 
     let rejected_landmark_ids = path_pairs.clone().into_iter().map(|&(new_root,new_target)| {
         let new_camera_ids_root_first = vec![new_root,new_target];
@@ -574,7 +569,7 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
         let mut feature_map_filtered = feature_map.iter().filter(|(&k,_)| (new_root == k) || (new_target == k)).map(|(k,v)| (*k,v.clone())).collect::<HashMap<_,_>>();
         let landmark_ids_filtered = feature_map_filtered.values().flat_map(|features|{
             features.iter().map(|f|f.get_landmark_id().unwrap())
-        }).collect::<HashSet<_>>();
+        }).collect::<HashSet<usize>>();
         let (old_new_id_map, new_unique_landmark_ids) = compute_continuous_landmark_ids_from_unique_landmarks(&landmark_ids_filtered,None);
 
         for features in feature_map_filtered.values_mut() {
@@ -636,66 +631,24 @@ fn compute_absolute_landmarks_for_root(paths: &Vec<Vec<(usize,usize)>>, landmark
     abs_landmark_map
 }
 
-fn compute_features_per_image_map<Feat: Feature + Clone>(match_map: &HashMap<(usize,usize), Vec<Match<Feat>>>, unique_landmark_ids: &HashSet<usize>) -> (HashMap<usize, Vec<Feat>>, HashMap<usize,Vec<((usize,usize),usize)>>) {
-    let mut unique_cameras = HashSet::<usize>::new();
-    let mut landmark_id_cam_pair_index_map = HashMap::<usize,Vec<((usize,usize),usize)>>::with_capacity(unique_landmark_ids.len());
-
-    for key in match_map.keys() {
-        unique_cameras.insert(key.0);
-        unique_cameras.insert(key.1);
-    }
-
-    let features_per_landmark = unique_cameras.len()*unique_landmark_ids.len()*0.4 as usize; //TODO: Better heuristic
-    for landmark_id in unique_landmark_ids {
-        landmark_id_cam_pair_index_map.insert(*landmark_id, Vec::<((usize,usize),usize)>::with_capacity(features_per_landmark));
-    }
-    
-    let mut feature_map = HashMap::<usize, Vec<Feat>>::with_capacity(unique_cameras.len());
-    for unique_cam_id in &unique_cameras {
+fn compute_features_per_image_map<Feat: Feature + Clone>(match_map: &HashMap<(usize,usize), Vec<Match<Feat>>>, unique_landmark_ids: &HashSet<usize>, unique_camera_ids: &Vec<usize>) -> HashMap<usize, Vec<Feat>> {
+    let mut feature_map = HashMap::<usize, Vec<Feat>>::with_capacity(unique_camera_ids.len());
+    for unique_cam_id in unique_camera_ids {
         feature_map.insert(unique_cam_id.clone(),  Vec::<Feat>::with_capacity(unique_landmark_ids.len())); 
     }
 
-    for camera_id in &unique_cameras {
-        let id_prev = match camera_id {
-            0 => None,
-            i => Some(i-1)
-        };
-        let id_next = camera_id + 1;
-        let cam_pair_fwd_key = (camera_id.clone(),id_next);
-        let features_fwd = match_map.get(&cam_pair_fwd_key);
-        if features_fwd.is_some(){
-            let matches = features_fwd.unwrap();
-            for vec_idx in 0..matches.len() {
-                let m = &matches[vec_idx];
-                let f_1 = m.get_feature_one();
-                let f_2 = m.get_feature_two();
-                let landmark_id = f_1.get_landmark_id().expect("compute_features_per_image_map: fwd landmark id not found");
-                feature_map.get_mut(&camera_id).expect("compute_features_per_image_map: Camera not found in bck feature").push(f_1.clone());
-                feature_map.get_mut(&id_next).expect("compute_features_per_image_map: Camera not found in bck feature").push(f_2.clone());
-                landmark_id_cam_pair_index_map.get_mut(&landmark_id).unwrap().push((cam_pair_fwd_key,vec_idx));
-            }
-        }
-        
-        if id_prev.is_some() {
-            let id_prev_val = id_prev.unwrap();
-            let cam_pair_bck_key = (camera_id.clone(),id_prev_val);
-            let features_bck = match_map.get(&cam_pair_bck_key);
-            if features_bck.is_some(){
-                let matches = features_bck.unwrap();
-                for vec_idx in 0..matches.len() {
-                    let m = &matches[vec_idx];
-                    let f_1 = m.get_feature_one();
-                    let f_2 = m.get_feature_two();
-                    let landmark_id = f_2.get_landmark_id().expect("compute_features_per_image_map: bck landmark id not found");
-                    landmark_id_cam_pair_index_map.get_mut(&landmark_id).unwrap().push((cam_pair_bck_key,vec_idx));
-                    feature_map.get_mut(&camera_id).expect("compute_features_per_image_map: Camera not found in bck feature").push(f_1.clone());
-                    feature_map.get_mut(&id_prev_val).expect("compute_features_per_image_map: Camera not found in bck feature").push(f_2.clone());
-                }
-            }
+    for ((cam_id_1,cam_id_2), matches) in match_map.iter() {
+
+        for vec_idx in 0..matches.len() {
+            let m = &matches[vec_idx];
+            let f_1 = m.get_feature_one();
+            let f_2 = m.get_feature_two();
+            feature_map.get_mut(cam_id_1).expect("compute_features_per_image_map: Camera not found in bck feature").push(f_1.clone());
+            feature_map.get_mut(cam_id_2).expect("compute_features_per_image_map: Camera not found in bck feature").push(f_2.clone());
         }
     }
 
-    (feature_map, landmark_id_cam_pair_index_map)
+    feature_map
 }
 
 pub fn compute_path_pairs_as_vec(root: usize, paths: &Vec<Vec<usize>>) -> Vec<Vec<(usize,usize)>> {
