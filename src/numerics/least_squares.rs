@@ -237,6 +237,7 @@ pub fn gauss_newton_step_with_schur<F, R, C, S1, S2,StorageTargetArrow, StorageT
 
 }
 
+//TODO: This seems buggy: Investigate
 #[allow(non_snake_case)]
 pub fn gauss_newton_step_with_conguate_gradient<F, R, C, S1, S2,StorageTargetArrow, StorageTargetResidual, const LANDMARK_PARAM_SIZE: usize, const CAMERA_PARAM_SIZE: usize>(
     target_arrowhead: &mut Matrix<F,C,C,StorageTargetArrow>, 

@@ -21,8 +21,10 @@ pub fn rcd(relative_rotations_csc: CscMatrix<Float>, number_of_absolute_rotation
     let mut old_cost = -0.5*(&absolute_rotations_transpose * (&relative_rotations_csc * &absolute_rotations)).trace();
 
     let max_epoch = 100; //TODO: config
-    let eps = 1e-9;
-    for _ in 0..max_epoch {
+    let eps = 1e-12;
+    let mut final_epoch = 0;
+    let mut final_cost = 0.0;
+    for e in 0..max_epoch {
         for k in 0..number_of_absolute_rotations { 
             let W = generate_dense_from_csc_slice(k,number_of_absolute_rotations,&relative_rotations_csc);
             let BW = (&absolute_rotations)*(&absolute_rotations_transpose*&W);
@@ -44,7 +46,9 @@ pub fn rcd(relative_rotations_csc: CscMatrix<Float>, number_of_absolute_rotation
         }
 
         let cost = -0.5*(&absolute_rotations_transpose * (&relative_rotations_csc * &absolute_rotations)).trace();  
-        //println!("RCD cost: {}", cost);
+        final_cost = cost;
+        final_epoch = e;
+
         if (old_cost-cost) / old_cost.abs().max(1.0) <= eps {
             for i in 0..number_of_absolute_rotations {
                 let mut Ri = absolute_rotations.fixed_rows::<3>(3*i).into_owned();
@@ -57,7 +61,7 @@ pub fn rcd(relative_rotations_csc: CscMatrix<Float>, number_of_absolute_rotation
         }
         old_cost = cost; 
     }
-    //println!("RCD completed with cost: {}", cost);
+    println!("RCD completed with cost: {} and it: {}", final_cost, final_epoch);
     absolute_rotations
 }
 

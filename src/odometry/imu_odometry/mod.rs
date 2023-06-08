@@ -158,7 +158,7 @@ pub fn generate_residual(estimate: &ImuDelta, measurement: &ImuDelta, bias_estim
 }
 
 //TODO
-pub fn gravityEstimation(data_frames: &Vec<DataFrame>) -> Vector3::<Float> {
+pub fn gravity_estimation(data_frames: &Vec<DataFrame>) -> Vector3::<Float> {
 
     panic!("Gravity Estimation Not yet implemented")
 }

@@ -125,7 +125,8 @@ pub fn filter_by_rejected_landmark_ids<Feat: Feature + Clone>(
             = matches.iter().filter(|m| !rejected_landmark_ids.contains(&m.get_landmark_id().expect("filter_by_rejected_landmark_ids: no landmark it for filtering"))).map(|m| m.clone()).collect();
 
         let landmarks_filtered_as_vec : Vec<_> = landmarks.column_iter().enumerate().filter(|(i,_)| match_indices_filtered.contains(i)).map(|(_,c)| c).collect();
-        assert!(!landmarks_filtered_as_vec.is_empty());
+
+        assert!(!landmarks_filtered_as_vec.is_empty(), "assertion failed: !landmarks_filtered_as_vec.is_empty() - for cam pair {:?}",cam_key);
         let reprojections_filtered_as_vec: Vec<_> = reprojections.into_iter().enumerate().filter(|(i,_)| match_indices_filtered.contains(i)).map(|(_,c)| *c).collect();
 
         let abs_landmarks_filtered_as_vec : Vec<_> = abs_landmarks.column_iter().enumerate().filter(|(i,_)| match_indices_filtered.contains(i)).map(|(_,c)| c).collect();

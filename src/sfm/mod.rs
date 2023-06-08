@@ -56,6 +56,9 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
 
         let paths_pairs_as_vec = compute_path_pairs_as_vec(root,paths);
         let camera_ids_root_first = Self::get_sorted_camera_keys(root, paths);
+
+        //TODO: Compute Image Score for later filtering
+
         // Filteres matches according to feature consitency along a path.
         let accepted_matches = Self::filter_by_max_tracks(&paths_pairs_as_vec, &match_map_no_landmarks);
         let found_duplicates = Self::check_for_duplicate_pixel_entries(&accepted_matches);
@@ -86,7 +89,7 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
         let mut abs_landmark_map = compute_absolute_landmarks_for_root(&path_id_pairs,&landmark_map,&abs_pose_map);
 
         let (_,mut unique_landmark_ids) = compute_continuous_landmark_ids_from_matches(&mut match_norm_map, &mut match_map,None, None);
-        let tol = 5.0/camera_map.get(&root).expect("Root Cam missing").get_focal_x(); // rougly 5 pixels //TODO expose this
+        let tol = 10.0/camera_map.get(&root).expect("Root Cam missing").get_focal_x(); // rougly 5 pixels //TODO expose this
         //Self::filter_outliers_by_dual(tol,&camera_ids_root_first,&mut unique_landmark_ids,&mut abs_pose_map,&mut abs_landmark_map,&mut match_norm_map,&mut match_map, &mut landmark_map, &mut reprojection_error_map);
         Self::filter_outliers_by_dual_pairwise(tol,&path_id_pairs_flat,&camera_ids_root_first , &mut unique_landmark_ids,&mut abs_pose_map,&mut abs_landmark_map,&mut match_norm_map,&mut match_map, &mut landmark_map, &mut reprojection_error_map);
 
@@ -339,6 +342,8 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
         println!("Max Track len: {:?}", max_track_lengths);
 
         let max_tracks: Vec<Vec<FeatureTrack<Feat>>> = feature_tracks.into_iter().zip(max_track_lengths).map(| (xs, max) | xs.into_iter().filter(|x| x.get_track_length() == max).collect()).collect();
+        //let max_tracks: Vec<Vec<FeatureTrack<Feat>>> = feature_tracks.into_iter().zip(max_track_lengths).map(| (xs, max) | xs.into_iter().filter(|x| (x.get_track_length() == max) || (x.get_track_length() == max -1)).collect()).collect();
+        //let max_tracks = feature_tracks;
 
         for ts in &max_tracks {
             for t in ts {
@@ -459,8 +464,6 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
                     }
                 };
                 
-                //TODO subsample?
-                //let f_m_subsampled = subsample_matches(f_m,image_width,image_height);
                 println!("{:?}: Number of matches: {}", key, &f_m_norm.len());
                 // The pose transforms id2 into the coordiante system of id1
                 let (iso3_opt,_) = tensor::decompose_essential_förstner(&e,&f_m_norm,&inverse_camera_matrix_two, &inverse_camera_matrix_two,positive_principal_distance);
@@ -586,8 +589,6 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
     }).flatten().collect::<HashSet<_>>();
 
     if !rejected_landmark_ids.is_empty() {
-        //TODO: investigate outlier detection only on cam pairs / Check if reprojections actually decreased since we have to theoretical guarantee
-
         filter_by_rejected_landmark_ids(&rejected_landmark_ids, unique_landmark_ids, abs_landmark_map,  match_norm_map,  match_map, landmark_map, &mut feature_map, reprojection_error_map);
     }
 
