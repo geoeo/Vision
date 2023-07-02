@@ -35,6 +35,16 @@
             "env": {"RUST_BACKTRACE":"full"}
         },
         {
+            "name": "BA Gltf",
+            "type": "lldb",
+            "request": "launch",
+            "program": "${workspaceFolder}/target/debug/examples/gltf",
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "preLaunchTask": "build examples",
+            "env": {"RUST_BACKTRACE":"full"}
+        },
+        {
             "name": "IO Matrix",
             "type": "lldb",
             "request": "launch",

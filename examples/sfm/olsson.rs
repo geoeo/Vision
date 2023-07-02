@@ -1,9 +1,6 @@
 extern crate nalgebra as na;
-extern crate color_eyre;
-extern crate vision;
 
 use color_eyre::eyre::Result;
-
 use std::fs;
 use vision::io::olsson_loader::OlssenData;
 use vision::sfm::{triangulation::Triangulation,SFMConfig, compute_path_pairs_as_vec, bundle_adjustment::run_ba, epipolar::tensor::BifocalType};
@@ -28,9 +25,9 @@ fn main() -> Result<()> {
     let fort_channing = "Fort_Channing_gate";
     let park_gate = "park_gate";
     let kronan = "kronan";
-    let round_church = "fort_channing";
+    let round_church = "round_church";
 
-    let olsen_dataset_name = fountain;
+    let olsen_dataset_name = park_gate;
     let olsen_data_path = format!("{}/Olsson/{}/",runtime_conf.dataset_path,olsen_dataset_name);
 
     let feature_skip_count = 1;
@@ -50,8 +47,15 @@ fn main() -> Result<()> {
     // let paths = vec!(vec!(4,3));
     // let root_id = 5;
 
-    let paths = vec!(vec!(6,7));
+    
+    let paths = vec!(vec!(6,8,9,10));
     let root_id = 5;
+
+    // let paths = vec!(vec!(6,8,10));
+    // let root_id = 5;
+
+    // let paths = vec!(vec!(6,7,8,9,10));
+    // let root_id = 5;
 
     // let paths = vec!(vec!(5),vec!(7));
     // let root_id = 6;
@@ -71,10 +75,16 @@ fn main() -> Result<()> {
     // let paths = vec!(vec!(4,3,2));
     // let root_id = 5;
 
-    // let paths = vec!(vec!(6,7,8));
+    // let paths = vec!(vec!(6,7));
     // let root_id = 5;
 
-    // let paths = vec!(vec!(6,8,9,10));
+    // let paths = vec!(vec!(6,7,8,9,10,11));
+    // let root_id = 5;
+
+    // let paths = vec!(vec!(6,7,8,9,10,11,12,13,14));
+    // let root_id = 5;
+
+    // let paths = vec!(vec!(6,8,9,11,12,14));
     // let root_id = 5;
 
     // let paths = vec!(vec!(6,7,8,9,10,11));
@@ -83,8 +93,8 @@ fn main() -> Result<()> {
     // let paths = vec!(vec!(4,3,2,1),vec!(6,7,8,9));
     // let root_id = 5;
 
-    // let paths = vec!(vec!(7),vec!(9,10));
-    // let root_id = 8;
+    // let paths = vec!(vec!(2,3));
+    // let root_id = 1;
 
     // let paths = vec!(vec!(7,6),vec!(9,10,11));
     // let root_id = 8;
@@ -94,6 +104,7 @@ fn main() -> Result<()> {
 
     // let paths = vec!(vec!(9,10,11,12,13));
     // let root_id = 8;
+
 
     //TODO: implement switch for loftr matches!
     let (match_map, camera_map) = olsen_data.get_data_for_sfm(root_id, &paths, positive_principal_distance, invert_focal_length, invert_y, feature_skip_count, olsen_dataset_name);
@@ -111,7 +122,7 @@ fn main() -> Result<()> {
     let runtime_parameters = RuntimeParameters {
         pyramid_scale: 1.0,
         max_iterations: vec![5e4 as usize; 1],
-        eps: vec![1e-1],
+        eps: vec![1e-2],
         step_sizes: vec![1e0],
         max_norm_eps: 1e-30, 
 
@@ -127,7 +138,7 @@ fn main() -> Result<()> {
         cg_max_it: 2e3 as usize
     };
 
-    let ((cam_positions,points),(s,debug_states_serialized)) = run_ba(&sfm_config_fundamental, &runtime_parameters);
+    let ((_,_),(s,debug_states_serialized)) = run_ba(&sfm_config_fundamental, &runtime_parameters);
     fs::write(format!("{}/olsen.txt",runtime_conf.output_path), s?).expect("Unable to write file");
     if runtime_parameters.debug {
         fs::write(format!("{}/olsen_debug.txt",runtime_conf.output_path), debug_states_serialized?).expect("Unable to write file");

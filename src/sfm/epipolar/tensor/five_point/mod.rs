@@ -4,7 +4,7 @@ extern crate nalgebra_lapack;
 use na::{Matrix3,Matrix4, OMatrix ,Matrix3xX, SVector, Dyn, dimension::{U10,U20,U9,U3}};
 use crate::{Float,float};
 use crate::image::features::{Feature,matches::Match};
-use crate::sfm::{triangulation::{linear_triangulation_svd,stereo_triangulation},epipolar::{Essential,tensor::decompose_essential_förstner}};
+use crate::sfm::{triangulation::linear_triangulation_svd,epipolar::{Essential,tensor::decompose_essential_förstner}};
 use crate::numerics::to_matrix;
 
 mod constraints;
@@ -140,12 +140,8 @@ pub fn cheirality_check<T: Feature + Clone>(
         let p1_points = points_cam_1.0;
         let p2_points = points_cam_2.0;
 
-        //TODO make ENUM
         let Xs_option = Some(linear_triangulation_svd(&vec!((&p1_points,&projection_1),(&p2_points,&projection_2)),positive_principal_distance, false));
 
-        // let f0 = camera_matrix_1[(0,0)];
-        // let f0_prime = camera_matrix_2[(0,0)];
-        // let Xs_option = stereo_triangulation((&p1_points,&projection_1),(&p2_points,&projection_2),f0,f0_prime,positive_principal_distance, false);
         match Xs_option {
             Some(Xs) => {
                 let p1_x = &Xs;

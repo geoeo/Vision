@@ -86,7 +86,6 @@ pub fn compute_linear_normalization<Feat: Feature>(features: &Vec<Feat>) -> (Mat
     }
 
     avg /= l_as_float;
-    avg /= l_as_float;
 
     let dist_mean_norm =  features.iter().fold(0.0, |acc, f| (acc + (f.get_as_2d_point()-avg).norm_squared()));
 

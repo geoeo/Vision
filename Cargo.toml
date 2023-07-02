@@ -18,11 +18,12 @@ optimization_engine = "*"
 plotters = { version = "*", default_features = true}
 color-eyre = "0.5"
 serde = { version = "*", features = ["derive"] }
-serde_yaml = "0.8"
+serde_yaml = "*"
 num-traits = "*"
 simba = "*"
 num-complex = "*"
 clarabel =  { git = "https://github.com/oxfordcontrol/Clarabel.rs.git"} 
+models-cv =  { git = "https://github.com/geoeo/models-cv.git"} 
 termion = "*"
 
 

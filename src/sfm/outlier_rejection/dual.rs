@@ -288,7 +288,7 @@ fn convert_to_clarabel(A: nalgebra_sparse::CscMatrix<Float>, B: nalgebra_sparse:
     );
 
     let cones = [clarabel::solver::ZeroConeT::<Float>(A.nrows()),clarabel::solver::NonnegativeConeT::<Float>(C.nrows())];
-    let P_cl = clarabel::algebra::CscMatrix::<Float>::spalloc(C.nrows(), C.nrows(), 0);
+    let P_cl = clarabel::algebra::CscMatrix::<Float>::spalloc((C.nrows(), C.nrows()), 0);
 
     (P_cl, A_scs_clarabel,B_vec,C_vec,cones)
 }

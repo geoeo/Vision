@@ -112,7 +112,7 @@ pub fn precompute_jacobians<C: Camera<Float>, T: Dim + DimName>(backprojected_po
     for i in 0..number_of_points {
         if backprojected_points_flags[i] {
             let point = backprojected_points.fixed_view::<3,1>(0,i);
-            let camera_jacobian = camera.get_jacobian_with_respect_to_position_in_camera_frame(&point).expect("get_jacobian_with_respect_to_position_in_camera_frame failed!");;
+            let camera_jacobian = camera.get_jacobian_with_respect_to_position_in_camera_frame(&point).expect("get_jacobian_with_respect_to_position_in_camera_frame failed!");
             let lie_jacobian = lie::left_jacobian_around_identity(&point);
             precomputed_jacobians.fixed_view_mut::<2,6>(i*2,0).copy_from(&(camera_jacobian*lie_jacobian));
         }

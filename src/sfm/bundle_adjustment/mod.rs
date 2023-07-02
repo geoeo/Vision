@@ -1,6 +1,4 @@
 extern crate nalgebra as na;
-extern crate num_traits;
-extern crate simba;
 
 use crate::image::features::solver_feature::SolverFeature;
 use crate::image::features::Feature;
