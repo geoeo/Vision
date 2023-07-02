@@ -1,5 +1,5 @@
 use color_eyre::eyre::Result;
-use models_cv::io::deserialize_feature_matches;
+use vision::load_runtime_conf;
 
 fn main() -> Result<()> {
     color_eyre::install()?;
@@ -8,5 +8,5 @@ fn main() -> Result<()> {
     let path = format!("{}/{}",runtime_conf.local_data_path,file_name);
     let loaded_data = models_cv::io::deserialize_feature_matches(&path);
     println!("{:?}",loaded_data);
-
+    Ok(())
 }

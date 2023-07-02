@@ -86,6 +86,10 @@ name = "olsson"
 path = "examples/sfm/olsson.rs"
 
 [[example]]
+name = "gltf"
+path = "examples/sfm/gltf.rs"
+
+[[example]]
 name = "io_matrix"
 path = "examples/io/matrix.rs"
 
