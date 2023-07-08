@@ -1,12 +1,12 @@
 extern crate nalgebra as na;
-extern crate num_traits;
-extern crate simba;
 
-use na::{convert,U1,U3, Matrix2x3,Matrix3, Vector, Vector3, base::storage::Storage, SimdRealField,base::Scalar};
-use num_traits::{float,NumAssign};
+use na::{convert,U1,U3, Matrix2x3,Matrix3, Vector, Vector3, base::storage::Storage, SimdRealField,base::Scalar,ComplexField};
+use num_traits::{float,NumAssign,Signed};
 use simba::scalar::{SubsetOf,SupersetOf};
 use crate::image::features::geometry::point::Point;
 use crate::sensors::camera::Camera; 
+
+const IDENTITY_EPS: f32 = 1e-12f32;
 
 #[derive(Copy,Clone)]
 pub struct Perspective<F: float::Float + Scalar + NumAssign + SimdRealField> {
@@ -15,7 +15,7 @@ pub struct Perspective<F: float::Float + Scalar + NumAssign + SimdRealField> {
 }
 
  //@TODO: unify principal distance into enum
-impl<F: float::Float + Scalar + NumAssign + SimdRealField> Perspective<F> {
+impl<F: float::Float + Scalar + NumAssign + SimdRealField + ComplexField + Signed> Perspective<F> {
     pub fn new(fx: F, fy: F, cx: F, cy: F, s: F, invert_focal_length: bool) -> Perspective<F> {
        let factor = match invert_focal_length {
            true => -F::one(),
@@ -35,6 +35,8 @@ impl<F: float::Float + Scalar + NumAssign + SimdRealField> Perspective<F> {
                                                   F::zero(), F::one()/fy_scaled, -cy_scaled/fy_scaled,
                                                   F::zero(), F::zero(), F::one());
 
+        
+        assert!(num_traits::abs((projection*inverse_projection).determinant())- F::one() <= F::from_f32(IDENTITY_EPS).expect("Converstion failed!"));
         Perspective{projection,inverse_projection}
     }
 
@@ -63,12 +65,12 @@ impl<F: float::Float + Scalar + NumAssign + SimdRealField> Perspective<F> {
         self.projection[(0,1)]
     }
 
-    pub fn cast<F2: num_traits::float::Float + Scalar + NumAssign + SimdRealField + SubsetOf<F> + SupersetOf<F>>(&self) -> Perspective<F2> {
+    pub fn cast<F2: num_traits::float::Float + Scalar + NumAssign + SimdRealField + ComplexField + Signed + SubsetOf<F> + SupersetOf<F>>(&self) -> Perspective<F2> {
         Perspective::<F2>::new(convert(self.get_fx()),convert(self.get_fy()),convert(self.get_cx()),convert(self.get_cy()),convert(self.get_s()),false)
     }
 }
 
-impl<F: float::Float + Scalar + NumAssign + SimdRealField> Camera<F> for Perspective<F> {
+impl<F: float::Float + Scalar + NumAssign + SimdRealField +  ComplexField + Signed> Camera<F> for Perspective<F> {
 
     fn from_matrices(projection: &Matrix3<F>, inverse_projection: &Matrix3<F>) -> Self {
         Perspective{projection: projection.clone(), inverse_projection: inverse_projection.clone()}
