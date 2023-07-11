@@ -5,7 +5,7 @@ use na::{Matrix3,Matrix4, OMatrix ,Matrix3xX, SVector, Dyn, dimension::{U10,U20,
 use num_traits::Zero;
 use crate::{Float,float};
 use crate::image::features::{Feature,matches::Match};
-use crate::sfm::{triangulation::linear_triangulation_svd,epipolar::{Essential,tensor::{regularize,decompose_essential_förstner}}};
+use crate::sfm::{triangulation::linear_triangulation_svd,epipolar::{Essential,tensor::{decompose_essential_förstner}}};
 use crate::numerics::to_matrix;
 
 mod constraints;
@@ -66,8 +66,8 @@ pub fn five_point_essential<T: Feature + Clone>(matches: &Vec<Match<T>>, project
             svd.singular_values[6] = 0.0;
             svd.singular_values[7] = 0.0;
             svd.singular_values[8] = 0.0;
-            let A_reg = svd.recompose().ok().expect("SVD recomposition failed");
 
+            let A_reg = svd.recompose().ok().expect("SVD recomposition failed");
             let eigen = nalgebra_lapack::SymmetricEigen::new(A_reg);
             let eigenvectors = eigen.eigenvectors;
             let mut indexed_eigenvalues = eigen.eigenvalues.iter().enumerate().map(|(i,v)| (i,*v)).filter(|(_,v)| !v.is_zero()).collect::<Vec<(usize, Float)>>();
