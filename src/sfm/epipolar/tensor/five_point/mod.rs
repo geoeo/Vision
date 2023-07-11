@@ -97,7 +97,7 @@ pub fn five_point_essential<T: Feature + Clone>(matches: &Vec<Match<T>>, project
     action_matrix.fixed_rows_mut::<1>(5).copy_from(&B.fixed_rows::<1>(7));
     action_matrix[(6,0)] = 1.0;
     action_matrix[(7,1)] = 1.0;
-    action_matrix[(8,2)] = 1.0;
+    action_matrix[(8,3)] = 1.0;
     action_matrix[(9,6)] = 1.0;
 
     let eigen = nalgebra_lapack::Eigen::new(action_matrix.transpose(), false, true).expect("Five Point: eigenvector computation failed!");

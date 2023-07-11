@@ -29,8 +29,8 @@ fn main() -> Result<()> {
         (cam_id,map)
     }).collect::<HashMap<_,_>>();
 
-    let camera_id_pairs = vec!((1,2));
-    //let camera_id_pairs = vec!((0,1),(1,2));
+    //let camera_id_pairs = vec!((1,2));
+    let camera_id_pairs = vec!((0,1),(1,2));
 
 
     let match_map = camera_id_pairs.iter().map(|(id1,id2)| {
