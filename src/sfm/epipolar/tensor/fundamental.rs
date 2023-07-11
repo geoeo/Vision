@@ -8,7 +8,7 @@ use nalgebra::linalg::SymmetricEigen;
 
 use crate::Float;
 use crate::image::features::{Feature,solver_feature::SolverFeature,matches::Match};
-use crate::sfm::epipolar::tensor::Fundamental;
+use crate::sfm::epipolar::tensor::{regularize, Fundamental};
 
 #[allow(non_snake_case)]
 pub fn eight_point_least_squares<T : Feature>(matches: &Vec<Match<T>>, f0: Float) -> Fundamental {
@@ -64,11 +64,7 @@ pub fn eight_point_hartley<T : Feature>(matches: &Vec<Match<T>>, focal: Float) -
     
     let F = to_fundamental(&f.transpose());
 
-    let mut svd_f = F.svd(true,true);
-    let acc = svd_f.singular_values[0].powi(2) + svd_f.singular_values[1].powi(2);
-    svd_f.singular_values[2] = 0.0;
-    svd_f.singular_values /= acc.sqrt();
-    svd_f.recompose().ok().expect("SVD recomposition failed").normalize()
+    regularize(&F, 1.0)
     
 }
 

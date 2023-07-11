@@ -125,6 +125,14 @@ pub fn compute_fundamental(E: &Essential, inverse_projection_start: &Matrix3<Flo
     inverse_projection_start.transpose()*E*inverse_projection_finish
 }
 
+pub fn regularize(tensor: &Matrix3<Float>, target_norm: Float) -> Matrix3<Float> {
+    let mut svd = tensor.svd(true,true);
+    let reg = target_norm / (svd.singular_values[0].powi(2) + svd.singular_values[1].powi(2));
+    svd.singular_values[2] = 0.0;
+    svd.singular_values *= reg.sqrt();
+    svd.recompose().ok().expect("SVD recomposition failed").normalize()
+}
+
 /**
  * Photogrammetric Computer Vision p.583
  * @TODO: unify principal distance into enum
@@ -150,8 +158,8 @@ pub fn decompose_essential_förstner<T : Feature>(
     let V_norm = V*V.determinant();
 
     let e_corrected = U_norm* Matrix3::<Float>::new(1.0, 0.0, 0.0,
-                                            0.0, 1.0 ,0.0,
-                                            0.0, 0.0, 0.0)*V_norm.transpose();
+                                                    0.0, 1.0 ,0.0,
+                                                    0.0, 0.0, 0.0)*V_norm.transpose();
 
 
     let b = u.column(2).into_owned(); 
