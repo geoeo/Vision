@@ -44,11 +44,11 @@ fn main() -> Result<()> {
     // let paths = vec!(vec!(4),vec!(6));
     // let root_id = 5;
 
-    let paths = vec!(vec!(4,3));
-    let root_id = 5;
-    
-    // let paths = vec!(vec!(6,8,9,10));
+    // let paths = vec!(vec!(4,3));
     // let root_id = 5;
+    
+    let paths = vec!(vec!(6,7));
+    let root_id = 5;
 
     // let paths = vec!(vec!(6,8,10));
     // let root_id = 5;
@@ -108,7 +108,11 @@ fn main() -> Result<()> {
     //TODO: implement switch for loftr matches!
     let (match_map, camera_map) = olsen_data.get_data_for_sfm(root_id, &paths, positive_principal_distance, invert_focal_length, invert_y, feature_skip_count, olsen_dataset_name);
     let sfm_config_fundamental = SFMConfig::new(root_id, &paths, camera_map, &match_map, 
-    BifocalType::FUNDAMENTAL, Triangulation::LINEAR, 1.0, 1.0e-1, 5e1, 5.0, refince_rotation_via_rcd, true, positive_principal_distance);
+    BifocalType::FUNDAMENTAL, Triangulation::LINEAR, 1.0, 1.0e1, 5e1, 10.0, refince_rotation_via_rcd, true, positive_principal_distance);
+
+    for (key, pose) in sfm_config_fundamental.pose_map().iter() {
+        println!("Key: {:?}, Pose: {:?}", key, pose)
+    }
 
     for (i,j) in compute_path_pairs_as_vec(sfm_config_fundamental.root(),sfm_config_fundamental.paths()).into_iter().flatten().collect::<Vec<_>>() {
         let im_1 = olsen_data.get_image(i);

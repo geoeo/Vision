@@ -65,7 +65,11 @@ fn main() -> Result<()> {
     let root_id = camera_id_pairs[0].0;
 
     let sfm_config_fundamental = SFMConfig::new(root_id, &paths, camera_map, &match_map, 
-        BifocalType::ESSENTIAL, Triangulation::LINEAR, 1.0, 1e2, 5e3, 1.0, true, true, true);
+        BifocalType::ESSENTIAL, Triangulation::LINEAR, 1.0, 1e1, 5e2, 1.0, true, true, true);
+
+    for (key, pose) in sfm_config_fundamental.pose_map().iter() {
+        println!("Key: {:?}, Pose: {:?}", key, pose)
+    }
 
 
     let runtime_parameters = RuntimeParameters {
