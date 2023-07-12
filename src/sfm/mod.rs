@@ -67,7 +67,10 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
         let mut match_map = Self::generate_match_map_with_landmark_ids(root, &paths,accepted_matches);
 
         let disparity_map = Self::compute_disparity_map(root,&paths,&match_map);
-        reject_matches_via_disparity(disparity_map, &mut match_map, disparity_cutoff_thresh);
+        if run_outlier_detection_pipeline {
+            reject_matches_via_disparity(disparity_map, &mut match_map, disparity_cutoff_thresh);
+        }
+
 
         let (camera_norm_map, mut match_norm_map) = Self::normalize_features_and_cameras(&camera_map, &match_map);
         let mut pose_map = Self::compute_initial_pose_map_and_filter_matches(
@@ -87,43 +90,40 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
         let mut abs_pose_map = compute_absolute_poses_for_root(root, &path_id_pairs, &pose_map);
         let mut abs_landmark_map = compute_absolute_landmarks_for_root(&path_id_pairs,&landmark_map,&abs_pose_map);
 
+        let (min_reprojection_error_initial, max_reprojection_error_initial) = Self::compute_reprojection_ranges(&reprojection_error_map);
+        println!("SFM Config Max Reprojection Error 1): {}, Min Reprojection Error: {}", max_reprojection_error_initial, min_reprojection_error_initial);
 
-        
         if run_outlier_detection_pipeline {
-            let (min_reprojection_error_initial, max_reprojection_error_initial) = Self::compute_reprojection_ranges(&reprojection_error_map);
-            println!("SFM Config Max Reprojection Error 1): {}, Min Reprojection Error: {}", max_reprojection_error_initial, min_reprojection_error_initial);
-    
-
             let tol = 10.0/camera_map.get(&root).expect("Root Cam missing").get_focal_x(); // rougly 5 pixels //TODO expose this
             //Self::filter_outliers_by_dual(tol,&camera_ids_root_first,&mut unique_landmark_ids,&mut abs_pose_map,&mut abs_landmark_map,&mut match_norm_map,&mut match_map, &mut landmark_map, &mut reprojection_error_map);
             Self::filter_outliers_by_dual_pairwise(tol,&path_id_pairs_flat,&camera_ids_root_first , &mut unique_landmark_ids,&mut abs_pose_map,&mut abs_landmark_map,&mut match_norm_map,&mut match_map, &mut landmark_map, &mut reprojection_error_map);
-    
             reject_landmark_outliers(&mut landmark_map, &mut reprojection_error_map ,&mut match_map ,&mut match_norm_map, landmark_cutoff_thresh);
-            if refine_rotation_via_rcd {
-                let new_pose_map = Self::refine_rotation_by_rcd(root, &paths, &pose_map);
-                let (mut new_landmark_map, mut new_reprojection_error_map) 
-                    = Self::compute_landmarks_and_reprojection_maps(root,&paths,&new_pose_map, &match_norm_map, &camera_norm_map,triangulation, positive_principal_distance);
-                let keys = landmark_map.keys().map(|k| *k).collect::<Vec<_>>();
-                for key in keys {
-                    let new_reprojection_errors = new_reprojection_error_map.get(&key).unwrap();
-                    let current_reprojection_errors = reprojection_error_map.get_mut(&key).unwrap();
-    
-                    if new_reprojection_errors.mean() < current_reprojection_errors.mean() {
-                        landmark_map.insert(key,new_landmark_map.remove(&key).unwrap());
-                        reprojection_error_map.insert(key,new_reprojection_error_map.remove(&key).unwrap());
-                        pose_map.insert(key,new_pose_map.get(&key).unwrap().clone());
-                    }
+        }
+        
+        if refine_rotation_via_rcd {
+            let new_pose_map = Self::refine_rotation_by_rcd(root, &paths, &pose_map);
+            let (mut new_landmark_map, mut new_reprojection_error_map) 
+                = Self::compute_landmarks_and_reprojection_maps(root,&paths,&new_pose_map, &match_norm_map, &camera_norm_map,triangulation, positive_principal_distance);
+            let keys = landmark_map.keys().map(|k| *k).collect::<Vec<_>>();
+            for key in keys {
+                let new_reprojection_errors = new_reprojection_error_map.get(&key).unwrap();
+                let current_reprojection_errors = reprojection_error_map.get_mut(&key).unwrap();
+
+                if new_reprojection_errors.mean() < current_reprojection_errors.mean() {
+                    landmark_map.insert(key,new_landmark_map.remove(&key).unwrap());
+                    reprojection_error_map.insert(key,new_reprojection_error_map.remove(&key).unwrap());
+                    pose_map.insert(key,new_pose_map.get(&key).unwrap().clone());
                 }
-                reject_landmark_outliers(&mut landmark_map, &mut reprojection_error_map, &mut match_map, &mut match_norm_map, landmark_cutoff_thresh);
             }
-    
+            if run_outlier_detection_pipeline {
+                reject_landmark_outliers(&mut landmark_map, &mut reprojection_error_map, &mut match_map, &mut match_norm_map, landmark_cutoff_thresh); 
+            }
             let (min_reprojection_error_refined, max_reprojection_error_refined) = Self::compute_reprojection_ranges(&reprojection_error_map);
             println!("SFM Config Max Reprojection Error 2): {}, Min Reprojection Error: {}", max_reprojection_error_refined, min_reprojection_error_refined);
-    
-            // Since landmarks may be rejected, this function recomputes the ids to be consecutive so that they may be used for matrix indexing.
-            let (_, unique_landmark_ids) = compute_continuous_landmark_ids_from_matches(&mut match_norm_map, &mut match_map,Some(&unique_landmark_ids), None);
         }
 
+        // Since landmarks may be rejected, this function recomputes the ids to be consecutive so that they may be used for matrix indexing.
+        let (_, unique_landmark_ids) = compute_continuous_landmark_ids_from_matches(&mut match_norm_map, &mut match_map,Some(&unique_landmark_ids), None);
         
         SFMConfig{root, paths: paths.clone(), camera_map: camera_norm_map, match_map, match_norm_map, abs_pose_map, pose_map, epipolar_alg, abs_landmark_map, reprojection_error_map, unique_landmark_ids, triangulation}
     }
@@ -348,9 +348,9 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
 
         println!("Max Track len: {:?}", max_track_lengths);
 
-        //let max_tracks: Vec<Vec<FeatureTrack<Feat>>> = feature_tracks.into_iter().zip(max_track_lengths).map(| (xs, max) | xs.into_iter().filter(|x| x.get_track_length() == max).collect()).collect();
+        let max_tracks: Vec<Vec<FeatureTrack<Feat>>> = feature_tracks.into_iter().zip(max_track_lengths).map(| (xs, max) | xs.into_iter().filter(|x| x.get_track_length() == max).collect()).collect();
         //let max_tracks: Vec<Vec<FeatureTrack<Feat>>> = feature_tracks.into_iter().zip(max_track_lengths).map(| (xs, max) | xs.into_iter().filter(|x| (x.get_track_length() == max) || (x.get_track_length() == max -1)).collect()).collect();
-        let max_tracks = feature_tracks;
+        //let max_tracks = feature_tracks;
 
         for ts in &max_tracks {
             for t in ts {
