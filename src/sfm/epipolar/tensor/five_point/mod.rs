@@ -2,10 +2,9 @@ extern crate nalgebra as na;
 extern crate nalgebra_lapack;
 
 use na::{Matrix3,Matrix4, OMatrix ,Matrix3xX, SVector, Dyn, dimension::{U10,U20,U9,U3}};
-use num_traits::Zero;
 use crate::{Float,float};
 use crate::image::features::{Feature,matches::Match};
-use crate::sfm::{triangulation::linear_triangulation_svd,epipolar::{Essential,tensor::{decompose_essential_förstner}}};
+use crate::sfm::{triangulation::linear_triangulation_svd,epipolar::{Essential,tensor::decompose_essential_förstner}};
 use crate::numerics::to_matrix;
 
 mod constraints;
@@ -70,7 +69,7 @@ pub fn five_point_essential<T: Feature + Clone>(matches: &Vec<Match<T>>, project
             let A_reg = svd.recompose().ok().expect("SVD recomposition failed");
             let eigen = nalgebra_lapack::SymmetricEigen::new(A_reg);
             let eigenvectors = eigen.eigenvectors;
-            let mut indexed_eigenvalues = eigen.eigenvalues.iter().enumerate().map(|(i,v)| (i,*v)).filter(|(_,v)| !v.is_zero()).collect::<Vec<(usize, Float)>>();
+            let mut indexed_eigenvalues = eigen.eigenvalues.iter().enumerate().map(|(i,v)| (i,*v)).collect::<Vec<(usize, Float)>>();
             indexed_eigenvalues.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
             let u1 = eigenvectors.column(indexed_eigenvalues[0].0).into_owned();
             let u2 = eigenvectors.column(indexed_eigenvalues[1].0).into_owned();
