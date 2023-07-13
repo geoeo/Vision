@@ -38,6 +38,7 @@ pub trait Feature {
     }
     /**
      * Gets the camera ray for image points which are assumed to be opposite of the principal plane 
+     * TODO: make everything along positive principal distance
      */
     fn get_camera_ray(&self, inverse_intrinsics: &Matrix3<Float>, positive_principal_distance: bool) -> Vector3<Float> {
         match positive_principal_distance {

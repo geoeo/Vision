@@ -11,9 +11,9 @@ use vision::numerics::{loss, weighting};
 fn main() -> Result<()> {
     color_eyre::install()?;
     let runtime_conf = load_runtime_conf();
-    let file_name = "camera_features_Suzanne_all.yaml";
+    //let file_name = "camera_features_Suzanne_all.yaml";
     //let file_name = "camera_features_Suzanne_x.yaml";
-    //let file_name = "camera_features_Suzanne.yaml";
+    let file_name = "camera_features_Suzanne.yaml";
     //let file_name = "camera_features_Sphere.yaml";
     let path = format!("{}/{}",runtime_conf.local_data_path,file_name);
     let loaded_data = models_cv::io::deserialize_feature_matches(&path);
@@ -68,7 +68,7 @@ fn main() -> Result<()> {
     let root_id = camera_id_pairs[0].0;
 
     let sfm_config_fundamental = SFMConfig::new(root_id, &paths, camera_map, &match_map, 
-        BifocalType::ESSENTIAL, Triangulation::LINEAR, 1.0, 1e4, 5e2, 1.0, false, false, true);
+        BifocalType::ESSENTIAL, Triangulation::LINEAR, 1.0, 1e2, 5e2, 1.0, false, false, true);
 
     for (key, pose) in sfm_config_fundamental.pose_map().iter() {
         println!("Key: {:?}, Pose: {:?}", key, pose)

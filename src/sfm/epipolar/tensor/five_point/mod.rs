@@ -67,6 +67,7 @@ pub fn five_point_essential<T: Feature + Clone>(matches: &Vec<Match<T>>, project
             svd.singular_values[8] = 0.0;
 
             let A_reg = svd.recompose().ok().expect("SVD recomposition failed");
+            //TODO: This seems to be not deterministic
             let eigen = nalgebra_lapack::SymmetricEigen::new(A_reg);
             let eigenvectors = eigen.eigenvectors;
             let mut indexed_eigenvalues = eigen.eigenvalues.iter().enumerate().map(|(i,v)| (i,*v)).collect::<Vec<(usize, Float)>>();
