@@ -128,7 +128,7 @@ fn main() -> Result<()> {
     }
 
     let five_point_essential_matrix = epipolar::tensor::five_point_essential(&feature_matches,&intensity_camera_1.get_projection(),&intensity_camera_1.get_inverse_projection(),&intensity_camera_2.get_projection(),&intensity_camera_2.get_inverse_projection(),positive_principal_distance);
-    let (iso3_opt,_) = epipolar::tensor::decompose_essential_förstner(&five_point_essential_matrix,&feature_matches,&intensity_camera_1.get_inverse_projection(),&intensity_camera_2.get_inverse_projection(),positive_principal_distance);
+    let (iso3_opt,_) = epipolar::tensor::decompose_essential_förstner(&five_point_essential_matrix,&feature_matches,&intensity_camera_1.get_inverse_projection(),&intensity_camera_2.get_inverse_projection());
     let iso3 = iso3_opt.unwrap();
     let factor = five_point_essential_matrix[(2,2)];
     let five_point_essential_matrix_norm = five_point_essential_matrix.map(|x| x/factor);
