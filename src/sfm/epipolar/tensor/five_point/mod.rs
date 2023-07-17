@@ -26,8 +26,8 @@ pub fn five_point_essential<T: Feature + Clone>(matches: &Vec<Match<T>>, project
 
     for i in 0..l {
         let m = &matches[i];
-        let f_1_reduced = m.get_feature_one().get_camera_ray(&inverse_projection_one, positive_principal_distance);
-        let f_2_reduced = m.get_feature_two().get_camera_ray(&inverse_projection_two, positive_principal_distance);
+        let f_1_reduced = m.get_feature_one().get_camera_ray(&inverse_projection_one);
+        let f_2_reduced = m.get_feature_two().get_camera_ray(&inverse_projection_two);
 
         camera_rays_one.column_mut(i).copy_from(&f_1_reduced);
         camera_rays_two.column_mut(i).copy_from(&f_2_reduced);
@@ -67,7 +67,7 @@ pub fn five_point_essential<T: Feature + Clone>(matches: &Vec<Match<T>>, project
             svd.singular_values[8] = 0.0;
 
             let A_reg = svd.recompose().ok().expect("SVD recomposition failed");
-            //TODO: This seems to be not deterministic
+            //TODO: This does not seem to be robust with the rank enforcement
             let eigen = nalgebra_lapack::SymmetricEigen::new(A_reg);
             let eigenvectors = eigen.eigenvectors;
             let mut indexed_eigenvalues = eigen.eigenvalues.iter().enumerate().map(|(i,v)| (i,*v)).collect::<Vec<(usize, Float)>>();

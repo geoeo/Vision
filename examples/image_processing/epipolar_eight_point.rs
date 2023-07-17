@@ -122,7 +122,7 @@ fn main() -> Result<()> {
     let (iso3_opt, _) = epipolar::tensor::decompose_essential_förstner(&essential_matrix,&feature_matches,&intensity_camera_1.get_inverse_projection(),&intensity_camera_2.get_inverse_projection(), positive_principal_distance);
     //let feature_matches_vis = &feature_matches[0..20];
     let feature_matches_vis = epipolar::tensor::filter_matches_from_fundamental(&fundamental_matrix, &feature_matches,0.00001, focal); 
-    let epipolar_lines: Vec<(Vector3<Float>, Vector3<Float>)> = feature_matches_vis.iter().map(|m| epipolar::epipolar_lines(&fundamental_matrix_norm, m, &cam_intrinsics_0, &cam_intrinsics_1, positive_principal_distance)).collect();
+    let epipolar_lines: Vec<(Vector3<Float>, Vector3<Float>)> = feature_matches_vis.iter().map(|m| epipolar::epipolar_lines(&fundamental_matrix_norm, m, &cam_intrinsics_0, &cam_intrinsics_1)).collect();
 
     let iso3 = iso3_opt.unwrap();
 

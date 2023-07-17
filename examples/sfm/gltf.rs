@@ -32,6 +32,7 @@ fn main() -> Result<()> {
     }).collect::<HashMap<_,_>>();
 
     //let camera_id_pairs = vec!((1,2));
+    //let camera_id_pairs = vec!((0,1));
     let camera_id_pairs = vec!((0,1),(1,2));
 
 
@@ -68,7 +69,7 @@ fn main() -> Result<()> {
     let root_id = camera_id_pairs[0].0;
 
     let sfm_config_fundamental = SFMConfig::new(root_id, &paths, camera_map, &match_map, 
-        BifocalType::ESSENTIAL, Triangulation::LINEAR, 1.0, 1e2, 5e2, 1.0, false, false, true);
+        BifocalType::ESSENTIAL, Triangulation::LINEAR, 1.0, 1e0, 5e2, 1.0, false, false, true); // Investigate epipolar thresh -> more deterministic wither lower value?
 
     for (key, pose) in sfm_config_fundamental.pose_map().iter() {
         println!("Key: {:?}, Pose: {:?}", key, pose)
