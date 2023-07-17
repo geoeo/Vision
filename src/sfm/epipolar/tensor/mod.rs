@@ -17,6 +17,7 @@ pub type Essential =  Matrix3<Float>;
 #[derive(Clone,Copy)]
 pub enum BifocalType {
     ESSENTIAL,
+    ESSENTIAL_RANSAC,
     FUNDAMENTAL,
     QUEST
 }
@@ -141,8 +142,7 @@ pub fn regularize(tensor: &Matrix3<Float>, target_norm: Float) -> Matrix3<Float>
 pub fn decompose_essential_förstner<T : Feature>(
     E: &Essential, matches: &Vec<Match<T>>,
     inverse_camera_matrix_start: &Matrix3<Float>,
-    inverse_camera_matrix_finish: &Matrix3<Float>,
-    positive_principal_distance: bool) -> (Option<Isometry3<Float>>, Matrix3<Float>) {
+    inverse_camera_matrix_finish: &Matrix3<Float>) -> (Option<Isometry3<Float>>, Matrix3<Float>) {
     assert!(matches.len() > 0);
 
     let svd = E.svd(true,true);

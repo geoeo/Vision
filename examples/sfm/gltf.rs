@@ -12,8 +12,8 @@ fn main() -> Result<()> {
     color_eyre::install()?;
     let runtime_conf = load_runtime_conf();
     //let file_name = "camera_features_Suzanne_all.yaml";
-    //let file_name = "camera_features_Suzanne_x.yaml";
-    let file_name = "camera_features_Suzanne.yaml";
+    let file_name = "camera_features_Suzanne_x.yaml";
+    //let file_name = "camera_features_Suzanne.yaml";
     //let file_name = "camera_features_Sphere.yaml";
     let path = format!("{}/{}",runtime_conf.local_data_path,file_name);
     let loaded_data = models_cv::io::deserialize_feature_matches(&path);
@@ -69,12 +69,11 @@ fn main() -> Result<()> {
     let root_id = camera_id_pairs[0].0;
 
     let sfm_config_fundamental = SFMConfig::new(root_id, &paths, camera_map, &match_map, 
-        BifocalType::ESSENTIAL, Triangulation::LINEAR, 1.0, 1e0, 5e2, 1.0, false, false, true); // Investigate epipolar thresh -> more deterministic wither lower value?
+        BifocalType::ESSENTIAL_RANSAC, Triangulation::LINEAR, 1.0, 1e2, 5e2, 1.0, true, true, true); // Investigate epipolar thresh -> more deterministic wither lower value?
 
     for (key, pose) in sfm_config_fundamental.pose_map().iter() {
         println!("Key: {:?}, Pose: {:?}", key, pose)
     }
-
 
     let runtime_parameters = RuntimeParameters {
         pyramid_scale: 1.0,

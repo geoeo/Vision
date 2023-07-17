@@ -11,7 +11,7 @@ use crate::sfm::{epipolar::tensor,
     outlier_rejection::dual::outlier_rejection_dual};
 use crate::sfm::outlier_rejection::{calculate_reprojection_errors,calcualte_disparities, reject_landmark_outliers, filter_by_rejected_landmark_ids, reject_matches_via_disparity, compute_continuous_landmark_ids_from_matches,compute_continuous_landmark_ids_from_unique_landmarks};
 use crate::sensors::camera::Camera;
-use crate::numerics::{pose::{from_matrix,se3}};
+use crate::numerics::pose::{from_matrix,se3};
 use crate::{float,Float};
 
 pub mod bundle_adjustment;
@@ -451,7 +451,16 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
                     },
                     tensor::BifocalType::ESSENTIAL => {
                         let e = tensor::five_point_essential(m_norm, &camera_matrix_one, &inverse_camera_matrix_one, &camera_matrix_two ,&inverse_camera_matrix_two, positive_principal_distance); 
-                        //let e = tensor::ransac_five_point_essential(m_norm, &camera_matrix_one, &inverse_camera_matrix_one, &camera_matrix_two ,&inverse_camera_matrix_two,1e-2,5e4 as usize, positive_principal_distance); 
+                        let f = tensor::compute_fundamental(&e, &inverse_camera_matrix_one, &inverse_camera_matrix_two);
+
+                        let filtered_indices = tensor::select_best_matches_from_fundamental(&f,m_norm,perc_tresh, epipolar_tresh, 1.0);
+                        let filtered_norm = filtered_indices.iter().map(|i| m_norm[*i].clone()).collect::<Vec<Match<Feat>>>();
+                        let filtered = filtered_indices.iter().map(|i| m[*i].clone()).collect::<Vec<Match<Feat>>>();
+
+                        (e, filtered_norm, filtered)
+                    },
+                    tensor::BifocalType::ESSENTIAL_RANSAC => {
+                        let e = tensor::ransac_five_point_essential(m_norm, &camera_matrix_one, &inverse_camera_matrix_one, &camera_matrix_two ,&inverse_camera_matrix_two,1e0,5e4 as usize, positive_principal_distance); 
                         let f = tensor::compute_fundamental(&e, &inverse_camera_matrix_one, &inverse_camera_matrix_two);
 
                         let filtered_indices = tensor::select_best_matches_from_fundamental(&f,m_norm,perc_tresh, epipolar_tresh, 1.0);
@@ -474,7 +483,7 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
                 
                 println!("{:?}: Number of matches: {}", key, &f_m_norm.len());
                 // The pose transforms id2 into the coordiante system of id1
-                let (iso3_opt,_) = tensor::decompose_essential_förstner(&e,&f_m_norm,&inverse_camera_matrix_two, &inverse_camera_matrix_two,positive_principal_distance);
+                let (iso3_opt,_) = tensor::decompose_essential_förstner(&e,&f_m_norm,&inverse_camera_matrix_two, &inverse_camera_matrix_two);
                 let _ = match iso3_opt {
                     Some(isometry) => pose_map.insert(key, isometry),
                     None => {

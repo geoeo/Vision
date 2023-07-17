@@ -136,7 +136,7 @@ pub fn cheirality_check<T: Feature + Clone>(
     
     let number_of_points = matches.len();
     for e in all_essential_matricies {
-        let (iso3_option,e_corrected) = decompose_essential_förstner(&e,matches,points_cam_1.2,points_cam_2.2,positive_principal_distance);
+        let (iso3_option,e_corrected) = decompose_essential_förstner(&e,matches,points_cam_1.2,points_cam_2.2);
         match iso3_option {
             Some(iso3) => {
                 let se3 = iso3.to_matrix();
