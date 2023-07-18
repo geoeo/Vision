@@ -1,7 +1,7 @@
 extern crate nalgebra as na;
 extern crate nalgebra_lapack;
 
-use na::{Matrix3,Matrix4, OMatrix ,Matrix3xX, SVector, Dyn, dimension::{U10,U20,U9,U3}};
+use na::{Matrix3,Matrix4, OMatrix ,Matrix3xX, SVector, Dyn, dimension::{U10,U20,U9,U3},linalg::SymmetricEigen};
 use crate::{Float,float};
 use crate::image::features::{Feature,matches::Match};
 use crate::sfm::{triangulation::linear_triangulation_svd,epipolar::{Essential,tensor::decompose_essential_förstner}};
@@ -59,8 +59,13 @@ pub fn five_point_essential<T: Feature + Clone>(matches: &Vec<Match<T>>, project
         },
         _ => {
             // Enforce Rank of 5
-            let A_hat = A.transpose()*A;
+            let A_hat = A.transpose()*&A;
             let mut svd = A_hat.svd(true,true);
+            let u = svd.u.unwrap();
+            let vt = svd.v_t.unwrap();
+
+            svd.u = Some(u*u.determinant());
+            svd.v_t = Some(vt*vt.determinant());
             svd.singular_values[5] = 0.0;
             svd.singular_values[6] = 0.0;
             svd.singular_values[7] = 0.0;
@@ -68,7 +73,7 @@ pub fn five_point_essential<T: Feature + Clone>(matches: &Vec<Match<T>>, project
 
             let A_reg = svd.recompose().ok().expect("SVD recomposition failed");
             //TODO: This does not seem to be robust with the rank enforcement
-            let eigen = nalgebra_lapack::SymmetricEigen::new(A_reg);
+            let eigen = SymmetricEigen::new(A_reg);
             let eigenvectors = eigen.eigenvectors;
             let mut indexed_eigenvalues = eigen.eigenvalues.iter().enumerate().map(|(i,v)| (i,*v)).collect::<Vec<(usize, Float)>>();
             indexed_eigenvalues.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
