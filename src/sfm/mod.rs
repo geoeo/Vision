@@ -460,7 +460,7 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
                         (e, filtered_norm, filtered)
                     },
                     tensor::BifocalType::ESSENTIAL_RANSAC => {
-                        let e = tensor::ransac_five_point_essential(m_norm, &camera_matrix_one, &inverse_camera_matrix_one, &camera_matrix_two ,&inverse_camera_matrix_two,1e0,5e4 as usize, positive_principal_distance); 
+                        let e = tensor::ransac_five_point_essential(m_norm, &camera_matrix_one, &inverse_camera_matrix_one, &camera_matrix_two ,&inverse_camera_matrix_two,1e0,8e4 as usize, positive_principal_distance); 
                         let f = tensor::compute_fundamental(&e, &inverse_camera_matrix_one, &inverse_camera_matrix_two);
 
                         let filtered_indices = tensor::select_best_matches_from_fundamental(&f,m_norm,perc_tresh, epipolar_tresh, 1.0);

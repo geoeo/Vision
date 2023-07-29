@@ -86,8 +86,8 @@ name = "olsson"
 path = "examples/sfm/olsson.rs"
 
 [[example]]
-name = "gltf"
-path = "examples/sfm/gltf.rs"
+name = "cg_models"
+path = "examples/sfm/cg_models.rs"
 
 [[example]]
 name = "io_matrix"

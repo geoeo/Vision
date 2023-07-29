@@ -35,10 +35,10 @@
             "env": {"RUST_BACKTRACE":"full"}
         },
         {
-            "name": "BA Gltf",
+            "name": "BA cg_models",
             "type": "lldb",
             "request": "launch",
-            "program": "${workspaceFolder}/target/debug/examples/gltf",
+            "program": "${workspaceFolder}/target/debug/examples/cg_models",
             "args": [],
             "cwd": "${workspaceFolder}",
             "preLaunchTask": "build examples",

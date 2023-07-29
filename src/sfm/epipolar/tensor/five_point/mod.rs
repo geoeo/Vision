@@ -15,7 +15,7 @@ mod constraints;
  * This only work on ubuntu. assert build version or something
  */
 #[allow(non_snake_case)]
-pub fn five_point_essential<T: Feature + Clone>(matches: &Vec<Match<T>>, projection_one: &Matrix3<Float>, inverse_projection_one: &Matrix3<Float>, projection_two:&Matrix3<Float>,inverse_projection_two: &Matrix3<Float>, positive_principal_distance: bool) -> Option<Essential> {
+pub fn five_point_essential<T: Feature + Clone>(matches: &Vec<Match<T>>, projection_one: &Matrix3<Float>, inverse_projection_one: &Matrix3<Float>, projection_two:&Matrix3<Float>,inverse_projection_two: &Matrix3<Float>) -> Option<Essential> {
     let l = matches.len();
     
     let mut camera_rays_one = Matrix3xX::<Float>::zeros(l);
@@ -58,22 +58,8 @@ pub fn five_point_essential<T: Feature + Clone>(matches: &Vec<Match<T>>, project
             (u1, u2, u3, u4)
         },
         _ => {
-            // Enforce Rank of 5
             let A_hat = A.transpose()*&A;
-            let mut svd = A_hat.svd(true,true);
-            let u = svd.u.unwrap();
-            let vt = svd.v_t.unwrap();
-
-            svd.u = Some(u*u.determinant());
-            svd.v_t = Some(vt*vt.determinant());
-            svd.singular_values[5] = 0.0;
-            svd.singular_values[6] = 0.0;
-            svd.singular_values[7] = 0.0;
-            svd.singular_values[8] = 0.0;
-
-            let A_reg = svd.recompose().ok().expect("SVD recomposition failed");
-            //TODO: This does not seem to be robust with the rank enforcement
-            let eigen = SymmetricEigen::new(A_reg);
+            let eigen = SymmetricEigen::new(A_hat);
             let eigenvectors = eigen.eigenvectors;
             let mut indexed_eigenvalues = eigen.eigenvalues.iter().enumerate().map(|(i,v)| (i,*v)).collect::<Vec<(usize, Float)>>();
             indexed_eigenvalues.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
@@ -93,36 +79,42 @@ pub fn five_point_essential<T: Feature + Clone>(matches: &Vec<Match<T>>, project
     let M = generate_five_point_constrait_matrix(&E1,&E2,&E3,&E4);
     let C = M.fixed_columns::<10>(0);
     let D = M.fixed_columns::<10>(10);
-    let B = -C.try_inverse().expect("Five Point: Inverse of C failed!")*D;
-
-    let mut action_matrix = OMatrix::<Float,U10,U10>::zeros();
-    action_matrix.fixed_rows_mut::<3>(0).copy_from(&B.fixed_rows::<3>(0));
-    action_matrix.fixed_rows_mut::<1>(3).copy_from(&B.fixed_rows::<1>(4));
-    action_matrix.fixed_rows_mut::<1>(4).copy_from(&B.fixed_rows::<1>(5));
-    action_matrix.fixed_rows_mut::<1>(5).copy_from(&B.fixed_rows::<1>(7));
-    action_matrix[(6,0)] = 1.0;
-    action_matrix[(7,1)] = 1.0;
-    action_matrix[(8,3)] = 1.0;
-    action_matrix[(9,6)] = 1.0;
-
-    let eigen = nalgebra_lapack::Eigen::new(action_matrix.transpose(), false, true).expect("Five Point: eigenvector computation failed!");
-    let eigen_v = eigen.eigenvectors.expect("Five Point: could not retrieve right eigenvectors!");
-
-    let mut real_eigenvectors = Vec::<SVector::<Float,10>>::with_capacity(10);
-    for i in 0..10 {
-        real_eigenvectors.push(eigen_v.column(i).into_owned());
+    let C_inv_option = C.try_inverse();
+    match C_inv_option {
+        Some(C_inv) => {
+            let B = -C_inv*D;
+            let mut action_matrix = OMatrix::<Float,U10,U10>::zeros();
+            action_matrix.fixed_rows_mut::<3>(0).copy_from(&B.fixed_rows::<3>(0));
+            action_matrix.fixed_rows_mut::<1>(3).copy_from(&B.fixed_rows::<1>(4));
+            action_matrix.fixed_rows_mut::<1>(4).copy_from(&B.fixed_rows::<1>(5));
+            action_matrix.fixed_rows_mut::<1>(5).copy_from(&B.fixed_rows::<1>(7));
+            action_matrix[(6,0)] = 1.0;
+            action_matrix[(7,1)] = 1.0;
+            action_matrix[(8,3)] = 1.0;
+            action_matrix[(9,6)] = 1.0;
+        
+            let eigen = nalgebra_lapack::Eigen::new(action_matrix.transpose(), false, true).expect("Five Point: eigenvector computation failed!");
+            let eigen_v = eigen.eigenvectors.expect("Five Point: could not retrieve right eigenvectors!");
+        
+            let mut real_eigenvectors = Vec::<SVector::<Float,10>>::with_capacity(10);
+            for i in 0..10 {
+                real_eigenvectors.push(eigen_v.column(i).into_owned());
+            }
+            
+            let all_essential_matricies = real_eigenvectors.iter().map(|vec| {
+                let x = vec[6]/vec[9];
+                let y = vec[7]/vec[9];
+                let z = vec[8]/vec[9];
+        
+                x*E1+y*E2+z*E3+E4
+            }).collect::<Vec<Essential>>();
+            let best_essential = cheirality_check(&all_essential_matricies, matches,false,(&features_one, projection_one, inverse_projection_one), (&features_two, projection_two,inverse_projection_two));
+            
+            best_essential
+        },
+        None => None
     }
-    
-    let all_essential_matricies = real_eigenvectors.iter().map(|vec| {
-        let x = vec[6]/vec[9];
-        let y = vec[7]/vec[9];
-        let z = vec[8]/vec[9];
 
-        x*E1+y*E2+z*E3+E4
-    }).collect::<Vec<Essential>>();
-    let best_essential = cheirality_check(&all_essential_matricies, matches,false,(&features_one, projection_one, inverse_projection_one), (&features_two, projection_two,inverse_projection_two));
-    
-    best_essential
 }
 
 #[allow(non_snake_case)]
@@ -171,7 +163,7 @@ pub fn cheirality_check<T: Feature + Clone>(
         
                         if  !det.is_nan() && ((accepted_cheirality_count >= max_accepted_cheirality_count) ||
                             ((accepted_cheirality_count == max_accepted_cheirality_count) && det < smallest_det)) {
-                            best_e = Some(e_corrected.clone());
+                            best_e = Some(e_corrected.normalize());
                             smallest_det = det;
                             max_accepted_cheirality_count = accepted_cheirality_count;
                         }

@@ -1,7 +1,7 @@
 use color_eyre::eyre::Result;
 
 use std::collections::{HashMap, HashSet};
-use vision::{Float,float,load_runtime_conf};
+use vision::{Float,load_runtime_conf};
 use vision::sfm::{triangulation::Triangulation,SFMConfig, bundle_adjustment::run_ba, epipolar::tensor::BifocalType};
 use vision::sensors::camera::perspective::Perspective;
 use vision::image::features::{matches::Match,image_feature::ImageFeature};
@@ -11,10 +11,8 @@ use vision::numerics::{loss, weighting};
 fn main() -> Result<()> {
     color_eyre::install()?;
     let runtime_conf = load_runtime_conf();
-    //let file_name = "camera_features_Suzanne_all.yaml";
-    //let file_name = "camera_features_Suzanne_x.yaml";
-    //let file_name = "camera_features_Suzanne.yaml";
-    let file_name = "camera_features_Sphere.yaml";
+    let file_name = "camera_features_Suzanne_large.yaml";
+    //let file_name = "camera_features_sphere.yaml";
     let path = format!("{}/{}",runtime_conf.local_data_path,file_name);
     let loaded_data = models_cv::io::deserialize_feature_matches(&path);
 
@@ -70,7 +68,7 @@ fn main() -> Result<()> {
     let root_id = camera_id_pairs[0].0;
 
     let sfm_config_fundamental = SFMConfig::new(root_id, &paths, camera_map, &match_map, 
-        BifocalType::ESSENTIAL_RANSAC, Triangulation::LINEAR, 1.0, 5e0, 5e2, 1.0, false, false, true); // Investigate epipolar thresh -> more deterministic wither lower value?
+        BifocalType::FUNDAMENTAL, Triangulation::LINEAR, 1.0, 2e0, 5e1, 1.0, true, true, true); // Investigate epipolar thresh -> more deterministic wither lower value?
 
     for (key, pose) in sfm_config_fundamental.pose_map().iter() {
         println!("Key: {:?}, Pose: {:?}", key, pose)
@@ -78,8 +76,8 @@ fn main() -> Result<()> {
 
     let runtime_parameters = RuntimeParameters {
         pyramid_scale: 1.0,
-        max_iterations: vec![5e4 as usize; 1],
-        eps: vec![1e-3],
+        max_iterations: vec![8e4 as usize; 1],
+        eps: vec![1e-32],
         step_sizes: vec![1e0],
         max_norm_eps: 1e-30, 
 
