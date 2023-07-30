@@ -97,9 +97,9 @@ fn main() -> Result<()> {
 
     let ((cam_positions,points),(s,debug_states_serialized)) = run_ba(&sfm_config, &runtime_parameters);
     //let ((cam_positions,points),(s,debug_states_serialized)) = run_ba(&sfm_config.matches(), &sfm_config, None, (480,640), &runtime_parameters, 1.0,depth_prior);
-    fs::write(format!("{}/{}",runtime_conf.output_path,"ba_synthetic.txt"), s?).expect("Unable to write file");
+    fs::write(format!("{}/{}",runtime_conf.output_path,"ba.txt"), s?).expect("Unable to write file");
     if runtime_parameters.debug {
-        fs::write(format!("{}/{}",runtime_conf.output_path,"ba_synthetic_debug.txt"), debug_states_serialized?).expect("Unable to write file");
+        fs::write(format!("{}/{}",runtime_conf.output_path,"ba_debug.txt"), debug_states_serialized?).expect("Unable to write file");
     }
    
     Ok(())

@@ -104,7 +104,7 @@ fn main() -> Result<()> {
         cg_max_it: 2e3 as usize
     };
     let (_,(s,_)) = run_ba(&sfm_config_fundamental, &runtime_parameters);
-    std::fs::write(format!("{}/glft.txt",runtime_conf.output_path), s?).expect("Unable to write file");
+    std::fs::write(format!("{}/ba.txt",runtime_conf.output_path), s?).expect("Unable to write file");
 
     Ok(())
 }

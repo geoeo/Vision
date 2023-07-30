@@ -108,7 +108,7 @@ fn main() -> Result<()> {
     //TODO: implement switch for loftr matches!
     let (match_map, camera_map) = olsen_data.get_data_for_sfm(root_id, &paths, positive_principal_distance, invert_focal_length, invert_y, feature_skip_count, olsen_dataset_name);
     let sfm_config_fundamental = SFMConfig::new(root_id, &paths, camera_map, &match_map, 
-    BifocalType::ESSENTIAL_RANSAC, Triangulation::LINEAR, 1.0, 1.0e0, 5e0, 10.0, refince_rotation_via_rcd, true);
+    BifocalType::ESSENTIAL, Triangulation::LINEAR, 1.0, 1.0e0, 5e2, 10.0, refince_rotation_via_rcd, true);
 
     for (key, pose) in sfm_config_fundamental.pose_map().iter() {
         println!("Key: {:?}, Pose: {:?}", key, pose)
@@ -142,9 +142,9 @@ fn main() -> Result<()> {
     };
 
     let ((_,_),(s,debug_states_serialized)) = run_ba(&sfm_config_fundamental, &runtime_parameters);
-    fs::write(format!("{}/olsen.txt",runtime_conf.output_path), s?).expect("Unable to write file");
+    fs::write(format!("{}/ba.txt",runtime_conf.output_path), s?).expect("Unable to write file");
     if runtime_parameters.debug {
-        fs::write(format!("{}/olsen_debug.txt",runtime_conf.output_path), debug_states_serialized?).expect("Unable to write file");
+        fs::write(format!("{}/ba_debug.txt",runtime_conf.output_path), debug_states_serialized?).expect("Unable to write file");
     }
 
     Ok(())
