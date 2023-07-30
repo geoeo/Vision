@@ -11,7 +11,9 @@ use vision::numerics::{loss, weighting};
 fn main() -> Result<()> {
     color_eyre::install()?;
     let runtime_conf = load_runtime_conf();
-    let file_name = "camera_features_Suzanne_large.yaml";
+    let file_name = "camera_features_Suzanne_trans_x.yaml";
+    //let file_name = "camera_features_Suzanne_large.yaml";
+    //let file_name = "camera_features_sphere_trans_x.yaml";
     //let file_name = "camera_features_sphere.yaml";
     let path = format!("{}/{}",runtime_conf.local_data_path,file_name);
     let loaded_data = models_cv::io::deserialize_feature_matches(&path);
@@ -29,8 +31,14 @@ fn main() -> Result<()> {
         (cam_id,map)
     }).collect::<HashMap<_,_>>();
 
-    //let camera_id_pairs = vec!((1,2));
-    let camera_id_pairs = vec!((0,1));
+    let camera_poses = loaded_data.iter().map(|cf|  {
+        let cam_id = cf.get_cam_id();
+        let map = cf.get_view_matrix();
+        (cam_id,map)
+    }).collect::<HashMap<_,_>>();
+
+    let camera_id_pairs = vec!((1,2));
+    //let camera_id_pairs = vec!((0,1));
     //let camera_id_pairs = vec!((0,2));
     //let camera_id_pairs = vec!((0,1),(1,2));
 
@@ -68,16 +76,20 @@ fn main() -> Result<()> {
     let root_id = camera_id_pairs[0].0;
 
     let sfm_config_fundamental = SFMConfig::new(root_id, &paths, camera_map, &match_map, 
-        BifocalType::FUNDAMENTAL, Triangulation::LINEAR, 1.0, 2e0, 5e1, 1.0, true, true, true); // Investigate epipolar thresh -> more deterministic wither lower value?
-
+        BifocalType::ESSENTIAL_RANSAC, Triangulation::LINEAR, 1.0, 2e0, 5e2, 1.0, true, true, true); // Investigate epipolar thresh -> more deterministic wither lower value?
+    
+    let initial_z = sfm_config_fundamental.pose_map().get(&camera_id_pairs[0]).unwrap().translation.z;
     for (key, pose) in sfm_config_fundamental.pose_map().iter() {
-        println!("Key: {:?}, Pose: {:?}", key, pose)
+        let translation = pose.translation;
+        let z = translation.z;
+        let scale = initial_z / z;
+        println!("Key: {:?}, Pose: {:?}, Scale: {}", key, pose,scale);
     }
 
     let runtime_parameters = RuntimeParameters {
         pyramid_scale: 1.0,
         max_iterations: vec![8e4 as usize; 1],
-        eps: vec![1e-32],
+        eps: vec![1e-8],
         step_sizes: vec![1e0],
         max_norm_eps: 1e-30, 
 

@@ -108,7 +108,7 @@ pub fn five_point_essential<T: Feature + Clone>(matches: &Vec<Match<T>>, project
         
                 x*E1+y*E2+z*E3+E4
             }).collect::<Vec<Essential>>();
-            let best_essential = cheirality_check(&all_essential_matricies, matches,false,(&features_one, projection_one, inverse_projection_one), (&features_two, projection_two,inverse_projection_two));
+            let best_essential = cheirality_check(&all_essential_matricies, matches,true,(&features_one, projection_one, inverse_projection_one), (&features_two, projection_two,inverse_projection_two));
             
             best_essential
         },
@@ -163,7 +163,7 @@ pub fn cheirality_check<T: Feature + Clone>(
         
                         if  !det.is_nan() && ((accepted_cheirality_count >= max_accepted_cheirality_count) ||
                             ((accepted_cheirality_count == max_accepted_cheirality_count) && det < smallest_det)) {
-                            best_e = Some(e_corrected.normalize());
+                            best_e = Some(e_corrected.clone());
                             smallest_det = det;
                             max_accepted_cheirality_count = accepted_cheirality_count;
                         }
