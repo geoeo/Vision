@@ -108,7 +108,7 @@ pub fn five_point_essential<T: Feature + Clone>(matches: &Vec<Match<T>>, project
         
                 x*E1+y*E2+z*E3+E4
             }).collect::<Vec<Essential>>();
-            let best_essential = cheirality_check(&all_essential_matricies, matches,true,(&features_one, projection_one, inverse_projection_one), (&features_two, projection_two,inverse_projection_two));
+            let best_essential = cheirality_check(&all_essential_matricies, matches,(&features_one, projection_one, inverse_projection_one), (&features_two, projection_two,inverse_projection_two));
             
             best_essential
         },
@@ -121,7 +121,6 @@ pub fn five_point_essential<T: Feature + Clone>(matches: &Vec<Match<T>>, project
 pub fn cheirality_check<T: Feature + Clone>(
         all_essential_matricies: &Vec<Essential>,
         matches: &Vec<Match<T>>,
-        positive_principal_distance: bool,
         points_cam_1: (&OMatrix<Float, U3,Dyn>, &Matrix3<Float>,&Matrix3<Float>), 
         points_cam_2: (&OMatrix<Float, U3,Dyn>, &Matrix3<Float>,&Matrix3<Float>)) -> Option<Essential> {
     let mut max_accepted_cheirality_count = 0;
@@ -143,7 +142,7 @@ pub fn cheirality_check<T: Feature + Clone>(
                 let p1_points = points_cam_1.0;
                 let p2_points = points_cam_2.0;
         
-                let Xs_option = Some(linear_triangulation_svd(&vec!((&p1_points,&projection_1),(&p2_points,&projection_2)),positive_principal_distance, false));
+                let Xs_option = Some(linear_triangulation_svd(&vec!((&p1_points,&projection_1),(&p2_points,&projection_2)), false));
         
                 match Xs_option {
                     Some(Xs) => {
@@ -155,7 +154,7 @@ pub fn cheirality_check<T: Feature + Clone>(
                             let d1 = p1_x[(2,i)];
                             let d2 = p2_x[(2,i)];
         
-                            if (positive_principal_distance && d1 > 0.0 && d2 > 0.0) || (!positive_principal_distance && d1 < 0.0 && d2 < 0.0) {
+                            if d1 > 0.0 && d2 > 0.0 {
                                 accepted_cheirality_count += 1 
                             }
                         }

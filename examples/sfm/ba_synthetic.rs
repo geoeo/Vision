@@ -93,7 +93,7 @@ fn main() -> Result<()> {
     //let sfm_config = SFMConfig::new(2, &vec!(vec!(1,0,3,4)), camera_map, &HashMap::from([((2,1),matches_2_1),((1,0),matches_1_0),((0,3),matches_0_3),((3,4),matches_3_4)]),
     //let sfm_config = SFMConfig::new(3, &vec!(vec!(4)), camera_map.clone(), camera_map, vec!(vec!(matches_3_4)),
 
-    BifocalType::ESSENTIAL,  Triangulation::LINEAR, perc_tresh, 1e-1, 5e1, 5.0, refine_rotation_via_rcd, true, positive_principal_distance);
+    BifocalType::ESSENTIAL,  Triangulation::LINEAR, perc_tresh, 1e-1, 5e1, 5.0, refine_rotation_via_rcd, true);
 
     let ((cam_positions,points),(s,debug_states_serialized)) = run_ba(&sfm_config, &runtime_parameters);
     //let ((cam_positions,points),(s,debug_states_serialized)) = run_ba(&sfm_config.matches(), &sfm_config, None, (480,640), &runtime_parameters, 1.0,depth_prior);

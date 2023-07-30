@@ -60,7 +60,7 @@ pub fn select_best_matches_from_fundamental<T: Feature + Clone>(F: &Fundamental,
     sorted_indices_sub.into_iter().map(|(i,_)| i).collect()
 }
 
-pub fn ransac_five_point_essential<T: Feature + Clone>(matches: &Vec<Match<T>>,projection_one: &Matrix3<Float>, inverse_projection_one: &Matrix3<Float>, projection_two:&Matrix3<Float>,inverse_projection_two: &Matrix3<Float>, epipolar_thresh: Float, ransac_it: usize, positive_principal_distance: bool) -> Essential {
+pub fn ransac_five_point_essential<T: Feature + Clone>(matches: &Vec<Match<T>>,projection_one: &Matrix3<Float>, inverse_projection_one: &Matrix3<Float>, projection_two:&Matrix3<Float>,inverse_projection_two: &Matrix3<Float>, epipolar_thresh: Float, ransac_it: usize) -> Essential {
     let mut max_inlier_count = 0;
     let mut best_essential: Option<Essential> = None;
     let number_of_matches = matches.len();
@@ -102,7 +102,7 @@ pub fn calc_sampson_distance_inliers_for_fundamental<T: Feature>(F: &Fundamental
     matches.iter().map(|m| calc_sampson_distance_for_fundamental(F,m, focal)).filter(|&v| v < thresh).count()
 }
 
-pub fn five_point_essential<T: Feature + Clone>(matches: &Vec<Match<T>>, projection_one: &Matrix3<Float>, inverse_projection_one: &Matrix3<Float>, projection_two:&Matrix3<Float>,inverse_projection_two: &Matrix3<Float>, positive_principal_distance: bool) -> Essential {
+pub fn five_point_essential<T: Feature + Clone>(matches: &Vec<Match<T>>, projection_one: &Matrix3<Float>, inverse_projection_one: &Matrix3<Float>, projection_two:&Matrix3<Float>,inverse_projection_two: &Matrix3<Float>) -> Essential {
     five_point::five_point_essential(&matches,projection_one,inverse_projection_one,projection_two,inverse_projection_two).expect("five_point_essential: failed")
 }
 

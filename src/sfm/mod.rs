@@ -52,8 +52,7 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
         landmark_cutoff_thresh: Float,
         disparity_cutoff_thresh: Float,
         refine_rotation_via_rcd: bool,
-        run_outlier_detection_pipeline: bool,
-        positive_principal_distance: bool) -> SFMConfig<C,Feat> {
+        run_outlier_detection_pipeline: bool) -> SFMConfig<C,Feat> {
 
         let paths_pairs_as_vec = compute_path_pairs_as_vec(root,paths);
         let camera_ids_root_first = Self::get_sorted_camera_keys(root, paths);
@@ -79,12 +78,11 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
             &camera_norm_map,
             perc_tresh, 
             epipolar_thresh,
-            epipolar_alg,
-            positive_principal_distance);
+            epipolar_alg);
             
         let (_,mut unique_landmark_ids) = compute_continuous_landmark_ids_from_matches(&mut match_norm_map, &mut match_map,None, None);
         let (mut landmark_map, mut reprojection_error_map) 
-            = Self::compute_landmarks_and_reprojection_maps(root,&paths,&pose_map,&match_norm_map,&camera_norm_map,triangulation, positive_principal_distance);
+            = Self::compute_landmarks_and_reprojection_maps(root,&paths,&pose_map,&match_norm_map,&camera_norm_map,triangulation);
         let path_id_pairs = compute_path_id_pairs(root, paths);
         let path_id_pairs_flat = path_id_pairs.iter().flatten().collect::<Vec<_>>();
         let mut abs_pose_map = compute_absolute_poses_for_root(root, &path_id_pairs, &pose_map);
@@ -103,7 +101,7 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
         if refine_rotation_via_rcd {
             let new_pose_map = Self::refine_rotation_by_rcd(root, &paths, &pose_map);
             let (mut new_landmark_map, mut new_reprojection_error_map) 
-                = Self::compute_landmarks_and_reprojection_maps(root,&paths,&new_pose_map, &match_norm_map, &camera_norm_map,triangulation, positive_principal_distance);
+                = Self::compute_landmarks_and_reprojection_maps(root,&paths,&new_pose_map, &match_norm_map, &camera_norm_map,triangulation);
             let keys = landmark_map.keys().map(|k| *k).collect::<Vec<_>>();
             for key in keys {
                 let new_reprojection_errors = new_reprojection_error_map.get(&key).unwrap();
@@ -194,8 +192,7 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
         pose_map: &HashMap<(usize, usize), Isometry3<Float>>, 
         match_map: &HashMap<(usize, usize),Vec<Match<Feat>>>, 
         camera_map: &HashMap<usize, C>,
-        triangulation: Triangulation,
-        positive_principal_distance: bool) -> (HashMap<(usize,usize),Matrix4xX<Float>>, HashMap<(usize,usize), DVector<Float>>) {
+        triangulation: Triangulation) -> (HashMap<(usize,usize),Matrix4xX<Float>>, HashMap<(usize,usize), DVector<Float>>) {
 
         let mut triangulated_match_map = HashMap::<(usize,usize),Matrix4xX<Float>>::with_capacity(match_map.len());
         let mut reprojection_map = HashMap::<(usize,usize),DVector<Float>>::with_capacity(match_map.len());
@@ -203,7 +200,7 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
         let path_pairs = compute_path_pairs_as_vec(root,paths);
         for path in &path_pairs{
             for path_pair in path {
-                let trigulated_matches = triangulate_matches(*path_pair,&pose_map,&match_map,&camera_map,triangulation, positive_principal_distance);
+                let trigulated_matches = triangulate_matches(*path_pair,&pose_map,&match_map,&camera_map,triangulation);
 
                 let se3 = pose_map.get(path_pair).expect(format!("compute_landmarks_and_reprojection_maps: pose not found with key: {:?}",path_pair).as_str()).to_matrix();
                 let ms = match_map.get(path_pair).expect(format!("compute_landmarks_and_reprojection_maps: matches not found with key: {:?}",path_pair).as_str());
@@ -419,8 +416,7 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
             camera_norm_map: &HashMap<usize, C>,
             perc_tresh: Float, 
             epipolar_tresh: Float,
-            epipolar_alg: tensor::BifocalType,
-            positive_principal_distance: bool) 
+            epipolar_alg: tensor::BifocalType) 
         ->  HashMap<(usize, usize), Isometry3<Float>> {
             let mut pose_map = HashMap::<(usize, usize), Isometry3<Float>>::with_capacity(match_norm_map.len());
             let match_keys : Vec<_> = match_norm_map.iter().map(|(k,_)| *k).collect();
@@ -450,7 +446,7 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
                         (e, filtered_norm, filtered)
                     },
                     tensor::BifocalType::ESSENTIAL => {
-                        let e = tensor::five_point_essential(m_norm, &camera_matrix_one, &inverse_camera_matrix_one, &camera_matrix_two ,&inverse_camera_matrix_two, positive_principal_distance); 
+                        let e = tensor::five_point_essential(m_norm, &camera_matrix_one, &inverse_camera_matrix_one, &camera_matrix_two ,&inverse_camera_matrix_two); 
                         let f = tensor::compute_fundamental(&e, &inverse_camera_matrix_one, &inverse_camera_matrix_two);
 
                         let filtered_indices = tensor::select_best_matches_from_fundamental(&f,m_norm,perc_tresh, epipolar_tresh, 1.0);
@@ -460,7 +456,7 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
                         (e, filtered_norm, filtered)
                     },
                     tensor::BifocalType::ESSENTIAL_RANSAC => {
-                        let e = tensor::ransac_five_point_essential(m_norm, &camera_matrix_one, &inverse_camera_matrix_one, &camera_matrix_two ,&inverse_camera_matrix_two,1e0,8e4 as usize, positive_principal_distance); 
+                        let e = tensor::ransac_five_point_essential(m_norm, &camera_matrix_one, &inverse_camera_matrix_one, &camera_matrix_two ,&inverse_camera_matrix_two,1e0,8e4 as usize); 
                         let f = tensor::compute_fundamental(&e, &inverse_camera_matrix_one, &inverse_camera_matrix_two);
 
                         let filtered_indices = tensor::select_best_matches_from_fundamental(&f,m_norm,perc_tresh, epipolar_tresh, 1.0);

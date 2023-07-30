@@ -5,9 +5,7 @@ extern crate nalgebra as na;
 
 use color_eyre::eyre::Result;
 use na::{SVector, Matrix3};
-use vision::image::{
-    features::{matches::Match, image_feature::ImageFeature}
-};
+use vision::image::features::{matches::Match, image_feature::ImageFeature};
 use vision::sfm::epipolar;
 use vision::sensors::camera::{perspective::Perspective, Camera};
 use vision::io::{octave_loader};
@@ -22,7 +20,6 @@ fn main() -> Result<()> {
     let t_raw = octave_loader::load_vector(&format!("{}/5_point_synthetic/translation.txt",runtime_conf.local_data_path));
     let x1h = octave_loader::load_matrix(&format!("{}/5_point_synthetic/cam1_features.txt",runtime_conf.local_data_path));
     let x2h = octave_loader::load_matrix(&format!("{}/5_point_synthetic/cam2_features.txt",runtime_conf.local_data_path));
-    let positive_principal_distance = true;
     let invert_focal_length = false;
 
 
@@ -127,7 +124,7 @@ fn main() -> Result<()> {
         feature_matches.push(all_feature_matches[i].clone());
     }
 
-    let five_point_essential_matrix = epipolar::tensor::five_point_essential(&feature_matches,&intensity_camera_1.get_projection(),&intensity_camera_1.get_inverse_projection(),&intensity_camera_2.get_projection(),&intensity_camera_2.get_inverse_projection(),positive_principal_distance);
+    let five_point_essential_matrix = epipolar::tensor::five_point_essential(&feature_matches,&intensity_camera_1.get_projection(),&intensity_camera_1.get_inverse_projection(),&intensity_camera_2.get_projection(),&intensity_camera_2.get_inverse_projection());
     let (iso3_opt,_) = epipolar::tensor::decompose_essential_förstner(&five_point_essential_matrix,&feature_matches,&intensity_camera_1.get_inverse_projection(),&intensity_camera_2.get_inverse_projection());
     let iso3 = iso3_opt.unwrap();
     let factor = five_point_essential_matrix[(2,2)];

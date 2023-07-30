@@ -76,7 +76,7 @@ fn main() -> Result<()> {
     let root_id = camera_id_pairs[0].0;
 
     let sfm_config_fundamental = SFMConfig::new(root_id, &paths, camera_map, &match_map, 
-        BifocalType::ESSENTIAL_RANSAC, Triangulation::LINEAR, 1.0, 2e0, 5e2, 1.0, true, true, true); // Investigate epipolar thresh -> more deterministic wither lower value?
+        BifocalType::ESSENTIAL_RANSAC, Triangulation::LINEAR, 1.0, 2e0, 5e2, 1.0, true, true); // Investigate epipolar thresh -> more deterministic wither lower value?
     
     let initial_z = sfm_config_fundamental.pose_map().get(&camera_id_pairs[0]).unwrap().translation.z;
     for (key, pose) in sfm_config_fundamental.pose_map().iter() {
