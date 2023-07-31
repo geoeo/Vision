@@ -74,8 +74,9 @@ fn main() -> Result<()> {
 
     let paths = vec![camera_id_pairs.iter().map(|&(_,c)| c).collect::<Vec<_>>()];
     let root_id = camera_id_pairs[0].0;
+    let pose_map_gt = None; //TODO
 
-    let sfm_config_fundamental = SFMConfig::new(root_id, &paths, camera_map, &match_map, 
+    let sfm_config_fundamental = SFMConfig::new(root_id, &paths, pose_map_gt, camera_map, &match_map, 
         BifocalType::ESSENTIAL_RANSAC, Triangulation::LINEAR, 1.0, 2e0, 5e2, 1.0, true, true); // Investigate epipolar thresh -> more deterministic wither lower value?
     
     let initial_z = sfm_config_fundamental.pose_map().get(&camera_id_pairs[0]).unwrap().translation.z;

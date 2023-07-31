@@ -178,7 +178,6 @@ pub fn cheirality_check<T: Feature + Clone>(
 
 #[allow(non_snake_case)]
 pub fn generate_five_point_constrait_matrix(E1: &Matrix3<Float>, E2: &Matrix3<Float>, E3: &Matrix3<Float>, E4: &Matrix3<Float>) -> OMatrix<Float,U10,U20> {
-
     let c_det_coeffs = constraints::get_determinant_constraints_coeffs(E1, E2, E3, E4);
     let c_1_coeffs = constraints::get_c1_constraints_coeffs(E1, E2, E3, E4);
     let c_2_coeffs = constraints::get_c2_constraints_coeffs(E1, E2, E3, E4);

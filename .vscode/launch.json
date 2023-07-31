@@ -15,16 +15,6 @@
             "env": {"RUST_BACKTRACE":"full"}
         },
         {
-            "name": "BA Synthetic",
-            "type": "lldb",
-            "request": "launch",
-            "program": "${workspaceFolder}/target/debug/examples/ba_synthetic",
-            "args": [],
-            "cwd": "${workspaceFolder}",
-            "preLaunchTask": "build examples",
-            "env": {"RUST_BACKTRACE":"full"}
-        },
-        {
             "name": "Olsson",
             "type": "lldb",
             "request": "launch",
@@ -35,10 +25,10 @@
             "env": {"RUST_BACKTRACE":"full"}
         },
         {
-            "name": "BA cg_models",
+            "name": "BA synthetic",
             "type": "lldb",
             "request": "launch",
-            "program": "${workspaceFolder}/target/debug/examples/cg_models",
+            "program": "${workspaceFolder}/target/debug/examples/synthetic",
             "args": [],
             "cwd": "${workspaceFolder}",
             "preLaunchTask": "build examples",

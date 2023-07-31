@@ -4,7 +4,7 @@ extern crate num_traits;
 
 use na::{DVector, Matrix4xX, Matrix3, Matrix4, Isometry3};
 use std::{collections::{HashMap,HashSet}, hash::Hash};
-use crate::image::features::{Feature, compute_linear_normalization, matches::Match, feature_track::FeatureTrack, solver_feature::SolverFeature};
+use crate::{image::features::{Feature, compute_linear_normalization, matches::Match, feature_track::FeatureTrack, solver_feature::SolverFeature}, numerics::pose};
 use crate::sfm::{epipolar::tensor, 
     triangulation::{Triangulation, triangulate_matches}, 
     rotation_avg::optimize_rotations_with_rcd,
@@ -43,6 +43,7 @@ pub struct SFMConfig<C, Feat: Feature> {
 impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFeature> SFMConfig<C, Feat> {
     pub fn new(root: usize, 
         paths: &Vec<Vec<usize>>, 
+        pose_map_gt: Option<HashMap<(usize, usize), Isometry3<Float>>>,
         camera_map: HashMap<usize, C>, 
         match_map_no_landmarks: &HashMap<(usize,usize), Vec<Match<Feat>>>, 
         epipolar_alg: tensor::BifocalType, 
@@ -72,13 +73,33 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
 
 
         let (camera_norm_map, mut match_norm_map) = Self::normalize_features_and_cameras(&camera_map, &match_map);
-        let mut pose_map = Self::compute_initial_pose_map_and_filter_matches(
-            &mut match_map,
-            &mut match_norm_map,
-            &camera_norm_map,
-            perc_tresh, 
-            epipolar_thresh,
-            epipolar_alg);
+
+        let mut pose_map = match pose_map_gt.is_some() {
+            true => {
+                let map = pose_map_gt.unwrap(); 
+                Self::filter_matches_from_pose(
+                    &map,
+                    &mut match_map,
+                    &mut match_norm_map,
+                    &camera_norm_map,
+                    perc_tresh, 
+                    epipolar_thresh,
+                    epipolar_alg
+                );
+                map
+            },
+            false => {
+                Self::compute_initial_pose_map_and_filter_matches(
+                    &mut match_map,
+                    &mut match_norm_map,
+                    &camera_norm_map,
+                    perc_tresh, 
+                    epipolar_thresh,
+                    epipolar_alg)
+            }
+        };
+        
+
             
         let (_,mut unique_landmark_ids) = compute_continuous_landmark_ids_from_matches(&mut match_norm_map, &mut match_map,None, None);
         let (mut landmark_map, mut reprojection_error_map) 
@@ -133,7 +154,7 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
     pub fn epipolar_alg(&self) -> tensor::BifocalType { self.epipolar_alg}
     pub fn triangulation(&self) -> Triangulation { self.triangulation}
     pub fn match_norm_map(&self) -> &HashMap<(usize, usize), Vec<Match<Feat>>> {&self.match_norm_map}
-    pub fn match_map(&self) -> &HashMap<(usize, usize), Vec<Match<Feat>>> {&self.match_map}
+    pub fn match_map(&self) -> &HashMap<(usize, usize), Vec<Match<Feat>>> {&self.match_map} // TODO: Depreciate this and store the normalizing transform instead!
     pub fn abs_pose_map(&self) -> &HashMap<usize, Isometry3<Float>> {&self.abs_pose_map}
     pub fn pose_map(&self) -> &HashMap<(usize,usize), Isometry3<Float>> {&self.pose_map}
     pub fn abs_landmark_map(&self) -> &HashMap<usize, Matrix4xX<Float>> {&self.abs_landmark_map}
@@ -406,6 +427,41 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
                 match_norm_map.insert((id1,id2), m_norm);
         }
         (camera_norm_map, match_norm_map)
+    }
+
+    fn filter_matches_from_pose(
+        pose_map: &HashMap<(usize, usize), Isometry3<Float>>,
+        match_map: &mut HashMap<(usize, usize), Vec<Match<Feat>>>,
+        match_norm_map: &mut HashMap<(usize, usize), Vec<Match<Feat>>>,
+        camera_norm_map: &HashMap<usize, C>,
+        perc_tresh: Float, 
+        epipolar_tresh: Float,
+        epipolar_alg: tensor::BifocalType) -> () {
+            let match_keys : Vec<_> = match_norm_map.iter().map(|(k,_)| *k).collect();
+            for (id1,id2) in match_keys {
+                let c1 = camera_norm_map.get(&id1).expect("compute_pose_map: could not get previous cam");
+                let c2 = camera_norm_map.get(&id2).expect("compute_pose_map: could not get second camera");
+                let key = (id1,id2);
+                let m_norm = match_norm_map.get(&key).expect(format!("norm match not found with key: {:?}",key).as_str());
+                let m = match_map.get(&key).expect(format!("match not found with key: {:?}",key).as_str());
+
+                let camera_matrix_one = c1.get_projection();
+                let camera_matrix_two = c2.get_projection();
+                let inverse_camera_matrix_one = c1.get_inverse_projection();
+                let inverse_camera_matrix_two = c2.get_inverse_projection();
+                let pose = pose_map.get(&key).expect("Pose lookup for filter_matches_from_pose failed");
+
+                let e = tensor::essential_matrix_from_motion(&pose.translation.vector, &pose.rotation.to_rotation_matrix().matrix());
+                let f = tensor::compute_fundamental(&e, &inverse_camera_matrix_one, &inverse_camera_matrix_two);
+
+                let filtered_indices = tensor::select_best_matches_from_fundamental(&f,m_norm,perc_tresh, epipolar_tresh, 1.0);
+                let filtered_norm = filtered_indices.iter().map(|i| m_norm[*i].clone()).collect::<Vec<Match<Feat>>>();
+                let filtered = filtered_indices.iter().map(|i| m[*i].clone()).collect::<Vec<Match<Feat>>>();
+
+                let _ = match_norm_map.insert(key,filtered_norm);
+                let _ = match_map.insert(key,filtered);
+            }
+
     }
 
 
