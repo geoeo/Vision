@@ -4,7 +4,7 @@ extern crate num_traits;
 
 use na::{DVector, Matrix4xX, Matrix3, Matrix4, Isometry3};
 use std::{collections::{HashMap,HashSet}, hash::Hash};
-use crate::{image::features::{Feature, compute_linear_normalization, matches::Match, feature_track::FeatureTrack, solver_feature::SolverFeature}, numerics::pose};
+use crate::image::features::{Feature, compute_linear_normalization, matches::Match, feature_track::FeatureTrack, solver_feature::SolverFeature};
 use crate::sfm::{epipolar::tensor, 
     triangulation::{Triangulation, triangulate_matches}, 
     rotation_avg::optimize_rotations_with_rcd,
@@ -36,7 +36,6 @@ pub struct SFMConfig<C, Feat: Feature> {
     abs_landmark_map: HashMap<usize, Matrix4xX<Float>>,
     reprojection_error_map: HashMap<(usize, usize),DVector<Float>>,
     unique_landmark_ids: HashSet<usize>,
-    epipolar_alg: tensor::BifocalType,
     triangulation: Triangulation
 }
 
@@ -83,8 +82,7 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
                     &mut match_norm_map,
                     &camera_norm_map,
                     perc_tresh, 
-                    epipolar_thresh,
-                    epipolar_alg
+                    epipolar_thresh
                 );
                 map
             },
@@ -144,14 +142,13 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
         // Since landmarks may be rejected, this function recomputes the ids to be consecutive so that they may be used for matrix indexing.
         let (_, unique_landmark_ids) = compute_continuous_landmark_ids_from_matches(&mut match_norm_map, &mut match_map,Some(&unique_landmark_ids), None);
         
-        SFMConfig{root, paths: paths.clone(), camera_map: camera_norm_map, match_map, match_norm_map, abs_pose_map, pose_map, epipolar_alg, abs_landmark_map, reprojection_error_map, unique_landmark_ids, triangulation}
+        SFMConfig{root, paths: paths.clone(), camera_map: camera_norm_map, match_map, match_norm_map, abs_pose_map, pose_map, abs_landmark_map, reprojection_error_map, unique_landmark_ids, triangulation}
     }
 
 
     pub fn root(&self) -> usize { self.root }
     pub fn paths(&self) -> &Vec<Vec<usize>> { &self.paths }
     pub fn camera_map_highp(&self) -> &HashMap<usize, C> { &self.camera_map}
-    pub fn epipolar_alg(&self) -> tensor::BifocalType { self.epipolar_alg}
     pub fn triangulation(&self) -> Triangulation { self.triangulation}
     pub fn match_norm_map(&self) -> &HashMap<(usize, usize), Vec<Match<Feat>>> {&self.match_norm_map}
     pub fn match_map(&self) -> &HashMap<(usize, usize), Vec<Match<Feat>>> {&self.match_map} // TODO: Depreciate this and store the normalizing transform instead!
@@ -435,8 +432,7 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
         match_norm_map: &mut HashMap<(usize, usize), Vec<Match<Feat>>>,
         camera_norm_map: &HashMap<usize, C>,
         perc_tresh: Float, 
-        epipolar_tresh: Float,
-        epipolar_alg: tensor::BifocalType) -> () {
+        epipolar_tresh: Float) -> () {
             let match_keys : Vec<_> = match_norm_map.iter().map(|(k,_)| *k).collect();
             for (id1,id2) in match_keys {
                 let c1 = camera_norm_map.get(&id1).expect("compute_pose_map: could not get previous cam");
@@ -445,8 +441,6 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
                 let m_norm = match_norm_map.get(&key).expect(format!("norm match not found with key: {:?}",key).as_str());
                 let m = match_map.get(&key).expect(format!("match not found with key: {:?}",key).as_str());
 
-                let camera_matrix_one = c1.get_projection();
-                let camera_matrix_two = c2.get_projection();
                 let inverse_camera_matrix_one = c1.get_inverse_projection();
                 let inverse_camera_matrix_two = c2.get_inverse_projection();
                 let pose = pose_map.get(&key).expect("Pose lookup for filter_matches_from_pose failed");

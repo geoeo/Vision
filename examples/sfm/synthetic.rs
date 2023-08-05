@@ -1,3 +1,4 @@
+extern crate nalgebra as na;
 use color_eyre::eyre::Result;
 
 use std::collections::{HashMap, HashSet};
@@ -7,14 +8,15 @@ use vision::sensors::camera::perspective::Perspective;
 use vision::image::features::{matches::Match,image_feature::ImageFeature};
 use vision::odometry::runtime_parameters::RuntimeParameters;
 use vision::numerics::{loss, weighting};
+use na::{Rotation3,Isometry3};
 
 fn main() -> Result<()> {
     color_eyre::install()?;
     let runtime_conf = load_runtime_conf();
-    let file_name = "camera_features_Suzanne_trans_x.yaml";
-    //let file_name = "camera_features_Suzanne_large.yaml";
-    //let file_name = "camera_features_sphere_trans_x.yaml";
-    //let file_name = "camera_features_sphere.yaml";
+    //let file_name = "camera_features_Suzanne_trans_x.yaml";
+    let file_name = "camera_features_sphere_trans_x.yaml";
+    //let file_name = "camera_features_Suzanne_large.yaml"; // Seems to be too many outliers? / Motion too large?
+    //let file_name = "camera_features_sphere.yaml"; // Seems to be too many outliers? / Motion too large?
     let path = format!("{}/{}",runtime_conf.local_data_path,file_name);
     let loaded_data = models_cv::io::deserialize_feature_matches(&path);
 
@@ -37,10 +39,10 @@ fn main() -> Result<()> {
         (cam_id,map)
     }).collect::<HashMap<_,_>>();
 
-    let camera_id_pairs = vec!((1,2));
+    //let camera_id_pairs = vec!((1,2));
     //let camera_id_pairs = vec!((0,1));
     //let camera_id_pairs = vec!((0,2));
-    //let camera_id_pairs = vec!((0,1),(1,2));
+    let camera_id_pairs = vec!((0,1),(1,2));
 
 
     let match_map = camera_id_pairs.iter().map(|(id1,id2)| {
@@ -74,9 +76,26 @@ fn main() -> Result<()> {
 
     let paths = vec![camera_id_pairs.iter().map(|&(_,c)| c).collect::<Vec<_>>()];
     let root_id = camera_id_pairs[0].0;
-    let pose_map_gt = None; //TODO
+    let pose_map_gt = camera_id_pairs.iter().map(|(id1,id2)| {
+        let p1 = camera_poses.get(id1).expect("Camera map for cam id not available");
+        let p2 = camera_poses.get(id2).expect("Camera map for cam id not available");
+        let rot_2 = p2.fixed_view::<3,3>(0, 0);
+        let trans_2 = p2.column(3);
 
-    let sfm_config_fundamental = SFMConfig::new(root_id, &paths, pose_map_gt, camera_map, &match_map, 
+        let rot_1_inv = p1.fixed_view::<3,3>(0, 0).transpose();
+        let trans_1_inv = -rot_1_inv*p1.column(3);
+
+        let rot_12_mat = rot_1_inv*rot_2;
+        let rot_12 = Rotation3::from_matrix(&rot_12_mat);
+        let trans_12 = rot_1_inv*trans_2 + trans_1_inv;
+        let pose_12 = Isometry3::new(trans_12,rot_12.scaled_axis()).cast::<Float>();
+
+        ((*id1,*id2),pose_12)
+    }).collect::<HashMap<_,_>>();
+
+    let pose_map_gt_option = Some(pose_map_gt);
+
+    let sfm_config_fundamental = SFMConfig::new(root_id, &paths, pose_map_gt_option , camera_map, &match_map, 
         BifocalType::ESSENTIAL_RANSAC, Triangulation::LINEAR, 1.0, 2e0, 5e2, 1.0, true, true); // Investigate epipolar thresh -> more deterministic wither lower value?
     
     let initial_z = sfm_config_fundamental.pose_map().get(&camera_id_pairs[0]).unwrap().translation.z;
