@@ -8,7 +8,7 @@ use vision::sensors::camera::perspective::Perspective;
 use vision::image::features::{matches::Match,image_feature::ImageFeature};
 use vision::odometry::runtime_parameters::RuntimeParameters;
 use vision::numerics::{loss, weighting};
-use na::{Rotation3,Isometry3,Vector3,UnitQuaternion};
+use na::{Rotation3,Isometry3};
 
 fn main() -> Result<()> {
     color_eyre::install()?;
@@ -16,8 +16,8 @@ fn main() -> Result<()> {
     //let file_name = "camera_features_Suzanne_trans_x.yaml";
     //let file_name = "camera_features_sphere_trans_x.yaml";
     //let file_name = "camera_features_sphere_trans_x_2.yaml";
-    //let file_name = "camera_features_sphere_360_60.yaml"; // Check chirality of generated poses in library!
-    let file_name = "camera_features_Suzanne_360_60.yaml"; // Check chirality of generated poses in library!
+    //let file_name = "camera_features_sphere_360_60.yaml"; 
+    let file_name = "camera_features_Suzanne_360_60.yaml"; // Check my there are less matches than expecteed
     let path = format!("{}/{}",runtime_conf.local_data_path,file_name);
     let loaded_data = models_cv::io::deserialize_feature_matches(&path);
 
@@ -78,7 +78,6 @@ fn main() -> Result<()> {
     let paths = vec![camera_id_pairs.iter().map(|&(_,c)| c).collect::<Vec<_>>()];
     let root_id = camera_id_pairs[0].0;
 
-    let change_of_basis = UnitQuaternion::from_scaled_axis(Rotation3::from_axis_angle(&Vector3::x_axis(),std::f32::consts::PI).scaled_axis().cast::<Float>());
     let pose_map_gt = camera_id_pairs.iter().map(|(id1,id2)| {
         let p1 = camera_poses.get(id1).expect("Camera map for cam id not available");
         let p2 = camera_poses.get(id2).expect("Camera map for cam id not available");
@@ -91,10 +90,7 @@ fn main() -> Result<()> {
         let trans_1 = p1.column(3).into_owned();
         let iso_cam1_world_neg_z = Isometry3::new(trans_1,rot_1.scaled_axis());
 
-        let pose_12_neg_z = iso_cam1_world_neg_z*iso_cam2_world_neg_z.inverse();
-
-        //Synthetic model data is defined with a RHS along -Z. Point are exported as-is, so we rotate pose to computer vision system
-        let pose_12 = change_of_basis*pose_12_neg_z*change_of_basis;
+        let pose_12 = iso_cam1_world_neg_z*iso_cam2_world_neg_z.inverse();
 
         ((*id1,*id2),pose_12)
     }).collect::<HashMap<_,_>>();
@@ -116,7 +112,7 @@ fn main() -> Result<()> {
 
     let runtime_parameters = RuntimeParameters {
         pyramid_scale: 1.0,
-        max_iterations: vec![0 as usize; 1],
+        max_iterations: vec![8e4 as usize; 1],
         eps: vec![1e-8],
         step_sizes: vec![1e0],
         max_norm_eps: 1e-30, 

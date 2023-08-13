@@ -63,6 +63,7 @@ pub fn five_point_essential<T: Feature + Clone>(matches: &Vec<Match<T>>, project
             let eigenvectors = eigen.eigenvectors;
             let mut indexed_eigenvalues = eigen.eigenvalues.iter().enumerate().map(|(i,v)| (i,*v)).collect::<Vec<(usize, Float)>>();
             indexed_eigenvalues.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
+
             let u1 = eigenvectors.column(indexed_eigenvalues[0].0).into_owned();
             let u2 = eigenvectors.column(indexed_eigenvalues[1].0).into_owned();
             let u3 = eigenvectors.column(indexed_eigenvalues[2].0).into_owned();

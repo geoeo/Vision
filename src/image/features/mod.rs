@@ -30,6 +30,8 @@ pub trait Feature {
         let factor = pyramid_scaling.powi(self.get_closest_sigma_level() as i32);
         ((self.get_x_image_float() as Float)*factor, (self.get_y_image_float() as Float)*factor)
     }
+
+    //TODO: rework this naming. This implies that its a camera ray
     fn get_as_3d_point(&self, depth: Float) -> Vector3<Float> {
        Vector3::<Float>::new(self.get_x_image_float(), self.get_y_image_float(), depth)
     }
