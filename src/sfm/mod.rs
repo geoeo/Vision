@@ -44,7 +44,7 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
         paths: &Vec<Vec<usize>>, 
         pose_map_gt: Option<HashMap<(usize, usize), Isometry3<Float>>>,
         camera_map: HashMap<usize, C>, 
-        match_map_no_landmarks: &HashMap<(usize,usize), Vec<Match<Feat>>>, 
+        match_map_initial: &HashMap<(usize,usize), Vec<Match<Feat>>>, 
         epipolar_alg: tensor::BifocalType, 
         triangulation: Triangulation, 
         perc_tresh: Float, 
@@ -59,15 +59,24 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
 
         //TODO: Compute Image Score for later filtering
 
-        // Filteres matches according to feature consitency along a path.
-        let accepted_matches = Self::filter_by_max_tracks(&paths_pairs_as_vec, &match_map_no_landmarks);
-        let found_duplicates = Self::check_for_duplicate_pixel_entries(&accepted_matches);
-        assert!(!found_duplicates);
-        let mut match_map = Self::generate_match_map_with_landmark_ids(root, &paths,accepted_matches);
+
+        let has_landmarks = match_map_initial.values().all(|v| v.iter().all(|e| e.get_landmark_id().is_some()));
+        let mut match_map = match has_landmarks {
+            true => match_map_initial.clone(),
+            false => {
+                //TODO: Rework this! Fails with synthetic z data
+                // Filteres matches according to feature consitency along a path.
+                let matches_with_tracks = Self::filter_by_max_tracks(&paths_pairs_as_vec, &match_map_initial);
+                assert!(!Self::check_for_duplicate_pixel_entries(&matches_with_tracks));
+                Self::generate_match_map_with_landmark_ids(root, &paths,matches_with_tracks)
+            }
+        };
+
 
         let disparity_map = Self::compute_disparity_map(root,&paths,&match_map);
         if run_outlier_detection_pipeline {
-            reject_matches_via_disparity(disparity_map, &mut match_map, disparity_cutoff_thresh);
+            //TODO: tie this to min angular distance. Currently it also triggers on Z-only motion
+            //reject_matches_via_disparity(disparity_map, &mut match_map, disparity_cutoff_thresh);
         }
 
 

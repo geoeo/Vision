@@ -17,11 +17,11 @@ fn main() -> Result<()> {
     //let file_name = "camera_features_Suzanne_trans_y.yaml";
     //let file_name = "camera_features_Suzanne_trans_x.yaml";
     //let file_name = "camera_features_Suzanne_trans_z.yaml";
-    //let file_name = "camera_features_Suzanne_360_60.yaml"; // Check my there are less matches than expecteed, check rotations
+    //let file_name = "camera_features_Suzanne_360_60.yaml"; // Check match id generation
     //let file_name = "camera_features_sphere_trans_x.yaml";
-    //let file_name = "camera_features_sphere_trans_y.yaml";
-    let file_name = "camera_features_sphere_trans_z.yaml";
-    //let file_name = "camera_features_sphere_360_60.yaml";  // Check my there are less matches than expecteed, check rotations
+    //let file_name = "camera_features_sphere_trans_y.yaml"; 
+    //let file_name = "camera_features_sphere_trans_z.yaml"; // Check match id generation
+    let file_name = "camera_features_sphere_360_60.yaml";  // Check match id generation
 
     let path = format!("{}/{}",runtime_conf.local_data_path,file_name);
     let loaded_data = models_cv::io::deserialize_feature_matches(&path);
@@ -59,7 +59,7 @@ fn main() -> Result<()> {
 
         let shared_keys = keys_1.intersection(&keys_2).collect::<HashSet<_>>();
 
-        let matches = shared_keys.iter().map(|key| {
+        let matches = shared_keys.iter().map(|&key| {
             let f_1 = fm_1.get(key).expect("Invalid key!");
             let f_2 = fm_2.get(key).expect("Invalid key!");
             let cam_1_height =  camera_map.get(id1).expect("Invalid key!").get_cy()*2.0;
@@ -69,8 +69,8 @@ fn main() -> Result<()> {
             assert!(cam_2_height.fract() == 0.0);
 
             //Synthetic model data is defined with a RHS along -Z. Point are exported as-is, so we flip them here
-            let image_feature_1 = ImageFeature::new(f_1.x as Float, cam_1_height - 1.0 - (f_1.y as Float), None);
-            let image_feature_2 = ImageFeature::new(f_2.x as Float, cam_2_height - 1.0 - (f_2.y as Float), None);
+            let image_feature_1 = ImageFeature::new(f_1.x as Float, cam_1_height - 1.0 - (f_1.y as Float), Some(*key));
+            let image_feature_2 = ImageFeature::new(f_2.x as Float, cam_2_height - 1.0 - (f_2.y as Float), Some(*key));
 
             Match::new(image_feature_1, image_feature_2)
         }).collect::<Vec<_>>();
@@ -82,6 +82,7 @@ fn main() -> Result<()> {
     let paths = vec![camera_id_pairs.iter().map(|&(_,c)| c).collect::<Vec<_>>()];
     let root_id = camera_id_pairs[0].0;
 
+    // poses are defined in Computer Graphis Coordinate Systems. We need to flip it to Computer Vision
     let change_of_basis = UnitQuaternion::from_scaled_axis(Rotation3::from_axis_angle(&Vector3::x_axis(), std::f64::consts::PI).scaled_axis());
     let pose_map_gt = camera_id_pairs.iter().map(|(id1,id2)| {
         let p1 = camera_poses.get(id1).expect("Camera map for cam id not available");
@@ -101,11 +102,11 @@ fn main() -> Result<()> {
     }).collect::<HashMap<_,_>>();
 
     //TODO: Check consistency of trajectory and saving!
-    let pose_map_gt_option = Some(pose_map_gt);
-    //let pose_map_gt_option = None;
+    //let pose_map_gt_option = Some(pose_map_gt);
+    let pose_map_gt_option = None;
 
     let sfm_config_fundamental = SFMConfig::new(root_id, &paths, pose_map_gt_option , camera_map, &match_map, 
-        BifocalType::ESSENTIAL, Triangulation::LINEAR, 1.0, 2e0, 5e2, 1.0, true, true); // Investigate epipolar thresh -> more deterministic wither lower value?
+        BifocalType::FUNDAMENTAL, Triangulation::LINEAR, 1.0, 6e0, 5e2, 1.0, true, false); // Investigate epipolar thresh -> more deterministic wither lower value?
     
     let initial_z = sfm_config_fundamental.pose_map().get(&camera_id_pairs[0]).unwrap().translation.z;
     for (key, pose) in sfm_config_fundamental.pose_map().iter() {
