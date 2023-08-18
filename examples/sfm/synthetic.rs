@@ -14,15 +14,13 @@ fn main() -> Result<()> {
     color_eyre::install()?;
     let runtime_conf = load_runtime_conf();
 
-    //TODO: fix and re-export
-
-    //let file_name = "/trans_x/camera_features_Suzanne.yaml";
+    let file_name = "/trans_x/camera_features_Suzanne.yaml";
     //let file_name = "/trans_y/camera_features_Suzanne.yaml";
     //let file_name = "/trans_z/camera_features_Suzanne.yaml";
 
     //let file_name = "/trans_x/camera_features_sphere.yaml";
     //let file_name = "/trans_y/camera_features_sphere.yaml";
-    let file_name = "/trans_z/camera_features_sphere.yaml";
+    //let file_name = "/trans_z/camera_features_sphere.yaml";
 
     //let file_name = "/trans_x/camera_features_Cube.yaml";
     //let file_name = "/trans_y/camera_features_Cube.yaml";
@@ -107,11 +105,11 @@ fn main() -> Result<()> {
     }).collect::<HashMap<_,_>>();
 
     //TODO: Check consistency of trajectory and saving!
-    let pose_map_gt_option = Some(pose_map_gt);
-    //let pose_map_gt_option = None;
+    //let pose_map_gt_option = Some(pose_map_gt);
+    let pose_map_gt_option = None;
 
     let sfm_config_fundamental = SFMConfig::new(root_id, &paths, pose_map_gt_option , camera_map, &match_map, 
-        BifocalType::QUEST, Triangulation::LINEAR, 1.0, 6e0, 5e2, 1.0, true, false); // Investigate epipolar thresh -> more deterministic wither lower value?
+        BifocalType::QUEST, Triangulation::LINEAR, 1.0, 6e0, 5e2, 1.0, true, true); // Investigate epipolar thresh -> more deterministic wither lower value?
     
     let initial_z = sfm_config_fundamental.pose_map().get(&camera_id_pairs[0]).unwrap().translation.z;
     for (key, pose) in sfm_config_fundamental.pose_map().iter() {
@@ -123,7 +121,7 @@ fn main() -> Result<()> {
 
     let runtime_parameters = RuntimeParameters {
         pyramid_scale: 1.0,
-        max_iterations: vec![0 as usize; 1],
+        max_iterations: vec![8e4 as usize; 1],
         eps: vec![1e-8],
         step_sizes: vec![1e0],
         max_norm_eps: 1e-30, 
