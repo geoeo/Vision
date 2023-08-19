@@ -5,9 +5,7 @@ use na::{convert,Vector3, Matrix4xX, Matrix3, DVector, Isometry3, Rotation3,base
 use num_traits::{float,NumAssign};
 use simba::scalar::SupersetOf;
 use std::collections::HashMap;
-use crate::image::{
-    features::{Feature, matches::Match}
-};
+use crate::image::features::{Feature, matches::Match};
 use crate::sfm::{bundle_adjustment::state::State, landmark::{Landmark, euclidean_landmark::EuclideanLandmark, inverse_depth_landmark::InverseLandmark}};
 use crate::sensors::camera::Camera;
 use crate::Float;
@@ -89,7 +87,7 @@ impl StateLinearizer {
                 let matches = match_map.get(&(*id_s, *id_f)).expect("not matches found for path pair");
                 let landmark_key = (*id_s, *id_f);
                 let reprojection_errors = reprojection_error_map.get(&landmark_key).expect(format!("no reprojection errors found for key: {:?}",landmark_key).as_str());
-                let root_aligned_triangulated_matches = abs_landmark_map.get(&id_f).expect(format!("no landmarks found for key: {:?}",landmark_key).as_str());
+                let root_aligned_triangulated_matches = abs_landmark_map.get(&id_s).expect(format!("no landmarks found for key: {:?}",landmark_key).as_str());
                 let internal_source_cam_id = self.camera_to_linear_id_map.get(id_s).unwrap();
                 let internal_other_cam_id = self.camera_to_linear_id_map.get(id_f).unwrap();
     

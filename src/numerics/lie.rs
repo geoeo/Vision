@@ -15,9 +15,10 @@ pub fn left_jacobian_around_identity<F, T>(transformed_position: &Vector<F,U3,T>
     T: Storage<F,U3,U1>, 
     F : float::Float + Scalar + NumAssign + RealField + SimdRealField + ComplexField {
     let skew_symmetrix = &(-transformed_position).cross_matrix();
-    let mut jacobian = Matrix3x6::<F>::new(F::one(), F::zero(), F::zero(), F::zero(), F::zero(), F::zero(),
-                                               F::zero(), F::one(), F::zero(), F::zero(), F::zero(), F::zero(),
-                                               F::zero(), F::zero(), F::one(), F::zero(), F::zero(), F::zero());
+    let mut jacobian = Matrix3x6::<F>::new(
+        F::one(), F::zero(), F::zero(), F::zero(), F::zero(), F::zero(),
+        F::zero(), F::one(), F::zero(), F::zero(), F::zero(), F::zero(),
+        F::zero(), F::zero(), F::one(), F::zero(), F::zero(), F::zero());
     
     for i in 3..6 {
         jacobian.set_column(i, &skew_symmetrix.column(i-3));

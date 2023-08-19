@@ -17,6 +17,7 @@ fn main() -> Result<()> {
     let file_name = "/trans_x/camera_features_Suzanne.yaml";
     //let file_name = "/trans_y/camera_features_Suzanne.yaml";
     //let file_name = "/trans_z/camera_features_Suzanne.yaml";
+    //let file_name = "/60_10/camera_features_Suzanne.yaml";
 
     //let file_name = "/trans_x/camera_features_sphere.yaml";
     //let file_name = "/trans_y/camera_features_sphere.yaml";
@@ -109,7 +110,7 @@ fn main() -> Result<()> {
     let pose_map_gt_option = None;
 
     let sfm_config_fundamental = SFMConfig::new(root_id, &paths, pose_map_gt_option , camera_map, &match_map, 
-        BifocalType::QUEST, Triangulation::LINEAR, 1.0, 6e0, 5e2, 1.0, true, true); // Investigate epipolar thresh -> more deterministic wither lower value?
+        BifocalType::QUEST, Triangulation::LINEAR, 1.0, 2e0, 5e2, 1.0, false, false); // Investigate epipolar thresh -> more deterministic wither lower value?
     
     let initial_z = sfm_config_fundamental.pose_map().get(&camera_id_pairs[0]).unwrap().translation.z;
     for (key, pose) in sfm_config_fundamental.pose_map().iter() {

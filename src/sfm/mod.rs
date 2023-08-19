@@ -58,27 +58,15 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
         let camera_ids_root_first = Self::get_sorted_camera_keys(root, paths);
 
         //TODO: Compute Image Score for later filtering
-
-
-        let has_landmarks = match_map_initial.values().all(|v| v.iter().all(|e| e.get_landmark_id().is_some()));
-        let mut match_map = match has_landmarks {
-            true => match_map_initial.clone(),
-            false => {
-                //TODO: Rework this! Fails with synthetic z data
-                // Filteres matches according to feature consitency along a path.
-                let matches_with_tracks = Self::filter_by_max_tracks(&paths_pairs_as_vec, &match_map_initial);
-                assert!(!Self::check_for_duplicate_pixel_entries(&matches_with_tracks));
-                Self::generate_match_map_with_landmark_ids(root, &paths,matches_with_tracks)
-            }
-        };
-
+        let matches_with_tracks = Self::filter_by_max_tracks(&paths_pairs_as_vec, &match_map_initial);
+        assert!(!Self::check_for_duplicate_pixel_entries(&matches_with_tracks));
+        let mut match_map = Self::generate_match_map_with_landmark_ids(root, &paths,matches_with_tracks);
 
         let disparity_map = Self::compute_disparity_map(root,&paths,&match_map);
         if run_outlier_detection_pipeline {
             //TODO: tie this to min angular distance. Currently it also triggers on Z-only motion
             //reject_matches_via_disparity(disparity_map, &mut match_map, disparity_cutoff_thresh);
         }
-
 
         let (camera_norm_map, mut match_norm_map) = Self::normalize_features_and_cameras(&camera_map, &match_map);
 
@@ -105,17 +93,18 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
                     epipolar_alg)
             }
         };
-        
-
-            
         let (_,mut unique_landmark_ids) = compute_continuous_landmark_ids_from_matches(&mut match_norm_map, &mut match_map,None, None);
+
         let (mut landmark_map, mut reprojection_error_map) 
             = Self::compute_landmarks_and_reprojection_maps(root,&paths,&pose_map,&match_norm_map,&camera_norm_map,triangulation);
         let path_id_pairs = compute_path_id_pairs(root, paths);
         let path_id_pairs_flat = path_id_pairs.iter().flatten().collect::<Vec<_>>();
         let mut abs_pose_map = compute_absolute_poses_for_root(root, &path_id_pairs, &pose_map);
+
+        //TODO: introduce gt landmark options
         let mut abs_landmark_map = compute_absolute_landmarks_for_root(&path_id_pairs,&landmark_map,&abs_pose_map);
 
+        reject_landmark_outliers(&mut landmark_map, &mut reprojection_error_map ,&mut match_map ,&mut match_norm_map, landmark_cutoff_thresh);
         let (min_reprojection_error_initial, max_reprojection_error_initial) = Self::compute_reprojection_ranges(&reprojection_error_map);
         println!("SFM Config Max Reprojection Error 1): {}, Min Reprojection Error: {}", max_reprojection_error_initial, min_reprojection_error_initial);
 
@@ -124,6 +113,8 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
             //Self::filter_outliers_by_dual(tol,&camera_ids_root_first,&mut unique_landmark_ids,&mut abs_pose_map,&mut abs_landmark_map,&mut match_norm_map,&mut match_map, &mut landmark_map, &mut reprojection_error_map);
             Self::filter_outliers_by_dual_pairwise(tol,&path_id_pairs_flat,&camera_ids_root_first , &mut unique_landmark_ids,&mut abs_pose_map,&mut abs_landmark_map,&mut match_norm_map,&mut match_map, &mut landmark_map, &mut reprojection_error_map);
             reject_landmark_outliers(&mut landmark_map, &mut reprojection_error_map ,&mut match_map ,&mut match_norm_map, landmark_cutoff_thresh);
+            let (min_reprojection_error_outlier, max_reprojection_error_outlier) = Self::compute_reprojection_ranges(&reprojection_error_map);
+            println!("After Outlier: SFM Config Max Reprojection Error 2): {}, Min Reprojection Error: {}", max_reprojection_error_outlier, min_reprojection_error_outlier);
         }
         
         if refine_rotation_via_rcd {
@@ -145,7 +136,7 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
                 reject_landmark_outliers(&mut landmark_map, &mut reprojection_error_map, &mut match_map, &mut match_norm_map, landmark_cutoff_thresh); 
             }
             let (min_reprojection_error_refined, max_reprojection_error_refined) = Self::compute_reprojection_ranges(&reprojection_error_map);
-            println!("SFM Config Max Reprojection Error 2): {}, Min Reprojection Error: {}", max_reprojection_error_refined, min_reprojection_error_refined);
+            println!("After Rotation: SFM Config Max Reprojection Error 2): {}, Min Reprojection Error: {}", max_reprojection_error_refined, min_reprojection_error_refined);
         }
 
         // Since landmarks may be rejected, this function recomputes the ids to be consecutive so that they may be used for matrix indexing.
@@ -680,6 +671,7 @@ fn compute_absolute_poses_for_root(root: usize, paths: &Vec<Vec<(usize,usize)>>,
 
     for path in paths {
         let mut pose_acc = Isometry3::<Float>::identity();
+        abs_pose_map.insert(path[0].0,pose_acc);
         for key in path {
             let pose = pose_map.get(key).expect("Error in compute_absolute_poses_for_root: Pose for key not found ");
             pose_acc *= pose;
@@ -696,9 +688,9 @@ fn compute_absolute_landmarks_for_root(paths: &Vec<Vec<(usize,usize)>>, landmark
         for (id_s, id_f) in path {
             let landmark_key = (*id_s, *id_f);
             let triangulated_matches = landmark_map.get(&landmark_key).expect(format!("no landmarks found for key: {:?}",landmark_key).as_str());
-            let pose = abs_pose_map.get(id_f).expect("compute_absolute_landmarks_for_root: pose not found").to_matrix();
+            let pose = abs_pose_map.get(id_s).expect("compute_absolute_landmarks_for_root: pose not found").to_matrix();
             let root_aligned_triangulated_matches = pose*triangulated_matches;
-            abs_landmark_map.insert(*id_f,root_aligned_triangulated_matches);
+            abs_landmark_map.insert(*id_s,root_aligned_triangulated_matches);
         }
     }
     abs_landmark_map
