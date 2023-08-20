@@ -40,8 +40,8 @@ pub fn triangulate_matches<Feat: Feature, C: Camera<Float>>(path_pair: (usize, u
     let projection_1 = c1_intrinsics*transform_c1;
     let projection_2 = c2_intrinsics*transform_c2;
 
-    let f0 = c1_intrinsics[(0,0)];
-    let f0_prime = c2_intrinsics[(0,0)];
+    let f0 = 1.0;
+    let f0_prime = 1.0;
 
     let landmarks = match triangulation_mode {
         Triangulation::LINEAR => linear_triangulation_svd(&vec!((&image_points_s,&projection_1),(&image_points_f,&projection_2)), true),
@@ -131,7 +131,7 @@ pub fn stereo_triangulation(image_points_and_projection: (&Matrix3xX<Float>, &OM
         let im_point_prime = image_points_prime.column(i);
         let x = im_point[0];
         let y = im_point[1];
-        let x_prime = image_points_prime[0];
+        let x_prime = im_point_prime[0];
         let y_prime = im_point_prime[1];
 
         let P_11 = projection[(0,0)];

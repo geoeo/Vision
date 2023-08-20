@@ -485,7 +485,7 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
 
                 let (e,f_m_norm, f_m) = match epipolar_alg {
                     tensor::BifocalType::FUNDAMENTAL => {      
-                        let f = tensor::fundamental::eight_point_hartley(m_norm, 1.0); 
+                        let f = tensor::fundamental::eight_point_hartley(m_norm, 1.0);
                         
                         let filtered_indices = tensor::select_best_matches_from_fundamental(&f,m_norm,perc_tresh, epipolar_tresh, 1.0);
                         let filtered_norm = filtered_indices.iter().map(|i| m_norm[*i].clone()).collect::<Vec<Match<Feat>>>();

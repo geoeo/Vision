@@ -14,14 +14,15 @@ fn main() -> Result<()> {
     color_eyre::install()?;
     let runtime_conf = load_runtime_conf();
 
-    let file_name = "/trans_x/camera_features_Suzanne.yaml";
+    //let file_name = "/trans_x/camera_features_Suzanne.yaml";
     //let file_name = "/trans_y/camera_features_Suzanne.yaml";
     //let file_name = "/trans_z/camera_features_Suzanne.yaml";
     //let file_name = "/60_10/camera_features_Suzanne.yaml";
 
     //let file_name = "/trans_x/camera_features_sphere.yaml";
-    //let file_name = "/trans_y/camera_features_sphere.yaml";
+    let file_name = "/trans_y/camera_features_sphere.yaml";
     //let file_name = "/trans_z/camera_features_sphere.yaml";
+    //let file_name = "/60_10/camera_features_sphere.yaml";
 
     //let file_name = "/trans_x/camera_features_Cube.yaml";
     //let file_name = "/trans_y/camera_features_Cube.yaml";
@@ -53,6 +54,7 @@ fn main() -> Result<()> {
     //let camera_id_pairs = vec!((0,1));
     //let camera_id_pairs = vec!((0,2));
     let camera_id_pairs = vec!((0,1),(1,2));
+    //let camera_id_pairs = vec!((0,1),(1,2),(2,3),(3,4),(4,5),(5,6));
 
     let match_map = camera_id_pairs.iter().map(|(id1,id2)| {
         let fm_1 = feature_map.get(id1).expect("Feature map for cam id not available!");
@@ -110,7 +112,7 @@ fn main() -> Result<()> {
     let pose_map_gt_option = None;
 
     let sfm_config_fundamental = SFMConfig::new(root_id, &paths, pose_map_gt_option , camera_map, &match_map, 
-        BifocalType::QUEST, Triangulation::LINEAR, 1.0, 2e0, 5e2, 1.0, false, false); // Investigate epipolar thresh -> more deterministic wither lower value?
+        BifocalType::FUNDAMENTAL, Triangulation::STEREO, 1.0, 2e0, 5e2, 1.0, false, false); // Investigate epipolar thresh -> more deterministic wither lower value?
     
     let initial_z = sfm_config_fundamental.pose_map().get(&camera_id_pairs[0]).unwrap().translation.z;
     for (key, pose) in sfm_config_fundamental.pose_map().iter() {

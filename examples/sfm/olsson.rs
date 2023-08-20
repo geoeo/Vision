@@ -27,7 +27,7 @@ fn main() -> Result<()> {
     let kronan = "kronan";
     let round_church = "round_church";
 
-    let olsen_dataset_name = fountain;
+    let olsen_dataset_name = door;
     let olsen_data_path = format!("{}/Olsson/{}/",runtime_conf.dataset_path,olsen_dataset_name);
 
     let feature_skip_count = 1;
@@ -50,7 +50,7 @@ fn main() -> Result<()> {
     let paths = vec!(vec!(6,7));
     let root_id = 5;
 
-    // let paths = vec!(vec!(6,8,10));
+    // let paths = vec!(vec!(6,8,9));
     // let root_id = 5;
 
     // let paths = vec!(vec!(6,7,8,9,10));
@@ -108,7 +108,7 @@ fn main() -> Result<()> {
     //TODO: implement switch for loftr matches!
     let (match_map, camera_map) = olsen_data.get_data_for_sfm(root_id, &paths, positive_principal_distance, invert_focal_length, invert_y, feature_skip_count, olsen_dataset_name);
     let sfm_config_fundamental = SFMConfig::new(root_id, &paths, None, camera_map, &match_map, 
-    BifocalType::FUNDAMENTAL, Triangulation::LINEAR, 1.0, 3.0e0, 1e2, 5.0, refince_rotation_via_rcd, true);
+    BifocalType::FUNDAMENTAL, Triangulation::STEREO, 1.0, 3.0e0, 1e2, 5.0, refince_rotation_via_rcd, true);
 
     for (key, pose) in sfm_config_fundamental.pose_map().iter() {
         println!("Key: {:?}, Pose: {:?}", key, pose)
