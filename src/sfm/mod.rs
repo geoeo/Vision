@@ -529,7 +529,7 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
                 
                 println!("{:?}: Number of matches: {}", key, &f_m_norm.len());
                 // The pose transforms id2 into the coordiante system of id1
-                let (iso3_opt,_) = tensor::decompose_essential_förstner(&e,&f_m_norm,&inverse_camera_matrix_two, &inverse_camera_matrix_two);
+                let (iso3_opt,_) = tensor::decompose_essential_förstner(&e,&f_m_norm,&inverse_camera_matrix_one, &inverse_camera_matrix_two);
                 let _ = match iso3_opt {
                     Some(isometry) => pose_map.insert(key, isometry),
                     None => {
