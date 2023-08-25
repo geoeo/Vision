@@ -486,20 +486,22 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
                 let (e,f_m_norm, f_m) = match epipolar_alg {
                     tensor::BifocalType::FUNDAMENTAL => {      
                         let f = tensor::fundamental::eight_point_hartley(m_norm, 1.0);
+                        let f_corr = tensor::fundamental::optimal_correction(&f, &m_norm, 1.0);
                         
-                        let filtered_indices = tensor::select_best_matches_from_fundamental(&f,m_norm,perc_tresh, epipolar_tresh, 1.0);
+                        let filtered_indices = tensor::select_best_matches_from_fundamental(&f_corr,&m_norm,perc_tresh, epipolar_tresh, 1.0);
                         let filtered_norm = filtered_indices.iter().map(|i| m_norm[*i].clone()).collect::<Vec<Match<Feat>>>();
                         let filtered = filtered_indices.iter().map(|i| m[*i].clone()).collect::<Vec<Match<Feat>>>();
 
-                        let e = tensor::compute_essential(&f,&camera_matrix_one,&camera_matrix_two);
+                        let e = tensor::compute_essential(&f_corr,&camera_matrix_one,&camera_matrix_two);
 
                         (e, filtered_norm, filtered)
                     },
                     tensor::BifocalType::ESSENTIAL => {
                         let e = tensor::five_point_essential(m_norm, &camera_matrix_one, &inverse_camera_matrix_one, &camera_matrix_two ,&inverse_camera_matrix_two); 
                         let f = tensor::compute_fundamental(&e, &inverse_camera_matrix_one, &inverse_camera_matrix_two);
+                        let f_corr = tensor::fundamental::optimal_correction(&f, &m_norm, 1.0);
 
-                        let filtered_indices = tensor::select_best_matches_from_fundamental(&f,m_norm,perc_tresh, epipolar_tresh, 1.0);
+                        let filtered_indices = tensor::select_best_matches_from_fundamental(&f_corr,m_norm,perc_tresh, epipolar_tresh, 1.0);
                         let filtered_norm = filtered_indices.iter().map(|i| m_norm[*i].clone()).collect::<Vec<Match<Feat>>>();
                         let filtered = filtered_indices.iter().map(|i| m[*i].clone()).collect::<Vec<Match<Feat>>>();
 
@@ -508,8 +510,9 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
                     tensor::BifocalType::ESSENTIAL_RANSAC => {
                         let e = tensor::ransac_five_point_essential(m_norm, &camera_matrix_one, &inverse_camera_matrix_one, &camera_matrix_two ,&inverse_camera_matrix_two,1e0,8e4 as usize); 
                         let f = tensor::compute_fundamental(&e, &inverse_camera_matrix_one, &inverse_camera_matrix_two);
+                        let f_corr = tensor::fundamental::optimal_correction(&f, &m_norm, 1.0);
 
-                        let filtered_indices = tensor::select_best_matches_from_fundamental(&f,m_norm,perc_tresh, epipolar_tresh, 1.0);
+                        let filtered_indices = tensor::select_best_matches_from_fundamental(&f_corr,m_norm,perc_tresh, epipolar_tresh, 1.0);
                         let filtered_norm = filtered_indices.iter().map(|i| m_norm[*i].clone()).collect::<Vec<Match<Feat>>>();
                         let filtered = filtered_indices.iter().map(|i| m[*i].clone()).collect::<Vec<Match<Feat>>>();
 
@@ -518,8 +521,9 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
                     tensor::BifocalType::QUEST => {
                         let e = quest::quest_ransac(m_norm,  &inverse_camera_matrix_one, &inverse_camera_matrix_two, 1e-2,1e4 as usize); 
                         let f = tensor::compute_fundamental(&e, &inverse_camera_matrix_one, &inverse_camera_matrix_two);
+                        let f_corr = tensor::fundamental::optimal_correction(&f, &m_norm, 1.0);
 
-                        let filtered_indices = tensor::select_best_matches_from_fundamental(&f,m_norm,perc_tresh, epipolar_tresh, 1.0);
+                        let filtered_indices = tensor::select_best_matches_from_fundamental(&f_corr,m_norm,perc_tresh, epipolar_tresh, 1.0);
                         let filtered_norm = filtered_indices.iter().map(|i| m_norm[*i].clone()).collect::<Vec<Match<Feat>>>();
                         let filtered = filtered_indices.iter().map(|i| m[*i].clone()).collect::<Vec<Match<Feat>>>();
 

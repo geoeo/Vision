@@ -3,10 +3,10 @@ extern crate nalgebra_lapack;
 extern crate rand;
 
 use std::iter::zip;
-use na::{SVector, Vector, Matrix, SMatrix, Matrix3, Vector2, Dyn, VecStorage, dimension::{U9,U1}, base::storage::Storage};
+use na::{SVector, Vector, Vector3, Matrix, SMatrix, Matrix3, Vector2, Dyn, VecStorage, dimension::{U9,U1}, base::storage::Storage};
 use nalgebra::linalg::SymmetricEigen;
 
-use crate::Float;
+use crate::{float,Float};
 use crate::image::features::{Feature,solver_feature::SolverFeature,matches::Match};
 use crate::sfm::epipolar::tensor::{regularize, Fundamental};
 
@@ -106,9 +106,62 @@ fn linear_coefficients(feature_left: &Vector2<Float>, feature_right: &Vector2<Fl
  * Compact Fundamental Matrix Computation, Kanatani and Sugaya @Info: Doenst seem to cope well with noise
  */
 #[allow(non_snake_case)]
+pub fn optimal_correction_of_matches<T : Feature + SolverFeature + Clone>(F: &Fundamental, m_measured: &Vec<Match<T>>, f0: Float) -> Vec<Match<T>> {
+    m_measured.iter().map(|m| optimal_correction_of_match(F, m, f0)).collect()
+}
+
+#[allow(non_snake_case)]
+pub fn optimal_correction_of_match<T : Feature + SolverFeature + Clone>(F: &Fundamental, m_measured: &Match<T>, f0: Float) -> Match<T> {
+    let mut error = float::MAX;
+    let eta = 1e-2;
+    let max_it = 1000;
+
+    let f_measured = m_measured.get_feature_one().get_as_2d_point();
+    let f_prime_measured = m_measured.get_feature_two().get_as_2d_point();
+
+    let mut f_corrected = m_measured.get_feature_one().get_as_2d_point();
+    let mut f_prime_corrected = m_measured.get_feature_two().get_as_2d_point();
+    
+    let mut f_error = Vector2::<Float>::zeros();
+    let mut f_prime_error = Vector2::<Float>::zeros();
+
+    let f = linearize_fundamental(F);
+
+    let mut it = 0;
+    while error > eta && it < max_it
+    {
+        let cov = compute_covariance_of_eta(&f_corrected, &f_prime_corrected, f0);
+        let eta = compute_eta(&f_corrected, &f_prime_corrected, &f_error, &f_prime_error, f0);
+
+        let v_corrected = Vector3::<Float>::new(f_corrected.x,f_corrected.y,1.0);
+        let v_prime_corrected = Vector3::<Float>::new(f_prime_corrected.x,f_prime_corrected.y,1.0);
+        
+        let factor = f.dot(&eta)/f.dot(&(cov*f));
+        f_error += factor*SMatrix::<Float,2,3>::from_vec(vec![f[0],f[1],f[2],f[3],f[4],f[5]])*v_prime_corrected;
+        f_prime_error += factor*SMatrix::<Float,2,3>::from_vec(vec![f[0],f[3],f[6],f[1],f[4],f[7]])*v_corrected;
+
+        f_corrected = f_measured - f_error;
+        f_prime_corrected = f_prime_measured - f_prime_error;
+
+        error = f_error.norm_squared() + f_prime_error.norm_squared();
+
+        it += 1;
+    }
+    
+    println!("Optimal Correction stopped with it {} and error: {}", it, error);
+
+    let f = T::new(f_corrected.x, f_corrected.y, m_measured.get_landmark_id());
+    let f_prime = T::new(f_prime_corrected.x, f_prime_corrected.y, m_measured.get_landmark_id());
+    Match::<T>::new(f, f_prime)
+}
+
+/**
+ * Compact Fundamental Matrix Computation, Kanatani and Sugaya @Info: Doenst seem to cope well with noise
+ */
+#[allow(non_snake_case)]
 pub fn optimal_correction<T : Feature + SolverFeature + Clone>(initial_F: &Fundamental, m_measured_in: &Vec<Match<T>>, f0: Float) -> Fundamental {
-    let error_threshold_efns = 1e-3;
-    let error_threshold = 1e-4;
+    let error_threshold_efns = 1e-1;
+    let error_threshold = 1e-2;
     let max_it_efns = 100;
     let max_it = 50;
 
@@ -147,8 +200,8 @@ pub fn optimal_correction<T : Feature + SolverFeature + Clone>(initial_F: &Funda
             let v_two_meas = m_meas.get_feature_two().get_as_3d_point(1.0);
             
             let factor = u_new.dot(eta)/u_new.dot(&(eta_cov*u_new));
-            let left_update = factor*SMatrix::<Float,2,3>::from_vec(vec![u_new[0],u_new[3],u_new[1],u_new[4],u_new[2],u_new[5]])*v_one_meas;
-            let right_update = factor*SMatrix::<Float,2,3>::from_vec(vec![u_new[0],u_new[1],u_new[3],u_new[4],u_new[6],u_new[7]])*v_two_meas;
+            let left_update = factor*SMatrix::<Float,2,3>::from_vec(vec![u_new[0],u_new[1],u_new[2],u_new[3],u_new[4],u_new[5]])*v_one_meas;
+            let right_update = factor*SMatrix::<Float,2,3>::from_vec(vec![u_new[0],u_new[3],u_new[6],u_new[1],u_new[4],u_new[7]])*v_two_meas;
             m_est.get_feature_one_mut().update(&left_update);
             m_est.get_feature_two_mut().update(&right_update);
 
@@ -165,20 +218,6 @@ pub fn optimal_correction<T : Feature + SolverFeature + Clone>(initial_F: &Funda
     F_corrected.normalize()
 }
 
-
-
-fn linearize_fundamental(f: &Fundamental) -> SVector<Float, 9> {
-    SVector::<Float, 9>::from_vec(vec![
-        f[(0,0)],
-        f[(0,1)],
-        f[(0,2)],
-        f[(1,0)],
-        f[(1,1)],
-        f[(1,2)],
-        f[(2,0)],
-        f[(2,1)],
-        f[(2,2)]])
-}
 
 fn linear_cofactor(u: &SVector<Float, 9>) ->  SVector<Float, 9> {
     let u1 = u[0];
@@ -203,44 +242,58 @@ fn linear_cofactor(u: &SVector<Float, 9>) ->  SVector<Float, 9> {
         u1*u5-u4*u2]).normalize()
 }
 
-fn compute_eta<T : Feature>(m_measured: &Match<T>, m_est: &Match<T>, f0: Float) -> SVector<Float, 9> {
-    let feature_left_measured = m_measured.get_feature_one().get_as_2d_point()/f0;
-    let feature_right_measured = m_measured.get_feature_two().get_as_2d_point()/f0;
-    let feature_left_est = m_est.get_feature_one().get_as_2d_point()/f0;
-    let feature_right_est = m_est.get_feature_two().get_as_2d_point()/f0;
 
-    let x_left_measured = feature_left_measured[0];
-    let y_left_measured = feature_left_measured[1];
-    let x_right_measured = feature_right_measured[0];
-    let y_right_measured = feature_right_measured[1];
+fn linearize_fundamental(f: &Fundamental) -> SVector<Float, 9> {
+    SVector::<Float, 9>::from_vec(vec![
+        f[(0,0)],
+        f[(0,1)],
+        f[(0,2)],
+        f[(1,0)],
+        f[(1,1)],
+        f[(1,2)],
+        f[(2,0)],
+        f[(2,1)],
+        f[(2,2)]])
+}
 
-    let x_left_est = feature_left_est[0];
-    let y_left_est = feature_left_est[1];
-    let x_right_est = feature_right_est[0];
-    let y_right_est = feature_right_est[1];
+
+fn compute_eta(feature_left_measured: &Vector2<Float>,feature_right_measured: &Vector2<Float>, feature_left_error: &Vector2<Float> ,feature_right_error: &Vector2<Float>, f0: Float) -> SVector<Float, 9> {
+    let feature_left_measured_scaled = feature_left_measured/f0;
+    let feature_right_measured_scaled = feature_right_measured/f0;
+    let feature_left_error_scaled = feature_left_error/f0;
+    let feature_right_error_scaled = feature_right_error/f0;
+
+    let x_left_measured = feature_left_measured_scaled[0];
+    let y_left_measured = feature_left_measured_scaled[1];
+    let x_right_measured = feature_right_measured_scaled[0];
+    let y_right_measured = feature_right_measured_scaled[1];
+
+    let x_left_error = feature_left_error_scaled[0];
+    let y_left_error = feature_left_error_scaled[1];
+    let x_right_error = feature_right_error_scaled[0];
+    let y_right_error = feature_right_error_scaled[1];
 
     SVector::<Float, 9>::from_vec(vec![
-        x_left_measured*x_right_measured+x_right_measured*x_left_est+x_left_measured*x_right_est,
-        x_left_measured*y_right_measured+y_right_measured*x_left_est+x_left_measured*y_right_est,
-        f0*(x_left_measured+x_left_est),
-        y_left_measured*x_right_measured+x_right_measured*y_left_est+y_left_measured*x_right_est,
-        y_left_measured*y_right_measured+y_right_measured*y_left_est+y_left_measured*y_right_est,
-        f0*(y_left_measured+y_left_est),
-        f0*(x_right_measured+x_right_est),
-        f0*(y_right_measured+y_right_est),
+        x_left_measured*x_right_measured+x_right_measured*x_left_error+x_left_measured*x_right_error,
+        x_left_measured*y_right_measured+y_right_measured*x_left_error+x_left_measured*y_right_error,
+        f0*(x_left_measured+x_left_error),
+        y_left_measured*x_right_measured+x_right_measured*y_left_error+y_left_measured*x_right_error,
+        y_left_measured*y_right_measured+y_right_measured*y_left_error+y_left_measured*y_right_error,
+        f0*(y_left_measured+y_left_error),
+        f0*(x_right_measured+x_right_error),
+        f0*(y_right_measured+y_right_error),
         f0.powi(2)])
 
 }
 
-fn compute_covariance_of_eta<T : Feature>(m_measured: &Match<T>, f0: Float) -> SMatrix<Float, 9, 9> {
+fn compute_covariance_of_eta(feature_left_measured: &Vector2<Float>, feature_right_measured: &Vector2<Float> , f0: Float) -> SMatrix<Float, 9, 9> {
+    let feature_left_measured_scaled = feature_left_measured/f0;
+    let feature_right_measured_scaled = feature_right_measured/f0;
 
-    let feature_left_measured = m_measured.get_feature_one().get_as_2d_point()/f0;
-    let feature_right_measured = m_measured.get_feature_two().get_as_2d_point()/f0;
-
-    let x_left_measured = feature_left_measured[0];
-    let y_left_measured = feature_left_measured[1];
-    let x_right_measured = feature_right_measured[0];
-    let y_right_measured = feature_right_measured[1];
+    let x_left_measured = feature_left_measured_scaled[0];
+    let y_left_measured = feature_left_measured_scaled[1];
+    let x_right_measured = feature_right_measured_scaled[0];
+    let y_right_measured = feature_right_measured_scaled[1];
 
     let x_left_measured_sqrd = x_left_measured.powi(2);
     let y_left_measured_sqrd = y_left_measured.powi(2);
@@ -283,9 +336,15 @@ fn EFNS<T : Feature>(matches: &Vec<Match<T>>,matches_est: &Vec<Match<T>>, u_orig
         let u_transpose = u.transpose();
     
         for (m,m_est) in zip(matches,matches_est) {
-            let eta = compute_eta(m, m_est, f0);
+            let m_f_1 = m.get_feature_one().get_as_2d_point();
+            let m_f_2 = m.get_feature_two().get_as_2d_point();
+
+            let m_est_f_1 = m_est.get_feature_one().get_as_2d_point();
+            let m_est_f_2 = m_est.get_feature_two().get_as_2d_point();
+
+            let eta = compute_eta(&m_f_1,&m_f_2, &m_est_f_1, &m_est_f_2, f0);
             let eta_transpose = eta.transpose();
-            let eta_cov = compute_covariance_of_eta(m,f0);
+            let eta_cov = compute_covariance_of_eta(&m_f_1,&m_f_2,f0);
 
             //println!("{}",eta_cov);
 
@@ -356,4 +415,5 @@ fn EFNS<T : Feature>(matches: &Vec<Match<T>>,matches_est: &Vec<Match<T>>, u_orig
 
     (u_new, etas, eta_covariances)
 }
+
 
