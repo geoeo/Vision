@@ -27,7 +27,7 @@ fn main() -> Result<()> {
     let kronan = "kronan";
     let round_church = "round_church";
 
-    let olsen_dataset_name = kronan;
+    let olsen_dataset_name = ninjo;
     let olsen_data_path = format!("{}/Olsson/{}/",runtime_conf.dataset_path,olsen_dataset_name);
 
     let feature_skip_count = 1;
@@ -50,8 +50,8 @@ fn main() -> Result<()> {
     let paths = vec!(vec!(6,7));
     let root_id = 5;
 
-    let paths = vec!(vec!(6,7,8));
-    let root_id = 5;
+    // let paths = vec!(vec!(6,7,8));
+    // let root_id = 5;
 
     // let paths = vec!(vec!(6,7,8,9,10));
     // let root_id = 5;
