@@ -4,13 +4,11 @@ extern crate num_traits;
 use std::marker::{Send,Sync};
 use num_traits::{float, NumAssign};
 use na::{convert, SimdRealField, ComplexField, zero, DMatrix, DVector , OVector, Dyn, Matrix, SMatrix, SVector,Vector,Dim,storage::{Storage,StorageMut},base::{Scalar, default_allocator::DefaultAllocator, allocator::Allocator},
-    VecStorage, Const, DimMin, U1, RawStorage
+    VecStorage, Const, DimMin, U1
 };
 use std::boxed::Box;
 use std::ops::AddAssign;
 use crate::numerics::{loss::LossFunction, weighting::WeightingFunction, conjugate_gradient};
-use crate::Float;
-
 pub fn calc_weight_vec<F, D, S1>(
     residuals: &DVector<F>,
     std: Option<F>,
