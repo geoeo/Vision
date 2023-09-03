@@ -3,8 +3,8 @@ extern crate num_traits;
 
 use std::marker::{Send,Sync};
 use num_traits::{float, NumAssign};
-use na::{convert, SimdRealField, ComplexField, zero, DMatrix, DVector , OVector, Dyn, Matrix, SMatrix, SVector,Vector,Dim,storage::{Storage,StorageMut},base::{Scalar, default_allocator::DefaultAllocator, allocator::{Allocator}},
-    VecStorage, Const, DimMin, U1
+use na::{convert, SimdRealField, ComplexField, zero, DMatrix, DVector , OVector, Dyn, Matrix, SMatrix, SVector,Vector,Dim,storage::{Storage,StorageMut},base::{Scalar, default_allocator::DefaultAllocator, allocator::Allocator},
+    VecStorage, Const, DimMin, U1, RawStorage
 };
 use std::boxed::Box;
 use std::ops::AddAssign;
@@ -276,29 +276,30 @@ pub fn compute_gain_ratio<F,St, C>(perturb: &Vector<F,C, St>,residual: &Vector<F
     gain_ratio_denom
 }
 
-//TODO: Remove dep on Float
 #[allow(non_snake_case)]
-pub fn gauss_newton_step<R, C,S1, S2, S3>(
-    residuals: &Vector<Float, R,S1>, 
-    jacobian: &Matrix<Float,R,C,S2>,
-    identity: &Matrix<Float,C,C,S3>,
-     mu: Option<Float>, 
-     tau: Float)-> (OVector<Float,C>,OVector<Float,C>,Float,Float) 
+pub fn gauss_newton_step<F, R, C,S1, S2, S3>(
+    residuals: &Vector<F, R,S1>, 
+    jacobian: &Matrix<F,R,C,S2>,
+    identity: &Matrix<F,C,C,S3>,
+     mu: Option<F>, 
+     tau: F)-> (OVector<F,C>,OVector<F,C>,F,F) 
      where 
+        F : float::Float + ComplexField + Scalar + SimdRealField,
         R: Dim, 
         C: Dim + DimMin<C, Output = C>,
-        S1: Storage<Float, R>,
-        S2: Storage<Float, R, C>,
-        S3: Storage<Float, C, C>,
-        DefaultAllocator: Allocator<Float, R, C>+  Allocator<Float, C, R> + Allocator<Float, C, C> + Allocator<Float, C>+ Allocator<Float, Const<1_usize>, C> + Allocator<(usize, usize), C>  {
+        S1: Storage<F, R>,
+        S2: Storage<F, R, C>,
+        S3: Storage<F, C, C>,
+        DefaultAllocator: Allocator<F, R, C> +  Allocator<F, C, R> + Allocator<F, C, C> + Allocator<F, C>+ Allocator<F, Const<1_usize>, C> + Allocator<(usize, usize), C>  {
     let (A,g) = (jacobian.transpose()*jacobian,jacobian.transpose()*residuals);
     let mu_val = match mu {
         None => tau*A.diagonal().max(),
         Some(v) => v
     };
-    let decomp = (A+ mu_val*identity).qr();
-    let h = decomp.solve(&(-(&g))).expect("QR Solve Failed");
-    let gain_ratio_denom = 0.5*(&h).transpose()*(mu_val*(&h)-(&g));
+    let decomp = (A+ identity*mu_val).cholesky().expect("Cholesky Failed");
+    let h = decomp.solve(&(-(&g)));
+    let half: F = convert(0.5);
+    let gain_ratio_denom = (&h).transpose()*((&h*mu_val)-(&g))*half;
     (h,g,gain_ratio_denom[0], mu_val)
 }
 
