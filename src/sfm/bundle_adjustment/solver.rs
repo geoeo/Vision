@@ -149,7 +149,6 @@ pub fn optimize<F: SupersetOf<Float>, C : Camera<Float>, L: Landmark<F, LANDMARK
         true => Some(Vec::<(Vec<[F; CAMERA_PARAM_SIZE]>, Vec<[F; LANDMARK_PARAM_SIZE]>)>::with_capacity(max_iterations)),
         false => None
     };
-    let mut v_star_inv = DMatrix::<F>::zeros(v_span,v_span); // a lot of memory - maybe use sparse format
     //let mut preconditioner = DMatrix::<F>::zeros(u_span,u_span); // a lot of memory - maybe use sparse format
     let two : F = convert(2.0);
 
@@ -200,7 +199,6 @@ pub fn optimize<F: SupersetOf<Float>, C : Camera<Float>, L: Landmark<F, LANDMARK
         target_arrowhead.fill(F::zero());
         g.fill(F::zero());
         delta.fill(F::zero());
-        v_star_inv.fill(F::zero());
 
         //TODO: switch in runtime parameters
         let gauss_newton_result 
@@ -208,7 +206,6 @@ pub fn optimize<F: SupersetOf<Float>, C : Camera<Float>, L: Landmark<F, LANDMARK
                 &mut target_arrowhead,
                 &mut g,
                 &mut delta,
-                &mut v_star_inv,
                 &residuals,
                 &jacobian,
                 mu,

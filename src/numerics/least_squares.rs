@@ -1,8 +1,9 @@
 extern crate nalgebra as na;
 extern crate num_traits;
 
-use std::marker::{Send,Sync};
+use std::{marker::{Send,Sync}, ops::{Sub, Mul}};
 use num_traits::{float, NumAssign};
+use nalgebra_sparse::{coo::CooMatrix, csr::CsrMatrix};
 use na::{convert, SimdRealField, ComplexField, zero, DMatrix, DVector , OVector, Dyn, Matrix, SMatrix, SVector,Vector,Dim,storage::{Storage,StorageMut},base::{Scalar, default_allocator::DefaultAllocator, allocator::Allocator},
     VecStorage, Const, DimMin, U1
 };
@@ -95,7 +96,6 @@ pub fn gauss_newton_step_with_schur<F, R, C, S1, S2,StorageTargetArrow, StorageT
     target_arrowhead: &mut Matrix<F,C,C,StorageTargetArrow>, 
     target_arrowhead_residual: &mut Vector<F,C,StorageTargetResidual>, 
     target_perturb: &mut Vector<F,C,StorageTargetResidual>, 
-    V_star_inv: &mut DMatrix<F>,
     residuals: &Vector<F, R,S1>, 
     jacobian: &Matrix<F,R,C,S2>,
     mu: Option<F>, 
@@ -122,18 +122,44 @@ pub fn gauss_newton_step_with_schur<F, R, C, S1, S2,StorageTargetArrow, StorageT
          *  
          */
 
-        let U_star = target_arrowhead.view((0,0),(u_span,u_span));
-        let V_star = target_arrowhead.view((u_span,u_span),(v_span,v_span));
-
-        let res_a = target_arrowhead_residual.view((0,0),(u_span,1));
-        let res_b = target_arrowhead_residual.view((u_span,0),(v_span,1));
+        let mut V_star_coo = CooMatrix::<F>::new(v_span, v_span);
+        for r in u_span..(u_span+v_span) {
+            for c in u_span..(u_span+v_span) {
+                let v = target_arrowhead[(r,c)];
+                if !v.is_zero() {
+                    V_star_coo.push(r-u_span, c-u_span, v);
+                }
+            }
+        }
+        let V_star_csc = CsrMatrix::from(&V_star_coo);
+        let mut V_star_inv_coo = CooMatrix::<F>::new(v_span, v_span);
 
         let mut inv_success = true;
         for i in (0..v_span).step_by(LANDMARK_PARAM_SIZE) {
-            let v_slice_cholesky = V_star.fixed_view::<LANDMARK_PARAM_SIZE,LANDMARK_PARAM_SIZE>(i,i).cholesky();
+            let mut v_slice = DMatrix::<F>::zeros(LANDMARK_PARAM_SIZE, LANDMARK_PARAM_SIZE);
+            let slice_end = i+LANDMARK_PARAM_SIZE;
+            for r in i..slice_end {
+                for c in i..slice_end {
+                    let entry = V_star_csc.get_entry(r, c).expect("V Star CSC indexing failed!");
+                    let v = match entry {
+                        nalgebra_sparse::SparseEntry::NonZero(v) => *v,
+                        nalgebra_sparse::SparseEntry::Zero => F::zero()
+                    };
+                    v_slice[(r-i,c-i)] = v;
+                }
+            }
+            let v_slice_cholesky = v_slice.cholesky();
             let success = match v_slice_cholesky {
                 Some(chol) => {
-                    V_star_inv.fixed_view_mut::<LANDMARK_PARAM_SIZE,LANDMARK_PARAM_SIZE>(i,i).copy_from(&chol.inverse());
+                    let chol_inverse = chol.inverse();
+                    for r in i..slice_end {
+                        for c in i..slice_end {
+                            let v = chol_inverse[(r-i,c-i)];
+                            if !v.is_zero() {
+                                V_star_inv_coo.push(r,c,v);
+                            }
+                        }
+                    }
                     true
                 },
                 None => false
@@ -144,18 +170,24 @@ pub fn gauss_newton_step_with_schur<F, R, C, S1, S2,StorageTargetArrow, StorageT
 
         match inv_success {
             true => {
+                let V_star_inv_csc = CsrMatrix::from(&V_star_inv_coo);
+                let U_star = target_arrowhead.view((0,0),(u_span,u_span));
+
+                let res_a = target_arrowhead_residual.view((0,0),(u_span,1));
+                let res_b = target_arrowhead_residual.view((u_span,0),(v_span,1)).into_owned();
+
                 let W = target_arrowhead.view((0,u_span),(u_span,v_span));
-                let W_t = target_arrowhead.view((u_span,0),(v_span,u_span));
-        
-                let schur_compliment = U_star - W*(V_star_inv as &DMatrix<F>)*W_t; // takes long time
-                let res_a_augment = res_a-W*(V_star_inv as &DMatrix<F>)*res_b; // takes long time
+                let W_t = target_arrowhead.view((u_span,0),(v_span,u_span)).into_owned();
+
+                let schur_compliment = U_star -W*(&V_star_inv_csc*&W_t); // takes long time
+                let res_a_augment = res_a-W*(&V_star_inv_csc*&res_b); // takes long time
         
                 let h_a_option = schur_compliment.cholesky();
         
                 match h_a_option {
                     Some(h_a_cholesky) => {
                         let h_a = h_a_cholesky.solve(&res_a_augment);
-                        let h_b = (V_star_inv as &DMatrix<F>)*(res_b-W_t*(&h_a));
+                        let h_b = (V_star_inv_csc)*(res_b-W_t*(&h_a));
         
                         target_perturb.view_mut((0,0),(u_span,1)).copy_from(&h_a);
                         target_perturb.view_mut((u_span,0),(v_span,1)).copy_from(&h_b);
