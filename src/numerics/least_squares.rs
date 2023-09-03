@@ -9,6 +9,7 @@ use na::{convert, SimdRealField, ComplexField, zero, DMatrix, DVector , OVector,
 use std::boxed::Box;
 use std::ops::AddAssign;
 use crate::numerics::{loss::LossFunction, weighting::WeightingFunction, conjugate_gradient};
+
 pub fn calc_weight_vec<F, D, S1>(
     residuals: &DVector<F>,
     std: Option<F>,

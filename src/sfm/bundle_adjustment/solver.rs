@@ -144,6 +144,7 @@ pub fn optimize<F: SupersetOf<Float>, C : Camera<Float>, L: Landmark<F, LANDMARK
     let mut target_arrowhead = DMatrix::<F>::zeros(state_size, state_size); // a lot of memory
     let mut g = DVector::<F>::from_element(state_size,F::zero()); 
     let mut delta = DVector::<F>::from_element(state_size,F::zero());
+    
     let mut debug_state_list = match runtime_parameters.debug {
         true => Some(Vec::<(Vec<[F; CAMERA_PARAM_SIZE]>, Vec<[F; LANDMARK_PARAM_SIZE]>)>::with_capacity(max_iterations)),
         false => None
