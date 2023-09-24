@@ -20,10 +20,23 @@ const CAMERA_PARAM_SIZE: usize = 6; //TODO make this generic with state
 pub struct Optimizer<F: SupersetOf<Float>, C : Camera<Float>, L: Landmark<F,LANDMARK_PARAM_SIZE> + Copy + Clone + Send + Sync, const LANDMARK_PARAM_SIZE: usize> where F: float::Float + Scalar + RealField {
     pub get_estimated_features: Box<dyn Fn(&State<F,L,LANDMARK_PARAM_SIZE>, &Vec<&C>, &DVector<F>, &mut DVector<F>) -> ()>,
     pub compute_residual: Box<dyn Fn(&DVector<F>, &DVector<F>, &mut DVector<F>) -> ()>,
-    pub compute_jacobian: dyn Fn( &State<F,L,LANDMARK_PARAM_SIZE>, &Vec<&C>, &mut DMatrix<F>) -> (),
+    pub compute_jacobian: Box<dyn Fn( &State<F,L,LANDMARK_PARAM_SIZE>, &Vec<&C>, &mut DMatrix<F>) -> ()>,
 }
 
 impl<F: SupersetOf<Float>, C : Camera<Float>, L: Landmark<F,LANDMARK_PARAM_SIZE> + Copy + Clone + Send + Sync, const LANDMARK_PARAM_SIZE: usize> Optimizer<F,C,L,LANDMARK_PARAM_SIZE> where F: float::Float + Scalar + RealField {
+    
+    pub fn new(
+        get_estimated_features: Box<dyn Fn(&State<F,L,LANDMARK_PARAM_SIZE>, &Vec<&C>, &DVector<F>, &mut DVector<F>) -> ()>,
+        compute_residual: Box<dyn Fn(&DVector<F>, &DVector<F>, &mut DVector<F>) -> ()>,
+        compute_jacobian: Box<dyn Fn( &State<F,L,LANDMARK_PARAM_SIZE>, &Vec<&C>, &mut DMatrix<F>) -> ()>
+    ) -> Optimizer<F,C,L,LANDMARK_PARAM_SIZE> {
+        Optimizer {
+            get_estimated_features,
+            compute_residual,
+            compute_jacobian
+        }
+    }
+    
     pub fn optimize(&self,
         state: &mut State<F,L,LANDMARK_PARAM_SIZE>, cameras: &Vec<&C>, observed_features: &DVector<F>, runtime_parameters: &RuntimeParameters<F>, abort_receiver: Option<&mpsc::Receiver<bool>>, done_transmission: Option<&mpsc::Sender<bool>>
     ) -> Option<Vec<(Vec<[F; CAMERA_PARAM_SIZE]>, Vec<[F; LANDMARK_PARAM_SIZE]>)>> where F: float::Float + Scalar + RealField {

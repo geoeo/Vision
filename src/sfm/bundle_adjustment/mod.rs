@@ -26,12 +26,13 @@ pub mod state_linearizer;
 
 
 pub fn run_ba<
+    'a,
     F: serde::Serialize + float::Float + Scalar + RealField + SupersetOf<Float>,
-    C: Camera<Float> + Copy + Send + Sync,
+    C: Camera<Float> + Copy + Send + Sync +'a + 'static,
     T: Feature + Clone + PartialEq + Eq + Hash + SolverFeature
 >(
-    sfm_config: &SFMConfig<C, T>,
-    runtime_parameters: &RuntimeParameters<F>,
+    sfm_config: &'a SFMConfig<C, T>,
+    runtime_parameters: &'a RuntimeParameters<F>,
 ) -> (
     (Vec<Isometry3<F>>, Vec<Vector3<F>>),
     (serde_yaml::Result<String>, serde_yaml::Result<String>),
@@ -62,8 +63,10 @@ pub fn run_ba<
     let (tx_done, rx_done) = mpsc::channel::<bool>();
 
     thread::scope(|s| {
+       
         s.spawn(move || {
-            let some_debug_state_list = solver::optimize::<_, _, _, 3>(
+            let solver = solver::Solver::<F, C, _, 3>::new();
+            let some_debug_state_list = solver.solve(
                 &mut state,
                 &unique_cameras_sorted_by_id,
                 &observed_features,

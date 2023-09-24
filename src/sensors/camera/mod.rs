@@ -11,7 +11,7 @@ pub mod perspective;
 pub mod camera_data_frame;
 
  //@TODO: unify principal distance into enum
-pub trait Camera<F: float::Float + Scalar + SimdRealField> {
+ pub trait Camera<F: float::Float + Scalar + SimdRealField> {
     fn get_projection(&self) -> Matrix3<F>;
     fn get_inverse_projection(&self) -> Matrix3<F>; //@TODO: rename to camera/intrinsic matrix
     fn get_jacobian_with_respect_to_position_in_camera_frame<T, F2: float::Float + Scalar + SupersetOf<F>>(&self, position: &Vector<F2,U3,T>) -> Option<Matrix2x3<F2>> where T: Storage<F2,U3,U1>;
