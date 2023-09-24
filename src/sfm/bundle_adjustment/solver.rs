@@ -71,8 +71,6 @@ pub fn compute_residual<F: SupersetOf<Float>>(
         }
         assert!(!residual_vector[i].is_nan());
     }
-    
-
 }
 
 pub fn compute_jacobian_wrt_object_points<F, C : Camera<Float>, L: Landmark<F, T> + Copy + Clone + Send + Sync, const T: usize>(
@@ -103,9 +101,9 @@ pub fn compute_jacobian_wrt_camera_extrinsics<F, C : Camera<Float>, L: Landmark<
 pub fn compute_jacobian<F, C : Camera<Float>, L: Landmark<F, T> + Copy + Clone + Send + Sync, const T: usize>(state: &State<F,L,T>, cameras: &Vec<&C>, jacobian: &mut DMatrix<F>) 
     -> ()  where F: float::Float + Scalar + RealField {
     //cam
-    let number_of_cam_params = 6*state.n_cams;
-    for cam_state_idx in (0..number_of_cam_params).step_by(6) {
-        let cam_id = cam_state_idx/6;
+    let number_of_cam_params = CAMERA_PARAM_SIZE*state.n_cams;
+    for cam_state_idx in (0..number_of_cam_params).step_by(CAMERA_PARAM_SIZE) {
+        let cam_id = cam_state_idx/CAMERA_PARAM_SIZE;
         let camera = cameras[cam_id];
         
         //landmark
