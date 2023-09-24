@@ -2,7 +2,7 @@ extern crate nalgebra as na;
 
 use crate::image::features::solver_feature::SolverFeature;
 use crate::image::features::Feature;
-use crate::odometry::runtime_parameters::RuntimeParameters;
+use crate::sfm::runtime_parameters::RuntimeParameters;
 use crate::sensors::camera::Camera;
 use crate::sfm::{
     bundle_adjustment::state_linearizer::StateLinearizer, compute_path_id_pairs,
@@ -23,6 +23,7 @@ use termion::input::TermRead;
 pub mod solver;
 pub mod state;
 pub mod state_linearizer;
+
 
 pub fn run_ba<
     F: serde::Serialize + float::Float + Scalar + RealField + SupersetOf<Float>,

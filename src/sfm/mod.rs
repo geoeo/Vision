@@ -21,6 +21,7 @@ pub mod triangulation;
 pub mod quest;
 pub mod rotation_avg;
 pub mod outlier_rejection;
+pub mod runtime_parameters;
 
 /**
  * We assume that the indices between paths and matches are consistent

@@ -6,7 +6,7 @@ use vision::{Float,load_runtime_conf};
 use vision::sfm::{triangulation::Triangulation,SFMConfig, bundle_adjustment::run_ba, epipolar::tensor::BifocalType};
 use vision::sensors::camera::perspective::Perspective;
 use vision::image::features::{matches::Match,image_feature::ImageFeature};
-use vision::odometry::runtime_parameters::RuntimeParameters;
+use vision::sfm::runtime_parameters::RuntimeParameters;
 use vision::numerics::{loss, weighting};
 use na::{Rotation3,Isometry3,Vector3,UnitQuaternion};
 

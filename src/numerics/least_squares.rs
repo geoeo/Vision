@@ -1,7 +1,7 @@
 extern crate nalgebra as na;
 extern crate num_traits;
 
-use std::{marker::{Send,Sync}, ops::{Sub, Mul}};
+use std::{marker::{Send,Sync}};
 use num_traits::{float, NumAssign};
 use nalgebra_sparse::{coo::CooMatrix, csr::CsrMatrix};
 use na::{convert, SimdRealField, ComplexField, zero, DMatrix, DVector , OVector, Dyn, Matrix, SMatrix, SVector,Vector,Dim,storage::{Storage,StorageMut},base::{Scalar, default_allocator::DefaultAllocator, allocator::Allocator},

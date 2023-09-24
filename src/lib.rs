@@ -3,7 +3,6 @@ use std::fs;
 
 pub mod image;
 pub mod visualize;
-pub mod odometry;
 pub mod numerics;
 pub mod io;
 pub mod sensors;

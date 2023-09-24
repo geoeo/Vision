@@ -12,7 +12,7 @@ use vision::image::features::{matches::Match,orb_feature::OrbFeature};
 use vision::image::Image;
 use vision::sfm::{triangulation::Triangulation, bundle_adjustment::run_ba,epipolar::tensor::BifocalType};
 use vision::sensors::camera::perspective::Perspective;
-use vision::odometry::runtime_parameters::RuntimeParameters;
+use vision::sfm::runtime_parameters::RuntimeParameters;
 use vision::numerics::{loss, weighting};
 use vision::sfm::SFMConfig;
 
