@@ -3,6 +3,7 @@ extern crate num_traits;
 
 
 use std::marker::{Send,Sync};
+use std::sync::mpsc;
 use na::{DVector,DMatrix,Point3, Vector4, base::Scalar, RealField, convert};
 use simba::scalar::SupersetOf;
 use num_traits::float;
@@ -55,23 +56,25 @@ impl<F: SupersetOf<Float>, C : Camera<Float>, L: Landmark<F, LANDMARK_PARAM_SIZE
      fn compute_jacobian( state: &State<F,L,LANDMARK_PARAM_SIZE>, cameras: &Vec<&C>, jacobian: &mut DMatrix<F>) 
         -> () {
         //cam
-        assert_eq!(state.n_cams,1);
-        let cam_state_idx = 0;
-        let cam_id = cam_state_idx/CAMERA_PARAM_SIZE;
-        let camera = cameras[cam_id];
-        
-        //landmark
-        for point_id in 0..state.n_points {
-            let point = state.get_landmarks()[point_id].get_euclidean_representation();
-    
-            let row = Self::get_feature_index_in_residual(cam_id, point_id, state.n_cams);
-            let a_j = cam_state_idx;
+        let number_of_cam_params = CAMERA_PARAM_SIZE*state.n_cams;
+        for cam_state_idx in (0..number_of_cam_params).step_by(CAMERA_PARAM_SIZE) {
+            let cam_id = cam_state_idx/CAMERA_PARAM_SIZE;
+            let camera = cameras[cam_id];
+            let column = cam_state_idx;
             
-            Self::compute_jacobian_wrt_camera_extrinsics(camera , state, cam_state_idx,&point,row,a_j, jacobian);
+            //landmark
+            for point_id in 0..state.n_points {
+                let point = state.get_landmarks()[point_id].get_euclidean_representation();
+                let row = Self::get_feature_index_in_residual(cam_id, point_id, state.n_cams);
+                
+                Self::compute_jacobian_wrt_camera_extrinsics(camera , state, cam_state_idx, &point,row,column, jacobian);
+            }
         }
-    
-        
-    
+    }
+
+    pub fn solve(&self,state: &mut State<F,L,LANDMARK_PARAM_SIZE>, cameras: &Vec<&C>, observed_features: &DVector<F>, runtime_parameters: &RuntimeParameters<F>, abort_receiver: Option<&mpsc::Receiver<bool>>, done_transmission: Option<&mpsc::Sender<bool>>
+    ) -> Option<Vec<(Vec<[F; CAMERA_PARAM_SIZE]>, Vec<[F; LANDMARK_PARAM_SIZE]>)>> {
+        self.optimizer.optimize(state, cameras, observed_features, runtime_parameters, abort_receiver, done_transmission)
     }
 
 }

@@ -1,7 +1,6 @@
 extern crate nalgebra as na;
 extern crate num_traits;
 
-
 use std::marker::{Send,Sync};
 use std::sync::mpsc;
 use na::{DVector,DMatrix,Matrix, Dyn, U4, VecStorage,Point3, Vector4, base::Scalar, RealField, convert};
@@ -119,15 +118,14 @@ impl<F: SupersetOf<Float>, C : Camera<Float> + 'static, L: Landmark<F, LANDMARK_
                 let point = state.get_landmarks()[point_id].get_euclidean_representation();
 
                 let row = Self::get_feature_index_in_residual(cam_id, point_id, state.n_cams);
-                let a_j = cam_state_idx;
-                let b_j = number_of_cam_params+(LANDMARK_PARAM_SIZE*point_id);
+                let column_cam = cam_state_idx;
+                let column_landmark = number_of_cam_params+(LANDMARK_PARAM_SIZE*point_id);
                 
-                Self::compute_jacobian_wrt_camera_extrinsics(camera , state, cam_state_idx,&point,row,a_j, jacobian);
-                Self::compute_jacobian_wrt_object_points(camera, state, cam_state_idx ,point_id,row,b_j, jacobian);
+                Self::compute_jacobian_wrt_camera_extrinsics(camera , state, cam_state_idx,&point,row,column_cam, jacobian);
+                Self::compute_jacobian_wrt_object_points(camera, state, cam_state_idx ,point_id,row,column_landmark, jacobian);
             }
 
         }
-
     }
 
     pub fn solve(&self,state: &mut State<F,L,LANDMARK_PARAM_SIZE>, cameras: &Vec<&C>, observed_features: &DVector<F>, runtime_parameters: &RuntimeParameters<F>, abort_receiver: Option<&mpsc::Receiver<bool>>, done_transmission: Option<&mpsc::Sender<bool>>

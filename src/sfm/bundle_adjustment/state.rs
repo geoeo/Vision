@@ -61,11 +61,11 @@ impl<F: float::Float + Scalar + RealField, L: Landmark<F,T> + Copy + Clone, cons
             let new_rotation = na::Rotation3::from_matrix(&new_transform.fixed_view::<3,3>(0,0).into_owned());
             self.camera_positions.fixed_view_mut::<3,1>(i+3,0).copy_from(&(new_rotation.scaled_axis()));
         }
-
+        
         let landmark_offset = self.camera_positions.nrows();
-        for i in 0..self.landmarks.len() {
-            let pertub_offset = i*L::LANDMARK_PARAM_SIZE;
-            self.landmarks[i].update(&perturb.fixed_view::<T,1>(landmark_offset+pertub_offset,0).into());
+        for i in (landmark_offset..perturb.len()).step_by(T) {
+            let landmark_id = (i-landmark_offset)/T;
+            self.landmarks[landmark_id].update(&perturb.fixed_view::<T,1>(i,0).into());
         }
     }
 
