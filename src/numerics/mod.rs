@@ -14,6 +14,7 @@ pub mod loss;
 pub mod least_squares;
 pub mod weighting;
 pub mod conjugate_gradient;
+pub mod optimizer;
 
 pub fn to_matrix<F, const N: usize, const M: usize, const D: usize>(vec: &SVector<F,D>) -> SMatrix<F,N,M> where F : num_traits::float::Float + Scalar + NumAssign + SimdRealField {
     assert_eq!(D,N*M);

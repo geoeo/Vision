@@ -8,22 +8,23 @@ use simba::scalar::SupersetOf;
 use num_traits::float;
 use std::boxed::Box;
 
+use crate::numerics::optimizer::gauss_newton_schur::OptimizerGnSchur;
 use crate::sensors::camera::Camera;
 use crate::numerics::lie::left_jacobian_around_identity;
-use crate::sfm::{landmark::Landmark,bundle_adjustment::{state::State, state_linearizer},optimizer::Optimizer};
+use crate::sfm::{landmark::Landmark,bundle_adjustment::{state::State, state_linearizer}};
 use crate::sfm::runtime_parameters::RuntimeParameters; 
 use crate::Float;
 
 const CAMERA_PARAM_SIZE: usize = 6; //TODO make this generic with state
 
 pub struct Solver<F: SupersetOf<Float>, C : Camera<Float>  + 'static, L: Landmark<F, LANDMARK_PARAM_SIZE> + Copy + Clone + Send + Sync  + 'static, const LANDMARK_PARAM_SIZE: usize>  where F: float::Float + Scalar + RealField {
-    optimizer: Optimizer<F,C,L, LANDMARK_PARAM_SIZE>
+    optimizer: OptimizerGnSchur<F,C,L, LANDMARK_PARAM_SIZE>
 }
 
 impl<F: SupersetOf<Float>, C : Camera<Float> + 'static, L: Landmark<F, LANDMARK_PARAM_SIZE> + Copy + Clone + Send + Sync  + 'static, const LANDMARK_PARAM_SIZE: usize>  Solver<F,C,L,LANDMARK_PARAM_SIZE> where F: float::Float + Scalar + RealField  {
     pub fn new() ->  Solver<F, C, L,  LANDMARK_PARAM_SIZE> {
         Solver {
-            optimizer: Optimizer::new(Box::new(Self::get_estimated_features), Box::new(Self::compute_residual), Box::new(Self::compute_jacobian), Box::new(Self::compute_state_size))
+            optimizer: OptimizerGnSchur::new(Box::new(Self::get_estimated_features), Box::new(Self::compute_residual), Box::new(Self::compute_jacobian), Box::new(Self::compute_state_size))
         }
     }
 

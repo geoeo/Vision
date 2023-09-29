@@ -9,8 +9,8 @@ use simba::scalar::SupersetOf;
 use num_traits::float;
 
 use crate::sensors::camera::Camera;
-use crate::numerics::lie::left_jacobian_around_identity;
-use crate::sfm::{landmark::Landmark,bundle_adjustment::{state::State, state_linearizer}, optimizer::Optimizer};
+use crate::numerics::{lie::left_jacobian_around_identity,optimizer::gauss_newton::OptimizerGn};
+use crate::sfm::{landmark::Landmark,bundle_adjustment::{state::State, state_linearizer}};
 use crate::sfm::runtime_parameters::RuntimeParameters; 
 use crate::Float;
 
@@ -18,7 +18,7 @@ const CAMERA_PARAM_SIZE: usize = 6; //TODO make this generic with state
 
 
 struct Solver<F: SupersetOf<Float>, C : Camera<Float>, L: Landmark<F, LANDMARK_PARAM_SIZE> + Copy + Clone + Send + Sync, const LANDMARK_PARAM_SIZE: usize>  where F: float::Float + Scalar + RealField {
-    optimizer: Optimizer<F,C,L, LANDMARK_PARAM_SIZE>
+    optimizer: OptimizerGn<F,C,L, LANDMARK_PARAM_SIZE>
 }
 
 impl<F: SupersetOf<Float>, C : Camera<Float>, L: Landmark<F, LANDMARK_PARAM_SIZE> + Copy + Clone + Send + Sync, const LANDMARK_PARAM_SIZE: usize>  Solver<F,C,L,LANDMARK_PARAM_SIZE> where F: float::Float + Scalar + RealField  {

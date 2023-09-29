@@ -9,31 +9,35 @@ use simba::scalar::SupersetOf;
 use num_traits::float;
 
 use crate::sensors::camera::Camera;
-use crate::numerics::{max_norm, least_squares::{compute_cost,weight_jacobian_sparse,weight_residuals_sparse, calc_weight_vec, gauss_newton_step_with_schur, gauss_newton_step_with_conguate_gradient}};
-use crate::sfm::{landmark::Landmark,bundle_adjustment::{state::State, state_linearizer}};
+use crate::numerics::{max_norm, least_squares::{compute_cost,weight_jacobian_sparse,weight_residuals_sparse, calc_weight_vec, gauss_newton_step}};
+use crate::sfm::{landmark::Landmark,bundle_adjustment::state::State};
 use crate::sfm::runtime_parameters::RuntimeParameters; 
 use crate::Float;
 
 const CAMERA_PARAM_SIZE: usize = 6; //TODO make this generic with state
 
 
-pub struct Optimizer<F: SupersetOf<Float>, C : Camera<Float>, L: Landmark<F,LANDMARK_PARAM_SIZE> + Copy + Clone + Send + Sync, const LANDMARK_PARAM_SIZE: usize> where F: float::Float + Scalar + RealField {
+pub struct OptimizerGn<F: SupersetOf<Float>, C : Camera<Float>, L: Landmark<F,LANDMARK_PARAM_SIZE> + Copy + Clone + Send + Sync, const LANDMARK_PARAM_SIZE: usize> where F: float::Float + Scalar + RealField {
     pub get_estimated_features: Box<dyn Fn(&State<F,L,LANDMARK_PARAM_SIZE>, &Vec<&C>, &DVector<F>, &mut DVector<F>) -> ()>,
     pub compute_residual: Box<dyn Fn(&DVector<F>, &DVector<F>, &mut DVector<F>) -> ()>,
-    pub compute_jacobian: Box<dyn Fn( &State<F,L,LANDMARK_PARAM_SIZE>, &Vec<&C>, &mut DMatrix<F>) -> ()>,
+    pub compute_jacobian: Box<dyn Fn(&State<F,L,LANDMARK_PARAM_SIZE>, &Vec<&C>, &mut DMatrix<F>) -> ()>,
+    pub compute_state_size: Box<dyn Fn(&State<F,L,LANDMARK_PARAM_SIZE>) -> usize>
 }
 
-impl<F: SupersetOf<Float>, C : Camera<Float>, L: Landmark<F,LANDMARK_PARAM_SIZE> + Copy + Clone + Send + Sync, const LANDMARK_PARAM_SIZE: usize> Optimizer<F,C,L,LANDMARK_PARAM_SIZE> where F: float::Float + Scalar + RealField {
+impl<F: SupersetOf<Float>, C : Camera<Float>, L: Landmark<F,LANDMARK_PARAM_SIZE> + Copy + Clone + Send + Sync, const LANDMARK_PARAM_SIZE: usize> OptimizerGn<F,C,L,LANDMARK_PARAM_SIZE> where F: float::Float + Scalar + RealField {
     
     pub fn new(
         get_estimated_features: Box<dyn Fn(&State<F,L,LANDMARK_PARAM_SIZE>, &Vec<&C>, &DVector<F>, &mut DVector<F>) -> ()>,
         compute_residual: Box<dyn Fn(&DVector<F>, &DVector<F>, &mut DVector<F>) -> ()>,
-        compute_jacobian: Box<dyn Fn( &State<F,L,LANDMARK_PARAM_SIZE>, &Vec<&C>, &mut DMatrix<F>) -> ()>
-    ) -> Optimizer<F,C,L,LANDMARK_PARAM_SIZE> {
-        Optimizer {
+        compute_jacobian: Box<dyn Fn( &State<F,L,LANDMARK_PARAM_SIZE>, &Vec<&C>, &mut DMatrix<F>) -> ()>,
+        compute_state_size: Box<dyn Fn(&State<F,L,LANDMARK_PARAM_SIZE>) -> usize>
+
+    ) -> OptimizerGn<F,C,L,LANDMARK_PARAM_SIZE> {
+        OptimizerGn {
             get_estimated_features,
             compute_residual,
-            compute_jacobian
+            compute_jacobian,
+            compute_state_size
         }
     }
     
@@ -46,17 +50,15 @@ impl<F: SupersetOf<Float>, C : Camera<Float>, L: Landmark<F,LANDMARK_PARAM_SIZE>
         let u_span = CAMERA_PARAM_SIZE*state.n_cams;
         let v_span = LANDMARK_PARAM_SIZE*state.n_points;
         
+        let state_size = (self.compute_state_size)(state);
+        let identity = DMatrix::<F>::identity(state_size, state_size);
         let mut new_state = state.clone();
-        let state_size = CAMERA_PARAM_SIZE*state.n_cams+LANDMARK_PARAM_SIZE*state.n_points;
         let mut jacobian = DMatrix::<F>::zeros(observed_features.nrows(),state_size); // a lot of memory
         let mut residuals = DVector::<F>::zeros(observed_features.nrows());
         let mut new_residuals = DVector::<F>::zeros(observed_features.nrows());
         let mut estimated_features = DVector::<F>::zeros(observed_features.nrows());
         let mut new_estimated_features = DVector::<F>::zeros(observed_features.nrows());
         let mut weights_vec = DVector::<F>::from_element(observed_features.nrows(),F::one());
-        let mut target_arrowhead = DMatrix::<F>::zeros(state_size, state_size); // a lot of memory
-        let mut g = DVector::<F>::from_element(state_size,F::zero()); 
-        let mut delta = DVector::<F>::from_element(state_size,F::zero());
         
         let mut debug_state_list = match runtime_parameters.debug {
             true => Some(Vec::<(Vec<[F; CAMERA_PARAM_SIZE]>, Vec<[F; LANDMARK_PARAM_SIZE]>)>::with_capacity(max_iterations)),
@@ -108,78 +110,38 @@ impl<F: SupersetOf<Float>, C : Camera<Float>, L: Landmark<F,LANDMARK_PARAM_SIZE>
             if runtime_parameters.debug {
                 debug_state_list.as_mut().expect("Debug is true but state list is None!. This should not happen").push(state.to_serial());
             }
-
-            target_arrowhead.fill(F::zero());
-            g.fill(F::zero());
-            delta.fill(F::zero());
-
-            //TODO: switch in runtime parameters
-            let gauss_newton_result 
-                = gauss_newton_step_with_schur::<_,_,_,_,_,_,_,LANDMARK_PARAM_SIZE, CAMERA_PARAM_SIZE>(
-                    &mut target_arrowhead,
-                    &mut g,
-                    &mut delta,
-                    &residuals,
-                    &jacobian,
-                    mu,
-                    tau,
-                    state.n_cams,
-                    state.n_points,
-                    u_span,
-                    v_span
-                ); 
-
-
-            // preconditioner.fill(F::zero());
-            // let gauss_newton_result 
-            //     = gauss_newton_step_with_conguate_gradient::<_,_,_,_,_,_,_,LANDMARK_PARAM_SIZE, CAMERA_PARAM_SIZE>(
-            //         &mut target_arrowhead,
-            //         &mut g,
-            //         &mut delta,
-            //         &mut v_star_inv,
-            //         &mut preconditioner,
-            //         &residuals,
-            //         &jacobian,
-            //         mu,
-            //         tau,
-            //         state.n_cams,
-            //         state.n_points,
-            //         u_span,
-            //         v_span,
-            //         runtime_parameters.cg_threshold,
-            //         runtime_parameters.cg_max_it
-            //     ); 
-
-            let (gain_ratio, new_cost, pertb_norm, cost_diff) = match gauss_newton_result {
-                Some((gain_ratio_denom, mu_val)) => {
-                    mu = Some(mu_val);
-                    let pertb = delta.scale(step);
-                    new_state.update(&pertb);
             
-                    (self.get_estimated_features)(&new_state, cameras,observed_features, &mut new_estimated_features);
-                    (self.compute_residual)(&new_estimated_features, observed_features, &mut new_residuals);
-                    std = runtime_parameters.intensity_weighting_function.estimate_standard_deviation(&residuals);
-                    if std.is_some() {
-                        calc_weight_vec(
-                            &new_residuals,
-                            std,
-                            &runtime_parameters.intensity_weighting_function,
-                            &mut weights_vec,
-                        );
-                        weight_residuals_sparse(&mut new_residuals, &weights_vec);
-                    }
-            
-            
-                    let new_cost = compute_cost(&new_residuals,&runtime_parameters.intensity_weighting_function);
-                    let cost_diff = cost-new_cost;
-                    let gain_ratio = match gain_ratio_denom {
-                        v if v != F::zero() => cost_diff/v,
-                        _ => float::Float::nan()
-                    };
-                    (gain_ratio, new_cost, pertb.norm(), cost_diff)
-                },
-                None => (float::Float::nan(), float::Float::nan(), float::Float::nan(), float::Float::nan())
+            let (delta,g,gain_ratio_denom, mu_val) = gauss_newton_step::<_,_,_,_,_,_>(
+                &residuals,
+                &jacobian,
+                &identity,mu,tau
+                );
+
+            mu = Some(mu_val);
+            let pertb = delta.scale(step);
+            new_state.update(&pertb);
+    
+            (self.get_estimated_features)(&new_state, cameras,observed_features, &mut new_estimated_features);
+            (self.compute_residual)(&new_estimated_features, observed_features, &mut new_residuals);
+            std = runtime_parameters.intensity_weighting_function.estimate_standard_deviation(&residuals);
+            if std.is_some() {
+                calc_weight_vec(
+                    &new_residuals,
+                    std,
+                    &runtime_parameters.intensity_weighting_function,
+                    &mut weights_vec,
+                );
+                weight_residuals_sparse(&mut new_residuals, &weights_vec);
+            }
+    
+    
+            let new_cost = compute_cost(&new_residuals,&runtime_parameters.intensity_weighting_function);
+            let cost_diff = cost-new_cost;
+            let gain_ratio = match gain_ratio_denom {
+                v if v != F::zero() => cost_diff/v,
+                _ => float::Float::nan()
             };
+            (gain_ratio, new_cost, pertb.norm(), cost_diff);
 
             println!("cost: {}, new cost: {}, mu: {:?}, gain: {} , nu: {}, std: {:?}",cost,new_cost, mu, gain_ratio, nu, std);
             
@@ -190,7 +152,7 @@ impl<F: SupersetOf<Float>, C : Camera<Float>, L: Landmark<F,LANDMARK_PARAM_SIZE>
                 cost = new_cost;
 
                 max_norm_delta = max_norm(&g);
-                delta_norm = pertb_norm; 
+                delta_norm = pertb.norm(); 
 
                 delta_thresh = runtime_parameters.delta_eps*(estimated_features.norm() + runtime_parameters.delta_eps);
 
