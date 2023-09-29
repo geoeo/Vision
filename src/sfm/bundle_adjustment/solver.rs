@@ -23,7 +23,7 @@ pub struct Solver<F: SupersetOf<Float>, C : Camera<Float>  + 'static, L: Landmar
 impl<F: SupersetOf<Float>, C : Camera<Float> + 'static, L: Landmark<F, LANDMARK_PARAM_SIZE> + Copy + Clone + Send + Sync  + 'static, const LANDMARK_PARAM_SIZE: usize>  Solver<F,C,L,LANDMARK_PARAM_SIZE> where F: float::Float + Scalar + RealField  {
     pub fn new() ->  Solver<F, C, L,  LANDMARK_PARAM_SIZE> {
         Solver {
-            optimizer: Optimizer::new(Box::new(Self::get_estimated_features), Box::new(Self::compute_residual), Box::new(Self::compute_jacobian))
+            optimizer: Optimizer::new(Box::new(Self::get_estimated_features), Box::new(Self::compute_residual), Box::new(Self::compute_jacobian), Box::new(Self::compute_state_size))
         }
     }
 
@@ -126,6 +126,10 @@ impl<F: SupersetOf<Float>, C : Camera<Float> + 'static, L: Landmark<F, LANDMARK_
             }
 
         }
+    }
+
+    pub fn compute_state_size(state: &State<F,L,LANDMARK_PARAM_SIZE>) -> usize {
+        CAMERA_PARAM_SIZE*state.n_cams+LANDMARK_PARAM_SIZE*state.n_points
     }
 
     pub fn solve(&self,state: &mut State<F,L,LANDMARK_PARAM_SIZE>, cameras: &Vec<&C>, observed_features: &DVector<F>, runtime_parameters: &RuntimeParameters<F>, abort_receiver: Option<&mpsc::Receiver<bool>>, done_transmission: Option<&mpsc::Sender<bool>>

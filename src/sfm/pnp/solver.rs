@@ -72,6 +72,10 @@ impl<F: SupersetOf<Float>, C : Camera<Float>, L: Landmark<F, LANDMARK_PARAM_SIZE
         }
     }
 
+    pub fn compute_state_size(state: &State<F,L,LANDMARK_PARAM_SIZE>) -> usize {
+        CAMERA_PARAM_SIZE*state.n_cams
+    }
+
     pub fn solve(&self,state: &mut State<F,L,LANDMARK_PARAM_SIZE>, cameras: &Vec<&C>, observed_features: &DVector<F>, runtime_parameters: &RuntimeParameters<F>, abort_receiver: Option<&mpsc::Receiver<bool>>, done_transmission: Option<&mpsc::Sender<bool>>
     ) -> Option<Vec<(Vec<[F; CAMERA_PARAM_SIZE]>, Vec<[F; LANDMARK_PARAM_SIZE]>)>> {
         self.optimizer.optimize(state, cameras, observed_features, runtime_parameters, abort_receiver, done_transmission)
