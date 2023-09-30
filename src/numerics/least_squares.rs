@@ -313,7 +313,7 @@ pub fn gauss_newton_step<F, R, C,S1, S2, S3>(
     jacobian: &Matrix<F,R,C,S2>,
     identity: &Matrix<F,C,C,S3>,
      mu: Option<F>, 
-     tau: F)-> (OVector<F,C>,OVector<F,C>,F,F) 
+     tau: F)-> Option<(OVector<F,C>,OVector<F,C>,F,F)>
      where 
         F : float::Float + ComplexField + Scalar + SimdRealField,
         R: Dim, 
@@ -327,11 +327,17 @@ pub fn gauss_newton_step<F, R, C,S1, S2, S3>(
         None => tau*A.diagonal().max(),
         Some(v) => v
     };
-    let decomp = (A+ identity*mu_val).cholesky().expect("Cholesky Failed");
-    let h = decomp.solve(&(-(&g)));
-    let half: F = convert(0.5);
-    let gain_ratio_denom = (&h).transpose()*((&h*mu_val)-(&g))*half;
-    (h,g,gain_ratio_denom[0], mu_val)
+    let decomp_option = (A+ identity*mu_val).cholesky();
+    match decomp_option {
+        Some(decomp) => {
+            let h = decomp.solve(&(-(&g)));
+            let half: F = convert(0.5);
+            let gain_ratio_denom = (&h).transpose()*((&h*mu_val)-(&g))*half;
+            Some((h,g,gain_ratio_denom[0], mu_val))
+        },
+        None => None
+    }
+
 }
 
 #[allow(non_snake_case)]

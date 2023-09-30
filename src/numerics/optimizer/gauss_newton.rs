@@ -1,7 +1,6 @@
 extern crate nalgebra as na;
 extern crate num_traits;
 
-
 use std::marker::{Send,Sync};
 use std::sync::mpsc;
 use na::{DVector,DMatrix, base::Scalar, RealField, convert};
@@ -108,48 +107,52 @@ impl<F: SupersetOf<Float>, C : Camera<Float>, L: Landmark<F,LANDMARK_PARAM_SIZE>
                 debug_state_list.as_mut().expect("Debug is true but state list is None!. This should not happen").push(state.to_serial());
             }
             
-            let (delta,g,gain_ratio_denom, mu_val) = gauss_newton_step::<_,_,_,_,_,_>(
+            let gauss_newton_result = gauss_newton_step::<_,_,_,_,_,_>(
                 &residuals,
                 &jacobian,
                 &identity,mu,tau
                 );
 
-            mu = Some(mu_val);
-            let pertb = delta.scale(step);
-            new_state.update(&pertb);
-    
-            (self.get_estimated_features)(&new_state, cameras,observed_features, &mut new_estimated_features);
-            (self.compute_residual)(&new_estimated_features, observed_features, &mut new_residuals);
-            std = runtime_parameters.intensity_weighting_function.estimate_standard_deviation(&residuals);
-            if std.is_some() {
-                calc_weight_vec(
-                    &new_residuals,
-                    std,
-                    &runtime_parameters.intensity_weighting_function,
-                    &mut weights_vec,
-                );
-                weight_residuals_sparse(&mut new_residuals, &weights_vec);
-            }
-    
-    
-            let new_cost = compute_cost(&new_residuals,&runtime_parameters.intensity_weighting_function);
-            let cost_diff = cost-new_cost;
-            let gain_ratio = match gain_ratio_denom {
-                v if v != F::zero() => cost_diff/v,
-                _ => float::Float::nan()
+            let (gain_ratio, new_cost, pertb_norm, cost_diff, max_norm_g) = match gauss_newton_result {
+                Some((delta,g,gain_ratio_denom, mu_val)) => {
+                    mu = Some(mu_val);
+                    let pertb = delta.scale(step);
+                    new_state.update(&pertb);
+            
+                    (self.get_estimated_features)(&new_state, cameras,observed_features, &mut new_estimated_features);
+                    (self.compute_residual)(&new_estimated_features, observed_features, &mut new_residuals);
+                    std = runtime_parameters.intensity_weighting_function.estimate_standard_deviation(&residuals);
+                    if std.is_some() {
+                        calc_weight_vec(
+                            &new_residuals,
+                            std,
+                            &runtime_parameters.intensity_weighting_function,
+                            &mut weights_vec,
+                        );
+                        weight_residuals_sparse(&mut new_residuals, &weights_vec);
+                    }
+            
+                    let new_cost = compute_cost(&new_residuals,&runtime_parameters.intensity_weighting_function);
+                    let cost_diff = cost-new_cost;
+                    let gain_ratio = match gain_ratio_denom {
+                        v if v != F::zero() => cost_diff/v,
+                        _ => float::Float::nan()
+                    };
+                    (gain_ratio, new_cost, pertb.norm(), cost_diff, max_norm(&g))
+                },
+                None =>  (float::Float::nan(), float::Float::nan(), float::Float::nan(), float::Float::nan(),float::Float::nan())
             };
-            (gain_ratio, new_cost, pertb.norm(), cost_diff);
 
             println!("cost: {}, new cost: {}, mu: {:?}, gain: {} , nu: {}, std: {:?}",cost,new_cost, mu, gain_ratio, nu, std);
             
-            if (!gain_ratio.is_nan() && gain_ratio > F::zero() && cost_diff > F::zero()) || !runtime_parameters.lm {
+            if (!gain_ratio.is_nan() && gain_ratio > F::zero() && cost_diff > F::zero() && !max_norm_g.is_nan()) || !runtime_parameters.lm {
                 estimated_features.copy_from(&new_estimated_features);
                 state.copy_from(&new_state); 
 
                 cost = new_cost;
 
-                max_norm_delta = max_norm(&g);
-                delta_norm = pertb.norm(); 
+                max_norm_delta = max_norm_g;
+                delta_norm = pertb_norm; 
 
                 delta_thresh = runtime_parameters.delta_eps*(estimated_features.norm() + runtime_parameters.delta_eps);
 
