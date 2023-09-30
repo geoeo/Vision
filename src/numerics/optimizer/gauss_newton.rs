@@ -44,11 +44,8 @@ impl<F: SupersetOf<Float>, C : Camera<Float>, L: Landmark<F,LANDMARK_PARAM_SIZE>
     pub fn optimize(&self,
         state: &mut State<F,L,LANDMARK_PARAM_SIZE>, cameras: &Vec<&C>, observed_features: &DVector<F>, runtime_parameters: &RuntimeParameters<F>, abort_receiver: Option<&mpsc::Receiver<bool>>, done_transmission: Option<&mpsc::Sender<bool>>
     ) -> Option<Vec<(Vec<[F; CAMERA_PARAM_SIZE]>, Vec<[F; LANDMARK_PARAM_SIZE]>)>> where F: float::Float + Scalar + RealField {
-        
-
+    
         let max_iterations = runtime_parameters.max_iterations[0];
-        let u_span = CAMERA_PARAM_SIZE*state.n_cams;
-        let v_span = LANDMARK_PARAM_SIZE*state.n_points;
         
         let state_size = (self.compute_state_size)(state);
         let identity = DMatrix::<F>::identity(state_size, state_size);

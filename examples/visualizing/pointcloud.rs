@@ -12,7 +12,7 @@ use kiss3d::nalgebra::{Point2,Point3,Translation3};
 use na::{Vector3, Isometry3};
 
 use vision::{Float,load_runtime_conf};
-use vision::sfm::{bundle_adjustment::state, landmark::{euclidean_landmark::EuclideanLandmark, inverse_depth_landmark::InverseLandmark}};
+use vision::sfm::{state, landmark::{euclidean_landmark::EuclideanLandmark, inverse_depth_landmark::InverseLandmark}};
 use rand::random;
 use kiss3d::camera::ArcBall;
 
