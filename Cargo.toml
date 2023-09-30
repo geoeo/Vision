@@ -78,12 +78,16 @@ name = "pointcloud"
 path = "examples/visualizing/pointcloud.rs"
 
 [[example]]
-name = "olsson"
-path = "examples/sfm/olsson.rs"
+name = "olsson_ba"
+path = "examples/ba/olsson.rs"
 
 [[example]]
-name = "synthetic"
-path = "examples/sfm/synthetic.rs"
+name = "synthetic_ba"
+path = "examples/ba/synthetic.rs"
+
+[[example]]
+name = "synthetic_pnp"
+path = "examples/pnp/synthetic.rs"
 
 [[example]]
 name = "io_matrix"
