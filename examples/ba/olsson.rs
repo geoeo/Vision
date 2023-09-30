@@ -3,7 +3,7 @@ extern crate nalgebra as na;
 use color_eyre::eyre::Result;
 use std::fs;
 use vision::io::olsson_loader::OlssenData;
-use vision::sfm::{triangulation::Triangulation,SFMConfig, compute_path_pairs_as_vec, bundle_adjustment::run_ba, epipolar::tensor::BifocalType};
+use vision::sfm::{triangulation::Triangulation,bundle_adjustment::ba_config::{BAConfig, compute_path_pairs_as_vec}, bundle_adjustment::run_ba, epipolar::tensor::BifocalType};
 use vision::sfm::runtime_parameters::RuntimeParameters;
 use vision::numerics::{loss, weighting};
 use vision::load_runtime_conf;
@@ -107,7 +107,7 @@ fn main() -> Result<()> {
 
     //TODO: implement switch for loftr matches!
     let (match_map, camera_map) = olsen_data.get_data_for_sfm(root_id, &paths, positive_principal_distance, invert_focal_length, invert_y, feature_skip_count, olsen_dataset_name);
-    let sfm_config_fundamental = SFMConfig::new(root_id, &paths, None, camera_map, &match_map, 
+    let sfm_config_fundamental = BAConfig::new(root_id, &paths, None, camera_map, &match_map, 
     BifocalType::FUNDAMENTAL, Triangulation::STEREO, 1.0, 2.0e0, 5e0, 5.0, refince_rotation_via_rcd, true);
 
     for (key, pose) in sfm_config_fundamental.pose_map().iter() {

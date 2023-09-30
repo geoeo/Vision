@@ -3,7 +3,7 @@ use color_eyre::eyre::Result;
 
 use std::collections::{HashMap, HashSet};
 use vision::{Float,load_runtime_conf};
-use vision::sfm::{triangulation::Triangulation,SFMConfig, bundle_adjustment::run_ba, epipolar::tensor::BifocalType};
+use vision::sfm::{triangulation::Triangulation,bundle_adjustment::ba_config::BAConfig, bundle_adjustment::run_ba, epipolar::tensor::BifocalType};
 use vision::sensors::camera::perspective::Perspective;
 use vision::image::features::{matches::Match,image_feature::ImageFeature};
 use vision::sfm::runtime_parameters::RuntimeParameters;
@@ -110,7 +110,7 @@ fn main() -> Result<()> {
     //let pose_map_gt_option = Some(pose_map_gt);
     let pose_map_gt_option = None;
 
-    let sfm_config_fundamental = SFMConfig::new(root_id, &paths, pose_map_gt_option , camera_map, &match_map, 
+    let sfm_config_fundamental = BAConfig::new(root_id, &paths, pose_map_gt_option , camera_map, &match_map, 
         BifocalType::FUNDAMENTAL, Triangulation::STEREO, 1.0, 3e0, 5e2, 1.0, true, true); 
     
     let initial_z = sfm_config_fundamental.pose_map().get(&camera_id_pairs[0]).unwrap().translation.z;

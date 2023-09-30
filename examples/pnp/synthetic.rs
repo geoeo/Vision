@@ -3,7 +3,7 @@ use color_eyre::eyre::Result;
 
 use std::collections::{HashMap, HashSet};
 use vision::{Float,load_runtime_conf};
-use vision::sfm::{triangulation::Triangulation,SFMConfig, bundle_adjustment::run_ba, epipolar::tensor::BifocalType};
+use vision::sfm::{triangulation::Triangulation,pnp::pnp_config::PnPConfig, bundle_adjustment::run_ba, epipolar::tensor::BifocalType};
 use vision::sensors::camera::perspective::Perspective;
 use vision::image::features::{matches::Match,image_feature::ImageFeature};
 use vision::sfm::runtime_parameters::RuntimeParameters;
@@ -50,8 +50,9 @@ fn main() -> Result<()> {
         (cam_id,map)
     }).collect::<HashMap<_,_>>();
 
-    //TODO: Make SFM Config
+    //TODO: Make Pnp Config
     //TODO: Start Pnp
+
 
     Ok(())
 }

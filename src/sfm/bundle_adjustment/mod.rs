@@ -5,8 +5,7 @@ use crate::image::features::Feature;
 use crate::sfm::runtime_parameters::RuntimeParameters;
 use crate::sensors::camera::Camera;
 use crate::sfm::{
-    compute_path_id_pairs,
-    landmark::euclidean_landmark::EuclideanLandmark, SFMConfig,
+    landmark::euclidean_landmark::EuclideanLandmark, bundle_adjustment::ba_config::{BAConfig,compute_path_id_pairs},
     state::{State,state_linearizer::StateLinearizer}, 
 };
 use crate::Float;
@@ -22,6 +21,7 @@ use std::{
 use termion::input::TermRead;
 
 pub mod solver;
+pub mod ba_config;
 
 pub fn run_ba<
     'a,
@@ -29,7 +29,7 @@ pub fn run_ba<
     C: Camera<Float> + Copy + Send + Sync +'a + 'static,
     T: Feature + Clone + PartialEq + Eq + Hash + SolverFeature
 >(
-    sfm_config: &'a SFMConfig<C, T>,
+    sfm_config: &'a BAConfig<C, T>,
     runtime_parameters: &'a RuntimeParameters<F>,
 ) -> (
     (Vec<Isometry3<F>>, Vec<Vector3<F>>),
