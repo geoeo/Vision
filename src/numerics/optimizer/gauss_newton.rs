@@ -10,7 +10,7 @@ use num_traits::float;
 
 use crate::sensors::camera::Camera;
 use crate::numerics::{max_norm, least_squares::{compute_cost,weight_jacobian_sparse,weight_residuals_sparse, calc_weight_vec, gauss_newton_step}};
-use crate::sfm::{landmark::Landmark,bundle_adjustment::state::State};
+use crate::sfm::{landmark::Landmark,state::State};
 use crate::sfm::runtime_parameters::RuntimeParameters; 
 use crate::Float;
 

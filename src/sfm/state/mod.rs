@@ -1,3 +1,5 @@
+
+
 extern crate nalgebra as na;
 extern crate num_traits;
 
@@ -6,6 +8,7 @@ use num_traits::float;
 use crate::numerics::lie::exp_se3;
 use crate::sfm::landmark::Landmark;
 
+pub mod state_linearizer;
 
 /**
  * This is ordered [cam_1,cam_2,..,cam_n,point_1,point_2,...,point_m]

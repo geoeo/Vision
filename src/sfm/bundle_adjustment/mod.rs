@@ -5,8 +5,9 @@ use crate::image::features::Feature;
 use crate::sfm::runtime_parameters::RuntimeParameters;
 use crate::sensors::camera::Camera;
 use crate::sfm::{
-    bundle_adjustment::state_linearizer::StateLinearizer, compute_path_id_pairs,
+    compute_path_id_pairs,
     landmark::euclidean_landmark::EuclideanLandmark, SFMConfig,
+    state::{State,state_linearizer::StateLinearizer}, 
 };
 use crate::Float;
 use na::{base::Scalar, Isometry3, RealField, Vector3};
@@ -21,9 +22,6 @@ use std::{
 use termion::input::TermRead;
 
 pub mod solver;
-pub mod state;
-pub mod state_linearizer;
-
 
 pub fn run_ba<
     'a,
@@ -58,7 +56,7 @@ pub fn run_ba<
         sfm_config.unique_landmark_ids().len(),
     );
 
-    let (tx_result, rx_result) = mpsc::channel::<(state::State<F, EuclideanLandmark<F>, 3>,Option<Vec<(Vec<[F; 6]>, Vec<[F; 3]>)>>)>();
+    let (tx_result, rx_result) = mpsc::channel::<(State<F, EuclideanLandmark<F>, 3>,Option<Vec<(Vec<[F; 6]>, Vec<[F; 3]>)>>)>();
     let (tx_abort, rx_abort) = mpsc::channel::<bool>();
     let (tx_done, rx_done) = mpsc::channel::<bool>();
 
