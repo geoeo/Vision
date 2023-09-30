@@ -6,8 +6,7 @@ use num_traits::{float,NumAssign};
 use simba::scalar::SupersetOf;
 use std::collections::HashMap;
 use crate::image::features::{Feature, matches::Match};
-use crate::sfm::{state::State, landmark::{Landmark, euclidean_landmark::EuclideanLandmark, inverse_depth_landmark::InverseLandmark}};
-use crate::sensors::camera::Camera;
+use crate::sfm::{state::State, landmark::{Landmark, euclidean_landmark::EuclideanLandmark}};
 use crate::Float;
 
 pub const NO_FEATURE_FLAG : Float = -1.0;
