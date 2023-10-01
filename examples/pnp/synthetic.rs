@@ -50,7 +50,7 @@ fn main() -> Result<()> {
         (cam_id,map)
     }).collect::<HashMap<_,_>>();
 
-    //TODO: Make Pnp Config
+    //let pnp_config = PnPConfig::new(camera, landmarks, features)
     //TODO: Start Pnp
 
 

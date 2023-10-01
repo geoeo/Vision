@@ -24,8 +24,8 @@ pub fn triangulate_matches<Feat: Feature, C: Camera<Float>>(path_pair: (usize, u
     // The position of the match in its vector indexes the value in the matrix
     for i in 0..ms.len() {
         let m = &ms[i];
-        let feat_s = m.get_feature_one().get_as_3d_point(1.0);
-        let feat_f = m.get_feature_two().get_as_3d_point(1.0);
+        let feat_s = m.get_feature_one().get_as_homogeneous(1.0);
+        let feat_f = m.get_feature_two().get_as_homogeneous(1.0);
         image_points_s.column_mut(i).copy_from(&feat_s);
         image_points_f.column_mut(i).copy_from(&feat_f);
     }

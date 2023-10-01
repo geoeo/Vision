@@ -196,8 +196,8 @@ pub fn optimal_correction<T : Feature + SolverFeature + Clone>(initial_F: &Funda
             let v_one_meas_in = m_measured_in[i].get_feature_one().get_as_2d_point();
             let v_two_meas_in = m_measured_in[i].get_feature_two().get_as_2d_point();
 
-            let v_one_meas = m_meas.get_feature_one().get_as_3d_point(1.0);
-            let v_two_meas = m_meas.get_feature_two().get_as_3d_point(1.0);
+            let v_one_meas = m_meas.get_feature_one().get_as_homogeneous(1.0);
+            let v_two_meas = m_meas.get_feature_two().get_as_homogeneous(1.0);
             
             let factor = u_new.dot(eta)/u_new.dot(&(eta_cov*u_new));
             let left_update = factor*SMatrix::<Float,2,3>::from_vec(vec![u_new[0],u_new[1],u_new[2],u_new[3],u_new[4],u_new[5]])*v_one_meas;

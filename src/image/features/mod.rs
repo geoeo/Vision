@@ -31,9 +31,8 @@ pub trait Feature {
         ((self.get_x_image_float() as Float)*factor, (self.get_y_image_float() as Float)*factor)
     }
 
-    //TODO: rework this naming. This implies that its a camera ray
-    fn get_as_3d_point(&self, depth: Float) -> Vector3<Float> {
-       Vector3::<Float>::new(self.get_x_image_float(), self.get_y_image_float(), depth)
+    fn get_as_homogeneous(&self, scaling: Float) -> Vector3<Float> {
+       Vector3::<Float>::new(self.get_x_image_float()/scaling, self.get_y_image_float()/scaling, 1.0)
     }
     fn get_as_2d_point(&self) -> Vector2<Float> {
         Vector2::<Float>::new(self.get_x_image_float(), self.get_y_image_float())

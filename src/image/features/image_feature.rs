@@ -39,7 +39,7 @@ impl Feature for ImageFeature {
     fn get_y_image(&self) -> usize { self.location.y.trunc() as usize}
     fn get_closest_sigma_level(&self) -> usize {0}
     fn apply_normalisation(&self, norm: &Matrix3<Float>, depth: Float) -> Self {
-        let v = norm*self.get_as_3d_point(depth);
+        let v = norm*self.get_as_homogeneous(depth);
         ImageFeature::new(v[0], v[1], self.get_landmark_id())
     }
 

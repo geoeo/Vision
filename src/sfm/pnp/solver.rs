@@ -12,7 +12,7 @@ use crate::sensors::camera::Camera;
 use crate::sfm::runtime_parameters::RuntimeParameters;
 use crate::sfm::{
     landmark::Landmark,
-    state::{state_linearizer, State},
+    state::{ba_state_linearizer, State},
 };
 use crate::Float;
 
@@ -84,8 +84,8 @@ where
 
                 let feat_id = Self::get_feature_index_in_residual(i, j, n_cams);
                 // If at least one camera has no match, skip
-                if !(observed_features[feat_id] == convert(state_linearizer::NO_FEATURE_FLAG)
-                    || observed_features[feat_id + 1] == convert(state_linearizer::NO_FEATURE_FLAG)
+                if !(observed_features[feat_id] == convert(ba_state_linearizer::NO_FEATURE_FLAG)
+                    || observed_features[feat_id + 1] == convert(ba_state_linearizer::NO_FEATURE_FLAG)
                     || estimated_feature.is_none())
                 {
                     let est = estimated_feature.unwrap();
@@ -107,7 +107,7 @@ where
     ) -> () {
         assert_eq!(residual_vector.nrows(), estimated_features.nrows());
         for i in 0..residual_vector.nrows() {
-            if observed_features[i] != convert(state_linearizer::NO_FEATURE_FLAG) {
+            if observed_features[i] != convert(ba_state_linearizer::NO_FEATURE_FLAG) {
                 residual_vector[i] = estimated_features[i] - observed_features[i];
             } else {
                 residual_vector[i] = F::zero();

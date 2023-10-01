@@ -6,20 +6,21 @@ use num_traits::{float,NumAssign};
 use simba::scalar::SupersetOf;
 use std::collections::HashMap;
 use crate::image::features::{Feature, matches::Match};
-use crate::sfm::{state::State, landmark::{Landmark, euclidean_landmark::EuclideanLandmark}};
+use crate::sfm::{state::{State,CAMERA_PARAM_SIZE}, landmark::{Landmark, euclidean_landmark::EuclideanLandmark}};
+
 use crate::Float;
 
 pub const NO_FEATURE_FLAG : Float = -1.0;
 
-pub struct StateLinearizer {
+pub struct BAStateLinearizer {
     /**
      * This is a map from arbitrary camera ids to linear indices
      */
     pub camera_to_linear_id_map: HashMap<usize, usize>,
 }
 
-impl StateLinearizer {
-    pub fn new(cam_ids: Vec<usize>) -> StateLinearizer {
+impl BAStateLinearizer {
+    pub fn new(cam_ids: Vec<usize>) -> BAStateLinearizer {
         let mut camera_to_linear_id_map = HashMap::<usize, usize>::new();
         // Map Camera ids to 0-based indices.
         for i in 0..cam_ids.len(){
@@ -27,7 +28,7 @@ impl StateLinearizer {
             camera_to_linear_id_map.insert(id,i);
         }
 
-        StateLinearizer {camera_to_linear_id_map}
+        BAStateLinearizer {camera_to_linear_id_map}
     }
 
     /**
@@ -148,12 +149,12 @@ impl StateLinearizer {
         -> DVector::<F> {
 
         let number_of_cameras = self.camera_to_linear_id_map.keys().len();
-        let number_of_cam_parameters = 6*number_of_cameras;
+        let number_of_cam_parameters = CAMERA_PARAM_SIZE*number_of_cameras; 
         let mut camera_positions = DVector::<F>::zeros(number_of_cam_parameters);
         for path in paths {
             for (_, id_f) in path {
                 let cam_idx = self.camera_to_linear_id_map[&id_f];
-                let cam_state_idx = 6*cam_idx;
+                let cam_state_idx = CAMERA_PARAM_SIZE*cam_idx;
                 let pose = pose_map.get(&id_f).expect("pose not found for path pair");
                 let translation = pose.translation.vector;
                 let rotation_matrix = pose.rotation.to_rotation_matrix().matrix().clone();

@@ -8,7 +8,13 @@ use num_traits::float;
 use crate::numerics::lie::exp_se3;
 use crate::sfm::landmark::Landmark;
 
-pub mod state_linearizer;
+pub mod ba_state_linearizer;
+pub mod pnp_state_linearizer;
+
+/**
+ * Format (u,w) where u is translation and w is rotation 
+ */
+pub const CAMERA_PARAM_SIZE: usize = 6; 
 
 /**
  * This is ordered [cam_1,cam_2,..,cam_n,point_1,point_2,...,point_m]

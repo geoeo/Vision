@@ -6,7 +6,7 @@ use crate::sfm::runtime_parameters::RuntimeParameters;
 use crate::sensors::camera::Camera;
 use crate::sfm::{
     landmark::euclidean_landmark::EuclideanLandmark, bundle_adjustment::ba_config::{BAConfig,compute_path_id_pairs},
-    state::{State,state_linearizer::StateLinearizer}, 
+    state::{State,ba_state_linearizer::BAStateLinearizer, CAMERA_PARAM_SIZE}, 
 };
 use crate::Float;
 use na::{base::Scalar, Isometry3, RealField, Vector3};
@@ -27,9 +27,9 @@ pub fn run_ba<
     'a,
     F: serde::Serialize + float::Float + Scalar + RealField + SupersetOf<Float>,
     C: Camera<Float> + Copy + Send + Sync +'a + 'static,
-    T: Feature + Clone + PartialEq + Eq + Hash + SolverFeature
+    Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFeature
 >(
-    sfm_config: &'a BAConfig<C, T>,
+    sfm_config: &'a BAConfig<C, Feat>,
     runtime_parameters: &'a RuntimeParameters<F>,
 ) -> (
     (Vec<Isometry3<F>>, Vec<Vector3<F>>),
@@ -39,7 +39,7 @@ pub fn run_ba<
         sfm_config.compute_unqiue_ids_cameras_root_first();
     let path_id_pairs = compute_path_id_pairs(sfm_config.root(), sfm_config.paths());
 
-    let state_linearizer = StateLinearizer::new(unique_camera_ids_sorted);
+    let state_linearizer = BAStateLinearizer::new(unique_camera_ids_sorted);
 
     //TODO: switch impl on landmark state
 
@@ -56,12 +56,11 @@ pub fn run_ba<
         sfm_config.unique_landmark_ids().len(),
     );
 
-    let (tx_result, rx_result) = mpsc::channel::<(State<F, EuclideanLandmark<F>, 3>,Option<Vec<(Vec<[F; 6]>, Vec<[F; 3]>)>>)>();
+    let (tx_result, rx_result) = mpsc::channel::<(State<F, EuclideanLandmark<F>, 3>,Option<Vec<(Vec<[F; CAMERA_PARAM_SIZE]>, Vec<[F; 3]>)>>)>();
     let (tx_abort, rx_abort) = mpsc::channel::<bool>();
     let (tx_done, rx_done) = mpsc::channel::<bool>();
 
-    thread::scope(|s| {
-       
+    thread::scope(|s| {   
         s.spawn(move || {
             let solver = solver::Solver::<F, C, _, 3>::new();
             let some_debug_state_list = solver.solve(

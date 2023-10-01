@@ -24,8 +24,8 @@ pub fn quest_ransac<T: Feature + Clone>(matches: &Vec<Match<T>>, inverse_project
             let s = &samples[i];
 
             // we want this to always be positive
-            let f_1 = inverse_projection_one*s.get_feature_one().get_as_3d_point(1.0);
-            let f_2 = inverse_projection_two*s.get_feature_two().get_as_3d_point(1.0);
+            let f_1 = inverse_projection_one*s.get_feature_one().get_as_homogeneous(1.0);
+            let f_2 = inverse_projection_two*s.get_feature_two().get_as_homogeneous(1.0);
 
             m1.column_mut(i).copy_from(&f_1);
             m2.column_mut(i).copy_from(&f_2);
