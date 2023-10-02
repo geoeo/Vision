@@ -42,10 +42,6 @@ strip = "debuginfo"
 
 
 [[example]]
-name = "orb_ba"
-path = "examples/sfm/orb_ba.rs"
-
-[[example]]
 name = "orb_ba_features"
 path = "examples/image_processing/orb_ba_features.rs"
 
@@ -80,6 +76,10 @@ path = "examples/visualizing/pointcloud.rs"
 [[example]]
 name = "olsson_ba"
 path = "examples/ba/olsson.rs"
+
+[[example]]
+name = "orb_ba"
+path = "examples/ba/orb_ba.rs"
 
 [[example]]
 name = "synthetic_ba"

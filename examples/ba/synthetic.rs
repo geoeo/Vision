@@ -14,21 +14,17 @@ fn main() -> Result<()> {
     color_eyre::install()?;
     let runtime_conf = load_runtime_conf();
 
-    //let file_name = "/trans_x/camera_features_Suzanne.yaml";
-    //let file_name = "/trans_y/camera_features_Suzanne.yaml";
-    //let file_name = "/trans_z/camera_features_Suzanne.yaml";
-    let file_name = "/60_10/camera_features_Suzanne.yaml"; //Maybe too little translation
+    let scenario = "60_10"; //Maybe too little translation
+    //let scenario = "trans_x";
+    //let scenario = "trans_y";
+    //let scenario = "trans_z";
+    let dataset = "Suzanne";
+    //let dataset = "sphere";
+    //let dataset = "Cube";
 
-    //let file_name = "/trans_x/camera_features_sphere.yaml";
-    //let file_name = "/trans_y/camera_features_sphere.yaml";
-    //let file_name = "/trans_z/camera_features_sphere.yaml";
-    //let file_name = "/60_10/camera_features_sphere.yaml"; //Maybe too little translation
+    let cam_features_path = format!("{}/{}/camera_features_{}",runtime_conf.local_data_path,scenario,dataset);
 
-    //let file_name = "/trans_x/camera_features_Cube.yaml";
-    //let file_name = "/trans_y/camera_features_Cube.yaml";
-    //let file_name = "/trans_z/camera_features_Cube.yaml";
-
-    let path = format!("{}/{}",runtime_conf.local_data_path,file_name);
+    let path = format!("{}/{}",runtime_conf.local_data_path,cam_features_path);
     let loaded_data = models_cv::io::deserialize_feature_matches(&path);
 
 

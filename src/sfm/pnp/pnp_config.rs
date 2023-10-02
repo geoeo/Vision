@@ -27,7 +27,7 @@ pub struct PnPConfig<C, Feat: Feature> {
 impl<C: Camera<Float> + Clone, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFeature> PnPConfig<C,Feat> {
     pub fn new(
         camera: &C,
-        landmarks: Matrix4xX<Float>,
+        landmarks: Matrix4xX<Float>, //TODO: Maybe rework to also have an id. Check feature to landmark id
         features: Vec<Feat>,
         camera_pose_option: &Option<Isometry3<Float>>
     ) -> PnPConfig<C, Feat> {

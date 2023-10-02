@@ -14,7 +14,7 @@ use vision::sfm::{triangulation::Triangulation, bundle_adjustment::run_ba,epipol
 use vision::sensors::camera::perspective::Perspective;
 use vision::sfm::runtime_parameters::RuntimeParameters;
 use vision::numerics::{loss, weighting};
-use vision::sfm::SFMConfig;
+use vision::sfm::bundle_adjustment::ba_config::BAConfig;
 
 
 fn main() -> Result<()> {
