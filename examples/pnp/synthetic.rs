@@ -1,14 +1,10 @@
 extern crate nalgebra as na;
 use color_eyre::eyre::Result;
 
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use vision::{Float,load_runtime_conf};
 use vision::sfm::{triangulation::Triangulation,pnp::pnp_config::PnPConfig, bundle_adjustment::run_ba, epipolar::tensor::BifocalType};
 use vision::sensors::camera::perspective::Perspective;
-use vision::image::features::{matches::Match,image_feature::ImageFeature};
-use vision::sfm::runtime_parameters::RuntimeParameters;
-use vision::numerics::{loss, weighting};
-use na::{Rotation3,Isometry3,Vector3,UnitQuaternion};
 
 fn main() -> Result<()> {
     color_eyre::install()?;
@@ -50,7 +46,14 @@ fn main() -> Result<()> {
         (cam_id,map)
     }).collect::<HashMap<_,_>>();
 
-    //let pnp_config = PnPConfig::new(camera, landmarks, features)
+
+    let cam_id = 0;
+    let camera = camera_map.get(&cam_id).unwrap();
+    let feature_map = feature_map.get(&cam_id).unwrap();
+    let camera_map = camera_poses.get(&cam_id).unwrap();
+    //let landmark_map = 
+
+    //let pnp_config = PnPConfig::new(camera, landmarks, features, &None);
     //TODO: Start Pnp
 
 
