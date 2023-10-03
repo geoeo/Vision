@@ -35,6 +35,16 @@
             "env": {"RUST_BACKTRACE":"full"}
         },
         {
+            "name": "PNP synthetic",
+            "type": "lldb",
+            "request": "launch",
+            "program": "${workspaceFolder}/target/debug/examples/synthetic_pnp",
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "preLaunchTask": "build examples",
+            "env": {"RUST_BACKTRACE":"full"}
+        },
+        {
             "name": "Pnp synthetic",
             "type": "lldb",
             "request": "launch",

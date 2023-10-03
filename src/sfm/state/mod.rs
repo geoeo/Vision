@@ -55,7 +55,7 @@ impl<F: float::Float + Scalar + RealField, L: Landmark<F,T> + Copy + Clone, cons
     }
 
     pub fn update(&mut self, perturb: &DVector<F>) -> () {
-        for i in (0..self.camera_positions.nrows()).step_by(6) {
+        for i in (0..self.camera_positions.nrows()).step_by(CAMERA_PARAM_SIZE) {
             let u = perturb.fixed_rows::<3>(i);
             let w = perturb.fixed_rows::<3>(i + 3);
             let delta_transform = exp_se3(&u, &w);
@@ -87,7 +87,7 @@ impl<F: float::Float + Scalar + RealField, L: Landmark<F,T> + Copy + Clone, cons
     }
 
     pub fn to_se3(&self, cam_idx: usize) -> Matrix4<F> {
-        assert!(cam_idx < self.n_cams*6);
+        assert!(cam_idx < self.n_cams*CAMERA_PARAM_SIZE);
         let translation = self.camera_positions.fixed_rows::<3>(cam_idx);
         let axis = na::Vector3::new(self.camera_positions[cam_idx+3],self.camera_positions[cam_idx+4],self.camera_positions[cam_idx+5]);
         let axis_angle = Rotation3::new(axis);
@@ -101,7 +101,7 @@ impl<F: float::Float + Scalar + RealField, L: Landmark<F,T> + Copy + Clone, cons
         let mut cam_positions = Vec::<Isometry3<F>>::with_capacity(self.n_cams);
         let mut points = Vec::<Vector3<F>>::with_capacity(self.n_points);
 
-        for i in (0..6 * self.n_cams).step_by(6) {
+        for i in (0..CAMERA_PARAM_SIZE * self.n_cams).step_by(CAMERA_PARAM_SIZE) {
             let u = self.camera_positions.fixed_rows::<3>(i);
             let w = self.camera_positions.fixed_rows::<3>(i + 3);
             let se3 = exp_se3(&u, &w);
@@ -116,13 +116,13 @@ impl<F: float::Float + Scalar + RealField, L: Landmark<F,T> + Copy + Clone, cons
         (cam_positions, points)
     }
 
-    pub fn to_serial(&self) -> (Vec<[F; 6]>, Vec<[F; T]>) {
-        let mut cam_serial = Vec::<[F; 6]>::with_capacity(self.n_cams);
+    pub fn to_serial(&self) -> (Vec<[F; CAMERA_PARAM_SIZE]>, Vec<[F; T]>) {
+        let mut cam_serial = Vec::<[F; CAMERA_PARAM_SIZE]>::with_capacity(self.n_cams);
         let mut points_serial = Vec::<[F; T]>::with_capacity(self.n_points);
-        let number_of_cam_params = 6 * self.n_cams;
+        let number_of_cam_params = CAMERA_PARAM_SIZE * self.n_cams;
 
-        for i in (0..number_of_cam_params).step_by(6) {
-            let arr: [F; 6] = [
+        for i in (0..number_of_cam_params).step_by(CAMERA_PARAM_SIZE) {
+            let arr: [F; CAMERA_PARAM_SIZE] = [
                 self.camera_positions[i],
                 self.camera_positions[i + 1],
                 self.camera_positions[i + 2],
@@ -140,13 +140,13 @@ impl<F: float::Float + Scalar + RealField, L: Landmark<F,T> + Copy + Clone, cons
         (cam_serial, points_serial)
     }
 
-    pub fn from_serial((cam_serial, points_serial): &(Vec<[F; 6]>, Vec<[F; T]>)) -> State<F,L,T> {
-        let mut camera_positions = DVector::<F>::zeros(6*cam_serial.len());
+    pub fn from_serial((cam_serial, points_serial): &(Vec<[F; CAMERA_PARAM_SIZE]>, Vec<[F; T]>)) -> State<F,L,T> {
+        let mut camera_positions = DVector::<F>::zeros(CAMERA_PARAM_SIZE*cam_serial.len());
         let mut landmarks = Vec::<L>::with_capacity(points_serial.len());
 
         for i in 0..cam_serial.len() {
             let arr = cam_serial[i];
-            let offset = 6 * i;
+            let offset = CAMERA_PARAM_SIZE * i;
             camera_positions[offset] = arr[0];
             camera_positions[offset + 1] = arr[1];
             camera_positions[offset + 2] = arr[2];

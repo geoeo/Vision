@@ -56,7 +56,7 @@ where
     fn get_estimated_features(
         state: &State<F, L, LANDMARK_PARAM_SIZE>,
         cameras: &Vec<&C>,
-        observed_features: &DVector<F>,
+        observed_features: &DVector<F>, //TODO: remove this
         estimated_features: &mut DVector<F>,
     ) -> () {
         let n_cams = state.n_cams;
@@ -83,21 +83,17 @@ where
                     camera.project(&transformed_points.fixed_view::<3, 1>(0, j));
 
                 let feat_id = Self::get_feature_index_in_residual(i, j, n_cams);
-                // If at least one camera has no match, skip
-                if !(observed_features[feat_id] == convert(ba_state_linearizer::NO_FEATURE_FLAG)
-                    || observed_features[feat_id + 1] == convert(ba_state_linearizer::NO_FEATURE_FLAG)
-                    || estimated_feature.is_none())
-                {
-                    let est = estimated_feature.unwrap();
-                    estimated_features[feat_id] = est.x;
-                    estimated_features[feat_id + 1] = est.y;
-                }
+                let est = estimated_feature.unwrap();
+                estimated_features[feat_id] = est.x;
+                estimated_features[feat_id + 1] = est.y;
+                
             }
         }
     }
 
+    //TODO: ncams is unneccessary
     fn get_feature_index_in_residual(cam_id: usize, feature_id: usize, n_cams: usize) -> usize {
-        2 * (cam_id + feature_id * n_cams)
+        2 * feature_id
     }
 
     fn compute_residual(

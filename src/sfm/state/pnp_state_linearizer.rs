@@ -34,7 +34,7 @@ pub fn get_observed_features<F: float::Float + Scalar + RealField + SupersetOf<F
     for (i,f) in features.iter().enumerate() {
         let orig = f.get_as_2d_point();
         let vals = Vector2::<F>::new(convert(orig.x),convert(orig.y));
-        observed_features.fixed_view_mut::<2,1>(i*2,1).copy_from(&vals);
+        observed_features.fixed_view_mut::<2,1>(i*2,0).copy_from(&vals);
     }
     observed_features
 }

@@ -15,8 +15,6 @@ use vision::sensors::camera::perspective::Perspective;
 use vision::sfm::runtime_parameters::RuntimeParameters;
 use vision::numerics::{loss, weighting};
 use vision::sfm::bundle_adjustment::ba_config::BAConfig;
-
-
 fn main() -> Result<()> {
 
     color_eyre::install()?;

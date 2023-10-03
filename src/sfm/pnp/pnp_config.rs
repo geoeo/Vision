@@ -2,16 +2,10 @@ extern crate nalgebra as na;
 extern crate num_traits;
 
 
-use na::{DVector, Matrix4xX, Matrix3, Matrix4, Isometry3};
+use na::{Vector3, Matrix4xX, Matrix3, Matrix4, Isometry3};
 use std::{collections::{HashMap,HashSet}, hash::Hash};
-use crate::image::features::{Feature, compute_linear_normalization, matches::Match, feature_track::FeatureTrack, solver_feature::SolverFeature};
-use crate::sfm::{epipolar::tensor, 
-    triangulation::{Triangulation, triangulate_matches}, 
-    rotation_avg::optimize_rotations_with_rcd,
-    outlier_rejection::dual::outlier_rejection_dual};
-use crate::sfm::outlier_rejection::{calculate_reprojection_errors,calcualte_disparities, reject_landmark_outliers, filter_by_rejected_landmark_ids, reject_matches_via_disparity, compute_continuous_landmark_ids_from_matches,compute_continuous_landmark_ids_from_unique_landmarks};
+use crate::image::features::{Feature, compute_linear_normalization, solver_feature::SolverFeature};
 use crate::sensors::camera::Camera;
-use crate::numerics::pose::{from_matrix,se3};
 use crate::{float,Float};
 
 
@@ -27,10 +21,19 @@ pub struct PnPConfig<C, Feat: Feature> {
 impl<C: Camera<Float> + Clone, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFeature> PnPConfig<C,Feat> {
     pub fn new(
         camera: &C,
-        landmarks: Matrix4xX<Float>, //TODO: Maybe rework to also have an id. Check feature to landmark id
-        features: Vec<Feat>,
+        landmark_map: &HashMap<usize, Vector3<Float>>, //TODO: Maybe rework to also have an id. Check feature to landmark id
+        feature_map: &HashMap<usize, Feat>,
         camera_pose_option: &Option<Isometry3<Float>>
     ) -> PnPConfig<C, Feat> {
+        let keys = feature_map.keys();
+        let mut landmarks = Matrix4xX::<Float>::from_element(keys.len(),1.0);
+        let mut features = Vec::<Feat>::with_capacity(keys.len());
+        for (i,key) in keys.enumerate() {
+            let l = landmark_map.get(key).unwrap();
+            let f = feature_map.get(key).unwrap();
+            features.push(f.clone());
+            landmarks.fixed_view_mut::<3,1>(0, i).copy_from(l);
+        }
 
         let (norm, norm_inv) = compute_linear_normalization(&features);
         let camera_matrix_norm = norm * camera.get_projection();
@@ -40,8 +43,8 @@ impl<C: Camera<Float> + Clone, Feat: Feature + Clone + PartialEq + Eq + Hash + S
         PnPConfig{
             camera: camera.clone(),
             camera_norm: c_norm,
-            landmarks: landmarks.clone(),
-            features: features.clone(),
+            landmarks,
+            features,
             features_norm: features_norm,
             camera_pose_option: camera_pose_option.clone()
         }

@@ -105,6 +105,6 @@ pub fn run_ba<
 
     (
         state.as_matrix_point(),
-        (state_serialized, debug_states_serialized),
+        (state_serialized, debug_states_serialized)
     )
 }

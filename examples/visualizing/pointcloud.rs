@@ -35,11 +35,11 @@ fn clear_scene(window: &mut Window, scene_nodes: &mut Vec::<kiss3d::scene::Scene
 
 fn populate_scene(window: &mut Window, scene_nodes: &mut Vec::<kiss3d::scene::SceneNode>, cams: &Vec<Isometry3<Float>>, points: & Vec<Vector3<Float>>) -> () {
     for cam in cams {
-        let cam_world = cam.inverse();
+        let world_cam = cam.inverse(); //TODO: comment when inverse
         let mut s = window.add_sphere(0.1);
         s.set_color(random(), random(), random());
         let factor = 1.0;
-        s.append_translation(&Translation3::new(factor*(cam_world.translation.vector[0] as f32),factor*(cam_world.translation.vector[1] as f32),factor*(cam_world.translation.vector[2] as f32)));
+        s.append_translation(&Translation3::new(factor*(world_cam.translation.vector[0] as f32),factor*(world_cam.translation.vector[1] as f32),factor*(world_cam.translation.vector[2] as f32)));
         scene_nodes.push(s);
     }
 
@@ -57,8 +57,8 @@ fn main() -> Result<(),()> {
     let mut window = Window::new("BA: Pointcloud");
     let runtime_conf = load_runtime_conf();
 
-    let final_state_as_string = fs::read_to_string(format!("{}/ba.txt", runtime_conf.output_path)).expect("Unable to read file");
-    let all_states_as_string_option = fs::read_to_string(format!("{}/ba_debug.txt", runtime_conf.output_path)); 
+    let final_state_as_string = fs::read_to_string(format!("{}/pnp.txt", runtime_conf.output_path)).expect("Unable to read file");
+    let all_states_as_string_option = fs::read_to_string(format!("{}/pnp_debug.txt", runtime_conf.output_path)); 
 
     let loaded_state: (Vec<[Float;6]>,Vec<[Float;3]>) = serde_yaml::from_str(&final_state_as_string).unwrap();
     let ba_state = state::State::<Float,EuclideanLandmark<Float>,3>::from_serial(&loaded_state);

@@ -1,9 +1,18 @@
 extern crate nalgebra as na;
 
-use na::{Vector3,Matrix4,Matrix3,Point3,UnitQuaternion ,Isometry3, Translation3, convert,RealField , SimdRealField,base::Scalar, ComplexField};
+use na::{Vector3,Matrix4,Matrix3,Point3,UnitQuaternion ,Isometry3, Translation3, convert,RealField,Matrix3x4, SimdRealField,base::Scalar, ComplexField};
 use num_traits::{float,NumAssign};
 
 pub fn from_matrix<F>(mat: &Matrix4<F>) -> Isometry3<F> where F : float::Float + Scalar + NumAssign + SimdRealField + RealField {
+    let vec = Vector3::<F>::new(mat[(0,3)],mat[(1,3)],mat[(2,3)]);
+    let rot = Matrix3::<F>::new(mat[(0,0)],mat[(0,1)],mat[(0,2)],
+                                    mat[(1,0)],mat[(1,1)],mat[(1,2)],
+                                    mat[(2,0)],mat[(2,1)],mat[(2,2)]);
+
+    Isometry3::<F>::from_parts(Translation3::from(vec), UnitQuaternion::<F>::from_matrix(&rot))
+}
+
+pub fn from_matrix_3x4<F>(mat: &Matrix3x4<F>) -> Isometry3<F> where F : float::Float + Scalar + NumAssign + SimdRealField + RealField {
     let vec = Vector3::<F>::new(mat[(0,3)],mat[(1,3)],mat[(2,3)]);
     let rot = Matrix3::<F>::new(mat[(0,0)],mat[(0,1)],mat[(0,2)],
                                     mat[(1,0)],mat[(1,1)],mat[(1,2)],

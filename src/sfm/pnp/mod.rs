@@ -82,6 +82,21 @@ pub fn run_pnp<
             }
         });
     });
-    panic!("TODO")
+
+    let (state,some_debug_state_list) = rx_result
+    .recv()
+    .expect("Did not receive state from solver thread!");
+
+    let delta = &state.get_camera_positions();
+    let u = delta.fixed_view::<3,1>(0,0);
+    let w = delta.fixed_view::<3,1>(3,0);
+    println!("Pos: {}",crate::numerics::lie::exp_se3(&u, &w));
+    let state_serialized = serde_yaml::to_string(&state.to_serial());
+    let debug_states_serialized = serde_yaml::to_string(&some_debug_state_list);
+
+(
+    state.as_matrix_point(),
+    (state_serialized, debug_states_serialized)
+)
 
 }
