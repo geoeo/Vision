@@ -17,11 +17,12 @@ fn main() -> Result<()> {
     let runtime_conf = load_runtime_conf();
 
     //let scenario = "60_10"; //Maybe too little translation
-    let scenario = "trans_x";
+    let scenario = "pnp";
     //let scenario = "trans_y";
     //let scenario = "trans_z";
-    //let dataset = "Suzanne";
-    let dataset = "sphere";
+
+    let dataset = "Suzanne";
+    //let dataset = "sphere";
     //let dataset = "Cube";
 
     let cam_features_path = format!("{}/{}/camera_features_{}.yaml",runtime_conf.local_data_path,scenario,dataset);
@@ -53,18 +54,22 @@ fn main() -> Result<()> {
     }).collect::<HashMap<_,_>>();
 
     // poses are defined in Computer Graphis Coordinate Systems. We need to flip it to Computer Vision
-    let change_of_basis = UnitQuaternion::from_scaled_axis(Rotation3::from_axis_angle(&Vector3::x_axis(), std::f64::consts::PI).scaled_axis());
-    //let change_of_basis = UnitQuaternion::from_scaled_axis(Rotation3::from_axis_angle(&Vector3::x_axis(), 0.0).scaled_axis());
+    let change_of_basis_x = UnitQuaternion::from_scaled_axis(Rotation3::from_axis_angle(&Vector3::x_axis(), std::f64::consts::PI).scaled_axis());
 
-    let cam_id = 1;
+    let cam_id = 0;
     let camera = camera_map.get(&cam_id).unwrap();
     let feature_map = feature_map.get(&cam_id).unwrap();
-    let camera_pose_gt_matrix = camera_poses.get(&cam_id).unwrap();
-    let camera_cam_world_iso = change_of_basis*from_matrix_3x4(camera_pose_gt_matrix);
 
-    //let camera_pose = Some(camera_cam_world_iso);
+
+    // Gt Pose
+    let camera_pose_gt_matrix = camera_poses.get(&cam_id).unwrap();
+    let camera_cam_world_cg = from_matrix_3x4(camera_pose_gt_matrix);
+    let camera_cam_world_vision = change_of_basis_x*camera_cam_world_cg*change_of_basis_x;
+    let camera_pose = Some(camera_cam_world_vision);
+
     let camera_pose = None;
-    let landmark_map = loaded_data_landmarks.iter().map(|l| (*l.get_id(), camera_cam_world_iso*convert::<Vector3<f32>,Vector3<Float>>(*l.get_position()))).collect::<HashMap<_,_>>();
+
+    let landmark_map = loaded_data_landmarks.iter().map(|l| (*l.get_id(),change_of_basis_x*convert::<Vector3<f32>,Vector3<Float>>(*l.get_position()))).collect::<HashMap<_,_>>();
  
     let pnp_config = PnPConfig::new(camera, &landmark_map, feature_map, &camera_pose);
     //TODO: split runtime parameters to BA and PNP. A lot of params are not needed

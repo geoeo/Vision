@@ -83,9 +83,14 @@ where
                     camera.project(&transformed_points.fixed_view::<3, 1>(0, j));
 
                 let feat_id = Self::get_feature_index_in_residual(i, j, n_cams);
-                let est = estimated_feature.unwrap();
-                estimated_features[feat_id] = est.x;
-                estimated_features[feat_id + 1] = est.y;
+                match estimated_feature {
+                    Some(est) => {
+                        estimated_features[feat_id] = est.x;
+                        estimated_features[feat_id + 1] = est.y;
+                    },
+                    None => ()
+                };
+
                 
             }
         }
@@ -103,11 +108,7 @@ where
     ) -> () {
         assert_eq!(residual_vector.nrows(), estimated_features.nrows());
         for i in 0..residual_vector.nrows() {
-            if observed_features[i] != convert(ba_state_linearizer::NO_FEATURE_FLAG) {
-                residual_vector[i] = estimated_features[i] - observed_features[i];
-            } else {
-                residual_vector[i] = F::zero();
-            }
+            residual_vector[i] = estimated_features[i] - observed_features[i];
             assert!(!residual_vector[i].is_nan());
         }
     }

@@ -46,46 +46,56 @@ pub fn run_pnp<
     let (tx_abort, rx_abort) = mpsc::channel::<bool>();
     let (tx_done, rx_done) = mpsc::channel::<bool>();
 
-    thread::scope(|s| {   
-        s.spawn(move || {
-            let solver = solver::Solver::<F, C, _, 3>::new();
-            let some_debug_state_list = solver.solve(
-                &mut state,
-                &cameras,
-                &observed_features,
-                runtime_parameters,
-                Some(&rx_abort),
-                Some(&tx_done),
-            );
-            tx_result
-                .send((state,some_debug_state_list))
-                .expect("Tx can not send state from solver thread");
-        });
+    let solver = solver::Solver::<F, C, _, 3>::new();
+    let some_debug_state_list = solver.solve(
+        &mut state,
+        &cameras,
+        &observed_features,
+        runtime_parameters,
+        Some(&rx_abort),
+        Some(&tx_done)
+    );
 
-        s.spawn(move || {
-            // Use asynchronous stdin
-            let mut stdin = termion::async_stdin().keys();
-            let mut solver_block = true;
-            while solver_block {
-                let input = stdin.next();
+    // thread::scope(|s| {   
+    //     s.spawn(move || {
+    //         let solver = solver::Solver::<F, C, _, 3>::new();
+    //         let some_debug_state_list = solver.solve(
+    //             &mut state,
+    //             &cameras,
+    //             &observed_features,
+    //             runtime_parameters,
+    //             Some(&rx_abort),
+    //             Some(&tx_done),
+    //         );
+    //         tx_result
+    //             .send((state,some_debug_state_list))
+    //             .expect("Tx can not send state from solver thread");
+    //     });
 
-                if let Some(Ok(key)) = input {
-                    let _ = match key {
-                        termion::event::Key::Char('q') => tx_abort.send(true),
-                        _ => Ok(()),
-                    };
-                }
-                solver_block &= match rx_done.try_recv() {
-                    Ok(b) => !b,
-                    _ => true,
-                };
-            }
-        });
-    });
+    //     s.spawn(move || {
+    //         // Use asynchronous stdin
+    //         let mut stdin = termion::async_stdin().keys();
+    //         let mut solver_block = true;
+    //         while solver_block {
+    //             let input = stdin.next();
 
-    let (state,some_debug_state_list) = rx_result
-    .recv()
-    .expect("Did not receive state from solver thread!");
+    //             if let Some(Ok(key)) = input {
+    //                 let _ = match key {
+    //                     termion::event::Key::Char('q') => tx_abort.send(true),
+    //                     _ => Ok(()),
+    //                 };
+    //             }
+    //             solver_block &= match rx_done.try_recv() {
+    //                 Ok(b) => !b,
+    //                 _ => true,
+    //             };
+    //         }
+    //     });
+    // });
+
+    // let (state,some_debug_state_list) = rx_result
+    // .recv()
+    // .expect("Did not receive state from solver thread!");
 
     let delta = &state.get_camera_positions();
     let u = delta.fixed_view::<3,1>(0,0);

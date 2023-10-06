@@ -22,7 +22,7 @@ fn main() -> Result<()> {
     //let dataset = "sphere";
     //let dataset = "Cube";
 
-    let cam_features_path = format!("{}/{}/camera_features_{}",runtime_conf.local_data_path,scenario,dataset);
+    let cam_features_path = format!("{}/{}/camera_features_{}.yaml",runtime_conf.local_data_path,scenario,dataset);
 
     let path = format!("{}/{}",runtime_conf.local_data_path,cam_features_path);
     let loaded_data = models_cv::io::deserialize_feature_matches(&path);
