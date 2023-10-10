@@ -24,8 +24,7 @@ fn main() -> Result<()> {
 
     let cam_features_path = format!("{}/{}/camera_features_{}.yaml",runtime_conf.local_data_path,scenario,dataset);
 
-    let path = format!("{}/{}",runtime_conf.local_data_path,cam_features_path);
-    let loaded_data = models_cv::io::deserialize_feature_matches(&path);
+    let loaded_data = models_cv::io::deserialize_feature_matches(&cam_features_path);
 
 
     let camera_map = loaded_data.iter().map(|cf|  {
@@ -134,8 +133,10 @@ fn main() -> Result<()> {
         cg_threshold: 1e-6,
         cg_max_it: 2e3 as usize
     };
-    let (_,(s,_)) = run_ba(&sfm_config_fundamental, &runtime_parameters);
-    std::fs::write(format!("{}/ba.txt",runtime_conf.output_path), s?).expect("Unable to write file");
+    let (optimized_state, state_debug_list) = run_ba(&sfm_config_fundamental, &runtime_parameters);
+    let state_serialized = serde_yaml::to_string(&optimized_state.to_serial());
+    let debug_states_serialized = serde_yaml::to_string(&state_debug_list);
+    std::fs::write(format!("{}/ba.txt",runtime_conf.output_path), state_serialized?).expect("Unable to write file");
 
     Ok(())
 }

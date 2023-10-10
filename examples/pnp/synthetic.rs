@@ -10,7 +10,7 @@ use vision::sfm::{
     pnp::{pnp_config::PnPConfig, run_pnp}
 };
 use vision::sensors::camera::perspective::Perspective;
-use vision::numerics::{loss, weighting, pose::from_matrix_3x4};
+use vision::numerics::{loss, weighting, pose::from_matrix_3x4, lie};
 
 fn main() -> Result<()> {
     color_eyre::install()?;
@@ -91,8 +91,17 @@ fn main() -> Result<()> {
         cg_max_it: 2e3 as usize
     };
 
-    let (_,(s,_)) = run_pnp(&pnp_config,&runtime_parameters);
-    std::fs::write(format!("{}/pnp.txt",runtime_conf.output_path), s?).expect("Unable to write file");
+    let (optimized_state, state_debug_list) = run_pnp(&pnp_config,&runtime_parameters);
+
+    let delta = &optimized_state.get_camera_positions();
+    let u = delta.fixed_view::<3,1>(0,0);
+    let w = delta.fixed_view::<3,1>(3,0);
+    println!("Pos: {}",lie::exp_se3(&u, &w));
+
+    let state_serialized = serde_yaml::to_string(&optimized_state.to_serial());
+    let debug_states_serialized = serde_yaml::to_string(&state_debug_list);
+
+    std::fs::write(format!("{}/pnp.txt",runtime_conf.output_path), state_serialized?).expect("Unable to write file");
 
 
     Ok(())

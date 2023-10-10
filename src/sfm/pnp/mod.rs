@@ -5,12 +5,11 @@ use crate::image::features::Feature;
 use crate::sfm::runtime_parameters::RuntimeParameters;
 use crate::sensors::camera::Camera;
 use crate::sfm::{
-    state,
     state::{CAMERA_PARAM_SIZE,pnp_state_linearizer::{get_euclidean_landmark_state,get_observed_features}, State},
     landmark::euclidean_landmark::EuclideanLandmark, pnp::pnp_config::PnPConfig,
 };
 use crate::Float;
-use na::{base::Scalar, Isometry3, RealField, Vector3};
+use na::{base::Scalar, RealField};
 use num_traits::float;
 use simba::scalar::SupersetOf;
 use std::{
@@ -33,9 +32,9 @@ pub fn run_pnp<
 >(
     pnp_config: &'a PnPConfig<C, Feat>,
     runtime_parameters: &'a RuntimeParameters<F>,
-) -> (
-    (Vec<Isometry3<F>>, Vec<Vector3<F>>),
-    (serde_yaml::Result<String>, serde_yaml::Result<String>),
+) -> 
+    (  State<F, EuclideanLandmark<F>, 3>,
+        Option<Vec<(Vec<[F; 6]>, Vec<[F; 3]>)>>
 ) {
     let mut state = get_euclidean_landmark_state::<F,Feat>(pnp_config.get_landmarks(), pnp_config.get_camera_pose_option());
     let observed_features = get_observed_features(pnp_config.get_features_norm());
@@ -46,67 +45,45 @@ pub fn run_pnp<
     let (tx_abort, rx_abort) = mpsc::channel::<bool>();
     let (tx_done, rx_done) = mpsc::channel::<bool>();
 
-    let solver = solver::Solver::<F, C, _, 3>::new();
-    let some_debug_state_list = solver.solve(
-        &mut state,
-        &cameras,
-        &observed_features,
-        runtime_parameters,
-        Some(&rx_abort),
-        Some(&tx_done)
-    );
+    thread::scope(|s| {   
+        s.spawn(move || {
+            let solver = solver::Solver::<F, C, _, 3>::new();
+            let some_debug_state_list = solver.solve(
+                &mut state,
+                &cameras,
+                &observed_features,
+                runtime_parameters,
+                Some(&rx_abort),
+                Some(&tx_done),
+            );
+            tx_result
+                .send((state,some_debug_state_list))
+                .expect("Tx can not send state from solver thread");
+        });
 
-    // thread::scope(|s| {   
-    //     s.spawn(move || {
-    //         let solver = solver::Solver::<F, C, _, 3>::new();
-    //         let some_debug_state_list = solver.solve(
-    //             &mut state,
-    //             &cameras,
-    //             &observed_features,
-    //             runtime_parameters,
-    //             Some(&rx_abort),
-    //             Some(&tx_done),
-    //         );
-    //         tx_result
-    //             .send((state,some_debug_state_list))
-    //             .expect("Tx can not send state from solver thread");
-    //     });
+        s.spawn(move || {
+            // Use asynchronous stdin
+            let mut stdin = termion::async_stdin().keys();
+            let mut solver_block = true;
+            while solver_block {
+                let input = stdin.next();
 
-    //     s.spawn(move || {
-    //         // Use asynchronous stdin
-    //         let mut stdin = termion::async_stdin().keys();
-    //         let mut solver_block = true;
-    //         while solver_block {
-    //             let input = stdin.next();
+                if let Some(Ok(key)) = input {
+                    let _ = match key {
+                        termion::event::Key::Char('q') => tx_abort.send(true),
+                        _ => Ok(()),
+                    };
+                }
+                solver_block &= match rx_done.try_recv() {
+                    Ok(b) => !b,
+                    _ => true,
+                };
+            }
+        });
+    });
 
-    //             if let Some(Ok(key)) = input {
-    //                 let _ = match key {
-    //                     termion::event::Key::Char('q') => tx_abort.send(true),
-    //                     _ => Ok(()),
-    //                 };
-    //             }
-    //             solver_block &= match rx_done.try_recv() {
-    //                 Ok(b) => !b,
-    //                 _ => true,
-    //             };
-    //         }
-    //     });
-    // });
-
-    // let (state,some_debug_state_list) = rx_result
-    // .recv()
-    // .expect("Did not receive state from solver thread!");
-
-    let delta = &state.get_camera_positions();
-    let u = delta.fixed_view::<3,1>(0,0);
-    let w = delta.fixed_view::<3,1>(3,0);
-    println!("Pos: {}",crate::numerics::lie::exp_se3(&u, &w));
-    let state_serialized = serde_yaml::to_string(&state.to_serial());
-    let debug_states_serialized = serde_yaml::to_string(&some_debug_state_list);
-
-(
-    state.as_matrix_point(),
-    (state_serialized, debug_states_serialized)
-)
+    rx_result
+    .recv()
+    .expect("Did not receive state from solver thread!")
 
 }

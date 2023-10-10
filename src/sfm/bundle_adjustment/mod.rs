@@ -32,8 +32,8 @@ pub fn run_ba<
     sfm_config: &'a BAConfig<C, Feat>,
     runtime_parameters: &'a RuntimeParameters<F>,
 ) -> (
-    (Vec<Isometry3<F>>, Vec<Vector3<F>>),
-    (serde_yaml::Result<String>, serde_yaml::Result<String>),
+    State<F, EuclideanLandmark<F>, 3>,
+    Option<Vec<(Vec<[F; 6]>, Vec<[F; 3]>)>>
 ) {
     let (unique_camera_ids_sorted, unique_cameras_sorted_by_id) =
         sfm_config.compute_unqiue_ids_cameras_root_first();
@@ -97,14 +97,8 @@ pub fn run_ba<
         });
     });
 
-    let (state,some_debug_state_list) = rx_result
+    rx_result
         .recv()
-        .expect("Did not receive state from solver thread!");
-    let state_serialized = serde_yaml::to_string(&state.to_serial());
-    let debug_states_serialized = serde_yaml::to_string(&some_debug_state_list);
+        .expect("Did not receive state from solver thread!")
 
-    (
-        state.as_matrix_point(),
-        (state_serialized, debug_states_serialized)
-    )
 }

@@ -141,8 +141,11 @@ fn main() -> Result<()> {
         cg_max_it: 2e3 as usize
     };
 
-    let ((_,_),(s,debug_states_serialized)) = run_ba(&sfm_config_fundamental, &runtime_parameters);
-    fs::write(format!("{}/ba.txt",runtime_conf.output_path), s?).expect("Unable to write file");
+    let (optimized_state, state_debug_list) = run_ba(&sfm_config_fundamental, &runtime_parameters);
+    let state_serialized = serde_yaml::to_string(&optimized_state.to_serial());
+    let debug_states_serialized = serde_yaml::to_string(&state_debug_list);
+
+    fs::write(format!("{}/ba.txt",runtime_conf.output_path), state_serialized?).expect("Unable to write file");
     if runtime_parameters.debug {
         fs::write(format!("{}/ba_debug.txt",runtime_conf.output_path), debug_states_serialized?).expect("Unable to write file");
     }
