@@ -36,8 +36,8 @@ pub struct BAConfig<C, Feat: Feature> {
     camera_map: HashMap<usize, C>,
     match_map: HashMap<(usize, usize), Vec<Match<Feat>>>,
     match_norm_map: HashMap<(usize, usize), Vec<Match<Feat>>>,
-    pose_map: HashMap<(usize, usize), Isometry3<Float>>, // The pose transforms tuple id 2 into the coordiante system of tuple id 1
-    abs_pose_map: HashMap<usize, Isometry3<Float>>,
+    pose_map: HashMap<(usize, usize), Isometry3<Float>>, // The pose transforms tuple id 2 into the coordiante system of tuple id 1 - 1_P_2
+    abs_pose_map: HashMap<usize, Isometry3<Float>>, // World is the root id
     abs_landmark_map: HashMap<usize, Matrix4xX<Float>>,
     reprojection_error_map: HashMap<(usize, usize), DVector<Float>>,
     unique_landmark_ids: HashSet<usize>,
@@ -282,6 +282,26 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
             })
             .collect::<Vec<&C>>();
         (keys_sorted, cameras_sorted)
+    }
+
+    pub fn update_camera_state(&mut self, cam_id: usize, new_pose: Isometry3<Float>) -> () {
+        self.abs_pose_map.insert(cam_id, new_pose);
+        let pairs_with_cam_id = self.pose_map.keys().filter(|(id1,id2)| *id1 == cam_id || *id2 == cam_id).map(|(id1,id2)| (*id1,*id2)).collect::<Vec<_>>();
+        for path_pair in pairs_with_cam_id {
+            match path_pair {
+                (id1, id2) if id1 == cam_id => {
+                    let pose2 = self.abs_pose_map.get(&id2).expect(format!("Pose id {} not found in update camera state", id2).as_str());
+                    let pose1_2 = new_pose.inverse()*pose2;
+                    self.pose_map.insert((cam_id,id2), pose1_2);
+                },
+                (id1, id2) if id2 == cam_id => {
+                    let pose1 = self.abs_pose_map.get(&id1).expect(format!("Pose id {} not found in update camera state", id1).as_str());
+                    let pose1_2 = pose1.inverse()*new_pose;
+                    self.pose_map.insert((id1,cam_id), pose1_2);
+                },
+                _ => panic!("Path pair without cam id in update camera state")
+            }
+        }
     }
 
     fn check_for_duplicate_pixel_entries(matches: &Vec<Vec<Vec<Match<Feat>>>>) -> bool {
