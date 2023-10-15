@@ -304,9 +304,10 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
     pub fn generate_pnp_config_from_cam_id(&self, cam_id: usize) -> PnPConfig<C,Feat> {
         let camera = self.camera_map.get(&cam_id).expect("Camera not found in generate_pnp_config_from_cam_id");
         let camera_pose = self.abs_pose_map.get(&cam_id).expect("Camera pose not found in generate_pnp_config_from_cam_id");
+        let landmark_map_mat = generate_abs_landmark_map(self.root,&self.paths,&self.landmark_map,&self.abs_pose_map);
+        //let feature_map = self.match_map.get(k)
+
         panic!("TODO")
-        //let landmark_map_mat = self.generate_abs_landmark_map.get(&cam_id).expect("Landmark map not found in generate_pnp_config_from_cam_id");
-        //let feature_map = self.
 
         //PnPConfig::new(camera, &landmark_map, feature_map, &camera_pose)
     }
@@ -1168,22 +1169,26 @@ fn compute_absolute_poses_for_root(
 fn compute_absolute_landmarks_for_root(
     paths: &Vec<Vec<(usize, usize)>>,
     landmark_map: &HashMap<(usize, usize), Vec<EuclideanLandmark<Float>>>,
-    abs_pose_map: &HashMap<usize, Isometry3<Float>>,
-) -> HashMap<usize, Matrix4xX<Float>> {
+    abs_pose_map: &HashMap<usize, Isometry3<Float>>
+) -> HashMap<(usize,usize), Matrix4xX<Float>> {
     let flattened_path_len = paths.iter().flatten().collect::<Vec<_>>().len();
     let mut abs_landmark_map =
-        HashMap::<usize, Matrix4xX<Float>>::with_capacity(flattened_path_len + 1);
+        HashMap::<(usize,usize), Matrix4xX<Float>>::with_capacity(flattened_path_len + 1);
     for path in paths {
         for (id_s, id_f) in path {
             let landmark_key = (*id_s, *id_f);
             let landmarks = landmark_map.get(&landmark_key).expect(format!("Landmark missing for key {:?}",landmark_key).as_str());
             let triangulated_matches = generate_landmark_matrix(landmarks);
-            let pose = abs_pose_map
+            let abs_pose_w_s = abs_pose_map
                 .get(id_s)
-                .expect("compute_absolute_landmarks_for_root: pose not found")
+                .expect("compute_absolute_landmarks_for_root: abs pose not found")
                 .to_matrix();
-            let root_aligned_triangulated_matches = pose * triangulated_matches;
-            abs_landmark_map.insert(*id_s, root_aligned_triangulated_matches);
+            let abs_pose_w_f = abs_pose_map
+            .get(id_f)
+            .expect("compute_absolute_landmarks_for_root: abs pose not found")
+            .to_matrix();
+            let root_aligned_triangulated_matches = abs_pose_w_s * &triangulated_matches;
+            abs_landmark_map.insert(landmark_key, root_aligned_triangulated_matches);
         }
     }
     abs_landmark_map
@@ -1261,9 +1266,10 @@ pub fn compute_path_id_pairs(root_id: usize, paths: &Vec<Vec<usize>>) -> Vec<Vec
 /**
  * With respect to the root camera
  */
-pub fn generate_abs_landmark_map(root: usize, paths: &Vec<Vec<usize>>, landmark_map: &HashMap<(usize,usize),Vec<EuclideanLandmark<Float>>>, abs_pose_map: &HashMap<usize, Isometry3<Float>>) -> HashMap<usize, Matrix4xX<Float>> {
+pub fn generate_abs_landmark_map(root: usize, paths: &Vec<Vec<usize>>, 
+    landmark_map: &HashMap<(usize,usize),Vec<EuclideanLandmark<Float>>>, 
+    abs_pose_map: &HashMap<usize, Isometry3<Float>>) -> HashMap<(usize, usize), Matrix4xX<Float>> {
     let path_id_pairs = compute_path_id_pairs(root, paths);
-    // TODO: Also add landmarks from second view
     compute_absolute_landmarks_for_root(&path_id_pairs, landmark_map, abs_pose_map)
 }
 

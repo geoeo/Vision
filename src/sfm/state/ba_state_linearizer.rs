@@ -70,7 +70,7 @@ impl BAStateLinearizer {
         paths: &Vec<Vec<(usize,usize)>>, 
         match_map: &HashMap<(usize, usize), Vec<Match<Feat>>>, 
         abs_pose_map: &HashMap<usize, Isometry3<Float>>,
-        abs_landmark_map: &HashMap<usize, Matrix4xX<Float>>,
+        abs_landmark_map: &HashMap<(usize,usize), Matrix4xX<Float>>,
         reprojection_error_map: &HashMap<(usize, usize),DVector<Float>>,
         number_of_unqiue_landmarks: usize) 
         -> (State<F, EuclideanLandmark<F>,3>, Vec<Vec<Option<(Float,Float)>>>) {
@@ -87,7 +87,7 @@ impl BAStateLinearizer {
                 let matches = match_map.get(&(*id_s, *id_f)).expect("not matches found for path pair");
                 let landmark_key = (*id_s, *id_f);
                 let reprojection_errors = reprojection_error_map.get(&landmark_key).expect(format!("no reprojection errors found for key: {:?}",landmark_key).as_str());
-                let root_aligned_triangulated_matches = abs_landmark_map.get(&id_s).expect(format!("no landmarks found for key: {:?}",landmark_key).as_str());
+                let root_aligned_triangulated_matches_s = abs_landmark_map.get(&landmark_key).expect(format!("no landmarks found for key: {:?}",landmark_key).as_str());
                 let internal_source_cam_id = self.camera_to_linear_id_map.get(id_s).unwrap();
                 let internal_other_cam_id = self.camera_to_linear_id_map.get(id_f).unwrap();
     
@@ -100,7 +100,7 @@ impl BAStateLinearizer {
                     let point_other_y_float = m.get_feature_two().get_y_image_float();
 
                     let landmark_id = &m.get_landmark_id().expect(format!("no landmark id found for match: {:?}",landmark_key).as_str());
-                    let point = root_aligned_triangulated_matches.fixed_view::<3, 1>(0, m_i).into_owned();
+                    let point_s = root_aligned_triangulated_matches_s.fixed_view::<3, 1>(0, m_i).into_owned();
                     
                     let reprojection_error = reprojection_errors[m_i];
                     match landmark_reprojection_error_map.contains_key(landmark_id) {
@@ -109,9 +109,9 @@ impl BAStateLinearizer {
                             if reprojection_error < current_reproj_error {
                                 landmark_reprojection_error_map.insert(*landmark_id,reprojection_error);
                                 landmarks[*landmark_id] = EuclideanLandmark::from_state(Vector3::<F>::new(
-                                    convert(point[0]),
-                                    convert(point[1]),
-                                    convert(point[2])
+                                    convert(point_s[0]),
+                                    convert(point_s[1]),
+                                    convert(point_s[2])
                                 ));
 
                                 feature_location_lookup[*landmark_id][*internal_source_cam_id] = Some((point_source_x_float,point_source_y_float));
@@ -121,9 +121,9 @@ impl BAStateLinearizer {
                         false => {
                             landmark_reprojection_error_map.insert(*landmark_id,reprojection_error);
                             landmarks[*landmark_id] = EuclideanLandmark::from_state(Vector3::<F>::new(
-                                convert(point[0]),
-                                convert(point[1]),
-                                convert(point[2])
+                                convert(point_s[0]),
+                                convert(point_s[1]),
+                                convert(point_s[2])
                             ));
 
                             feature_location_lookup[*landmark_id][*internal_source_cam_id] = Some((point_source_x_float,point_source_y_float));
