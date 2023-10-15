@@ -4,7 +4,7 @@ use na::{DVector,Matrix3x4,Matrix4xX, Vector4};
 use crate::image::features::{matches::Match,Feature};
 use crate::sensors::camera::Camera;
 use crate::{float,Float};
-use std::{collections::{HashMap,HashSet}};
+use std::collections::{HashMap,HashSet};
 
 pub mod dual;
 
@@ -102,7 +102,6 @@ pub fn reject_landmark_outliers<Feat: Feature + Clone>(
 pub fn filter_by_rejected_landmark_ids<Feat: Feature + Clone>(
     rejected_landmark_ids: &HashSet<usize>,
     unique_landmark_ids: &mut HashSet<usize>,
-    abs_landmark_map: &mut HashMap<usize,Matrix4xX<Float>>,
     match_norm_map: &mut HashMap<(usize, usize), Vec<Match<Feat>>>, 
     match_map: &mut HashMap<(usize, usize), Vec<Match<Feat>>>,
     landmark_map: &mut  HashMap<(usize, usize), Matrix4xX<Float>>, 
@@ -117,7 +116,6 @@ pub fn filter_by_rejected_landmark_ids<Feat: Feature + Clone>(
         let matches = match_map.get(&cam_key).expect("filter_by_rejected_landmark_ids: matches, missing cam pair");
         let landmarks = landmark_map.get(&cam_key).expect("filter_by_rejected_landmark_ids: landmarks, missing cam pair");
         let reprojections = reprojection_error_map.get(&cam_key).expect("filter_by_rejected_landmark_ids: reprojection_error_map, missing cam pair");
-        let abs_landmarks = abs_landmark_map.get(&cam_key.0).expect("filter_by_rejected_landmark_ids: abs_landmarks_map, missing cam pair");
 
         let (match_indices_filtered, matches_norm_filtered) : (HashSet<_>, Vec<_>) 
             = matches_norm.iter().enumerate().filter(|(_, m)| !rejected_landmark_ids.contains(&m.get_landmark_id().expect("filter_by_rejected_landmark_ids: no landmark it for filtering"))).map(|(i,m)| (i, m.clone())).unzip();
@@ -128,23 +126,17 @@ pub fn filter_by_rejected_landmark_ids<Feat: Feature + Clone>(
 
         assert!(!landmarks_filtered_as_vec.is_empty(), "assertion failed: !landmarks_filtered_as_vec.is_empty() - for cam pair {:?}",cam_key);
         let reprojections_filtered_as_vec: Vec<_> = reprojections.into_iter().enumerate().filter(|(i,_)| match_indices_filtered.contains(i)).map(|(_,c)| *c).collect();
-
-        let abs_landmarks_filtered_as_vec : Vec<_> = abs_landmarks.column_iter().enumerate().filter(|(i,_)| match_indices_filtered.contains(i)).map(|(_,c)| c).collect();
-        assert!(!abs_landmarks_filtered_as_vec.is_empty());
         
         let landmarks_filtered = Matrix4xX::<Float>::from_columns(&landmarks_filtered_as_vec[..]);
-        let abs_landmarks_filtered = Matrix4xX::<Float>::from_columns(&abs_landmarks_filtered_as_vec[..]);
         let reprojections_filtered = DVector::<Float>::from_vec(reprojections_filtered_as_vec);
 
         assert_eq!(matches_norm_filtered.len(), matches_filtered.len());
         assert_eq!(matches_norm_filtered.len(), landmarks_filtered.ncols());
-        assert_eq!(matches_norm_filtered.len(), abs_landmarks_filtered.ncols());
         assert_eq!(matches_norm_filtered.len(), reprojections_filtered.nrows());
 
         match_norm_map.insert(cam_key, matches_norm_filtered);
         match_map.insert(cam_key, matches_filtered);
         landmark_map.insert(cam_key, landmarks_filtered);
-        abs_landmark_map.insert(cam_key.0, abs_landmarks_filtered);
         reprojection_error_map.insert(cam_key, reprojections_filtered);
     }
 

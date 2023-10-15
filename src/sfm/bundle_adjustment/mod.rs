@@ -5,7 +5,7 @@ use crate::image::features::Feature;
 use crate::sfm::runtime_parameters::RuntimeParameters;
 use crate::sensors::camera::Camera;
 use crate::sfm::{
-    landmark::euclidean_landmark::EuclideanLandmark, bundle_adjustment::ba_config::{BAConfig,compute_path_id_pairs},
+    landmark::euclidean_landmark::EuclideanLandmark, bundle_adjustment::ba_config::{BAConfig,compute_path_id_pairs, generate_abs_landmark_map},
     state::{State,ba_state_linearizer::BAStateLinearizer, CAMERA_PARAM_SIZE}, 
 };
 use crate::Float;
@@ -47,7 +47,7 @@ pub fn run_ba<
         &path_id_pairs,
         sfm_config.match_norm_map(),
         sfm_config.abs_pose_map(),
-        sfm_config.abs_landmark_map(),
+        &generate_abs_landmark_map(sfm_config.root(),sfm_config.paths(),sfm_config.landmark_map(),sfm_config.abs_pose_map()),
         sfm_config.reprojection_error_map(),
         sfm_config.unique_landmark_ids().len(),
     );

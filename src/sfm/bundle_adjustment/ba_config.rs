@@ -7,6 +7,7 @@ use crate::image::features::{
 };
 use crate::numerics::pose::{from_matrix, se3};
 use crate::sensors::camera::Camera;
+use crate::sfm::landmark;
 use crate::sfm::outlier_rejection::{
     calcualte_disparities, calculate_reprojection_errors,
     compute_continuous_landmark_ids_from_matches,
@@ -19,6 +20,7 @@ use crate::sfm::{
     outlier_rejection::dual::outlier_rejection_dual,
     rotation_avg::optimize_rotations_with_rcd,
     triangulation::{triangulate_matches, Triangulation},
+    pnp::pnp_config::PnPConfig
 };
 use crate::{float, Float};
 use na::{DVector, Isometry3, Matrix3, Matrix4, Matrix4xX};
@@ -38,7 +40,7 @@ pub struct BAConfig<C, Feat: Feature> {
     match_norm_map: HashMap<(usize, usize), Vec<Match<Feat>>>,
     pose_map: HashMap<(usize, usize), Isometry3<Float>>, // The pose transforms tuple id 2 into the coordiante system of tuple id 1 - 1_P_2
     abs_pose_map: HashMap<usize, Isometry3<Float>>, // World is the root id
-    abs_landmark_map: HashMap<usize, Matrix4xX<Float>>,
+    landmark_map: HashMap<(usize, usize), Matrix4xX<Float>>,
     reprojection_error_map: HashMap<(usize, usize), DVector<Float>>,
     unique_landmark_ids: HashSet<usize>,
     triangulation: Triangulation,
@@ -126,8 +128,9 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
         let mut abs_pose_map = compute_absolute_poses_for_root(root, &path_id_pairs, &pose_map);
 
         //TODO: introduce gt landmark options
-        let mut abs_landmark_map =
-            compute_absolute_landmarks_for_root(&path_id_pairs, &landmark_map, &abs_pose_map);
+        //TODO: maybe reconpute on demand
+        //let mut abs_landmark_map =
+            //compute_absolute_landmarks_for_root(&path_id_pairs, &landmark_map, &abs_pose_map);
 
         let (min_reprojection_error_initial, max_reprojection_error_initial) =
             Self::compute_reprojection_ranges(&reprojection_error_map);
@@ -159,7 +162,6 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
                 &camera_ids_root_first,
                 &mut unique_landmark_ids,
                 &mut abs_pose_map,
-                &mut abs_landmark_map,
                 &mut match_norm_map,
                 &mut match_map,
                 &mut landmark_map,
@@ -230,7 +232,7 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
             match_norm_map,
             abs_pose_map,
             pose_map,
-            abs_landmark_map,
+            landmark_map,
             reprojection_error_map,
             unique_landmark_ids,
             triangulation,
@@ -261,14 +263,14 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
     pub fn pose_map(&self) -> &HashMap<(usize, usize), Isometry3<Float>> {
         &self.pose_map
     }
-    pub fn abs_landmark_map(&self) -> &HashMap<usize, Matrix4xX<Float>> {
-        &self.abs_landmark_map
-    }
     pub fn reprojection_error_map(&self) -> &HashMap<(usize, usize), DVector<Float>> {
         &self.reprojection_error_map
     }
     pub fn unique_landmark_ids(&self) -> &HashSet<usize> {
         &self.unique_landmark_ids
+    }
+    pub fn landmark_map(&self) -> &HashMap<(usize,usize), Matrix4xX<Float>> {
+        &self.landmark_map
     }
 
     pub fn compute_unqiue_ids_cameras_root_first(&self) -> (Vec<usize>, Vec<&C>) {
@@ -302,6 +304,16 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
                 _ => panic!("Path pair without cam id in update camera state")
             }
         }
+    }
+
+    pub fn generate_pnp_config_from_cam_id(&self, cam_id: usize) -> PnPConfig<C,Feat> {
+        let camera = self.camera_map.get(&cam_id).expect("Camera not found in generate_pnp_config_from_cam_id");
+        let camera_pose = self.abs_pose_map.get(&cam_id).expect("Camera pose not found in generate_pnp_config_from_cam_id");
+        panic!("TODO")
+        //let landmark_map_mat = self.generate_abs_landmark_map.get(&cam_id).expect("Landmark map not found in generate_pnp_config_from_cam_id");
+        //let feature_map = self.
+
+        //PnPConfig::new(camera, &landmark_map, feature_map, &camera_pose)
     }
 
     fn check_for_duplicate_pixel_entries(matches: &Vec<Vec<Vec<Match<Feat>>>>) -> bool {
@@ -995,7 +1007,6 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
         unique_camera_ids_root_first: &Vec<usize>,
         unique_landmark_ids: &mut HashSet<usize>,
         abs_pose_map: &mut HashMap<usize, Isometry3<Float>>,
-        abs_landmark_map: &mut HashMap<usize, Matrix4xX<Float>>,
         match_norm_map: &mut HashMap<(usize, usize), Vec<Match<Feat>>>,
         match_map: &mut HashMap<(usize, usize), Vec<Match<Feat>>>,
         landmark_map: &mut HashMap<(usize, usize), Matrix4xX<Float>>,
@@ -1018,7 +1029,6 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
             filter_by_rejected_landmark_ids(
                 &rejected_landmark_ids,
                 unique_landmark_ids,
-                abs_landmark_map,
                 match_norm_map,
                 match_map,
                 landmark_map,
@@ -1034,7 +1044,6 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
         unique_camera_ids: &Vec<usize>,
         unique_landmark_ids: &mut HashSet<usize>,
         abs_pose_map: &HashMap<usize, Isometry3<Float>>,
-        abs_landmark_map: &mut HashMap<usize, Matrix4xX<Float>>,
         match_norm_map: &mut HashMap<(usize, usize), Vec<Match<Feat>>>,
         match_map: &mut HashMap<(usize, usize), Vec<Match<Feat>>>,
         landmark_map: &mut HashMap<(usize, usize), Matrix4xX<Float>>,
@@ -1115,7 +1124,6 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
             filter_by_rejected_landmark_ids(
                 &rejected_landmark_ids,
                 unique_landmark_ids,
-                abs_landmark_map,
                 match_norm_map,
                 match_map,
                 landmark_map,
@@ -1242,4 +1250,13 @@ pub fn compute_path_id_pairs(root_id: usize, paths: &Vec<Vec<usize>>) -> Vec<Vec
     }
 
     path_id_paris
+}
+
+/**
+ * With respect to the root camera
+ */
+pub fn generate_abs_landmark_map(root: usize, paths: &Vec<Vec<usize>>, landmark_map: &HashMap<(usize,usize),Matrix4xX<Float>>, abs_pose_map: &HashMap<usize, Isometry3<Float>>) -> HashMap<usize, Matrix4xX<Float>> {
+    let path_id_pairs = compute_path_id_pairs(root, paths);
+    // TODO: Also add landmarks from second view
+    compute_absolute_landmarks_for_root(&path_id_pairs, landmark_map, abs_pose_map)
 }
