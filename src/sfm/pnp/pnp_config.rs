@@ -2,11 +2,11 @@ extern crate nalgebra as na;
 extern crate num_traits;
 
 
-use na::{Vector3, Matrix4xX, Matrix3, Matrix4, Isometry3};
-use std::{collections::{HashMap,HashSet}, hash::Hash};
+use na::{Vector3, Matrix4xX, Isometry3};
+use std::{collections::HashMap, hash::Hash};
 use crate::image::features::{Feature, compute_linear_normalization, solver_feature::SolverFeature};
 use crate::sensors::camera::Camera;
-use crate::{float,Float};
+use crate::Float;
 
 
 pub struct PnPConfig<C, Feat: Feature> {

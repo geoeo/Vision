@@ -1,7 +1,7 @@
 extern crate nalgebra as na;
 extern crate num_traits;
 
-use na::{base::Scalar, convert, DMatrix, DVector, Point3, RealField, Vector4, Matrix, Dyn, U4, VecStorage};
+use na::{base::Scalar, DMatrix, DVector, Point3, RealField, Vector4, Matrix, Dyn, U4, VecStorage};
 use num_traits::float;
 use simba::scalar::SupersetOf;
 use std::marker::{Send, Sync};
@@ -12,7 +12,7 @@ use crate::sensors::camera::Camera;
 use crate::sfm::runtime_parameters::RuntimeParameters;
 use crate::sfm::{
     landmark::Landmark,
-    state::{ba_state_linearizer, State},
+    state::State,
 };
 use crate::Float;
 

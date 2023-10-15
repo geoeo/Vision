@@ -9,7 +9,7 @@ use crate::sfm::{
     state::{State,ba_state_linearizer::BAStateLinearizer, CAMERA_PARAM_SIZE}, 
 };
 use crate::Float;
-use na::{base::Scalar, Isometry3, RealField, Vector3};
+use na::{base::Scalar, RealField};
 use num_traits::float;
 use simba::scalar::SupersetOf;
 use std::{

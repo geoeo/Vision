@@ -3,7 +3,7 @@
 extern crate nalgebra as na;
 extern crate num_traits;
 
-use na::{DVector, SMatrix, Matrix4, Vector3, Isometry3, Quaternion, Rotation3,Translation3, base::Scalar, RealField};
+use na::{DVector, SMatrix, Matrix4, Vector3, Isometry3, base::Scalar, RealField};
 use num_traits::float;
 use crate::numerics::{lie::exp_se3,pose::from_matrix};
 use crate::sfm::landmark::Landmark;
@@ -113,7 +113,6 @@ impl<F: float::Float + Scalar + RealField, L: Landmark<F,T> + Copy + Clone, cons
         let mut points_serial = Vec::<[F; T]>::with_capacity(self.n_points);
 
         for i in 0..self.n_cams {
-            let linear_idx = i*CAMERA_PARAM_SIZE;
             let iso = self.camera_positions[i];
             let u = iso.translation;
             let w = iso.rotation.scaled_axis();
