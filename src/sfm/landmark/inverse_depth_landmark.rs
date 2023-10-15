@@ -11,7 +11,8 @@ use crate::sensors::camera::Camera;
 #[derive(Copy,Clone)]
 pub struct InverseLandmark<F: num_traits::float::Float + Scalar + NumAssign + RealField > {
     state: Vector6<F>,
-    m : Vector3<F>
+    m : Vector3<F>,
+    id: Option<usize>
 }
 
 //We are not negating h_y because we will also not negate sin(phi)
@@ -21,7 +22,14 @@ impl<F: float::Float + Scalar + NumAssign + RealField> Landmark<F, 6> for Invers
         let theta = state[3];
         let phi = state[4];
         let m = InverseLandmark::direction(theta,phi);
-        InverseLandmark{state,m}
+        InverseLandmark{state,m,id: None}
+    }
+
+    fn from_state_with_id(state: SVector<F,6>, id: &Option<usize>) -> InverseLandmark<F> {
+        let theta = state[3];
+        let phi = state[4];
+        let m = InverseLandmark::direction(theta,phi);
+        InverseLandmark{state,m,id: *id}
     }
 
     fn from_array(arr: &[F; 6]) -> InverseLandmark<F> {
@@ -29,7 +37,7 @@ impl<F: float::Float + Scalar + NumAssign + RealField> Landmark<F, 6> for Invers
         let theta = arr[3];
         let phi = arr[4];
         let m = InverseLandmark::direction(theta,phi);
-        InverseLandmark{state,m}
+        InverseLandmark{state,m,id: None}
     }
 
 
@@ -76,8 +84,9 @@ impl<F: float::Float + Scalar + NumAssign + RealField> Landmark<F, 6> for Invers
         let theta = self.get_theta();
         let phi = self.get_phi();
         self.m = InverseLandmark::direction(theta,phi);
-
     }
+
+    fn get_id(&self) -> Option<usize> {self.id}
 }
 
 impl<F: num_traits::float::Float + Scalar + NumAssign + RealField> InverseLandmark<F> {
@@ -92,7 +101,7 @@ impl<F: num_traits::float::Float + Scalar + NumAssign + RealField> InverseLandma
         let phi = float::Float::atan2(h_w[1],float::Float::sqrt(float::Float::powi(h_w[0],2)+float::Float::powi(h_w[2],2)));
         let m = InverseLandmark::direction(theta,phi);
         let state = Vector6::<F>::new(cam_to_world.translation.vector[0],cam_to_world.translation.vector[1],cam_to_world.translation.vector[2],theta,phi,inverse_depth_prior);
-        InverseLandmark{state,m}
+        InverseLandmark{state,m,id: None}
     }
 
     

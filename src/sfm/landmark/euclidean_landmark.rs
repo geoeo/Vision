@@ -8,12 +8,18 @@ use crate::sfm::landmark::Landmark;
 #[derive(Copy,Clone)]
 pub struct EuclideanLandmark<F: float::Float + Scalar + RealField> {
     state: Point3<F>,
+    id: Option<usize>
 }
 
 impl<F: float::Float + Scalar + NumAssign + RealField> Landmark<F,3> for EuclideanLandmark<F> {
 
+    fn from_state_with_id(state: SVector<F,3>, id: &Option<usize>) -> EuclideanLandmark<F> {
+        EuclideanLandmark{state: Point3::<F>::from(state), id: *id}
+    }
+
+
     fn from_state(state: SVector<F,3>) -> EuclideanLandmark<F> {
-        EuclideanLandmark{state: Point3::<F>::from(state)}
+        EuclideanLandmark{state: Point3::<F>::from(state), id: None}
     }
 
     fn update(&mut self,perturb :&SVector<F,3>) -> () {
@@ -38,10 +44,12 @@ impl<F: float::Float + Scalar + NumAssign + RealField> Landmark<F,3> for Euclide
     }
 
     fn from_array(arr: &[F; 3]) -> EuclideanLandmark<F> {
-        EuclideanLandmark{state: Point3::<F>::new(arr[0],arr[1],arr[2])}
+        EuclideanLandmark{state: Point3::<F>::new(arr[0],arr[1],arr[2]), id: None}
     }
 
     fn get_state_as_array(&self) -> [F; 3] {
         [self.state[0], self.state[1], self.state[2]]
     }
+
+    fn get_id(&self) -> Option<usize> {self.id}
 }

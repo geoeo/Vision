@@ -7,7 +7,7 @@ use crate::image::features::{
 };
 use crate::numerics::pose::{from_matrix, se3};
 use crate::sensors::camera::Camera;
-use crate::sfm::landmark;
+use crate::sfm::landmark::{Landmark, euclidean_landmark::EuclideanLandmark};
 use crate::sfm::outlier_rejection::{
     calcualte_disparities, calculate_reprojection_errors,
     compute_continuous_landmark_ids_from_matches,
@@ -40,7 +40,7 @@ pub struct BAConfig<C, Feat: Feature> {
     match_norm_map: HashMap<(usize, usize), Vec<Match<Feat>>>,
     pose_map: HashMap<(usize, usize), Isometry3<Float>>, // The pose transforms tuple id 2 into the coordiante system of tuple id 1 - 1_P_2
     abs_pose_map: HashMap<usize, Isometry3<Float>>, // World is the root id
-    landmark_map: HashMap<(usize, usize), Matrix4xX<Float>>,
+    landmark_map: HashMap<(usize, usize), Vec<EuclideanLandmark<Float>>>,
     reprojection_error_map: HashMap<(usize, usize), DVector<Float>>,
     unique_landmark_ids: HashSet<usize>,
     triangulation: Triangulation,
@@ -126,11 +126,6 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
         let path_id_pairs = compute_path_id_pairs(root, paths);
         let path_id_pairs_flat = path_id_pairs.iter().flatten().collect::<Vec<_>>();
         let mut abs_pose_map = compute_absolute_poses_for_root(root, &path_id_pairs, &pose_map);
-
-        //TODO: introduce gt landmark options
-        //TODO: maybe reconpute on demand
-        //let mut abs_landmark_map =
-            //compute_absolute_landmarks_for_root(&path_id_pairs, &landmark_map, &abs_pose_map);
 
         let (min_reprojection_error_initial, max_reprojection_error_initial) =
             Self::compute_reprojection_ranges(&reprojection_error_map);
@@ -269,7 +264,7 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
     pub fn unique_landmark_ids(&self) -> &HashSet<usize> {
         &self.unique_landmark_ids
     }
-    pub fn landmark_map(&self) -> &HashMap<(usize,usize), Matrix4xX<Float>> {
+    pub fn landmark_map(&self) -> &HashMap<(usize,usize), Vec<EuclideanLandmark<Float>>> {
         &self.landmark_map
     }
 
@@ -375,26 +370,38 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
         camera_map: &HashMap<usize, C>,
         triangulation: Triangulation,
     ) -> (
-        HashMap<(usize, usize), Matrix4xX<Float>>,
+        HashMap<(usize, usize), Vec<EuclideanLandmark<Float>>>,
         HashMap<(usize, usize), DVector<Float>>,
     ) {
-        let mut triangulated_match_map =
-            HashMap::<(usize, usize), Matrix4xX<Float>>::with_capacity(match_map.len());
+        let mut landmark_map =
+            HashMap::<(usize, usize),  Vec<EuclideanLandmark<Float>>>::with_capacity(match_map.len());
         let mut reprojection_map =
             HashMap::<(usize, usize), DVector<Float>>::with_capacity(match_map.len());
 
         let path_pairs = compute_path_pairs_as_vec(root, paths);
         for path in &path_pairs {
             for path_pair in path {
+
+                let se3 = pose_map.get(path_pair).expect(format!("triangulate_matches: pose not found with key: ({:?})",path_pair).as_str()).to_matrix();
+                let ms = match_map.get(path_pair).expect(format!("triangulate_matches: matches not found with key: ({:?})",path_pair).as_str());
+
                 let trigulated_matches = triangulate_matches(
                     *path_pair,
-                    &pose_map,
-                    &match_map,
+                    &se3,
+                    &ms,
                     &camera_map,
                     triangulation,
                 );
+                
+                let mut landmarks = Vec::<EuclideanLandmark<Float>>::with_capacity(ms.len());
+                for i in 0..ms.len(){
+                    let l = trigulated_matches.column(i);
+                    let id = ms[i].get_landmark_id();
+                    assert!(id.is_some());
+                    let landmark = EuclideanLandmark::from_state_with_id(l.fixed_rows::<3>(0).into_owned(), &id);
+                    landmarks.push(landmark);
+                }
 
-                let se3 = pose_map.get(path_pair).expect(format!("compute_landmarks_and_reprojection_maps: pose not found with key: {:?}",path_pair).as_str()).to_matrix();
                 let ms = match_map.get(path_pair).expect(
                     format!(
                         "compute_landmarks_and_reprojection_maps: matches not found with key: {:?}",
@@ -421,12 +428,12 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
                     cam_2,
                 );
 
-                triangulated_match_map.insert(*path_pair, trigulated_matches);
+                landmark_map.insert(*path_pair, landmarks);
                 reprojection_map.insert(*path_pair, reprojection_errors);
             }
         }
 
-        (triangulated_match_map, reprojection_map)
+        (landmark_map, reprojection_map)
     }
 
     fn compute_disparity_map(
@@ -1009,7 +1016,7 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
         abs_pose_map: &mut HashMap<usize, Isometry3<Float>>,
         match_norm_map: &mut HashMap<(usize, usize), Vec<Match<Feat>>>,
         match_map: &mut HashMap<(usize, usize), Vec<Match<Feat>>>,
-        landmark_map: &mut HashMap<(usize, usize), Matrix4xX<Float>>,
+        landmark_map: &mut HashMap<(usize, usize), Vec<EuclideanLandmark<Float>>>,
         reprojection_error_map: &mut HashMap<(usize, usize), DVector<Float>>,
     ) -> () {
         let mut feature_map = compute_features_per_image_map(
@@ -1046,7 +1053,7 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
         abs_pose_map: &HashMap<usize, Isometry3<Float>>,
         match_norm_map: &mut HashMap<(usize, usize), Vec<Match<Feat>>>,
         match_map: &mut HashMap<(usize, usize), Vec<Match<Feat>>>,
-        landmark_map: &mut HashMap<(usize, usize), Matrix4xX<Float>>,
+        landmark_map: &mut HashMap<(usize, usize), Vec<EuclideanLandmark<Float>>>,
         reprojection_error_map: &mut HashMap<(usize, usize), DVector<Float>>,
     ) -> () {
         let mut feature_map = compute_features_per_image_map(
@@ -1160,7 +1167,7 @@ fn compute_absolute_poses_for_root(
 
 fn compute_absolute_landmarks_for_root(
     paths: &Vec<Vec<(usize, usize)>>,
-    landmark_map: &HashMap<(usize, usize), Matrix4xX<Float>>,
+    landmark_map: &HashMap<(usize, usize), Vec<EuclideanLandmark<Float>>>,
     abs_pose_map: &HashMap<usize, Isometry3<Float>>,
 ) -> HashMap<usize, Matrix4xX<Float>> {
     let flattened_path_len = paths.iter().flatten().collect::<Vec<_>>().len();
@@ -1169,9 +1176,8 @@ fn compute_absolute_landmarks_for_root(
     for path in paths {
         for (id_s, id_f) in path {
             let landmark_key = (*id_s, *id_f);
-            let triangulated_matches = landmark_map
-                .get(&landmark_key)
-                .expect(format!("no landmarks found for key: {:?}", landmark_key).as_str());
+            let landmarks = landmark_map.get(&landmark_key).expect(format!("Landmark missing for key {:?}",landmark_key).as_str());
+            let triangulated_matches = generate_landmark_matrix(landmarks);
             let pose = abs_pose_map
                 .get(id_s)
                 .expect("compute_absolute_landmarks_for_root: pose not found")
@@ -1255,8 +1261,17 @@ pub fn compute_path_id_pairs(root_id: usize, paths: &Vec<Vec<usize>>) -> Vec<Vec
 /**
  * With respect to the root camera
  */
-pub fn generate_abs_landmark_map(root: usize, paths: &Vec<Vec<usize>>, landmark_map: &HashMap<(usize,usize),Matrix4xX<Float>>, abs_pose_map: &HashMap<usize, Isometry3<Float>>) -> HashMap<usize, Matrix4xX<Float>> {
+pub fn generate_abs_landmark_map(root: usize, paths: &Vec<Vec<usize>>, landmark_map: &HashMap<(usize,usize),Vec<EuclideanLandmark<Float>>>, abs_pose_map: &HashMap<usize, Isometry3<Float>>) -> HashMap<usize, Matrix4xX<Float>> {
     let path_id_pairs = compute_path_id_pairs(root, paths);
     // TODO: Also add landmarks from second view
     compute_absolute_landmarks_for_root(&path_id_pairs, landmark_map, abs_pose_map)
+}
+
+pub fn generate_landmark_matrix(landmarks: &Vec<EuclideanLandmark<Float>>) -> Matrix4xX<Float> {
+    let mut mat = Matrix4xX::<Float>::from_element(landmarks.len(), 1.0);
+    for i in 0..landmarks.len() {
+        let vec = landmarks[i].get_state_as_vector();
+        mat.fixed_view_mut::<3,1>(0,i).copy_from(&vec);
+    }
+    mat
 }

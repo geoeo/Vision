@@ -6,6 +6,8 @@ use crate::sensors::camera::Camera;
 use crate::{float,Float};
 use std::collections::{HashMap,HashSet};
 
+use super::landmark::euclidean_landmark::EuclideanLandmark;
+
 pub mod dual;
 
 pub fn calculate_reprojection_errors<Feat: Feature, C: Camera<Float>>(landmarks: &Matrix4xX<Float>, matches: &Vec<Match<Feat>>, transform_c1: &Matrix3x4<Float>, cam_1 :&C, transform_c2: &Matrix3x4<Float>, cam_2 :&C) -> DVector<Float> {
@@ -55,7 +57,7 @@ pub fn calcualte_disparities<Feat: Feature>(matches: &Vec<Match<Feat>>) -> DVect
 }
 
 pub fn reject_landmark_outliers<Feat: Feature + Clone>(
-    landmark_map: &mut  HashMap<(usize, usize), Matrix4xX<Float>>, 
+    landmark_map: &mut  HashMap<(usize, usize), Vec<EuclideanLandmark<Float>>>, 
     reprojection_error_map: &mut HashMap<(usize, usize),DVector<Float>>, 
     match_map: &mut HashMap<(usize, usize), Vec<Match<Feat>>>,
     match_norm_map: &mut HashMap<(usize, usize), Vec<Match<Feat>>>,
@@ -83,13 +85,13 @@ pub fn reject_landmark_outliers<Feat: Feature + Clone>(
             let filtered_matches = matches.iter().enumerate().filter(|(idx,_)| accepted_indices.contains(idx)).map(|(_,v)| v.clone()).collect::<Vec<Match<Feat>>>();
             assert!(!&filtered_matches_norm.is_empty(), "reject outliers empty features for : {:?}", key);
 
+            let filtered_landmarks = landmarks.iter().enumerate().filter(|(idx,_)| accepted_indices.contains(idx)).map(|(_,v)| v.clone()).collect::<Vec<_>>();
+            assert!(!&filtered_landmarks.is_empty());
+
+        
             let filtered_reprojection_errors_vec = reprojection_erros.iter().enumerate().filter(|(idx,_)| accepted_indices.contains(idx)).map(|(_,v)| *v).collect::<Vec<Float>>();
             assert!(!&filtered_reprojection_errors_vec.is_empty());
             let filtered_reprojection_errors = DVector::<Float>::from_vec(filtered_reprojection_errors_vec);
-
-            let filtered_landmarks_vec = landmarks.column_iter().enumerate().filter(|(idx,_)| accepted_indices.contains(idx)).map(|(_,v)| v.into_owned()).collect::<Vec<Vector4<Float>>>();
-            assert!(!&filtered_landmarks_vec.is_empty());
-            let filtered_landmarks = Matrix4xX::<Float>::from_columns(&filtered_landmarks_vec);
 
             match_norm_map.insert(*key,filtered_matches_norm);
             match_map.insert(*key,filtered_matches);
@@ -104,7 +106,7 @@ pub fn filter_by_rejected_landmark_ids<Feat: Feature + Clone>(
     unique_landmark_ids: &mut HashSet<usize>,
     match_norm_map: &mut HashMap<(usize, usize), Vec<Match<Feat>>>, 
     match_map: &mut HashMap<(usize, usize), Vec<Match<Feat>>>,
-    landmark_map: &mut  HashMap<(usize, usize), Matrix4xX<Float>>, 
+    landmark_map: &mut  HashMap<(usize, usize), Vec<EuclideanLandmark<Float>>>, 
     feature_map: &mut HashMap<usize, Vec<Feat>>,
     reprojection_error_map: &mut HashMap<(usize, usize),DVector<Float>>
 ) -> () {
@@ -122,16 +124,15 @@ pub fn filter_by_rejected_landmark_ids<Feat: Feature + Clone>(
         let matches_filtered : Vec<_> 
             = matches.iter().filter(|m| !rejected_landmark_ids.contains(&m.get_landmark_id().expect("filter_by_rejected_landmark_ids: no landmark it for filtering"))).map(|m| m.clone()).collect();
 
-        let landmarks_filtered_as_vec : Vec<_> = landmarks.column_iter().enumerate().filter(|(i,_)| match_indices_filtered.contains(i)).map(|(_,c)| c).collect();
+        let landmarks_filtered : Vec<_> = landmarks.iter().enumerate().filter(|(i,_)| match_indices_filtered.contains(i)).map(|(_,c)| c.clone()).collect();
 
-        assert!(!landmarks_filtered_as_vec.is_empty(), "assertion failed: !landmarks_filtered_as_vec.is_empty() - for cam pair {:?}",cam_key);
+        assert!(!landmarks_filtered.is_empty(), "assertion failed: !landmarks_filtered_as_vec.is_empty() - for cam pair {:?}",cam_key);
         let reprojections_filtered_as_vec: Vec<_> = reprojections.into_iter().enumerate().filter(|(i,_)| match_indices_filtered.contains(i)).map(|(_,c)| *c).collect();
         
-        let landmarks_filtered = Matrix4xX::<Float>::from_columns(&landmarks_filtered_as_vec[..]);
         let reprojections_filtered = DVector::<Float>::from_vec(reprojections_filtered_as_vec);
 
         assert_eq!(matches_norm_filtered.len(), matches_filtered.len());
-        assert_eq!(matches_norm_filtered.len(), landmarks_filtered.ncols());
+        assert_eq!(matches_norm_filtered.len(), landmarks_filtered.len());
         assert_eq!(matches_norm_filtered.len(), reprojections_filtered.nrows());
 
         match_norm_map.insert(cam_key, matches_norm_filtered);

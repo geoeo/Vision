@@ -12,31 +12,28 @@ pub enum Triangulation {
     STEREO
 }
 
-pub fn triangulate_matches<Feat: Feature, C: Camera<Float>>(path_pair: (usize, usize), pose_map: &HashMap<(usize, usize), Isometry3<Float>>, 
-    match_map: &HashMap<(usize, usize), Vec<Match<Feat>>>, camera_map: &HashMap<usize, C>, triangulation_mode: Triangulation) 
+pub fn triangulate_matches<Feat: Feature, C: Camera<Float>>(path_pair: (usize, usize), pose: &Matrix4<Float>, 
+    matches: & Vec<Match<Feat>>, camera_map: &HashMap<usize, C>, triangulation_mode: Triangulation) 
     -> Matrix4xX<Float> {
-    let (id1, id2) = path_pair;
-    let se3 = pose_map.get(&(id1,id2)).expect(format!("triangulate_matches: pose not found with key: ({},{})",id1,id2).as_str()).to_matrix();
-    let ms = match_map.get(&(id1,id2)).expect(format!("triangulate_matches: matches not found with key: ({},{})",id1,id2).as_str());
-    let mut image_points_s = Matrix3xX::<Float>::zeros(ms.len());
-    let mut image_points_f = Matrix3xX::<Float>::zeros(ms.len());
+    let mut image_points_s = Matrix3xX::<Float>::zeros(matches.len());
+    let mut image_points_f = Matrix3xX::<Float>::zeros(matches.len());
     
     // The position of the match in its vector indexes the value in the matrix
-    for i in 0..ms.len() {
-        let m = &ms[i];
+    for i in 0..matches.len() {
+        let m = &matches[i];
         let feat_s = m.get_feature_one().get_as_homogeneous(1.0);
         let feat_f = m.get_feature_two().get_as_homogeneous(1.0);
         image_points_s.column_mut(i).copy_from(&feat_s);
         image_points_f.column_mut(i).copy_from(&feat_f);
     }
     
-    let cam_1 = camera_map.get(&id1).expect("triangulate_matches: camera 1 not found");
-    let cam_2 = camera_map.get(&id2).expect("triangulate_matches: camera 2 not found");
+    let cam_1 = camera_map.get(&path_pair.0).expect("triangulate_matches: camera 1 not found");
+    let cam_2 = camera_map.get(&path_pair.1).expect("triangulate_matches: camera 2 not found");
 
     let c1_intrinsics = cam_1.get_projection();
     let c2_intrinsics = cam_2.get_projection();
     let transform_c1 = Matrix4::<Float>::identity().fixed_view::<3,4>(0,0).into_owned();
-    let transform_c2 = se3.fixed_view::<3,4>(0,0).into_owned();
+    let transform_c2 = pose.fixed_view::<3,4>(0,0).into_owned();
     let projection_1 = c1_intrinsics*transform_c1;
     let projection_2 = c2_intrinsics*transform_c2;
 
