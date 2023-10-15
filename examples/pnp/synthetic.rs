@@ -93,10 +93,9 @@ fn main() -> Result<()> {
 
     let (optimized_state, state_debug_list) = run_pnp(&pnp_config,&runtime_parameters);
 
-    let delta = &optimized_state.get_camera_positions();
-    let u = delta.fixed_view::<3,1>(0,0);
-    let w = delta.fixed_view::<3,1>(3,0);
-    println!("Pos: {}",lie::exp_se3(&u, &w));
+    let camera_positions = &optimized_state.get_camera_positions();
+    let cam_pos = camera_positions[0];
+    println!("Pos: {}",cam_pos.to_matrix());
 
     let state_serialized = serde_yaml::to_string(&optimized_state.to_serial());
     let debug_states_serialized = serde_yaml::to_string(&state_debug_list);
