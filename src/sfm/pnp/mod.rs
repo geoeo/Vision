@@ -23,7 +23,6 @@ use termion::input::TermRead;
 pub mod solver;
 pub mod pnp_config;
 
-
 pub fn run_pnp<
     'a,
     F: serde::Serialize + float::Float + Scalar + RealField + SupersetOf<Float>,

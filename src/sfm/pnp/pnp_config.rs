@@ -21,7 +21,8 @@ pub struct PnPConfig<C, Feat: Feature> {
 impl<C: Camera<Float> + Clone, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFeature> PnPConfig<C,Feat> {
     pub fn new(
         camera: &C,
-        landmark_map: &HashMap<usize, Vector3<Float>>, //TODO: Maybe rework to also have an id. Check feature to landmark id
+        //Indexed by landmark id
+        landmark_map: &HashMap<usize, Vector3<Float>>, //TODO: Rework so that this work with EucelideanLandmarks
         feature_map: &HashMap<usize, Feat>,
         camera_pose_option: &Option<Isometry3<Float>>
     ) -> PnPConfig<C, Feat> {
@@ -29,6 +30,7 @@ impl<C: Camera<Float> + Clone, Feat: Feature + Clone + PartialEq + Eq + Hash + S
         let mut landmarks = Matrix4xX::<Float>::from_element(keys.len(),1.0);
         let mut features = Vec::<Feat>::with_capacity(keys.len());
         for (i,key) in keys.enumerate() {
+            
             let l = landmark_map.get(key).unwrap();
             let f = feature_map.get(key).unwrap();
             features.push(f.clone());

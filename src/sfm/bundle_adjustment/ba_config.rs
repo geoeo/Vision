@@ -23,7 +23,7 @@ use crate::sfm::{
     pnp::pnp_config::PnPConfig
 };
 use crate::{float, Float};
-use na::{DVector, Isometry3, Matrix3, Matrix4, Matrix4xX};
+use na::{DVector, Isometry3, Matrix3, Matrix4, Matrix4xX, Vector3};
 use std::{
     collections::{HashMap, HashSet},
     hash::Hash,
@@ -46,7 +46,7 @@ pub struct BAConfig<C, Feat: Feature> {
     triangulation: Triangulation,
 }
 
-impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFeature>
+impl<C: Camera<Float> + Clone, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFeature>
     BAConfig<C, Feat>
 {
     pub fn new(
@@ -304,12 +304,47 @@ impl<C: Camera<Float>, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFea
     pub fn generate_pnp_config_from_cam_id(&self, cam_id: usize) -> PnPConfig<C,Feat> {
         let camera = self.camera_map.get(&cam_id).expect("Camera not found in generate_pnp_config_from_cam_id");
         let camera_pose = self.abs_pose_map.get(&cam_id).expect("Camera pose not found in generate_pnp_config_from_cam_id");
-        let landmark_map_mat = generate_abs_landmark_map(self.root,&self.paths,&self.landmark_map,&self.abs_pose_map);
-        //let feature_map = self.match_map.get(k)
+        let abs_landmark_map = generate_abs_landmark_map(self.root,&self.paths,&self.landmark_map,&self.abs_pose_map);
+        let pairs_with_cam_id = self.pose_map.keys().filter(|(id1,id2)| *id1 == cam_id || *id2 == cam_id).map(|(id1,id2)| (*id1,*id2)).collect::<Vec<_>>();
+        let match_map_for_cam_pairs = pairs_with_cam_id.iter().map(|k| (k, self.match_map.get(k).expect("Feature map could no be found"))).collect::<Vec<_>>();
+        let abs_landmark_map_for_cam_pairs = pairs_with_cam_id.iter().map(|k| abs_landmark_map.get(k).expect("Feature map could no be found")).collect::<Vec<_>>();
 
-        panic!("TODO")
+        let number_of_landmarks = abs_landmark_map_for_cam_pairs.iter().map(|m| m.ncols()).sum();
+        let number_of_matches: usize = match_map_for_cam_pairs.iter().map(|(_,v)| v.len()).sum();
 
-        //PnPConfig::new(camera, &landmark_map, feature_map, &camera_pose)
+        //TODO: Build feature and landmark maps indexed by landmark id
+        let mut landmark_map_by_landmark_id = HashMap::<usize,Vector3<Float>>::with_capacity(number_of_landmarks);
+        let mut feature_map_by_landmark_id = HashMap::<usize, Feat>::with_capacity(number_of_matches);
+
+        for ((k, ms), l_mat) in match_map_for_cam_pairs.iter().zip(abs_landmark_map_for_cam_pairs.iter()) {
+            match k {
+                (id1, _) if *id1 == cam_id => {
+                    for i in 0..ms.len() {
+                        let m = &ms[i];
+                        let f = m.get_feature_one();
+                        let id = m.get_landmark_id().expect("Match with no landmark id!");
+                        let l = l_mat.column(i);
+                        feature_map_by_landmark_id.insert(id,f.clone());
+                        landmark_map_by_landmark_id.insert(id, Vector3::<Float>::new(l.x,l.y,l.z));
+                    }
+
+                },
+                (_, id2) if *id2 == cam_id => {
+                    for i in 0..ms.len() {
+                        let m = &ms[i];
+                        let f = m.get_feature_two();
+                        let id = m.get_landmark_id().expect("Match with no landmark id!");
+                        let l = l_mat.column(i);
+                        feature_map_by_landmark_id.insert(id,f.clone());
+                        landmark_map_by_landmark_id.insert(id, Vector3::<Float>::new(l.x,l.y,l.z));
+                    }
+                },
+                _ => panic!("Invalid key for pnp generation")
+            }
+
+        }
+
+        PnPConfig::new(camera, &landmark_map_by_landmark_id, &feature_map_by_landmark_id, &Some(camera_pose.clone()))
     }
 
     fn check_for_duplicate_pixel_entries(matches: &Vec<Vec<Vec<Match<Feat>>>>) -> bool {
