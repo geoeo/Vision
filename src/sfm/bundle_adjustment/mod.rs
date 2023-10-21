@@ -37,14 +37,13 @@ pub fn run_ba<
 ) {
     let (unique_camera_ids_sorted, unique_cameras_sorted_by_id) =
         sfm_config.compute_unqiue_ids_cameras_root_first();
+    //TODO: make subset parameterization
     let path_id_pairs = compute_path_id_pairs(sfm_config.root(), sfm_config.paths());
-
-    let state_linearizer = BAStateLinearizer::new(unique_camera_ids_sorted);
+    let state_linearizer = BAStateLinearizer::new(unique_camera_ids_sorted, &path_id_pairs.into_iter().flatten().collect());
 
     //TODO: switch impl on landmark state
 
     let (mut state, feature_location_lookup) = state_linearizer.get_euclidean_landmark_state(
-        &path_id_pairs,
         sfm_config.match_norm_map(),
         sfm_config.abs_pose_map(),
         &generate_abs_landmark_map(sfm_config.root(),sfm_config.paths(),sfm_config.landmark_map(),sfm_config.abs_pose_map()),

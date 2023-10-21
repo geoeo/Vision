@@ -34,25 +34,22 @@ pub fn compute_absolute_poses_for_root(
 }
 
 fn compute_absolute_landmarks_for_root(
-    paths: &Vec<Vec<(usize, usize)>>,
+    paths: &Vec<(usize, usize)>,
     landmark_map: &HashMap<(usize, usize), Vec<EuclideanLandmark<Float>>>,
     abs_pose_map: &HashMap<usize, Isometry3<Float>>
 ) -> HashMap<(usize,usize), Matrix4xX<Float>> {
-    let flattened_path_len = paths.iter().flatten().collect::<Vec<_>>().len();
     let mut abs_landmark_map =
-        HashMap::<(usize,usize), Matrix4xX<Float>>::with_capacity(flattened_path_len + 1);
-    for path in paths {
-        for (id_s, id_f) in path {
-            let landmark_key = (*id_s, *id_f);
-            let landmarks = landmark_map.get(&landmark_key).expect(format!("Landmark missing for key {:?}",landmark_key).as_str());
-            let triangulated_matches = generate_landmark_matrix(landmarks);
-            let abs_pose_w_s = abs_pose_map
-                .get(id_s)
-                .expect("compute_absolute_landmarks_for_root: abs pose not found")
-                .to_matrix();
-            let root_aligned_triangulated_matches = abs_pose_w_s * &triangulated_matches;
-            abs_landmark_map.insert(landmark_key, root_aligned_triangulated_matches);
-        }
+        HashMap::<(usize,usize), Matrix4xX<Float>>::with_capacity(paths.len());
+    for (id_s, id_f) in paths {
+        let landmark_key = (*id_s, *id_f);
+        let landmarks = landmark_map.get(&landmark_key).expect(format!("Landmark missing for key {:?}",landmark_key).as_str());
+        let triangulated_matches = generate_landmark_matrix(landmarks);
+        let abs_pose_w_s = abs_pose_map
+            .get(id_s)
+            .expect("compute_absolute_landmarks_for_root: abs pose not found")
+            .to_matrix();
+        let root_aligned_triangulated_matches = abs_pose_w_s * &triangulated_matches;
+        abs_landmark_map.insert(landmark_key, root_aligned_triangulated_matches);
     }
     abs_landmark_map
 }
@@ -122,7 +119,6 @@ pub fn compute_path_id_pairs(root_id: usize, paths: &Vec<Vec<usize>>) -> Vec<Vec
                 .collect(),
         )
     }
-
     path_id_paris
 }
 
@@ -133,7 +129,7 @@ pub fn generate_abs_landmark_map(root: usize, paths: &Vec<Vec<usize>>,
     landmark_map: &HashMap<(usize,usize),Vec<EuclideanLandmark<Float>>>, 
     abs_pose_map: &HashMap<usize, Isometry3<Float>>) -> HashMap<(usize, usize), Matrix4xX<Float>> {
     let path_id_pairs = compute_path_id_pairs(root, paths);
-    compute_absolute_landmarks_for_root(&path_id_pairs, landmark_map, abs_pose_map)
+    compute_absolute_landmarks_for_root(&path_id_pairs.into_iter().flatten().collect(), landmark_map, abs_pose_map)
 }
 
 pub fn generate_landmark_matrix(landmarks: &Vec<EuclideanLandmark<Float>>) -> Matrix4xX<Float> {

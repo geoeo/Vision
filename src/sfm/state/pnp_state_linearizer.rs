@@ -1,6 +1,7 @@
 extern crate nalgebra as na;
 extern crate num_traits;
 
+use std::collections::HashMap;
 use na::{convert,Vector3,Vector2, Matrix4xX, DVector, Isometry3,base::Scalar, RealField};
 use num_traits::float;
 use simba::scalar::SupersetOf;
@@ -25,8 +26,9 @@ pub fn get_euclidean_landmark_state<F: float::Float + Scalar + RealField + Super
     initial_cam_pose.fixed_view_mut::<3,1>(0,0).copy_from(&initial_cam_pose_iso.translation.vector);
     initial_cam_pose.fixed_view_mut::<3,1>(3,0).copy_from(&initial_cam_pose_iso.rotation.scaled_axis());
 
+
     let number_of_landmarks = euclidean_landmarks.len();
-    State::new(initial_cam_pose, euclidean_landmarks, 1, number_of_landmarks)
+    State::new(initial_cam_pose, euclidean_landmarks, &HashMap::from([(0, 0)]), 1, number_of_landmarks)
 }
 
 pub fn get_observed_features<F: float::Float + Scalar + RealField + SupersetOf<Float>, Feat: Feature>(features: &Vec<Feat>) -> DVector<F> {

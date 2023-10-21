@@ -23,7 +23,7 @@ use crate::sfm::{
     pnp::pnp_config::PnPConfig
 };
 use crate::{float, Float};
-use na::{DVector, Isometry3, Matrix3, Matrix4, Matrix4xX, Vector3};
+use na::{DVector, Isometry3, Matrix3, Matrix4, Vector3};
 use std::{
     collections::{HashMap, HashSet},
     hash::Hash,
@@ -283,8 +283,8 @@ impl<C: Camera<Float> + Clone, Feat: Feature + Clone + PartialEq + Eq + Hash + S
         (keys_sorted, cameras_sorted)
     }
 
-    pub fn update_camera_state(&mut self, cam_id: usize, new_pose: Isometry3<Float>) -> () {
-        self.abs_pose_map.insert(cam_id, new_pose);
+    pub fn update_camera_state(&mut self, cam_id: usize, new_pose: &Isometry3<Float>) -> () {
+        self.abs_pose_map.insert(cam_id, new_pose.clone());
         let pairs_with_cam_id = self.pose_map.keys().filter(|(id1,id2)| *id1 == cam_id || *id2 == cam_id).map(|(id1,id2)| (*id1,*id2)).collect::<Vec<_>>();
         for path_pair in pairs_with_cam_id {
             match path_pair {
@@ -299,6 +299,21 @@ impl<C: Camera<Float> + Clone, Feat: Feature + Clone + PartialEq + Eq + Hash + S
                     self.pose_map.insert((id1,cam_id), pose1_2);
                 },
                 _ => panic!("Path pair without cam id in update camera state")
+            }
+        }
+    }
+
+    pub fn update_landmark_state(&mut self, landmark: EuclideanLandmark<Float>) -> () {
+        let target_id = landmark.get_id().expect("landmark has no id");
+        let target_landmark = landmark.get_euclidean_representation().coords;
+        for v_mut in self.landmark_map.values_mut() {
+            for l in v_mut {
+                match l.get_id() {
+                    Some(id) if id == target_id => {
+                        l.set_landmark(&target_landmark);
+                    },
+                    _ => ()
+                }
             }
         }
     }

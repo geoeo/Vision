@@ -3,7 +3,7 @@ extern crate nalgebra as na;
 use color_eyre::eyre::Result;
 use std::fs;
 use vision::io::olsson_loader::OlssenData;
-use vision::sfm::{triangulation::Triangulation,bundle_adjustment::ba_config::{BAConfig, compute_path_pairs_as_vec}, bundle_adjustment::run_ba, epipolar::tensor::BifocalType};
+use vision::sfm::{triangulation::Triangulation,bundle_adjustment::ba_config::{BAConfig, conversions::compute_path_pairs_as_vec}, bundle_adjustment::run_ba, epipolar::tensor::BifocalType};
 use vision::sfm::runtime_parameters::RuntimeParameters;
 use vision::numerics::{loss, weighting};
 use vision::load_runtime_conf;

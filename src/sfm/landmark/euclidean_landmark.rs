@@ -17,7 +17,6 @@ impl<F: float::Float + Scalar + NumAssign + RealField> Landmark<F,3> for Euclide
         EuclideanLandmark{state: Point3::<F>::from(state), id: *id}
     }
 
-
     fn from_state(state: SVector<F,3>) -> EuclideanLandmark<F> {
         EuclideanLandmark{state: Point3::<F>::from(state), id: None}
     }
@@ -26,13 +25,16 @@ impl<F: float::Float + Scalar + NumAssign + RealField> Landmark<F,3> for Euclide
         self.state.coords += perturb;
     }
 
+    fn set_landmark(&mut self, l :&SVector<F,3>) -> () {
+        self.state = Point3::<F>::new(l.x,l.y,l.z);
+    }
+
     fn get_euclidean_representation(&self) -> Point3<F> {
         self.state
     }
 
     fn transform_into_other_camera_frame(&self, other_cam_world: &Isometry3<F>) -> Point3<F> {
-        other_cam_world*self.state
-        
+        other_cam_world*self.state 
     }
 
     fn jacobian(&self, world_to_cam: &Isometry3<F>) -> SMatrix<F,3,3> {

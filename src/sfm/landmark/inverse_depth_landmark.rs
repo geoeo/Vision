@@ -79,11 +79,15 @@ impl<F: float::Float + Scalar + NumAssign + RealField> Landmark<F, 6> for Invers
         jacobian
     }
 
-    fn update(&mut self, perturb:&SVector<F,6>) -> () {
+    fn update(&mut self, perturb: &SVector<F,6>) -> () {
         self.state += perturb;
         let theta = self.get_theta();
         let phi = self.get_phi();
         self.m = InverseLandmark::direction(theta,phi);
+    }
+
+    fn set_landmark(&mut self, l :&SVector<F,6>) -> () {
+       panic!("TODO");
     }
 
     fn get_id(&self) -> Option<usize> {self.id}

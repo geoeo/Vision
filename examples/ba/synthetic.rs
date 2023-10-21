@@ -3,10 +3,16 @@ use color_eyre::eyre::Result;
 
 use std::collections::{HashMap, HashSet};
 use vision::{Float,load_runtime_conf};
-use vision::sfm::{triangulation::Triangulation,bundle_adjustment::ba_config::BAConfig, bundle_adjustment::run_ba, epipolar::tensor::BifocalType};
+use vision::sfm::{
+    triangulation::Triangulation,
+    bundle_adjustment::ba_config::BAConfig, 
+    bundle_adjustment::run_ba, 
+    epipolar::tensor::BifocalType,
+    runtime_parameters::RuntimeParameters,
+    pnp::run_pnp
+};
 use vision::sensors::camera::perspective::Perspective;
 use vision::image::features::{matches::Match,image_feature::ImageFeature};
-use vision::sfm::runtime_parameters::RuntimeParameters;
 use vision::numerics::{loss, weighting};
 use na::{Rotation3,Isometry3,Vector3,UnitQuaternion};
 
@@ -48,8 +54,8 @@ fn main() -> Result<()> {
     //let camera_id_pairs = vec!((1,2));
     //let camera_id_pairs = vec!((0,1));
     //let camera_id_pairs = vec!((0,2));
-    //let camera_id_pairs = vec!((0,1),(1,2));
-    let camera_id_pairs = vec!((0,1),(1,2),(2,3),(3,4),(4,5),(5,6));
+    let camera_id_pairs = vec!((0,1),(1,2));
+    //let camera_id_pairs = vec!((0,1),(1,2),(2,3),(3,4),(4,5),(5,6));
 
     let match_map = camera_id_pairs.iter().map(|(id1,id2)| {
         let fm_1 = feature_map.get(id1).expect("Feature map for cam id not available!");
@@ -105,8 +111,8 @@ fn main() -> Result<()> {
     //let pose_map_gt_option = Some(pose_map_gt);
     let pose_map_gt_option = None;
 
-    let sfm_config_fundamental = BAConfig::new(root_id, &paths, pose_map_gt_option , camera_map, &match_map, 
-        BifocalType::FUNDAMENTAL, Triangulation::STEREO, 1.0, 3e0, 5e2, 1.0, true, true); 
+    let mut sfm_config_fundamental = BAConfig::new(root_id, &paths, pose_map_gt_option , camera_map, &match_map, 
+        BifocalType::FUNDAMENTAL, Triangulation::STEREO, 1.0, 3e0, 5e2, 1.0, true, false); 
     
     let initial_z = sfm_config_fundamental.pose_map().get(&camera_id_pairs[0]).unwrap().translation.z;
     for (key, pose) in sfm_config_fundamental.pose_map().iter() {
@@ -115,6 +121,8 @@ fn main() -> Result<()> {
         let scale = initial_z / z;
         println!("Key: {:?}, Pose: {:?}, Scale: {}", key, pose,scale);
     }
+
+
 
     let runtime_parameters = RuntimeParameters {
         pyramid_scale: 1.0,
@@ -133,6 +141,22 @@ fn main() -> Result<()> {
         cg_threshold: 1e-6,
         cg_max_it: 2e3 as usize
     };
+
+
+    //Do Pnp and Ba iterative
+    // let pnp_config_cam_0 = sfm_config_fundamental.generate_pnp_config_from_cam_id(0);
+    // let pnp_config_cam_1 = sfm_config_fundamental.generate_pnp_config_from_cam_id(1);
+    // let pnp_config_cam_2 = sfm_config_fundamental.generate_pnp_config_from_cam_id(2);
+    // let (optimized_state_pnp_0, _) = run_pnp(&pnp_config_cam_0,&runtime_parameters);
+    // let (optimized_state_pnp_1, _) = run_pnp(&pnp_config_cam_1,&runtime_parameters);
+    // let (optimized_state_pnp_2, _) = run_pnp(&pnp_config_cam_2,&runtime_parameters);
+    // let cam_position_0 = optimized_state_pnp_0.get_camera_positions().first().unwrap();
+    // let cam_position_1 = optimized_state_pnp_1.get_camera_positions().first().unwrap();
+    // let cam_position_2 = optimized_state_pnp_2.get_camera_positions().first().unwrap();
+    // sfm_config_fundamental.update_camera_state(0, cam_position_0);
+    // sfm_config_fundamental.update_camera_state(1, cam_position_1);
+    // sfm_config_fundamental.update_camera_state(2, cam_position_2);
+
     let (optimized_state, state_debug_list) = run_ba(&sfm_config_fundamental, &runtime_parameters);
     let state_serialized = serde_yaml::to_string(&optimized_state.to_serial());
     let debug_states_serialized = serde_yaml::to_string(&state_debug_list);

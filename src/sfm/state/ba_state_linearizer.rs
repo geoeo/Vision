@@ -17,18 +17,22 @@ pub struct BAStateLinearizer {
      * This is a map from arbitrary camera ids to linear indices
      */
     pub camera_to_linear_id_map: HashMap<usize, usize>,
+    pub paths: Vec<(usize,usize)>
 }
 
 impl BAStateLinearizer {
-    pub fn new(cam_ids: Vec<usize>) -> BAStateLinearizer {
+    pub fn new(cam_ids: Vec<usize>, paths: &Vec<(usize,usize)>,) -> BAStateLinearizer {
         let mut camera_to_linear_id_map = HashMap::<usize, usize>::new();
         // Map Camera ids to 0-based indices.
         for i in 0..cam_ids.len(){
             let id = cam_ids[i];
             camera_to_linear_id_map.insert(id,i);
         }
+        BAStateLinearizer {camera_to_linear_id_map,paths: paths.clone()}
+    }
 
-        BAStateLinearizer {camera_to_linear_id_map}
+    pub fn get_cam_state_idx(&self, cam_id: &usize) -> usize {
+        self.camera_to_linear_id_map.get(cam_id).expect("Cam id not present in map").clone()
     }
 
     /**
@@ -67,7 +71,6 @@ impl BAStateLinearizer {
      */
     pub fn get_euclidean_landmark_state<F: float::Float + Scalar + RealField + SupersetOf<Float>, Feat: Feature>(
         &self, 
-        paths: &Vec<Vec<(usize,usize)>>, 
         match_map: &HashMap<(usize, usize), Vec<Match<Feat>>>, 
         abs_pose_map: &HashMap<usize, Isometry3<Float>>,
         abs_landmark_map: &HashMap<(usize,usize), Matrix4xX<Float>>,
@@ -82,43 +85,30 @@ impl BAStateLinearizer {
 
         let mut feature_location_lookup = vec![vec![None;number_of_cameras]; number_of_unqiue_landmarks];
 
-        for path in paths {
-            for (id_s, id_f) in path {
-                let matches = match_map.get(&(*id_s, *id_f)).expect("not matches found for path pair");
-                let landmark_key = (*id_s, *id_f);
-                let reprojection_errors = reprojection_error_map.get(&landmark_key).expect(format!("no reprojection errors found for key: {:?}",landmark_key).as_str());
-                let root_aligned_triangulated_matches_s = abs_landmark_map.get(&landmark_key).expect(format!("no landmarks found for key: {:?}",landmark_key).as_str());
-                let internal_source_cam_id = self.camera_to_linear_id_map.get(id_s).unwrap();
-                let internal_other_cam_id = self.camera_to_linear_id_map.get(id_f).unwrap();
-    
-                for m_i in 0..matches.len() {
-                    let m = &matches[m_i];
-                    let point_source_x_float = m.get_feature_one().get_x_image_float();
-                    let point_source_y_float = m.get_feature_one().get_y_image_float();
-            
-                    let point_other_x_float = m.get_feature_two().get_x_image_float();
-                    let point_other_y_float = m.get_feature_two().get_y_image_float();
+        for (id_s, id_f) in &self.paths {
+            let landmark_key = (*id_s, *id_f);
+            let matches = match_map.get(&landmark_key).expect("not matches found for path pair");
+            let reprojection_errors = reprojection_error_map.get(&landmark_key).expect(format!("no reprojection errors found for key: {:?}",landmark_key).as_str());
+            let root_aligned_triangulated_matches_s = abs_landmark_map.get(&landmark_key).expect(format!("no landmarks found for key: {:?}",landmark_key).as_str());
+            let internal_source_cam_id = self.camera_to_linear_id_map.get(&id_s).unwrap();
+            let internal_other_cam_id = self.camera_to_linear_id_map.get(&id_f).unwrap();
 
-                    let landmark_id = &m.get_landmark_id().expect(format!("no landmark id found for match: {:?}",landmark_key).as_str());
-                    let point_s = root_aligned_triangulated_matches_s.fixed_view::<3, 1>(0, m_i).into_owned();
-                    
-                    let reprojection_error = reprojection_errors[m_i];
-                    match landmark_reprojection_error_map.contains_key(landmark_id) {
-                        true => {
-                            let current_reproj_error =  *landmark_reprojection_error_map.get(&landmark_id).unwrap();
-                            if reprojection_error < current_reproj_error {
-                                landmark_reprojection_error_map.insert(*landmark_id,reprojection_error);
-                                landmarks[*landmark_id] = EuclideanLandmark::from_state(Vector3::<F>::new(
-                                    convert(point_s[0]),
-                                    convert(point_s[1]),
-                                    convert(point_s[2])
-                                ));
+            for m_i in 0..matches.len() {
+                let m = &matches[m_i];
+                let point_source_x_float = m.get_feature_one().get_x_image_float();
+                let point_source_y_float = m.get_feature_one().get_y_image_float();
+        
+                let point_other_x_float = m.get_feature_two().get_x_image_float();
+                let point_other_y_float = m.get_feature_two().get_y_image_float();
 
-                                feature_location_lookup[*landmark_id][*internal_source_cam_id] = Some((point_source_x_float,point_source_y_float));
-                                feature_location_lookup[*landmark_id][*internal_other_cam_id] = Some((point_other_x_float,point_other_y_float));
-                            }
-                        },
-                        false => {
+                let landmark_id = &m.get_landmark_id().expect(format!("no landmark id found for match: {:?}",landmark_key).as_str());
+                let point_s = root_aligned_triangulated_matches_s.fixed_view::<3, 1>(0, m_i).into_owned();
+                
+                let reprojection_error = reprojection_errors[m_i];
+                match landmark_reprojection_error_map.contains_key(landmark_id) {
+                    true => {
+                        let current_reproj_error =  *landmark_reprojection_error_map.get(&landmark_id).unwrap();
+                        if reprojection_error < current_reproj_error {
                             landmark_reprojection_error_map.insert(*landmark_id,reprojection_error);
                             landmarks[*landmark_id] = EuclideanLandmark::from_state(Vector3::<F>::new(
                                 convert(point_s[0]),
@@ -129,8 +119,19 @@ impl BAStateLinearizer {
                             feature_location_lookup[*landmark_id][*internal_source_cam_id] = Some((point_source_x_float,point_source_y_float));
                             feature_location_lookup[*landmark_id][*internal_other_cam_id] = Some((point_other_x_float,point_other_y_float));
                         }
+                    },
+                    false => {
+                        landmark_reprojection_error_map.insert(*landmark_id,reprojection_error);
+                        landmarks[*landmark_id] = EuclideanLandmark::from_state(Vector3::<F>::new(
+                            convert(point_s[0]),
+                            convert(point_s[1]),
+                            convert(point_s[2])
+                        ));
+
+                        feature_location_lookup[*landmark_id][*internal_source_cam_id] = Some((point_source_x_float,point_source_y_float));
+                        feature_location_lookup[*landmark_id][*internal_other_cam_id] = Some((point_other_x_float,point_other_y_float));
                     }
-                }
+                }   
             }
         }
 
@@ -140,30 +141,28 @@ impl BAStateLinearizer {
 
         println!("Max depth: {}", max_depth);
         
-        let camera_positions = self.get_initial_camera_positions(paths,abs_pose_map);
-        (State::new(camera_positions, landmarks, number_of_cameras, number_of_unqiue_landmarks), feature_location_lookup)
+        let camera_positions = self.get_initial_camera_positions(abs_pose_map);
+        (State::new(camera_positions, landmarks, &self.camera_to_linear_id_map, number_of_cameras, number_of_unqiue_landmarks), feature_location_lookup)
     }
 
     fn get_initial_camera_positions<F: float::Float + Scalar + RealField + SupersetOf<Float>>(
-        &self,paths: &Vec<Vec<(usize,usize)>>, pose_map: &HashMap<usize, Isometry3<Float>>) 
+        &self, pose_map: &HashMap<usize, Isometry3<Float>>) 
         -> DVector::<F> {
 
         let number_of_cameras = self.camera_to_linear_id_map.keys().len();
         let number_of_cam_parameters = CAMERA_PARAM_SIZE*number_of_cameras; 
         let mut camera_positions = DVector::<F>::zeros(number_of_cam_parameters);
-        for path in paths {
-            for (_, id_f) in path {
-                let cam_idx = self.camera_to_linear_id_map[&id_f];
-                let cam_state_idx = CAMERA_PARAM_SIZE*cam_idx;
-                let pose = pose_map.get(&id_f).expect("pose not found for path pair");
-                let translation = pose.translation.vector;
-                let rotation_matrix = pose.rotation.to_rotation_matrix().matrix().clone();
-                let translation_cast: Vector3<F> = translation.cast::<F>();
-                let rotation_matrix_cast: Matrix3<F> = rotation_matrix.cast::<F>();
-                let rotation = Rotation3::from_matrix_eps(&rotation_matrix_cast, convert(2e-16), 100, Rotation3::identity());
-                camera_positions.fixed_view_mut::<3,1>(cam_state_idx,0).copy_from(&translation_cast);
-                camera_positions.fixed_view_mut::<3,1>(cam_state_idx+3,0).copy_from(&rotation.scaled_axis());
-            }
+        for (cam_id, cam_idx) in self.camera_to_linear_id_map.iter() {
+            let cam_state_idx = CAMERA_PARAM_SIZE*cam_idx;
+            let pose = pose_map.get(&cam_id).expect("pose not found for path pair");
+            let translation = pose.translation.vector;
+            let rotation_matrix = pose.rotation.to_rotation_matrix().matrix().clone();
+            let translation_cast: Vector3<F> = translation.cast::<F>();
+            let rotation_matrix_cast: Matrix3<F> = rotation_matrix.cast::<F>();
+            let rotation = Rotation3::from_matrix_eps(&rotation_matrix_cast, convert(2e-16), 100, Rotation3::identity());
+            camera_positions.fixed_view_mut::<3,1>(cam_state_idx,0).copy_from(&translation_cast);
+            camera_positions.fixed_view_mut::<3,1>(cam_state_idx+3,0).copy_from(&rotation.scaled_axis());
+            
         }
     
         camera_positions

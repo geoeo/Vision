@@ -3,6 +3,8 @@
 extern crate nalgebra as na;
 extern crate num_traits;
 
+use std::collections::HashMap;
+
 use na::{DVector, SMatrix, Matrix4, Vector3, Isometry3, base::Scalar, RealField};
 use num_traits::float;
 use crate::numerics::{lie::exp_se3,pose::from_matrix};
@@ -22,8 +24,9 @@ pub const CAMERA_PARAM_SIZE: usize = 6;
  * point is parameterized by [x,y,z]
  * */
 pub struct State<F: Scalar, L: Landmark<F,T>, const T: usize> {
-    camera_positions: Vec<Isometry3<F>>, //TOOD: make this vector of Isometry
+    camera_positions: Vec<Isometry3<F>>, 
     landmarks: Vec<L>,
+    pub camera_id_map: HashMap<usize, usize>, //Map of cam id to index in cam positions
     pub n_cams: usize,
     pub n_points: usize,
 }
@@ -33,6 +36,7 @@ impl<F: float::Float + Scalar + RealField, L: Landmark<F,T> + Copy + Clone, cons
         State::<F,L,T> {
             camera_positions: self.camera_positions.clone(),
             landmarks: self.landmarks.clone(), 
+            camera_id_map: self.camera_id_map.clone(),
             n_cams: self.n_cams, 
             n_points: self.n_points
         }
@@ -40,7 +44,7 @@ impl<F: float::Float + Scalar + RealField, L: Landmark<F,T> + Copy + Clone, cons
 }
 
 impl<F: float::Float + Scalar + RealField, L: Landmark<F,T> + Copy + Clone, const T: usize> State<F,L,T> {
-    pub fn new(camera_positions: DVector<F>, landmarks:  Vec<L>, n_cams: usize, n_points: usize) -> State<F,L,T> {
+    pub fn new(camera_positions: DVector<F>, landmarks:  Vec<L>, camera_id_map: &HashMap<usize, usize>, n_cams: usize, n_points: usize) -> State<F,L,T> {
         let mut camera_iso = Vec::<Isometry3<F>>::with_capacity(n_cams);
         for i in 0..n_cams {
             let offset = CAMERA_PARAM_SIZE * i;
@@ -49,7 +53,7 @@ impl<F: float::Float + Scalar + RealField, L: Landmark<F,T> + Copy + Clone, cons
             let axis_angle = Vector3::<F>::new(arr[3],arr[4],arr[5]);
             camera_iso.push(Isometry3::new(translation, axis_angle));
         }
-        State{camera_positions: camera_iso, landmarks , n_cams, n_points}
+        State{camera_positions: camera_iso, landmarks, camera_id_map: camera_id_map.clone(), n_cams, n_points}
     }
 
     pub fn get_landmarks(&self) -> &Vec<L> {
@@ -137,12 +141,14 @@ impl<F: float::Float + Scalar + RealField, L: Landmark<F,T> + Copy + Clone, cons
     pub fn from_serial((cam_serial, points_serial): &(Vec<[F; CAMERA_PARAM_SIZE]>, Vec<[F; T]>)) -> State<F,L,T> {
         let mut camera_positions = Vec::<Isometry3<F>>::with_capacity(cam_serial.len());
         let mut landmarks = Vec::<L>::with_capacity(points_serial.len());
+        let mut camera_id_map = HashMap::<usize,usize>::with_capacity(camera_positions.len());
 
         for i in 0..cam_serial.len() {
             let arr = cam_serial[i];
             let translation = Vector3::<F>::new(arr[0], arr[1], arr[2]);
             let axis_angle = Vector3::<F>::new(arr[3],arr[4],arr[5]);
             camera_positions.push(Isometry3::new(translation, axis_angle));
+            camera_id_map.insert(i,i);
         }
 
         for i in 0..points_serial.len() {
@@ -152,6 +158,7 @@ impl<F: float::Float + Scalar + RealField, L: Landmark<F,T> + Copy + Clone, cons
         State {
             camera_positions,
             landmarks,
+            camera_id_map,
             n_cams: cam_serial.len(),
             n_points: points_serial.len()
         }
