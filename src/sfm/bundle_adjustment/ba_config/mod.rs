@@ -270,19 +270,6 @@ impl<C: Camera<Float> + Clone, Feat: Feature + Clone + PartialEq + Eq + Hash + S
         &self.landmark_map
     }
 
-    pub fn compute_unqiue_ids_cameras_root_first(&self) -> (Vec<usize>, Vec<&C>) {
-        let keys_sorted = Self::get_sorted_camera_keys(self.root(), self.paths());
-        let cameras_sorted = keys_sorted
-            .iter()
-            .map(|id| {
-                self.camera_map
-                    .get(id)
-                    .expect("compute_unqiue_ids_cameras_root_first: trying to get invalid camera")
-            })
-            .collect::<Vec<&C>>();
-        (keys_sorted, cameras_sorted)
-    }
-
     pub fn update_camera_state(&mut self, cam_id: usize, new_pose: &Isometry3<Float>) -> () {
         self.abs_pose_map.insert(cam_id, new_pose.clone());
         let pairs_with_cam_id = self.pose_map.keys().filter(|(id1,id2)| *id1 == cam_id || *id2 == cam_id).map(|(id1,id2)| (*id1,*id2)).collect::<Vec<_>>();

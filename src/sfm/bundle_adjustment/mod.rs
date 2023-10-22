@@ -37,11 +37,8 @@ pub fn run_ba<
 ) {
     
     //TODO: make subset parameterization
-    let (unique_camera_ids_sorted, unique_cameras_sorted_by_id) =
-        sfm_config.compute_unqiue_ids_cameras_root_first();
-
     let path_id_pairs = compute_path_id_pairs(sfm_config.root(), sfm_config.paths());
-    let state_linearizer = BAStateLinearizer::new(unique_camera_ids_sorted, &path_id_pairs.into_iter().flatten().collect());
+    let state_linearizer = BAStateLinearizer::new(&path_id_pairs.into_iter().flatten().collect());
 
     //TODO: switch impl on landmark state
 

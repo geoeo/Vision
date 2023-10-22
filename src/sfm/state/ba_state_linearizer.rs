@@ -21,11 +21,14 @@ pub struct BAStateLinearizer {
 }
 
 impl BAStateLinearizer {
-    pub fn new(cam_ids: Vec<usize>, paths: &Vec<(usize,usize)>,) -> BAStateLinearizer {
+    pub fn new(paths: &Vec<(usize,usize)>,) -> BAStateLinearizer {
         let mut camera_to_linear_id_map = HashMap::<usize, usize>::new();
+        let mut ids = paths.iter().map(|(v1,v2)| vec![*v1,*v2]).flatten().collect::<Vec<_>>();
+        ids.dedup();
+
         // Map Camera ids to 0-based indices.
-        for i in 0..cam_ids.len(){
-            let id = cam_ids[i];
+        for i in 0..ids.len(){
+            let id = ids[i];
             camera_to_linear_id_map.insert(id,i);
         }
         BAStateLinearizer {camera_to_linear_id_map,paths: paths.clone()}
