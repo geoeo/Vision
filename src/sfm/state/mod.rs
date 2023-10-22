@@ -27,6 +27,7 @@ pub struct State<F: Scalar, L: Landmark<F,T>, const T: usize> {
     camera_positions: Vec<Isometry3<F>>, 
     landmarks: Vec<L>,
     pub camera_id_map: HashMap<usize, usize>, //Map of cam id to index in cam positions
+    pub camera_id_by_idx: Vec<usize>,
     pub n_cams: usize,
     pub n_points: usize,
 }
@@ -37,6 +38,7 @@ impl<F: float::Float + Scalar + RealField, L: Landmark<F,T> + Copy + Clone, cons
             camera_positions: self.camera_positions.clone(),
             landmarks: self.landmarks.clone(), 
             camera_id_map: self.camera_id_map.clone(),
+            camera_id_by_idx: self.camera_id_by_idx.clone(),
             n_cams: self.n_cams, 
             n_points: self.n_points
         }
@@ -46,6 +48,8 @@ impl<F: float::Float + Scalar + RealField, L: Landmark<F,T> + Copy + Clone, cons
 impl<F: float::Float + Scalar + RealField, L: Landmark<F,T> + Copy + Clone, const T: usize> State<F,L,T> {
     pub fn new(camera_positions: DVector<F>, landmarks:  Vec<L>, camera_id_map: &HashMap<usize, usize>, n_cams: usize, n_points: usize) -> State<F,L,T> {
         let mut camera_iso = Vec::<Isometry3<F>>::with_capacity(n_cams);
+        let camera_id_by_idx = Self::generate_camera_id_by_idx_vec(camera_id_map);
+
         for i in 0..n_cams {
             let offset = CAMERA_PARAM_SIZE * i;
             let arr = camera_positions.fixed_rows::<CAMERA_PARAM_SIZE>(offset);
@@ -53,7 +57,13 @@ impl<F: float::Float + Scalar + RealField, L: Landmark<F,T> + Copy + Clone, cons
             let axis_angle = Vector3::<F>::new(arr[3],arr[4],arr[5]);
             camera_iso.push(Isometry3::new(translation, axis_angle));
         }
-        State{camera_positions: camera_iso, landmarks, camera_id_map: camera_id_map.clone(), n_cams, n_points}
+        State{camera_positions: camera_iso, landmarks, camera_id_map: camera_id_map.clone(),camera_id_by_idx , n_cams, n_points}
+    }
+
+    fn generate_camera_id_by_idx_vec(camera_id_map: &HashMap<usize, usize>) -> Vec<usize> {
+        let mut cam_map_kvs = camera_id_map.iter().collect::<Vec<(_,_)>>();
+        cam_map_kvs.sort_by(|(_,a),(_,b)| a.partial_cmp(b).unwrap());
+        cam_map_kvs.into_iter().map(|(k,v)| *k).collect::<Vec<_>>()
     }
 
     pub fn get_landmarks(&self) -> &Vec<L> {
@@ -155,10 +165,12 @@ impl<F: float::Float + Scalar + RealField, L: Landmark<F,T> + Copy + Clone, cons
             landmarks.push(L::from_array(&points_serial[i]));
         }
 
+        let camera_id_by_idx = Self::generate_camera_id_by_idx_vec(&camera_id_map);
         State {
             camera_positions,
             landmarks,
             camera_id_map,
+            camera_id_by_idx,
             n_cams: cam_serial.len(),
             n_points: points_serial.len()
         }

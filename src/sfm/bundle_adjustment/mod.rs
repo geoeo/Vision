@@ -35,9 +35,11 @@ pub fn run_ba<
     State<F, EuclideanLandmark<F>, 3>,
     Option<Vec<(Vec<[F; 6]>, Vec<[F; 3]>)>>
 ) {
+    
+    //TODO: make subset parameterization
     let (unique_camera_ids_sorted, unique_cameras_sorted_by_id) =
         sfm_config.compute_unqiue_ids_cameras_root_first();
-    //TODO: make subset parameterization
+
     let path_id_pairs = compute_path_id_pairs(sfm_config.root(), sfm_config.paths());
     let state_linearizer = BAStateLinearizer::new(unique_camera_ids_sorted, &path_id_pairs.into_iter().flatten().collect());
 
@@ -58,13 +60,14 @@ pub fn run_ba<
     let (tx_result, rx_result) = mpsc::channel::<(State<F, EuclideanLandmark<F>, 3>,Option<Vec<(Vec<[F; CAMERA_PARAM_SIZE]>, Vec<[F; 3]>)>>)>();
     let (tx_abort, rx_abort) = mpsc::channel::<bool>();
     let (tx_done, rx_done) = mpsc::channel::<bool>();
+    let camera_map = sfm_config.camera_map_highp();
 
     thread::scope(|s| {   
         s.spawn(move || {
             let solver = solver::Solver::<F, C, _, 3>::new();
             let some_debug_state_list = solver.solve(
                 &mut state,
-                &unique_cameras_sorted_by_id,
+                &camera_map,
                 &observed_features,
                 runtime_parameters,
                 Some(&rx_abort),

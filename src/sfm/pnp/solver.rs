@@ -6,6 +6,7 @@ use num_traits::float;
 use simba::scalar::SupersetOf;
 use std::marker::{Send, Sync};
 use std::sync::mpsc;
+use std::collections::HashMap;
 
 use crate::numerics::{lie::left_jacobian_around_identity, optimizer::gauss_newton::OptimizerGn};
 use crate::sensors::camera::Camera;
@@ -55,7 +56,7 @@ where
      * */
     fn get_estimated_features(
         state: &State<F, L, LANDMARK_PARAM_SIZE>,
-        cameras: &Vec<&C>,
+        camera_map: &HashMap<usize, C>,
         observed_features: &DVector<F>, //TODO: remove this
         estimated_features: &mut DVector<F>,
     ) -> () {
@@ -74,7 +75,8 @@ where
         for i in 0..n_cams {
             let cam_idx = 6 * i;
             let pose = state.to_se3(cam_idx);
-            let camera = cameras[i];
+            let cam_id = state.camera_id_by_idx[i];
+            let camera = camera_map.get(&cam_id).expect("Camera missing");
 
             //TODO: use transform_into_other_camera_frame
             let transformed_points = pose * &position_world;
@@ -139,15 +141,16 @@ where
 
     fn compute_jacobian(
         state: &State<F, L, LANDMARK_PARAM_SIZE>,
-        cameras: &Vec<&C>,
+        camera_map : &HashMap<usize, C>,
         jacobian: &mut DMatrix<F>,
     ) -> () {
         //cam
         let number_of_cam_params = CAMERA_PARAM_SIZE * state.n_cams;
-        for cam_state_idx in (0..number_of_cam_params).step_by(CAMERA_PARAM_SIZE) {
-            let cam_id = cam_state_idx / CAMERA_PARAM_SIZE;
-            let camera = cameras[cam_id];
-            let column = cam_state_idx;
+        for cam_num in (0..number_of_cam_params).step_by(CAMERA_PARAM_SIZE) {
+            let cam_idx = cam_num / CAMERA_PARAM_SIZE;
+            let cam_id = state.camera_id_by_idx[cam_idx];
+            let camera = camera_map.get(&cam_id).expect("Camera missing");
+            let column = cam_num;
 
             //landmark
             for point_id in 0..state.n_points {
@@ -157,7 +160,7 @@ where
                 Self::compute_jacobian_wrt_camera_extrinsics(
                     camera,
                     state,
-                    cam_state_idx,
+                    cam_num,
                     &point,
                     row,
                     column,
@@ -174,7 +177,7 @@ where
     pub fn solve(
         &self,
         state: &mut State<F, L, LANDMARK_PARAM_SIZE>,
-        cameras: &Vec<&C>,
+        camera_map: &HashMap<usize, C>,
         observed_features: &DVector<F>,
         runtime_parameters: &RuntimeParameters<F>,
         abort_receiver: Option<&mpsc::Receiver<bool>>,
@@ -182,7 +185,7 @@ where
     ) -> Option<Vec<(Vec<[F; CAMERA_PARAM_SIZE]>, Vec<[F; LANDMARK_PARAM_SIZE]>)>> {
         self.optimizer.optimize(
             state,
-            cameras,
+            camera_map,
             observed_features,
             runtime_parameters,
             abort_receiver,

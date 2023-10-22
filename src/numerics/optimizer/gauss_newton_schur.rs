@@ -2,6 +2,7 @@ extern crate nalgebra as na;
 extern crate num_traits;
 
 
+use std::collections::HashMap;
 use std::marker::{Send,Sync};
 use std::sync::mpsc;
 use na::{DVector,DMatrix, base::Scalar, RealField, convert};
@@ -18,18 +19,18 @@ const CAMERA_PARAM_SIZE: usize = 6; //TODO make this generic with state
 
 
 pub struct OptimizerGnSchur<F: SupersetOf<Float>, C : Camera<Float>, L: Landmark<F,LANDMARK_PARAM_SIZE> + Copy + Clone + Send + Sync, const LANDMARK_PARAM_SIZE: usize> where F: float::Float + Scalar + RealField {
-    pub get_estimated_features: Box<dyn Fn(&State<F,L,LANDMARK_PARAM_SIZE>, &Vec<&C>, &DVector<F>, &mut DVector<F>) -> ()>,
+    pub get_estimated_features: Box<dyn Fn(&State<F,L,LANDMARK_PARAM_SIZE>, &HashMap<usize, C>, &DVector<F>, &mut DVector<F>) -> ()>,
     pub compute_residual: Box<dyn Fn(&DVector<F>, &DVector<F>, &mut DVector<F>) -> ()>,
-    pub compute_jacobian: Box<dyn Fn(&State<F,L,LANDMARK_PARAM_SIZE>, &Vec<&C>, &mut DMatrix<F>) -> ()>,
+    pub compute_jacobian: Box<dyn Fn(&State<F,L,LANDMARK_PARAM_SIZE>, &HashMap<usize, C>, &mut DMatrix<F>) -> ()>,
     pub compute_state_size: Box<dyn Fn(&State<F,L,LANDMARK_PARAM_SIZE>) -> usize>
 }
 
 impl<F: SupersetOf<Float>, C : Camera<Float>, L: Landmark<F,LANDMARK_PARAM_SIZE> + Copy + Clone + Send + Sync, const LANDMARK_PARAM_SIZE: usize> OptimizerGnSchur<F,C,L,LANDMARK_PARAM_SIZE> where F: float::Float + Scalar + RealField {
     
     pub fn new(
-        get_estimated_features: Box<dyn Fn(&State<F,L,LANDMARK_PARAM_SIZE>, &Vec<&C>, &DVector<F>, &mut DVector<F>) -> ()>,
+        get_estimated_features: Box<dyn Fn(&State<F,L,LANDMARK_PARAM_SIZE>, &HashMap<usize, C>, &DVector<F>, &mut DVector<F>) -> ()>,
         compute_residual: Box<dyn Fn(&DVector<F>, &DVector<F>, &mut DVector<F>) -> ()>,
-        compute_jacobian: Box<dyn Fn( &State<F,L,LANDMARK_PARAM_SIZE>, &Vec<&C>, &mut DMatrix<F>) -> ()>,
+        compute_jacobian: Box<dyn Fn( &State<F,L,LANDMARK_PARAM_SIZE>, &HashMap<usize, C>, &mut DMatrix<F>) -> ()>,
         compute_state_size: Box<dyn Fn(&State<F,L,LANDMARK_PARAM_SIZE>) -> usize>
 
     ) -> OptimizerGnSchur<F,C,L,LANDMARK_PARAM_SIZE> {
@@ -42,7 +43,7 @@ impl<F: SupersetOf<Float>, C : Camera<Float>, L: Landmark<F,LANDMARK_PARAM_SIZE>
     }
     
     pub fn optimize(&self,
-        state: &mut State<F,L,LANDMARK_PARAM_SIZE>, cameras: &Vec<&C>, observed_features: &DVector<F>, runtime_parameters: &RuntimeParameters<F>, abort_receiver: Option<&mpsc::Receiver<bool>>, done_transmission: Option<&mpsc::Sender<bool>>
+        state: &mut State<F,L,LANDMARK_PARAM_SIZE>, camera_map: &HashMap<usize, C>, observed_features: &DVector<F>, runtime_parameters: &RuntimeParameters<F>, abort_receiver: Option<&mpsc::Receiver<bool>>, done_transmission: Option<&mpsc::Sender<bool>>
     ) -> Option<Vec<(Vec<[F; CAMERA_PARAM_SIZE]>, Vec<[F; LANDMARK_PARAM_SIZE]>)>> where F: float::Float + Scalar + RealField {
         
 
@@ -72,9 +73,9 @@ impl<F: SupersetOf<Float>, C : Camera<Float>, L: Landmark<F,LANDMARK_PARAM_SIZE>
 
         println!("BA Memory Allocation Complete.");
 
-        (self.get_estimated_features)(state, cameras,observed_features, &mut estimated_features);
+        (self.get_estimated_features)(state, camera_map,observed_features, &mut estimated_features);
         (self.compute_residual)(&estimated_features, observed_features, &mut residuals);
-        (self.compute_jacobian)(&state,&cameras,&mut jacobian);
+        (self.compute_jacobian)(&state,&camera_map,&mut jacobian);
 
         //TODO: weight cam and features independently
         let mut std: Option<F> = runtime_parameters.intensity_weighting_function.estimate_standard_deviation(&residuals);
@@ -139,7 +140,7 @@ impl<F: SupersetOf<Float>, C : Camera<Float>, L: Landmark<F,LANDMARK_PARAM_SIZE>
                     let pertb = delta.scale(step);
                     new_state.update(&pertb);
             
-                    (self.get_estimated_features)(&new_state, cameras,observed_features, &mut new_estimated_features);
+                    (self.get_estimated_features)(&new_state, camera_map,observed_features, &mut new_estimated_features);
                     (self.compute_residual)(&new_estimated_features, observed_features, &mut new_residuals);
                     std = runtime_parameters.intensity_weighting_function.estimate_standard_deviation(&residuals);
                     if std.is_some() {
@@ -180,7 +181,7 @@ impl<F: SupersetOf<Float>, C : Camera<Float>, L: Landmark<F,LANDMARK_PARAM_SIZE>
                 residuals.copy_from(&new_residuals);
 
                 jacobian.fill(F::zero());
-                (self.compute_jacobian)(&state,&cameras,&mut jacobian);
+                (self.compute_jacobian)(&state,camera_map,&mut jacobian);
                 if std.is_some() {
                     weight_jacobian_sparse(&mut jacobian, &weights_vec);
                 }

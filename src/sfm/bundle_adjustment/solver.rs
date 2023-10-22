@@ -1,6 +1,7 @@
 extern crate nalgebra as na;
 extern crate num_traits;
 
+use std::collections::HashMap;
 use na::{
     base::Scalar, convert, DMatrix, DVector, Dyn, Matrix, Point3, RealField, VecStorage, Vector4,
     U4,
@@ -63,7 +64,7 @@ where
      * */
     fn get_estimated_features(
         state: &State<F, L, LANDMARK_PARAM_SIZE>,
-        cameras: &Vec<&C>,
+        camera_map: &HashMap<usize, C>,
         observed_features: &DVector<F>,
         estimated_features: &mut DVector<F>,
     ) -> () {
@@ -82,7 +83,8 @@ where
         for i in 0..n_cams {
             let cam_idx = 6 * i;
             let pose = state.to_se3(cam_idx);
-            let camera = cameras[i];
+            let cam_id = state.camera_id_by_idx[i];
+            let camera = camera_map.get(&cam_id).expect("Camera missing");
 
             //TODO: use transform_into_other_camera_frame
             let transformed_points = pose * &position_world;
@@ -149,13 +151,12 @@ where
     fn compute_jacobian_wrt_camera_extrinsics(
         camera: &C,
         state: &State<F, L, LANDMARK_PARAM_SIZE>,
-        cam_idx: usize,
         point: &Point3<F>,
         i: usize,
         j: usize,
         jacobian: &mut DMatrix<F>,
     ) -> () {
-        let transformation = state.to_se3(cam_idx);
+        let transformation = state.to_se3(j);
         let transformed_point =
             transformation * Vector4::<F>::new(point[0], point[1], point[2], F::one());
         let lie_jacobian = left_jacobian_around_identity(&transformed_point.fixed_rows::<3>(0));
@@ -174,27 +175,26 @@ where
 
     fn compute_jacobian(
         state: &State<F, L, LANDMARK_PARAM_SIZE>,
-        cameras: &Vec<&C>,
+        camera_map: &HashMap<usize, C>,
         jacobian: &mut DMatrix<F>,
     ) -> () {
         //cam
         let number_of_cam_params = CAMERA_PARAM_SIZE * state.n_cams;
-        for cam_state_idx in (0..number_of_cam_params).step_by(CAMERA_PARAM_SIZE) {
-            let cam_id = cam_state_idx / CAMERA_PARAM_SIZE;
-            let camera = cameras[cam_id];
+        for column_cam in (0..number_of_cam_params).step_by(CAMERA_PARAM_SIZE) {
+            let cam_idx = column_cam / CAMERA_PARAM_SIZE;
+            let cam_id = state.camera_id_by_idx[cam_idx];
+            let camera = camera_map.get(&cam_id).expect("Camera missing");
 
             //landmark
             for point_id in 0..state.n_points {
                 let point = state.get_landmarks()[point_id].get_euclidean_representation();
 
-                let row = Self::get_feature_index_in_residual(cam_id, point_id, state.n_cams);
-                let column_cam = cam_state_idx;
+                let row = Self::get_feature_index_in_residual(cam_idx, point_id, state.n_cams);
                 let column_landmark = number_of_cam_params + (LANDMARK_PARAM_SIZE * point_id);
 
                 Self::compute_jacobian_wrt_camera_extrinsics(
                     camera,
                     state,
-                    cam_state_idx,
                     &point,
                     row,
                     column_cam,
@@ -203,7 +203,7 @@ where
                 Self::compute_jacobian_wrt_object_points(
                     camera,
                     state,
-                    cam_state_idx,
+                    column_cam,
                     point_id,
                     row,
                     column_landmark,
@@ -220,7 +220,7 @@ where
     pub fn solve(
         &self,
         state: &mut State<F, L, LANDMARK_PARAM_SIZE>,
-        cameras: &Vec<&C>,
+        camera_map: &HashMap<usize, C>,
         observed_features: &DVector<F>,
         runtime_parameters: &RuntimeParameters<F>,
         abort_receiver: Option<&mpsc::Receiver<bool>>,
@@ -228,7 +228,7 @@ where
     ) -> Option<Vec<(Vec<[F; CAMERA_PARAM_SIZE]>, Vec<[F; LANDMARK_PARAM_SIZE]>)>> {
         self.optimizer.optimize(
             state,
-            cameras,
+            camera_map,
             observed_features,
             runtime_parameters,
             abort_receiver,

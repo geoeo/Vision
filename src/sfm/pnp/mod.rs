@@ -12,6 +12,7 @@ use crate::Float;
 use na::{base::Scalar, RealField};
 use num_traits::float;
 use simba::scalar::SupersetOf;
+use std::collections::HashMap;
 use std::{
     hash::Hash,
     marker::{Send, Sync},
@@ -37,7 +38,7 @@ pub fn run_pnp<
 ) {
     let mut state = get_euclidean_landmark_state::<F,Feat>(pnp_config.get_landmarks(), pnp_config.get_camera_pose_option());
     let observed_features = get_observed_features(pnp_config.get_features_norm());
-    let cameras = vec![pnp_config.get_camera_norm()];
+    let camera_map = HashMap::from([(0,pnp_config.get_camera_norm().clone())]);
 
 
     let (tx_result, rx_result) = mpsc::channel::<(State<F, EuclideanLandmark<F>, 3>,Option<Vec<(Vec<[F; CAMERA_PARAM_SIZE]>, Vec<[F; 3]>)>>)>();
@@ -49,7 +50,7 @@ pub fn run_pnp<
             let solver = solver::Solver::<F, C, _, 3>::new();
             let some_debug_state_list = solver.solve(
                 &mut state,
-                &cameras,
+                &camera_map,
                 &observed_features,
                 runtime_parameters,
                 Some(&rx_abort),
