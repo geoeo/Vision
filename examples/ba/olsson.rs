@@ -3,7 +3,7 @@ extern crate nalgebra as na;
 use color_eyre::eyre::Result;
 use std::fs;
 use vision::io::olsson_loader::OlssenData;
-use vision::sfm::{triangulation::Triangulation,bundle_adjustment::ba_config::{BAConfig, conversions::compute_path_pairs_as_vec}, bundle_adjustment::run_ba, epipolar::tensor::BifocalType};
+use vision::sfm::{triangulation::Triangulation,bundle_adjustment::ba_config::{BAConfig, conversions::{compute_path_id_pairs,compute_path_pairs_as_vec}}, bundle_adjustment::run_ba, epipolar::tensor::BifocalType};
 use vision::sfm::runtime_parameters::RuntimeParameters;
 use vision::numerics::{loss, weighting};
 use vision::load_runtime_conf;
@@ -141,7 +141,8 @@ fn main() -> Result<()> {
         cg_max_it: 2e3 as usize
     };
 
-    let (optimized_state, state_debug_list) = run_ba(&sfm_config_fundamental, &runtime_parameters);
+    let trajectories = compute_path_id_pairs(sfm_config_fundamental.root(), sfm_config_fundamental.paths());
+    let (optimized_state, state_debug_list) = run_ba(&sfm_config_fundamental, &runtime_parameters,trajectories);
     let state_serialized = serde_yaml::to_string(&optimized_state.to_serial());
     let debug_states_serialized = serde_yaml::to_string(&state_debug_list);
 

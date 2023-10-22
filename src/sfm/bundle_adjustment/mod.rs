@@ -5,7 +5,7 @@ use crate::image::features::Feature;
 use crate::sfm::runtime_parameters::RuntimeParameters;
 use crate::sensors::camera::Camera;
 use crate::sfm::{
-    landmark::euclidean_landmark::EuclideanLandmark, bundle_adjustment::ba_config::{BAConfig,conversions::{compute_path_id_pairs, generate_abs_landmark_map}},
+    landmark::euclidean_landmark::EuclideanLandmark, bundle_adjustment::ba_config::{BAConfig,conversions::generate_abs_landmark_map},
     state::{State,ba_state_linearizer::BAStateLinearizer, CAMERA_PARAM_SIZE}, 
 };
 use crate::Float;
@@ -31,14 +31,14 @@ pub fn run_ba<
 >(
     sfm_config: &'a BAConfig<C, Feat>,
     runtime_parameters: &'a RuntimeParameters<F>,
+    trajectories: Vec<Vec<(usize,usize)>>
 ) -> (
     State<F, EuclideanLandmark<F>, 3>,
     Option<Vec<(Vec<[F; 6]>, Vec<[F; 3]>)>>
 ) {
     
-    //TODO: make subset parameterization
-    let path_id_pairs = compute_path_id_pairs(sfm_config.root(), sfm_config.paths());
-    let state_linearizer = BAStateLinearizer::new(&path_id_pairs.into_iter().flatten().collect());
+    //let path_id_pairs = compute_path_id_pairs(sfm_config.root(), sfm_config.paths());
+    let state_linearizer = BAStateLinearizer::new(&trajectories.into_iter().flatten().collect());
 
     //TODO: switch impl on landmark state
 

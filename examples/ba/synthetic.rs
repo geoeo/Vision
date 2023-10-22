@@ -5,7 +5,7 @@ use std::collections::{HashMap, HashSet};
 use vision::{Float,load_runtime_conf};
 use vision::sfm::{
     triangulation::Triangulation,
-    bundle_adjustment::ba_config::BAConfig, 
+    bundle_adjustment::ba_config::{BAConfig,conversions::compute_path_id_pairs}, 
     bundle_adjustment::run_ba, 
     epipolar::tensor::BifocalType,
     runtime_parameters::RuntimeParameters,
@@ -157,7 +157,8 @@ fn main() -> Result<()> {
     // sfm_config_fundamental.update_camera_state(1, cam_position_1);
     // sfm_config_fundamental.update_camera_state(2, cam_position_2);
 
-    let (optimized_state, state_debug_list) = run_ba(&sfm_config_fundamental, &runtime_parameters);
+    let trajectories = compute_path_id_pairs(sfm_config_fundamental.root(), sfm_config_fundamental.paths());
+    let (optimized_state, state_debug_list) = run_ba(&sfm_config_fundamental, &runtime_parameters, trajectories);
     let state_serialized = serde_yaml::to_string(&optimized_state.to_serial());
     let debug_states_serialized = serde_yaml::to_string(&state_debug_list);
     std::fs::write(format!("{}/ba.txt",runtime_conf.output_path), state_serialized?).expect("Unable to write file");
