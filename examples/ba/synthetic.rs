@@ -20,12 +20,12 @@ fn main() -> Result<()> {
     color_eyre::install()?;
     let runtime_conf = load_runtime_conf();
 
-    let scenario = "60_10"; //Maybe too little translation
-    //let scenario = "trans_x";
+    //let scenario = "60_10"; //Maybe too little translation
+    let scenario = "trans_x";
     //let scenario = "trans_y";
     //let scenario = "trans_z";
-    let dataset = "Suzanne";
-    //let dataset = "sphere";
+    //let dataset = "Suzanne";
+    let dataset = "sphere";
     //let dataset = "Cube";
 
     let cam_features_path = format!("{}/{}/camera_features_{}.yaml",runtime_conf.local_data_path,scenario,dataset);
@@ -52,9 +52,9 @@ fn main() -> Result<()> {
     }).collect::<HashMap<_,_>>();
 
     //let camera_id_pairs = vec!((1,2));
-    //let camera_id_pairs = vec!((0,1));
+    let camera_id_pairs = vec!((0,1));
     //let camera_id_pairs = vec!((0,2));
-    let camera_id_pairs = vec!((0,1),(1,2));
+    //let camera_id_pairs = vec!((0,1),(1,2));
     //let camera_id_pairs = vec!((0,1),(1,2),(2,3),(3,4),(4,5),(5,6));
 
     let match_map = camera_id_pairs.iter().map(|(id1,id2)| {
@@ -122,8 +122,6 @@ fn main() -> Result<()> {
         println!("Key: {:?}, Pose: {:?}, Scale: {}", key, pose,scale);
     }
 
-
-
     let runtime_parameters = RuntimeParameters {
         pyramid_scale: 1.0,
         max_iterations: vec![8e4 as usize; 1],
@@ -158,8 +156,12 @@ fn main() -> Result<()> {
     // sfm_config_fundamental.update_camera_state(2, cam_position_2);
 
     let trajectories = compute_path_id_pairs(sfm_config_fundamental.root(), sfm_config_fundamental.paths());
-    let (optimized_state, state_debug_list) = run_ba(&sfm_config_fundamental, &runtime_parameters, trajectories);
+    let (optimized_state, state_debug_list) = run_ba(&sfm_config_fundamental, &runtime_parameters, &trajectories);
+
+    sfm_config_fundamental.update_state(&optimized_state);
+    let (optimized_state, state_debug_list) = run_ba(&sfm_config_fundamental, &runtime_parameters, &trajectories);
     let state_serialized = serde_yaml::to_string(&optimized_state.to_serial());
+    
     let debug_states_serialized = serde_yaml::to_string(&state_debug_list);
     std::fs::write(format!("{}/ba.txt",runtime_conf.output_path), state_serialized?).expect("Unable to write file");
 

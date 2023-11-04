@@ -113,11 +113,14 @@ impl BAStateLinearizer {
                         let current_reproj_error =  *landmark_reprojection_error_map.get(&landmark_id).unwrap();
                         if reprojection_error < current_reproj_error {
                             landmark_reprojection_error_map.insert(*landmark_id,reprojection_error);
-                            landmarks[*landmark_id] = EuclideanLandmark::from_state(Vector3::<F>::new(
-                                convert(point_s[0]),
-                                convert(point_s[1]),
-                                convert(point_s[2])
-                            ));
+                            landmarks[*landmark_id] = EuclideanLandmark::from_state_with_id(
+                                Vector3::<F>::new(
+                                    convert(point_s[0]),
+                                    convert(point_s[1]),
+                                    convert(point_s[2])
+                                ), 
+                                &Some(*landmark_id)
+                            );
 
                             feature_location_lookup[*landmark_id][*internal_source_cam_id] = Some((point_source_x_float,point_source_y_float));
                             feature_location_lookup[*landmark_id][*internal_other_cam_id] = Some((point_other_x_float,point_other_y_float));
@@ -125,11 +128,13 @@ impl BAStateLinearizer {
                     },
                     false => {
                         landmark_reprojection_error_map.insert(*landmark_id,reprojection_error);
-                        landmarks[*landmark_id] = EuclideanLandmark::from_state(Vector3::<F>::new(
-                            convert(point_s[0]),
-                            convert(point_s[1]),
-                            convert(point_s[2])
-                        ));
+                        landmarks[*landmark_id] = EuclideanLandmark::from_state_with_id(
+                            Vector3::<F>::new(
+                                convert(point_s[0]),
+                                convert(point_s[1]),
+                                convert(point_s[2])
+                            ), 
+                            &Some(*landmark_id));
 
                         feature_location_lookup[*landmark_id][*internal_source_cam_id] = Some((point_source_x_float,point_source_y_float));
                         feature_location_lookup[*landmark_id][*internal_other_cam_id] = Some((point_other_x_float,point_other_y_float));

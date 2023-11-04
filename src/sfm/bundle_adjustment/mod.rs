@@ -31,14 +31,13 @@ pub fn run_ba<
 >(
     sfm_config: &'a BAConfig<C, Feat>,
     runtime_parameters: &'a RuntimeParameters<F>,
-    trajectories: Vec<Vec<(usize,usize)>>
+    trajectories: &Vec<Vec<(usize,usize)>>
 ) -> (
     State<F, EuclideanLandmark<F>, 3>,
     Option<Vec<(Vec<[F; 6]>, Vec<[F; 3]>)>>
 ) {
     
-    //let path_id_pairs = compute_path_id_pairs(sfm_config.root(), sfm_config.paths());
-    let state_linearizer = BAStateLinearizer::new(&trajectories.into_iter().flatten().collect());
+    let state_linearizer = BAStateLinearizer::new(&trajectories.clone().into_iter().flatten().collect::<Vec<(usize,usize)>>());
 
     //TODO: switch impl on landmark state
 

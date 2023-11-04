@@ -8,6 +8,7 @@ use crate::image::features::{
 use crate::numerics::pose::{from_matrix, se3};
 use crate::sensors::camera::Camera;
 use crate::sfm::landmark::{Landmark, euclidean_landmark::EuclideanLandmark};
+use crate::sfm::state::State;
 use crate::sfm::outlier_rejection::{
     calcualte_disparities, calculate_reprojection_errors,
     compute_continuous_landmark_ids_from_matches,
@@ -270,6 +271,21 @@ impl<C: Camera<Float> + Clone, Feat: Feature + Clone + PartialEq + Eq + Hash + S
         &self.landmark_map
     }
 
+    pub fn update_state(&mut self, state: &State<Float, EuclideanLandmark<Float>, 3>) -> () {
+        let camera_positions = state.get_camera_positions();
+        let landmarks = state.get_landmarks();
+        for (cam_id, idx) in &state.camera_id_map {
+            let new_cam_pos = camera_positions[*idx];
+            self.update_camera_state(*cam_id, &new_cam_pos);
+        }
+        for landmark in landmarks {
+            self.update_landmark_state(landmark);
+        }
+
+
+    }
+
+
     pub fn update_camera_state(&mut self, cam_id: usize, new_pose: &Isometry3<Float>) -> () {
         self.abs_pose_map.insert(cam_id, new_pose.clone());
         let pairs_with_cam_id = self.pose_map.keys().filter(|(id1,id2)| *id1 == cam_id || *id2 == cam_id).map(|(id1,id2)| (*id1,*id2)).collect::<Vec<_>>();
@@ -290,7 +306,7 @@ impl<C: Camera<Float> + Clone, Feat: Feature + Clone + PartialEq + Eq + Hash + S
         }
     }
 
-    pub fn update_landmark_state(&mut self, landmark: EuclideanLandmark<Float>) -> () {
+    pub fn update_landmark_state(&mut self, landmark: &EuclideanLandmark<Float>) -> () {
         let target_id = landmark.get_id().expect("landmark has no id");
         let target_landmark = landmark.get_euclidean_representation().coords;
         for v_mut in self.landmark_map.values_mut() {

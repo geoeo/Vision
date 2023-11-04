@@ -62,8 +62,9 @@ impl<F: float::Float + Scalar + RealField, L: Landmark<F,T> + Copy + Clone, cons
 
     fn generate_camera_id_by_idx_vec(camera_id_map: &HashMap<usize, usize>) -> Vec<usize> {
         let mut cam_map_kvs = camera_id_map.iter().collect::<Vec<(_,_)>>();
+        // Sort by index
         cam_map_kvs.sort_by(|(_,a),(_,b)| a.partial_cmp(b).unwrap());
-        cam_map_kvs.into_iter().map(|(k,v)| *k).collect::<Vec<_>>()
+        cam_map_kvs.into_iter().map(|(k,_)| *k).collect::<Vec<_>>()
     }
 
     pub fn get_landmarks(&self) -> &Vec<L> {

@@ -136,13 +136,13 @@ fn main() -> Result<()> {
         show_octave_result: true,
         loss_function: Box::new(loss::TrivialLoss { eps: 1e-16, approximate_gauss_newton_matrices: false }), 
         intensity_weighting_function:  Box::new(weighting::SquaredWeight {}),
-        //intensity_weighting_function:  Box::new(weighting::HuberWeight {}),
+        //intensity_weighting_function:  Box::new(weighting::HuberWeight {}), 
         cg_threshold: 1e-6,
         cg_max_it: 2e3 as usize
     };
 
     let trajectories = compute_path_id_pairs(sfm_config_fundamental.root(), sfm_config_fundamental.paths());
-    let (optimized_state, state_debug_list) = run_ba(&sfm_config_fundamental, &runtime_parameters,trajectories);
+    let (optimized_state, state_debug_list) = run_ba(&sfm_config_fundamental, &runtime_parameters,&trajectories);
     let state_serialized = serde_yaml::to_string(&optimized_state.to_serial());
     let debug_states_serialized = serde_yaml::to_string(&state_debug_list);
 
