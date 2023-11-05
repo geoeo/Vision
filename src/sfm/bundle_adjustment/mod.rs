@@ -55,7 +55,7 @@ pub fn run_ba<
     let (tx_result, rx_result) = mpsc::channel::<(State<F, EuclideanLandmark<F>, 3>,Option<Vec<(Vec<[F; CAMERA_PARAM_SIZE]>, Vec<[F; 3]>)>>)>();
     let (tx_abort, rx_abort) = mpsc::channel::<bool>();
     let (tx_done, rx_done) = mpsc::channel::<bool>();
-    let camera_map = sfm_config.camera_map_highp();
+    let camera_map = sfm_config.camera_norm_map();
 
     thread::scope(|s| {   
         s.spawn(move || {

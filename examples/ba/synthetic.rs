@@ -128,11 +128,11 @@ fn main() -> Result<()> {
         eps: vec![1e-8],
         step_sizes: vec![1e0],
         max_norm_eps: 1e-30, 
-
         delta_eps: 1e-30,
         taus: vec![1.0e0],
         lm: true,
         debug: false,
+        print: false,
         show_octave_result: true,
         loss_function: Box::new(loss::TrivialLoss { eps: 1e-16, approximate_gauss_newton_matrices: false }), 
         intensity_weighting_function:  Box::new(weighting::SquaredWeight {}),
@@ -162,28 +162,37 @@ fn main() -> Result<()> {
     let (optimized_state_first, state_debug_list) = run_ba(&sfm_config_fundamental, &runtime_parameters, &trajectories);
     sfm_config_fundamental.update_state(&optimized_state_first);
 
+    let cam_1_idx = optimized_state_first.get_camera_id_map().get(&1).unwrap();
+    let cam_pos_1 = optimized_state_first.get_camera_positions()[*cam_1_idx];
+    println!("Cam 1 state first: {}", cam_pos_1);
 
-    // let pnp_config_cam_1 = sfm_config_fundamental.generate_pnp_config_from_cam_id(1);
-    // let (optimized_state_pnp_1, _) = run_pnp(&pnp_config_cam_1,&runtime_parameters);
-    // let cam_position_1 = optimized_state_pnp_1.get_camera_positions().first().unwrap();
-    // println!("Cam 1: {}", cam_position_1);
-    // sfm_config_fundamental.update_camera_state(1, cam_position_1);
+    let cam_pos_1 = sfm_config_fundamental.abs_pose_map().get(&1).unwrap();
+    println!("Cam 1 config: {}", cam_pos_1);
+
+
+    //TODO: check update and check pnp generation
+    let pnp_config_cam_1 = sfm_config_fundamental.generate_pnp_config_from_cam_id(1);
+    let (optimized_state_pnp_1, _) = run_pnp(&pnp_config_cam_1,&runtime_parameters);
+    sfm_config_fundamental.update_camera_state(optimized_state_pnp_1.get_camera_id_map(),optimized_state_pnp_1.get_camera_positions());
+
+
+    let cam_pos_1 = optimized_state_pnp_1.get_camera_positions().first().unwrap();
+    println!("Cam 1 pnp: {}", cam_pos_1);
 
     // let trajectories = vec!(vec!((1,2)));
     // let (optimized_state, state_debug_list) = run_ba(&sfm_config_fundamental, &runtime_parameters, &trajectories);
     // sfm_config_fundamental.update_state(&optimized_state);
 
-    let trajectories = vec!(vec!((0,1),(1,2)));
-    let (optimized_state, state_debug_list) = run_ba(&sfm_config_fundamental, &runtime_parameters, &trajectories);
-    sfm_config_fundamental.update_state(&optimized_state);
+    // let trajectories = vec!(vec!((0,1),(1,2)));
+    // let (optimized_state, state_debug_list) = run_ba(&sfm_config_fundamental, &runtime_parameters, &trajectories);
+    // sfm_config_fundamental.update_state(&optimized_state);
 
-    let cam_pos_1 = optimized_state_first.get_camera_positions()[1];
-    println!("Cam 1 first: {}", cam_pos_1);
 
-    let cam_pos_1 = optimized_state.get_camera_positions()[1];
-    println!("Cam 1 second: {}", cam_pos_1);
 
-    let state_serialized = serde_yaml::to_string(&optimized_state.to_serial());
+    // let cam_pos_1 = optimized_state.get_camera_positions()[1];
+    // println!("Cam 1 state second: {}", cam_pos_1);
+
+    let state_serialized = serde_yaml::to_string(&optimized_state_pnp_1.to_serial());
     let debug_states_serialized = serde_yaml::to_string(&state_debug_list);
     std::fs::write(format!("{}/ba.txt",runtime_conf.output_path), state_serialized?).expect("Unable to write file");
 

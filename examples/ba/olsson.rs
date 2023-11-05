@@ -133,6 +133,7 @@ fn main() -> Result<()> {
         taus: vec![1.0e0],
         lm: true,
         debug: false,
+        print: false,
         show_octave_result: true,
         loss_function: Box::new(loss::TrivialLoss { eps: 1e-16, approximate_gauss_newton_matrices: false }), 
         intensity_weighting_function:  Box::new(weighting::SquaredWeight {}),

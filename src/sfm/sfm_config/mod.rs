@@ -24,7 +24,7 @@ use crate::sfm::{
     pnp::pnp_config::PnPConfig
 };
 use crate::{float, Float};
-use na::{DVector, Isometry3, Matrix3, Matrix4, Vector3};
+use na::{DVector, Isometry3, Matrix3, Matrix4, Vector3, Matrix4xX};
 use std::{
     collections::{HashMap, HashSet},
     hash::Hash,
@@ -38,7 +38,8 @@ pub mod conversions;
 pub struct BAConfig<C, Feat: Feature> {
     root: usize,
     paths: Vec<Vec<usize>>,
-    camera_map: HashMap<usize, C>,
+    camera_map: HashMap<usize, C>, 
+    camera_norm_map: HashMap<usize, C>, 
     match_map: HashMap<(usize, usize), Vec<Match<Feat>>>,
     match_norm_map: HashMap<(usize, usize), Vec<Match<Feat>>>,
     pose_map: HashMap<(usize, usize), Isometry3<Float>>, // The pose transforms tuple id 2 into the coordiante system of tuple id 1 - 1_P_2
@@ -225,7 +226,8 @@ impl<C: Camera<Float> + Clone, Feat: Feature + Clone + PartialEq + Eq + Hash + S
         BAConfig {
             root,
             paths: paths.clone(),
-            camera_map: camera_norm_map,
+            camera_map,
+            camera_norm_map,
             match_map,
             match_norm_map,
             abs_pose_map,
@@ -243,8 +245,11 @@ impl<C: Camera<Float> + Clone, Feat: Feature + Clone + PartialEq + Eq + Hash + S
     pub fn paths(&self) -> &Vec<Vec<usize>> {
         &self.paths
     }
-    pub fn camera_map_highp(&self) -> &HashMap<usize, C> {
+    pub fn camera_map(&self) -> &HashMap<usize, C> {
         &self.camera_map
+    }
+    pub fn camera_norm_map(&self) -> &HashMap<usize, C> {
+        &self.camera_norm_map
     }
     pub fn triangulation(&self) -> Triangulation {
         self.triangulation
@@ -273,9 +278,10 @@ impl<C: Camera<Float> + Clone, Feat: Feature + Clone + PartialEq + Eq + Hash + S
 
     pub fn update_state(&mut self, state: &State<Float, EuclideanLandmark<Float>, 3>) -> () {
         let camera_positions = state.get_camera_positions();
+        let camera_id_map = state.get_camera_id_map();
         let world_landmarks = state.get_landmarks();
 
-        self.update_camera_state(&state.camera_id_map, &camera_positions);
+        self.update_camera_state(camera_id_map, camera_positions);
 
         let cam_pair_keys = self.landmark_map().keys().map(|(id1,id2)| (*id1,*id2)).collect::<Vec<_>>();
         for (cam_1,cam_2) in cam_pair_keys {
@@ -303,16 +309,45 @@ impl<C: Camera<Float> + Clone, Feat: Feature + Clone + PartialEq + Eq + Hash + S
     }
 
     pub fn 
-    update_landmark_state(&mut self, cam_id_1: &usize, cam_id_2: &usize,  world_landmarks: &Vec<EuclideanLandmark<Float>>) -> () {
+    update_landmark_state(&mut self, cam_id_1: &usize, cam_id_2: &usize,  new_world_landmarks: &Vec<EuclideanLandmark<Float>>) -> () {
         let key = (*cam_id_1,*cam_id_2);
         let relative_landmarks = self.landmark_map.get(&key).expect("No Landmarks found");
-        let cam_1_world = self.abs_pose_map.get(&cam_id_1).expect("No cam pose");
-        let new_relative_landmark_map = world_landmarks.iter().map(|l|(l.get_id().expect("No id"), l.transform_into_other_camera_frame(&cam_1_world.inverse()))).collect::<HashMap<_,_>>();
+        let pose_world_cam_1 = self.abs_pose_map.get(&cam_id_1).expect("No cam pose");
+        let pose_cam_1_world = pose_world_cam_1.inverse();
+        let new_relative_landmark_map = new_world_landmarks.iter().map(|l|(l.get_id().expect("No id"), l.transform_into_other_camera_frame(&pose_cam_1_world))).collect::<HashMap<_,_>>();
         let new_relative_landmarks = relative_landmarks.iter().map(|l| new_relative_landmark_map.get(&l.get_id().expect("no id")).expect("no landmark").clone()).collect::<Vec<_>>();
+        let number_of_new_landmarks = new_relative_landmarks.len();
+
+
+        let cam_1 = self.camera_norm_map.get(cam_id_1).expect("Cam id 1 not found");
+        let cam_2 = self.camera_norm_map.get(cam_id_2).expect("Cam id 2 not found");
+        let ms = self.match_norm_map.get(&key).expect("Matches not found");
+        let transform_c1 = pose_cam_1_world;
+        let transform_c2 = self.abs_pose_map.get(&cam_id_2).expect("No cam pose").inverse();
+        let mut landmarks_as_matrix = Matrix4xX::<Float>::from_element(number_of_new_landmarks, 1.0);
+
+        for i in 0..new_relative_landmarks.len(){
+            let l = new_relative_landmarks[i].get_state_as_vector();
+            landmarks_as_matrix[(0,i)] = l.x;
+            landmarks_as_matrix[(1,i)] = l.y;
+            landmarks_as_matrix[(2,i)] = l.z;
+        }
+
+        let reprojection_errors = calculate_reprojection_errors(
+            &landmarks_as_matrix,
+            ms,
+            &transform_c1.to_matrix().fixed_view::<3, 4>(0, 0).into_owned(),
+            cam_1,
+            &transform_c2.to_matrix().fixed_view::<3, 4>(0, 0).into_owned(),
+            cam_2,
+        );
+
         self.landmark_map.insert(key, new_relative_landmarks);
+        self.reprojection_error_map.insert(key, reprojection_errors);
 
     }
 
+    //TODO: check coordiante systems
     pub fn generate_pnp_config_from_cam_id(&self, cam_id: usize) -> PnPConfig<C,Feat> {
         let camera = self.camera_map.get(&cam_id).expect("Camera not found in generate_pnp_config_from_cam_id");
         let camera_pose = self.abs_pose_map.get(&cam_id).expect("Camera pose not found in generate_pnp_config_from_cam_id");
@@ -324,7 +359,6 @@ impl<C: Camera<Float> + Clone, Feat: Feature + Clone + PartialEq + Eq + Hash + S
         let number_of_landmarks = abs_landmark_map_for_cam_pairs.iter().map(|m| m.ncols()).sum();
         let number_of_matches: usize = match_map_for_cam_pairs.iter().map(|(_,v)| v.len()).sum();
 
-        //TODO: Build feature and landmark maps indexed by landmark id
         let mut landmark_map_by_landmark_id = HashMap::<usize,Vector3<Float>>::with_capacity(number_of_landmarks);
         let mut feature_map_by_landmark_id = HashMap::<usize, Feat>::with_capacity(number_of_matches);
 
@@ -356,6 +390,7 @@ impl<C: Camera<Float> + Clone, Feat: Feature + Clone + PartialEq + Eq + Hash + S
 
         }
 
+        //TODO: Check this with sfm_data
         PnPConfig::new(camera, &landmark_map_by_landmark_id, &feature_map_by_landmark_id, &Some(camera_pose.clone()))
     }
 

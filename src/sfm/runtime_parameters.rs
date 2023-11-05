@@ -18,6 +18,7 @@ pub struct RuntimeParameters<F: float::Float + Scalar + SimdRealField + Send>{
     pub delta_eps: F,
     pub taus: Vec<F>,
     pub step_sizes: Vec<F>,
+    pub print: bool,
     pub debug: bool,
     pub show_octave_result: bool,
     pub lm: bool,

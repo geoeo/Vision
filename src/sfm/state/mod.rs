@@ -75,6 +75,10 @@ impl<F: float::Float + Scalar + RealField, L: Landmark<F,T> + Copy + Clone, cons
         &self.camera_positions
     }
 
+    pub fn get_camera_id_map(&self) -> &HashMap<usize, usize> {
+        &self.camera_id_map
+    }
+
     pub fn copy_from(&mut self, other: &State<F,L,T>) -> () {
         assert!(self.n_cams == other.n_cams);
         assert!(self.n_points == other.n_points);
