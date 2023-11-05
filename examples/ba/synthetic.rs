@@ -140,20 +140,25 @@ fn main() -> Result<()> {
         cg_max_it: 2e3 as usize
     };
 
+    let runtime_parameters_pnp = RuntimeParameters {
+        pyramid_scale: 1.0,
+        max_iterations: vec![1 as usize; 1],
+        eps: vec![1e-8],
+        step_sizes: vec![1e0],
+        max_norm_eps: 1e-30, 
+        delta_eps: 1e-30,
+        taus: vec![1.0e0],
+        lm: true,
+        debug: false,
+        print: false,
+        show_octave_result: true,
+        loss_function: Box::new(loss::TrivialLoss { eps: 1e-16, approximate_gauss_newton_matrices: false }), 
+        intensity_weighting_function:  Box::new(weighting::SquaredWeight {}),
+        cg_threshold: 1e-6,
+        cg_max_it: 2e3 as usize
+    };
 
-    //Do Pnp and Ba iterative
-    // let pnp_config_cam_0 = sfm_config_fundamental.generate_pnp_config_from_cam_id(0);
-    // let pnp_config_cam_1 = sfm_config_fundamental.generate_pnp_config_from_cam_id(1);
-    // let pnp_config_cam_2 = sfm_config_fundamental.generate_pnp_config_from_cam_id(2);
-    // let (optimized_state_pnp_0, _) = run_pnp(&pnp_config_cam_0,&runtime_parameters);
-    // let (optimized_state_pnp_1, _) = run_pnp(&pnp_config_cam_1,&runtime_parameters);
-    // let (optimized_state_pnp_2, _) = run_pnp(&pnp_config_cam_2,&runtime_parameters);
-    // let cam_position_0 = optimized_state_pnp_0.get_camera_positions().first().unwrap();
-    // let cam_position_1 = optimized_state_pnp_1.get_camera_positions().first().unwrap();
-    // let cam_position_2 = optimized_state_pnp_2.get_camera_positions().first().unwrap();
-    // sfm_config_fundamental.update_camera_state(0, cam_position_0);
-    // sfm_config_fundamental.update_camera_state(1, cam_position_1);
-    // sfm_config_fundamental.update_camera_state(2, cam_position_2);
+
 
 
     let trajectories = compute_path_id_pairs(sfm_config_fundamental.root(), sfm_config_fundamental.paths());
@@ -170,9 +175,9 @@ fn main() -> Result<()> {
     println!("Cam 1 config: {}", cam_pos_1);
 
 
-    //TODO: check update and check pnp generation
+    //TODO: check update and check pnp generation - seems to diverge
     let pnp_config_cam_1 = sfm_config_fundamental.generate_pnp_config_from_cam_id(1);
-    let (optimized_state_pnp_1, _) = run_pnp(&pnp_config_cam_1,&runtime_parameters);
+    let (optimized_state_pnp_1, _) = run_pnp(&pnp_config_cam_1,&runtime_parameters_pnp);
     sfm_config_fundamental.update_camera_state(optimized_state_pnp_1.get_camera_id_map(),optimized_state_pnp_1.get_camera_positions());
 
 
