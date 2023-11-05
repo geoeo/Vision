@@ -307,7 +307,7 @@ impl<C: Camera<Float> + Clone, Feat: Feature + Clone + PartialEq + Eq + Hash + S
         let key = (*cam_id_1,*cam_id_2);
         let relative_landmarks = self.landmark_map.get(&key).expect("No Landmarks found");
         let cam_1_world = self.abs_pose_map.get(&cam_id_1).expect("No cam pose");
-        let new_relative_landmark_map = world_landmarks.iter().map(|l|(l.get_id().expect("No id"), l.transform_into_other_camera_frame(cam_1_world))).collect::<HashMap<_,_>>();
+        let new_relative_landmark_map = world_landmarks.iter().map(|l|(l.get_id().expect("No id"), l.transform_into_other_camera_frame(&cam_1_world.inverse()))).collect::<HashMap<_,_>>();
         let new_relative_landmarks = relative_landmarks.iter().map(|l| new_relative_landmark_map.get(&l.get_id().expect("no id")).expect("no landmark").clone()).collect::<Vec<_>>();
         self.landmark_map.insert(key, new_relative_landmarks);
 
