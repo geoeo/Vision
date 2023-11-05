@@ -273,52 +273,44 @@ impl<C: Camera<Float> + Clone, Feat: Feature + Clone + PartialEq + Eq + Hash + S
 
     pub fn update_state(&mut self, state: &State<Float, EuclideanLandmark<Float>, 3>) -> () {
         let camera_positions = state.get_camera_positions();
-        let landmarks = state.get_landmarks();
-        for (cam_id, idx) in &state.camera_id_map {
-            let new_cam_pos = camera_positions[*idx];
-            self.update_camera_state(*cam_id, &new_cam_pos);
-        }
-        for landmark in landmarks {
-            self.update_landmark_state(landmark);
-        }
+        let world_landmarks = state.get_landmarks();
 
+        self.update_camera_state(&state.camera_id_map, &camera_positions);
 
-    }
-
-
-    pub fn update_camera_state(&mut self, cam_id: usize, new_pose: &Isometry3<Float>) -> () {
-        self.abs_pose_map.insert(cam_id, new_pose.clone());
-        let pairs_with_cam_id = self.pose_map.keys().filter(|(id1,id2)| *id1 == cam_id || *id2 == cam_id).map(|(id1,id2)| (*id1,*id2)).collect::<Vec<_>>();
-        for path_pair in pairs_with_cam_id {
-            match path_pair {
-                (id1, id2) if id1 == cam_id => {
-                    let pose2 = self.abs_pose_map.get(&id2).expect(format!("Pose id {} not found in update camera state", id2).as_str());
-                    let pose1_2 = new_pose.inverse()*pose2;
-                    self.pose_map.insert((cam_id,id2), pose1_2);
-                },
-                (id1, id2) if id2 == cam_id => {
-                    let pose1 = self.abs_pose_map.get(&id1).expect(format!("Pose id {} not found in update camera state", id1).as_str());
-                    let pose1_2 = pose1.inverse()*new_pose;
-                    self.pose_map.insert((id1,cam_id), pose1_2);
-                },
-                _ => panic!("Path pair without cam id in update camera state")
-            }
+        let cam_pair_keys = self.landmark_map().keys().map(|(id1,id2)| (*id1,*id2)).collect::<Vec<_>>();
+        for (cam_1,cam_2) in cam_pair_keys {
+            self.update_landmark_state(&cam_1,&cam_2,world_landmarks);
         }
     }
 
-    pub fn update_landmark_state(&mut self, landmark: &EuclideanLandmark<Float>) -> () {
-        let target_id = landmark.get_id().expect("landmark has no id");
-        let target_landmark = landmark.get_euclidean_representation().coords;
-        for v_mut in self.landmark_map.values_mut() {
-            for l in v_mut {
-                match l.get_id() {
-                    Some(id) if id == target_id => {
-                        l.set_landmark(&target_landmark);
-                    },
-                    _ => ()
-                }
-            }
+
+    pub fn update_camera_state(&mut self, state_cam_id_map: &HashMap<usize,usize>, state_camera_positions: &Vec<Isometry3<Float>>) -> () {
+
+        //First we update all absolute poses
+        for (cam_id, idx) in state_cam_id_map {
+            let new_cam_pos = state_camera_positions[*idx];
+            self.abs_pose_map.insert(*cam_id, new_cam_pos.clone());
         }
+
+        //Then we recalculate relative poses
+        let cam_pair_keys = self.pose_map.keys().map(|key| key.clone()).collect::<Vec<_>>();
+        for (id1,id2) in cam_pair_keys {
+            let pose1 = self.abs_pose_map.get(&id1).expect(format!("Pose id {} not found in update camera state", id1).as_str());
+            let pose2 = self.abs_pose_map.get(&id2).expect(format!("Pose id {} not found in update camera state", id2).as_str());
+            let pose1_2 = pose1.inverse()*pose2;
+            self.pose_map.insert((id1,id2), pose1_2);
+        }
+    }
+
+    pub fn 
+    update_landmark_state(&mut self, cam_id_1: &usize, cam_id_2: &usize,  world_landmarks: &Vec<EuclideanLandmark<Float>>) -> () {
+        let key = (*cam_id_1,*cam_id_2);
+        let relative_landmarks = self.landmark_map.get(&key).expect("No Landmarks found");
+        let cam_1_world = self.abs_pose_map.get(&cam_id_1).expect("No cam pose");
+        let new_relative_landmark_map = world_landmarks.iter().map(|l|(l.get_id().expect("No id"), l.transform_into_other_camera_frame(cam_1_world))).collect::<HashMap<_,_>>();
+        let new_relative_landmarks = relative_landmarks.iter().map(|l| new_relative_landmark_map.get(&l.get_id().expect("no id")).expect("no landmark").clone()).collect::<Vec<_>>();
+        self.landmark_map.insert(key, new_relative_landmarks);
+
     }
 
     pub fn generate_pnp_config_from_cam_id(&self, cam_id: usize) -> PnPConfig<C,Feat> {
@@ -851,10 +843,9 @@ impl<C: Camera<Float> + Clone, Feat: Feature + Clone + PartialEq + Eq + Hash + S
             let (e, f_m_norm, f_m) = match epipolar_alg {
                 tensor::BifocalType::FUNDAMENTAL => {
                     let f = tensor::fundamental::eight_point_hartley(m_norm, 1.0);
-                    let f_corr = tensor::fundamental::optimal_correction(&f, &m_norm, 1.0);
 
                     let filtered_indices = tensor::select_best_matches_from_fundamental(
-                        &f_corr,
+                        &f,
                         &m_norm,
                         perc_tresh,
                         epipolar_tresh,
@@ -870,7 +861,7 @@ impl<C: Camera<Float> + Clone, Feat: Feature + Clone + PartialEq + Eq + Hash + S
                         .collect::<Vec<Match<Feat>>>();
 
                     let e =
-                        tensor::compute_essential(&f_corr, &camera_matrix_one, &camera_matrix_two);
+                        tensor::compute_essential(&f, &camera_matrix_one, &camera_matrix_two);
 
                     (e, filtered_norm, filtered)
                 }
@@ -887,10 +878,9 @@ impl<C: Camera<Float> + Clone, Feat: Feature + Clone + PartialEq + Eq + Hash + S
                         &inverse_camera_matrix_one,
                         &inverse_camera_matrix_two,
                     );
-                    let f_corr = tensor::fundamental::optimal_correction(&f, &m_norm, 1.0);
 
                     let filtered_indices = tensor::select_best_matches_from_fundamental(
-                        &f_corr,
+                        &f,
                         m_norm,
                         perc_tresh,
                         epipolar_tresh,
@@ -922,10 +912,9 @@ impl<C: Camera<Float> + Clone, Feat: Feature + Clone + PartialEq + Eq + Hash + S
                         &inverse_camera_matrix_one,
                         &inverse_camera_matrix_two,
                     );
-                    let f_corr = tensor::fundamental::optimal_correction(&f, &m_norm, 1.0);
 
                     let filtered_indices = tensor::select_best_matches_from_fundamental(
-                        &f_corr,
+                        &f,
                         m_norm,
                         perc_tresh,
                         epipolar_tresh,
@@ -955,10 +944,9 @@ impl<C: Camera<Float> + Clone, Feat: Feature + Clone + PartialEq + Eq + Hash + S
                         &inverse_camera_matrix_one,
                         &inverse_camera_matrix_two,
                     );
-                    let f_corr = tensor::fundamental::optimal_correction(&f, &m_norm, 1.0);
 
                     let filtered_indices = tensor::select_best_matches_from_fundamental(
-                        &f_corr,
+                        &f,
                         m_norm,
                         perc_tresh,
                         epipolar_tresh,

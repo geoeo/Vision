@@ -11,3 +11,4 @@ pub mod outlier_rejection;
 pub mod runtime_parameters;
 pub mod pnp;
 pub mod state;
+pub mod sfm_config;

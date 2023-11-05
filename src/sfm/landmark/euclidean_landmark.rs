@@ -33,8 +33,9 @@ impl<F: float::Float + Scalar + NumAssign + RealField> Landmark<F,3> for Euclide
         self.state
     }
 
-    fn transform_into_other_camera_frame(&self, other_cam_world: &Isometry3<F>) -> Point3<F> {
-        other_cam_world*self.state 
+    fn transform_into_other_camera_frame(&self, other_cam_world: &Isometry3<F>) -> EuclideanLandmark<F> {
+        let new_pos = other_cam_world*self.state;
+        EuclideanLandmark::<F>{state: new_pos, id: self.id}
     }
 
     fn jacobian(&self, world_to_cam: &Isometry3<F>) -> SMatrix<F,3,3> {

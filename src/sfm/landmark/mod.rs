@@ -13,7 +13,7 @@ pub trait Landmark<F: Scalar, const T: usize> {
     fn update(&mut self, perturb :&SVector<F,T>) -> (); //TODO: change signature for inverse depth
     fn set_landmark(&mut self,l :&SVector<F,T>) -> ();
     fn get_euclidean_representation(&self) -> Point3<F>;
-    fn transform_into_other_camera_frame(&self, other_cam_world: &Isometry3<F>) -> Point3<F>; //TODO: check this vs get_euclidean_representation
+    fn transform_into_other_camera_frame(&self, other_cam_world: &Isometry3<F>) -> Self;
     fn jacobian(&self, world_to_cam: &Isometry3<F>) -> SMatrix<F,3,T>;
     fn get_state_as_vector(&self) -> &SVector<F, T>;
     fn from_array(arr: &[F; T]) -> Self;

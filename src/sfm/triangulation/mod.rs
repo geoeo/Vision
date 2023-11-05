@@ -12,6 +12,9 @@ pub enum Triangulation {
     STEREO
 }
 
+/**
+ * For a path pair (1,2) triangulates the feature in coordinate system of 1
+ */
 pub fn triangulate_matches<Feat: Feature, C: Camera<Float>>(path_pair: (usize, usize), pose: &Matrix4<Float>, 
     matches: & Vec<Match<Feat>>, camera_map: &HashMap<usize, C>, triangulation_mode: Triangulation) 
     -> Matrix4xX<Float> {

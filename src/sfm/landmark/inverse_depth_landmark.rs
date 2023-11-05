@@ -53,12 +53,13 @@ impl<F: float::Float + Scalar + NumAssign + RealField> Landmark<F, 6> for Invers
         self.get_observing_cam_in_world()+self.get_direction().scale(F::one()/self.get_inverse_depth())
     }
 
-    fn transform_into_other_camera_frame(&self, other_cam_world: &Isometry3<F>) -> Point3<F> {
+    fn transform_into_other_camera_frame(&self, other_cam_world: &Isometry3<F>) -> InverseLandmark<F> {
         let translation = other_cam_world.translation;
         let rotation = other_cam_world.rotation;
 
         let diff = self.get_observing_cam_in_world().coords - translation.vector;
-        Point3::<F>::from(rotation.inverse()*(diff.scale(self.get_inverse_depth()) + self.get_direction()))
+        let new_state = Point3::<F>::from(rotation.inverse()*(diff.scale(self.get_inverse_depth()) + self.get_direction()));
+        panic!("TODO");
     }
 
     fn jacobian(&self, world_to_cam: &Isometry3<F>) -> SMatrix<F,3,6> {
