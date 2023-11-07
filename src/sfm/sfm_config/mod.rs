@@ -318,12 +318,10 @@ impl<C: Camera<Float> + Clone, Feat: Feature + Clone + PartialEq + Eq + Hash + S
         let new_relative_landmarks = relative_landmarks.iter().map(|l| new_relative_landmark_map.get(&l.get_id().expect("no id")).expect("no landmark").clone()).collect::<Vec<_>>();
         let number_of_new_landmarks = new_relative_landmarks.len();
 
-
         let cam_1 = self.camera_norm_map.get(cam_id_1).expect("Cam id 1 not found");
         let cam_2 = self.camera_norm_map.get(cam_id_2).expect("Cam id 2 not found");
         let ms = self.match_norm_map.get(&key).expect("Matches not found");
-        let transform_c1 = pose_cam_1_world;
-        let transform_c2 = self.abs_pose_map.get(&cam_id_2).expect("No cam pose").inverse();
+        let transform_c2 = self.pose_map.get(&key).expect("No cam pose").inverse();
         let mut landmarks_as_matrix = Matrix4xX::<Float>::from_element(number_of_new_landmarks, 1.0);
 
         for i in 0..new_relative_landmarks.len(){
@@ -336,7 +334,7 @@ impl<C: Camera<Float> + Clone, Feat: Feature + Clone + PartialEq + Eq + Hash + S
         let reprojection_errors = calculate_reprojection_errors(
             &landmarks_as_matrix,
             ms,
-            &transform_c1.to_matrix().fixed_view::<3, 4>(0, 0).into_owned(),
+            &Matrix4::<Float>::identity().fixed_view::<3, 4>(0, 0).into_owned(),
             cam_1,
             &transform_c2.to_matrix().fixed_view::<3, 4>(0, 0).into_owned(),
             cam_2,

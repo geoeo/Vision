@@ -1,11 +1,12 @@
 extern crate nalgebra as na;
 use color_eyre::eyre::Result;
+use vision::sfm::landmark::Landmark;
 
 use std::collections::{HashMap, HashSet};
 use vision::{Float,load_runtime_conf};
 use vision::sfm::{
     triangulation::Triangulation,
-    sfm_config::{BAConfig,conversions::compute_path_id_pairs}, 
+    sfm_config::{BAConfig,conversions::{compute_path_id_pairs,generate_abs_landmark_map}}, 
     bundle_adjustment::run_ba, 
     epipolar::tensor::BifocalType,
     runtime_parameters::RuntimeParameters,
@@ -142,7 +143,7 @@ fn main() -> Result<()> {
 
     let runtime_parameters_pnp = RuntimeParameters {
         pyramid_scale: 1.0,
-        max_iterations: vec![1 as usize; 1],
+        max_iterations: vec![10 as usize; 1],
         eps: vec![1e-8],
         step_sizes: vec![1e0],
         max_norm_eps: 1e-30, 
@@ -150,7 +151,7 @@ fn main() -> Result<()> {
         taus: vec![1.0e0],
         lm: true,
         debug: false,
-        print: false,
+        print: true,
         show_octave_result: true,
         loss_function: Box::new(loss::TrivialLoss { eps: 1e-16, approximate_gauss_newton_matrices: false }), 
         intensity_weighting_function:  Box::new(weighting::SquaredWeight {}),
@@ -167,22 +168,28 @@ fn main() -> Result<()> {
     let (optimized_state_first, state_debug_list) = run_ba(&sfm_config_fundamental, &runtime_parameters, &trajectories);
     sfm_config_fundamental.update_state(&optimized_state_first);
 
-    let cam_1_idx = optimized_state_first.get_camera_id_map().get(&1).unwrap();
-    let cam_pos_1 = optimized_state_first.get_camera_positions()[*cam_1_idx];
-    println!("Cam 1 state first: {}", cam_pos_1);
+    let cam_0_idx = optimized_state_first.get_camera_id_map().get(&0).unwrap();
+    let cam_pos_0 = optimized_state_first.get_camera_positions()[*cam_0_idx];
+    let first_landmark = optimized_state_first.get_landmarks().first().unwrap();
+    let first_landmark_id = first_landmark.get_id().unwrap();
+    println!("Cam 0 state first: {}", cam_pos_0);
+    println!("Landmark state {} : {}", first_landmark_id, first_landmark.get_euclidean_representation());
 
-    let cam_pos_1 = sfm_config_fundamental.abs_pose_map().get(&1).unwrap();
-    println!("Cam 1 config: {}", cam_pos_1);
-
+    let world_cam_0 = sfm_config_fundamental.abs_pose_map().get(&0).unwrap();
+    println!("Cam 0 config: {}", world_cam_0);
+    let landmarks = sfm_config_fundamental.landmark_map().get(&(0,1)).unwrap();
+    let landmark_vec = landmarks.iter().filter(|l| l.get_id().unwrap() == first_landmark_id).collect::<Vec<_>>();
+    let landmark_rel = landmark_vec.first().unwrap();
+    let landmark_w = world_cam_0*landmark_rel.get_euclidean_representation();
+    println!("Landmark config {} : {}", landmark_rel.get_id().unwrap(), landmark_w);
 
     //TODO: check update and check pnp generation - seems to diverge
-    let pnp_config_cam_1 = sfm_config_fundamental.generate_pnp_config_from_cam_id(1);
-    let (optimized_state_pnp_1, _) = run_pnp(&pnp_config_cam_1,&runtime_parameters_pnp);
-    sfm_config_fundamental.update_camera_state(optimized_state_pnp_1.get_camera_id_map(),optimized_state_pnp_1.get_camera_positions());
+    let pnp_config_cam_0 = sfm_config_fundamental.generate_pnp_config_from_cam_id(0);
+    let (optimized_state_pnp_0, _) = run_pnp(&pnp_config_cam_0,&runtime_parameters_pnp);
+    sfm_config_fundamental.update_camera_state(optimized_state_pnp_0.get_camera_id_map(),optimized_state_pnp_0.get_camera_positions());
 
-
-    let cam_pos_1 = optimized_state_pnp_1.get_camera_positions().first().unwrap();
-    println!("Cam 1 pnp: {}", cam_pos_1);
+    let cam_pos_1 = optimized_state_pnp_0.get_camera_positions().first().unwrap();
+    println!("Cam 0 pnp: {}", cam_pos_1);
 
     // let trajectories = vec!(vec!((1,2)));
     // let (optimized_state, state_debug_list) = run_ba(&sfm_config_fundamental, &runtime_parameters, &trajectories);
@@ -197,7 +204,7 @@ fn main() -> Result<()> {
     // let cam_pos_1 = optimized_state.get_camera_positions()[1];
     // println!("Cam 1 state second: {}", cam_pos_1);
 
-    let state_serialized = serde_yaml::to_string(&optimized_state_pnp_1.to_serial());
+    let state_serialized = serde_yaml::to_string(&optimized_state_pnp_0.to_serial());
     let debug_states_serialized = serde_yaml::to_string(&state_debug_list);
     std::fs::write(format!("{}/ba.txt",runtime_conf.output_path), state_serialized?).expect("Unable to write file");
 
