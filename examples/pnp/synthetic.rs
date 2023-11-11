@@ -6,6 +6,7 @@ use std::collections::HashMap;
 use vision::{Float,load_runtime_conf};
 use vision::image::features::image_feature::ImageFeature;
 use vision::sfm::{
+    landmark::{euclidean_landmark::EuclideanLandmark,Landmark},
     runtime_parameters::RuntimeParameters,
     pnp::{pnp_config::PnPConfig, run_pnp}
 };
@@ -69,7 +70,11 @@ fn main() -> Result<()> {
 
     let camera_pose = None;
 
-    let landmark_map = loaded_data_landmarks.iter().map(|l| (*l.get_id(),change_of_basis_x*convert::<Vector3<f32>,Vector3<Float>>(*l.get_position()))).collect::<HashMap<_,_>>();
+    let landmark_map = loaded_data_landmarks.iter().map(|l| {
+        let v = change_of_basis_x*convert::<Vector3<f32>,Vector3<Float>>(*l.get_position());
+        let id = *l.get_id();
+        (id,EuclideanLandmark::<Float>::from_state_with_id(v,&Some(id)))
+    }).collect::<HashMap<_,_>>();
  
     let pnp_config = PnPConfig::new(camera, &landmark_map, feature_map, &camera_pose);
     //TODO: split runtime parameters to BA and PNP. A lot of params are not needed

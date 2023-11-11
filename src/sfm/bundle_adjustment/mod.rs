@@ -40,6 +40,8 @@ pub fn run_ba<
 
     //TODO: switch impl on landmark state
 
+    //TODO: number of unique landmarks is taken from the config. With a subset of trajectories this is no longer valid.
+    //Consecuitve landmark indexing must be done here
     let (mut state, feature_location_lookup) = state_linearizer.get_euclidean_landmark_state(
         sfm_config.match_norm_map(),
         sfm_config.abs_pose_map(),

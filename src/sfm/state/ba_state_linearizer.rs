@@ -83,7 +83,7 @@ impl BAStateLinearizer {
         
         let number_of_cameras = self.camera_to_linear_id_map.keys().len();
 
-        let mut landmarks = vec![EuclideanLandmark::from_state(Vector3::<F>::new(F::zero(),F::zero(),-F::one())); number_of_unqiue_landmarks];
+        let mut landmarks = vec![EuclideanLandmark::from_state(Vector3::<F>::new(F::zero(),F::zero(),F::one())); number_of_unqiue_landmarks];
         let mut landmark_reprojection_error_map = HashMap::<usize, Float>::with_capacity(number_of_unqiue_landmarks);
 
         let mut feature_location_lookup = vec![vec![None;number_of_cameras]; number_of_unqiue_landmarks];
@@ -198,26 +198,5 @@ impl BAStateLinearizer {
             }
         }
         observed_features
-    }
-
-    pub fn get_features_for_cam_pair(&self, cam_idx_a: usize, cam_idx_b: usize,  feature_location_lookup: &Vec<Vec<Option<(Float,Float)>>>, number_of_unique_landmarks: usize) 
-        -> (Vec<usize>, Vec<(Float,Float)>, Vec<(Float,Float)>) {
-        let mut image_coords_a = Vec::<(Float,Float)>::with_capacity(number_of_unique_landmarks);
-        let mut image_coords_b = Vec::<(Float,Float)>::with_capacity(number_of_unique_landmarks);
-        let mut point_ids = Vec::<usize>::with_capacity(number_of_unique_landmarks);
-
-        for point_idx in 0..number_of_unique_landmarks {
-            let cam_list = &feature_location_lookup[point_idx];
-            let im_a = cam_list[cam_idx_a];
-            let im_b = cam_list[cam_idx_b];
-
-            if im_a.is_some() && im_b.is_some() {
-                image_coords_a.push(im_a.unwrap());
-                image_coords_b.push(im_b.unwrap());
-                point_ids.push(point_idx);
-            }
-        }
-
-        (point_ids, image_coords_a,image_coords_b)
     }
 }

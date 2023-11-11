@@ -314,9 +314,17 @@ impl<C: Camera<Float> + Clone, Feat: Feature + Clone + PartialEq + Eq + Hash + S
         let relative_landmarks = self.landmark_map.get(&key).expect("No Landmarks found");
         let pose_world_cam_1 = self.abs_pose_map.get(&cam_id_1).expect("No cam pose");
         let pose_cam_1_world = pose_world_cam_1.inverse();
-        let new_relative_landmark_map = new_world_landmarks.iter().map(|l|(l.get_id().expect("No id"), l.transform_into_other_camera_frame(&pose_cam_1_world))).collect::<HashMap<_,_>>();
-        let new_relative_landmarks = relative_landmarks.iter().map(|l| new_relative_landmark_map.get(&l.get_id().expect("no id")).expect("no landmark").clone()).collect::<Vec<_>>();
+        let new_relative_landmark_map = new_world_landmarks.iter().filter(|l| l.get_id().is_some()).map(|l|(l.get_id().unwrap(), l.transform_into_other_camera_frame(&pose_cam_1_world))).collect::<HashMap<_,_>>();
+        let mut new_relative_landmarks = relative_landmarks.clone();
+        for l in new_relative_landmarks.iter_mut() {
+            if l.get_id().is_some_and(|id| new_relative_landmark_map.contains_key(&id)) {
+                let id = l.get_id().unwrap();
+                let new_landmark = new_relative_landmark_map.get(&id).unwrap();
+                l.set_landmark(&new_landmark.get_euclidean_representation().coords);
+            }
+        }
         let number_of_new_landmarks = new_relative_landmarks.len();
+
 
         let cam_1 = self.camera_norm_map.get(cam_id_1).expect("Cam id 1 not found");
         let cam_2 = self.camera_norm_map.get(cam_id_2).expect("Cam id 2 not found");
@@ -339,13 +347,13 @@ impl<C: Camera<Float> + Clone, Feat: Feature + Clone + PartialEq + Eq + Hash + S
             &transform_c2.to_matrix().fixed_view::<3, 4>(0, 0).into_owned(),
             cam_2,
         );
-
+        
         self.landmark_map.insert(key, new_relative_landmarks);
         self.reprojection_error_map.insert(key, reprojection_errors);
 
     }
 
-    //TODO: check coordiante systems
+    //TODO: Rework this for trajectories which are a subset the given paths - also in conjunction with update state
     pub fn generate_pnp_config_from_cam_id(&self, cam_id: usize) -> PnPConfig<C,Feat> {
         let camera = self.camera_map.get(&cam_id).expect("Camera not found in generate_pnp_config_from_cam_id");
         let camera_pose = self.abs_pose_map.get(&cam_id).expect("Camera pose not found in generate_pnp_config_from_cam_id");
@@ -357,7 +365,7 @@ impl<C: Camera<Float> + Clone, Feat: Feature + Clone + PartialEq + Eq + Hash + S
         let number_of_landmarks = abs_landmark_map_for_cam_pairs.iter().map(|m| m.ncols()).sum();
         let number_of_matches: usize = match_map_for_cam_pairs.iter().map(|(_,v)| v.len()).sum();
 
-        let mut landmark_map_by_landmark_id = HashMap::<usize,Vector3<Float>>::with_capacity(number_of_landmarks);
+        let mut landmark_map_by_landmark_id = HashMap::<usize,EuclideanLandmark<Float>>::with_capacity(number_of_landmarks);
         let mut feature_map_by_landmark_id = HashMap::<usize, Feat>::with_capacity(number_of_matches);
 
         for ((k, ms), l_mat) in match_map_for_cam_pairs.iter().zip(abs_landmark_map_for_cam_pairs.iter()) {
@@ -368,8 +376,9 @@ impl<C: Camera<Float> + Clone, Feat: Feature + Clone + PartialEq + Eq + Hash + S
                         let f = m.get_feature_one();
                         let id = m.get_landmark_id().expect("Match with no landmark id!");
                         let l = l_mat.column(i);
+
                         feature_map_by_landmark_id.insert(id,f.clone());
-                        landmark_map_by_landmark_id.insert(id, Vector3::<Float>::new(l.x,l.y,l.z));
+                        landmark_map_by_landmark_id.insert(id, EuclideanLandmark::from_state_with_id(Vector3::<Float>::new(l.x,l.y,l.z), &Some(id)));
                     }
 
                 },
@@ -379,8 +388,9 @@ impl<C: Camera<Float> + Clone, Feat: Feature + Clone + PartialEq + Eq + Hash + S
                         let f = m.get_feature_two();
                         let id = m.get_landmark_id().expect("Match with no landmark id!");
                         let l = l_mat.column(i);
+                        
                         feature_map_by_landmark_id.insert(id,f.clone());
-                        landmark_map_by_landmark_id.insert(id, Vector3::<Float>::new(l.x,l.y,l.z));
+                        landmark_map_by_landmark_id.insert(id, EuclideanLandmark::from_state_with_id(Vector3::<Float>::new(l.x,l.y,l.z), &Some(id)));
                     }
                 },
                 _ => panic!("Invalid key for pnp generation")
@@ -388,7 +398,6 @@ impl<C: Camera<Float> + Clone, Feat: Feature + Clone + PartialEq + Eq + Hash + S
 
         }
 
-        //TODO: Check this with sfm_data
         PnPConfig::new(camera, &landmark_map_by_landmark_id, &feature_map_by_landmark_id, &Some(camera_pose.clone()))
     }
 

@@ -25,8 +25,8 @@ fn main() -> Result<()> {
     //let scenario = "trans_x";
     //let scenario = "trans_y";
     //let scenario = "trans_z";
-    let dataset = "Suzanne";
-    //let dataset = "sphere";
+    //let dataset = "Suzanne";
+    let dataset = "sphere";
     //let dataset = "Cube";
 
     let cam_features_path = format!("{}/{}/camera_features_{}.yaml",runtime_conf.local_data_path,scenario,dataset);
@@ -55,8 +55,8 @@ fn main() -> Result<()> {
     //let camera_id_pairs = vec!((1,2));
     //let camera_id_pairs = vec!((0,1));
     //let camera_id_pairs = vec!((0,2));
-    let camera_id_pairs = vec!((0,1),(1,2));
-    //let camera_id_pairs = vec!((0,1),(1,2),(2,3),(3,4),(4,5),(5,6));
+    //let camera_id_pairs = vec!((0,1),(1,2));
+    let camera_id_pairs = vec!((0,1),(1,2),(2,3),(3,4),(4,5),(5,6));
 
     let match_map = camera_id_pairs.iter().map(|(id1,id2)| {
         let fm_1 = feature_map.get(id1).expect("Feature map for cam id not available!");
@@ -112,6 +112,8 @@ fn main() -> Result<()> {
     //let pose_map_gt_option = Some(pose_map_gt);
     let pose_map_gt_option = None;
 
+
+    //TODO: Add GT Landmarks
     let mut sfm_config_fundamental = BAConfig::new(root_id, &paths, pose_map_gt_option , camera_map, &match_map, 
         BifocalType::FUNDAMENTAL, Triangulation::STEREO, 1.0, 3e0, 5e2, 1.0, true, false); 
     
@@ -143,7 +145,7 @@ fn main() -> Result<()> {
 
     let runtime_parameters_pnp = RuntimeParameters {
         pyramid_scale: 1.0,
-        max_iterations: vec![10 as usize; 1],
+        max_iterations: vec![8e4 as usize; 1],
         eps: vec![1e-8],
         step_sizes: vec![1e0],
         max_norm_eps: 1e-30, 
@@ -151,7 +153,7 @@ fn main() -> Result<()> {
         taus: vec![1.0e0],
         lm: true,
         debug: false,
-        print: true,
+        print: false,
         show_octave_result: true,
         loss_function: Box::new(loss::TrivialLoss { eps: 1e-16, approximate_gauss_newton_matrices: false }), 
         intensity_weighting_function:  Box::new(weighting::SquaredWeight {}),
@@ -164,32 +166,35 @@ fn main() -> Result<()> {
 
     let trajectories = compute_path_id_pairs(sfm_config_fundamental.root(), sfm_config_fundamental.paths());
 
-    let trajectories = vec!(vec!((0,1),(1,2)));
+    let trajectories = vec!(vec!((0,1)));
     let (optimized_state_first, state_debug_list) = run_ba(&sfm_config_fundamental, &runtime_parameters, &trajectories);
     sfm_config_fundamental.update_state(&optimized_state_first);
 
     let cam_0_idx = optimized_state_first.get_camera_id_map().get(&0).unwrap();
     let cam_pos_0 = optimized_state_first.get_camera_positions()[*cam_0_idx];
-    let first_landmark = optimized_state_first.get_landmarks().first().unwrap();
-    let first_landmark_id = first_landmark.get_id().unwrap();
-    println!("Cam 0 state first: {}", cam_pos_0);
-    println!("Landmark state {} : {}", first_landmark_id, first_landmark.get_euclidean_representation());
-
-    let world_cam_0 = sfm_config_fundamental.abs_pose_map().get(&0).unwrap();
-    println!("Cam 0 config: {}", world_cam_0);
     let landmarks = sfm_config_fundamental.landmark_map().get(&(0,1)).unwrap();
-    let landmark_vec = landmarks.iter().filter(|l| l.get_id().unwrap() == first_landmark_id).collect::<Vec<_>>();
-    let landmark_rel = landmark_vec.first().unwrap();
+    let first_landmark = landmarks.first().unwrap();
+    let first_landmark_id = first_landmark.get_id().unwrap();
+
+    let world_cam_0 = sfm_config_fundamental.abs_pose_map().get(&0).unwrap().clone();
+    let landmark_vec = optimized_state_first.get_landmarks();
+    let landmark_rel_as_vec = landmark_vec.iter().filter(|l| l.get_id().is_some()).filter(|l| l.get_id().unwrap() == first_landmark_id).collect::<Vec<_>>().clone();
+    let landmark_rel = landmark_rel_as_vec.first().unwrap();
     let landmark_w = world_cam_0*landmark_rel.get_euclidean_representation();
-    println!("Landmark config {} : {}", landmark_rel.get_id().unwrap(), landmark_w);
+
+    println!("Cam 0 config: {}", world_cam_0);
+    println!("Cam 0 state first: {}", cam_pos_0);
+    println!("Landmark config {} : {}", first_landmark_id, first_landmark.get_euclidean_representation());
+    println!("Landmark state {} : {}", landmark_rel.get_id().unwrap(), landmark_w);
 
     //TODO: check update and check pnp generation - seems to diverge
+    //let pnp_config_cam_0 = sfm_config_fundamental.generate_pnp_config_from_cam_id(2);
     let pnp_config_cam_0 = sfm_config_fundamental.generate_pnp_config_from_cam_id(0);
     let (optimized_state_pnp_0, _) = run_pnp(&pnp_config_cam_0,&runtime_parameters_pnp);
-    sfm_config_fundamental.update_camera_state(optimized_state_pnp_0.get_camera_id_map(),optimized_state_pnp_0.get_camera_positions());
+    sfm_config_fundamental.update_state(&optimized_state_pnp_0);
 
-    let cam_pos_1 = optimized_state_pnp_0.get_camera_positions().first().unwrap();
-    println!("Cam 0 pnp: {}", cam_pos_1);
+    // let cam_pos_1 = optimized_state_pnp_0.get_camera_positions().first().unwrap();
+    // println!("Cam 0 pnp: {}", cam_pos_1);
 
     // let trajectories = vec!(vec!((1,2)));
     // let (optimized_state, state_debug_list) = run_ba(&sfm_config_fundamental, &runtime_parameters, &trajectories);
@@ -201,8 +206,13 @@ fn main() -> Result<()> {
 
 
 
-    // let cam_pos_1 = optimized_state.get_camera_positions()[1];
-    // println!("Cam 1 state second: {}", cam_pos_1);
+    let cam_pos_0 = optimized_state_pnp_0.get_camera_positions()[*cam_0_idx];
+    println!("Cam 0 state pnp: {}", cam_pos_0);
+    // let landmarks = sfm_config_fundamental.landmark_map().get(&(0,1)).unwrap();
+    // let landmark_vec = landmarks.iter().filter(|l| l.get_id().unwrap() == first_landmark_id).collect::<Vec<_>>();
+    // let landmark_rel = landmark_vec.first().unwrap();
+    // let landmark_w = world_cam_0*landmark_rel.get_euclidean_representation();
+    // println!("Landmark pnp {} : {}", landmark_rel.get_id().unwrap(), landmark_w);
 
     let state_serialized = serde_yaml::to_string(&optimized_state_pnp_0.to_serial());
     let debug_states_serialized = serde_yaml::to_string(&state_debug_list);

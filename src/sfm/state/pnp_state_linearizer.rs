@@ -2,7 +2,7 @@ extern crate nalgebra as na;
 extern crate num_traits;
 
 use std::collections::HashMap;
-use na::{convert,Vector3,Vector2, Matrix4xX, DVector, Isometry3,base::Scalar, RealField};
+use na::{convert,Vector3,Vector2, DVector, Isometry3,base::Scalar, RealField};
 use num_traits::float;
 use simba::scalar::SupersetOf;
 use crate::image::features::Feature;
@@ -10,14 +10,19 @@ use crate::sfm::{state::{State,CAMERA_PARAM_SIZE}, landmark::{Landmark, euclidea
 use crate::Float;
 
 pub fn get_euclidean_landmark_state<F: float::Float + Scalar + RealField + SupersetOf<Float>, Feat: Feature>(
-    landmarks: &Matrix4xX<Float>,
+    landmarks: &Vec<EuclideanLandmark<Float>>,
     camera_pose:  &Option<Isometry3<Float>>
 ) -> State<F, EuclideanLandmark<F>,3> {
-    let euclidean_landmarks = landmarks.column_iter().map(|c| EuclideanLandmark::from_state(Vector3::<F>::new(
-        convert(c[0]),
-        convert(c[1]),
-        convert(c[2])
-    ))).collect::<Vec<_>>();
+    let euclidean_landmarks = landmarks.iter().map(|l| {
+        let id = l.get_id();
+        assert!(id.is_some());
+        let v = l.get_state_as_vector();
+        EuclideanLandmark::from_state_with_id(Vector3::<F>::new(
+        convert(v.x),
+        convert(v.y),
+        convert(v.z)
+    ),&id)
+}).collect::<Vec<_>>();
     let initial_cam_pose_iso = match camera_pose {
         Some(pose) => convert::<Isometry3<Float>,Isometry3<F>>(pose.clone()),
         None => Isometry3::<F>::identity()

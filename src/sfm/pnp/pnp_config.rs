@@ -7,12 +7,13 @@ use std::{collections::HashMap, hash::Hash};
 use crate::image::features::{Feature, compute_linear_normalization, solver_feature::SolverFeature};
 use crate::sensors::camera::Camera;
 use crate::Float;
+use crate::sfm::landmark::euclidean_landmark::EuclideanLandmark;
 
 
 pub struct PnPConfig<C, Feat: Feature> {
     camera: C,
     camera_norm: C,
-    landmarks: Matrix4xX<Float>,
+    landmarks: Vec<EuclideanLandmark<Float>>,
     features: Vec<Feat>,
     features_norm: Vec<Feat>,
     camera_pose_option: Option<Isometry3<Float>>
@@ -22,19 +23,18 @@ impl<C: Camera<Float> + Clone, Feat: Feature + Clone + PartialEq + Eq + Hash + S
     pub fn new(
         camera: &C,
         //Indexed by landmark id
-        landmark_map: &HashMap<usize, Vector3<Float>>, //TODO: Rework so that this work with EucelideanLandmarks
+        landmark_map: &HashMap<usize, EuclideanLandmark<Float>>,
         feature_map: &HashMap<usize, Feat>,
         camera_pose_option: &Option<Isometry3<Float>>
     ) -> PnPConfig<C, Feat> {
         let keys = feature_map.keys();
-        let mut landmarks = Matrix4xX::<Float>::from_element(keys.len(),1.0);
+        let mut landmarks = Vec::<EuclideanLandmark<Float>>::with_capacity(keys.len());
         let mut features = Vec::<Feat>::with_capacity(keys.len());
-        for (i,key) in keys.enumerate() {
-            
+        for key in keys {
             let l = landmark_map.get(key).unwrap();
             let f = feature_map.get(key).unwrap();
             features.push(f.clone());
-            landmarks.fixed_view_mut::<3,1>(0, i).copy_from(l);
+            landmarks.push(l.clone());
         }
 
         let (norm, norm_inv) = compute_linear_normalization(&features);
@@ -60,7 +60,7 @@ impl<C: Camera<Float> + Clone, Feat: Feature + Clone + PartialEq + Eq + Hash + S
         &self.camera_norm
     }
 
-    pub fn get_landmarks(&self) -> &Matrix4xX<Float> {
+    pub fn get_landmarks(&self) -> &Vec<EuclideanLandmark<Float>> {
         &self.landmarks
     }
 
