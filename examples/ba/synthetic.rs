@@ -55,8 +55,8 @@ fn main() -> Result<()> {
     //let camera_id_pairs = vec!((1,2));
     //let camera_id_pairs = vec!((0,1));
     //let camera_id_pairs = vec!((0,2));
-    //let camera_id_pairs = vec!((0,1),(1,2));
-    let camera_id_pairs = vec!((0,1),(1,2),(2,3),(3,4),(4,5),(5,6));
+    let camera_id_pairs = vec!((0,1),(1,2));
+    //let camera_id_pairs = vec!((0,1),(1,2),(2,3),(3,4),(4,5),(5,6));
 
     let match_map = camera_id_pairs.iter().map(|(id1,id2)| {
         let fm_1 = feature_map.get(id1).expect("Feature map for cam id not available!");
@@ -178,14 +178,15 @@ fn main() -> Result<()> {
 
     let world_cam_0 = sfm_config_fundamental.abs_pose_map().get(&0).unwrap().clone();
     let landmark_vec = optimized_state_first.get_landmarks();
-    let landmark_rel_as_vec = landmark_vec.iter().filter(|l| l.get_id().is_some()).filter(|l| l.get_id().unwrap() == first_landmark_id).collect::<Vec<_>>().clone();
-    let landmark_rel = landmark_rel_as_vec.first().unwrap();
-    let landmark_w = world_cam_0*landmark_rel.get_euclidean_representation();
+    let landmark_world_as_vec = landmark_vec.iter().filter(|l| l.get_id().is_some()).filter(|l| l.get_id().unwrap() == first_landmark_id).collect::<Vec<_>>().clone();
+    assert_eq!(landmark_world_as_vec.len(),1);
+    let landmark_w = landmark_world_as_vec.first().unwrap();
+    let landmark_rel = world_cam_0.inverse()*landmark_w.get_euclidean_representation();
 
     println!("Cam 0 config: {}", world_cam_0);
     println!("Cam 0 state first: {}", cam_pos_0);
     println!("Landmark config {} : {}", first_landmark_id, first_landmark.get_euclidean_representation());
-    println!("Landmark state {} : {}", landmark_rel.get_id().unwrap(), landmark_w);
+    println!("Landmark state {} : {}", landmark_w.get_id().unwrap(), landmark_rel);
 
     //TODO: check update and check pnp generation - seems to diverge
     //let pnp_config_cam_0 = sfm_config_fundamental.generate_pnp_config_from_cam_id(2);

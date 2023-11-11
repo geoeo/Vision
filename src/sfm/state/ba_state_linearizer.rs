@@ -174,7 +174,6 @@ impl BAStateLinearizer {
         }
     
         camera_positions
-
     }
 
     /**
