@@ -2,7 +2,7 @@ extern crate nalgebra as na;
 extern crate num_traits;
 
 
-use na::{Vector3, Matrix4xX, Isometry3};
+use na::Isometry3;
 use std::{collections::HashMap, hash::Hash};
 use crate::image::features::{Feature, compute_linear_normalization, solver_feature::SolverFeature};
 use crate::sensors::camera::Camera;

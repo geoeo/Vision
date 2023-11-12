@@ -78,10 +78,6 @@ name = "olsson_ba"
 path = "examples/ba/olsson.rs"
 
 [[example]]
-name = "orb_ba"
-path = "examples/ba/orb_ba.rs"
-
-[[example]]
 name = "synthetic_ba"
 path = "examples/ba/synthetic.rs"
 

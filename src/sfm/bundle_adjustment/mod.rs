@@ -5,7 +5,7 @@ use crate::image::features::Feature;
 use crate::sfm::runtime_parameters::RuntimeParameters;
 use crate::sensors::camera::Camera;
 use crate::sfm::{
-    landmark::euclidean_landmark::EuclideanLandmark, sfm_config::{BAConfig,conversions::generate_abs_landmark_map},
+    landmark::euclidean_landmark::EuclideanLandmark, bundle_adjustment::ba_config::{BAConfig,conversions::generate_abs_landmark_map},
     state::{State,ba_state_linearizer::BAStateLinearizer, CAMERA_PARAM_SIZE}, 
 };
 use crate::Float;
@@ -21,6 +21,7 @@ use std::{
 use termion::input::TermRead;
 
 pub mod solver;
+pub mod ba_config;
 
 pub fn run_ba<
     'a,

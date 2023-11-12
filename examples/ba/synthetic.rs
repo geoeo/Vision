@@ -6,8 +6,7 @@ use std::collections::{HashMap, HashSet};
 use vision::{Float,load_runtime_conf};
 use vision::sfm::{
     triangulation::Triangulation,
-    sfm_config::{BAConfig,conversions::{compute_path_id_pairs,generate_abs_landmark_map}}, 
-    bundle_adjustment::run_ba, 
+    bundle_adjustment::{run_ba, ba_config::{BAConfig,conversions::compute_path_id_pairs}}, 
     epipolar::tensor::BifocalType,
     runtime_parameters::RuntimeParameters,
     pnp::run_pnp
