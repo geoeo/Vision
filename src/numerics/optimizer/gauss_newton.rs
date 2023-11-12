@@ -64,7 +64,7 @@ impl<F: SupersetOf<Float>, C : Camera<Float>, L: Landmark<F,LANDMARK_PARAM_SIZE>
         //let mut preconditioner = DMatrix::<F>::zeros(u_span,u_span); // a lot of memory - maybe use sparse format
         let two : F = convert(2.0);
 
-        println!("BA Memory Allocation Complete.");
+        println!("GN Memory Allocation Complete.");
 
         (self.get_estimated_features)(state, camera_map,observed_features, &mut estimated_features);
         (self.compute_residual)(&estimated_features, observed_features, &mut residuals);

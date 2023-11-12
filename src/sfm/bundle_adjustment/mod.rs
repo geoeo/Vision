@@ -37,23 +37,22 @@ pub fn run_ba<
     Option<Vec<(Vec<[F; 6]>, Vec<[F; 3]>)>>
 ) {
     
-    let state_linearizer = BAStateLinearizer::new(&trajectories.clone().into_iter().flatten().collect::<Vec<(usize,usize)>>());
+    let abs_landmark_map = generate_abs_landmark_map(sfm_config.root(),sfm_config.paths(),sfm_config.landmark_map(),sfm_config.abs_pose_map());
+    let paths = trajectories.clone().into_iter().flatten().collect::<Vec<(usize,usize)>>();
+    let state_linearizer = BAStateLinearizer::new(&paths,&abs_landmark_map);
 
     //TODO: switch impl on landmark state
 
     //TODO: number of unique landmarks is taken from the config. With a subset of trajectories this is no longer valid.
     //Consecuitve landmark indexing must be done here
-    let (mut state, feature_location_lookup) = state_linearizer.get_euclidean_landmark_state(
+    let (mut state, observed_features) = state_linearizer.get_euclidean_landmark_state(
+        &paths,
         sfm_config.match_norm_map(),
         sfm_config.abs_pose_map(),
-        &generate_abs_landmark_map(sfm_config.root(),sfm_config.paths(),sfm_config.landmark_map(),sfm_config.abs_pose_map()),
-        sfm_config.reprojection_error_map(),
-        sfm_config.unique_landmark_ids().len(),
+        &abs_landmark_map,
+        sfm_config.reprojection_error_map()
     );
-    let observed_features = state_linearizer.get_observed_features::<F>(
-        &feature_location_lookup,
-        sfm_config.unique_landmark_ids().len(),
-    );
+
 
     let (tx_result, rx_result) = mpsc::channel::<(State<F, EuclideanLandmark<F>, 3>,Option<Vec<(Vec<[F; CAMERA_PARAM_SIZE]>, Vec<[F; 3]>)>>)>();
     let (tx_abort, rx_abort) = mpsc::channel::<bool>();

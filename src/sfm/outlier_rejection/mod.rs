@@ -1,6 +1,6 @@
 extern crate nalgebra as na;
 
-use na::{DVector,Matrix3x4,Matrix4xX, Vector4};
+use na::{DVector,Matrix3x4,Matrix4xX};
 use crate::image::features::{matches::Match,Feature};
 use crate::sensors::camera::Camera;
 use crate::{float,Float};

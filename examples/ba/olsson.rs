@@ -3,7 +3,7 @@ extern crate nalgebra as na;
 use color_eyre::eyre::Result;
 use std::fs;
 use vision::io::olsson_loader::OlssenData;
-use vision::sfm::{triangulation::Triangulation,bundle_adjustment::ba_config::{BAConfig, conversions::{compute_path_id_pairs,compute_path_pairs_as_vec}}, bundle_adjustment::run_ba, epipolar::tensor::BifocalType};
+use vision::sfm::{triangulation::Triangulation,bundle_adjustment::ba_config::{BAConfig, conversions::compute_path_id_pairs}, bundle_adjustment::run_ba, epipolar::tensor::BifocalType};
 use vision::sfm::runtime_parameters::RuntimeParameters;
 use vision::numerics::{loss, weighting};
 use vision::load_runtime_conf;
@@ -114,7 +114,7 @@ fn main() -> Result<()> {
         println!("Key: {:?}, Pose: {:?}", key, pose)
     }
 
-    for (i,j) in compute_path_pairs_as_vec(sfm_config_fundamental.root(),sfm_config_fundamental.paths()).into_iter().flatten().collect::<Vec<_>>() {
+    for (i,j) in compute_path_id_pairs(sfm_config_fundamental.root(),sfm_config_fundamental.paths()).into_iter().flatten().collect::<Vec<_>>() {
         let im_1 = olsen_data.get_image(i);
         let im_2 = olsen_data.get_image(j);
         let matches = sfm_config_fundamental.match_map().get(&(i,j)).expect(format!("Match ({},{}) not present!",i,j).as_str());

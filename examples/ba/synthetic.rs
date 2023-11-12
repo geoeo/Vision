@@ -54,8 +54,8 @@ fn main() -> Result<()> {
     //let camera_id_pairs = vec!((1,2));
     //let camera_id_pairs = vec!((0,1));
     //let camera_id_pairs = vec!((0,2));
-    let camera_id_pairs = vec!((0,1),(1,2));
-    //let camera_id_pairs = vec!((0,1),(1,2),(2,3),(3,4),(4,5),(5,6));
+    //let camera_id_pairs = vec!((0,1),(1,2));
+    let camera_id_pairs = vec!((0,1),(1,2),(2,3),(3,4),(4,5),(5,6));
 
     let match_map = camera_id_pairs.iter().map(|(id1,id2)| {
         let fm_1 = feature_map.get(id1).expect("Feature map for cam id not available!");
@@ -206,7 +206,7 @@ fn main() -> Result<()> {
 
 
 
-    let cam_pos_0 = optimized_state_pnp_0.get_camera_positions()[*cam_0_idx];
+    let cam_pos_0 = optimized_state_pnp_0.get_camera_positions().first().unwrap();
     println!("Cam 0 state pnp: {}", cam_pos_0);
     // let landmarks = sfm_config_fundamental.landmark_map().get(&(0,1)).unwrap();
     // let landmark_vec = landmarks.iter().filter(|l| l.get_id().unwrap() == first_landmark_id).collect::<Vec<_>>();

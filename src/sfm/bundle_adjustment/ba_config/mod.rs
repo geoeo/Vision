@@ -11,7 +11,6 @@ use crate::sfm::landmark::{Landmark, euclidean_landmark::EuclideanLandmark};
 use crate::sfm::state::State;
 use crate::sfm::outlier_rejection::{
     calcualte_disparities, calculate_reprojection_errors,
-    compute_continuous_landmark_ids_from_matches,
     compute_continuous_landmark_ids_from_unique_landmarks, filter_by_rejected_landmark_ids,
     reject_landmark_outliers, reject_matches_via_disparity,
 };
@@ -24,7 +23,7 @@ use crate::sfm::{
     pnp::pnp_config::PnPConfig
 };
 use crate::{float, Float};
-use na::{DVector, Isometry3, Matrix3, Matrix4, Vector3, Matrix4xX};
+use na::{DVector, Isometry3, Matrix3, Matrix4, Matrix4xX};
 use std::{
     collections::{HashMap, HashSet},
     hash::Hash,
@@ -68,12 +67,13 @@ impl<C: Camera<Float> + Clone, Feat: Feature + Clone + PartialEq + Eq + Hash + S
         refine_rotation_via_rcd: bool,
         run_outlier_detection_pipeline: bool,
     ) -> BAConfig<C, Feat> {
-        let paths_pairs_as_vec = conversions::compute_path_pairs_as_vec(root, paths);
+        let paths_pairs = conversions::compute_path_id_pairs(root, paths);
+        let path_id_pairs_flat = paths_pairs.iter().flatten().collect::<Vec<_>>();
         let camera_ids_root_first = Self::get_sorted_camera_keys(root, paths);
 
         //TODO: Compute Image Score for later filtering
         let matches_with_tracks =
-            Self::filter_by_max_tracks(&paths_pairs_as_vec, &match_map_initial);
+            Self::filter_by_max_tracks(&paths_pairs, &match_map_initial);
         assert!(!Self::check_for_duplicate_pixel_entries(
             &matches_with_tracks
         ));
@@ -111,13 +111,7 @@ impl<C: Camera<Float> + Clone, Feat: Feature + Clone + PartialEq + Eq + Hash + S
                 epipolar_alg,
             ),
         };
-        let (_, mut unique_landmark_ids) = compute_continuous_landmark_ids_from_matches(
-            &mut match_norm_map,
-            &mut match_map,
-            None,
-            None,
-        );
-
+ 
         let (mut landmark_map, mut reprojection_error_map) =
             Self::compute_landmarks_and_reprojection_maps(
                 root,
@@ -127,9 +121,10 @@ impl<C: Camera<Float> + Clone, Feat: Feature + Clone + PartialEq + Eq + Hash + S
                 &camera_norm_map,
                 triangulation,
             );
-        let path_id_pairs = conversions::compute_path_id_pairs(root, paths);
-        let path_id_pairs_flat = path_id_pairs.iter().flatten().collect::<Vec<_>>();
-        let mut abs_pose_map = conversions::compute_absolute_poses_for_root(root, &path_id_pairs, &pose_map);
+
+        let mut unique_landmark_ids = landmark_map.values().map(|l_vec| l_vec).flatten().map(|l| l.get_id().expect("No id")).collect::<HashSet<_>>();
+
+        let mut abs_pose_map = conversions::compute_absolute_poses_for_root(root, &paths_pairs, &pose_map);
 
         let (min_reprojection_error_initial, max_reprojection_error_initial) =
             Self::compute_reprojection_ranges(&reprojection_error_map);
@@ -154,7 +149,7 @@ impl<C: Camera<Float> + Clone, Feat: Feature + Clone + PartialEq + Eq + Hash + S
                     .get(&root)
                     .expect("Root Cam missing")
                     .get_focal_x(); // rougly 5 pixels //TODO expose this
-                                    //Self::filter_outliers_by_dual(tol,&camera_ids_root_first,&mut unique_landmark_ids,&mut abs_pose_map,&mut abs_landmark_map,&mut match_norm_map,&mut match_map, &mut landmark_map, &mut reprojection_error_map);
+
             Self::filter_outliers_by_dual_pairwise(
                 tol,
                 &path_id_pairs_flat,
@@ -214,14 +209,6 @@ impl<C: Camera<Float> + Clone, Feat: Feature + Clone + PartialEq + Eq + Hash + S
                 Self::compute_reprojection_ranges(&reprojection_error_map);
             println!("After Rotation: SFM Config Max Reprojection Error 2): {}, Min Reprojection Error: {}", max_reprojection_error_refined, min_reprojection_error_refined);
         }
-
-        // Since landmarks may be rejected, this function recomputes the ids to be consecutive so that they may be used for matrix indexing.
-        let (_, unique_landmark_ids) = compute_continuous_landmark_ids_from_matches(
-            &mut match_norm_map,
-            &mut match_map,
-            Some(&unique_landmark_ids),
-            None,
-        );
 
         BAConfig {
             root,
@@ -362,23 +349,23 @@ impl<C: Camera<Float> + Clone, Feat: Feature + Clone + PartialEq + Eq + Hash + S
         let match_map_for_cam_pairs = pairs_with_cam_id.iter().map(|k| (k, self.match_map.get(k).expect("Feature map could no be found"))).collect::<Vec<_>>();
         let abs_landmark_map_for_cam_pairs = pairs_with_cam_id.iter().map(|k| abs_landmark_map.get(k).expect("Feature map could no be found")).collect::<Vec<_>>();
 
-        let number_of_landmarks = abs_landmark_map_for_cam_pairs.iter().map(|m| m.ncols()).sum();
+        let number_of_landmarks = abs_landmark_map_for_cam_pairs.iter().map(|m| m.len()).sum();
         let number_of_matches: usize = match_map_for_cam_pairs.iter().map(|(_,v)| v.len()).sum();
 
         let mut landmark_map_by_landmark_id = HashMap::<usize,EuclideanLandmark<Float>>::with_capacity(number_of_landmarks);
         let mut feature_map_by_landmark_id = HashMap::<usize, Feat>::with_capacity(number_of_matches);
 
-        for ((k, ms), l_mat) in match_map_for_cam_pairs.iter().zip(abs_landmark_map_for_cam_pairs.iter()) {
+        for ((k, ms), landmarks) in match_map_for_cam_pairs.iter().zip(abs_landmark_map_for_cam_pairs.iter()) {
             match k {
                 (id1, _) if *id1 == cam_id => {
                     for i in 0..ms.len() {
                         let m = &ms[i];
                         let f = m.get_feature_one();
                         let id = m.get_landmark_id().expect("Match with no landmark id!");
-                        let l = l_mat.column(i);
+                        let l = landmarks[i];
 
                         feature_map_by_landmark_id.insert(id,f.clone());
-                        landmark_map_by_landmark_id.insert(id, EuclideanLandmark::from_state_with_id(Vector3::<Float>::new(l.x,l.y,l.z), &Some(id)));
+                        landmark_map_by_landmark_id.insert(id, EuclideanLandmark::from_state_with_id(l.get_euclidean_representation().coords, &Some(id)));
                     }
 
                 },
@@ -387,10 +374,10 @@ impl<C: Camera<Float> + Clone, Feat: Feature + Clone + PartialEq + Eq + Hash + S
                         let m = &ms[i];
                         let f = m.get_feature_two();
                         let id = m.get_landmark_id().expect("Match with no landmark id!");
-                        let l = l_mat.column(i);
+                        let l = landmarks[i];
                         
                         feature_map_by_landmark_id.insert(id,f.clone());
-                        landmark_map_by_landmark_id.insert(id, EuclideanLandmark::from_state_with_id(Vector3::<Float>::new(l.x,l.y,l.z), &Some(id)));
+                        landmark_map_by_landmark_id.insert(id, EuclideanLandmark::from_state_with_id(l.get_euclidean_representation().coords, &Some(id)));
                     }
                 },
                 _ => panic!("Invalid key for pnp generation")
@@ -468,7 +455,7 @@ impl<C: Camera<Float> + Clone, Feat: Feature + Clone + PartialEq + Eq + Hash + S
         let mut reprojection_map =
             HashMap::<(usize, usize), DVector<Float>>::with_capacity(match_map.len());
 
-        let path_pairs = conversions::compute_path_pairs_as_vec(root, paths);
+        let path_pairs = conversions::compute_path_id_pairs(root, paths);
         for path in &path_pairs {
             for path_pair in path {
 
@@ -533,7 +520,7 @@ impl<C: Camera<Float> + Clone, Feat: Feature + Clone + PartialEq + Eq + Hash + S
     ) -> HashMap<(usize, usize), DVector<Float>> {
         let mut disparity_map =
             HashMap::<(usize, usize), DVector<Float>>::with_capacity(match_map.len());
-        let path_pairs = conversions::compute_path_pairs_as_vec(root, paths);
+        let path_pairs = conversions::compute_path_id_pairs(root, paths);
         for path in &path_pairs {
             for path_pair in path {
                 let ms = match_map.get(path_pair).expect(
