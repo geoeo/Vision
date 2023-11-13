@@ -45,7 +45,6 @@ pub struct BAConfig<C, Feat: Feature> {
     abs_pose_map: HashMap<usize, Isometry3<Float>>, // World is the root id
     landmark_map: HashMap<(usize, usize), Vec<EuclideanLandmark<Float>>>,
     reprojection_error_map: HashMap<(usize, usize), DVector<Float>>,
-    unique_landmark_ids: HashSet<usize>,
     triangulation: Triangulation,
 }
 
@@ -221,7 +220,6 @@ impl<C: Camera<Float> + Clone, Feat: Feature + Clone + PartialEq + Eq + Hash + S
             pose_map,
             landmark_map,
             reprojection_error_map,
-            unique_landmark_ids,
             triangulation,
         }
     }
@@ -256,8 +254,8 @@ impl<C: Camera<Float> + Clone, Feat: Feature + Clone + PartialEq + Eq + Hash + S
     pub fn reprojection_error_map(&self) -> &HashMap<(usize, usize), DVector<Float>> {
         &self.reprojection_error_map
     }
-    pub fn unique_landmark_ids(&self) -> &HashSet<usize> {
-        &self.unique_landmark_ids
+    pub fn unique_landmark_ids(&self) -> HashSet<usize> {
+        self.landmark_map.values().map(|l_vec| l_vec).flatten().map(|l| l.get_id().expect("No id")).collect::<HashSet<_>>()
     }
     pub fn landmark_map(&self) -> &HashMap<(usize,usize), Vec<EuclideanLandmark<Float>>> {
         &self.landmark_map
@@ -298,11 +296,11 @@ impl<C: Camera<Float> + Clone, Feat: Feature + Clone + PartialEq + Eq + Hash + S
     pub fn 
     update_landmark_state(&mut self, cam_id_1: &usize, cam_id_2: &usize,  new_world_landmarks: &Vec<EuclideanLandmark<Float>>) -> () {
         let key = (*cam_id_1,*cam_id_2);
-        let relative_landmarks = self.landmark_map.get(&key).expect("No Landmarks found");
+        let current_relative_landmarks = self.landmark_map.get(&key).expect("No Landmarks found");
         let pose_world_cam_1 = self.abs_pose_map.get(&cam_id_1).expect("No cam pose");
         let pose_cam_1_world = pose_world_cam_1.inverse();
         let new_relative_landmark_map = new_world_landmarks.iter().filter(|l| l.get_id().is_some()).map(|l|(l.get_id().unwrap(), l.transform_into_other_camera_frame(&pose_cam_1_world))).collect::<HashMap<_,_>>();
-        let mut new_relative_landmarks = relative_landmarks.clone();
+        let mut new_relative_landmarks = current_relative_landmarks.clone();
         for l in new_relative_landmarks.iter_mut() {
             if l.get_id().is_some_and(|id| new_relative_landmark_map.contains_key(&id)) {
                 let id = l.get_id().unwrap();
@@ -310,14 +308,23 @@ impl<C: Camera<Float> + Clone, Feat: Feature + Clone + PartialEq + Eq + Hash + S
                 l.set_landmark(&new_landmark.get_euclidean_representation().coords);
             }
         }
-        let number_of_new_landmarks = new_relative_landmarks.len();
 
+
+        //sanity check if the landmarks are consistent
+        assert!(new_relative_landmarks.iter().zip(current_relative_landmarks.iter()).map(|(new,old)| {
+            match (new.get_id(), old.get_id()) {
+                (Some(v_new), Some(v_cur)) => v_new == v_cur,
+                _ => false
+            }
+        }).all(|v| v));
+
+        let number_of_landmarks = new_relative_landmarks.len();
 
         let cam_1 = self.camera_norm_map.get(cam_id_1).expect("Cam id 1 not found");
         let cam_2 = self.camera_norm_map.get(cam_id_2).expect("Cam id 2 not found");
         let ms = self.match_norm_map.get(&key).expect("Matches not found");
         let transform_c2 = self.pose_map.get(&key).expect("No cam pose").inverse();
-        let mut landmarks_as_matrix = Matrix4xX::<Float>::from_element(number_of_new_landmarks, 1.0);
+        let mut landmarks_as_matrix = Matrix4xX::<Float>::from_element(number_of_landmarks, 1.0);
 
         for i in 0..new_relative_landmarks.len(){
             let l = new_relative_landmarks[i].get_state_as_vector();
@@ -326,21 +333,31 @@ impl<C: Camera<Float> + Clone, Feat: Feature + Clone + PartialEq + Eq + Hash + S
             landmarks_as_matrix[(2,i)] = l.z;
         }
 
-        let reprojection_errors = calculate_reprojection_errors(
-            &landmarks_as_matrix,
+        let mut new_reprojection_errors = calculate_reprojection_errors(
+            &landmarks_as_matrix, 
             ms,
             &Matrix4::<Float>::identity().fixed_view::<3, 4>(0, 0).into_owned(),
             cam_1,
             &transform_c2.to_matrix().fixed_view::<3, 4>(0, 0).into_owned(),
             cam_2,
         );
-        
+
+        let current_reprojection_errors = self.reprojection_error_map.get(&key).unwrap();
+        let deltas = &new_reprojection_errors - current_reprojection_errors;
+
+        for i in 0..number_of_landmarks {
+            let delta = deltas[i];
+            if delta > 0.0 {
+                new_reprojection_errors[i] = current_reprojection_errors[i];
+                new_relative_landmarks[i] = current_relative_landmarks[i];
+            }
+        }
+
         self.landmark_map.insert(key, new_relative_landmarks);
-        self.reprojection_error_map.insert(key, reprojection_errors);
+        self.reprojection_error_map.insert(key, new_reprojection_errors);
 
     }
 
-    //TODO: Rework this for trajectories which are a subset the given paths - also in conjunction with update state
     pub fn generate_pnp_config_from_cam_id(&self, cam_id: usize) -> PnPConfig<C,Feat> {
         let camera = self.camera_map.get(&cam_id).expect("Camera not found in generate_pnp_config_from_cam_id");
         let camera_pose = self.abs_pose_map.get(&cam_id).expect("Camera pose not found in generate_pnp_config_from_cam_id");
