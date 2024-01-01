@@ -305,7 +305,7 @@ impl<C: Camera<Float> + Clone, Feat: Feature + Clone + PartialEq + Eq + Hash + S
             if l.get_id().is_some_and(|id| new_relative_landmark_map.contains_key(&id)) {
                 let id = l.get_id().unwrap();
                 let new_landmark = new_relative_landmark_map.get(&id).unwrap();
-                l.set_landmark(&new_landmark.get_euclidean_representation().coords);
+                l.set_state(&new_landmark.get_euclidean_representation().coords);
             }
         }
 

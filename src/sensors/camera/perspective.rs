@@ -1,7 +1,6 @@
 extern crate nalgebra as na;
 
-use na::{convert,U1,U3, Matrix2x3,Matrix3, Vector, Vector3, base::storage::Storage, SimdRealField,base::Scalar,ComplexField};
-use num_traits::{float,NumAssign,Signed};
+use na::{convert,U1,U3, Matrix2x3,Matrix3, Vector, Vector3, base::storage::Storage, RealField,base::Scalar};
 use simba::scalar::{SubsetOf,SupersetOf};
 use crate::image::features::geometry::point::Point;
 use crate::sensors::camera::Camera; 
@@ -9,13 +8,13 @@ use crate::sensors::camera::Camera;
 const IDENTITY_EPS: f32 = 1e-12f32;
 
 #[derive(Copy,Clone)]
-pub struct Perspective<F: float::Float + Scalar + NumAssign + SimdRealField> {
+pub struct Perspective<F: Scalar + RealField + Copy> {
     pub projection: Matrix3<F>,
     pub inverse_projection: Matrix3<F>
 }
 
  //@TODO: unify principal distance into enum
-impl<F: float::Float + Scalar + NumAssign + SimdRealField + ComplexField + Signed> Perspective<F> {
+impl<F: Scalar + RealField + Copy> Perspective<F> {
     pub fn new(fx: F, fy: F, cx: F, cy: F, s: F, invert_focal_length: bool) -> Perspective<F> {
        let factor = match invert_focal_length {
            true => -F::one(),
@@ -65,12 +64,12 @@ impl<F: float::Float + Scalar + NumAssign + SimdRealField + ComplexField + Signe
         self.projection[(0,1)]
     }
 
-    pub fn cast<F2: num_traits::float::Float + Scalar + NumAssign + SimdRealField + ComplexField + Signed + SubsetOf<F> + SupersetOf<F>>(&self) -> Perspective<F2> {
+    pub fn cast<F2: Scalar + RealField + Copy + SubsetOf<F> + SupersetOf<F>>(&self) -> Perspective<F2> {
         Perspective::<F2>::new(convert(self.get_fx()),convert(self.get_fy()),convert(self.get_cx()),convert(self.get_cy()),convert(self.get_s()),false)
     }
 }
 
-impl<F: float::Float + Scalar + NumAssign + SimdRealField +  ComplexField + Signed> Camera<F> for Perspective<F> {
+impl<F: Scalar + RealField + Copy> Camera<F> for Perspective<F> {
 
     fn from_matrices(projection: &Matrix3<F>, inverse_projection: &Matrix3<F>) -> Self {
         Perspective{projection: projection.clone(), inverse_projection: inverse_projection.clone()}
@@ -84,7 +83,7 @@ impl<F: float::Float + Scalar + NumAssign + SimdRealField +  ComplexField + Sign
         self.inverse_projection
     }
 
-    fn get_jacobian_with_respect_to_position_in_camera_frame<T, F2: float::Float + Scalar + SupersetOf<F>>(&self, position: &Vector<F2,U3,T>) -> Option<Matrix2x3<F2>> where T: Storage<F2,U3,U1> {
+    fn get_jacobian_with_respect_to_position_in_camera_frame<T, F2: Scalar + RealField + Copy + SupersetOf<F>>(&self, position: &Vector<F2,U3,T>) -> Option<Matrix2x3<F2>> where T: Storage<F2,U3,U1> {
         let x = position[0];
         let y = position[1];
         let z = position[2];
@@ -103,7 +102,7 @@ impl<F: float::Float + Scalar + NumAssign + SimdRealField +  ComplexField + Sign
         }
     }
 
-    fn project<T, F2: float::Float + Scalar + SupersetOf<F> + SimdRealField>(&self, position: &Vector<F2,U3,T>) -> Option<Point<F2>> where T: Storage<F2,U3,U1> {
+    fn project<T, F2: Scalar + SupersetOf<F> + RealField + Copy>(&self, position: &Vector<F2,U3,T>) -> Option<Point<F2>> where T: Storage<F2,U3,U1> {
         let z = position[2];
         match z {
             z if z.abs() > F2::zero() => {

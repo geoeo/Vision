@@ -2,16 +2,15 @@ extern crate nalgebra as na;
 extern crate num_traits;
 
 use na::{Isometry3, Point3, Vector3,SVector, SMatrix, RealField, base::Scalar};
-use num_traits::{float,NumAssign};
 use crate::sfm::landmark::Landmark;
 
 #[derive(Copy,Clone)]
-pub struct EuclideanLandmark<F: float::Float + Scalar + RealField> {
+pub struct EuclideanLandmark<F:  Scalar + RealField + Copy> {
     state: Point3<F>,
     id: Option<usize>
 }
 
-impl<F: float::Float + Scalar + NumAssign + RealField> Landmark<F,3> for EuclideanLandmark<F> {
+impl<F: Scalar  + RealField + Copy> Landmark<F,3> for EuclideanLandmark<F> {
 
     fn from_state_with_id(state: SVector<F,3>, id: &Option<usize>) -> EuclideanLandmark<F> {
         EuclideanLandmark{state: Point3::<F>::from(state), id: *id}
@@ -25,8 +24,8 @@ impl<F: float::Float + Scalar + NumAssign + RealField> Landmark<F,3> for Euclide
         self.state.coords += perturb;
     }
 
-    fn set_landmark(&mut self, l :&SVector<F,3>) -> () {
-        self.state = Point3::<F>::new(l.x,l.y,l.z);
+    fn set_state(&mut self, state :&SVector<F,3>) -> () {
+        self.state = Point3::<F>::new(state.x,state.y,state.z);
     }
 
     fn get_euclidean_representation(&self) -> Point3<F> {
