@@ -122,7 +122,7 @@ where
         }
     }
 
-    fn compute_jacobian_wrt_object_points(
+    fn compute_jacobian_wrt_scene_points(
         camera: &C,
         state: &State<F, L, LANDMARK_PARAM_SIZE>,
         cam_idx: usize,
@@ -200,7 +200,7 @@ where
                     column_cam,
                     jacobian,
                 );
-                Self::compute_jacobian_wrt_object_points(
+                Self::compute_jacobian_wrt_scene_points(
                     camera,
                     state,
                     column_cam,

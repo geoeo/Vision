@@ -57,7 +57,7 @@ where
     fn get_estimated_features(
         state: &State<F, L, LANDMARK_PARAM_SIZE>,
         camera_map: &HashMap<usize, C>,
-        observed_features: &DVector<F>, //TODO: remove this
+        _: &DVector<F>, //TODO: remove this
         estimated_features: &mut DVector<F>,
     ) -> () {
         let n_cams = state.n_cams;
@@ -84,7 +84,7 @@ where
                 let estimated_feature =
                     camera.project(&transformed_points.fixed_view::<3, 1>(0, j));
 
-                let feat_id = Self::get_feature_index_in_residual(i, j, n_cams);
+                let feat_id = Self::get_feature_index_in_residual(j);
                 match estimated_feature {
                     Some(est) => {
                         estimated_features[feat_id] = est.x;
@@ -97,7 +97,7 @@ where
     }
 
     //TODO: ncams is unneccessary
-    fn get_feature_index_in_residual(cam_id: usize, feature_id: usize, n_cams: usize) -> usize {
+    fn get_feature_index_in_residual(feature_id: usize) -> usize {
         2 * feature_id
     }
 
@@ -155,7 +155,7 @@ where
             //landmark
             for point_id in 0..state.n_points {
                 let point = state.get_landmarks()[point_id].get_euclidean_representation();
-                let row = Self::get_feature_index_in_residual(cam_id, point_id, state.n_cams);
+                let row = Self::get_feature_index_in_residual(point_id);
 
                 Self::compute_jacobian_wrt_camera_extrinsics(
                     camera,
