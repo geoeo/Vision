@@ -11,7 +11,6 @@ use crate::sfm::{
 };
 use crate::Float;
 use na::{base::Scalar, RealField};
-use simba::scalar::SupersetOf;
 use std::{
     hash::Hash,
     marker::{Send, Sync},
@@ -25,7 +24,7 @@ pub mod ba_config;
 
 pub fn run_ba<
     'a,
-    F: serde::Serialize + Scalar + RealField + SupersetOf<Float> + Copy + num_traits::Float,
+    F: serde::Serialize + Scalar + RealField + Copy + num_traits::Float,
     C: Camera<Float> + Copy + Send + Sync +'a + 'static,
     Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFeature
 >(

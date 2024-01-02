@@ -2,12 +2,11 @@ extern crate nalgebra as na;
 
 use std::collections::HashMap;
 use na::{convert,Vector3,Vector2, DVector, Isometry3,base::Scalar, RealField};
-use simba::scalar::SupersetOf;
 use crate::image::features::Feature;
 use crate::sfm::{state::{State,CAMERA_PARAM_SIZE}, landmark::{Landmark, euclidean_landmark::EuclideanLandmark}};
 use crate::Float;
 
-pub fn get_euclidean_landmark_state<F: Scalar + RealField + SupersetOf<Float> + Copy, Feat: Feature>(
+pub fn get_euclidean_landmark_state<F: Scalar + RealField + Copy, Feat: Feature>(
     landmarks: &Vec<EuclideanLandmark<Float>>,
     camera_pose:  &Option<Isometry3<Float>>
 ) -> State<F, EuclideanLandmark<F>,3> {
@@ -34,7 +33,7 @@ pub fn get_euclidean_landmark_state<F: Scalar + RealField + SupersetOf<Float> + 
     State::new(initial_cam_pose, euclidean_landmarks, &HashMap::from([(0, 0)]), 1, number_of_landmarks)
 }
 
-pub fn get_observed_features<F: Scalar + RealField + SupersetOf<Float>, Feat: Feature>(features: &Vec<Feat>) -> DVector<F> {
+pub fn get_observed_features<F: Scalar + RealField, Feat: Feature>(features: &Vec<Feat>) -> DVector<F> {
     let mut observed_features = DVector::zeros(2*features.len());
     for (i,f) in features.iter().enumerate() {
         let orig = f.get_as_2d_point();
