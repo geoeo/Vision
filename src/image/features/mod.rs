@@ -1,6 +1,6 @@
 use nalgebra as na;
 
-use na::{Vector2,Vector3,Matrix3};
+use na::{Vector2,Vector3,Matrix3,Scalar, RealField};
 use crate::{Float,float};
 use crate::image::Image;
 use crate::image::filter::{prewitt_kernel::PrewittKernel,gradient_convolution_at_sample};
@@ -38,11 +38,18 @@ pub trait Feature {
         Vector2::<Float>::new(self.get_x_image_float(), self.get_y_image_float())
     }
     /**
-     * Gets the camera ray for image points which are assumed to be opposite of the principal plane 
-     * TODO: make everything along positive principal distance
+     * Gets the camera ray for image points
      */
     fn get_camera_ray(&self, inverse_intrinsics: &Matrix3<Float>) -> Vector3<Float> {
-        -1.0*inverse_intrinsics*Vector3::<Float>::new(self.get_x_image_float(), self.get_y_image_float(),1.0) 
+        inverse_intrinsics*Vector3::<Float>::new(self.get_x_image_float(), self.get_y_image_float(),1.0) 
+    }
+
+    /**
+     * Gets the camera ray for image points which are defined in the coordiante system by Photogrammetic Computer Vision 
+     */
+    fn get_camera_ray_photogrammetric(&self, inverse_intrinsics: &Matrix3<Float>) -> Vector3<Float> {
+        let ray = self.get_camera_ray(inverse_intrinsics);
+        Vector3::<Float>::new(ray[0],-ray[1],-ray[2])
     }
     fn apply_normalisation(&self, norm: &Matrix3<Float>, depth: Float) -> Self;
     fn get_landmark_id(&self) -> Option<usize>;

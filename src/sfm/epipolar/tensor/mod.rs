@@ -174,8 +174,8 @@ pub fn decompose_essential_förstner<T : Feature>(
         let mut v_sign = 0.0;
         let mut u_sign = 0.0;
         for m in matches {
-            let f_start = m.get_feature_one().get_camera_ray(&inverse_camera_matrix_start);
-            let f_finish = m.get_feature_two().get_camera_ray(&inverse_camera_matrix_finish);
+            let f_start = m.get_feature_one().get_camera_ray_photogrammetric(&inverse_camera_matrix_start);
+            let f_finish = m.get_feature_two().get_camera_ray_photogrammetric(&inverse_camera_matrix_finish);
 
             let binormal = ((h.cross_matrix()*f_start).cross_matrix()*h).normalize();
             let mat = Matrix3::<Float>::from_columns(&[h,binormal,f_start.cross_matrix()*R.transpose()*f_finish]);
@@ -211,7 +211,7 @@ pub fn decompose_essential_förstner<T : Feature>(
     }
 
     let iso3_option = match (translation, rotation) {
-        (Some(t), Some(r)) => Some(isometry3(&t,&r)),
+        (Some(t), Some(r)) =>  Some(isometry3(&t,&r)),
         _ => None,
     };
     

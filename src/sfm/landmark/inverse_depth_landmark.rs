@@ -3,8 +3,8 @@ extern crate num_traits;
 
 use na::{Vector3,Vector6,Matrix3x6, Isometry3, Point3,SVector, SMatrix,Matrix3, RealField,base::Scalar};
 
+use crate::image::features::Feature;
 use crate::sfm::landmark::Landmark;
-use crate::image::features::geometry::point::Point;
 use crate::sensors::camera::Camera;
 
 #[derive(Copy,Clone)]
@@ -104,7 +104,10 @@ impl<F: Scalar + RealField + Copy> Landmark<F, 6> for InverseLandmark<F> {
 }
 
 impl<F: Scalar + RealField + Copy> InverseLandmark<F> {
-    pub fn new<C: Camera<F>>(cam_to_world: &Isometry3<F>, image_coords: &Point<F>, inverse_depth_prior: F, camera: &C) -> InverseLandmark<F> {
+    pub fn new<C: Camera<F>, Feat: Feature>(cam_to_world: &Isometry3<F>, feature: Feat, inverse_depth_prior: F, camera: &C) -> InverseLandmark<F> {
+        let camera_pos = cam_to_world.translation.vector;
+        //let inv_projection = camera.get_inverse_projection()
+        //let camera_ray_world = cam_to_world.rotation*feature.get_camera_ray(&);
         panic!("TODO");
     }
 
