@@ -1,6 +1,4 @@
 extern crate nalgebra as na;
-extern crate num_traits;
-
 
 use na::Isometry3;
 use std::{collections::HashMap, hash::Hash};

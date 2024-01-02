@@ -1,5 +1,4 @@
 extern crate nalgebra as na;
-extern crate num_traits;
 
 use na::{Isometry3, Point3, Vector3,SVector, SMatrix, RealField, base::Scalar};
 use crate::sfm::landmark::Landmark;

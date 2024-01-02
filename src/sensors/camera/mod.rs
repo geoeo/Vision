@@ -1,5 +1,4 @@
 extern crate nalgebra as na;
-extern crate num_traits;
 extern crate simba;
 
 use na::{U1,U3,Vector,Vector3,Matrix2x3,Matrix3,Matrix3x4,Matrix4, base::storage::Storage, RealField,base::Scalar};

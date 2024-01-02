@@ -1,6 +1,3 @@
-extern crate nalgebra as na;
-extern crate num_traits;
-
 pub mod bundle_adjustment;
 pub mod landmark;
 pub mod epipolar;

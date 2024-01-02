@@ -1,5 +1,4 @@
 extern crate nalgebra as na;
-extern crate num_traits;
 
 use crate::image::features::{
     compute_linear_normalization, feature_track::FeatureTrack, matches::Match,

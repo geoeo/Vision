@@ -1,9 +1,8 @@
 extern crate nalgebra as na;
 
-use na::{Vector,Vector3,Vector6,Matrix3,Matrix3x6,Matrix, Matrix4,U3,U1,base::storage::Storage, convert, SimdRealField, ComplexField,base::Scalar, RealField};
-use num_traits::{float,NumAssign};
+use na::{Vector,Vector3,Vector6,Matrix3,Matrix3x6,Matrix, Matrix4,U3,U1,base::storage::Storage, convert,base::Scalar, RealField};
 
-pub fn vector_from_skew_symmetric<F>(w_x: &Matrix3<F>) -> Vector3<F> where F : float::Float + Scalar + NumAssign + RealField + SimdRealField + ComplexField {
+pub fn vector_from_skew_symmetric<F>(w_x: &Matrix3<F>) -> Vector3<F> where F :  Scalar + RealField + Copy {
     Vector3::<F>::new(w_x[(2,1)],w_x[(0,2)],w_x[(1,0)])
 }
 
@@ -13,7 +12,7 @@ pub fn vector_from_skew_symmetric<F>(w_x: &Matrix3<F>) -> Vector3<F> where F : f
 pub fn left_jacobian_around_identity<F, T>(transformed_position: &Vector<F,U3,T>) -> Matrix3x6<F> 
     where 
     T: Storage<F,U3,U1>, 
-    F : float::Float + Scalar + NumAssign + RealField + SimdRealField + ComplexField {
+    F : Scalar + RealField {
     let skew_symmetrix = &(-transformed_position).cross_matrix();
     let mut jacobian = Matrix3x6::<F>::new(
         F::one(), F::zero(), F::zero(), F::zero(), F::zero(), F::zero(),
@@ -30,14 +29,14 @@ pub fn left_jacobian_around_identity<F, T>(transformed_position: &Vector<F,U3,T>
 
 //Improvement: taylor expansion
 #[allow(non_snake_case)]
-pub fn exp_se3<F, T>(u: &Vector<F,U3,T>, w: &Vector<F,U3,T>) -> Matrix4<F> where T: Storage<F,U3,U1>, F : float::Float + Scalar + NumAssign + RealField + SimdRealField + ComplexField {
-    let omega = float::Float::sqrt((w.transpose()*w)[0]);
-    let omega_sqr = float::Float::powi(omega,2);
+pub fn exp_se3<F, T>(u: &Vector<F,U3,T>, w: &Vector<F,U3,T>) -> Matrix4<F> where T: Storage<F,U3,U1>, F : Scalar  + RealField + Copy{
+    let omega = (w.transpose()*w)[0].sqrt();
+    let omega_sqr = omega.powi(2);
 
     let (A,B,C) = match omega {
         omega if omega != F::zero() => {
-            let A = float::Float::sin(omega)/omega;
-            (A,(F::one() - float::Float::cos(omega))/omega_sqr, (F::one() - A)/omega_sqr)
+            let A = omega.sin()/omega;
+            (A,(F::one() - omega.cos())/omega_sqr, (F::one() - A)/omega_sqr)
         },
         _ => (F::one(),F::one(),F::one())
     };
@@ -61,14 +60,14 @@ pub fn exp_se3<F, T>(u: &Vector<F,U3,T>, w: &Vector<F,U3,T>) -> Matrix4<F> where
 
 //TODO: reuse exp_r in exp
 #[allow(non_snake_case)]
-pub fn exp_so3<F,T>(w: &Vector<F,U3,T>) -> Matrix3<F> where T: Storage<F,U3,U1>, F : float::Float + Scalar + NumAssign + RealField + SimdRealField + ComplexField {
-    let omega = float::Float::sqrt((w.transpose()*w)[0]);
+pub fn exp_so3<F,T>(w: &Vector<F,U3,T>) -> Matrix3<F> where T: Storage<F,U3,U1>, F : Scalar + RealField + Copy{
+    let omega = (w.transpose()*w)[0].sqrt();
 
     match omega {
         omega if omega != F::zero() => {
-            let omega_sqr = float::Float::powi(omega,2);
-            let A = float::Float::sin(omega)/omega;
-            let B = (F::one() - float::Float::cos(omega))/omega_sqr;
+            let omega_sqr = omega.powi(2);
+            let A = omega.sin()/omega;
+            let B = (F::one() - omega.cos())/omega_sqr;
         
             let w_x = w.cross_matrix();
             let w_x_sqr = w_x*w_x;
@@ -82,12 +81,12 @@ pub fn exp_so3<F,T>(w: &Vector<F,U3,T>) -> Matrix3<F> where T: Storage<F,U3,U1>,
 
 // Improvement: taylor expansion
 #[allow(non_snake_case)]
-pub fn ln_SO3<F, T>(R: &Matrix<F,U3,U3,T>) -> Matrix3<F> where T: Storage<F,U3,U3>, F : float::Float + Scalar + NumAssign + RealField + SimdRealField + ComplexField {
+pub fn ln_SO3<F, T>(R: &Matrix<F,U3,U3,T>) -> Matrix3<F> where T: Storage<F,U3,U3>, F : Scalar + RealField + Copy{
     let two: F = convert(2.0);
-    let omega = float::Float::acos((R.trace() -F::one())/two);
+    let omega = ((R.trace() -F::one())/two).acos();
     match omega {
         omega if omega != F::zero() => {
-            let factor = omega/(two*float::Float::sin(omega));
+            let factor = omega/(two*omega.sin());
             (R-R.transpose()).scale(factor)
         }
         _ => Matrix3::<F>::identity()
@@ -95,15 +94,15 @@ pub fn ln_SO3<F, T>(R: &Matrix<F,U3,U3,T>) -> Matrix3<F> where T: Storage<F,U3,U
 }
 
 #[allow(non_snake_case)]
-pub fn ln<F>(se3: &Matrix4<F>) -> Vector6<F> where F : float::Float + Scalar + NumAssign + RealField + SimdRealField + ComplexField {
+pub fn ln<F>(se3: &Matrix4<F>) -> Vector6<F> where F :Scalar  + RealField + Copy {
     let w_x = ln_SO3(&se3.fixed_view::<3,3>(0,0));
     let w_x_sqr = w_x*w_x;
     let two: F = convert(2.0);
     let w = vector_from_skew_symmetric(&w_x);
     let omega_sqrd = (w.transpose()*w)[0];
-    let omega = float::Float::sqrt(omega_sqrd);
-    let A = float::Float::sin(omega)/omega;
-    let B = (F::one() - float::Float::cos(omega))/omega_sqrd;
+    let omega = omega_sqrd.sqrt();
+    let A = omega.sin()/omega;
+    let B = (F::one() - omega.cos())/omega_sqrd;
     let factor = (F::one()-A/(two*B))/omega_sqrd;
 
     let I = Matrix3::<F>::identity();
@@ -123,7 +122,7 @@ pub fn ln<F>(se3: &Matrix4<F>) -> Vector6<F> where F : float::Float + Scalar + N
  * This is the jacobian of the rotation without a specific point being transformed
  */
 #[allow(non_snake_case)]
-pub fn right_jacobian<F,T>(w: &Vector<F,U3,T>) -> Matrix3<F> where T: Storage<F,U3,U1>, F : float::Float + Scalar + NumAssign + RealField + SimdRealField + ComplexField {
+pub fn right_jacobian<F,T>(w: &Vector<F,U3,T>) -> Matrix3<F> where T: Storage<F,U3,U1>, F : Scalar + RealField + Copy{
     let w_x = w.cross_matrix();
     let w_x_sqr = w_x*w_x;
     let w_norm = w.norm();
@@ -131,10 +130,10 @@ pub fn right_jacobian<F,T>(w: &Vector<F,U3,T>) -> Matrix3<F> where T: Storage<F,
 
     match w_norm {
         w_norm if w_norm != F::zero() => {
-            let w_norm_sqrd = float::Float::powi(w_norm,2);
+            let w_norm_sqrd = w_norm.powi(2);
             let w_norm_cubed = w_norm_sqrd*w_norm;
-            let cos_norm = float::Float::cos(w_norm);
-            let sin_norm = float::Float::sin(w_norm);
+            let cos_norm = w_norm.cos();
+            let sin_norm = w_norm.sin();
         
             let A = (F::one() - cos_norm)/(w_norm_sqrd);
             let B = (w_norm - sin_norm)/(w_norm_cubed);
@@ -147,7 +146,7 @@ pub fn right_jacobian<F,T>(w: &Vector<F,U3,T>) -> Matrix3<F> where T: Storage<F,
 }
 
 #[allow(non_snake_case)]
-pub fn right_inverse_jacobian<F,T>(w: &Vector<F,U3,T>) -> Matrix3<F> where T: Storage<F,U3,U1>, F : float::Float + Scalar + NumAssign + RealField + SimdRealField + ComplexField {
+pub fn right_inverse_jacobian<F,T>(w: &Vector<F,U3,T>) -> Matrix3<F> where T: Storage<F,U3,U1>, F : Scalar + RealField + Copy{
     let w_x = w.cross_matrix();
     let w_x_sqr = w_x*w_x;
     let w_norm = w.norm();
@@ -155,9 +154,9 @@ pub fn right_inverse_jacobian<F,T>(w: &Vector<F,U3,T>) -> Matrix3<F> where T: St
     let two: F = convert(2.0);
     match w_norm {
         w_norm if w_norm != F::zero() => {
-            let w_norm_sqrd = float::Float::powi(w_norm, 2);
-            let cos_norm = float::Float::cos(w_norm);
-            let sin_norm = float::Float::sin(w_norm);
+            let w_norm_sqrd = w_norm.powi(2);
+            let cos_norm = w_norm.cos();
+            let sin_norm = w_norm.sin();
         
             let A = F::one()/w_norm_sqrd;
             let B = (F::one()+cos_norm)/(two*w_norm*sin_norm);
@@ -169,11 +168,11 @@ pub fn right_inverse_jacobian<F,T>(w: &Vector<F,U3,T>) -> Matrix3<F> where T: St
     }
 }
 
-pub fn chordal_distance<F>(a: &Matrix3<F>, b: &Matrix3<F>) -> F where F: float::Float + Scalar + NumAssign + RealField + SimdRealField + ComplexField {
+pub fn chordal_distance<F>(a: &Matrix3<F>, b: &Matrix3<F>) -> F where F :Scalar + RealField {
     (a-b).norm()
 }
 
-pub fn angular_distance<F>(a: &Matrix3<F>) -> F where F: float::Float + Scalar + NumAssign + RealField + SimdRealField + ComplexField {
+pub fn angular_distance<F>(a: &Matrix3<F>) -> F where F: Scalar + RealField + Copy{
     ln_SO3(a).norm()
 }
 

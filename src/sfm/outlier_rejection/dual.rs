@@ -7,7 +7,7 @@ use num_traits::Zero;
 use na::{MatrixXx3,DMatrix,DVector,Isometry3,Matrix,Scalar, Dim, storage::RawStorage};
 use std::collections::{HashMap,HashSet};
 use std::ops::AddAssign;
-use crate::image::features::{Feature};
+use crate::image::features::Feature;
 use crate::Float;
 
 /**

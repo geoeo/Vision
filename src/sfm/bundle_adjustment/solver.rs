@@ -6,7 +6,7 @@ use na::{
     base::Scalar, convert, DMatrix, DVector, Dyn, Matrix, Point3, RealField, VecStorage, Vector4,
     U4,
 };
-use num_traits::float;
+
 use simba::scalar::SupersetOf;
 use std::boxed::Box;
 use std::marker::{Send, Sync};
@@ -24,24 +24,21 @@ use crate::sfm::{
 use crate::Float;
 
 pub struct Solver<
-    F: SupersetOf<Float>,
+    F: SupersetOf<Float>+ Scalar + RealField + Copy + num_traits::Float,
     C: Camera<Float> + 'static,
     L: Landmark<F, LANDMARK_PARAM_SIZE> + Copy + Clone + Send + Sync + 'static,
     const LANDMARK_PARAM_SIZE: usize,
-> where
-    F: float::Float + Scalar + RealField,
+>
 {
     optimizer: OptimizerGnSchur<F, C, L, LANDMARK_PARAM_SIZE>,
 }
 
 impl<
-        F: SupersetOf<Float>,
+        F: SupersetOf<Float>+ Scalar + RealField + Copy  + num_traits::Float,
         C: Camera<Float> + 'static,
         L: Landmark<F, LANDMARK_PARAM_SIZE> + Copy + Clone + Send + Sync + 'static,
         const LANDMARK_PARAM_SIZE: usize,
     > Solver<F, C, L, LANDMARK_PARAM_SIZE>
-where
-    F: float::Float + Scalar + RealField,
 {
     pub fn new() -> Solver<F, C, L, LANDMARK_PARAM_SIZE> {
         Solver {

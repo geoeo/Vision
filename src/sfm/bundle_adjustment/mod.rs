@@ -1,4 +1,5 @@
 extern crate nalgebra as na;
+extern crate num_traits;
 
 use crate::image::features::solver_feature::SolverFeature;
 use crate::image::features::Feature;
@@ -10,7 +11,6 @@ use crate::sfm::{
 };
 use crate::Float;
 use na::{base::Scalar, RealField};
-use num_traits::float;
 use simba::scalar::SupersetOf;
 use std::{
     hash::Hash,
@@ -25,7 +25,7 @@ pub mod ba_config;
 
 pub fn run_ba<
     'a,
-    F: serde::Serialize + float::Float + Scalar + RealField + SupersetOf<Float>,
+    F: serde::Serialize + Scalar + RealField + SupersetOf<Float> + Copy + num_traits::Float,
     C: Camera<Float> + Copy + Send + Sync +'a + 'static,
     Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFeature
 >(

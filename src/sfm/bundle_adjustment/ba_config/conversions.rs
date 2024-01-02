@@ -1,5 +1,4 @@
 extern crate nalgebra as na;
-extern crate num_traits;
 
 use na::{Isometry3, Matrix4xX};
 use std::collections::{HashMap, HashSet};

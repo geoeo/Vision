@@ -1,12 +1,8 @@
-
-
 extern crate nalgebra as na;
-extern crate num_traits;
 
 use std::collections::HashMap;
 
 use na::{DVector, SMatrix, Matrix4, Vector3, Isometry3, base::Scalar, RealField};
-use num_traits::float;
 use crate::numerics::{lie::exp_se3,pose::from_matrix};
 use crate::sfm::landmark::Landmark;
 
@@ -32,7 +28,7 @@ pub struct State<F: Scalar, L: Landmark<F,T>, const T: usize> {
     pub n_points: usize,
 }
 
-impl<F: float::Float + Scalar + RealField, L: Landmark<F,T> + Copy + Clone, const T: usize> Clone for State<F,L,T> {
+impl<F: Scalar + RealField + Copy, L: Landmark<F,T> + Copy + Clone, const T: usize> Clone for State<F,L,T> {
     fn clone(&self) -> State<F,L,T> {
         State::<F,L,T> {
             camera_positions: self.camera_positions.clone(),
@@ -45,7 +41,7 @@ impl<F: float::Float + Scalar + RealField, L: Landmark<F,T> + Copy + Clone, cons
     }
 }
 
-impl<F: float::Float + Scalar + RealField, L: Landmark<F,T> + Copy + Clone, const T: usize> State<F,L,T> {
+impl<F: Scalar + RealField + Copy, L: Landmark<F,T> + Copy + Clone, const T: usize> State<F,L,T> {
     pub fn new(camera_positions: DVector<F>, landmarks:  Vec<L>, camera_id_map: &HashMap<usize, usize>, n_cams: usize, n_points: usize) -> State<F,L,T> {
         let mut camera_iso = Vec::<Isometry3<F>>::with_capacity(n_cams);
         let camera_id_by_idx = Self::generate_camera_id_by_idx_vec(camera_id_map);

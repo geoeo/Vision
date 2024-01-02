@@ -3,12 +3,12 @@ extern crate num_traits;
 
 use std::ops::{AddAssign,SubAssign};
 use num_traits::{float,NumAssign};
-use na::{SimdRealField, ComplexField, DMatrix, Matrix,Dyn, storage::{Storage, StorageMut}, Vector ,U1, Dim, base::{Scalar, default_allocator::DefaultAllocator, allocator::{Allocator}}};
+use na::{RealField, DMatrix, Matrix,Dyn, storage::{Storage, StorageMut}, Vector ,U1, Dim, base::{Scalar, default_allocator::DefaultAllocator, allocator::Allocator}};
 
 #[allow(non_snake_case)]
 pub fn compute_block_matrix_preconditioner_inverse<F,PStorage,VStorage,WStorage, WtStorage>(preconditioner: &mut DMatrix::<F>,P_inv: &Matrix::<F,Dyn,Dyn,PStorage> , C: &Matrix::<F,Dyn,Dyn, VStorage>, E: &Matrix::<F,Dyn,Dyn, WStorage>, E_t: &Matrix::<F,Dyn,Dyn, WtStorage>, omega: F) -> () 
     where
-        F : float::Float + Scalar + NumAssign + SimdRealField + ComplexField,
+        F : float::Float + Scalar + NumAssign + RealField,
         PStorage: Storage<F,Dyn,Dyn>,
         VStorage: Storage<F,Dyn,Dyn> + Clone,
         WStorage: Storage<F,Dyn,Dyn>,
@@ -35,7 +35,7 @@ pub fn compute_block_matrix_preconditioner_inverse<F,PStorage,VStorage,WStorage,
 #[allow(non_snake_case)]
 pub fn conjugate_gradient<F,StorageA, StorageB, StorageX, S>(A: &Matrix<F,S,S,StorageA>,  b: &Vector<F,S,StorageB>, x: &mut Vector<F, S, StorageX>, threshold: F, max_it: usize) -> bool 
     where 
-        F : float::Float + Scalar + NumAssign + SimdRealField + ComplexField,
+        F : float::Float + Scalar + NumAssign + RealField ,
         S: Dim,
         StorageA: Storage<F, S, S>, 
         StorageX: StorageMut<F, S, U1>,

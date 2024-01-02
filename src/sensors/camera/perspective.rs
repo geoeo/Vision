@@ -35,7 +35,7 @@ impl<F: Scalar + RealField + Copy> Perspective<F> {
                                                   F::zero(), F::zero(), F::one());
 
         
-        assert!(num_traits::abs((projection*inverse_projection).determinant())- F::one() <= F::from_f32(IDENTITY_EPS).expect("Converstion failed!"));
+        assert!(((projection*inverse_projection).determinant()).abs()- F::one() <= F::from_f32(IDENTITY_EPS).expect("Converstion failed!"));
         Perspective{projection,inverse_projection}
     }
 

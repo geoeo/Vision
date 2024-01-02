@@ -2,7 +2,6 @@ extern crate nalgebra as na;
 extern crate num_traits;
 
 use na::{base::Scalar, DMatrix, DVector, Point3, RealField, Vector4, Matrix, Dyn, U4, VecStorage};
-use num_traits::float;
 use simba::scalar::SupersetOf;
 use std::marker::{Send, Sync};
 use std::sync::mpsc;
@@ -20,24 +19,21 @@ use crate::Float;
 const CAMERA_PARAM_SIZE: usize = 6; //TODO make this generic with state
 
 pub struct Solver<
-    F: SupersetOf<Float>,
+    F: SupersetOf<Float> + Copy + Scalar + RealField + num_traits::Float,
     C: Camera<Float> + 'static,
     L: Landmark<F, LANDMARK_PARAM_SIZE> + Copy + Clone + Send + Sync + 'static,
     const LANDMARK_PARAM_SIZE: usize,
-> where
-    F: float::Float + Scalar + RealField,
+>
 {
     optimizer: OptimizerGn<F, C, L, LANDMARK_PARAM_SIZE>,
 }
 
 impl<
-        F: SupersetOf<Float>,
+        F: SupersetOf<Float> + Copy +  Scalar + RealField+ num_traits::Float,
         C: Camera<Float> + 'static,
         L: Landmark<F, LANDMARK_PARAM_SIZE> + Copy + Clone + Send + Sync + 'static,
         const LANDMARK_PARAM_SIZE: usize,
     > Solver<F, C, L, LANDMARK_PARAM_SIZE>
-where
-    F: float::Float + Scalar + RealField,
 {
     pub fn new() -> Solver<F, C, L, LANDMARK_PARAM_SIZE> {
         Solver {

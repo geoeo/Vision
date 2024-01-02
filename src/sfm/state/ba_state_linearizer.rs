@@ -1,8 +1,6 @@
 extern crate nalgebra as na;
-extern crate num_traits;
 
 use na::{convert,Vector3, Matrix3, DVector, Isometry3, Rotation3,base::Scalar, RealField};
-use num_traits::{float,NumAssign};
 use simba::scalar::SupersetOf;
 use std::collections::{HashMap,HashSet};
 use crate::image::features::{Feature, matches::Match};
@@ -78,7 +76,7 @@ impl BAStateLinearizer {
      * @Return: An object holding camera positions and 3d landmarks, 2d Vector of rows: point, cols: cam. Where the matrix elements are in (x,y) tuples. 
      *  First entry in 2d Vector is all the cams assocaited with a point. feature_location_lookup[point_id][cam_id]
      */
-    pub fn get_euclidean_landmark_state<F: float::Float + Scalar + RealField + SupersetOf<Float>, Feat: Feature>(
+    pub fn get_euclidean_landmark_state<F: Scalar + RealField + SupersetOf<Float> + Copy, Feat: Feature>(
         &self, 
         paths: &Vec<(usize,usize)>,
         match_map: &HashMap<(usize, usize), Vec<Match<Feat>>>, 
@@ -152,7 +150,7 @@ impl BAStateLinearizer {
         }
 
         let max_depth = landmarks.iter().reduce(|acc, l| {
-            if float::Float::abs(l.get_state_as_vector().z) > float::Float::abs(acc.get_state_as_vector().z) { l } else { acc }
+            if l.get_state_as_vector().z.abs() > acc.get_state_as_vector().z.abs() { l } else { acc }
         }).expect("triangulated landmarks empty!").get_state_as_vector().z;
 
         println!("Max depth: {}", max_depth);
@@ -167,7 +165,7 @@ impl BAStateLinearizer {
         (State::new(camera_positions, landmarks, &self.camera_to_linear_id_map, number_of_cameras, number_of_unqiue_landmarks), observed_features)
     }
 
-    fn get_initial_camera_positions<F: float::Float + Scalar + RealField + SupersetOf<Float>>(
+    fn get_initial_camera_positions<F: Scalar + RealField + SupersetOf<Float>>(
         &self, pose_map: &HashMap<usize, Isometry3<Float>>) 
         -> DVector::<F> {
 
@@ -193,7 +191,7 @@ impl BAStateLinearizer {
     /**
      * This vector has ordering In the format [f1_cam1, f1_cam2,...] where cam_id(cam_n-1) < cam_id(cam_n) 
      */
-    fn get_observed_features<F: float::Float + Scalar + NumAssign + SupersetOf<Float>>(feature_location_lookup: &Vec<Vec<Option<(Float,Float)>>>, number_of_unique_landmarks: usize, n_cams: usize) -> DVector<F> {
+    fn get_observed_features<F:Scalar + SupersetOf<Float>+RealField>(feature_location_lookup: &Vec<Vec<Option<(Float,Float)>>>, number_of_unique_landmarks: usize, n_cams: usize) -> DVector<F> {
         let mut observed_features = DVector::<F>::zeros(number_of_unique_landmarks*n_cams*2); // some entries might be invalid
         for landmark_idx in 0..number_of_unique_landmarks {
             let observing_cams = &feature_location_lookup[landmark_idx];
