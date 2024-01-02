@@ -77,9 +77,9 @@ impl<F: Scalar + RealField + Copy> Landmark<F, 6> for InverseLandmark<F> {
 
         let j_theta = Vector3::<F>::new(cos_theta*-cos_phi,F::zero(),cos_phi*-sin_theta)/inverse_depth;
         let j_phi = Vector3::<F>::new(sin_phi*sin_theta,cos_phi,cos_theta*-sin_phi)/inverse_depth;
-        let j_p = Vector3::<F>::new(cos_phi*-sin_theta,sin_phi,cos_theta*cos_phi)/inverse_depth.powi(2);
+        let j_p = Vector3::<F>::new(cos_phi*sin_theta,-sin_phi,-cos_theta*cos_phi)/inverse_depth.powi(2);
 
-        jacobian.fixed_view_mut::<3,3>(0,0).copy_from(&Matrix3::<F>::from_element(F::one())); //X,Y,Z
+        jacobian.fixed_view_mut::<3,3>(0,0).copy_from(&Matrix3::<F>::identity()); //X,Y,Z
         jacobian.fixed_view_mut::<3,1>(0,3).copy_from(&j_theta);
         jacobian.fixed_view_mut::<3,1>(0,4).copy_from(&j_phi);
         jacobian.fixed_view_mut::<3,1>(0,5).copy_from(&j_p);
