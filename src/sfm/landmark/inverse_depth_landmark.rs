@@ -1,22 +1,25 @@
 extern crate nalgebra as na;
+extern crate simba;
 
 use na::{Vector3,Vector6,Matrix3x6, Isometry3, Point3,SVector, SMatrix,Matrix3, RealField,base::Scalar};
 
+use simba::scalar::SubsetOf;
 use crate::image::features::Feature;
 use crate::sfm::landmark::Landmark;
 use crate::sensors::camera::Camera;
+use crate::Float;
 
 #[derive(Copy,Clone)]
 /**
  * state: x, y, z, theta, phi, rho (inv depth)
  */
-pub struct InverseLandmark<F: Scalar + RealField + Copy> {
+pub struct InverseLandmark<F: Scalar + RealField + Copy > {
     state: Vector6<F>,
     m : Vector3<F>,
     id: Option<usize>
 }
 
-impl<F: Scalar + RealField + Copy> Landmark<F, 6> for InverseLandmark<F> {
+impl<F: Scalar + RealField + Copy + SubsetOf<Float>> Landmark<F, 6> for InverseLandmark<F> {
 
     fn from_state(state: SVector<F,6>) -> InverseLandmark<F> {
         let theta = state[3];
@@ -74,9 +77,9 @@ impl<F: Scalar + RealField + Copy> Landmark<F, 6> for InverseLandmark<F> {
         let (sin_phi,cos_phi) = self.get_phi().sin_cos();
         let inverse_depth = self.get_inverse_depth();
 
-        let j_theta = Vector3::<F>::new(cos_theta*-cos_phi,F::zero(),cos_phi*-sin_theta)/inverse_depth;
-        let j_phi = Vector3::<F>::new(sin_phi*sin_theta,cos_phi,cos_theta*-sin_phi)/inverse_depth;
-        let j_p = Vector3::<F>::new(cos_phi*sin_theta,-sin_phi,-cos_theta*cos_phi)/inverse_depth.powi(2);
+        let j_theta = Vector3::<F>::new(cos_theta*cos_phi,F::zero(),cos_phi*-sin_theta)/inverse_depth;
+        let j_phi = Vector3::<F>::new(-sin_phi*sin_theta,cos_phi,cos_theta*-sin_phi)/inverse_depth;
+        let j_p = Vector3::<F>::new(-cos_phi*sin_theta,-sin_phi,-cos_theta*cos_phi)/inverse_depth.powi(2);
 
         jacobian.fixed_view_mut::<3,3>(0,0).copy_from(&Matrix3::<F>::identity()); //X,Y,Z
         jacobian.fixed_view_mut::<3,1>(0,3).copy_from(&j_theta);
@@ -102,12 +105,20 @@ impl<F: Scalar + RealField + Copy> Landmark<F, 6> for InverseLandmark<F> {
     fn get_id(&self) -> Option<usize> {self.id}
 }
 
-impl<F: Scalar + RealField + Copy> InverseLandmark<F> {
+impl<F: Scalar + RealField + Copy + SubsetOf<Float>> InverseLandmark<F> {
     pub fn new<C: Camera<F>, Feat: Feature>(cam_to_world: &Isometry3<F>, feature: Feat, inverse_depth_prior: F, camera: &C) -> InverseLandmark<F> {
         let camera_pos = cam_to_world.translation.vector;
-        //let inv_projection = camera.get_inverse_projection()
-        //let camera_ray_world = cam_to_world.rotation*feature.get_camera_ray(&);
-        panic!("TODO");
+        //TODO: make Feat trait generic
+        let inv_projection = camera.get_inverse_projection().cast::<Float>();
+        let camera_ray_world = cam_to_world.rotation*feature.get_camera_ray(&inv_projection).cast::<F>();
+        let h_x = camera_ray_world[0];
+        let h_y = camera_ray_world[1];
+        let h_z = camera_ray_world[2];
+        let theta = h_x.atan2(h_z);
+        let phi = h_y.atan2((h_x.powi(2)+h_z.powi(2)).sqrt());
+
+        let state = Vector6::<F>::new(camera_pos[0],camera_pos[1],camera_pos[2],theta,phi,inverse_depth_prior);
+        Self::from_state(state)
     }
 
     
@@ -139,7 +150,7 @@ impl<F: Scalar + RealField + Copy> InverseLandmark<F> {
         let (sin_phi,cos_phi) = phi.sin_cos();
 
         Vector3::<F>::new(
-            cos_phi*-sin_theta,
+            cos_phi*sin_theta,
             sin_phi,
             cos_phi*cos_theta
         )
