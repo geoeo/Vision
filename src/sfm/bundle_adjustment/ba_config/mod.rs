@@ -45,6 +45,7 @@ pub struct BAConfig<C, Feat: Feature> {
     landmark_map: HashMap<(usize, usize), Vec<EuclideanLandmark<Float>>>,
     reprojection_error_map: HashMap<(usize, usize), DVector<Float>>,
     triangulation: Triangulation,
+    first_landmark_sighting_map: HashMap<usize,usize> //Map landmark id to camera id of the camera that first observed the landmark
 }
 
 impl<C: Camera<Float> + Clone, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFeature>
@@ -110,7 +111,7 @@ impl<C: Camera<Float> + Clone, Feat: Feature + Clone + PartialEq + Eq + Hash + S
             ),
         };
  
-        let (mut landmark_map, mut reprojection_error_map) =
+        let (mut landmark_map, mut reprojection_error_map, mut first_landmark_sighting_map) =
             Self::compute_landmarks_and_reprojection_maps(
                 root,
                 &paths,
@@ -135,6 +136,7 @@ impl<C: Camera<Float> + Clone, Feat: Feature + Clone + PartialEq + Eq + Hash + S
             &mut reprojection_error_map,
             &mut match_map,
             &mut match_norm_map,
+            &mut first_landmark_sighting_map,
             landmark_cutoff_thresh,
         );
         let (min_reprojection_error_outlier, max_reprojection_error_outlier) =
@@ -158,12 +160,14 @@ impl<C: Camera<Float> + Clone, Feat: Feature + Clone + PartialEq + Eq + Hash + S
                 &mut match_map,
                 &mut landmark_map,
                 &mut reprojection_error_map,
+                &mut first_landmark_sighting_map
             );
             reject_landmark_outliers(
                 &mut landmark_map,
                 &mut reprojection_error_map,
                 &mut match_map,
                 &mut match_norm_map,
+                &mut first_landmark_sighting_map,
                 landmark_cutoff_thresh,
             );
             let (min_reprojection_error_outlier_dual, max_reprojection_error_outlier_dual) =
@@ -173,7 +177,7 @@ impl<C: Camera<Float> + Clone, Feat: Feature + Clone + PartialEq + Eq + Hash + S
 
         if refine_rotation_via_rcd {
             let new_pose_map = Self::refine_rotation_by_rcd(root, &paths, &pose_map);
-            let (mut new_landmark_map, mut new_reprojection_error_map) =
+            let (mut new_landmark_map, mut new_reprojection_error_map, mut first_landmark_sighting_map) =
                 Self::compute_landmarks_and_reprojection_maps(
                     root,
                     &paths,
@@ -200,6 +204,7 @@ impl<C: Camera<Float> + Clone, Feat: Feature + Clone + PartialEq + Eq + Hash + S
                     &mut reprojection_error_map,
                     &mut match_map,
                     &mut match_norm_map,
+                    &mut first_landmark_sighting_map,
                     landmark_cutoff_thresh,
                 );
             }
@@ -220,6 +225,7 @@ impl<C: Camera<Float> + Clone, Feat: Feature + Clone + PartialEq + Eq + Hash + S
             landmark_map,
             reprojection_error_map,
             triangulation,
+            first_landmark_sighting_map
         }
     }
 
@@ -258,6 +264,9 @@ impl<C: Camera<Float> + Clone, Feat: Feature + Clone + PartialEq + Eq + Hash + S
     }
     pub fn landmark_map(&self) -> &HashMap<(usize,usize), Vec<EuclideanLandmark<Float>>> {
         &self.landmark_map
+    }
+    pub fn first_landmark_sighting_map(&self) -> &HashMap<usize,usize>{
+        &self.first_landmark_sighting_map
     }
 
     pub fn update_state(&mut self, state: &State<Float, EuclideanLandmark<Float>, 3>) -> () {
@@ -465,11 +474,14 @@ impl<C: Camera<Float> + Clone, Feat: Feature + Clone + PartialEq + Eq + Hash + S
     ) -> (
         HashMap<(usize, usize), Vec<EuclideanLandmark<Float>>>,
         HashMap<(usize, usize), DVector<Float>>,
+        HashMap<usize,usize>,
     ) {
         let mut landmark_map =
-            HashMap::<(usize, usize),  Vec<EuclideanLandmark<Float>>>::with_capacity(match_map.len());
+            HashMap::<(usize, usize), Vec<EuclideanLandmark<Float>>>::with_capacity(match_map.len());
         let mut reprojection_map =
             HashMap::<(usize, usize), DVector<Float>>::with_capacity(match_map.len());
+        let mut first_landmark_sighting_map =
+            HashMap::<usize,usize>::with_capacity(match_map.len());
 
         let path_pairs = conversions::compute_path_id_pairs(root, paths);
         for path in &path_pairs {
@@ -493,6 +505,9 @@ impl<C: Camera<Float> + Clone, Feat: Feature + Clone + PartialEq + Eq + Hash + S
                     assert!(id.is_some());
                     let landmark = EuclideanLandmark::from_state_with_id(l.fixed_rows::<3>(0).into_owned(), &id);
                     landmarks.push(landmark);
+                    if first_landmark_sighting_map.get(&id.unwrap()).is_none() {
+                        first_landmark_sighting_map.insert(id.unwrap(), path_pair.0);
+                    }
                 }
 
                 let ms = match_map.get(path_pair).expect(
@@ -526,7 +541,7 @@ impl<C: Camera<Float> + Clone, Feat: Feature + Clone + PartialEq + Eq + Hash + S
             }
         }
 
-        (landmark_map, reprojection_map)
+        (landmark_map, reprojection_map, first_landmark_sighting_map)
     }
 
     fn compute_disparity_map(
@@ -1107,6 +1122,7 @@ impl<C: Camera<Float> + Clone, Feat: Feature + Clone + PartialEq + Eq + Hash + S
         match_map: &mut HashMap<(usize, usize), Vec<Match<Feat>>>,
         landmark_map: &mut HashMap<(usize, usize), Vec<EuclideanLandmark<Float>>>,
         reprojection_error_map: &mut HashMap<(usize, usize), DVector<Float>>,
+        first_landmark_sighting_map: &mut HashMap<usize, usize>
     ) -> () {
         let mut feature_map = conversions::compute_features_per_image_map(
             &match_norm_map,
@@ -1130,6 +1146,7 @@ impl<C: Camera<Float> + Clone, Feat: Feature + Clone + PartialEq + Eq + Hash + S
                 landmark_map,
                 &mut feature_map,
                 reprojection_error_map,
+                first_landmark_sighting_map
             );
         }
     }
@@ -1144,6 +1161,7 @@ impl<C: Camera<Float> + Clone, Feat: Feature + Clone + PartialEq + Eq + Hash + S
         match_map: &mut HashMap<(usize, usize), Vec<Match<Feat>>>,
         landmark_map: &mut HashMap<(usize, usize), Vec<EuclideanLandmark<Float>>>,
         reprojection_error_map: &mut HashMap<(usize, usize), DVector<Float>>,
+        first_landmark_sighting_map: &mut HashMap<usize, usize>
     ) -> () {
         let mut feature_map = conversions::compute_features_per_image_map(
             &match_norm_map,
@@ -1196,6 +1214,7 @@ impl<C: Camera<Float> + Clone, Feat: Feature + Clone + PartialEq + Eq + Hash + S
                     }
                 }
 
+                // Outlier rejection scheme needs continuous ids
                 let new_rejected_landmark_ids = outlier_rejection_dual(
                     &new_camera_ids_root_first,
                     &new_unique_landmark_ids,
@@ -1203,6 +1222,8 @@ impl<C: Camera<Float> + Clone, Feat: Feature + Clone + PartialEq + Eq + Hash + S
                     &feature_map_filtered,
                     tol,
                 );
+
+                //Here we map the new ids back to the old ones
                 landmark_ids_filtered
                     .clone()
                     .into_iter()
@@ -1225,6 +1246,7 @@ impl<C: Camera<Float> + Clone, Feat: Feature + Clone + PartialEq + Eq + Hash + S
                 landmark_map,
                 &mut feature_map,
                 reprojection_error_map,
+                first_landmark_sighting_map,
             );
         }
     }

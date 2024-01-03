@@ -1,6 +1,6 @@
 use nalgebra as na;
 
-use na::{Vector2,Vector3,Matrix3,Scalar, RealField};
+use na::{Vector2,Vector3,Matrix3};
 use crate::{Float,float};
 use crate::image::Image;
 use crate::image::filter::{prewitt_kernel::PrewittKernel,gradient_convolution_at_sample};

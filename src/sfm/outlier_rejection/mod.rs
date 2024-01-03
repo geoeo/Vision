@@ -61,6 +61,7 @@ pub fn reject_landmark_outliers<Feat: Feature + Clone>(
     reprojection_error_map: &mut HashMap<(usize, usize),DVector<Float>>, 
     match_map: &mut HashMap<(usize, usize), Vec<Match<Feat>>>,
     match_norm_map: &mut HashMap<(usize, usize), Vec<Match<Feat>>>,
+    first_landmark_sighting_map: &mut HashMap<usize, usize>,
     landmark_cutoff: Float){
         let keys = match_norm_map.keys().map(|key| *key).collect::<Vec<_>>();
         let mut rejected_landmark_ids = HashSet::<usize>::with_capacity(1000);
@@ -87,7 +88,6 @@ pub fn reject_landmark_outliers<Feat: Feature + Clone>(
 
             let filtered_landmarks = landmarks.iter().enumerate().filter(|(idx,_)| accepted_indices.contains(idx)).map(|(_,v)| v.clone()).collect::<Vec<_>>();
             assert!(!&filtered_landmarks.is_empty());
-
         
             let filtered_reprojection_errors_vec = reprojection_erros.iter().enumerate().filter(|(idx,_)| accepted_indices.contains(idx)).map(|(_,v)| *v).collect::<Vec<Float>>();
             assert!(!&filtered_reprojection_errors_vec.is_empty());
@@ -99,6 +99,11 @@ pub fn reject_landmark_outliers<Feat: Feature + Clone>(
             landmark_map.insert(*key,filtered_landmarks);
         }
 
+        for rejected_id in rejected_landmark_ids {
+            first_landmark_sighting_map.remove(&rejected_id);
+        }
+        assert!(!&first_landmark_sighting_map.is_empty())
+
 }
 
 pub fn filter_by_rejected_landmark_ids<Feat: Feature + Clone>(
@@ -106,9 +111,10 @@ pub fn filter_by_rejected_landmark_ids<Feat: Feature + Clone>(
     unique_landmark_ids: &mut HashSet<usize>,
     match_norm_map: &mut HashMap<(usize, usize), Vec<Match<Feat>>>, 
     match_map: &mut HashMap<(usize, usize), Vec<Match<Feat>>>,
-    landmark_map: &mut  HashMap<(usize, usize), Vec<EuclideanLandmark<Float>>>, 
+    landmark_map: &mut HashMap<(usize, usize), Vec<EuclideanLandmark<Float>>>, 
     feature_map: &mut HashMap<usize, Vec<Feat>>,
-    reprojection_error_map: &mut HashMap<(usize, usize),DVector<Float>>
+    reprojection_error_map: &mut HashMap<(usize, usize),DVector<Float>>,
+    first_landmark_sighting_map: &mut HashMap<usize, usize>
 ) -> () {
 
     // Update match map, match_norm_map, landmark_map, abs_landmark_map -> group 1
@@ -141,74 +147,13 @@ pub fn filter_by_rejected_landmark_ids<Feat: Feature + Clone>(
         reprojection_error_map.insert(cam_key, reprojections_filtered);
     }
 
-    // Recomputes ids to be consecutive -> unique landmark ids, match_norm_map, match_map, feature_map
-    let (old_new_map, new_unique_landmark_ids) = compute_continuous_landmark_ids_from_matches(match_norm_map, match_map, Some(unique_landmark_ids), Some(rejected_landmark_ids));
-    assert!(new_unique_landmark_ids.len() < unique_landmark_ids.len());
-    // Update rejected_landmark_ids
-    *unique_landmark_ids = new_unique_landmark_ids;
-
-    // Update feature_map -> group 2
-    for (_, features) in feature_map {
-        let accepted_features 
-            = features.drain(..)
-                    .filter(|x| !rejected_landmark_ids.contains(&x.get_landmark_id()
-                    .expect("update_maps: no landmark id found")))
-                    .map(|f| f.copy_with_landmark_id(Some(*old_new_map.get(&f.get_landmark_id().unwrap()).expect("filter_by_rejected_landmark_ids: no id for features")))).collect::<Vec<Feat>>();
-        assert!(features.is_empty());
-        features.extend(accepted_features.into_iter());
+    for rejected_id in rejected_landmark_ids {
+        first_landmark_sighting_map.remove(rejected_id);
     }
+    assert!(!&first_landmark_sighting_map.is_empty());
+
 }
 
-pub fn compute_continuous_landmark_ids_from_matches<Feat: Feature + Clone>(
-    match_norm_map: &mut HashMap<(usize, usize), Vec<Match<Feat>>>, 
-    match_map: &mut HashMap<(usize, usize), Vec<Match<Feat>>>, 
-    unique_landmark_ids_option: Option<&HashSet<usize>>,
-    rejected_landmark_ids_option: Option<&HashSet<usize>>) 
-    -> (HashMap<usize,usize>, HashSet<usize>) {
-    let mut old_max_val = 0;
-
-    let mut existing_ids = HashSet::<usize>::with_capacity(100000);
-    for (_,val) in match_norm_map.iter() {
-        for m in val {
-            let id = m.get_landmark_id().expect("recompute_landmark_ids: no landmark id");
-            old_max_val = old_max_val.max(id);
-            existing_ids.insert(id);
-        }
-    }
-
-    let mut free_ids = (0..existing_ids.len()).collect::<HashSet<usize>>();
-    let mut old_new_map = HashMap::<usize,usize>::with_capacity(old_max_val);
-    for (_,val) in match_norm_map.iter_mut() {
-        for m in val {
-            let old_id = m.get_landmark_id().expect("recompute_landmark_ids: no landmark id");
-            if old_new_map.contains_key(&old_id) {
-                let new_id = old_new_map.get(&old_id).unwrap();
-                m.set_landmark_id(Some(*new_id));
-            } else {
-                let free_id = free_ids.iter().next().unwrap().clone();
-                free_ids.remove(&free_id);
-                m.set_landmark_id(Some(free_id));
-                old_new_map.insert(old_id, free_id);
-            }
-        }
-    }
-    assert!(free_ids.is_empty());
-    // Make sure normalized matches and matches are consistent
-    for (key, ms_norm) in match_norm_map {
-        let ms = match_map.get_mut(key).expect("match missing in recompute_landmark_ids");
-        assert_eq!(ms_norm.len(), ms.len());
-        for i in 0..ms.len() {
-            ms[i].set_landmark_id(ms_norm[i].get_landmark_id());
-        }
-    }
-    
-    let new_unique_landmark_ids = match (unique_landmark_ids_option,rejected_landmark_ids_option) {
-        (Some(unique_landmark_ids), Some(rejected_landmark_ids)) => unique_landmark_ids.iter().filter(|v| !rejected_landmark_ids.contains(v)).map(|v| *old_new_map.get(&v).expect("filter_by_rejected_landmark_ids: no id for unique_landmark_ids")).collect::<HashSet<_>>(),
-        _ => (0..existing_ids.len()).collect::<HashSet<usize>>()
-    };
-    (old_new_map, new_unique_landmark_ids)
-
-}
 
 pub fn compute_continuous_landmark_ids_from_unique_landmarks(
     unique_landmark_ids: &HashSet<usize>, rejected_landmark_ids_option: Option<&HashSet<usize>>) 
