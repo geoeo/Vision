@@ -1,6 +1,8 @@
 extern crate nalgebra as na;
+extern crate simba;
 extern crate num_traits;
 
+use simba::scalar::SubsetOf;
 use std::collections::HashMap;
 use na::{
     base::Scalar, convert, DMatrix, DVector, Dyn, Matrix, Point3, RealField, VecStorage, Vector4,
@@ -22,7 +24,7 @@ use crate::sfm::{
 use crate::Float;
 
 pub struct Solver<
-    F: Scalar + RealField + Copy + num_traits::Float,
+    F: Scalar + RealField + Copy + num_traits::Float + SubsetOf<Float>,
     C: Camera<Float> + 'static,
     L: Landmark<F, LANDMARK_PARAM_SIZE> + Copy + Clone + Send + Sync + 'static,
     const LANDMARK_PARAM_SIZE: usize,
@@ -32,10 +34,10 @@ pub struct Solver<
 }
 
 impl<
-        F: Scalar + RealField + Copy  + num_traits::Float,
+        F: Scalar + RealField + Copy  + num_traits::Float + SubsetOf<Float>,
         C: Camera<Float> + 'static,
         L: Landmark<F, LANDMARK_PARAM_SIZE> + Copy + Clone + Send + Sync + 'static,
-        const LANDMARK_PARAM_SIZE: usize,
+        const LANDMARK_PARAM_SIZE: usize
     > Solver<F, C, L, LANDMARK_PARAM_SIZE>
 {
     pub fn new() -> Solver<F, C, L, LANDMARK_PARAM_SIZE> {

@@ -1,6 +1,8 @@
 extern crate nalgebra as na;
 extern crate num_traits;
+extern crate simba;
 
+use simba::scalar::SubsetOf;
 use crate::image::features::solver_feature::SolverFeature;
 use crate::image::features::Feature;
 use crate::sfm::runtime_parameters::RuntimeParameters;
@@ -25,7 +27,7 @@ pub mod pnp_config;
 
 pub fn run_pnp<
     'a,
-    F: serde::Serialize + Scalar + RealField + Copy + num_traits::Float,
+    F: serde::Serialize + Scalar + RealField + Copy + num_traits::Float + SubsetOf<Float>,
     C: Camera<Float> + Copy + Send + Sync +'a + 'static,
     Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFeature
 >(

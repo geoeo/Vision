@@ -1,12 +1,12 @@
 extern crate nalgebra as na;
 extern crate num_traits;
+extern crate simba;
 
-
+use simba::scalar::SubsetOf;
 use std::collections::HashMap;
 use std::marker::{Send,Sync};
 use std::sync::mpsc;
 use na::{DVector,DMatrix, base::Scalar, RealField, convert};
-use simba::scalar::SupersetOf;
 use num_traits::float;
 
 use crate::sensors::camera::Camera;
@@ -18,14 +18,14 @@ use crate::Float;
 const CAMERA_PARAM_SIZE: usize = 6; //TODO make this generic with state
 
 
-pub struct OptimizerGnSchur<F: SupersetOf<Float>, C : Camera<Float>, L: Landmark<F,LANDMARK_PARAM_SIZE> + Copy + Clone + Send + Sync, const LANDMARK_PARAM_SIZE: usize> where F: float::Float + Scalar + RealField {
+pub struct OptimizerGnSchur<F, C : Camera<Float>, L: Landmark<F,LANDMARK_PARAM_SIZE> + Copy + Clone + Send + Sync, const LANDMARK_PARAM_SIZE: usize> where F: float::Float + Scalar + RealField + SubsetOf<Float> {
     pub get_estimated_features: Box<dyn Fn(&State<F,L,LANDMARK_PARAM_SIZE>, &HashMap<usize, C>, &DVector<F>, &mut DVector<F>) -> ()>,
     pub compute_residual: Box<dyn Fn(&DVector<F>, &DVector<F>, &mut DVector<F>) -> ()>,
     pub compute_jacobian: Box<dyn Fn(&State<F,L,LANDMARK_PARAM_SIZE>, &HashMap<usize, C>, &mut DMatrix<F>) -> ()>,
     pub compute_state_size: Box<dyn Fn(&State<F,L,LANDMARK_PARAM_SIZE>) -> usize>
 }
 
-impl<F: SupersetOf<Float>, C : Camera<Float>, L: Landmark<F,LANDMARK_PARAM_SIZE> + Copy + Clone + Send + Sync, const LANDMARK_PARAM_SIZE: usize> OptimizerGnSchur<F,C,L,LANDMARK_PARAM_SIZE> where F: float::Float + Scalar + RealField {
+impl<F, C : Camera<Float>, L: Landmark<F,LANDMARK_PARAM_SIZE> + Copy + Clone + Send + Sync, const LANDMARK_PARAM_SIZE: usize> OptimizerGnSchur<F,C,L,LANDMARK_PARAM_SIZE> where F: float::Float + Scalar + RealField+ SubsetOf<Float> {
     
     pub fn new(
         get_estimated_features: Box<dyn Fn(&State<F,L,LANDMARK_PARAM_SIZE>, &HashMap<usize, C>, &DVector<F>, &mut DVector<F>) -> ()>,

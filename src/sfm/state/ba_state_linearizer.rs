@@ -1,9 +1,11 @@
 extern crate nalgebra as na;
+extern crate simba;
 
 use na::{convert,Vector3, Matrix3, DVector, Isometry3, Rotation3,base::Scalar, RealField};
+use simba::scalar::SubsetOf;
 use std::collections::{HashMap,HashSet};
 use crate::image::features::{Feature, matches::Match};
-use crate::sfm::{state::{State,CAMERA_PARAM_SIZE}, landmark::{Landmark, euclidean_landmark::EuclideanLandmark}};
+use crate::sfm::{state::{State,CAMERA_PARAM_SIZE}, landmark::{Landmark, euclidean_landmark::EuclideanLandmark, inverse_depth_landmark::InverseLandmark}};
 
 use crate::Float;
 
@@ -45,37 +47,24 @@ impl BAStateLinearizer {
      * initial_motion should all be with respect to the first camera
      * //TODO: Rework
      */
-    // pub fn get_inverse_depth_landmark_state<C: Camera<Float>>(&self, paths: &Vec<Vec<(usize,usize)>>, abs_pose_map: &HashMap<usize, Isometry3<Float>>, inverse_depth_prior: Float, cameras: &Vec<C>) -> State<Float,InverseLandmark<Float>,6> {
-    //     panic!("Rework get_inverse_depth_landmark_state");
-    //     // let number_of_cameras = self.camera_map.keys().len();
-    //     // let number_of_unqiue_landmarks = self.number_of_unique_landmarks;
-    //     // let camera_positions = self.get_initial_camera_positions(paths,abs_pose_map);
-    //     // let n_points = self.number_of_unique_landmarks;
-    //     // let mut landmarks = Vec::<InverseLandmark<Float>>::with_capacity(number_of_unqiue_landmarks);
+    pub fn get_inverse_depth_landmark_state<F: Scalar + RealField + Copy + SubsetOf<Float>, Feat: Feature>(
+        &self, 
+        paths: &Vec<(usize,usize)>,
+        match_map: &HashMap<(usize, usize), Vec<Match<Feat>>>, 
+        abs_pose_map: &HashMap<usize, Isometry3<Float>>,
+        abs_landmark_map: &HashMap<(usize,usize), Vec<EuclideanLandmark<Float>>>,
+        reprojection_error_map: &HashMap<(usize, usize),DVector<Float>>) 
+        -> (State<F, InverseLandmark<F>,6>, DVector<F>) { 
 
-    //     // for landmark_idx in 0..n_points {
-    //     //     let observing_cams = &self.feature_location_lookup[landmark_idx];
-    //     //     let idx_point = observing_cams.iter().enumerate().find(|(_,item)| item.is_some()).expect("get_inverse_depth_landmark_state: No camera for this landmark found! This should not happen");
-    //     //     let cam_idx = idx_point.0;
-    //     //     let cam_state_idx = 6*cam_idx;
-    //     //     let (x_val, y_val) = idx_point.1.unwrap();
-    //     //     let point = Point::<Float>::new(x_val,y_val);
-    //     //     let cam_translation = camera_positions.fixed_view::<3,1>(cam_state_idx,0).into();
-    //     //     let cam_axis_angle = camera_positions.fixed_view::<3,1>(cam_state_idx+3,0).into();
-    //     //     let isometry = Isometry3::new(cam_translation, cam_axis_angle);
-    //     //     let initial_inverse_landmark = InverseLandmark::new(&isometry,&point,inverse_depth_prior , &cameras[cam_idx]);
- 
-    //     //     landmarks.push(initial_inverse_landmark);
-    //     // }
-        
-    //     // State::new(camera_positions,landmarks, number_of_cameras, number_of_unqiue_landmarks)
-    // }
+            panic!("TODO")
+
+    }
 
     /**
      * @Return: An object holding camera positions and 3d landmarks, 2d Vector of rows: point, cols: cam. Where the matrix elements are in (x,y) tuples. 
      *  First entry in 2d Vector is all the cams assocaited with a point. feature_location_lookup[point_id][cam_id]
      */
-    pub fn get_euclidean_landmark_state<F: Scalar + RealField + Copy, Feat: Feature>(
+    pub fn get_euclidean_landmark_state<F: Scalar + RealField + Copy  + SubsetOf<Float>, Feat: Feature>(
         &self, 
         paths: &Vec<(usize,usize)>,
         match_map: &HashMap<(usize, usize), Vec<Match<Feat>>>, 

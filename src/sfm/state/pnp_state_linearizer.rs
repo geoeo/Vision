@@ -1,12 +1,14 @@
 extern crate nalgebra as na;
+extern crate simba;
 
+use simba::scalar::SubsetOf;
 use std::collections::HashMap;
 use na::{convert,Vector3,Vector2, DVector, Isometry3,base::Scalar, RealField};
 use crate::image::features::Feature;
 use crate::sfm::{state::{State,CAMERA_PARAM_SIZE}, landmark::{Landmark, euclidean_landmark::EuclideanLandmark}};
 use crate::Float;
 
-pub fn get_euclidean_landmark_state<F: Scalar + RealField + Copy, Feat: Feature>(
+pub fn get_euclidean_landmark_state<F: Scalar + RealField + Copy + SubsetOf<Float>, Feat: Feature>(
     landmarks: &Vec<EuclideanLandmark<Float>>,
     camera_pose:  &Option<Isometry3<Float>>
 ) -> State<F, EuclideanLandmark<F>,3> {

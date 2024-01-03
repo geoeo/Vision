@@ -10,7 +10,7 @@ pub trait Landmark<F: Scalar, const T: usize> {
     const LANDMARK_PARAM_SIZE: usize = T;
     fn from_state_with_id(state: SVector<F,T>, id: &Option<usize>) -> Self;
     fn from_state(state: SVector<F, T>) -> Self; 
-    fn update(&mut self, perturb :&SVector<F,T>) -> (); //TODO: change signature for inverse depth
+    fn update(&mut self, perturb :&SVector<F,T>) -> ();
     fn set_state(&mut self,state :&SVector<F,T>) -> ();
     fn get_euclidean_representation(&self) -> Point3<F>;
     fn transform_into_other_camera_frame(&self, other_cam_world: &Isometry3<F>) -> Self;
