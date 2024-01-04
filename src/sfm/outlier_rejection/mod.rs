@@ -108,11 +108,9 @@ pub fn reject_landmark_outliers<Feat: Feature + Clone>(
 
 pub fn filter_by_rejected_landmark_ids<Feat: Feature + Clone>(
     rejected_landmark_ids: &HashSet<usize>,
-    unique_landmark_ids: &mut HashSet<usize>,
     match_norm_map: &mut HashMap<(usize, usize), Vec<Match<Feat>>>, 
     match_map: &mut HashMap<(usize, usize), Vec<Match<Feat>>>,
     landmark_map: &mut HashMap<(usize, usize), Vec<EuclideanLandmark<Float>>>, 
-    feature_map: &mut HashMap<usize, Vec<Feat>>,
     reprojection_error_map: &mut HashMap<(usize, usize),DVector<Float>>,
     first_landmark_sighting_map: &mut HashMap<usize, usize>
 ) -> () {

@@ -1140,11 +1140,9 @@ impl<C: Camera<Float> + Clone, Feat: Feature + Clone + PartialEq + Eq + Hash + S
             //TODO: Check if reprojections actually decreased since we have to theoretical guarantee
             filter_by_rejected_landmark_ids(
                 &rejected_landmark_ids,
-                unique_landmark_ids,
                 match_norm_map,
                 match_map,
                 landmark_map,
-                &mut feature_map,
                 reprojection_error_map,
                 first_landmark_sighting_map
             );
@@ -1163,7 +1161,7 @@ impl<C: Camera<Float> + Clone, Feat: Feature + Clone + PartialEq + Eq + Hash + S
         reprojection_error_map: &mut HashMap<(usize, usize), DVector<Float>>,
         first_landmark_sighting_map: &mut HashMap<usize, usize>
     ) -> () {
-        let mut feature_map = conversions::compute_features_per_image_map(
+        let feature_map = conversions::compute_features_per_image_map(
             &match_norm_map,
             &unique_landmark_ids,
             unique_camera_ids,
@@ -1240,11 +1238,9 @@ impl<C: Camera<Float> + Clone, Feat: Feature + Clone + PartialEq + Eq + Hash + S
         if !rejected_landmark_ids.is_empty() {
             filter_by_rejected_landmark_ids(
                 &rejected_landmark_ids,
-                unique_landmark_ids,
                 match_norm_map,
                 match_map,
                 landmark_map,
-                &mut feature_map,
                 reprojection_error_map,
                 first_landmark_sighting_map,
             );

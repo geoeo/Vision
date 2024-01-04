@@ -106,11 +106,10 @@ impl<F: Scalar + RealField + Copy + SubsetOf<Float>> Landmark<F, 6> for InverseL
 }
 
 impl<F: Scalar + RealField + Copy + SubsetOf<Float>> InverseLandmark<F> {
-    pub fn new<C: Camera<F>, Feat: Feature>(cam_to_world: &Isometry3<F>, feature: &Feat, inverse_depth_prior: F, camera: &C, id: &Option<usize>) -> InverseLandmark<F> {
+    pub fn new<Feat: Feature>(cam_to_world: &Isometry3<F>, feature: &Feat, inverse_depth_prior: F, inverse_projection: &Matrix3<Float>, id: &Option<usize>) -> InverseLandmark<F> {
         let camera_pos = cam_to_world.translation.vector;
         //TODO: make Feat trait generic
-        let inv_projection = camera.get_inverse_projection().cast::<Float>();
-        let camera_ray_world = cam_to_world.rotation*feature.get_camera_ray(&inv_projection).cast::<F>();
+        let camera_ray_world = cam_to_world.rotation*feature.get_camera_ray(inverse_projection).cast::<F>();
         let h_x = camera_ray_world[0];
         let h_y = camera_ray_world[1];
         let h_z = camera_ray_world[2];

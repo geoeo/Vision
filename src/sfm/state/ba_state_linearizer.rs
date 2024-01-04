@@ -44,7 +44,7 @@ impl BAStateLinearizer {
         self.camera_to_linear_id_map.get(cam_id).expect("Cam id not present in map").clone()
     }
 
-    pub fn get_inverse_depth_landmark_state<F: Scalar + RealField + Copy + SubsetOf<Float>, Feat: Feature, C: Camera<F>>(
+    pub fn get_inverse_depth_landmark_state<F: Scalar + RealField + Copy + SubsetOf<Float>, Feat: Feature, C: Camera<Float>>(
         &self, 
         paths: &Vec<(usize,usize)>,
         match_map: &HashMap<(usize, usize), Vec<Match<Feat>>>, 
@@ -94,7 +94,7 @@ impl BAStateLinearizer {
                                     &source_camera_pose.cast::<F>(),
                                     m.get_feature_one(),
                                     convert(0.1),
-                                    source_camera,
+                                    &source_camera.get_inverse_projection(),
                                     &Some(*landmark_id)
                                 );
     
@@ -108,7 +108,7 @@ impl BAStateLinearizer {
                                 &source_camera_pose.cast::<F>(),
                                 m.get_feature_one(),
                                 convert(0.1),
-                                source_camera,
+                                &source_camera.get_inverse_projection(),
                                 &Some(*landmark_id)
                             );
     
