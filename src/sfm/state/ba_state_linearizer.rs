@@ -6,6 +6,7 @@ use simba::scalar::SubsetOf;
 use std::collections::{HashMap,HashSet};
 use crate::image::features::{Feature, matches::Match};
 use crate::sfm::{state::{State,CAMERA_PARAM_SIZE}, landmark::{Landmark, euclidean_landmark::EuclideanLandmark, inverse_depth_landmark::InverseLandmark}};
+use crate::sensors::camera::Camera;
 
 use crate::Float;
 
@@ -43,17 +44,13 @@ impl BAStateLinearizer {
         self.camera_to_linear_id_map.get(cam_id).expect("Cam id not present in map").clone()
     }
 
-    /**
-     * initial_motion should all be with respect to the first camera
-     * //TODO: Rework
-     */
-    pub fn get_inverse_depth_landmark_state<F: Scalar + RealField + Copy + SubsetOf<Float>, Feat: Feature>(
+    pub fn get_inverse_depth_landmark_state<F: Scalar + RealField + Copy + SubsetOf<Float>, Feat: Feature, C: Camera<F>>(
         &self, 
         paths: &Vec<(usize,usize)>,
         match_map: &HashMap<(usize, usize), Vec<Match<Feat>>>, 
         abs_pose_map: &HashMap<usize, Isometry3<Float>>,
-        abs_landmark_map: &HashMap<(usize,usize), Vec<EuclideanLandmark<Float>>>,
-        reprojection_error_map: &HashMap<(usize, usize),DVector<Float>>) 
+        reprojection_error_map: &HashMap<(usize, usize),DVector<Float>>,
+        camera_norm_map: &HashMap<usize, C>) 
         -> (State<F, InverseLandmark<F>,6>, DVector<F>) { 
 
             let number_of_cameras = self.camera_to_linear_id_map.len();
@@ -68,7 +65,8 @@ impl BAStateLinearizer {
                 let landmark_key = (*id_s, *id_f);
                 let matches = match_map.get(&landmark_key).expect("not matches found for path pair");
                 let reprojection_errors = reprojection_error_map.get(&landmark_key).expect(format!("no reprojection errors found for key: {:?}",landmark_key).as_str());
-                let root_aligned_triangulated_matches_s = abs_landmark_map.get(&landmark_key).expect(format!("no landmarks found for key: {:?}",landmark_key).as_str());
+                let source_camera = camera_norm_map.get(&id_s).expect("Camera not found");
+                let source_camera_pose = abs_pose_map.get(&id_s).expect("Camera Pose not found");
                 let internal_source_cam_id = self.camera_to_linear_id_map.get(&id_s).unwrap();
                 let internal_other_cam_id = self.camera_to_linear_id_map.get(&id_f).unwrap();
     
@@ -82,43 +80,42 @@ impl BAStateLinearizer {
     
                     let landmark_id = &m.get_landmark_id().expect(format!("no landmark id found for match: {:?}",landmark_key).as_str());
                     let linear_landmark_id = self.landmark_to_linear_id_map.get(landmark_id).unwrap().clone();
-                    let point_s = root_aligned_triangulated_matches_s[m_i].get_euclidean_representation();
-                    
+
                     let reprojection_error = reprojection_errors[m_i];
 
-                    panic!("TODO");
-                    // match landmark_reprojection_error_map.contains_key(landmark_id) {
-                    //     true => {
-                    //         let current_reproj_error =  *landmark_reprojection_error_map.get(&landmark_id).unwrap();
-                    //         if reprojection_error < current_reproj_error {
-                    //             landmark_reprojection_error_map.insert(*landmark_id,reprojection_error);
-                    //             landmarks[linear_landmark_id] = InverseLandmark::from_state_with_id(
-                    //                 Vector3::<F>::new(
-                    //                     convert(point_s[0]),
-                    //                     convert(point_s[1]),
-                    //                     convert(point_s[2])
-                    //                 ), 
-                    //                 &Some(*landmark_id)
-                    //             );
+                    // In the Paper the first observed camera position only is saved as state. However, in that paper an EKF was used.
+                    // In our case we do a BA, as such we are interested in all feature positions.
+                    match landmark_reprojection_error_map.contains_key(landmark_id) {
+                        true => {
+                            let current_reproj_error =  *landmark_reprojection_error_map.get(&landmark_id).unwrap();
+                            if reprojection_error < current_reproj_error {
+                                landmark_reprojection_error_map.insert(*landmark_id,reprojection_error);
+                                landmarks[linear_landmark_id] = InverseLandmark::new(
+                                    &source_camera_pose.cast::<F>(),
+                                    m.get_feature_one(),
+                                    convert(0.1),
+                                    source_camera,
+                                    &Some(*landmark_id)
+                                );
     
-                    //             feature_location_lookup[linear_landmark_id][*internal_source_cam_id] = Some((point_source_x_float,point_source_y_float));
-                    //             feature_location_lookup[linear_landmark_id][*internal_other_cam_id] = Some((point_other_x_float,point_other_y_float));
-                    //         }
-                    //     },
-                    //     false => {
-                    //         landmark_reprojection_error_map.insert(*landmark_id,reprojection_error);
-                    //         landmarks[linear_landmark_id] = InverseLandmark::from_state_with_id(
-                    //             Vector3::<F>::new(
-                    //                 convert(point_s[0]),
-                    //                 convert(point_s[1]),
-                    //                 convert(point_s[2])
-                    //             ), 
-                    //             &Some(*landmark_id));
+                                feature_location_lookup[linear_landmark_id][*internal_source_cam_id] = Some((point_source_x_float,point_source_y_float));
+                                feature_location_lookup[linear_landmark_id][*internal_other_cam_id] = Some((point_other_x_float,point_other_y_float));
+                            }
+                        },
+                        false => {
+                            landmark_reprojection_error_map.insert(*landmark_id,reprojection_error);
+                            landmarks[linear_landmark_id] = InverseLandmark::new(
+                                &source_camera_pose.cast::<F>(),
+                                m.get_feature_one(),
+                                convert(0.1),
+                                source_camera,
+                                &Some(*landmark_id)
+                            );
     
-                    //         feature_location_lookup[linear_landmark_id][*internal_source_cam_id] = Some((point_source_x_float,point_source_y_float));
-                    //         feature_location_lookup[linear_landmark_id][*internal_other_cam_id] = Some((point_other_x_float,point_other_y_float));
-                    //     }
-                    // }   
+                            feature_location_lookup[linear_landmark_id][*internal_source_cam_id] = Some((point_source_x_float,point_source_y_float));
+                            feature_location_lookup[linear_landmark_id][*internal_other_cam_id] = Some((point_other_x_float,point_other_y_float));
+                        }
+                    }   
                 }
             }
     
@@ -213,6 +210,9 @@ impl BAStateLinearizer {
                         feature_location_lookup[linear_landmark_id][*internal_other_cam_id] = Some((point_other_x_float,point_other_y_float));
                     }
                 }   
+
+
+
             }
         }
 
