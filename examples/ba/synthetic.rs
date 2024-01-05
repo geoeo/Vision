@@ -195,11 +195,11 @@ fn main() -> Result<()> {
     // let cam_pos_pnp = optimized_state_pnp.get_camera_positions().first().unwrap();
     // println!("Cam 0 state pnp: {}", cam_pos_pnp);
 
-    let pnp_config_cam = sfm_config_fundamental.generate_pnp_config_from_cam_id(2);
-    let (optimized_state_pnp, _) = run_pnp(&pnp_config_cam,&runtime_parameters_pnp);
-    sfm_config_fundamental.update_state(&optimized_state_pnp);
-    let cam_pos_pnp = optimized_state_pnp.get_camera_positions().first().unwrap();
-    println!("Cam 0 state pnp: {}", cam_pos_pnp);
+    // let pnp_config_cam = sfm_config_fundamental.generate_pnp_config_from_cam_id(2);
+    // let (optimized_state_pnp, _) = run_pnp(&pnp_config_cam,&runtime_parameters_pnp);
+    // sfm_config_fundamental.update_state(&optimized_state_pnp);
+    // let cam_pos_pnp = optimized_state_pnp.get_camera_positions().first().unwrap();
+    // println!("Cam 0 state pnp: {}", cam_pos_pnp);
 
 
     let trajectories = vec!(vec!((0,1),(1,2)));

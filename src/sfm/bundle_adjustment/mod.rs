@@ -21,12 +21,10 @@ use std::{
 };
 use termion::input::TermRead;
 
-use super::landmark::inverse_depth_landmark::InverseLandmark;
-
 pub mod solver;
 pub mod ba_config;
 
-const LANDMARK_PARAM : usize = 3; 
+const LANDMARK_PARAM : usize = 6; 
 
 pub fn run_ba<
     'a,
@@ -47,25 +45,23 @@ pub fn run_ba<
     let state_linearizer = BAStateLinearizer::new(&paths,&abs_landmark_map);
 
     //TODO: switch impl on landmark state
-    // let (mut state, observed_features) = state_linearizer.get_inverse_depth_landmark_state(
-    //     &paths,
-    //     sfm_config.match_norm_map(),
-    //     sfm_config.abs_pose_map(),
-    //     sfm_config.reprojection_error_map(),
-    //     sfm_config.camera_norm_map()
-    // );
-
-    let (mut state, observed_features) = state_linearizer.get_euclidean_landmark_state(
+    let (mut state, observed_features) = state_linearizer.get_inverse_depth_landmark_state(
         &paths,
         sfm_config.match_norm_map(),
         sfm_config.abs_pose_map(),
-        &abs_landmark_map,
-        sfm_config.reprojection_error_map()
+        sfm_config.reprojection_error_map(),
+        sfm_config.camera_norm_map()
     );
 
-    let (tx_result, rx_result) = mpsc::channel::<(State<F, EuclideanLandmark<F>, 3>,Option<Vec<(Vec<[F; CAMERA_PARAM_SIZE]>, Vec<[F; LANDMARK_PARAM]>)>>)>();
+    // let (mut state, observed_features) = state_linearizer.get_euclidean_landmark_state(
+    //     &paths,
+    //     sfm_config.match_norm_map(),
+    //     sfm_config.abs_pose_map(),
+    //     &abs_landmark_map,
+    //     sfm_config.reprojection_error_map()
+    // );
 
-    //let (tx_result, rx_result) = mpsc::channel::<(State<F, InverseLandmark<F>, LANDMARK_PARAM>,Option<Vec<(Vec<[F; CAMERA_PARAM_SIZE]>, Vec<[F; LANDMARK_PARAM]>)>>)>();
+    let (tx_result, rx_result) = mpsc::channel::<(State<F, EuclideanLandmark<F>, 3>,Option<Vec<(Vec<[F; CAMERA_PARAM_SIZE]>, Vec<[F; 3]>)>>)>();
     let (tx_abort, rx_abort) = mpsc::channel::<bool>();
     let (tx_done, rx_done) = mpsc::channel::<bool>();
     let camera_map = sfm_config.camera_norm_map();
@@ -81,8 +77,14 @@ pub fn run_ba<
                 Some(&rx_abort),
                 Some(&tx_done),
             );
+
+            let debug_state = match some_debug_state_list {
+                None => None,
+                Some(list) => Some(list.iter().map(|s| s.to_euclidean_landmarks().to_serial()).collect())
+            };
+
             tx_result
-                .send((state,some_debug_state_list))
+                .send((state.to_euclidean_landmarks(),debug_state))
                 .expect("Tx can not send state from solver thread");
         });
 
@@ -106,6 +108,9 @@ pub fn run_ba<
             }
         });
     });
+
+
+    //TODO Either return Euclidean Landmarks, a version of State with no generics or implement a conversion in State
 
     rx_result
         .recv()

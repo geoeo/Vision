@@ -7,7 +7,7 @@ use na::{DVector, SMatrix, Matrix4, Vector3, Isometry3, base::Scalar, RealField 
 use simba::scalar::SubsetOf;
 
 use crate::numerics::{lie::exp_se3,pose::from_matrix};
-use crate::sfm::landmark::Landmark;
+use crate::sfm::landmark::{Landmark,euclidean_landmark::EuclideanLandmark};
 use crate::Float;
 
 pub mod ba_state_linearizer;
@@ -179,6 +179,17 @@ impl<F: Scalar + RealField + Copy + SubsetOf<Float>, L: Landmark<F,T> + Copy + C
             camera_id_by_idx,
             n_cams: cam_serial.len(),
             n_points: points_serial.len()
+        }
+    }
+
+    pub fn to_euclidean_landmarks(&self) -> State<F, EuclideanLandmark<F>, 3> {
+        State::<F,EuclideanLandmark<F>,3> {
+            camera_positions: self.camera_positions.clone(),
+            landmarks:  self.get_landmarks().iter().map(|l| EuclideanLandmark::<F>::from_state_with_id(l.get_euclidean_representation().coords,&l.get_id())).collect(), 
+            camera_id_map: self.camera_id_map.clone(),
+            camera_id_by_idx: self.camera_id_by_idx.clone(),
+            n_cams: self.n_cams, 
+            n_points: self.n_points
         }
     }
 }

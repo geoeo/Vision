@@ -222,7 +222,7 @@ impl<
         runtime_parameters: &RuntimeParameters<F>,
         abort_receiver: Option<&mpsc::Receiver<bool>>,
         done_transmission: Option<&mpsc::Sender<bool>>,
-    ) -> Option<Vec<(Vec<[F; CAMERA_PARAM_SIZE]>, Vec<[F; LANDMARK_PARAM_SIZE]>)>> {
+    ) -> Option<Vec<State<F, L, LANDMARK_PARAM_SIZE>>> {
         self.optimizer.optimize(
             state,
             camera_map,

@@ -57,8 +57,14 @@ pub fn run_pnp<
                 Some(&rx_abort),
                 Some(&tx_done),
             );
+
+            let debug_state = match some_debug_state_list {
+                None => None,
+                Some(list) => Some(list.iter().map(|s| s.to_euclidean_landmarks().to_serial()).collect())
+            };
+
             tx_result
-                .send((state,some_debug_state_list))
+                .send((state,debug_state))
                 .expect("Tx can not send state from solver thread");
         });
 

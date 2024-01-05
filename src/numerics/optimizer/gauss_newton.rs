@@ -15,9 +15,6 @@ use crate::sfm::{landmark::Landmark,state::State};
 use crate::sfm::runtime_parameters::RuntimeParameters; 
 use crate::Float;
 
-const CAMERA_PARAM_SIZE: usize = 6; //TODO make this generic with state
-
-
 pub struct OptimizerGn<F, C : Camera<Float>, L: Landmark<F,LANDMARK_PARAM_SIZE> + Copy + Clone + Send + Sync, const LANDMARK_PARAM_SIZE: usize> where F: float::Float + Scalar + RealField+ SubsetOf<Float> {
     pub get_estimated_features: Box<dyn Fn(&State<F,L,LANDMARK_PARAM_SIZE>, &HashMap<usize, C>, &DVector<F>, &mut DVector<F>) -> ()>,
     pub compute_residual: Box<dyn Fn(&DVector<F>, &DVector<F>, &mut DVector<F>) -> ()>,
@@ -44,7 +41,7 @@ impl<F, C : Camera<Float>, L: Landmark<F,LANDMARK_PARAM_SIZE> + Copy + Clone + S
     
     pub fn optimize(&self,
         state: &mut State<F,L,LANDMARK_PARAM_SIZE>, camera_map: &HashMap<usize, C>, observed_features: &DVector<F>, runtime_parameters: &RuntimeParameters<F>, abort_receiver: Option<&mpsc::Receiver<bool>>, done_transmission: Option<&mpsc::Sender<bool>>
-    ) -> Option<Vec<(Vec<[F; CAMERA_PARAM_SIZE]>, Vec<[F; LANDMARK_PARAM_SIZE]>)>> where F: float::Float + Scalar + RealField {
+    ) -> Option<Vec<State<F,L,LANDMARK_PARAM_SIZE>>> where F: float::Float + Scalar + RealField {
     
         let max_iterations = runtime_parameters.max_iterations[0];
         
@@ -59,7 +56,7 @@ impl<F, C : Camera<Float>, L: Landmark<F,LANDMARK_PARAM_SIZE> + Copy + Clone + S
         let mut weights_vec = DVector::<F>::from_element(observed_features.nrows(),F::one());
         
         let mut debug_state_list = match runtime_parameters.debug {
-            true => Some(Vec::<(Vec<[F; CAMERA_PARAM_SIZE]>, Vec<[F; LANDMARK_PARAM_SIZE]>)>::with_capacity(max_iterations)),
+            true => Some(Vec::<State<F,L,LANDMARK_PARAM_SIZE>>::with_capacity(max_iterations)),
             false => None
         };
         //let mut preconditioner = DMatrix::<F>::zeros(u_span,u_span); // a lot of memory - maybe use sparse format
@@ -108,7 +105,7 @@ impl<F, C : Camera<Float>, L: Landmark<F,LANDMARK_PARAM_SIZE> + Copy + Clone + S
                 println!("it: {}, avg_rmse: {}",iteration_count,float::Float::sqrt(cost));
             }
             if runtime_parameters.debug {
-                debug_state_list.as_mut().expect("Debug is true but state list is None!. This should not happen").push(state.to_serial());
+                debug_state_list.as_mut().expect("Debug is true but state list is None!. This should not happen").push(state.clone());
             }
             
             let gauss_newton_result = gauss_newton_step::<_,_,_,_,_,_>(
