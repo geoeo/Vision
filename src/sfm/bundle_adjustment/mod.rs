@@ -109,9 +109,6 @@ pub fn run_ba<
         });
     });
 
-
-    //TODO Either return Euclidean Landmarks, a version of State with no generics or implement a conversion in State
-
     rx_result
         .recv()
         .expect("Did not receive state from solver thread!")

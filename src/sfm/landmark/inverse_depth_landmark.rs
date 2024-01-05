@@ -6,7 +6,6 @@ use na::{Vector3,Vector6,Matrix3x6, Isometry3, Point3,SVector, SMatrix,Matrix3, 
 use simba::scalar::SubsetOf;
 use crate::image::features::Feature;
 use crate::sfm::landmark::Landmark;
-use crate::sensors::camera::Camera;
 use crate::Float;
 
 #[derive(Copy,Clone)]
