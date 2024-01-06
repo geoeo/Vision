@@ -1,13 +1,15 @@
 use crate::image::features::{matches::Match,Feature};
+use std::marker::{Send,Sync};
+
 type PathIdx = usize;
 type ImageIdx = usize;
 
-pub struct FeatureTrack<T: Feature> {
+pub struct FeatureTrack<T: Feature + Send + Sync> {
     track: Vec<(PathIdx, ImageIdx, Match<T>)>,
     landmark_id: usize
 }
 
-impl<T: Feature + Clone + PartialEq> FeatureTrack<T> {
+impl<T: Feature + Clone + PartialEq + Send + Sync> FeatureTrack<T> {
     pub fn new(capacity: usize, path_idx: PathIdx, img_idx: ImageIdx, landmark_id: usize, m: &Match<T>) -> FeatureTrack<T> {
         let mut track = Vec::<(PathIdx, ImageIdx, Match<T>)>::with_capacity(capacity);
         let new_m = Match::new(m.get_feature_one().copy_with_landmark_id(Some(landmark_id)),m.get_feature_two().copy_with_landmark_id(Some(landmark_id)));

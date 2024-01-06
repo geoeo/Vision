@@ -53,4 +53,8 @@ impl<F: Scalar  + RealField + Copy> Landmark<F,3> for EuclideanLandmark<F> {
     }
 
     fn get_id(&self) -> Option<usize> {self.id}
+
+    fn duplicate(&self) -> Self {
+       self.clone() 
+    }
 }

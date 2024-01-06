@@ -1,6 +1,6 @@
 extern crate nalgebra as na;
 use color_eyre::eyre::Result;
-use vision::sfm::landmark::Landmark;
+use vision::sfm::landmark::{Landmark,inverse_depth_landmark::InverseLandmark, euclidean_landmark::EuclideanLandmark};
 
 use std::collections::{HashMap, HashSet};
 use vision::{Float,load_runtime_conf};
@@ -168,7 +168,7 @@ fn main() -> Result<()> {
     //let trajectories = compute_path_id_pairs(sfm_config_fundamental.root(), sfm_config_fundamental.paths());
 
     let trajectories = vec!(vec!((0,1)));
-    let (optimized_state_first, state_debug_list) = run_ba(&sfm_config_fundamental, &runtime_parameters, &trajectories);
+    let (optimized_state_first, state_debug_list) = run_ba::<_,6,InverseLandmark<Float>,_,_>(&sfm_config_fundamental, &runtime_parameters, &trajectories);
     sfm_config_fundamental.update_state(&optimized_state_first);
 
     let cam_0_idx = optimized_state_first.get_camera_id_map().get(&0).unwrap();
@@ -202,13 +202,13 @@ fn main() -> Result<()> {
     // println!("Cam 0 state pnp: {}", cam_pos_pnp);
 
 
-    let trajectories = vec!(vec!((0,1),(1,2)));
-    let (optimized_state_second, state_debug_list) = run_ba(&sfm_config_fundamental, &runtime_parameters, &trajectories);
-    sfm_config_fundamental.update_state(&optimized_state_second);
-    let world_cam_2 = sfm_config_fundamental.abs_pose_map().get(&1).unwrap().clone();
-    println!("Cam 2 config: {}", world_cam_2);
+    // let trajectories = vec!(vec!((0,1),(1,2)));
+    // let (optimized_state_second, state_debug_list) = run_ba(&sfm_config_fundamental, &runtime_parameters, &trajectories);
+    // sfm_config_fundamental.update_state(&optimized_state_second);
+    // let world_cam_2 = sfm_config_fundamental.abs_pose_map().get(&1).unwrap().clone();
+    // println!("Cam 2 config: {}", world_cam_2);
 
-    let state_serialized = serde_yaml::to_string(&optimized_state_second.to_serial());
+    let state_serialized = serde_yaml::to_string(&optimized_state_first.to_serial());
     let debug_states_serialized = serde_yaml::to_string(&state_debug_list);
     std::fs::write(format!("{}/ba.txt",runtime_conf.output_path), state_serialized?).expect("Unable to write file");
 

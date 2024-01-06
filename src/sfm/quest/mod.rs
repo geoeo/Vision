@@ -1,6 +1,7 @@
 extern crate nalgebra as na;
 extern crate nalgebra_lapack;
 
+use std::marker::{Sync,Send};
 use na::{SMatrix, Matrix3, SVector, OMatrix, Dyn, RowSVector, RowDVector, linalg::SVD, Quaternion, UnitQuaternion, Const};
 use nalgebra_lapack::Eigen;
 use rand::seq::SliceRandom;
@@ -11,7 +12,7 @@ use crate::Float;
 pub mod constraints;
 
 
-pub fn quest_ransac<T: Feature + Clone>(matches: &Vec<Match<T>>, inverse_projection_one: &Matrix3<Float>, inverse_projection_two: &Matrix3<Float>, epipolar_thresh: Float, ransac_it: usize) -> Essential {
+pub fn quest_ransac<T: Feature + Clone + Send + Sync>(matches: &Vec<Match<T>>, inverse_projection_one: &Matrix3<Float>, inverse_projection_two: &Matrix3<Float>, epipolar_thresh: Float, ransac_it: usize) -> Essential {
     let mut max_inlier_count = 0;
     let mut best_essential: Option<Essential> = None;
     let sample_size = matches.len();

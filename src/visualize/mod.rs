@@ -1,6 +1,7 @@
 extern crate image as image_rs;
 extern crate nalgebra as na;
 
+use std::marker::{Sync,Send};
 use rand::distributions::{Distribution, Uniform};
 use na::Vector3;
 use crate::image::features::{image_feature::ImageFeature,Feature,matches::Match, Oriented,orb_feature::OrbFeature, geometry::{point::Point,shape::circle::circle_bresenham,line::line_bresenham}};
@@ -42,7 +43,7 @@ pub fn display_histogram(histogram: &OrientationHistogram, width_scaling:usize, 
     image
 }
 
-pub fn display_oriented_matches_for_pyramid<T: Feature + Oriented>(image_a_original: &Image, image_b_original: &Image, match_pyramid: &Vec<Match<T>>, draw_lines: bool, intensity: Float, pyramid_scale: Float) -> Image {
+pub fn display_oriented_matches_for_pyramid<T: Feature + Oriented + Send + Sync>(image_a_original: &Image, image_b_original: &Image, match_pyramid: &Vec<Match<T>>, draw_lines: bool, intensity: Float, pyramid_scale: Float) -> Image {
     let height = image_a_original.buffer.nrows();
     let width = image_a_original.buffer.ncols() + image_b_original.buffer.ncols();
 
@@ -78,7 +79,7 @@ pub fn display_oriented_matches_for_pyramid<T: Feature + Oriented>(image_a_origi
     target_image
 }
 
-pub fn display_matches_for_pyramid<T: Feature>(image_a_original: &Image, image_b_original: &Image, match_pyramid: &Vec<Match<T>>, draw_lines: bool, intensity: Float, pyramid_scale: Float, invert_y: bool) -> Image {
+pub fn display_matches_for_pyramid<T: Feature + Send + Sync>(image_a_original: &Image, image_b_original: &Image, match_pyramid: &Vec<Match<T>>, draw_lines: bool, intensity: Float, pyramid_scale: Float, invert_y: bool) -> Image {
     let height = image_a_original.buffer.nrows();
     let height_f = height as Float;
     let width = image_a_original.buffer.ncols() + image_b_original.buffer.ncols();

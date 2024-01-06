@@ -8,6 +8,8 @@ use vision::sfm::runtime_parameters::RuntimeParameters;
 use vision::numerics::{loss, weighting};
 use vision::load_runtime_conf;
 use vision::visualize;
+use vision::sfm::landmark::inverse_depth_landmark::InverseLandmark;
+use vision::Float;
 
 fn main() -> Result<()> {
     color_eyre::install()?;
@@ -27,7 +29,7 @@ fn main() -> Result<()> {
     let kronan = "kronan";
     let round_church = "round_church";
 
-    let olsen_dataset_name = de_guerre;
+    let olsen_dataset_name = fountain;
     let olsen_data_path = format!("{}/Olsson/{}/",runtime_conf.dataset_path,olsen_dataset_name);
 
     let feature_skip_count = 1;
@@ -50,11 +52,11 @@ fn main() -> Result<()> {
     // let paths = vec!(vec!(6,7));
     // let root_id = 5;
 
-    let paths = vec!(vec!(6,7,8));
-    let root_id = 5;
-
-    // let paths = vec!(vec!(6,7,8,9,10));
+    // let paths = vec!(vec!(6,7,8));
     // let root_id = 5;
+
+    let paths = vec!(vec!(6,7,8,9,10));
+    let root_id = 5;
 
     // let paths = vec!(vec!(5),vec!(7));
     // let root_id = 6;
@@ -143,7 +145,7 @@ fn main() -> Result<()> {
     };
 
     let trajectories = compute_path_id_pairs(sfm_config_fundamental.root(), sfm_config_fundamental.paths());
-    let (optimized_state, state_debug_list) = run_ba(&sfm_config_fundamental, &runtime_parameters,&trajectories);
+    let (optimized_state, state_debug_list) = run_ba::<_,6,InverseLandmark<Float>,_,_>(&sfm_config_fundamental, &runtime_parameters,&trajectories);
     let state_serialized = serde_yaml::to_string(&optimized_state.to_serial());
     let debug_states_serialized = serde_yaml::to_string(&state_debug_list);
 

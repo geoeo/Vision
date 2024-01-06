@@ -3,7 +3,7 @@ extern crate simba;
 
 use na::{convert,Vector3, Matrix3, DVector, Vector6,Isometry3, Rotation3,base::Scalar, RealField};
 use simba::scalar::SubsetOf;
-use std::collections::{HashMap,HashSet};
+use std::{collections::{HashMap,HashSet},marker::{Send,Sync}};
 use crate::image::features::{Feature, matches::Match};
 use crate::sfm::{state::{State,CAMERA_PARAM_SIZE}, landmark::{Landmark, euclidean_landmark::EuclideanLandmark, inverse_depth_landmark::InverseLandmark}};
 use crate::sensors::camera::Camera;
@@ -44,14 +44,14 @@ impl BAStateLinearizer {
         self.camera_to_linear_id_map.get(cam_id).expect("Cam id not present in map").clone()
     }
 
-    pub fn get_inverse_depth_landmark_state<F: Scalar + RealField + Copy + SubsetOf<Float>, Feat: Feature, C: Camera<Float>>(
+    pub fn get_inverse_depth_landmark_state<F: Scalar + RealField + Copy + SubsetOf<Float>, Feat: Feature + Send + Sync, C: Camera<Float>>(
         &self, 
         paths: &Vec<(usize,usize)>,
         match_map: &HashMap<(usize, usize), Vec<Match<Feat>>>, 
         abs_pose_map: &HashMap<usize, Isometry3<Float>>,
         reprojection_error_map: &HashMap<(usize, usize),DVector<Float>>,
         camera_norm_map: &HashMap<usize, C>) 
-        -> (State<F, InverseLandmark<F>,6>, DVector<F>) { 
+        -> (State<F, impl Landmark<F,6>,6>, DVector<F>) { 
 
             let number_of_cameras = self.camera_to_linear_id_map.len();
             let number_of_unqiue_landmarks = self.landmark_to_linear_id_map.len();
@@ -140,14 +140,14 @@ impl BAStateLinearizer {
      * @Return: An object holding camera positions and 3d landmarks, 2d Vector of rows: point, cols: cam. Where the matrix elements are in (x,y) tuples. 
      *  First entry in 2d Vector is all the cams assocaited with a point. feature_location_lookup[point_id][cam_id]
      */
-    pub fn get_euclidean_landmark_state<F: Scalar + RealField + Copy  + SubsetOf<Float>, Feat: Feature>(
+    pub fn get_euclidean_landmark_state<F: Scalar + RealField + Copy + SubsetOf<Float>, Feat: Feature + Send + Sync>(
         &self, 
         paths: &Vec<(usize,usize)>,
         match_map: &HashMap<(usize, usize), Vec<Match<Feat>>>, 
         abs_pose_map: &HashMap<usize, Isometry3<Float>>,
         abs_landmark_map: &HashMap<(usize,usize), Vec<EuclideanLandmark<Float>>>,
         reprojection_error_map: &HashMap<(usize, usize),DVector<Float>>) 
-        -> (State<F, EuclideanLandmark<F>,3>, DVector<F>) {
+        -> (State<F, impl Landmark<F,3>,3>, DVector<F>) {
         
         let number_of_cameras = self.camera_to_linear_id_map.len();
         let number_of_unqiue_landmarks = self.landmark_to_linear_id_map.len();

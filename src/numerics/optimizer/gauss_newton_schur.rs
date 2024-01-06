@@ -17,14 +17,14 @@ use crate::Float;
 
 const CAMERA_PARAM_SIZE: usize = 6; //TODO make this generic with state
 
-pub struct OptimizerGnSchur<F, C : Camera<Float>, L: Landmark<F,LANDMARK_PARAM_SIZE> + Copy + Clone + Send + Sync, const LANDMARK_PARAM_SIZE: usize> where F: float::Float + Scalar + RealField + SubsetOf<Float> {
+pub struct OptimizerGnSchur<F, C : Camera<Float>, L: Landmark<F,LANDMARK_PARAM_SIZE> + Send + Sync, const LANDMARK_PARAM_SIZE: usize> where F: float::Float + Scalar + RealField + SubsetOf<Float> {
     pub get_estimated_features: Box<dyn Fn(&State<F,L,LANDMARK_PARAM_SIZE>, &HashMap<usize, C>, &DVector<F>, &mut DVector<F>) -> ()>,
     pub compute_residual: Box<dyn Fn(&DVector<F>, &DVector<F>, &mut DVector<F>) -> ()>,
     pub compute_jacobian: Box<dyn Fn(&State<F,L,LANDMARK_PARAM_SIZE>, &HashMap<usize, C>, &mut DMatrix<F>) -> ()>,
     pub compute_state_size: Box<dyn Fn(&State<F,L,LANDMARK_PARAM_SIZE>) -> usize>
 }
 
-impl<F, C : Camera<Float>, L: Landmark<F,LANDMARK_PARAM_SIZE> + Copy + Clone + Send + Sync, const LANDMARK_PARAM_SIZE: usize> OptimizerGnSchur<F,C,L,LANDMARK_PARAM_SIZE> where F: float::Float + Scalar + RealField+ SubsetOf<Float> {
+impl<F, C : Camera<Float>, L: Landmark<F,LANDMARK_PARAM_SIZE> + Send + Sync, const LANDMARK_PARAM_SIZE: usize> OptimizerGnSchur<F,C,L,LANDMARK_PARAM_SIZE> where F: float::Float + Scalar + RealField+ SubsetOf<Float> {
     
     pub fn new(
         get_estimated_features: Box<dyn Fn(&State<F,L,LANDMARK_PARAM_SIZE>, &HashMap<usize, C>, &DVector<F>, &mut DVector<F>) -> ()>,

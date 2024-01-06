@@ -1,7 +1,7 @@
 extern crate nalgebra as na;
 
 use na::{Isometry3, Matrix4xX};
-use std::collections::{HashMap, HashSet};
+use std::{collections::{HashMap, HashSet},marker::{Send,Sync}};
 use crate::image::features::{matches::Match, Feature};
 use crate::sfm::landmark::{Landmark, euclidean_landmark::EuclideanLandmark};
 use crate::Float;
@@ -57,7 +57,7 @@ fn compute_absolute_landmarks_for_root(
     abs_landmark_map
 }
 
-pub fn compute_features_per_image_map<Feat: Feature + Clone>(
+pub fn compute_features_per_image_map<Feat: Feature + Clone + Send + Sync>(
     match_map: &HashMap<(usize, usize), Vec<Match<Feat>>>,
     unique_landmark_ids: &HashSet<usize>,
     unique_camera_ids: &Vec<usize>,

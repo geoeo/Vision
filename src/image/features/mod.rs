@@ -6,6 +6,7 @@ use crate::image::Image;
 use crate::image::filter::{prewitt_kernel::PrewittKernel,gradient_convolution_at_sample};
 use crate::image::features::geometry::point::Point;
 use crate::GradientDirection;
+use std::marker::Send;
 
 pub mod geometry;
 pub mod sift_feature;
@@ -57,7 +58,6 @@ pub trait Feature {
     fn new(x: Float, y: Float, landmark_id: Option<usize>) -> Self;
     fn get_location(&self) -> Point<Float>;
 }
-
 
 pub trait Oriented {
     fn get_orientation(&self) -> Float;

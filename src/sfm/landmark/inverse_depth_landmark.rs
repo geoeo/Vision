@@ -102,6 +102,11 @@ impl<F: Scalar + RealField + Copy + SubsetOf<Float>> Landmark<F, 6> for InverseL
     }
 
     fn get_id(&self) -> Option<usize> {self.id}
+
+    fn duplicate(&self) -> Self {
+        self.clone() 
+    }
+
 }
 
 impl<F: Scalar + RealField + Copy + SubsetOf<Float>> InverseLandmark<F> {
@@ -153,5 +158,4 @@ impl<F: Scalar + RealField + Copy + SubsetOf<Float>> InverseLandmark<F> {
             cos_phi*cos_theta
         )
     }
-
 }

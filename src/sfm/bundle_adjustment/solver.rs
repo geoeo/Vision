@@ -26,7 +26,7 @@ use crate::Float;
 pub struct Solver<
     F: Scalar + RealField + Copy + num_traits::Float + SubsetOf<Float>,
     C: Camera<Float> + 'static,
-    L: Landmark<F, LANDMARK_PARAM_SIZE> + Copy + Clone + Send + Sync + 'static,
+    L: Landmark<F, LANDMARK_PARAM_SIZE> + Send + Sync + 'static,
     const LANDMARK_PARAM_SIZE: usize,
 >
 {
@@ -36,7 +36,7 @@ pub struct Solver<
 impl<
         F: Scalar + RealField + Copy  + num_traits::Float + SubsetOf<Float>,
         C: Camera<Float> + 'static,
-        L: Landmark<F, LANDMARK_PARAM_SIZE> + Copy + Clone + Send + Sync + 'static,
+        L: Landmark<F, LANDMARK_PARAM_SIZE> + Send + Sync + 'static,
         const LANDMARK_PARAM_SIZE: usize
     > Solver<F, C, L, LANDMARK_PARAM_SIZE>
 {

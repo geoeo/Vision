@@ -33,11 +33,11 @@ pub struct State<F: Scalar + SubsetOf<Float>, L: Landmark<F,T>, const T: usize> 
     pub n_points: usize,
 }
 
-impl<F: Scalar + RealField + Copy + SubsetOf<Float>, L: Landmark<F,T> + Copy + Clone, const T: usize> Clone for State<F,L,T> {
+impl<F: Scalar + RealField + Copy + SubsetOf<Float>, L: Landmark<F,T>, const T: usize> Clone for State<F,L,T> {
     fn clone(&self) -> State<F,L,T> {
         State::<F,L,T> {
             camera_positions: self.camera_positions.clone(),
-            landmarks: self.landmarks.clone(), 
+            landmarks: self.landmarks.iter().map(|l| l.duplicate()).collect(), 
             camera_id_map: self.camera_id_map.clone(),
             camera_id_by_idx: self.camera_id_by_idx.clone(),
             n_cams: self.n_cams, 
@@ -46,7 +46,7 @@ impl<F: Scalar + RealField + Copy + SubsetOf<Float>, L: Landmark<F,T> + Copy + C
     }
 }
 
-impl<F: Scalar + RealField + Copy + SubsetOf<Float>, L: Landmark<F,T> + Copy + Clone, const T: usize> State<F,L,T> {
+impl<F: Scalar + RealField + Copy + SubsetOf<Float>, L: Landmark<F,T>, const T: usize> State<F,L,T> {
     pub fn new(camera_positions: DVector<F>, landmarks:  Vec<L>, camera_id_map: &HashMap<usize, usize>, n_cams: usize, n_points: usize) -> State<F,L,T> {
         let mut camera_iso = Vec::<Isometry3<F>>::with_capacity(n_cams);
         let camera_id_by_idx = Self::generate_camera_id_by_idx_vec(camera_id_map);
@@ -84,7 +84,7 @@ impl<F: Scalar + RealField + Copy + SubsetOf<Float>, L: Landmark<F,T> + Copy + C
         assert!(self.n_cams == other.n_cams);
         assert!(self.n_points == other.n_points);
         self.camera_positions.copy_from_slice(other.get_camera_positions());
-        self.landmarks.copy_from_slice(other.get_landmarks());
+        self.landmarks = other.landmarks.iter().map(|l| l.duplicate()).collect()
     }
 
     pub fn update(&mut self, perturb: &DVector<F>) -> () {
