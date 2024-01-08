@@ -958,7 +958,7 @@ impl<C: Camera<Float> + Clone, Feat: Feature + Clone + PartialEq + Eq + Hash + S
 
                     (e, filtered_norm, filtered)
                 }
-                tensor::BifocalType::ESSENTIAL_RANSAC => {
+                tensor::BifocalType::ESSENTIALRANSAC => {
                     let e = tensor::ransac_five_point_essential(
                         m_norm,
                         &camera_matrix_one,

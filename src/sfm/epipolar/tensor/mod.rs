@@ -18,7 +18,7 @@ pub type Essential =  Matrix3<Float>;
 #[derive(Clone,Copy)]
 pub enum BifocalType {
     ESSENTIAL,
-    ESSENTIAL_RANSAC,
+    ESSENTIALRANSAC,
     FUNDAMENTAL,
     QUEST
 }
