@@ -1,9 +1,10 @@
+use std::hash::{Hash, Hasher};
 use crate::image::features::{Feature, geometry::{point::Point,shape::circle::{Circle,circle_bresenham},Offset}};
 use crate::image::pyramid::orb::orb_runtime_parameters::OrbRuntimeParameters;
 use crate::image::Image;
 use crate::{float,Float};
 
-#[derive(Debug,Clone)]
+#[derive(Debug,Clone, Eq)]
 pub struct FastFeature {
     pub location: Point<usize>,
     pub radius: usize,
@@ -38,6 +39,20 @@ impl Feature for FastFeature {
     fn copy_with_landmark_id(&self, _: Option<usize>) -> Self {
         self.clone()
     }  
+}
+
+impl PartialEq for FastFeature {
+    fn eq(&self, other: &Self) -> bool {
+        self.get_location() == other.get_location()
+    }
+}
+
+impl Hash for FastFeature {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        let x = self.get_x_image();
+        let y = self.get_y_image();
+        (x,y).hash(state);
+    }
 }
 
 impl FastFeature {

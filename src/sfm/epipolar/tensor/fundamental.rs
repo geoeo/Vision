@@ -2,7 +2,7 @@ extern crate nalgebra as na;
 extern crate nalgebra_lapack;
 extern crate rand;
 
-use std::{iter::zip,marker::{Send,Sync}};
+use std::iter::zip;
 use na::{SVector, Vector, Vector3, Matrix, SMatrix, Matrix3, Vector2, Dyn, VecStorage, dimension::{U9,U1}, base::storage::Storage};
 use nalgebra::linalg::SymmetricEigen;
 
@@ -11,7 +11,7 @@ use crate::image::features::{Feature,solver_feature::SolverFeature,matches::Matc
 use crate::sfm::epipolar::tensor::{regularize, Fundamental};
 
 #[allow(non_snake_case)]
-pub fn eight_point_least_squares<T : Feature + Send + Sync>(matches: &Vec<Match<T>>, f0: Float) -> Fundamental {
+pub fn eight_point_least_squares<T : Feature>(matches: &Vec<Match<T>>, f0: Float) -> Fundamental {
     let number_of_matches = matches.len() as Float; 
     assert!(number_of_matches == 8.0);
 
@@ -42,7 +42,7 @@ pub fn eight_point_least_squares<T : Feature + Send + Sync>(matches: &Vec<Match<
  * Fails if points are coplanar.
  */
 #[allow(non_snake_case)]
-pub fn eight_point_hartley<T : Feature + Send + Sync>(matches: &Vec<Match<T>>, focal: Float) -> Fundamental {
+pub fn eight_point_hartley<T : Feature>(matches: &Vec<Match<T>>, focal: Float) -> Fundamental {
     let number_of_matches = matches.len() as Float; 
     assert!(number_of_matches >= 8.0, "Number of matches: {}", number_of_matches);
 
@@ -106,12 +106,12 @@ fn linear_coefficients(feature_left: &Vector2<Float>, feature_right: &Vector2<Fl
  * Compact Fundamental Matrix Computation, Kanatani and Sugaya @Info: Doenst seem to cope well with noise
  */
 #[allow(non_snake_case)]
-pub fn optimal_correction_of_matches<T : Feature + SolverFeature + Clone + Send + Sync>(F: &Fundamental, m_measured: &Vec<Match<T>>, f0: Float) -> Vec<Match<T>> {
+pub fn optimal_correction_of_matches<T : Feature + SolverFeature>(F: &Fundamental, m_measured: &Vec<Match<T>>, f0: Float) -> Vec<Match<T>> {
     m_measured.iter().map(|m| optimal_correction_of_match(F, m, f0)).collect()
 }
 
 #[allow(non_snake_case)]
-pub fn optimal_correction_of_match<T : Feature + SolverFeature + Clone + Send + Sync>(F: &Fundamental, m_measured: &Match<T>, f0: Float) -> Match<T> {
+pub fn optimal_correction_of_match<T : Feature + SolverFeature>(F: &Fundamental, m_measured: &Match<T>, f0: Float) -> Match<T> {
     let mut error = float::MAX;
     let eta = 1e-2;
     let max_it = 1000;
@@ -159,7 +159,7 @@ pub fn optimal_correction_of_match<T : Feature + SolverFeature + Clone + Send + 
  * Compact Fundamental Matrix Computation, Kanatani and Sugaya @Info: Doenst seem to cope well with noise
  */
 #[allow(non_snake_case)]
-pub fn optimal_correction<T : Feature + SolverFeature + Clone + Send + Sync>(initial_F: &Fundamental, m_measured_in: &Vec<Match<T>>, f0: Float) -> Fundamental {
+pub fn optimal_correction<T : Feature + SolverFeature>(initial_F: &Fundamental, m_measured_in: &Vec<Match<T>>, f0: Float) -> Fundamental {
     let error_threshold_efns = 1e-1;
     let error_threshold = 1e-2;
     let max_it_efns = 100;
@@ -317,7 +317,7 @@ fn compute_covariance_of_eta(feature_left_measured: &Vector2<Float>, feature_rig
 }
 
 #[allow(non_snake_case)]
-fn EFNS<T : Feature + Send + Sync>(matches: &Vec<Match<T>>,matches_est: &Vec<Match<T>>, u_orig: &SVector<Float, 9>, u_cofactor: &SVector<Float, 9>, f0: Float, error_threshold: Float, max_it: usize) 
+fn EFNS<T : Feature>(matches: &Vec<Match<T>>,matches_est: &Vec<Match<T>>, u_orig: &SVector<Float, 9>, u_cofactor: &SVector<Float, 9>, f0: Float, error_threshold: Float, max_it: usize) 
     -> (SVector<Float, 9>, Vec<SVector<Float, 9>>, Vec<SMatrix<Float, 9, 9>>) {
 
     let mut it = 0;

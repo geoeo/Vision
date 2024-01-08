@@ -1,4 +1,4 @@
-use nalgebra as na;
+extern crate nalgebra as na;
 
 use na::{Vector2,Vector3,Matrix3};
 use crate::{Float,float};
@@ -6,7 +6,7 @@ use crate::image::Image;
 use crate::image::filter::{prewitt_kernel::PrewittKernel,gradient_convolution_at_sample};
 use crate::image::features::geometry::point::Point;
 use crate::GradientDirection;
-use std::marker::Send;
+use std::{marker::{Send,Sync}, hash::Hash};
 
 pub mod geometry;
 pub mod sift_feature;
@@ -21,7 +21,7 @@ pub mod matches;
 pub mod image_feature;
 
 
-pub trait Feature {
+pub trait Feature: PartialEq + Eq + Hash + Send + Sync + Clone {
     fn get_x_image_float(&self) -> Float;
     fn get_y_image_float(&self) -> Float;
     fn get_x_image(&self) -> usize;

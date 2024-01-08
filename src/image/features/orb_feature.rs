@@ -1,4 +1,5 @@
 use serde::{Serialize, Deserialize};
+use std::hash::{Hash, Hasher};
 use crate::image::features::{
     Feature,Oriented,
     fast_feature::FastFeature,
@@ -44,6 +45,22 @@ impl Feature for OrbFeature {
     }  
 }
 
+impl PartialEq for OrbFeature {
+    fn eq(&self, other: &Self) -> bool {
+        self.get_location() == other.get_location()
+    }
+}
+
+impl Eq for OrbFeature {}
+
+impl Hash for OrbFeature {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        let x = self.get_x_image();
+        let y = self.get_y_image();
+        (x,y).hash(state);
+    }
+}
+
 impl Oriented for OrbFeature {
     fn get_orientation(&self) -> Float {
         self.orientation
@@ -80,14 +97,6 @@ impl OrbFeature {
         }
         
         orb_features
-    }
-}
-
-impl PartialEq for OrbFeature {
-    fn eq(&self, other: &Self) -> bool {
-        (self.get_x_image_float() == other.get_x_image_float()) && 
-        (self.get_y_image_float() == other.get_y_image_float()) &&
-        (self.get_closest_sigma_level() == other.get_closest_sigma_level())
     }
 }
 

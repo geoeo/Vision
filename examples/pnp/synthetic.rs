@@ -1,7 +1,7 @@
 extern crate nalgebra as na;
 use color_eyre::eyre::Result;
 
-use na::{Vector3,convert, Isometry3,UnitQuaternion,Rotation3};
+use na::{Vector3,convert,UnitQuaternion,Rotation3};
 use std::collections::HashMap;
 use vision::{Float,load_runtime_conf};
 use vision::image::features::image_feature::ImageFeature;
@@ -11,7 +11,7 @@ use vision::sfm::{
     pnp::{pnp_config::PnPConfig, run_pnp}
 };
 use vision::sensors::camera::perspective::Perspective;
-use vision::numerics::{loss, weighting, pose::from_matrix_3x4, lie};
+use vision::numerics::{loss, weighting, pose::from_matrix_3x4};
 
 fn main() -> Result<()> {
     color_eyre::install()?;

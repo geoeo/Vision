@@ -1,18 +1,17 @@
-use nalgebra as na;
+extern crate nalgebra as na;
 
 use na::Matrix3;
 use serde::{Serialize, Deserialize};
 use crate::Float;
 use crate::image::features::Feature;
-use std::marker::{Send,Sync};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct Match<T : Feature + Send + Sync> {
+pub struct Match<T : Feature> {
     feature_one: T,
     feature_two: T
 }
 
-impl<T: Feature + Send + Sync> Match<T> {
+impl<T: Feature> Match<T> {
     pub fn new(feature_one: T, feature_two: T) -> Match<T> {
         assert_eq!(feature_one.get_landmark_id(), feature_two.get_landmark_id());
         Match {feature_one, feature_two}
@@ -34,13 +33,13 @@ impl<T: Feature + Send + Sync> Match<T> {
 }
 
 
-impl<T: Feature + PartialEq + Send + Sync> PartialEq for Match<T> {
+impl<T: Feature> PartialEq for Match<T> {
     fn eq(&self, other: &Self) -> bool {
         (self.feature_one == other.feature_one) && (self.feature_two == other.feature_two)
     }
 }
 
 //TODO
-pub fn subsample_matches<T: Feature + Clone + Send + Sync>(matches: Vec<Match<T>>, _: usize, _: usize) -> Vec<Match<T>> {
+pub fn subsample_matches<T: Feature>(matches: Vec<Match<T>>, _: usize, _: usize) -> Vec<Match<T>> {
     matches
 }

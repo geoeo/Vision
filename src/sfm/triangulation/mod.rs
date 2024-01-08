@@ -1,6 +1,6 @@
 extern crate nalgebra as na;
 
-use std::{marker::{Send,Sync},collections::HashMap};
+use std::collections::HashMap;
 use na::{Matrix4,SMatrix, SVector,Matrix3xX,Matrix4xX,MatrixXx4,OMatrix,RowOVector,U3,U4};
 use crate::image::features::{matches::Match,Feature};
 use crate::sensors::camera::Camera;
@@ -15,7 +15,7 @@ pub enum Triangulation {
 /**
  * For a path pair (1,2) triangulates the feature in coordinate system of 1
  */
-pub fn triangulate_matches<Feat: Feature + Send + Sync, C: Camera<Float>>(path_pair: (usize, usize), pose: &Matrix4<Float>, 
+pub fn triangulate_matches<Feat: Feature, C: Camera<Float>>(path_pair: (usize, usize), pose: &Matrix4<Float>, 
     matches: & Vec<Match<Feat>>, camera_map: &HashMap<usize, C>, triangulation_mode: Triangulation) 
     -> Matrix4xX<Float> {
     let mut image_points_s = Matrix3xX::<Float>::zeros(matches.len());

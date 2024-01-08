@@ -6,7 +6,6 @@ pub mod fundamental;
 
 use na::{Vector3, Matrix3, SMatrix, Isometry3};
 use rand::seq::SliceRandom;
-use std::marker::{Sync,Send};
 
 use crate::Float;
 use crate::image::features::{Feature,matches::Match};
@@ -30,14 +29,14 @@ pub enum EssentialDecomposition {
 }
 
 #[allow(non_snake_case)]
-pub fn calc_epipolar_constraint<T: Feature + Clone + Send + Sync>(F: &Fundamental, m: &Match<T>, focal: Float) -> Float {
+pub fn calc_epipolar_constraint<T: Feature>(F: &Fundamental, m: &Match<T>, focal: Float) -> Float {
     let start = m.get_feature_one().get_as_homogeneous(focal);
     let finish = m.get_feature_two().get_as_homogeneous(focal); 
     (start.transpose()*F*finish)[0].abs()
 }
 
 #[allow(non_snake_case)]
-pub fn filter_matches_from_fundamental<T: Feature + Clone + Send + Sync>(F: &Fundamental, matches: &Vec<Match<T>>, epipiolar_thresh: Float, focal: Float) -> Vec<Match<T>> {
+pub fn filter_matches_from_fundamental<T: Feature>(F: &Fundamental, matches: &Vec<Match<T>>, epipiolar_thresh: Float, focal: Float) -> Vec<Match<T>> {
     matches.iter().filter(|m| {
             let val = calc_epipolar_constraint(F,m, focal);
             val < epipiolar_thresh
@@ -45,7 +44,7 @@ pub fn filter_matches_from_fundamental<T: Feature + Clone + Send + Sync>(F: &Fun
 }
 
 #[allow(non_snake_case)]
-pub fn select_best_matches_from_fundamental<T: Feature + Clone + Send + Sync>(F: &Fundamental, matches: &Vec<Match<T>>, perc: Float, epipolar_thresh: Float, focal: Float) -> Vec<usize> {
+pub fn select_best_matches_from_fundamental<T: Feature>(F: &Fundamental, matches: &Vec<Match<T>>, perc: Float, epipolar_thresh: Float, focal: Float) -> Vec<usize> {
     assert! (0.0 <= perc && perc <= 1.0);
 
     let mut sorted_indices = matches.iter().enumerate()
@@ -61,7 +60,7 @@ pub fn select_best_matches_from_fundamental<T: Feature + Clone + Send + Sync>(F:
     sorted_indices_sub.into_iter().map(|(i,_)| i).collect()
 }
 
-pub fn ransac_five_point_essential<T: Feature + Clone + Send + Sync>(matches: &Vec<Match<T>>,projection_one: &Matrix3<Float>, inverse_projection_one: &Matrix3<Float>, projection_two:&Matrix3<Float>,inverse_projection_two: &Matrix3<Float>, epipolar_thresh: Float, ransac_it: usize) -> Essential {
+pub fn ransac_five_point_essential<T: Feature>(matches: &Vec<Match<T>>,projection_one: &Matrix3<Float>, inverse_projection_one: &Matrix3<Float>, projection_two:&Matrix3<Float>,inverse_projection_two: &Matrix3<Float>, epipolar_thresh: Float, ransac_it: usize) -> Essential {
     let mut max_inlier_count = 0;
     let mut best_essential: Option<Essential> = None;
     let number_of_matches = matches.len();
@@ -86,7 +85,7 @@ pub fn ransac_five_point_essential<T: Feature + Clone + Send + Sync>(matches: &V
 }
 
 #[allow(non_snake_case)]
-pub fn calc_sampson_distance_for_fundamental<T: Feature + Send + Sync>(F: &Fundamental, m: &Match<T>, focal: Float) -> Float {
+pub fn calc_sampson_distance_for_fundamental<T: Feature>(F: &Fundamental, m: &Match<T>, focal: Float) -> Float {
     let m1 = m.get_feature_one().get_as_homogeneous(focal); 
     let m2 = m.get_feature_two().get_as_homogeneous(focal);
     
@@ -99,11 +98,11 @@ pub fn calc_sampson_distance_for_fundamental<T: Feature + Send + Sync>(F: &Funda
 }
 
 #[allow(non_snake_case)]
-pub fn calc_sampson_distance_inliers_for_fundamental<T: Feature + Send + Sync>(F: &Fundamental, matches: &Vec<Match<T>>, thresh: Float, focal: Float) -> usize {
+pub fn calc_sampson_distance_inliers_for_fundamental<T: Feature>(F: &Fundamental, matches: &Vec<Match<T>>, thresh: Float, focal: Float) -> usize {
     matches.iter().map(|m| calc_sampson_distance_for_fundamental(F,m, focal)).filter(|&v| v < thresh).count()
 }
 
-pub fn five_point_essential<T: Feature + Clone + Send + Sync>(matches: &Vec<Match<T>>, projection_one: &Matrix3<Float>, inverse_projection_one: &Matrix3<Float>, projection_two:&Matrix3<Float>,inverse_projection_two: &Matrix3<Float>) -> Essential {
+pub fn five_point_essential<T: Feature>(matches: &Vec<Match<T>>, projection_one: &Matrix3<Float>, inverse_projection_one: &Matrix3<Float>, projection_two:&Matrix3<Float>,inverse_projection_two: &Matrix3<Float>) -> Essential {
     five_point::five_point_essential(&matches,projection_one,inverse_projection_one,projection_two,inverse_projection_two).expect("five_point_essential: failed")
 }
 
@@ -140,7 +139,7 @@ pub fn regularize(tensor: &Matrix3<Float>, target_norm: Float) -> Matrix3<Float>
  * @TODO: unify principal distance into enum
  */
 #[allow(non_snake_case)]
-pub fn decompose_essential_förstner<T : Feature + Send + Sync>(
+pub fn decompose_essential_förstner<T : Feature>(
     E: &Essential, matches: &Vec<Match<T>>,
     inverse_camera_matrix_start: &Matrix3<Float>,
     inverse_camera_matrix_finish: &Matrix3<Float>) -> (Option<Isometry3<Float>>, Matrix3<Float>) {
@@ -224,7 +223,7 @@ pub fn decompose_essential_förstner<T : Feature + Send + Sync>(
  * Statistical Optimization for Geometric Computation p.338
  */
 #[allow(non_snake_case)]
-pub fn decompose_essential_kanatani<T: Feature + Send + Sync>(E: &Essential, matches: &Vec<Match<T>>, positive_principal_distance: bool) -> (Vector3<Float>, Matrix3<Float>, Matrix3<Float>) {
+pub fn decompose_essential_kanatani<T: Feature>(E: &Essential, matches: &Vec<Match<T>>, positive_principal_distance: bool) -> (Vector3<Float>, Matrix3<Float>, Matrix3<Float>) {
     assert!(matches.len() > 0);
     assert!(!positive_principal_distance);
     println!("WARN: decompose_essential_kanatani is buggy");

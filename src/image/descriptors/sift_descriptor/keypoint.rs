@@ -1,3 +1,4 @@
+use std::hash::{Hash,Hasher};
 use crate::Float;
 use crate::image::features::{Feature, Oriented, geometry::point::Point};
 
@@ -30,16 +31,32 @@ impl Feature for KeyPoint {
     }
     //TODO
     fn get_landmark_id(&self) -> Option<usize> {
-        None
+        panic!("TODO")
     }
     //TODO
     fn copy_with_landmark_id(&self, landmark_id: Option<usize>) -> Self {
-        self.clone()
+        panic!("TODO")
     }
 }
 
 impl Oriented for KeyPoint {
     fn get_orientation(&self) -> Float {
         self.orientation
+    }
+}
+
+impl PartialEq for KeyPoint {
+    fn eq(&self, other: &Self) -> bool {
+        self.get_location() == other.get_location()
+    }
+}
+
+impl Eq for KeyPoint {}
+
+impl Hash for KeyPoint {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        let x = self.get_x_image();
+        let y = self.get_y_image();
+        (x,y).hash(state);
     }
 }

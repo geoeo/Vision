@@ -3,13 +3,13 @@ extern crate vision;
 extern crate color_eyre;
 extern crate nalgebra as na;
 
-use std::{path::Path};
+use std::path::Path;
 use color_eyre::eyre::Result;
 use na::Vector3;
 use vision::image::{Image,features::Feature};
 use vision::sfm::epipolar;
 use vision::sensors::camera::{Camera, perspective::Perspective};
-use vision::io::{octave_loader,olsson_loader::OlssenData};
+use vision::io::{olsson_loader::OlssenData};
 use vision::{Float,load_runtime_conf};
 use vision::visualize;
 use vision::numerics::pose;

@@ -4,13 +4,13 @@ use na::{DVector,Matrix3x4,Matrix4xX};
 use crate::image::features::{matches::Match,Feature};
 use crate::sensors::camera::Camera;
 use crate::{float,Float};
-use std::{collections::{HashMap,HashSet}, marker::{Send,Sync}};
+use std::collections::{HashMap,HashSet};
 
 use super::landmark::euclidean_landmark::EuclideanLandmark;
 
 pub mod dual;
 
-pub fn calculate_reprojection_errors<Feat: Feature + Send + Sync, C: Camera<Float>>(landmarks: &Matrix4xX<Float>, matches: &Vec<Match<Feat>>, transform_c1: &Matrix3x4<Float>, cam_1 :&C, transform_c2: &Matrix3x4<Float>, cam_2 :&C) -> DVector<Float> {
+pub fn calculate_reprojection_errors<Feat: Feature, C: Camera<Float>>(landmarks: &Matrix4xX<Float>, matches: &Vec<Match<Feat>>, transform_c1: &Matrix3x4<Float>, cam_1 :&C, transform_c2: &Matrix3x4<Float>, cam_2 :&C) -> DVector<Float> {
     let landmark_count = landmarks.ncols();
     let mut reprojection_errors = DVector::<Float>::zeros(landmark_count);
 
@@ -36,7 +36,7 @@ pub fn calculate_reprojection_errors<Feat: Feature + Send + Sync, C: Camera<Floa
     reprojection_errors
 }
 
-pub fn reject_matches_via_disparity<Feat: Feature + Clone + Send + Sync>(disparitiy_map: HashMap<(usize, usize),DVector<Float>>, match_map: &mut HashMap<(usize, usize), Vec<Match<Feat>>>, disparity_cutoff: Float) {
+pub fn reject_matches_via_disparity<Feat: Feature>(disparitiy_map: HashMap<(usize, usize),DVector<Float>>, match_map: &mut HashMap<(usize, usize), Vec<Match<Feat>>>, disparity_cutoff: Float) {
     let keys = match_map.keys().map(|key| *key).collect::<Vec<_>>();
     for key in &keys {
         let disparities = disparitiy_map.get(key).unwrap();
@@ -47,7 +47,7 @@ pub fn reject_matches_via_disparity<Feat: Feature + Clone + Send + Sync>(dispari
     }
 }
 
-pub fn calcualte_disparities<Feat: Feature + Send + Sync>(matches: &Vec<Match<Feat>>) -> DVector<Float> {
+pub fn calcualte_disparities<Feat: Feature>(matches: &Vec<Match<Feat>>) -> DVector<Float> {
     let mut disparities = DVector::<Float>::zeros(matches.len());
     for i in 0..matches.len() {
         let m = &matches[i];
@@ -56,7 +56,7 @@ pub fn calcualte_disparities<Feat: Feature + Send + Sync>(matches: &Vec<Match<Fe
     disparities
 }
 
-pub fn reject_landmark_outliers<Feat: Feature + Clone + Send + Sync>(
+pub fn reject_landmark_outliers<Feat: Feature>(
     landmark_map: &mut  HashMap<(usize, usize), Vec<EuclideanLandmark<Float>>>, 
     reprojection_error_map: &mut HashMap<(usize, usize),DVector<Float>>, 
     match_map: &mut HashMap<(usize, usize), Vec<Match<Feat>>>,
@@ -106,7 +106,7 @@ pub fn reject_landmark_outliers<Feat: Feature + Clone + Send + Sync>(
 
 }
 
-pub fn filter_by_rejected_landmark_ids<Feat: Feature + Clone + Send + Sync>(
+pub fn filter_by_rejected_landmark_ids<Feat: Feature>(
     rejected_landmark_ids: &HashSet<usize>,
     match_norm_map: &mut HashMap<(usize, usize), Vec<Match<Feat>>>, 
     match_map: &mut HashMap<(usize, usize), Vec<Match<Feat>>>,

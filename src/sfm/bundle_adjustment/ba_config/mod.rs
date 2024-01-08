@@ -23,18 +23,14 @@ use crate::sfm::{
 };
 use crate::{float, Float};
 use na::{DVector, Isometry3, Matrix3, Matrix4, Matrix4xX};
-use std::{
-    collections::{HashMap, HashSet},
-    hash::Hash,
-    marker::{Send,Sync}
-};
+use std::collections::{HashMap, HashSet};
 
 pub mod conversions;
 
 /**
  * We assume that the indices between paths and matches are consistent
  */
-pub struct BAConfig<C, Feat: Feature + Send + Sync> {
+pub struct BAConfig<C, Feat: Feature> {
     root: usize,
     paths: Vec<Vec<usize>>,
     camera_map: HashMap<usize, C>, 
@@ -49,7 +45,7 @@ pub struct BAConfig<C, Feat: Feature + Send + Sync> {
     first_landmark_sighting_map: HashMap<usize,usize> //Map landmark id to camera id of the camera that first observed the landmark
 }
 
-impl<C: Camera<Float> + Clone, Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFeature + Send + Sync>
+impl<C: Camera<Float> + Clone, Feat: Feature + SolverFeature>
     BAConfig<C, Feat>
 {
     pub fn new(

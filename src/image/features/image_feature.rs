@@ -1,4 +1,4 @@
-use nalgebra as na;
+extern crate nalgebra as na;
 
 use na::Matrix3;
 use std::hash::{Hash, Hasher};
@@ -10,6 +10,10 @@ use crate::image::features::geometry::point::Point;
 pub struct ImageFeature {
     pub location: Point<Float>,
     pub landmark_id: Option<usize>
+}
+
+impl ImageFeature {
+    pub fn new(x: Float, y: Float, landmark_id: Option<usize>) -> ImageFeature { ImageFeature{location: Point::new(x, y), landmark_id} }
 }
 
 impl PartialEq for ImageFeature {
@@ -24,10 +28,6 @@ impl Hash for ImageFeature {
         let y = self.get_y_image();
         (x,y).hash(state);
     }
-}
-
-impl ImageFeature {
-    pub fn new(x: Float, y: Float, landmark_id: Option<usize>) -> ImageFeature { ImageFeature{location: Point::new(x, y), landmark_id} }
 }
 
 impl Feature for ImageFeature {

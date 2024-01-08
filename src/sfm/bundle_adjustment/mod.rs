@@ -15,7 +15,6 @@ use crate::sfm::{
 use crate::Float;
 use na::{base::Scalar, RealField};
 use std::{
-    hash::Hash,
     marker::{Send, Sync},
     sync::mpsc,
     thread,
@@ -30,7 +29,7 @@ pub fn run_ba<
     const LP: usize,
     L: Landmark<F,LP>,
     C: Camera<Float> + Copy + Send + Sync + 'static,
-    Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFeature + Send + Sync + 'static
+    Feat: Feature + SolverFeature + 'static
 >(
     sfm_config: &BAConfig<C, Feat>,
     runtime_parameters: &RuntimeParameters<F>,

@@ -13,7 +13,7 @@ use crate::Float;
 /**
  * Outlier Rejection Using Duality Olsen et al.
  */
-pub fn outlier_rejection_dual<Feat: Feature + Clone>(
+pub fn outlier_rejection_dual<Feat: Feature>(
         camera_ids_root_first: &Vec<usize>, 
         unique_landmark_ids: &HashSet<usize>, 
         abs_pose_map: &HashMap<usize,Isometry3<Float>>, 
@@ -137,7 +137,7 @@ fn construct_feasability_inputs(a: DMatrix<Float>, b: DMatrix<Float>, c: DMatrix
     (A_transpose_csc, B_csc, C_csc, a.nrows(), a1_ncols) 
 }
 
-fn generate_known_rotation_problem<Feat: Feature + Clone>(unique_landmark_ids: &HashSet<usize>, camera_ids_root_first: &Vec<usize>, abs_pose_map: &HashMap<usize,Isometry3<Float>>, feature_map: &HashMap<usize, Vec<Feat>>) -> (DMatrix<Float>,DMatrix<Float>,DMatrix<Float>,DVector<Float>,DVector<Float>,DVector<Float>) {
+fn generate_known_rotation_problem<Feat: Feature>(unique_landmark_ids: &HashSet<usize>, camera_ids_root_first: &Vec<usize>, abs_pose_map: &HashMap<usize,Isometry3<Float>>, feature_map: &HashMap<usize, Vec<Feat>>) -> (DMatrix<Float>,DMatrix<Float>,DMatrix<Float>,DVector<Float>,DVector<Float>,DVector<Float>) {
     let number_of_unique_points = unique_landmark_ids.len();
     let number_of_poses = camera_ids_root_first.len();
     let number_of_target_parameters = 3*number_of_unique_points + 3*(number_of_poses-1); // The first translation is taken as identity (origin) hence we dont optimize it
@@ -209,7 +209,7 @@ fn generate_known_rotation_problem<Feat: Feature + Clone>(unique_landmark_ids: &
     (a,b,c,a0,b0,c0)
 }
 
-fn compute_rejected_landmark_ids<Feat: Feature + Clone>(
+fn compute_rejected_landmark_ids<Feat: Feature>(
     abs_pose_map: &HashMap<usize,Isometry3<Float>>, 
     feature_map: &HashMap<usize, Vec<Feat>>, 
     unique_landmark_ids: &HashSet<usize>, 

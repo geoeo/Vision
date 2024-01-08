@@ -8,7 +8,7 @@ use na::{SVector, Matrix3};
 use vision::image::features::{matches::Match, image_feature::ImageFeature};
 use vision::sfm::epipolar;
 use vision::sensors::camera::{perspective::Perspective, Camera};
-use vision::io::{octave_loader};
+use vision::io::octave_loader;
 use vision::{Float,load_runtime_conf};
 
 fn main() -> Result<()> {

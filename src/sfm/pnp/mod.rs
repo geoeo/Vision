@@ -15,7 +15,6 @@ use crate::Float;
 use na::{base::Scalar, RealField};
 use std::collections::HashMap;
 use std::{
-    hash::Hash,
     marker::{Send, Sync},
     sync::mpsc,
     thread,
@@ -29,7 +28,7 @@ pub fn run_pnp<
     'a,
     F: serde::Serialize + Scalar + RealField + Copy + num_traits::Float + SubsetOf<Float>,
     C: Camera<Float> + Copy + Send + Sync +'a + 'static,
-    Feat: Feature + Clone + PartialEq + Eq + Hash + SolverFeature
+    Feat: Feature + SolverFeature
 >(
     pnp_config: &'a PnPConfig<C, Feat>,
     runtime_parameters: &'a RuntimeParameters<F>,

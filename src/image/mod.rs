@@ -5,7 +5,7 @@ use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash,Hasher};
 use image_rs::{GrayImage,ImageBuffer, DynamicImage,Pixel, Luma};
 use image_rs::flat::NormalForm;
-use na::{DMatrix};
+use na::DMatrix;
 
 use crate::Float;
 use self::image_encoding::ImageEncoding;

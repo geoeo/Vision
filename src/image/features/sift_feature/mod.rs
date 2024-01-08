@@ -5,7 +5,7 @@ use na::DMatrix;
 use crate::Float;
 use crate::image::pyramid::sift::{sift_runtime_params::SiftRuntimeParams,sift_octave::SiftOctave};
 use crate::image::features::{Feature,hessian_response, geometry::point::Point,};
-use std::fmt;
+use std::{fmt, hash::{Hasher,Hash}};
 
 
 pub mod processing;
@@ -48,6 +48,22 @@ impl Feature for SiftFeature {
 impl fmt::Display for SiftFeature {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "x: {}, y: {}, s: {}", self.x, self.y, self.sigma_level)
+    }
+}
+
+impl PartialEq for SiftFeature {
+    fn eq(&self, other: &Self) -> bool {
+        self.get_location() == other.get_location()
+    }
+}
+
+impl Eq for SiftFeature {}
+
+impl Hash for SiftFeature {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        let x = self.get_x_image();
+        let y = self.get_y_image();
+        (x,y).hash(state);
     }
 }
 

@@ -1,7 +1,6 @@
 extern crate nalgebra as na;
 extern crate nalgebra_lapack;
 
-use std::marker::{Sync,Send};
 use na::{Matrix3,Matrix4, OMatrix ,Matrix3xX, SVector, Dyn, dimension::{U10,U20,U9,U3},linalg::SymmetricEigen};
 use crate::{Float,float};
 use crate::image::features::{Feature,matches::Match};
@@ -16,7 +15,7 @@ mod constraints;
  * This only work on ubuntu. assert build version or something
  */
 #[allow(non_snake_case)]
-pub fn five_point_essential<T: Feature + Clone+ Send + Sync>(matches: &Vec<Match<T>>, projection_one: &Matrix3<Float>, inverse_projection_one: &Matrix3<Float>, projection_two:&Matrix3<Float>,inverse_projection_two: &Matrix3<Float>) -> Option<Essential> {
+pub fn five_point_essential<T: Feature>(matches: &Vec<Match<T>>, projection_one: &Matrix3<Float>, inverse_projection_one: &Matrix3<Float>, projection_two:&Matrix3<Float>,inverse_projection_two: &Matrix3<Float>) -> Option<Essential> {
     let l = matches.len();
     
     let mut camera_rays_one = Matrix3xX::<Float>::zeros(l);
@@ -120,7 +119,7 @@ pub fn five_point_essential<T: Feature + Clone+ Send + Sync>(matches: &Vec<Match
 }
 
 #[allow(non_snake_case)]
-pub fn cheirality_check<T: Feature + Clone+ Send + Sync>(
+pub fn cheirality_check<T: Feature>(
         all_essential_matricies: &Vec<Essential>,
         matches: &Vec<Match<T>>,
         points_cam_1: (&OMatrix<Float, U3,Dyn>, &Matrix3<Float>,&Matrix3<Float>), 
