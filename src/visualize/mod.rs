@@ -242,6 +242,7 @@ pub fn draw_epipolar_lines(image_from: &mut Image, image_to: &mut Image, line_in
     let width_to = image_to.buffer.ncols();
     let height_to = image_to.buffer.nrows();
 
+    // We assume epipolar lines was computed with respect to a focal plane of z=1. Solve for <l,p> = 0
     for (l_from, l_to) in epipolar_lines  {
 
         let x_from_start = 0;
