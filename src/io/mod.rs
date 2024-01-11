@@ -6,11 +6,11 @@ use std::path::Path;
 use std::fs::File;
 use std::io::{BufReader,Read,BufRead, LineWriter, Write};
 use std::option::Option;
-use na::{RowDVector,DMatrix,Matrix4, Vector4, OMatrix, SimdValue, RealField, Dim, Scalar, DefaultAllocator, allocator::Allocator};
+use na::{RowDVector,DMatrix,Matrix4, Vector4, OMatrix, Dim, DefaultAllocator, allocator::Allocator};
 use crate::image::{Image,image_encoding::ImageEncoding};
 use crate::image::features::geometry::point::Point;
 use crate::sensors::camera::{Camera,perspective::Perspective};
-use crate::{float,Float};
+use crate::{float,Float, GenericFloat};
 
 
 pub mod three_dv_loader;
@@ -168,7 +168,7 @@ pub fn load_images(dir_path: &str, extension: &str) -> (Vec<Image>, Vec<String>)
 
 pub fn write_matrix_to_file<T, M, N>(matrix: &OMatrix<T,M,N>, folder_path: &str, file_name: &str) -> () 
     where 
-        T: Scalar + RealField + Copy + SimdValue, 
+        T: GenericFloat, 
         M: Dim, 
         N: Dim,
         DefaultAllocator: Allocator<T, M, N> {

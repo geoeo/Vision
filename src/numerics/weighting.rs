@@ -3,24 +3,25 @@ extern crate num_traits;
 
 use std::fmt::{Display,Debug,Formatter,Result};
 use crate::numerics::estimate_std;
-use num_traits::{float,NumAssign, pow};
-use na::{convert, RealField, DVector,base::Scalar};
+use num_traits::{float, pow};
+use na::{convert, DVector};
+use crate::GenericFloat;
 
 
-pub trait WeightingFunction<F : float::Float + Scalar + RealField > {
+pub trait WeightingFunction<F : GenericFloat > {
     fn weight(&self, residuals: &DVector<F>, index: usize, std: Option<F>) -> F;
     fn estimate_standard_deviation(&self, residuals: &DVector<F>) -> Option<F>;
     fn cost(&self, residuals: &DVector<F>) -> F;
     fn name(&self) -> &str;
 }
 
-impl<F> Debug for dyn WeightingFunction<F>  + Send + Sync where F : float::Float + Scalar + RealField {
+impl<F> Debug for dyn WeightingFunction<F>  + Send + Sync where F : GenericFloat {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(f, "{}", self.name())
     }
 }
 
-impl<F> Display for dyn WeightingFunction<F>  + Send + Sync where F : float::Float + Scalar + RealField {
+impl<F> Display for dyn WeightingFunction<F>  + Send + Sync where F : GenericFloat {
 
     fn fmt(&self, f: &mut Formatter) -> Result {
 
@@ -36,7 +37,7 @@ impl<F> Display for dyn WeightingFunction<F>  + Send + Sync where F : float::Flo
 pub struct HuberWeight {
 }
 
-impl<F> WeightingFunction<F> for HuberWeight where F : float::Float + Scalar + RealField {
+impl<F> WeightingFunction<F> for HuberWeight where F : GenericFloat {
 
     fn weight(&self, residuals: &DVector<F>, index: usize,  std: Option<F>) -> F {
         let res_abs = float::Float::abs(residuals[index]);
@@ -61,11 +62,11 @@ impl<F> WeightingFunction<F> for HuberWeight where F : float::Float + Scalar + R
 
 }
 
-pub struct CauchyWeight<F> where F : float::Float + Scalar + NumAssign + RealField {
+pub struct CauchyWeight<F> where F : GenericFloat {
     pub c: F
 }
 
-impl<F> WeightingFunction<F> for CauchyWeight<F> where F : float::Float + Scalar + NumAssign + RealField {
+impl<F> WeightingFunction<F> for CauchyWeight<F> where F : GenericFloat {
 
     fn weight(&self, residuals: &DVector<F>, index: usize,  _ : Option<F>) -> F {
         let res = residuals[index];
@@ -91,7 +92,7 @@ pub struct BisquareWeight {
 }
 
 //TODO: investigate this
-impl<F> WeightingFunction<F> for BisquareWeight where F : float::Float + Scalar + NumAssign + RealField{
+impl<F> WeightingFunction<F> for BisquareWeight where F : GenericFloat {
 
     fn weight(&self, residuals: &DVector<F>, index: usize,  std: Option<F>) -> F {
         let e = residuals[index];
@@ -126,7 +127,7 @@ impl<F> WeightingFunction<F> for BisquareWeight where F : float::Float + Scalar 
 pub struct SquaredWeight {
 }
 
-impl<F> WeightingFunction<F> for SquaredWeight where F : float::Float + Scalar + NumAssign + RealField {
+impl<F> WeightingFunction<F> for SquaredWeight where F : GenericFloat {
 
     fn weight(&self,_residuals: &DVector<F>, _index: usize,  _: Option<F>) -> F {
         F::one()

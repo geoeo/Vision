@@ -1,22 +1,23 @@
 extern crate nalgebra as na;
 extern crate num_traits;
 
-use std::marker::{Send,Sync};
-use num_traits::{float, NumAssign};
-use nalgebra_sparse::{coo::CooMatrix, csr::CsrMatrix};
-use na::{convert, RealField, zero, DMatrix, DVector , OVector, Dyn, Matrix, SMatrix, SVector,Vector,Dim,storage::{Storage,StorageMut},base::{Scalar, default_allocator::DefaultAllocator, allocator::Allocator},
-    VecStorage, Const, DimMin, U1
-};
 use std::boxed::Box;
 use std::ops::AddAssign;
+use std::marker::{Send,Sync};
+use num_traits::float;
+use nalgebra_sparse::{coo::CooMatrix, csr::CsrMatrix};
+use na::{convert, zero, DMatrix, DVector , OVector, Dyn, Matrix, SMatrix, SVector,Vector,Dim,storage::{Storage,StorageMut},base::{default_allocator::DefaultAllocator, allocator::Allocator},
+    VecStorage, Const, DimMin, U1
+};
 use crate::numerics::{weighting::WeightingFunction, conjugate_gradient};
+use crate::GenericFloat;
 
 pub fn calc_weight_vec<F, D, S1>(
     residuals: &DVector<F>,
     std: Option<F>,
     weight_function: &Box<dyn WeightingFunction<F> + Send + Sync>,
     weights_vec: &mut Vector<F,D,S1>) -> () where 
-        F : float::Float + Scalar + RealField,
+        F : GenericFloat,
         D: Dim,
         S1: StorageMut<F, D>{
     for i in 0..residuals.len() {
@@ -32,7 +33,7 @@ pub fn calc_weight_vec<F, D, S1>(
 pub fn weight_residuals_sparse<F, D, S1,S2>(
     residual_target: &mut Vector<F,D,S1>,
      weights_vec: &Vector<F,D,S2>) -> () where 
-        F : float::Float + Scalar + RealField,
+        F : GenericFloat,
         D: Dim,
         S1: StorageMut<F, D>,
         S2: Storage<F, D> {
@@ -45,7 +46,7 @@ pub fn weight_residuals_sparse<F, D, S1,S2>(
 pub fn weight_jacobian_sparse<F, R,C,S1,S2>(
     jacobian: &mut Matrix<F, R, C, S1>,
     weights_vec: &Vector<F,R,S2>) -> () where
-    F : float::Float + Scalar + RealField,
+    F : GenericFloat,
     R: Dim,
     C: Dim ,
     S1: StorageMut<F, R,C> ,
@@ -65,7 +66,7 @@ pub fn scale_to_diagonal<F, const T: usize>(
     residual: &DVector<F>,
     first_deriv: F,
     second_deriv: F,
-) -> () where F : float::Float + Scalar + RealField {
+) -> () where F : GenericFloat {
     for j in 0..T {
         for i in 0..residual.nrows() {
             mat[(i, j)] *= first_deriv + convert::<f64,F>(2.0) * second_deriv * float::Float::powi(residual[i], 2);
@@ -74,19 +75,19 @@ pub fn scale_to_diagonal<F, const T: usize>(
 
 }
 
-pub fn compute_cost<F>(residuals: &DVector<F>, weight_function: &Box<dyn WeightingFunction<F> + Send + Sync>) -> F where F : float::Float + Scalar + RealField {
+pub fn compute_cost<F>(residuals: &DVector<F>, weight_function: &Box<dyn WeightingFunction<F> + Send + Sync>) -> F where F : GenericFloat {
     weight_function.cost(residuals)
 }
 
 pub fn weight_residuals<F, const T: usize>(residual: &mut SVector<F, T>, weights: &SMatrix<F,T,T>) -> () where 
-    F : float::Float + Scalar + RealField ,
+    F : GenericFloat,
     Const<T>: DimMin<Const<T>, Output = Const<T>> {
     weights.mul_to(&residual.clone(),residual);
 }
 
 pub fn weight_jacobian<F, const M: usize, const N: usize>(jacobian: &mut SMatrix<F,M,N>, weights: &SMatrix<F,M,M>) -> () 
     where 
-    F : float::Float + Scalar + RealField,
+    F : GenericFloat,
     Const<M>: DimMin<Const<M>, Output = Const<M>>,Const<N>: DimMin<Const<N>, Output = Const<N>> {
     weights.mul_to(&jacobian.clone(),jacobian);
 }
@@ -105,7 +106,7 @@ pub fn gauss_newton_step_with_schur<F, R, C, S1, S2,StorageTargetArrow, StorageT
     u_span: usize, 
     v_span: usize)-> Option<(F,F)>
      where 
-        F : float::Float + Scalar + RealField,
+        F : GenericFloat,
         R: Dim, 
         C: Dim,
         S1: Storage<F, R>,
@@ -221,7 +222,7 @@ pub fn gauss_newton_step_with_conguate_gradient<F, R, C, S1, S2,StorageTargetArr
     cg_tresh: F,
     cg_max_it: usize)-> Option<(F,F)>
      where 
-        F : float::Float + Scalar + RealField,
+        F : GenericFloat,
         R: Dim, 
         C: Dim,
         S1: Storage<F, R>,
@@ -296,7 +297,7 @@ pub fn gauss_newton_step_with_conguate_gradient<F, R, C, S1, S2,StorageTargetArr
 
 pub fn compute_gain_ratio<F,St, C>(perturb: &Vector<F,C, St>,residual: &Vector<F,C,St> , mu: F) -> F 
     where 
-        F : float::Float + Scalar + RealField,
+        F : GenericFloat,
         C: Dim,
         St: StorageMut<F, C, U1>,
         DefaultAllocator: Allocator<F, C> + Allocator<F, U1, C> {
@@ -315,7 +316,7 @@ pub fn gauss_newton_step<F, R, C,S1, S2, S3>(
      mu: Option<F>, 
      tau: F)-> Option<(OVector<F,C>,OVector<F,C>,F,F)>
      where 
-        F : float::Float + Scalar + RealField,
+        F : GenericFloat,
         R: Dim, 
         C: Dim + DimMin<C, Output = C>,
         S1: Storage<F, R>,
@@ -353,7 +354,7 @@ fn compute_arrow_head_and_residuals<F,R, C,StorageTargetArrow, StorageTargetResi
         n_points: usize
     ) -> F
     where 
-    F : float::Float + Scalar + NumAssign,
+    F : GenericFloat,
     R: Dim, 
     C: Dim,
     StorageTargetArrow: StorageMut<F, C, C>,

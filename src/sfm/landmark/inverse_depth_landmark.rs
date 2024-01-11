@@ -1,24 +1,24 @@
 extern crate nalgebra as na;
 extern crate simba;
+extern crate num_traits;
 
-use na::{Vector3,Vector6,Matrix3x6, Isometry3, Point3,SVector, SMatrix,Matrix3, RealField,base::Scalar};
+use na::{Vector3,Vector6,Matrix3x6, Isometry3, Point3,SVector, SMatrix,Matrix3};
 
-use simba::scalar::SubsetOf;
 use crate::image::features::Feature;
 use crate::sfm::landmark::Landmark;
-use crate::Float;
+use crate::{GenericFloat,Float};
 
 #[derive(Copy,Clone)]
 /**
  * state: x, y, z, theta, phi, rho (inv depth)
  */
-pub struct InverseLandmark<F: Scalar + RealField + Copy > {
+pub struct InverseLandmark<F: GenericFloat> {
     state: Vector6<F>,
     m : Vector3<F>,
     id: Option<usize>
 }
 
-impl<F: Scalar + RealField + Copy + SubsetOf<Float>> Landmark<F, 6> for InverseLandmark<F> {
+impl<F: GenericFloat> Landmark<F, 6> for InverseLandmark<F> {
 
     fn from_state(state: SVector<F,6>) -> InverseLandmark<F> {
         let theta = state[3];
@@ -61,8 +61,8 @@ impl<F: Scalar + RealField + Copy + SubsetOf<Float>> Landmark<F, 6> for InverseL
         let new_fist_observed_cam = rotation*self.get_first_observing_cam_in_world() +translation;
         let new_direction = rotation*self.get_direction();
 
-        let phi = new_direction[1].asin();
-        let theta = (new_direction[0]/phi.cos()).asin();
+        let phi = num_traits::Float::asin(new_direction[1]);
+        let theta = num_traits::Float::asin(new_direction[0]/num_traits::Float::cos(phi));
 
         let state = Vector6::<F>::new(new_fist_observed_cam[0],new_fist_observed_cam[1],new_fist_observed_cam[2],theta,phi,self.get_inverse_depth());
 
@@ -72,13 +72,13 @@ impl<F: Scalar + RealField + Copy + SubsetOf<Float>> Landmark<F, 6> for InverseL
     fn jacobian(&self, world_to_cam: &Isometry3<F>) -> SMatrix<F,3,6> {
         let mut jacobian = Matrix3x6::<F>::zeros();
         let rotation_matrix = world_to_cam.rotation.to_rotation_matrix();
-        let (sin_theta,cos_theta) = self.get_theta().sin_cos();
-        let (sin_phi,cos_phi) = self.get_phi().sin_cos();
+        let (sin_theta,cos_theta) = num_traits::Float::sin_cos(self.get_theta());
+        let (sin_phi,cos_phi) = num_traits::Float::sin_cos(self.get_phi());
         let inverse_depth = self.get_inverse_depth();
 
         let j_theta = Vector3::<F>::new(cos_theta*cos_phi,F::zero(),cos_phi*-sin_theta)/inverse_depth;
         let j_phi = Vector3::<F>::new(-sin_phi*sin_theta,cos_phi,cos_theta*-sin_phi)/inverse_depth;
-        let j_p = Vector3::<F>::new(-cos_phi*sin_theta,-sin_phi,-cos_theta*cos_phi)/inverse_depth.powi(2);
+        let j_p = Vector3::<F>::new(-cos_phi*sin_theta,-sin_phi,-cos_theta*cos_phi)/num_traits::Float::powi(inverse_depth,2);
 
         jacobian.fixed_view_mut::<3,3>(0,0).copy_from(&Matrix3::<F>::identity()); //X,Y,Z
         jacobian.fixed_view_mut::<3,1>(0,3).copy_from(&j_theta);
@@ -109,7 +109,7 @@ impl<F: Scalar + RealField + Copy + SubsetOf<Float>> Landmark<F, 6> for InverseL
 
 }
 
-impl<F: Scalar + RealField + Copy + SubsetOf<Float>> InverseLandmark<F> {
+impl<F: GenericFloat> InverseLandmark<F> {
     pub fn new<Feat: Feature>(cam_to_world: &Isometry3<F>, feature: &Feat, inverse_depth_prior: F, inverse_projection: &Matrix3<Float>, id: &Option<usize>) -> InverseLandmark<F> {
         let camera_pos = cam_to_world.translation.vector;
         //TODO: make Feat trait generic
@@ -117,8 +117,8 @@ impl<F: Scalar + RealField + Copy + SubsetOf<Float>> InverseLandmark<F> {
         let h_x = camera_ray_world[0];
         let h_y = camera_ray_world[1];
         let h_z = camera_ray_world[2];
-        let theta = h_x.atan2(h_z);
-        let phi = h_y.atan2((h_x.powi(2)+h_z.powi(2)).sqrt());
+        let theta = num_traits::Float::atan2(h_x,h_z);
+        let phi = num_traits::Float::atan2(h_y,num_traits::Float::sqrt(num_traits::Float::powi(h_x,2)+num_traits::Float::powi(h_z,2)));
 
         let state = Vector6::<F>::new(camera_pos[0],camera_pos[1],camera_pos[2],theta,phi,inverse_depth_prior);
         Self::from_state_with_id(state,id)
@@ -149,8 +149,8 @@ impl<F: Scalar + RealField + Copy + SubsetOf<Float>> InverseLandmark<F> {
     }
 
     fn direction(theta: F, phi: F) -> Vector3<F> {
-        let (sin_theta,cos_theta) = theta.sin_cos();
-        let (sin_phi,cos_phi) = phi.sin_cos();
+        let (sin_theta,cos_theta) = num_traits::Float::sin_cos(theta);
+        let (sin_phi,cos_phi) = num_traits::Float::sin_cos(phi);
 
         Vector3::<F>::new(
             cos_phi*sin_theta,

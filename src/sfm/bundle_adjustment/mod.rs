@@ -2,7 +2,6 @@ extern crate nalgebra as na;
 extern crate num_traits;
 extern crate simba;
 
-use simba::scalar::SubsetOf;
 use crate::image::features::solver_feature::SolverFeature;
 use crate::image::features::Feature;
 use crate::sfm::runtime_parameters::RuntimeParameters;
@@ -12,8 +11,7 @@ use crate::sfm::{
     landmark::euclidean_landmark::EuclideanLandmark, bundle_adjustment::ba_config::{BAConfig,conversions::generate_abs_landmark_map},
     state::{State,ba_state_linearizer::BAStateLinearizer, CAMERA_PARAM_SIZE}, 
 };
-use crate::Float;
-use na::{base::Scalar, RealField};
+use crate::{GenericFloat,Float};
 use std::{
     marker::{Send, Sync},
     sync::mpsc,
@@ -25,7 +23,7 @@ pub mod solver;
 pub mod ba_config;
 
 pub fn run_ba<
-    F: serde::Serialize + Scalar + RealField + Copy + num_traits::Float + SubsetOf<Float>,
+    F: serde::Serialize + GenericFloat,
     const LP: usize,
     L: Landmark<F,LP>,
     C: Camera<Float> + Copy + Send + Sync + 'static,

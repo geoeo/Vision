@@ -1,9 +1,10 @@
 extern crate nalgebra as na;
 extern crate num_traits;
 
-use na::{convert, Matrix2,Matrix3,Matrix1x2,Matrix3x1,SMatrix, Vector,SVector,Dim, storage::Storage,DVector , RealField,base::Scalar};
-use num_traits::{float,NumAssign, identities};
+use na::{convert, Matrix2,Matrix3,Matrix1x2,Matrix3x1,SMatrix, Vector,SVector,Dim, storage::Storage,DVector};
+use num_traits::float;
 use crate::image::Image;
+use crate::GenericFloat;
 
 pub mod lie;
 pub mod pose;
@@ -13,7 +14,7 @@ pub mod weighting;
 pub mod conjugate_gradient;
 pub mod optimizer;
 
-pub fn to_matrix<F, const N: usize, const M: usize, const D: usize>(vec: &SVector<F,D>) -> SMatrix<F,N,M> where F : num_traits::float::Float + Scalar + RealField {
+pub fn to_matrix<F, const N: usize, const M: usize, const D: usize>(vec: &SVector<F,D>) -> SMatrix<F,N,M> where F : GenericFloat {
     assert_eq!(D,N*M);
 
     let mut m = SMatrix::<F,N,M>::zeros();
@@ -26,7 +27,7 @@ pub fn to_matrix<F, const N: usize, const M: usize, const D: usize>(vec: &SVecto
     m 
 }
 
-pub fn quadratic_roots<F>(a: F, b: F, c: F) -> (F,F) where F : num_traits::float::Float + Scalar + RealField {
+pub fn quadratic_roots<F>(a: F, b: F, c: F) -> (F,F) where F : GenericFloat {
     let two: F = convert(2.0);
     let four: F = convert(4.0);
     let det = float::Float::powi(b,2)-four*a*c;
@@ -44,17 +45,17 @@ pub fn quadratic_roots<F>(a: F, b: F, c: F) -> (F,F) where F : num_traits::float
     }
 }
 
-pub fn estimate_std<F>(data: &DVector<F>) -> F where F : num_traits::float::Float + Scalar + RealField {
+pub fn estimate_std<F>(data: &DVector<F>) -> F where F : GenericFloat {
     median_absolute_deviation(data)/convert::<f64,F>(0.67449) 
 }
 
-pub fn median_absolute_deviation<F>(data: &DVector<F>) -> F where F : num_traits::float::Float + Scalar + RealField + identities::One {
+pub fn median_absolute_deviation<F>(data: &DVector<F>) -> F where F : GenericFloat {
     let median_value = median(data.data.as_vec().clone(), true);
     let absolute_deviation: Vec<F> = data.iter().map(|&x| num_traits::float::Float::abs(x-median_value)).collect();
     median(absolute_deviation,false)
 }
 
-pub fn median<F>(data: Vec<F>, sort_data: bool) -> F where F : num_traits::float::Float + Scalar + NumAssign + RealField + identities::One  {
+pub fn median<F>(data: Vec<F>, sort_data: bool) -> F where F : GenericFloat  {
     let mut mut_data = data;
     if sort_data {
         mut_data.sort_unstable_by(|a, b| a.partial_cmp(b).unwrap());
@@ -63,25 +64,25 @@ pub fn median<F>(data: Vec<F>, sort_data: bool) -> F where F : num_traits::float
     mut_data[middle]
 }
 
-pub fn round<F>(number: F, dp: i32) -> F where F : num_traits::float::Float + Scalar + RealField {
+pub fn round<F>(number: F, dp: i32) -> F where F : GenericFloat {
     let ten: F = convert(10.0);
     let n = float::Float::powi(ten,dp);
     float::Float::round(number * n)/n
 }
 
-pub fn calc_sigma_from_z<F>(z: F, x: F, mean: F) -> F  where F : num_traits::float::Float + Scalar + RealField  {
+pub fn calc_sigma_from_z<F>(z: F, x: F, mean: F) -> F  where F : GenericFloat  {
     assert!(z > F::zero());
     (x-mean)/z
 }
 
-pub fn rotation_matrix_2d_from_orientation<F>(orientation: F) -> Matrix2<F> where F : num_traits::float::Float + Scalar + RealField {
+pub fn rotation_matrix_2d_from_orientation<F>(orientation: F) -> Matrix2<F> where F : GenericFloat {
 
     Matrix2::new(float::Float::cos(orientation), -float::Float::sin(orientation),
                  float::Float::sin(orientation), float::Float::cos(orientation))
 
 }
 
-pub fn gradient_and_orientation<F>(x_gradient: &Image, y_gradient: &Image, x: usize, y: usize) -> (F,F) where F : num_traits::float::Float + Scalar + RealField {
+pub fn gradient_and_orientation<F>(x_gradient: &Image, y_gradient: &Image, x: usize, y: usize) -> (F,F) where F : GenericFloat {
     let x_sample: F = convert(x_gradient.buffer.index((y,x)).clone());
     let y_sample: F = convert(y_gradient.buffer.index((y,x)).clone());
     let two: F = convert(2.0);
@@ -90,7 +91,7 @@ pub fn gradient_and_orientation<F>(x_gradient: &Image, y_gradient: &Image, x: us
     let y_diff = round(y_sample,5);
 
     let gradient = float::Float::sqrt(float::Float::powi(x_diff, 2) + float::Float::powi(y_diff,2));
-    let orientation = match RealField::atan2(y_diff, x_diff.clone()) {
+    let orientation = match float::Float::atan2(y_diff, x_diff.clone()) {
         angle if angle < F::zero() => two*convert(std::f64::consts::PI) + angle,
         angle => angle
     };
@@ -99,7 +100,7 @@ pub fn gradient_and_orientation<F>(x_gradient: &Image, y_gradient: &Image, x: us
 }
 
 //TODO: Doesnt seem to work as well as lagrange -> produces out  of scope results
-pub fn newton_interpolation_quadratic<F>(a: F, b: F, c: F, f_a: F, f_b: F, f_c: F, range_min: F, range_max: F) -> F where F : num_traits::float::Float + Scalar + RealField {
+pub fn newton_interpolation_quadratic<F>(a: F, b: F, c: F, f_a: F, f_b: F, f_c: F, range_min: F, range_max: F) -> F where F : GenericFloat {
 
     let a_corrected = if a > b { a - range_max} else {a};
     let c_corrected = if b > c { c + range_max} else {c};
@@ -123,7 +124,7 @@ pub fn newton_interpolation_quadratic<F>(a: F, b: F, c: F, f_a: F, f_b: F, f_c: 
 
 
 // http://fourier.eng.hmc.edu/e176/lectures/NM/node25.html
-pub fn lagrange_interpolation_quadratic<F>(a: F, b: F, c: F, f_a: F, f_b: F, f_c: F, range_min: F, range_max: F) -> F where F : num_traits::float::Float + Scalar + RealField {
+pub fn lagrange_interpolation_quadratic<F>(a: F, b: F, c: F, f_a: F, f_b: F, f_c: F, range_min: F, range_max: F) -> F where F : GenericFloat {
 
     let a_corrected = if a > b { a - range_max} else {a};
     let c_corrected = if b > c { c + range_max} else {c};
@@ -145,7 +146,7 @@ pub fn lagrange_interpolation_quadratic<F>(a: F, b: F, c: F, f_a: F, f_b: F, f_c
 }
 
 // https://stackoverflow.com/questions/717762/how-to-calculate-the-vertex-of-a-parabola-given-three-points
-pub fn quadatric_interpolation<F>(a: F, b: F, c: F, f_a: F, f_b: F, f_c: F, range_min: F, range_max: F) -> F where F : num_traits::float::Float + Scalar + RealField {
+pub fn quadatric_interpolation<F>(a: F, b: F, c: F, f_a: F, f_b: F, f_c: F, range_min: F, range_max: F) -> F where F : GenericFloat {
     let two: F = convert(2.0);
     let a = Matrix3::new(float::Float::powi(a,2),a,F::one(),
                          float::Float::powi(b,2),b,F::one(),
@@ -167,7 +168,7 @@ pub fn quadatric_interpolation<F>(a: F, b: F, c: F, f_a: F, f_b: F, f_c: F, rang
     }
 }
 
-pub fn gauss_2d<F>(x_center: F, y_center: F, x: F, y: F, sigma: F) -> F where F : num_traits::float::Float + Scalar + RealField {
+pub fn gauss_2d<F>(x_center: F, y_center: F, x: F, y: F, sigma: F) -> F where F : GenericFloat {
     let offset = Matrix1x2::<F>::new(x-x_center,y-y_center);
     let offset_transpose = offset.transpose();
     let sigma_sqr = float::Float::powi(sigma, 2);
@@ -185,7 +186,7 @@ pub fn gauss_2d<F>(x_center: F, y_center: F, x: F, y: F, sigma: F) -> F where F 
     exp/denom
 }
 
-pub fn max_norm<F,D,S>(vector: &Vector<F,D,S>) -> F where D: Dim, S: Storage<F,D>, F : float::Float + Scalar + RealField  {
+pub fn max_norm<F,D,S>(vector: &Vector<F,D,S>) -> F where D: Dim, S: Storage<F,D>, F : GenericFloat  {
 
     vector.iter().fold(F::zero(),|max,&v| 
         match float::Float::abs(v) {

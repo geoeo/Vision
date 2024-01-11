@@ -11,8 +11,7 @@ use crate::sfm::{
     state::{CAMERA_PARAM_SIZE,pnp_state_linearizer::{get_euclidean_landmark_state,get_observed_features}, State},
     landmark::euclidean_landmark::EuclideanLandmark, pnp::pnp_config::PnPConfig,
 };
-use crate::Float;
-use na::{base::Scalar, RealField};
+use crate::{GenericFloat,Float};
 use std::collections::HashMap;
 use std::{
     marker::{Send, Sync},
@@ -26,7 +25,7 @@ pub mod pnp_config;
 
 pub fn run_pnp<
     'a,
-    F: serde::Serialize + Scalar + RealField + Copy + num_traits::Float + SubsetOf<Float>,
+    F: serde::Serialize + GenericFloat,
     C: Camera<Float> + Copy + Send + Sync +'a + 'static,
     Feat: Feature + SolverFeature
 >(

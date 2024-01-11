@@ -3,12 +3,11 @@ extern crate simba;
 
 use std::collections::HashMap;
 
-use na::{DVector, SMatrix, Matrix4, Vector3, Isometry3, base::Scalar, RealField };
-use simba::scalar::SubsetOf;
+use na::{DVector, SMatrix, Matrix4, Vector3, Isometry3};
 
 use crate::numerics::{lie::exp_se3,pose::from_matrix};
 use crate::sfm::landmark::{Landmark,euclidean_landmark::EuclideanLandmark};
-use crate::Float;
+use crate::GenericFloat;
 
 pub mod ba_state_linearizer;
 pub mod pnp_state_linearizer;
@@ -24,7 +23,7 @@ pub const CAMERA_PARAM_SIZE: usize = 6;
  * cam is parameterized by [u_1,u_2,u_3,w_1,w_2,w_3]
  * point is parameterized by [x,y,z]
  * */
-pub struct State<F: Scalar + SubsetOf<Float>, L: Landmark<F,T>, const T: usize> {
+pub struct State<F: GenericFloat, L: Landmark<F,T>, const T: usize> {
     camera_positions: Vec<Isometry3<F>>, 
     landmarks: Vec<L>,
     pub camera_id_map: HashMap<usize, usize>, //Map of cam id to index in cam positions
@@ -33,7 +32,7 @@ pub struct State<F: Scalar + SubsetOf<Float>, L: Landmark<F,T>, const T: usize> 
     pub n_points: usize,
 }
 
-impl<F: Scalar + RealField + Copy + SubsetOf<Float>, L: Landmark<F,T>, const T: usize> Clone for State<F,L,T> {
+impl<F: GenericFloat, L: Landmark<F,T>, const T: usize> Clone for State<F,L,T> {
     fn clone(&self) -> State<F,L,T> {
         State::<F,L,T> {
             camera_positions: self.camera_positions.clone(),
@@ -46,7 +45,7 @@ impl<F: Scalar + RealField + Copy + SubsetOf<Float>, L: Landmark<F,T>, const T: 
     }
 }
 
-impl<F: Scalar + RealField + Copy + SubsetOf<Float>, L: Landmark<F,T>, const T: usize> State<F,L,T> {
+impl<F: GenericFloat, L: Landmark<F,T>, const T: usize> State<F,L,T> {
     pub fn new(camera_positions: DVector<F>, landmarks:  Vec<L>, camera_id_map: &HashMap<usize, usize>, n_cams: usize, n_points: usize) -> State<F,L,T> {
         let mut camera_iso = Vec::<Isometry3<F>>::with_capacity(n_cams);
         let camera_id_by_idx = Self::generate_camera_id_by_idx_vec(camera_id_map);

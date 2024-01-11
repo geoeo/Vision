@@ -1,20 +1,22 @@
 extern crate nalgebra as na;
+extern crate num_traits;
 
-use na::{convert,U1,U3, Matrix2x3,Matrix3, Vector, Vector3, base::storage::Storage, RealField,base::Scalar};
-use simba::scalar::{SubsetOf,SupersetOf};
+use na::{convert,U1,U3, Matrix2x3,Matrix3, Vector, Vector3, base::storage::Storage};
+use simba::scalar::SupersetOf;
 use crate::image::features::geometry::point::Point;
 use crate::sensors::camera::Camera; 
+use crate::GenericFloat;
 
 const IDENTITY_EPS: f32 = 1e-12f32;
 
 #[derive(Copy,Clone)]
-pub struct Perspective<F: Scalar + RealField + Copy> {
+pub struct Perspective<F: GenericFloat> {
     pub projection: Matrix3<F>,
     pub inverse_projection: Matrix3<F>
 }
 
  //@TODO: unify principal distance into enum
-impl<F: Scalar + RealField + Copy> Perspective<F> {
+impl<F: GenericFloat> Perspective<F> {
     pub fn new(fx: F, fy: F, cx: F, cy: F, s: F, invert_focal_length: bool) -> Perspective<F> {
        let factor = match invert_focal_length {
            true => -F::one(),
@@ -35,7 +37,7 @@ impl<F: Scalar + RealField + Copy> Perspective<F> {
                                                   F::zero(), F::zero(), F::one());
 
         
-        assert!(((projection*inverse_projection).determinant()).abs()- F::one() <= F::from_f32(IDENTITY_EPS).expect("Converstion failed!"));
+        assert!(num_traits::Float::abs((projection*inverse_projection).determinant())- F::one() <= F::from_f32(IDENTITY_EPS).expect("Converstion failed!"));
         Perspective{projection,inverse_projection}
     }
 
@@ -64,12 +66,12 @@ impl<F: Scalar + RealField + Copy> Perspective<F> {
         self.projection[(0,1)]
     }
 
-    pub fn cast<F2: Scalar + RealField + Copy + SubsetOf<F> + SupersetOf<F>>(&self) -> Perspective<F2> {
-        Perspective::<F2>::new(convert(self.get_fx()),convert(self.get_fy()),convert(self.get_cx()),convert(self.get_cy()),convert(self.get_s()),false)
+    pub fn cast<F2: GenericFloat + SupersetOf<F>>(&self) -> Perspective<F2> {
+        Perspective::<F2>::new(na::convert(self.get_fx()),convert(self.get_fy()),convert(self.get_cx()),convert(self.get_cy()),convert(self.get_s()),false)
     }
 }
 
-impl<F: Scalar + RealField + Copy> Camera<F> for Perspective<F> {
+impl<F: GenericFloat> Camera<F> for Perspective<F> {
 
     fn from_matrices(projection: &Matrix3<F>, inverse_projection: &Matrix3<F>) -> Self {
         Perspective{projection: projection.clone(), inverse_projection: inverse_projection.clone()}
@@ -83,13 +85,13 @@ impl<F: Scalar + RealField + Copy> Camera<F> for Perspective<F> {
         self.inverse_projection
     }
 
-    fn get_jacobian_with_respect_to_position_in_camera_frame<T, F2: Scalar + RealField + Copy + SupersetOf<F>>(&self, position: &Vector<F2,U3,T>) -> Option<Matrix2x3<F2>> where T: Storage<F2,U3,U1> {
+    fn get_jacobian_with_respect_to_position_in_camera_frame<T, F2: GenericFloat + SupersetOf<F>>(&self, position: &Vector<F2,U3,T>) -> Option<Matrix2x3<F2>> where T: Storage<F2,U3,U1> {
         let x = position[0];
         let y = position[1];
         let z = position[2];
         match z {
-            z if z.abs() > F2::zero() => {
-                let z_sqrd = F2::powi(z,2);
+            z if num_traits::Float::abs(z) > F2::zero() => {
+                let z_sqrd = num_traits::Float::powi(z,2);
 
                 let fx = na::convert::<F,F2>(self.get_fx());
                 let fy = na::convert::<F,F2>(self.get_fy());
@@ -102,10 +104,10 @@ impl<F: Scalar + RealField + Copy> Camera<F> for Perspective<F> {
         }
     }
 
-    fn project<T, F2: Scalar + SupersetOf<F> + RealField + Copy>(&self, position: &Vector<F2,U3,T>) -> Option<Point<F2>> where T: Storage<F2,U3,U1> {
+    fn project<T, F2: GenericFloat + SupersetOf<F>>(&self, position: &Vector<F2,U3,T>) -> Option<Point<F2>> where T: Storage<F2,U3,U1> {
         let z = position[2];
         match z {
-            z if z.abs() > F2::zero() => {
+            z if num_traits::Float::abs(z) > F2::zero() => {
                 let homogeneous = position/z;
                 let proj = Matrix3::<F2>::from_iterator(self.projection.iter().map(|v| na::convert::<F,F2>(*v)));
                 let projected_coordiantes = proj*homogeneous;

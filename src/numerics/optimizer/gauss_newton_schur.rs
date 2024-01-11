@@ -13,18 +13,18 @@ use crate::sensors::camera::Camera;
 use crate::numerics::{max_norm, least_squares::{compute_cost,weight_jacobian_sparse,weight_residuals_sparse, calc_weight_vec, gauss_newton_step_with_schur}};
 use crate::sfm::{landmark::Landmark,state::State};
 use crate::sfm::runtime_parameters::RuntimeParameters; 
-use crate::Float;
+use crate::{GenericFloat,Float};
 
 const CAMERA_PARAM_SIZE: usize = 6; //TODO make this generic with state
 
-pub struct OptimizerGnSchur<F, C : Camera<Float>, L: Landmark<F,LANDMARK_PARAM_SIZE> + Send + Sync, const LANDMARK_PARAM_SIZE: usize> where F: float::Float + Scalar + RealField + SubsetOf<Float> {
+pub struct OptimizerGnSchur<F, C : Camera<Float>, L: Landmark<F,LANDMARK_PARAM_SIZE> + Send + Sync, const LANDMARK_PARAM_SIZE: usize> where F: GenericFloat {
     pub get_estimated_features: Box<dyn Fn(&State<F,L,LANDMARK_PARAM_SIZE>, &HashMap<usize, C>, &DVector<F>, &mut DVector<F>) -> ()>,
     pub compute_residual: Box<dyn Fn(&DVector<F>, &DVector<F>, &mut DVector<F>) -> ()>,
     pub compute_jacobian: Box<dyn Fn(&State<F,L,LANDMARK_PARAM_SIZE>, &HashMap<usize, C>, &mut DMatrix<F>) -> ()>,
     pub compute_state_size: Box<dyn Fn(&State<F,L,LANDMARK_PARAM_SIZE>) -> usize>
 }
 
-impl<F, C : Camera<Float>, L: Landmark<F,LANDMARK_PARAM_SIZE> + Send + Sync, const LANDMARK_PARAM_SIZE: usize> OptimizerGnSchur<F,C,L,LANDMARK_PARAM_SIZE> where F: float::Float + Scalar + RealField+ SubsetOf<Float> {
+impl<F, C : Camera<Float>, L: Landmark<F,LANDMARK_PARAM_SIZE> + Send + Sync, const LANDMARK_PARAM_SIZE: usize> OptimizerGnSchur<F,C,L,LANDMARK_PARAM_SIZE> where F: GenericFloat {
     
     pub fn new(
         get_estimated_features: Box<dyn Fn(&State<F,L,LANDMARK_PARAM_SIZE>, &HashMap<usize, C>, &DVector<F>, &mut DVector<F>) -> ()>,
@@ -43,7 +43,7 @@ impl<F, C : Camera<Float>, L: Landmark<F,LANDMARK_PARAM_SIZE> + Send + Sync, con
     
     pub fn optimize(&self,
         state: &mut State<F,L,LANDMARK_PARAM_SIZE>, camera_map: &HashMap<usize, C>, observed_features: &DVector<F>, runtime_parameters: &RuntimeParameters<F>, abort_receiver: Option<&mpsc::Receiver<bool>>, done_transmission: Option<&mpsc::Sender<bool>>
-    ) -> Option<Vec<State<F,L,LANDMARK_PARAM_SIZE>>> where F: float::Float + Scalar + RealField {
+    ) -> Option<Vec<State<F,L,LANDMARK_PARAM_SIZE>>> where F: GenericFloat {
         
 
         let max_iterations = runtime_parameters.max_iterations[0];

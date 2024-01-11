@@ -1,14 +1,13 @@
 extern crate nalgebra as na;
 extern crate num_traits;
 
-use std::marker::{Send,Sync};
-use na::{RealField, base::Scalar};
+use std::{fmt,boxed::Box,marker::{Send,Sync}};
 use crate::numerics::{loss::LossFunction, weighting::WeightingFunction};
-use std::{fmt,boxed::Box};
+use crate::GenericFloat;
 
 
 #[derive(Debug)]
-pub struct RuntimeParameters<F: Scalar + RealField + Send + num_traits::Float>{
+pub struct RuntimeParameters<F: GenericFloat>{
     pub pyramid_scale: F,
     pub max_iterations: Vec<usize>,
     pub eps: Vec<F>,
@@ -26,7 +25,7 @@ pub struct RuntimeParameters<F: Scalar + RealField + Send + num_traits::Float>{
     pub cg_max_it: usize
 }
 
-impl<F: Scalar  + RealField+ num_traits::Float + fmt::LowerExp> fmt::Display for RuntimeParameters<F> {
+impl<F: GenericFloat + fmt::LowerExp> fmt::Display for RuntimeParameters<F> {
 
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
 

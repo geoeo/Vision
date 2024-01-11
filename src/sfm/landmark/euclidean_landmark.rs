@@ -1,15 +1,16 @@
 extern crate nalgebra as na;
 
-use na::{Isometry3, Point3, Vector3,SVector, SMatrix, RealField, base::Scalar};
+use na::{Isometry3, Point3, Vector3,SVector, SMatrix};
 use crate::sfm::landmark::Landmark;
+use crate::GenericFloat;
 
 #[derive(Copy,Clone)]
-pub struct EuclideanLandmark<F:  Scalar + RealField + Copy> {
+pub struct EuclideanLandmark<F:  GenericFloat> {
     state: Point3<F>,
     id: Option<usize>
 }
 
-impl<F: Scalar  + RealField + Copy> Landmark<F,3> for EuclideanLandmark<F> {
+impl<F: GenericFloat> Landmark<F,3> for EuclideanLandmark<F> {
 
     fn from_state_with_id(state: SVector<F,3>, id: &Option<usize>) -> EuclideanLandmark<F> {
         EuclideanLandmark{state: Point3::<F>::from(state), id: *id}
