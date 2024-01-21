@@ -1,6 +1,5 @@
-pub mod sift;
 pub mod orb;
-pub mod gd;
+pub mod ba;
 
 #[derive(Debug,Clone)]
 pub struct Pyramid<T> {

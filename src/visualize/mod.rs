@@ -5,42 +5,9 @@ use rand::distributions::{Distribution, Uniform};
 use na::Vector3;
 use crate::image::features::{image_feature::ImageFeature,Feature,matches::Match, Oriented,orb_feature::OrbFeature, geometry::{point::Point,shape::circle::circle_bresenham,line::line_bresenham}};
 use crate::image::{Image,image_encoding::ImageEncoding};
-use crate::image::descriptors::sift_descriptor::orientation_histogram::OrientationHistogram;
 use crate::{Float,float,reconstruct_original_coordiantes_for_float};
 
 pub mod plot;
-
-pub fn display_histogram(histogram: &OrientationHistogram, width_scaling:usize, height: usize) -> Image {
-
-    let bin_len = histogram.bins.len();
-    let width = width_scaling*bin_len;
-    let mut image = Image::empty(width, height, ImageEncoding::U8);
-    let mut max_val = histogram.bins[0];
-    for i in 1..bin_len {
-        let val = histogram.bins[i];
-        if val > max_val {
-            max_val = val;
-        }
-    }
-
-    let max_height = height as Float*0.8;
-
-    for i in 0..bin_len {
-        let bin_val = histogram.bins[i];
-        let scale = bin_val/max_val;
-        let bin_height = (max_height*scale) as usize;
-        let bin_width = width/bin_len;
-        for w in 0..bin_width {
-            let x = i*bin_width+w;
-            for y in 0..bin_height {
-                image.buffer[(height-1-y,x)] = 255.0;
-            }
-        }
-
-    }
-
-    image
-}
 
 pub fn display_oriented_matches_for_pyramid<T: Feature + Oriented>(image_a_original: &Image, image_b_original: &Image, match_pyramid: &Vec<Match<T>>, draw_lines: bool, intensity: Float, pyramid_scale: Float) -> Image {
     let height = image_a_original.buffer.nrows();

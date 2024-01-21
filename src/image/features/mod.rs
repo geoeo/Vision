@@ -9,7 +9,6 @@ use crate::GradientDirection;
 use std::{marker::{Send,Sync}, hash::Hash};
 
 pub mod geometry;
-pub mod sift_feature;
 pub mod fast_feature;
 pub mod harris_corner;
 pub mod hessian_response;

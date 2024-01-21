@@ -14,6 +14,7 @@ pub fn build_orb_pyramid(base_gray_image: &Image, runtime_parameters: &OrbRuntim
 
     let mut octaves: Vec<OrbOctave> = Vec::with_capacity(runtime_parameters.octave_count);
 
+    let(base_height,base_width) = base_gray_image.get_rows_columns();
     let octave_image = base_gray_image; 
     let mut sigma = runtime_parameters.sigma;
 
@@ -40,6 +41,8 @@ pub fn generate_features_for_octave(octave: &OrbOctave, octave_idx: usize, runti
 }
 
 pub fn generate_feature_pyramid(pyramid: &Pyramid<OrbOctave>, runtime_parameters: &OrbRuntimeParameters) -> Pyramid<Vec<OrbFeature>> {
+    let original_image = &pyramid.octaves[0].images[0];
+    let(base_height,base_width) = original_image.get_rows_columns();
     Pyramid{octaves: pyramid.octaves.iter().enumerate().map(|(idx,x)| generate_features_for_octave(x,idx,runtime_parameters)).collect::<Vec<Vec<OrbFeature>>>()}
 }
 
@@ -47,6 +50,8 @@ pub fn generate_feature_pyramid(pyramid: &Pyramid<OrbOctave>, runtime_parameters
 pub fn generate_feature_descriptor_pyramid(octave_pyramid: &Pyramid<OrbOctave>, feature_pyramid: &Pyramid<Vec<OrbFeature>>, sample_lookup_tables: &Pyramid<Vec<Vec<(Point<Float>,Point<Float>)>>>, runtime_parameters: &OrbRuntimeParameters) -> Pyramid<Vec<(OrbFeature,BriefDescriptor)>> {
     assert_eq!(octave_pyramid.octaves.len(),feature_pyramid.octaves.len());
     let octave_len = octave_pyramid.octaves.len();
+    let original_image = &octave_pyramid.octaves[0].images[0];
+    let(base_height,base_width) = original_image.get_rows_columns();
     let mut feature_descriptor_pyramid = Pyramid::<Vec<(OrbFeature,BriefDescriptor)>>::empty(octave_len);
 
     for i in 0..octave_len {
@@ -82,7 +87,7 @@ pub fn generate_matches(image_pairs: &Vec<(&Image,&OrbRuntimeParameters, &Image,
         let pyramid = build_orb_pyramid(base_gray_image_a, &runtime_parameters_a);
         let feature_pyramid = generate_feature_pyramid(&pyramid, &runtime_parameters_a);
         let feature_descriptor_pyramid_a = generate_feature_descriptor_pyramid(&pyramid,&feature_pyramid,&sample_lookup_pyramid,&runtime_parameters_a);
-    
+        
         let pyramid_2 = build_orb_pyramid(base_gray_image_b, &runtime_parameters_b);
         let feature_pyramid_2 = generate_feature_pyramid(&pyramid_2, &runtime_parameters_b);
         let feature_descriptor_pyramid_b = generate_feature_descriptor_pyramid(&pyramid_2,&feature_pyramid_2,&sample_lookup_pyramid,&runtime_parameters_b);
