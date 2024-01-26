@@ -7,7 +7,7 @@ use rand_distr::{Normal,Distribution};
 use na::DMatrix;
 
 use crate::image::Image;
-use crate::image::pyramid::{Pyramid, orb::orb_runtime_parameters::OrbRuntimeParameters};
+use crate::image::pyramid::orb::orb_runtime_parameters::OrbRuntimeParameters;
 use crate::image::features::{geometry::point::Point, orb_feature::OrbFeature};
 use crate::{Float,float, reconstruct_original_coordiantes_for_float};
 use crate::numerics::rotation_matrix_2d_from_orientation;
@@ -104,14 +104,14 @@ impl BriefDescriptor {
 
     }
 
-    pub fn generate_sample_lookup_table_pyramid(runtime_parameters: &OrbRuntimeParameters, octave_count: usize) -> Pyramid<Vec<Vec<(Point<Float>,Point<Float>)>>> {
+    pub fn generate_sample_lookup_table_pyramid(runtime_parameters: &OrbRuntimeParameters, octave_count: usize) -> Vec<Vec<Vec<(Point<Float>,Point<Float>)>>> {
 
         let mut octaves: Vec<Vec<Vec<(Point<Float>,Point<Float>)>>> = Vec::with_capacity(octave_count);
         for i in 0..octave_count {
             octaves.push(BriefDescriptor::generate_sample_lookup_tables(runtime_parameters, i as i32));
         }
 
-        Pyramid {octaves}
+        octaves
 
     }
 

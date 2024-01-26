@@ -1,16 +1,17 @@
 use std::collections::{VecDeque,HashMap};
 use self::{orb_octave::OrbOctave, orb_runtime_parameters::OrbRuntimeParameters};
 use crate::image::Image;
-use crate::image::pyramid::Pyramid;
+use crate::image::pyramid::orb::orb_pyramid::OrbPyramid;
 use crate::image::features::{geometry::point::Point,orb_feature::OrbFeature,matches::Match};
 use crate::image::descriptors::brief_descriptor::BriefDescriptor;
 use crate::Float;
 
 
+pub mod orb_pyramid;
 pub mod orb_octave;
 pub mod orb_runtime_parameters;
 
-pub fn build_orb_pyramid(base_gray_image: &Image, runtime_parameters: &OrbRuntimeParameters) -> Pyramid<OrbOctave> {
+pub fn build_orb_pyramid(base_gray_image: &Image, runtime_parameters: &OrbRuntimeParameters) -> OrbPyramid {
 
     let mut octaves: Vec<OrbOctave> = Vec::with_capacity(runtime_parameters.octave_count);
 
@@ -32,7 +33,7 @@ pub fn build_orb_pyramid(base_gray_image: &Image, runtime_parameters: &OrbRuntim
         octaves.push(new_octave);
     }
 
-    Pyramid {octaves}
+    OrbPyramid {octaves}
 }
 
 
@@ -40,30 +41,30 @@ pub fn generate_features_for_octave(octave: &OrbOctave, octave_idx: usize, runti
     OrbFeature::new(&octave.images, octave_idx as i32, runtime_parameters)
 }
 
-pub fn generate_feature_pyramid(pyramid: &Pyramid<OrbOctave>, runtime_parameters: &OrbRuntimeParameters) -> Pyramid<Vec<OrbFeature>> {
+pub fn generate_feature_pyramid(pyramid: &OrbPyramid, runtime_parameters: &OrbRuntimeParameters) -> Vec<Vec<OrbFeature>> {
     let original_image = &pyramid.octaves[0].images[0];
     let(base_height,base_width) = original_image.get_rows_columns();
-    Pyramid{octaves: pyramid.octaves.iter().enumerate().map(|(idx,x)| generate_features_for_octave(x,idx,runtime_parameters)).collect::<Vec<Vec<OrbFeature>>>()}
+    pyramid.octaves.iter().enumerate().map(|(idx,x)| generate_features_for_octave(x,idx,runtime_parameters)).collect::<Vec<Vec<OrbFeature>>>()
 }
 
 
-pub fn generate_feature_descriptor_pyramid(octave_pyramid: &Pyramid<OrbOctave>, feature_pyramid: &Pyramid<Vec<OrbFeature>>, sample_lookup_tables: &Pyramid<Vec<Vec<(Point<Float>,Point<Float>)>>>, runtime_parameters: &OrbRuntimeParameters) -> Pyramid<Vec<(OrbFeature,BriefDescriptor)>> {
-    assert_eq!(octave_pyramid.octaves.len(),feature_pyramid.octaves.len());
+pub fn generate_feature_descriptor_pyramid(octave_pyramid: &OrbPyramid, feature_pyramid: &Vec<Vec<OrbFeature>>, sample_lookup_tables: &Vec<Vec<Vec<(Point<Float>,Point<Float>)>>>, runtime_parameters: &OrbRuntimeParameters) -> Vec<Vec<(OrbFeature,BriefDescriptor)>> {
+    assert_eq!(octave_pyramid.octaves.len(),feature_pyramid.len());
     let octave_len = octave_pyramid.octaves.len();
     let original_image = &octave_pyramid.octaves[0].images[0];
     let(base_height,base_width) = original_image.get_rows_columns();
-    let mut feature_descriptor_pyramid = Pyramid::<Vec<(OrbFeature,BriefDescriptor)>>::empty(octave_len);
+    let mut feature_descriptor_pyramid = Vec::<Vec<(OrbFeature,BriefDescriptor)>>::with_capacity(octave_len);
 
     for i in 0..octave_len {
         let original_image = &octave_pyramid.octaves[0].images[0];
-        let feature_octave = &feature_pyramid.octaves[i];
+        let feature_octave = &feature_pyramid[i];
         let n = std::cmp::min(runtime_parameters.brief_features_to_descriptors,feature_octave.len());
 
         let data_vector 
             = feature_octave.iter()
                             .enumerate()
                             .take(n) 
-                            .map(|x| (x.0,BriefDescriptor::new(original_image, x.1, runtime_parameters,i,&sample_lookup_tables.octaves[i])))
+                            .map(|x| (x.0,BriefDescriptor::new(original_image, x.1, runtime_parameters,i,&sample_lookup_tables[i])))
                             .filter(|x| x.1.is_some())
                             .map(|(idx,option)| (feature_octave[idx],option.unwrap()))
                             .collect::<Vec<(OrbFeature,BriefDescriptor)>>();
@@ -72,7 +73,7 @@ pub fn generate_feature_descriptor_pyramid(octave_pyramid: &Pyramid<OrbOctave>, 
             println!("Warning: 0 features with descriptors for octave idx: {}",i);
         }
 
-        feature_descriptor_pyramid.octaves.push(data_vector);
+        feature_descriptor_pyramid.push(data_vector);
     }
 
     feature_descriptor_pyramid
@@ -104,14 +105,14 @@ pub fn generate_matches(image_pairs: &Vec<(&Image,&OrbRuntimeParameters, &Image,
 
 }
 
-pub fn generate_matches_between_pyramid(feature_descriptor_pyramid_a: &Pyramid<Vec<(OrbFeature,BriefDescriptor)>>,
-                                        feature_descriptor_pyramid_b: &Pyramid<Vec<(OrbFeature,BriefDescriptor)>>,  
+pub fn generate_matches_between_pyramid(feature_descriptor_pyramid_a: &Vec<Vec<(OrbFeature,BriefDescriptor)>>,
+                                        feature_descriptor_pyramid_b: &Vec<Vec<(OrbFeature,BriefDescriptor)>>,  
                                         runtime_parameters: &OrbRuntimeParameters) 
                                         -> Vec<Match<OrbFeature>> {
 
 
-    let features_descriptors_a_per_octave = feature_descriptor_pyramid_a.octaves.iter().map(|x| x.clone()).collect::<Vec<Vec<(OrbFeature,BriefDescriptor)>>>();
-    let features_descriptors_b_per_octave = feature_descriptor_pyramid_b.octaves.iter().map(|x| x.clone()).collect::<Vec<Vec<(OrbFeature,BriefDescriptor)>>>();
+    let features_descriptors_a_per_octave = feature_descriptor_pyramid_a.iter().map(|x| x.clone()).collect::<Vec<Vec<(OrbFeature,BriefDescriptor)>>>();
+    let features_descriptors_b_per_octave = feature_descriptor_pyramid_b.iter().map(|x| x.clone()).collect::<Vec<Vec<(OrbFeature,BriefDescriptor)>>>();
 
     let features_descriptors_a_with_octave_idx = features_descriptors_a_per_octave.into_iter().enumerate().map(|(i,list)| list.into_iter().map(|x| (i,x)).collect::<Vec<(usize,(OrbFeature,BriefDescriptor))>>()).flatten().collect::<Vec<(usize,(OrbFeature,BriefDescriptor))>>();
     let features_descriptors_b_with_octave_idx = features_descriptors_b_per_octave.into_iter().enumerate().map(|(i,list)| list.into_iter().map(|x| (i,x)).collect::<Vec<(usize,(OrbFeature,BriefDescriptor))>>()).flatten().collect::<Vec<(usize,(OrbFeature,BriefDescriptor))>>();
@@ -139,13 +140,13 @@ pub fn generate_matches_between_pyramid(feature_descriptor_pyramid_a: &Pyramid<V
 
 }
 
-pub fn generate_match_pyramid(feature_descriptor_pyramid_a: &Pyramid<Vec<(OrbFeature,BriefDescriptor)>>,feature_descriptor_pyramid_b: &Pyramid<Vec<(OrbFeature,BriefDescriptor)>>,  runtime_parameters: &OrbRuntimeParameters) -> Vec<((usize,OrbFeature),(usize,OrbFeature))> {
+pub fn generate_match_pyramid(feature_descriptor_pyramid_a: &Vec<Vec<(OrbFeature,BriefDescriptor)>>,feature_descriptor_pyramid_b: &Vec<Vec<(OrbFeature,BriefDescriptor)>>,  runtime_parameters: &OrbRuntimeParameters) -> Vec<((usize,OrbFeature),(usize,OrbFeature))> {
 
 
     let mut matches = Vec::<((usize,OrbFeature),(usize,OrbFeature))>::new(); //TODO: with capacity of runtime paramets
 
-    let features_descriptors_a_per_octave = feature_descriptor_pyramid_a.octaves.iter().map(|x| x.clone()).collect::<Vec<Vec<(OrbFeature,BriefDescriptor)>>>();
-    let features_descriptors_b_per_octave = feature_descriptor_pyramid_b.octaves.iter().map(|x| x.clone()).collect::<Vec<Vec<(OrbFeature,BriefDescriptor)>>>();
+    let features_descriptors_a_per_octave = feature_descriptor_pyramid_a.iter().map(|x| x.clone()).collect::<Vec<Vec<(OrbFeature,BriefDescriptor)>>>();
+    let features_descriptors_b_per_octave = feature_descriptor_pyramid_b.iter().map(|x| x.clone()).collect::<Vec<Vec<(OrbFeature,BriefDescriptor)>>>();
 
 
     for i in 0..features_descriptors_a_per_octave.len() {
