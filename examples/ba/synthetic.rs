@@ -28,6 +28,9 @@ fn main() -> Result<()> {
     let dataset = "sphere";
     //let dataset = "Cube";
 
+    let image_width = 640;
+    let image_height = 480;
+
     let cam_features_path = format!("{}/{}/camera_features_{}.yaml",runtime_conf.local_data_path,scenario,dataset);
 
     let loaded_data = models_cv::io::deserialize_feature_matches(&cam_features_path);
@@ -116,7 +119,7 @@ fn main() -> Result<()> {
 
     //TODO: Add GT Landmarks
     let mut sfm_config_fundamental = BAConfig::new(root_id, &paths, pose_map_gt_option , camera_map, &match_map, 
-        BifocalType::FUNDAMENTAL, Triangulation::STEREO, 1.0, 3e0, 5e2, 1.0, true, false); 
+        BifocalType::FUNDAMENTAL, Triangulation::STEREO, 1.0, 3e0, 5e2, 1.0, true, false, image_width, image_height); 
     
     let initial_z = sfm_config_fundamental.pose_map().get(&camera_id_pairs[0]).unwrap().translation.z;
     for (key, pose) in sfm_config_fundamental.pose_map().iter() {

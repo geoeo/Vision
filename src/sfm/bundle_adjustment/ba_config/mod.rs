@@ -21,6 +21,7 @@ use crate::sfm::{
     triangulation::{triangulate_matches, Triangulation},
     pnp::pnp_config::PnPConfig
 };
+use crate::image::pyramid::ba::ba_pyramid::BAPyramid;
 use crate::{float, Float};
 use na::{DVector, Isometry3, Matrix3, Matrix4, Matrix4xX};
 use std::collections::{HashMap, HashSet};
@@ -42,7 +43,7 @@ pub struct BAConfig<C, Feat: Feature> {
     landmark_map: HashMap<(usize, usize), Vec<EuclideanLandmark<Float>>>,
     reprojection_error_map: HashMap<(usize, usize), DVector<Float>>,
     triangulation: Triangulation,
-    first_landmark_sighting_map: HashMap<usize,usize> //Map landmark id to camera id of the camera that first observed the landmark
+    first_landmark_sighting_map: HashMap<usize,usize> //Map landmark id to camera id of the camera that first observed the landmark - @Might be not needed
 }
 
 impl<C: Camera<Float> + Clone, Feat: Feature + SolverFeature>
@@ -62,6 +63,8 @@ impl<C: Camera<Float> + Clone, Feat: Feature + SolverFeature>
         disparity_cutoff_thresh: Float,
         refine_rotation_via_rcd: bool,
         run_outlier_detection_pipeline: bool,
+        image_width: usize,
+        image_height: usize
     ) -> BAConfig<C, Feat> {
         let paths_pairs = conversions::compute_path_id_pairs(root, paths);
         let path_id_pairs_flat = paths_pairs.iter().flatten().collect::<Vec<_>>();
@@ -73,8 +76,17 @@ impl<C: Camera<Float> + Clone, Feat: Feature + SolverFeature>
         assert!(!Self::check_for_duplicate_pixel_entries(
             &matches_with_tracks
         ));
+
         let mut match_map =
             Self::generate_match_map_with_landmark_ids(root, &paths, matches_with_tracks);
+
+        let feature_map_per_cam = Self::generate_features_per_cam(&match_map);
+        let pyramid_levels = 4;
+        let pyramid_map = feature_map_per_cam.iter().map(|(k,v)| (*k,BAPyramid::new(v,pyramid_levels,image_width,image_height))).collect::<HashMap<usize, BAPyramid<Feat>>>();
+        let score_map = pyramid_map.iter().map(|(k,v)| (*k,v.calculate_score())).collect::<HashMap<usize, usize>>();
+        for (cam_id, score) in score_map.iter() {
+            println!("Score for Cam {} : {}",cam_id,score);
+        }
 
         let disparity_map = Self::compute_disparity_map(root, &paths, &match_map);
         if run_outlier_detection_pipeline {
@@ -459,6 +471,30 @@ impl<C: Camera<Float> + Clone, Feat: Feature + SolverFeature>
         }
 
         match_map
+    }
+
+    fn generate_features_per_cam(feature_map: &HashMap<(usize, usize), Vec<Match<Feat>>>) -> HashMap<usize, Vec<Feat>> {
+        let mut target_map = HashMap::<usize,  Vec<Feat>>::new();
+        for &(id1,id2) in feature_map.keys() {
+            target_map.insert(id1,  Vec::<Feat>::with_capacity(feature_map.get(&(id1,id2)).unwrap().len()));
+            target_map.insert(id2,  Vec::<Feat>::with_capacity(feature_map.get(&(id1,id2)).unwrap().len())); 
+        }
+
+        for (key,matches) in feature_map.iter() {
+            let (id1, id2) = key;
+            let mut features_one = Vec::<Feat>::with_capacity(target_map.get(id1).unwrap().len());
+            let mut features_two = Vec::<Feat>::with_capacity(target_map.get(id2).unwrap().len());
+
+            for m in matches {
+                features_one.push(m.get_feature_one().clone());
+                features_two.push(m.get_feature_two().clone());
+            }
+
+            target_map.get_mut(id1).unwrap().extend(features_one);
+            target_map.get_mut(id2).unwrap().extend(features_two);
+        }
+
+        target_map
     }
 
     fn compute_landmarks_and_reprojection_maps(

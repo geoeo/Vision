@@ -66,8 +66,8 @@ fn main() {
     //     gray_image.save(file_path).unwrap();
     // }
 
-    for octave_index in 0..feautre_descriptors.octaves.len() {
-        let octave = &feautre_descriptors.octaves[octave_index];
+    for octave_index in 0..feautre_descriptors.len() {
+        let octave = &feautre_descriptors[octave_index];
         for (feature,_) in octave {
             visualize_pyramid_feature_with_orientation(&mut display, feature, octave_index,runtime_params.pyramid_scale , display_max/2.0);
         }
