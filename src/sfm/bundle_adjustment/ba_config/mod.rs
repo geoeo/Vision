@@ -42,6 +42,7 @@ pub struct BAConfig<C, Feat: Feature> {
     abs_pose_map: HashMap<usize, Isometry3<Float>>, // World is the root id
     landmark_map: HashMap<(usize, usize), Vec<EuclideanLandmark<Float>>>,
     reprojection_error_map: HashMap<(usize, usize), DVector<Float>>,
+    feature_pyramid_map: HashMap<usize, BAPyramid<Feat>>, //TODO: move this to a prior stage 
     triangulation: Triangulation,
     first_landmark_sighting_map: HashMap<usize,usize> //Map landmark id to camera id of the camera that first observed the landmark - @Might be not needed
 }
@@ -63,6 +64,7 @@ impl<C: Camera<Float> + Clone, Feat: Feature + SolverFeature>
         disparity_cutoff_thresh: Float,
         refine_rotation_via_rcd: bool,
         run_outlier_detection_pipeline: bool,
+    
         image_width: usize,
         image_height: usize
     ) -> BAConfig<C, Feat> {
@@ -80,19 +82,21 @@ impl<C: Camera<Float> + Clone, Feat: Feature + SolverFeature>
         let mut match_map =
             Self::generate_match_map_with_landmark_ids(root, &paths, matches_with_tracks);
 
-        let feature_map_per_cam = Self::generate_features_per_cam(&match_map);
-        let pyramid_levels = 4;
-        let pyramid_map = feature_map_per_cam.iter().map(|(k,v)| (*k,BAPyramid::new(v,pyramid_levels,image_width,image_height))).collect::<HashMap<usize, BAPyramid<Feat>>>();
-        let score_map = pyramid_map.iter().map(|(k,v)| (*k,v.calculate_score())).collect::<HashMap<usize, usize>>();
-        for (cam_id, score) in score_map.iter() {
-            println!("Score for Cam {} : {}",cam_id,score);
-        }
-
+    
         let disparity_map = Self::compute_disparity_map(root, &paths, &match_map);
         if run_outlier_detection_pipeline {
             //TODO: tie this to min angular distance. Currently it also triggers on Z-only motion
             //reject_matches_via_disparity(disparity_map, &mut match_map, disparity_cutoff_thresh);
         }
+
+        let feature_map_per_cam = Self::generate_features_per_cam(&match_map);
+        let pyramid_levels = 4;
+        let feature_pyramid_map = feature_map_per_cam.iter().map(|(k,v)| (*k,BAPyramid::new(v,pyramid_levels,image_width,image_height))).collect::<HashMap<usize, BAPyramid<Feat>>>();
+        let score_map = Self::compute_image_score_map(&feature_pyramid_map);
+        for (cam_id, score) in score_map.iter() {
+            println!("Score for Cam {} : {}",cam_id,score);
+        }
+
 
         let (camera_norm_map, mut match_norm_map) =
             Self::normalize_features_and_cameras(&camera_map, &match_map);
@@ -233,6 +237,7 @@ impl<C: Camera<Float> + Clone, Feat: Feature + SolverFeature>
             pose_map,
             landmark_map,
             reprojection_error_map,
+            feature_pyramid_map,
             triangulation,
             first_landmark_sighting_map
         }
@@ -274,8 +279,15 @@ impl<C: Camera<Float> + Clone, Feat: Feature + SolverFeature>
     pub fn landmark_map(&self) -> &HashMap<(usize,usize), Vec<EuclideanLandmark<Float>>> {
         &self.landmark_map
     }
+    pub fn feature_pyramid_map(&self) -> &HashMap<usize, BAPyramid<Feat>> {
+        &self.feature_pyramid_map
+    }
     pub fn first_landmark_sighting_map(&self) -> &HashMap<usize,usize>{
         &self.first_landmark_sighting_map
+    }
+
+    pub fn compute_image_score_map(pyramid_map: &HashMap<usize, BAPyramid<Feat>>) -> HashMap<usize, usize>{
+        pyramid_map.iter().map(|(k,v)| (*k,v.calculate_score())).collect::<HashMap<usize, usize>>()
     }
 
     pub fn update_state(&mut self, state: &State<Float, EuclideanLandmark<Float>, 3>) -> () {

@@ -2,11 +2,10 @@ extern crate nalgebra as na;
 extern crate num_traits;
 extern crate simba;
 
-use simba::scalar::SubsetOf;
 use std::collections::HashMap;
 use std::marker::{Send,Sync};
 use std::sync::mpsc;
-use na::{DVector,DMatrix, base::Scalar, RealField, convert};
+use na::{DVector,DMatrix, convert};
 use num_traits::float;
 
 use crate::sensors::camera::Camera;

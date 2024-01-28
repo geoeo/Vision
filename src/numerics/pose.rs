@@ -1,7 +1,7 @@
 extern crate nalgebra as na;
 extern crate num_traits;
 
-use na::{Vector3,Matrix4,Matrix3,Point3,UnitQuaternion ,Isometry3, Translation3, convert,RealField,Matrix3x4,base::Scalar};
+use na::{Vector3,Matrix4,Matrix3,Point3,UnitQuaternion ,Isometry3, Translation3, convert,Matrix3x4};
 use crate::GenericFloat;
 
 pub fn from_matrix<F>(mat: &Matrix4<F>) -> Isometry3<F> where F : GenericFloat {
