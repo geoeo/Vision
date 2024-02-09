@@ -3,8 +3,13 @@ extern crate nalgebra as na;
 use color_eyre::eyre::Result;
 use std::fs;
 use vision::io::olsson_loader::OlssenData;
-use vision::sfm::{triangulation::Triangulation,bundle_adjustment::ba_config::{BAConfig, conversions::compute_path_id_pairs}, bundle_adjustment::run_ba, epipolar::tensor::BifocalType};
-use vision::sfm::runtime_parameters::RuntimeParameters;
+use vision::sfm::{
+    triangulation::Triangulation,
+    bundle_adjustment::ba_config::{BAConfig, conversions::compute_path_id_pairs},
+    bundle_adjustment::run_ba, 
+    epipolar::tensor::BifocalType, 
+    pnp::run_pnp,runtime_parameters::RuntimeParameters
+};
 use vision::numerics::{loss, weighting};
 use vision::load_runtime_conf;
 use vision::visualize;
@@ -29,7 +34,7 @@ fn main() -> Result<()> {
     let kronan = "kronan";
     let round_church = "round_church";
 
-    let olsen_dataset_name = fountain;
+    let olsen_dataset_name = round_church;
     let olsen_data_path = format!("{}/Olsson/{}/",runtime_conf.dataset_path,olsen_dataset_name);
 
     let feature_skip_count = 1;
@@ -55,62 +60,18 @@ fn main() -> Result<()> {
     // let paths = vec!(vec!(6,7,8));
     // let root_id = 5;
 
-    let paths = vec!(vec!(6,7,8,9,10));
+    // let paths = vec!(vec!(13,14,15,16));
+    // let root_id = 12;
+
+    let paths = vec!(vec!(7,8,10,11,12,13));
     let root_id = 5;
 
-    // let paths = vec!(vec!(5),vec!(7));
-    // let root_id = 6;
-
-    // let paths = vec!(vec!(4),vec!(6,7));
-    // let root_id = 5;
-
-    // let paths = vec!(vec!(4,3),vec!(6));
-    // let root_id = 5;
-
-    // let paths = vec!(vec!(4,3),vec!(6));
-    // let root_id = 5;
-
-    // let paths = vec!(vec!(4),vec!(6,7));
-    // let root_id = 5;
-
-    // let paths = vec!(vec!(4,3,2));
-    // let root_id = 5;
-
-    // let paths = vec!(vec!(6,7));
-    // let root_id = 5;
-
-    // let paths = vec!(vec!(6,7,8,9,10,11));
-    // let root_id = 5;
-
-    // let paths = vec!(vec!(6,7,8,9,10,11,12,13,14));
-    // let root_id = 5;
-
-    // let paths = vec!(vec!(6,8,9,11,12,14));
-    // let root_id = 5;
-
-    // let paths = vec!(vec!(6,7,8,9,10,11));
-    // let root_id = 5;
-
-    // let paths = vec!(vec!(4,3,2,1),vec!(6,7,8,9));
-    // let root_id = 5;
-
-    // let paths = vec!(vec!(2,3));
-    // let root_id = 1;
-
-    // let paths = vec!(vec!(7,6),vec!(9,10,11));
-    // let root_id = 8;
-
-    // let paths = vec!(vec!(6,5),vec!(9,10));
-    // let root_id = 8;
-
-    // let paths = vec!(vec!(9,10,11,12,13));
-    // let root_id = 8;
 
 
     //TODO: implement switch for loftr matches!
     let (match_map, camera_map, image_width, image_height) = olsen_data.get_data_for_sfm(root_id, &paths, positive_principal_distance, invert_focal_length, invert_y, feature_skip_count, olsen_dataset_name);
-    let sfm_config_fundamental = BAConfig::new(root_id, &paths, None, camera_map, &match_map, 
-    BifocalType::FUNDAMENTAL, Triangulation::STEREO, 1.0, 2.0e0, 5e0, 5.0, refince_rotation_via_rcd, false, image_width, image_height);
+    let mut sfm_config_fundamental = BAConfig::new(root_id, &paths, None, camera_map, &match_map, 
+    BifocalType::FUNDAMENTAL, Triangulation::STEREO, 1.0, 2.0e0, 3e1, 5.0, refince_rotation_via_rcd, false, image_width, image_height);
 
     for (key, pose) in sfm_config_fundamental.pose_map().iter() {
         println!("Key: {:?}, Pose: {:?}", key, pose)
@@ -144,7 +105,36 @@ fn main() -> Result<()> {
         cg_max_it: 2e3 as usize
     };
 
+    let runtime_parameters_pnp = RuntimeParameters {
+        pyramid_scale: 1.0,
+        max_iterations: vec![8e2 as usize; 1],
+        eps: vec![1e-8],
+        step_sizes: vec![1e0],
+        max_norm_eps: 1e-30, 
+        delta_eps: 1e-30,
+        taus: vec![1.0e0],
+        lm: true,
+        debug: false,
+        print: true,
+        show_octave_result: true,
+        loss_function: Box::new(loss::TrivialLoss { eps: 1e-16, approximate_gauss_newton_matrices: false }), 
+        intensity_weighting_function:  Box::new(weighting::SquaredWeight {}),
+        cg_threshold: 1e-6,
+        cg_max_it: 2e3 as usize
+    };
+
+
     let trajectories = compute_path_id_pairs(sfm_config_fundamental.root(), sfm_config_fundamental.paths());
+    let camera_ids = sfm_config_fundamental.camera_map().clone();
+
+    for &cam_id in camera_ids.keys() {
+        let pnp_config_cam = sfm_config_fundamental.generate_pnp_config_from_cam_id(cam_id);
+        let (optimized_state_pnp, _) = run_pnp(&pnp_config_cam,&runtime_parameters_pnp);
+        sfm_config_fundamental.update_state(&optimized_state_pnp);
+        let cam_pos_pnp = optimized_state_pnp.get_camera_positions().first().unwrap();
+        println!("Cam state pnp: {}", cam_pos_pnp);
+    }
+
     let (optimized_state, state_debug_list) = run_ba::<_,6,InverseLandmark<Float>,_,_>(&sfm_config_fundamental, &runtime_parameters,&trajectories);
     let state_serialized = serde_yaml::to_string(&optimized_state.to_serial());
     let debug_states_serialized = serde_yaml::to_string(&state_debug_list);
