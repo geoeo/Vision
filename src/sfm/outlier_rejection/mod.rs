@@ -62,9 +62,10 @@ pub fn reject_landmark_outliers<Feat: Feature>(
     match_map: &mut HashMap<(usize, usize), Vec<Match<Feat>>>,
     match_norm_map: &mut HashMap<(usize, usize), Vec<Match<Feat>>>,
     first_landmark_sighting_map: &mut HashMap<usize, usize>,
-    landmark_cutoff: Float){
+    landmark_cutoff: Float) -> HashSet<(usize,usize)> {
         let keys = match_norm_map.keys().map(|key| *key).collect::<Vec<_>>();
         let mut rejected_landmark_ids = HashSet::<usize>::with_capacity(1000);
+        let mut rejected_camera_keys = HashSet::<(usize,usize)>::with_capacity(1000);
 
         for key in &keys {
             let reprojection_erros = reprojection_error_map.get(key).unwrap();
@@ -84,25 +85,30 @@ pub fn reject_landmark_outliers<Feat: Feature>(
 
             let filtered_matches_norm = matches_norm.iter().enumerate().filter(|(idx,_)| accepted_indices.contains(idx)).map(|(_,v)| v.clone()).collect::<Vec<Match<Feat>>>();
             let filtered_matches = matches.iter().enumerate().filter(|(idx,_)| accepted_indices.contains(idx)).map(|(_,v)| v.clone()).collect::<Vec<Match<Feat>>>();
-            assert!(!&filtered_matches_norm.is_empty(), "reject outliers empty features for : {:?}", key);
 
             let filtered_landmarks = landmarks.iter().enumerate().filter(|(idx,_)| accepted_indices.contains(idx)).map(|(_,v)| v.clone()).collect::<Vec<_>>();
-            assert!(!&filtered_landmarks.is_empty());
         
             let filtered_reprojection_errors_vec = reprojection_erros.iter().enumerate().filter(|(idx,_)| accepted_indices.contains(idx)).map(|(_,v)| *v).collect::<Vec<Float>>();
-            assert!(!&filtered_reprojection_errors_vec.is_empty());
             let filtered_reprojection_errors = DVector::<Float>::from_vec(filtered_reprojection_errors_vec);
 
-            match_norm_map.insert(*key,filtered_matches_norm);
-            match_map.insert(*key,filtered_matches);
-            reprojection_error_map.insert(*key,filtered_reprojection_errors);
-            landmark_map.insert(*key,filtered_landmarks);
+            match (filtered_matches_norm.is_empty(), filtered_landmarks.is_empty(), filtered_reprojection_errors.is_empty()){
+                (false,false, false) => {
+                    match_norm_map.insert(*key,filtered_matches_norm);
+                    match_map.insert(*key,filtered_matches);
+                    reprojection_error_map.insert(*key,filtered_reprojection_errors);
+                    landmark_map.insert(*key,filtered_landmarks);
+                },
+                (_, _, _) => {rejected_camera_keys.insert(*key);}
+            }
         }
 
-        for rejected_id in rejected_landmark_ids {
+        for rejected_id in &rejected_landmark_ids {
             first_landmark_sighting_map.remove(&rejected_id);
         }
-        assert!(!&first_landmark_sighting_map.is_empty())
+
+        assert!(!&first_landmark_sighting_map.is_empty());
+
+        rejected_camera_keys
 
 }
 

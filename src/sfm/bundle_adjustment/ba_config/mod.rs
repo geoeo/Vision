@@ -144,7 +144,7 @@ impl<C: Camera<Float> + Clone, Feat: Feature + SolverFeature>
             "SFM Config Max Reprojection Error 1): {}, Min Reprojection Error: {}",
             max_reprojection_error_initial, min_reprojection_error_initial
         );
-        reject_landmark_outliers(
+        let rejected_camera_keys = reject_landmark_outliers(
             &mut landmark_map,
             &mut reprojection_error_map,
             &mut match_map,
@@ -152,6 +152,9 @@ impl<C: Camera<Float> + Clone, Feat: Feature + SolverFeature>
             &mut first_landmark_sighting_map,
             landmark_cutoff_thresh,
         );
+
+        assert!(rejected_camera_keys.is_empty());
+
         let (min_reprojection_error_outlier, max_reprojection_error_outlier) =
             Self::compute_reprojection_ranges(&reprojection_error_map);
         println!("After DUAL Outlier: SFM Config Max Reprojection Error 2): {}, Min Reprojection Error: {}", max_reprojection_error_outlier, min_reprojection_error_outlier);
@@ -175,7 +178,7 @@ impl<C: Camera<Float> + Clone, Feat: Feature + SolverFeature>
                 &mut reprojection_error_map,
                 &mut first_landmark_sighting_map
             );
-            reject_landmark_outliers(
+            let rejected_camera_keys = reject_landmark_outliers(
                 &mut landmark_map,
                 &mut reprojection_error_map,
                 &mut match_map,
@@ -183,6 +186,9 @@ impl<C: Camera<Float> + Clone, Feat: Feature + SolverFeature>
                 &mut first_landmark_sighting_map,
                 landmark_cutoff_thresh,
             );
+
+            assert!(rejected_camera_keys.is_empty());
+
             let (min_reprojection_error_outlier_dual, max_reprojection_error_outlier_dual) =
                 Self::compute_reprojection_ranges(&reprojection_error_map);
             println!("After DUAL Outlier: SFM Config Max Reprojection Error 2): {}, Min Reprojection Error: {}", max_reprojection_error_outlier_dual, min_reprojection_error_outlier_dual);
@@ -212,7 +218,7 @@ impl<C: Camera<Float> + Clone, Feat: Feature + SolverFeature>
                 }
             }
             if run_outlier_detection_pipeline {
-                reject_landmark_outliers(
+                let rejected_camera_keys = reject_landmark_outliers(
                     &mut landmark_map,
                     &mut reprojection_error_map,
                     &mut match_map,
@@ -220,11 +226,18 @@ impl<C: Camera<Float> + Clone, Feat: Feature + SolverFeature>
                     &mut first_landmark_sighting_map,
                     landmark_cutoff_thresh,
                 );
+
+                assert!(rejected_camera_keys.is_empty());
             }
             let (min_reprojection_error_refined, max_reprojection_error_refined) =
                 Self::compute_reprojection_ranges(&reprojection_error_map);
             println!("After Rotation: SFM Config Max Reprojection Error 2): {}, Min Reprojection Error: {}", max_reprojection_error_refined, min_reprojection_error_refined);
         }
+
+        for (k,v) in match_map.iter(){
+            println!("Final matches for Cam {:?} : {}",k,v.len());
+        }
+
 
         BAConfig {
             root,

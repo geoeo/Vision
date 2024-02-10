@@ -171,17 +171,18 @@ fn main() -> Result<()> {
     //let trajectories = compute_path_id_pairs(sfm_config_fundamental.root(), sfm_config_fundamental.paths());
 
     let trajectories = vec!(vec!((0,1)));
-    let (optimized_state_first, state_debug_list) = run_ba::<_,6,InverseLandmark<Float>,_,_>(&sfm_config_fundamental, &runtime_parameters, &trajectories);
-    sfm_config_fundamental.update_state(&optimized_state_first);
 
-    let cam_0_idx = optimized_state_first.get_camera_id_map().get(&0).unwrap();
-    let cam_pos_0 = optimized_state_first.get_camera_positions()[*cam_0_idx];
+    let (optimized_state, state_debug_list) = run_ba::<_,6,InverseLandmark<Float>,_,_>(&sfm_config_fundamental, &runtime_parameters, &trajectories);
+    sfm_config_fundamental.update_state(&optimized_state);
+
+    let cam_0_idx = optimized_state.get_camera_id_map().get(&0).unwrap();
+    let cam_pos_0 = optimized_state.get_camera_positions()[*cam_0_idx];
     let landmarks = sfm_config_fundamental.landmark_map().get(&(0,1)).unwrap();
     let first_landmark = landmarks.first().unwrap();
     let first_landmark_id = first_landmark.get_id().unwrap();
 
     let world_cam_0 = sfm_config_fundamental.abs_pose_map().get(&0).unwrap().clone();
-    let landmark_vec = optimized_state_first.get_landmarks();
+    let landmark_vec = optimized_state.get_landmarks();
     let landmark_world_as_vec = landmark_vec.iter().filter(|l| l.get_id().is_some()).filter(|l| l.get_id().unwrap() == first_landmark_id).collect::<Vec<_>>().clone();
     assert_eq!(landmark_world_as_vec.len(),1);
     let landmark_w = landmark_world_as_vec.first().unwrap();
@@ -192,26 +193,25 @@ fn main() -> Result<()> {
     println!("Landmark config {} : {}", first_landmark_id, first_landmark.get_euclidean_representation());
     println!("Landmark state {} : {}", landmark_w.get_id().unwrap(), landmark_rel);
 
+    // let pnp_config_cam = sfm_config_fundamental.generate_pnp_config_from_cam_id(0);
+    // let (optimized_state_pnp, _) = run_pnp(&pnp_config_cam,&runtime_parameters_pnp);
+    // sfm_config_fundamental.update_state(&optimized_state_pnp);
+    // let cam_pos_pnp = optimized_state_pnp.get_camera_positions().first().unwrap();
+    // println!("Cam 0 state pnp: {}", cam_pos_pnp);
+
     // let pnp_config_cam = sfm_config_fundamental.generate_pnp_config_from_cam_id(1);
     // let (optimized_state_pnp, _) = run_pnp(&pnp_config_cam,&runtime_parameters_pnp);
     // sfm_config_fundamental.update_state(&optimized_state_pnp);
     // let cam_pos_pnp = optimized_state_pnp.get_camera_positions().first().unwrap();
     // println!("Cam 0 state pnp: {}", cam_pos_pnp);
 
-    // let pnp_config_cam = sfm_config_fundamental.generate_pnp_config_from_cam_id(2);
-    // let (optimized_state_pnp, _) = run_pnp(&pnp_config_cam,&runtime_parameters_pnp);
-    // sfm_config_fundamental.update_state(&optimized_state_pnp);
-    // let cam_pos_pnp = optimized_state_pnp.get_camera_positions().first().unwrap();
-    // println!("Cam 0 state pnp: {}", cam_pos_pnp);
-
-
-    // let trajectories = vec!(vec!((0,1),(1,2)));
-    // let (optimized_state_second, state_debug_list) = run_ba(&sfm_config_fundamental, &runtime_parameters, &trajectories);
-    // sfm_config_fundamental.update_state(&optimized_state_second);
+    // let (optimized_state, state_debug_list) = run_ba::<_,6,InverseLandmark<Float>,_,_>(&sfm_config_fundamental, &runtime_parameters, &trajectories);
+    // sfm_config_fundamental.update_state(&optimized_state);
     // let world_cam_2 = sfm_config_fundamental.abs_pose_map().get(&1).unwrap().clone();
     // println!("Cam 2 config: {}", world_cam_2);
 
-    let state_serialized = serde_yaml::to_string(&optimized_state_first.to_serial());
+
+    let state_serialized = serde_yaml::to_string(&optimized_state.to_serial());
     let debug_states_serialized = serde_yaml::to_string(&state_debug_list);
     std::fs::write(format!("{}/ba.txt",runtime_conf.output_path), state_serialized?).expect("Unable to write file");
 
