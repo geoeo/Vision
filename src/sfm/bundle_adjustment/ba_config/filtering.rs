@@ -1,13 +1,9 @@
 extern crate nalgebra as na;
 
-use crate::image::features::{
-    compute_linear_normalization, feature_track::FeatureTrack, matches::Match,
-    solver_feature::SolverFeature, Feature,
-};
+use crate::image::features::{Feature,matches::Match};
 use crate::numerics::pose::{from_matrix, se3};
 use crate::sensors::camera::Camera;
 use crate::sfm::landmark::{Landmark, euclidean_landmark::EuclideanLandmark};
-use crate::sfm::state::State;
 use crate::sfm::bundle_adjustment::ba_config::outlier_rejection::{
     calcualte_disparities, calculate_reprojection_errors,
     compute_continuous_landmark_ids_from_unique_landmarks, filter_by_rejected_landmark_ids,
@@ -15,145 +11,142 @@ use crate::sfm::bundle_adjustment::ba_config::outlier_rejection::{
     dual::outlier_rejection_dual
 };
 use crate::sfm::{
-    epipolar::tensor,
-    quest,
     rotation_avg::optimize_rotations_with_rcd,
-    triangulation::{triangulate_matches, Triangulation},
-    pnp::pnp_config::PnPConfig
+    triangulation::{triangulate_matches, Triangulation}
 };
 use crate::sfm::bundle_adjustment::ba_config::BAConfig;
 use crate::sfm::bundle_adjustment::ba_config::conversions;
-use crate::image::pyramid::ba::ba_pyramid::BAPyramid;
 use crate::{float, Float};
-use na::{DVector, Isometry3, Matrix3, Matrix4, Matrix4xX};
+use na::{DVector, Isometry3, Matrix3, Matrix4};
 use std::collections::{HashMap, HashSet};
 
-// pub fn filter_config<C: Camera<Float> + Clone, Feat: Feature>(
-//     ba_config: &mut BAConfig<C,Feat>, 
-//     landmark_cutoff_thresh: Float, 
-//     run_outlier_detection_pipeline: bool, 
-//     refine_rotation_via_rcd:bool,
-//     triangulation: Triangulation) {
+pub fn filter_config<C: Camera<Float> + Clone, Feat: Feature>(
+    ba_config: &mut BAConfig<C,Feat>, 
+    landmark_cutoff_thresh: Float, 
+    run_outlier_detection_pipeline: bool, 
+    refine_rotation_via_rcd:bool,
+    triangulation: Triangulation) {
 
-//     let mut landmark_map = ba_config.landmark_map();
-//     let mut reprojection_error_map = ba_config.reprojection_error_map();
-//     let mut match_map = ba_config.match_map();
-//     let mut match_norm_map = ba_config.match_norm_map();
-//     let mut first_landmark_sighting_map = ba_config.first_landmark_sighting_map();
-//     let root = ba_config.root();
-//     let camera_map = ba_config.camera_map();
-//     let camera_norm_map = ba_config.camera_norm_map();
-//     let pose_map = ba_config.pose_map();
-//     let paths = ba_config.paths();
+    let mut landmark_map = ba_config.landmark_map().clone();
+    let mut reprojection_error_map = ba_config.reprojection_error_map().clone();
+    let mut match_map = ba_config.match_map().clone();
+    let mut match_norm_map = ba_config.match_norm_map().clone();
+    let mut first_landmark_sighting_map = ba_config.first_landmark_sighting_map().clone();
+    let mut pose_map = ba_config.pose_map().clone();
+    let root = ba_config.root();
+    let camera_map = ba_config.camera_map();
+    let camera_norm_map = ba_config.camera_norm_map();
 
-//     let paths_pairs = conversions::compute_path_id_pairs(root, paths);
-//     let path_id_pairs_flat = paths_pairs.iter().flatten().collect::<Vec<_>>();
-//     let camera_ids_root_first = BAConfig::<C,Feat>::get_sorted_camera_keys(root, paths);
+    let paths = ba_config.paths();
 
-//     let mut rejected_camera_ids = reject_landmark_outliers(
-//         &mut landmark_map,
-//         &mut reprojection_error_map,
-//         &mut match_map,
-//         &mut match_norm_map,
-//         &mut first_landmark_sighting_map,
-//         landmark_cutoff_thresh,
-//     );
+    let paths_pairs = conversions::compute_path_id_pairs(root, paths);
+    let path_id_pairs_flat = paths_pairs.iter().flatten().collect::<Vec<_>>();
+    let camera_ids_root_first = BAConfig::<C,Feat>::get_sorted_camera_keys(root, paths);
 
-//     assert!(!rejected_camera_ids.contains(&root));
+    let mut rejected_camera_ids = reject_landmark_outliers(
+        &mut landmark_map,
+        &mut reprojection_error_map,
+        &mut match_map,
+        &mut match_norm_map,
+        &mut first_landmark_sighting_map,
+        landmark_cutoff_thresh,
+    );
 
-//     let (min_reprojection_error_outlier, max_reprojection_error_outlier) =
-//         compute_reprojection_ranges(&reprojection_error_map);
-//     println!("After DUAL Outlier: SFM Config Max Reprojection Error 2): {}, Min Reprojection Error: {}", max_reprojection_error_outlier, min_reprojection_error_outlier);
+    assert!(!rejected_camera_ids.contains(&root));
 
-//     let mut unique_landmark_ids = landmark_map.values().map(|l_vec| l_vec).flatten().map(|l| l.get_id().expect("No id")).collect::<HashSet<_>>();
+    let (min_reprojection_error_outlier, max_reprojection_error_outlier) =
+        compute_reprojection_ranges(&reprojection_error_map);
+    println!("After DUAL Outlier: SFM Config Max Reprojection Error 2): {}, Min Reprojection Error: {}", max_reprojection_error_outlier, min_reprojection_error_outlier);
 
-//     let mut abs_pose_map = conversions::compute_absolute_poses_for_root(root, &paths_pairs, &pose_map);
+    let mut unique_landmark_ids = landmark_map.values().map(|l_vec| l_vec).flatten().map(|l| l.get_id().expect("No id")).collect::<HashSet<_>>();
 
-//     if run_outlier_detection_pipeline {
-//         let tol = 5.0
-//             / camera_map
-//                 .get(&root)
-//                 .expect("Root Cam missing")
-//                 .get_focal_x(); // rougly 5 pixels //TODO expose this
+    let mut abs_pose_map = conversions::compute_absolute_poses_for_root(root, &paths_pairs, &pose_map);
 
-//         filter_outliers_by_dual_pairwise::<C,Feat>(
-//             tol,
-//             &path_id_pairs_flat,
-//             &camera_ids_root_first,
-//             &mut unique_landmark_ids,
-//             &mut abs_pose_map,
-//             &mut match_norm_map,
-//             &mut match_map,
-//             &mut landmark_map,
-//             &mut reprojection_error_map,
-//             &mut first_landmark_sighting_map
-//         );
+    if run_outlier_detection_pipeline {
+        let tol = 5.0
+            / camera_map
+                .get(&root)
+                .expect("Root Cam missing")
+                .get_focal_x(); // rougly 5 pixels //TODO expose this
 
-//         let new_rejected_camera_ids = reject_landmark_outliers(
-//             &mut landmark_map,
-//             &mut reprojection_error_map,
-//             &mut match_map,
-//             &mut match_norm_map,
-//             &mut first_landmark_sighting_map,
-//             landmark_cutoff_thresh,
-//         );
-//         rejected_camera_ids.extend(new_rejected_camera_ids.iter());
-//         assert!(!rejected_camera_ids.contains(&root));
+        filter_outliers_by_dual_pairwise::<C,Feat>(
+            tol,
+            &path_id_pairs_flat,
+            &camera_ids_root_first,
+            &mut unique_landmark_ids,
+            &mut abs_pose_map,
+            &mut match_norm_map,
+            &mut match_map,
+            &mut landmark_map,
+            &mut reprojection_error_map,
+            &mut first_landmark_sighting_map
+        );
 
-//         let (min_reprojection_error_outlier_dual, max_reprojection_error_outlier_dual) =
-//             compute_reprojection_ranges(&reprojection_error_map);
-//         println!("After DUAL Outlier: SFM Config Max Reprojection Error 2): {}, Min Reprojection Error: {}", max_reprojection_error_outlier_dual, min_reprojection_error_outlier_dual);
-//     }
+        let new_rejected_camera_ids = reject_landmark_outliers(
+            &mut landmark_map,
+            &mut reprojection_error_map,
+            &mut match_map,
+            &mut match_norm_map,
+            &mut first_landmark_sighting_map,
+            landmark_cutoff_thresh,
+        );
+        rejected_camera_ids.extend(new_rejected_camera_ids.iter());
+        assert!(!rejected_camera_ids.contains(&root));
 
-//     if refine_rotation_via_rcd {
-//         let new_pose_map = refine_rotation_by_rcd(root, paths, &pose_map);
-//         let (mut new_landmark_map, mut new_reprojection_error_map, mut first_landmark_sighting_map) =
-//             compute_landmarks_and_reprojection_maps(
-//                 root,
-//                 paths,
-//                 &new_pose_map,
-//                 &match_norm_map,
-//                 camera_norm_map,
-//                 triangulation,
-//             );
-//         let keys = landmark_map.keys().map(|k| *k).collect::<Vec<_>>();
-//         for key in keys {
-//             let new_reprojection_errors = new_reprojection_error_map.get(&key).unwrap();
-//             let current_reprojection_errors = reprojection_error_map.get_mut(&key).unwrap();
+        let (min_reprojection_error_outlier_dual, max_reprojection_error_outlier_dual) =
+            compute_reprojection_ranges(&reprojection_error_map);
+        println!("After DUAL Outlier: SFM Config Max Reprojection Error 2): {}, Min Reprojection Error: {}", max_reprojection_error_outlier_dual, min_reprojection_error_outlier_dual);
+    }
 
-//             if new_reprojection_errors.mean() < current_reprojection_errors.mean() {
-//                 landmark_map.insert(key, new_landmark_map.remove(&key).unwrap());
-//                 reprojection_error_map
-//                     .insert(key, new_reprojection_error_map.remove(&key).unwrap());
-//                 pose_map.insert(key, new_pose_map.get(&key).unwrap().clone());
-//             }
-//         }
-//         if run_outlier_detection_pipeline {
-//             let new_rejected_camera_ids = reject_landmark_outliers(
-//                 &mut landmark_map,
-//                 &mut reprojection_error_map,
-//                 &mut match_map,
-//                 &mut match_norm_map,
-//                 &mut first_landmark_sighting_map,
-//                 landmark_cutoff_thresh,
-//             );
-//             rejected_camera_ids.extend(new_rejected_camera_ids.iter());
-//             assert!(!rejected_camera_ids.contains(&root));
+    if refine_rotation_via_rcd {
+        let new_pose_map = refine_rotation_by_rcd(root, paths, &pose_map);
+        let (mut new_landmark_map, mut new_reprojection_error_map, mut first_landmark_sighting_map) =
+            compute_landmarks_and_reprojection_maps(
+                root,
+                paths,
+                &new_pose_map,
+                &match_norm_map,
+                camera_norm_map,
+                triangulation,
+            );
+        let keys = landmark_map.keys().map(|k| *k).collect::<Vec<_>>();
+        for key in keys {
+            let new_reprojection_errors = new_reprojection_error_map.get(&key).unwrap();
+            let current_reprojection_errors = reprojection_error_map.get_mut(&key).unwrap();
 
-//         }
-//         let (min_reprojection_error_refined, max_reprojection_error_refined) =
-//             compute_reprojection_ranges(&reprojection_error_map);
-//         println!("After Rotation: SFM Config Max Reprojection Error 2): {}, Min Reprojection Error: {}", max_reprojection_error_refined, min_reprojection_error_refined);
-//     }
+            if new_reprojection_errors.mean() < current_reprojection_errors.mean() {
+                landmark_map.insert(key, new_landmark_map.remove(&key).unwrap());
+                reprojection_error_map
+                    .insert(key, new_reprojection_error_map.remove(&key).unwrap());
+                pose_map.insert(key, new_pose_map.get(&key).unwrap().clone());
+            }
+        }
+        if run_outlier_detection_pipeline {
+            let new_rejected_camera_ids = reject_landmark_outliers(
+                &mut landmark_map,
+                &mut reprojection_error_map,
+                &mut match_map,
+                &mut match_norm_map,
+                &mut first_landmark_sighting_map,
+                landmark_cutoff_thresh,
+            );
+            rejected_camera_ids.extend(new_rejected_camera_ids.iter());
+            assert!(!rejected_camera_ids.contains(&root));
 
-//     for (k,v) in match_map.iter(){
-//         println!("Final matches for Cam {:?} : {}",k,v.len());
-//     }
+        }
+        let (min_reprojection_error_refined, max_reprojection_error_refined) =
+            compute_reprojection_ranges(&reprojection_error_map);
+        println!("After Rotation: SFM Config Max Reprojection Error 2): {}, Min Reprojection Error: {}", max_reprojection_error_refined, min_reprojection_error_refined);
+    }
+
+    for (k,v) in match_map.iter(){
+        println!("Final matches for Cam {:?} : {}",k,v.len());
+    }
 
 
-//     assert!(rejected_camera_ids.is_empty());
+    assert!(rejected_camera_ids.is_empty());
 
-// }
+}
 
 pub fn compute_reprojection_ranges(
     reprojection_map: &HashMap<(usize, usize), DVector<Float>>,
