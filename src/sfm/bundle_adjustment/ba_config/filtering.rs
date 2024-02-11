@@ -41,7 +41,7 @@ pub fn filter_config<C: Camera<Float> + Clone, Feat: Feature>(
 
     let paths_pairs = conversions::compute_path_id_pairs(root, paths);
     let path_id_pairs_flat = paths_pairs.iter().flatten().collect::<Vec<_>>();
-    let camera_ids_root_first = BAConfig::<C,Feat>::get_sorted_camera_keys(root, paths);
+    let camera_ids_root_first = conversions::get_sorted_camera_keys(root, paths);
 
     let mut rejected_camera_ids = reject_landmark_outliers(
         &mut landmark_map,
@@ -142,6 +142,13 @@ pub fn filter_config<C: Camera<Float> + Clone, Feat: Feature>(
     for (k,v) in match_map.iter(){
         println!("Final matches for Cam {:?} : {}",k,v.len());
     }
+
+    // for id in &rejected_camera_ids {
+    //     println!("Camera id: {} is rejected from paths", id);
+    // }
+
+    //@Note This is not enough since a potential transitive pose is not the pose map, etc..
+    //let filtered_paths = paths.into_iter().map(|path| path.clone().into_iter().filter(|x| !rejected_camera_ids.contains(&x)).collect::<Vec<usize>>()).collect();
 
 
     assert!(rejected_camera_ids.is_empty());

@@ -122,3 +122,14 @@ fn generate_landmark_matrix(landmarks: &Vec<EuclideanLandmark<Float>>) -> Matrix
     }
     mat
 }
+
+pub fn get_sorted_camera_keys(root_id: usize, paths: &Vec<Vec<usize>>) -> Vec<usize> {
+    let ids_flat = paths.clone().into_iter().flatten().collect::<Vec<usize>>();
+    let number_of_keys = ids_flat.len() + 1;
+    let mut keys_sorted = Vec::<usize>::with_capacity(number_of_keys);
+    // root has to first by design
+    keys_sorted.push(root_id);
+    keys_sorted.extend(ids_flat);
+    keys_sorted.dedup();
+    keys_sorted
+}

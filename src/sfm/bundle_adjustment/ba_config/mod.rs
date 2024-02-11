@@ -5,29 +5,28 @@ use crate::image::features::{
     Feature
 };
 use crate::sensors::camera::Camera;
-use crate::sfm::bundle_adjustment::ba_config::filtering::{compute_reprojection_ranges, refine_rotation_by_rcd, compute_landmarks_and_reprojection_maps, filter_outliers_by_dual_pairwise};
+use crate::sfm::bundle_adjustment::ba_config::filtering::{compute_reprojection_ranges, compute_landmarks_and_reprojection_maps};
 use crate::sfm::landmark::{Landmark, euclidean_landmark::EuclideanLandmark};
 use crate::sfm::state::State;
 use crate::sfm::bundle_adjustment::ba_config::outlier_rejection::{
     calcualte_disparities, calculate_reprojection_errors,
-    compute_continuous_landmark_ids_from_unique_landmarks, filter_by_rejected_landmark_ids,
-    reject_landmark_outliers, reject_matches_via_disparity,
+    filter_by_rejected_landmark_ids,
     dual::outlier_rejection_dual
 };
 use crate::sfm::{
     epipolar::tensor,
     quest,
-    triangulation::{triangulate_matches, Triangulation},
+    triangulation::Triangulation,
     pnp::pnp_config::PnPConfig
 };
 use crate::image::pyramid::ba::ba_pyramid::BAPyramid;
-use crate::{float, Float};
+use crate::Float;
 use na::{DVector, Isometry3, Matrix3, Matrix4, Matrix4xX};
 use std::collections::{HashMap, HashSet};
 
 pub mod conversions;
+pub mod filtering;
 mod outlier_rejection;
-mod filtering;
 
 /**
  * We assume that the indices between paths and matches are consistent
@@ -61,9 +60,6 @@ impl<C: Camera<Float> + Clone, Feat: Feature>
         triangulation: Triangulation,
         perc_tresh: Float,
         epipolar_thresh: Float,
-        landmark_cutoff_thresh: Float,
-        disparity_cutoff_thresh: Float,
-        refine_rotation_via_rcd: bool,
         run_outlier_detection_pipeline: bool,
         image_width: usize,
         image_height: usize
@@ -123,7 +119,7 @@ impl<C: Camera<Float> + Clone, Feat: Feature>
             ),
         };
  
-        let (mut landmark_map, mut reprojection_error_map, mut first_landmark_sighting_map) =
+        let (landmark_map, reprojection_error_map, first_landmark_sighting_map) =
             compute_landmarks_and_reprojection_maps(
                 root,
                 &paths,
@@ -140,119 +136,7 @@ impl<C: Camera<Float> + Clone, Feat: Feature>
             max_reprojection_error_initial, min_reprojection_error_initial
         );
 
-        //Filtering + Refinement - Move this to a post processing stage
-
-        let path_id_pairs_flat = paths_pairs.iter().flatten().collect::<Vec<_>>();
-        let camera_ids_root_first = Self::get_sorted_camera_keys(root, paths);
-
-        let mut unique_landmark_ids = landmark_map.values().map(|l_vec| l_vec).flatten().map(|l| l.get_id().expect("No id")).collect::<HashSet<_>>();
-
-        let mut abs_pose_map = conversions::compute_absolute_poses_for_root(root, &paths_pairs, &pose_map);
-
-        let mut rejected_camera_ids = reject_landmark_outliers(
-            &mut landmark_map,
-            &mut reprojection_error_map,
-            &mut match_map,
-            &mut match_norm_map,
-            &mut first_landmark_sighting_map,
-            landmark_cutoff_thresh,
-        );
-
-        assert!(!rejected_camera_ids.contains(&root));
-
-        let (min_reprojection_error_outlier, max_reprojection_error_outlier) =
-            compute_reprojection_ranges(&reprojection_error_map);
-        println!("After DUAL Outlier: SFM Config Max Reprojection Error 2): {}, Min Reprojection Error: {}", max_reprojection_error_outlier, min_reprojection_error_outlier);
-
-        if run_outlier_detection_pipeline {
-            let tol = 5.0
-                / camera_map
-                    .get(&root)
-                    .expect("Root Cam missing")
-                    .get_focal_x(); // rougly 5 pixels //TODO expose this
-
-            filter_outliers_by_dual_pairwise::<C,Feat>(
-                tol,
-                &path_id_pairs_flat,
-                &camera_ids_root_first,
-                &mut unique_landmark_ids,
-                &mut abs_pose_map,
-                &mut match_norm_map,
-                &mut match_map,
-                &mut landmark_map,
-                &mut reprojection_error_map,
-                &mut first_landmark_sighting_map
-            );
-            let new_rejected_camera_ids = reject_landmark_outliers(
-                &mut landmark_map,
-                &mut reprojection_error_map,
-                &mut match_map,
-                &mut match_norm_map,
-                &mut first_landmark_sighting_map,
-                landmark_cutoff_thresh,
-            );
-            rejected_camera_ids.extend(new_rejected_camera_ids.iter());
-            assert!(!rejected_camera_ids.contains(&root));
-
-            let (min_reprojection_error_outlier_dual, max_reprojection_error_outlier_dual) =
-                compute_reprojection_ranges(&reprojection_error_map);
-            println!("After DUAL Outlier: SFM Config Max Reprojection Error 2): {}, Min Reprojection Error: {}", max_reprojection_error_outlier_dual, min_reprojection_error_outlier_dual);
-        }
-
-        if refine_rotation_via_rcd {
-            let new_pose_map = refine_rotation_by_rcd(root, &paths, &pose_map);
-            let (mut new_landmark_map, mut new_reprojection_error_map, mut first_landmark_sighting_map) =
-                compute_landmarks_and_reprojection_maps(
-                    root,
-                    &paths,
-                    &new_pose_map,
-                    &match_norm_map,
-                    &camera_norm_map,
-                    triangulation,
-                );
-            let keys = landmark_map.keys().map(|k| *k).collect::<Vec<_>>();
-            for key in keys {
-                let new_reprojection_errors = new_reprojection_error_map.get(&key).unwrap();
-                let current_reprojection_errors = reprojection_error_map.get_mut(&key).unwrap();
-
-                if new_reprojection_errors.mean() < current_reprojection_errors.mean() {
-                    landmark_map.insert(key, new_landmark_map.remove(&key).unwrap());
-                    reprojection_error_map
-                        .insert(key, new_reprojection_error_map.remove(&key).unwrap());
-                    pose_map.insert(key, new_pose_map.get(&key).unwrap().clone());
-                }
-            }
-            if run_outlier_detection_pipeline {
-                let new_rejected_camera_ids = reject_landmark_outliers(
-                    &mut landmark_map,
-                    &mut reprojection_error_map,
-                    &mut match_map,
-                    &mut match_norm_map,
-                    &mut first_landmark_sighting_map,
-                    landmark_cutoff_thresh,
-                );
-                rejected_camera_ids.extend(new_rejected_camera_ids.iter());
-                assert!(!rejected_camera_ids.contains(&root));
-
-            }
-            let (min_reprojection_error_refined, max_reprojection_error_refined) =
-                compute_reprojection_ranges(&reprojection_error_map);
-            println!("After Rotation: SFM Config Max Reprojection Error 2): {}, Min Reprojection Error: {}", max_reprojection_error_refined, min_reprojection_error_refined);
-        }
-
-        for (k,v) in match_map.iter(){
-            println!("Final matches for Cam {:?} : {}",k,v.len());
-        }
-
-
-        assert!(rejected_camera_ids.is_empty());
-        // for id in &rejected_camera_ids {
-        //     println!("Camera id: {} is rejected from paths", id);
-        // }
-
-        //@Note This is not enough since a potential transitive pose is not the pose map, etc..
-        //let filtered_paths = paths.into_iter().map(|path| path.clone().into_iter().filter(|x| !rejected_camera_ids.contains(&x)).collect::<Vec<usize>>()).collect();
-
+        let abs_pose_map = conversions::compute_absolute_poses_for_root(root, &paths_pairs, &pose_map);
 
         BAConfig {
             root,
@@ -559,17 +443,6 @@ impl<C: Camera<Float> + Clone, Feat: Feature>
             }
         }
         disparity_map
-    }
-
-    fn get_sorted_camera_keys(root_id: usize, paths: &Vec<Vec<usize>>) -> Vec<usize> {
-        let ids_flat = paths.clone().into_iter().flatten().collect::<Vec<usize>>();
-        let number_of_keys = ids_flat.len() + 1;
-        let mut keys_sorted = Vec::<usize>::with_capacity(number_of_keys);
-        // root has to first by design
-        keys_sorted.push(root_id);
-        keys_sorted.extend(ids_flat);
-        keys_sorted.dedup();
-        keys_sorted
     }
 
     //TODO: merges in tracks originating at the root

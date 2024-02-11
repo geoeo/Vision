@@ -9,6 +9,7 @@ use vision::sfm::{
     bundle_adjustment::{run_ba, ba_config::{BAConfig,conversions::compute_path_id_pairs}}, 
     epipolar::tensor::BifocalType,
     runtime_parameters::RuntimeParameters,
+    bundle_adjustment::ba_config::filtering::filter_config,
     pnp::run_pnp
 };
 use vision::sensors::camera::perspective::Perspective;
@@ -119,7 +120,8 @@ fn main() -> Result<()> {
 
     //TODO: Add GT Landmarks
     let mut sfm_config_fundamental = BAConfig::new(root_id, &paths, pose_map_gt_option , camera_map, &match_map, 
-        BifocalType::FUNDAMENTAL, Triangulation::STEREO, 1.0, 3e0, 5e2, 1.0, true, false, image_width, image_height); 
+        BifocalType::FUNDAMENTAL, Triangulation::STEREO, 1.0, 3e0, false, image_width, image_height); 
+    filter_config(&mut sfm_config_fundamental, 5e2, false, true, Triangulation::STEREO);
     
     let initial_z = sfm_config_fundamental.pose_map().get(&camera_id_pairs[0]).unwrap().translation.z;
     for (key, pose) in sfm_config_fundamental.pose_map().iter() {
