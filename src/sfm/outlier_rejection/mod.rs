@@ -62,10 +62,10 @@ pub fn reject_landmark_outliers<Feat: Feature>(
     match_map: &mut HashMap<(usize, usize), Vec<Match<Feat>>>,
     match_norm_map: &mut HashMap<(usize, usize), Vec<Match<Feat>>>,
     first_landmark_sighting_map: &mut HashMap<usize, usize>,
-    landmark_cutoff: Float) -> HashSet<(usize,usize)> {
+    landmark_cutoff: Float) -> HashSet<usize> {
         let keys = match_norm_map.keys().map(|key| *key).collect::<Vec<_>>();
         let mut rejected_landmark_ids = HashSet::<usize>::with_capacity(1000);
-        let mut rejected_camera_keys = HashSet::<(usize,usize)>::with_capacity(1000);
+        let mut rejected_camera_ids = HashSet::<usize>::with_capacity(1000);
 
         for key in &keys {
             let reprojection_erros = reprojection_error_map.get(key).unwrap();
@@ -98,7 +98,7 @@ pub fn reject_landmark_outliers<Feat: Feature>(
                     reprojection_error_map.insert(*key,filtered_reprojection_errors);
                     landmark_map.insert(*key,filtered_landmarks);
                 },
-                (_, _, _) => {rejected_camera_keys.insert(*key);}
+                (_, _, _) => {rejected_camera_ids.insert(key.1);}
             }
         }
 
@@ -108,7 +108,7 @@ pub fn reject_landmark_outliers<Feat: Feature>(
 
         assert!(!&first_landmark_sighting_map.is_empty());
 
-        rejected_camera_keys
+        rejected_camera_ids
 
 }
 

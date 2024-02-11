@@ -2,7 +2,7 @@ extern crate nalgebra as na;
 
 use na::Isometry3;
 use std::collections::HashMap;
-use crate::image::features::{Feature, compute_linear_normalization, solver_feature::SolverFeature};
+use crate::image::features::{Feature, compute_linear_normalization};
 use crate::sensors::camera::Camera;
 use crate::Float;
 use crate::sfm::landmark::euclidean_landmark::EuclideanLandmark;
@@ -17,7 +17,7 @@ pub struct PnPConfig<C, Feat: Feature> {
     camera_pose_option: Option<Isometry3<Float>>
 }
 
-impl<C: Camera<Float> + Clone, Feat: Feature + SolverFeature> PnPConfig<C,Feat> {
+impl<C: Camera<Float> + Clone, Feat: Feature> PnPConfig<C,Feat> {
     pub fn new(
         camera: &C,
         //Indexed by landmark id
