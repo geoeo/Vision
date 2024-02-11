@@ -8,15 +8,15 @@ use crate::numerics::pose::{from_matrix, se3};
 use crate::sensors::camera::Camera;
 use crate::sfm::landmark::{Landmark, euclidean_landmark::EuclideanLandmark};
 use crate::sfm::state::State;
-use crate::sfm::outlier_rejection::{
+use crate::sfm::bundle_adjustment::ba_config::outlier_rejection::{
     calcualte_disparities, calculate_reprojection_errors,
     compute_continuous_landmark_ids_from_unique_landmarks, filter_by_rejected_landmark_ids,
     reject_landmark_outliers, reject_matches_via_disparity,
+    dual::outlier_rejection_dual
 };
 use crate::sfm::{
     epipolar::tensor,
     quest,
-    outlier_rejection::dual::outlier_rejection_dual,
     rotation_avg::optimize_rotations_with_rcd,
     triangulation::{triangulate_matches, Triangulation},
     pnp::pnp_config::PnPConfig

@@ -4,9 +4,8 @@ use na::{DVector,Matrix3x4,Matrix4xX};
 use crate::image::features::{matches::Match,Feature};
 use crate::sensors::camera::Camera;
 use crate::{float,Float};
+use crate::sfm::landmark::euclidean_landmark::EuclideanLandmark;
 use std::collections::{HashMap,HashSet};
-
-use super::landmark::euclidean_landmark::EuclideanLandmark;
 
 pub mod dual;
 

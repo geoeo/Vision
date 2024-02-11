@@ -8,15 +8,15 @@ use crate::sensors::camera::Camera;
 use crate::sfm::bundle_adjustment::ba_config::filtering::{compute_reprojection_ranges, refine_rotation_by_rcd, compute_landmarks_and_reprojection_maps, filter_outliers_by_dual_pairwise};
 use crate::sfm::landmark::{Landmark, euclidean_landmark::EuclideanLandmark};
 use crate::sfm::state::State;
-use crate::sfm::outlier_rejection::{
+use crate::sfm::bundle_adjustment::ba_config::outlier_rejection::{
     calcualte_disparities, calculate_reprojection_errors,
     compute_continuous_landmark_ids_from_unique_landmarks, filter_by_rejected_landmark_ids,
     reject_landmark_outliers, reject_matches_via_disparity,
+    dual::outlier_rejection_dual
 };
 use crate::sfm::{
     epipolar::tensor,
     quest,
-    outlier_rejection::dual::outlier_rejection_dual,
     triangulation::{triangulate_matches, Triangulation},
     pnp::pnp_config::PnPConfig
 };
@@ -26,6 +26,7 @@ use na::{DVector, Isometry3, Matrix3, Matrix4, Matrix4xX};
 use std::collections::{HashMap, HashSet};
 
 pub mod conversions;
+mod outlier_rejection;
 mod filtering;
 
 /**
