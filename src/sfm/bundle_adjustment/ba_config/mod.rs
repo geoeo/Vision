@@ -96,7 +96,7 @@ impl<C: Camera<Float> + Clone, Feat: Feature>
         let (camera_norm_map, mut match_norm_map) =
             Self::normalize_features_and_cameras(&camera_map, &match_map);
 
-        let mut pose_map = match pose_map_gt.is_some() {
+        let pose_map = match pose_map_gt.is_some() {
             true => {
                 let map = pose_map_gt.unwrap();
                 Self::filter_matches_from_pose(
@@ -132,7 +132,7 @@ impl<C: Camera<Float> + Clone, Feat: Feature>
         let (min_reprojection_error_initial, max_reprojection_error_initial) =
             compute_reprojection_ranges(&reprojection_error_map);
         println!(
-            "SFM Config Max Reprojection Error 1): {}, Min Reprojection Error: {}",
+            "BA Config: Max Reprojection Error : {}, Min Reprojection Error: {}",
             max_reprojection_error_initial, min_reprojection_error_initial
         );
 

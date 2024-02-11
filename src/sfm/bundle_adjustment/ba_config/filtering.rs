@@ -56,7 +56,7 @@ pub fn filter_config<C: Camera<Float> + Clone, Feat: Feature>(
 
     let (min_reprojection_error_outlier, max_reprojection_error_outlier) =
         compute_reprojection_ranges(&reprojection_error_map);
-    println!("After DUAL Outlier: SFM Config Max Reprojection Error 2): {}, Min Reprojection Error: {}", max_reprojection_error_outlier, min_reprojection_error_outlier);
+    println!("BA Config - Filtering: Max Reprojection Error 2): {}, Min Reprojection Error: {}", max_reprojection_error_outlier, min_reprojection_error_outlier);
 
     let mut unique_landmark_ids = landmark_map.values().map(|l_vec| l_vec).flatten().map(|l| l.get_id().expect("No id")).collect::<HashSet<_>>();
 
@@ -136,7 +136,7 @@ pub fn filter_config<C: Camera<Float> + Clone, Feat: Feature>(
         }
         let (min_reprojection_error_refined, max_reprojection_error_refined) =
             compute_reprojection_ranges(&reprojection_error_map);
-        println!("After Rotation: SFM Config Max Reprojection Error 2): {}, Min Reprojection Error: {}", max_reprojection_error_refined, min_reprojection_error_refined);
+        println!("After Rotation: BA Config Max Reprojection Error 2): {}, Min Reprojection Error: {}", max_reprojection_error_refined, min_reprojection_error_refined);
     }
 
     for (k,v) in match_map.iter(){
