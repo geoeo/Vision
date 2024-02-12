@@ -20,12 +20,12 @@ use crate::{float, Float};
 use na::{DVector, Isometry3, Matrix3, Matrix4};
 use std::collections::{HashMap, HashSet};
 
-pub fn filter_config<C: Camera<Float> + Clone, Feat: Feature>(
+pub fn filter_config<C: Camera<Float> + Clone, Feat: Feature> (
     ba_config: &mut BAConfig<C,Feat>, 
     landmark_cutoff_thresh: Float, 
     run_outlier_detection_pipeline: bool, 
     refine_rotation_via_rcd:bool,
-    triangulation: Triangulation) {
+    triangulation: Triangulation) -> BAConfig<C,Feat> {
 
     let mut landmark_map = ba_config.landmark_map().clone();
     let mut reprojection_error_map = ba_config.reprojection_error_map().clone();
@@ -34,14 +34,14 @@ pub fn filter_config<C: Camera<Float> + Clone, Feat: Feature>(
     let mut first_landmark_sighting_map = ba_config.first_landmark_sighting_map().clone();
     let mut pose_map = ba_config.pose_map().clone();
     let root = ba_config.root();
-    let camera_map = ba_config.camera_map();
-    let camera_norm_map = ba_config.camera_norm_map();
+    let camera_map = ba_config.camera_map().clone();
+    let camera_norm_map = ba_config.camera_norm_map().clone();
 
-    let paths = ba_config.paths();
+    let paths = ba_config.paths().clone();
 
-    let paths_pairs = conversions::compute_path_id_pairs(root, paths);
+    let paths_pairs = conversions::compute_path_id_pairs(root, &paths);
     let path_id_pairs_flat = paths_pairs.iter().flatten().collect::<Vec<_>>();
-    let camera_ids_root_first = conversions::get_sorted_camera_keys(root, paths);
+    let camera_ids_root_first = conversions::get_sorted_camera_keys(root, &paths);
 
     let mut rejected_camera_ids = reject_landmark_outliers(
         &mut landmark_map,
@@ -99,14 +99,14 @@ pub fn filter_config<C: Camera<Float> + Clone, Feat: Feature>(
     }
 
     if refine_rotation_via_rcd {
-        let new_pose_map = refine_rotation_by_rcd(root, paths, &pose_map);
+        let new_pose_map = refine_rotation_by_rcd(root, &paths, &pose_map);
         let (mut new_landmark_map, mut new_reprojection_error_map, mut first_landmark_sighting_map) =
             compute_landmarks_and_reprojection_maps(
                 root,
-                paths,
+                &paths,
                 &new_pose_map,
                 &match_norm_map,
-                camera_norm_map,
+                &camera_norm_map,
                 triangulation,
             );
         let keys = landmark_map.keys().map(|k| *k).collect::<Vec<_>>();
@@ -152,6 +152,21 @@ pub fn filter_config<C: Camera<Float> + Clone, Feat: Feature>(
 
 
     assert!(rejected_camera_ids.is_empty());
+
+
+    BAConfig {
+        root,
+        paths,
+        camera_map,
+        camera_norm_map,
+        match_map,
+        match_norm_map,
+        pose_map,
+        abs_pose_map,
+        landmark_map,
+        reprojection_error_map,
+        first_landmark_sighting_map
+    }
 
 }
 

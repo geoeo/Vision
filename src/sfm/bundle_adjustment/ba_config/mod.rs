@@ -42,8 +42,6 @@ pub struct BAConfig<C, Feat: Feature> {
     abs_pose_map: HashMap<usize, Isometry3<Float>>, // World is the root id
     landmark_map: HashMap<(usize, usize), Vec<EuclideanLandmark<Float>>>,
     reprojection_error_map: HashMap<(usize, usize), DVector<Float>>,
-    feature_pyramid_map: HashMap<usize, BAPyramid<Feat>>, //TODO: move this to a prior stage 
-    triangulation: Triangulation,
     first_landmark_sighting_map: HashMap<usize,usize> //Map landmark id to camera id of the camera that first observed the landmark - @Might be not needed
 }
 
@@ -149,8 +147,6 @@ impl<C: Camera<Float> + Clone, Feat: Feature>
             pose_map,
             landmark_map,
             reprojection_error_map,
-            feature_pyramid_map,
-            triangulation,
             first_landmark_sighting_map
         }
     }
@@ -167,15 +163,12 @@ impl<C: Camera<Float> + Clone, Feat: Feature>
     pub fn camera_norm_map(&self) -> &HashMap<usize, C> {
         &self.camera_norm_map
     }
-    pub fn triangulation(&self) -> Triangulation {
-        self.triangulation
-    }
     pub fn match_norm_map(&self) -> &HashMap<(usize, usize), Vec<Match<Feat>>> {
         &self.match_norm_map
     }
     pub fn match_map(&self) -> &HashMap<(usize, usize), Vec<Match<Feat>>> {
         &self.match_map
-    } // TODO: Depreciate this and store the normalizing transform instead!
+    } 
     pub fn abs_pose_map(&self) -> &HashMap<usize, Isometry3<Float>> {
         &self.abs_pose_map
     }
@@ -190,9 +183,6 @@ impl<C: Camera<Float> + Clone, Feat: Feature>
     }
     pub fn landmark_map(&self) -> &HashMap<(usize,usize), Vec<EuclideanLandmark<Float>>> {
         &self.landmark_map
-    }
-    pub fn feature_pyramid_map(&self) -> &HashMap<usize, BAPyramid<Feat>> {
-        &self.feature_pyramid_map
     }
     pub fn first_landmark_sighting_map(&self) -> &HashMap<usize,usize>{
         &self.first_landmark_sighting_map
