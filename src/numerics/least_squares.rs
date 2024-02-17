@@ -21,6 +21,7 @@ pub fn calc_weight_vec<F, D, S1>(
         D: Dim,
         S1: StorageMut<F, D>{
     for i in 0..residuals.len() {
+        //Since sparse matricies are not integrated properly we weight by sqrt so that in matrix multiplication we get the correct value
         weights_vec[i] = float::Float::sqrt(weight_function.weight(residuals,i,std));
     }
     
