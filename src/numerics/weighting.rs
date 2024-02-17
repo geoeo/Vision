@@ -62,7 +62,7 @@ impl<F> WeightingFunction<F> for HuberWeight where F : GenericFloat {
         residuals.iter().map(|&e| {
             match float::Float::abs(e) {
                 e if e <= k => half* float::Float::powi(e,2),
-                _ => k*e-half*float::Float::powi(k,2)
+                _ => k*float::Float::abs(e)-half*float::Float::powi(k,2)
             }
         }).sum()
     }
