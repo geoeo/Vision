@@ -153,7 +153,6 @@ pub fn filter_config<C: Camera<Float> + Clone, Feat: Feature> (
 
     assert!(rejected_camera_ids.is_empty());
 
-
     BAConfig {
         root,
         paths,
