@@ -27,7 +27,7 @@ fn main() -> Result<()> {
     let door = "Door_Lund";
     let ahlströmer = "Jonas_Ahlströmer";
     let fountain = "fountain";
-    let vasa = "vasa_statue";
+    let vasa = "vasa_statue"; // transposed features
     let ninjo = "nijo";
     let de_guerre = "de_guerre";
     let fort_channing = "Fort_Channing_gate";
@@ -35,7 +35,7 @@ fn main() -> Result<()> {
     let kronan = "kronan";
     let round_church = "round_church";
 
-    let olsen_dataset_name = fort_channing;
+    let olsen_dataset_name = round_church;
     let olsen_data_path = format!("{}/Olsson/{}/",runtime_conf.dataset_path,olsen_dataset_name);
 
     let feature_skip_count = 1;
@@ -44,6 +44,7 @@ fn main() -> Result<()> {
     let invert_y = !positive_principal_distance;
     let invert_focal_length = false;
     let refince_rotation_via_rcd = true;
+    let mut transpose_features = false;
 
 
     // let paths = vec!(vec!(6));
@@ -58,24 +59,27 @@ fn main() -> Result<()> {
     // let paths = vec!(vec!(6,7));
     // let root_id = 5;
 
-    // let paths = vec!(vec!(6,7,8));
-    // let root_id = 5;
-
-    // let paths = vec!(vec!(13,14,15,16));
-    // let root_id = 12;
+    // de_guerre
+    // let paths = vec!(vec!(5,6));
+    // let root_id = 4;
+    
+    //vasa
+    //transpose_features = true;
+    // let paths = vec!(vec!(5,6,7,8,9,10));
+    // let root_id = 4;
 
     // Fort Channing
-    let paths = vec!(vec!(8,10,11,12,13,15));
-    let root_id = 7;
+    // let paths = vec!(vec!(8,10,11,12,13,15));
+    // let root_id = 7;
 
     // Round Church
-    // let paths = vec!(vec!(7,8,10,11,12,13));
-    // let root_id = 5;
+    let paths = vec!(vec!(7,8,10,11,12,13));
+    let root_id = 5;
 
 
 
     //TODO: implement switch for loftr matches!
-    let (match_map, camera_map, image_width, image_height) = olsen_data.get_data_for_sfm(root_id, &paths, positive_principal_distance, invert_focal_length, invert_y, feature_skip_count, olsen_dataset_name);
+    let (match_map, camera_map, image_width, image_height) = olsen_data.get_data_for_sfm(root_id, &paths, positive_principal_distance, invert_focal_length, invert_y, transpose_features, feature_skip_count, olsen_dataset_name);
     let mut ba_config_fundamental = BAConfig::new(root_id, &paths, None, camera_map, &match_map, 
     BifocalType::FUNDAMENTAL, Triangulation::STEREO, 1.0, 2.0e0, false, image_width, image_height);
     let mut ba_config_fundamental = filter_config(&mut ba_config_fundamental,3e1, false, refince_rotation_via_rcd, Triangulation::STEREO);
@@ -105,8 +109,8 @@ fn main() -> Result<()> {
         print: true,
         show_octave_result: true,
         loss_function: Box::new(loss::TrivialLoss { eps: 1e-16, approximate_gauss_newton_matrices: false }), 
-        intensity_weighting_function:  Box::new(weighting::SquaredWeight {}),
-        //intensity_weighting_function:  Box::new(weighting::HuberWeight {}), 
+        //intensity_weighting_function:  Box::new(weighting::SquaredWeight {}),
+        intensity_weighting_function:  Box::new(weighting::HuberWeight {}), 
         cg_threshold: 1e-6,
         cg_max_it: 2e3 as usize
     };
