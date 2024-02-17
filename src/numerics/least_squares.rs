@@ -39,40 +39,6 @@ pub fn calc_sqrt_weight_matrix<F>(
     CsrMatrix::from(&coo)
 }
 
-/**
- * The values in the weights vector should be the square root of the weight matrix diagonals
- * */
-pub fn weight_residuals_sparse<F, D, S1,S2>(
-    residual_target: &mut Vector<F,D,S1>,
-     weights_vec: &Vector<F,D,S2>) -> () where 
-        F : GenericFloat,
-        D: Dim,
-        S1: StorageMut<F, D>,
-        S2: Storage<F, D> {
-    residual_target.component_mul_assign(weights_vec);
-}
-
-
-//TODO: optimize
-//TODO: performance offender
-pub fn weight_jacobian_sparse<F, R,C,S1,S2>(
-    jacobian: &mut Matrix<F, R, C, S1>,
-    weights_vec: &Vector<F,R,S2>) -> () where
-    F : GenericFloat,
-    R: Dim,
-    C: Dim ,
-    S1: StorageMut<F, R,C> ,
-    S2: Storage<F, R>,
-    DefaultAllocator: Allocator<F, U1, C>
-  {
-    let size = weights_vec.len();
-    for i in 0..size {
-        let row = jacobian.row_mut(i) * weights_vec[i];
-        jacobian.row_mut(i).copy_from(&row);
-    }
-}
-
-
 pub fn scale_to_diagonal<F, const T: usize>(
     mat: &mut Matrix<F, Dyn, Const<T>, VecStorage<F, Dyn, Const<T>>>,
     residual: &DVector<F>,
