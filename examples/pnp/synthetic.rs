@@ -11,7 +11,7 @@ use vision::sfm::{
     pnp::{pnp_config::PnPConfig, run_pnp}
 };
 use vision::sensors::camera::perspective::Perspective;
-use vision::numerics::{loss, weighting, pose::from_matrix_3x4};
+use vision::numerics::{weighting, pose::from_matrix_3x4};
 
 fn main() -> Result<()> {
     color_eyre::install()?;
@@ -91,7 +91,6 @@ fn main() -> Result<()> {
         debug: false,
         print: true,
         show_octave_result: true,
-        loss_function: Box::new(loss::TrivialLoss { eps: 1e-16, approximate_gauss_newton_matrices: false }), 
         intensity_weighting_function:  Box::new(weighting::SquaredWeight {}),
         cg_threshold: 1e-6,
         cg_max_it: 2e3 as usize

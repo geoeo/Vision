@@ -11,7 +11,7 @@ use vision::sfm::{
     pnp::run_pnp,runtime_parameters::RuntimeParameters,
     bundle_adjustment::ba_config::filtering::filter_config
 };
-use vision::numerics::{loss, weighting};
+use vision::numerics::weighting;
 use vision::load_runtime_conf;
 use vision::visualize;
 use vision::sfm::landmark::inverse_depth_landmark::InverseLandmark;
@@ -35,7 +35,7 @@ fn main() -> Result<()> {
     let kronan = "kronan";
     let round_church = "round_church";
 
-    let olsen_dataset_name = round_church;
+    let olsen_dataset_name = fort_channing;
     let olsen_data_path = format!("{}/Olsson/{}/",runtime_conf.dataset_path,olsen_dataset_name);
 
     let feature_skip_count = 1;
@@ -59,23 +59,38 @@ fn main() -> Result<()> {
     // let paths = vec!(vec!(6,7));
     // let root_id = 5;
 
+    // door 
+    // let paths = vec!(vec!(5,6,7,8));
+    // let root_id = 4;
+
     // de_guerre
     // let paths = vec!(vec!(5,6));
     // let root_id = 4;
+
+    // fountain
+    // let paths = vec!(vec!(5,6,7,8));
+    // let root_id = 4;
+
+    // park gate 
+    // let paths = vec!(vec!(5,6,7,8));
+    // let root_id = 4;
+
+    // kronan
+    // let paths = vec!(vec!(5,6,7,8));
+    // let root_id = 4;
     
-    //vasa
-    //transpose_features = true;
+    // vasa
+    // transpose_features = true;
     // let paths = vec!(vec!(5,6,7,8,9,10));
     // let root_id = 4;
 
     // Fort Channing
-    // let paths = vec!(vec!(8,10,11,12,13,15));
-    // let root_id = 7;
+    let paths = vec!(vec!(8,10,11,12,13,15));
+    let root_id = 7;
 
     // Round Church
-    let paths = vec!(vec!(7,8,10,11,12,13));
-    let root_id = 5;
-
+    // let paths = vec!(vec!(7,8,10,11,12,13));
+    // let root_id = 5;
 
 
     //TODO: implement switch for loftr matches!
@@ -108,7 +123,6 @@ fn main() -> Result<()> {
         debug: false,
         print: true,
         show_octave_result: true,
-        loss_function: Box::new(loss::TrivialLoss { eps: 1e-16, approximate_gauss_newton_matrices: false }), 
         //intensity_weighting_function:  Box::new(weighting::SquaredWeight {}),
         intensity_weighting_function:  Box::new(weighting::HuberWeight {}), 
         cg_threshold: 1e-6,
@@ -127,7 +141,6 @@ fn main() -> Result<()> {
         debug: false,
         print: true,
         show_octave_result: true,
-        loss_function: Box::new(loss::TrivialLoss { eps: 1e-16, approximate_gauss_newton_matrices: false }), 
         intensity_weighting_function:  Box::new(weighting::SquaredWeight {}),
         cg_threshold: 1e-6,
         cg_max_it: 2e3 as usize

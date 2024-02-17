@@ -8,7 +8,6 @@ use crate::GenericFloat;
 
 pub mod lie;
 pub mod pose;
-pub mod loss;
 pub mod least_squares;
 pub mod weighting;
 pub mod conjugate_gradient;

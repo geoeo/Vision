@@ -14,7 +14,7 @@ use vision::sfm::{
 };
 use vision::sensors::camera::perspective::Perspective;
 use vision::image::features::{matches::Match,image_feature::ImageFeature};
-use vision::numerics::{loss, weighting};
+use vision::numerics::weighting;
 use na::{Rotation3,Isometry3,Vector3,UnitQuaternion};
 
 fn main() -> Result<()> {
@@ -143,7 +143,6 @@ fn main() -> Result<()> {
         debug: false,
         print: true,
         show_octave_result: true,
-        loss_function: Box::new(loss::TrivialLoss { eps: 1e-16, approximate_gauss_newton_matrices: false }), 
         intensity_weighting_function:  Box::new(weighting::SquaredWeight {}),
         cg_threshold: 1e-6,
         cg_max_it: 2e3 as usize
@@ -161,7 +160,6 @@ fn main() -> Result<()> {
         debug: false,
         print: true,
         show_octave_result: true,
-        loss_function: Box::new(loss::TrivialLoss { eps: 1e-16, approximate_gauss_newton_matrices: false }), 
         intensity_weighting_function:  Box::new(weighting::SquaredWeight {}),
         cg_threshold: 1e-6,
         cg_max_it: 2e3 as usize

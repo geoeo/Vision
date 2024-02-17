@@ -2,7 +2,7 @@ extern crate nalgebra as na;
 extern crate num_traits;
 
 use std::{fmt,boxed::Box,marker::{Send,Sync}};
-use crate::numerics::{loss::LossFunction, weighting::WeightingFunction};
+use crate::numerics::weighting::WeightingFunction;
 use crate::GenericFloat;
 
 
@@ -19,7 +19,6 @@ pub struct RuntimeParameters<F: GenericFloat>{
     pub debug: bool,
     pub show_octave_result: bool,
     pub lm: bool,
-    pub loss_function: Box<dyn LossFunction + Send + Sync>,
     pub intensity_weighting_function: Box<dyn WeightingFunction<F> + Send + Sync>,
     pub cg_threshold: F,
     pub cg_max_it: usize
@@ -29,7 +28,7 @@ impl<F: GenericFloat + fmt::LowerExp> fmt::Display for RuntimeParameters<F> {
 
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
 
-        let mut display = String::from(format!("max_its_{}_w_{}_l_{}",self.max_iterations[0],self.intensity_weighting_function, self.loss_function));
+        let mut display = String::from(format!("max_its_{}_w_{}",self.max_iterations[0],self.intensity_weighting_function));
         match self.lm {
             true => {
                 display.push_str(format!("_lm_max_norm_eps_{:+e}_delta_eps_{:+e}",self.max_norm_eps,self.delta_eps).as_str());
