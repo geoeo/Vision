@@ -9,7 +9,7 @@ use na::{DVector,DMatrix, convert};
 use num_traits::float;
 
 use crate::sensors::camera::Camera;
-use crate::numerics::{max_norm, least_squares::{compute_cost,weight_jacobian_sparse,weight_residuals_sparse, calc_weight_vec, gauss_newton_step}};
+use crate::numerics::{max_norm, least_squares::{compute_cost, calc_sqrt_weight_matrix, gauss_newton_step}};
 use crate::sfm::{landmark::Landmark,state::State};
 use crate::sfm::runtime_parameters::RuntimeParameters; 
 use crate::{Float,GenericFloat};
@@ -52,7 +52,6 @@ impl<F, C : Camera<Float>, L: Landmark<F,LANDMARK_PARAM_SIZE> + Copy + Clone + S
         let mut new_residuals = DVector::<F>::zeros(observed_features.nrows());
         let mut estimated_features = DVector::<F>::zeros(observed_features.nrows());
         let mut new_estimated_features = DVector::<F>::zeros(observed_features.nrows());
-        let mut weights_vec = DVector::<F>::from_element(observed_features.nrows(),F::one());
         
         let mut debug_state_list = match runtime_parameters.debug {
             true => Some(Vec::<State<F,L,LANDMARK_PARAM_SIZE>>::with_capacity(max_iterations)),
@@ -88,14 +87,9 @@ impl<F, C : Camera<Float>, L: Landmark<F,LANDMARK_PARAM_SIZE> + Copy + Clone + S
         let mut std: Option<F> = runtime_parameters.intensity_weighting_function.estimate_standard_deviation(&residuals);
         let mut cost = compute_cost(&residuals,std,&runtime_parameters.intensity_weighting_function);
         if std.is_some() {
-            calc_weight_vec(
-                &residuals,
-                std,
-                &runtime_parameters.intensity_weighting_function,
-                &mut weights_vec,
-            );
-            weight_residuals_sparse(&mut residuals, &weights_vec); 
-            weight_jacobian_sparse(&mut jacobian, &weights_vec);
+            let sqrt_weight_matrix = calc_sqrt_weight_matrix(&residuals,std,&runtime_parameters.intensity_weighting_function);
+            residuals = (&sqrt_weight_matrix)*residuals;
+            jacobian = (&sqrt_weight_matrix)*jacobian;
         }
 
         let mut iteration_count = 0;
@@ -124,14 +118,6 @@ impl<F, C : Camera<Float>, L: Landmark<F,LANDMARK_PARAM_SIZE> + Copy + Clone + S
                     (self.get_estimated_features)(&new_state, camera_map,observed_features, &mut new_estimated_features);
                     (self.compute_residual)(&new_estimated_features, observed_features, &mut new_residuals);
                     std = runtime_parameters.intensity_weighting_function.estimate_standard_deviation(&residuals);
-                    if std.is_some() {
-                        calc_weight_vec(
-                            &new_residuals,
-                            std,
-                            &runtime_parameters.intensity_weighting_function,
-                            &mut weights_vec,
-                        );
-                    }
             
                     let new_cost = compute_cost(&new_residuals,std,&runtime_parameters.intensity_weighting_function);
                     let cost_diff = cost-new_cost;
@@ -163,8 +149,9 @@ impl<F, C : Camera<Float>, L: Landmark<F,LANDMARK_PARAM_SIZE> + Copy + Clone + S
                 jacobian.fill(F::zero());
                 (self.compute_jacobian)(&state,camera_map,&mut jacobian);
                 if std.is_some() {
-                    weight_jacobian_sparse(&mut jacobian, &weights_vec);
-                    weight_residuals_sparse(&mut new_residuals, &weights_vec);
+                    let sqrt_weight_matrix = calc_sqrt_weight_matrix(&residuals,std,&runtime_parameters.intensity_weighting_function);
+                    new_residuals = (&sqrt_weight_matrix)*new_residuals;
+                    jacobian = (&sqrt_weight_matrix)*jacobian;
                 }
                 residuals.copy_from(&new_residuals);
                 

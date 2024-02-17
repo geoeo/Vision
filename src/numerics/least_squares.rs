@@ -24,8 +24,19 @@ pub fn calc_weight_vec<F, D, S1>(
         //Since sparse matricies are not integrated properly we weight by sqrt so that in matrix multiplication we get the correct value
         weights_vec[i] = float::Float::sqrt(weight_function.weight(residuals,i,std));
     }
-    
 
+}
+
+pub fn calc_sqrt_weight_matrix<F>(
+    residuals: &DVector<F>,
+    std: Option<F>,
+    weight_function: &Box<dyn WeightingFunction<F> + Send + Sync>) -> CsrMatrix<F> where 
+        F : GenericFloat {
+    let mut coo = CooMatrix::new(residuals.len(), residuals.len());
+    for i in 0..residuals.len() {
+        coo.push(i,i,float::Float::sqrt(weight_function.weight(residuals,i,std)));
+    }
+    CsrMatrix::from(&coo)
 }
 
 /**
