@@ -49,7 +49,7 @@ impl<F> WeightingFunction<F> for HuberWeight where F : GenericFloat {
     }
 
     fn estimate_standard_deviation(&self, residuals: &DVector<F>) -> Option<F> {
-        Some(convert::<f64,F>(1.345)*estimate_std(residuals))
+        Some(convert::<f64,F>(1.345)*(estimate_std(residuals) + convert::<f64,F>(1e3))) // small delta so we dont return 0
     }
 
     fn name(&self) -> &str {
@@ -69,6 +69,7 @@ impl<F> WeightingFunction<F> for HuberWeight where F : GenericFloat {
 
 }
 
+//Incorrect
 pub struct CauchyWeight<F> where F : GenericFloat {
     pub c: F
 }
@@ -94,6 +95,7 @@ impl<F> WeightingFunction<F> for CauchyWeight<F> where F : GenericFloat {
 
 }
 
+//Incorrect
 pub struct BisquareWeight {
     
 }

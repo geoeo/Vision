@@ -67,18 +67,6 @@ impl<F, C : Camera<Float>, L: Landmark<F,LANDMARK_PARAM_SIZE> + Copy + Clone + S
         (self.compute_residual)(&estimated_features, observed_features, &mut residuals);
         (self.compute_jacobian)(&state,camera_map,&mut jacobian);
 
-        //TODO: weight cam and features independently
-        let mut std: Option<F> = runtime_parameters.intensity_weighting_function.estimate_standard_deviation(&residuals);
-        if std.is_some() {
-            calc_weight_vec(
-                &residuals,
-                std,
-                &runtime_parameters.intensity_weighting_function,
-                &mut weights_vec,
-            );
-            weight_residuals_sparse(&mut residuals, &weights_vec); 
-            weight_jacobian_sparse(&mut jacobian, &weights_vec);
-        }
 
         let mut max_norm_delta = float::Float::max_value();
         let mut delta_thresh = float::Float::min_value();
@@ -94,8 +82,22 @@ impl<F, C : Camera<Float>, L: Landmark<F,LANDMARK_PARAM_SIZE> + Copy + Clone + S
             true => F::one(),
             false => runtime_parameters.step_sizes[0]
         };
-
+        
+        //TODO: weight cam and features independently
+        // Currently the weighting has to be done after cost calc, since the residual is weighted in-place
+        let mut std: Option<F> = runtime_parameters.intensity_weighting_function.estimate_standard_deviation(&residuals);
         let mut cost = compute_cost(&residuals,std,&runtime_parameters.intensity_weighting_function);
+        if std.is_some() {
+            calc_weight_vec(
+                &residuals,
+                std,
+                &runtime_parameters.intensity_weighting_function,
+                &mut weights_vec,
+            );
+            weight_residuals_sparse(&mut residuals, &weights_vec); 
+            weight_jacobian_sparse(&mut jacobian, &weights_vec);
+        }
+
         let mut iteration_count = 0;
         let mut run = true;
         while ((!runtime_parameters.lm && (float::Float::sqrt(cost) > runtime_parameters.eps[0])) || 
@@ -129,7 +131,6 @@ impl<F, C : Camera<Float>, L: Landmark<F,LANDMARK_PARAM_SIZE> + Copy + Clone + S
                             &runtime_parameters.intensity_weighting_function,
                             &mut weights_vec,
                         );
-                        weight_residuals_sparse(&mut new_residuals, &weights_vec);
                     }
             
                     let new_cost = compute_cost(&new_residuals,std,&runtime_parameters.intensity_weighting_function);
@@ -158,14 +159,15 @@ impl<F, C : Camera<Float>, L: Landmark<F,LANDMARK_PARAM_SIZE> + Copy + Clone + S
 
                 delta_thresh = runtime_parameters.delta_eps*(estimated_features.norm() + runtime_parameters.delta_eps);
 
-                residuals.copy_from(&new_residuals);
 
                 jacobian.fill(F::zero());
                 (self.compute_jacobian)(&state,camera_map,&mut jacobian);
                 if std.is_some() {
                     weight_jacobian_sparse(&mut jacobian, &weights_vec);
+                    weight_residuals_sparse(&mut new_residuals, &weights_vec);
                 }
-
+                residuals.copy_from(&new_residuals);
+                
                 let v: F = convert(1.0 / 3.0);
                 mu = Some(mu.unwrap() * float::Float::max(v,F::one() - float::Float::powi(two * gain_ratio - F::one(),3)));
                 nu = two;
