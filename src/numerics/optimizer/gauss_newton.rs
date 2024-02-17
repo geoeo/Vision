@@ -117,7 +117,7 @@ impl<F, C : Camera<Float>, L: Landmark<F,LANDMARK_PARAM_SIZE> + Copy + Clone + S
             
                     (self.get_estimated_features)(&new_state, camera_map,observed_features, &mut new_estimated_features);
                     (self.compute_residual)(&new_estimated_features, observed_features, &mut new_residuals);
-                    std = runtime_parameters.intensity_weighting_function.estimate_standard_deviation(&residuals);
+                    std = runtime_parameters.intensity_weighting_function.estimate_standard_deviation(&new_residuals);
             
                     let new_cost = compute_cost(&new_residuals,std,&runtime_parameters.intensity_weighting_function);
                     let cost_diff = cost-new_cost;
