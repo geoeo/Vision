@@ -23,9 +23,9 @@ macro_rules! define_float {
 define_float!(f64);
 
 //TODO: Check SubsetOf
-pub trait GenericFloat: Scalar + RealField + Copy + num_traits::float::Float + num_traits::NumAssign + num_traits::identities::One + num_traits::identities::Zero + SubsetOf<f64> {}
+pub trait GenericFloat: Scalar + RealField + Copy + num_traits::float::Float + num_traits::NumAssign + num_traits::identities::One + num_traits::identities::Zero + SubsetOf<f64> + std::iter::Sum {}
 
-impl<Float: Scalar + RealField + Copy + num_traits::float::Float + num_traits::NumAssign + num_traits::identities::One + num_traits::identities::Zero + SubsetOf<f64>> GenericFloat for Float {}
+impl<Float: Scalar + RealField + Copy + num_traits::float::Float + num_traits::NumAssign + num_traits::identities::One + num_traits::identities::Zero + SubsetOf<f64> + std::iter::Sum> GenericFloat for Float {}
 
 #[repr(u8)]
 #[derive(Debug,Copy,Clone,PartialEq)]

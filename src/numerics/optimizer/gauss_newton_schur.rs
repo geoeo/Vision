@@ -103,7 +103,7 @@ impl<F, C : Camera<Float>, L: Landmark<F,LANDMARK_PARAM_SIZE> + Send + Sync, con
             false => runtime_parameters.step_sizes[0]
         };
 
-        let mut cost = compute_cost(&residuals,&runtime_parameters.intensity_weighting_function);
+        let mut cost = compute_cost(&residuals,std, &runtime_parameters.intensity_weighting_function);
         let mut iteration_count = 0;
         let mut run = true;
         while ((!runtime_parameters.lm && (float::Float::sqrt(cost) > runtime_parameters.eps[0])) || 
@@ -154,7 +154,7 @@ impl<F, C : Camera<Float>, L: Landmark<F,LANDMARK_PARAM_SIZE> + Send + Sync, con
                     }
             
             
-                    let new_cost = compute_cost(&new_residuals,&runtime_parameters.intensity_weighting_function);
+                    let new_cost = compute_cost(&new_residuals,std, &runtime_parameters.intensity_weighting_function);
                     let cost_diff = cost-new_cost;
                     let gain_ratio = match gain_ratio_denom {
                         v if v != F::zero() => cost_diff/v,

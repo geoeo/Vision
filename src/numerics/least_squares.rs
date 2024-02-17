@@ -75,8 +75,8 @@ pub fn scale_to_diagonal<F, const T: usize>(
 
 }
 
-pub fn compute_cost<F>(residuals: &DVector<F>, weight_function: &Box<dyn WeightingFunction<F> + Send + Sync>) -> F where F : GenericFloat {
-    weight_function.cost(residuals)
+pub fn compute_cost<F>(residuals: &DVector<F>, std: Option<F>, weight_function: &Box<dyn WeightingFunction<F> + Send + Sync>) -> F where F : GenericFloat {
+    weight_function.cost(residuals,std)
 }
 
 pub fn weight_residuals<F, const T: usize>(residual: &mut SVector<F, T>, weights: &SMatrix<F,T,T>) -> () where 

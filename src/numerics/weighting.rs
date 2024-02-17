@@ -11,7 +11,7 @@ use crate::GenericFloat;
 pub trait WeightingFunction<F : GenericFloat > {
     fn weight(&self, residuals: &DVector<F>, index: usize, std: Option<F>) -> F;
     fn estimate_standard_deviation(&self, residuals: &DVector<F>) -> Option<F>;
-    fn cost(&self, residuals: &DVector<F>) -> F;
+    fn cost(&self, residuals: &DVector<F>, std: Option<F>) -> F;
     fn name(&self) -> &str;
 }
 
@@ -41,7 +41,7 @@ impl<F> WeightingFunction<F> for HuberWeight where F : GenericFloat {
 
     fn weight(&self, residuals: &DVector<F>, index: usize,  std: Option<F>) -> F {
         let res_abs = float::Float::abs(residuals[index]);
-        let k = std.expect("k has to have been computed for Huber Weight");
+        let k = convert::<f64,F>(1.345)*std.expect("k has to have been computed for Huber Weight");
         match res_abs {
             v if v <= k => F::one(),
             _ => k/res_abs
@@ -56,8 +56,15 @@ impl<F> WeightingFunction<F> for HuberWeight where F : GenericFloat {
         "HuberWeight"
     }
 
-    fn cost(&self, residuals: &DVector<F>) -> F {
-        float::Float::sqrt((residuals.transpose() * residuals)[0])
+    fn cost(&self, residuals: &DVector<F>, std: Option<F>) -> F {
+        let half = convert::<f64,F>(0.5);
+        let k = convert::<f64,F>(1.345)*std.expect("k has to have been computed for Huber Weight");
+        residuals.iter().map(|&e| {
+            match float::Float::abs(e) {
+                e if e <= k => half* float::Float::powi(e,2),
+                _ => k*e-half*float::Float::powi(k,2)
+            }
+        }).sum()
     }
 
 }
@@ -81,7 +88,7 @@ impl<F> WeightingFunction<F> for CauchyWeight<F> where F : GenericFloat {
         "CauchyWeight"
     }
 
-    fn cost(&self, residuals: &DVector<F>) -> F {
+    fn cost(&self, residuals: &DVector<F>, _ :Option<F>) -> F {
         float::Float::sqrt((residuals.transpose() * residuals)[0])
     }
 
@@ -116,7 +123,7 @@ impl<F> WeightingFunction<F> for BisquareWeight where F : GenericFloat {
         "Bisquare"
     }
 
-    fn cost(&self, residuals: &DVector<F>) -> F {
+    fn cost(&self, residuals: &DVector<F>, _:  Option<F>) -> F {
         float::Float::sqrt((residuals.transpose() * residuals)[0])
     }
 
@@ -138,72 +145,13 @@ impl<F> WeightingFunction<F> for SquaredWeight where F : GenericFloat {
     }
 
     fn name(&self) -> &str {
-        "TrivialWeight"
+        "SquaredWeight"
     }
 
-    fn cost(&self, residuals: &DVector<F>) -> F {
+    fn cost(&self, residuals: &DVector<F>, _: Option<F>) -> F {
         convert::<f64,F>(0.5)*(residuals.transpose() * residuals)[0]
     }
 
 }
-
-// pub struct TDistWeight {
-//     pub t_dist_nu: Float,
-//     pub max_it: usize,
-//     pub eps: Float
-// }
-
-//From Engels Paper -> Check cost
-// impl TDistWeight {
-//     fn estimate_t_dist_variance(&self, residuals: &DVector<Float>, t_dist_nu: Float, max_it: usize, eps: Float) -> Float {
-//         let mut it = 0;
-//         let mut err = crate::float::MAX;
-//         let mut variance = crate::float::MAX; 
-//         let mut n = 0.0;
-    
-//         while it < max_it && err > eps {
-//             let mut acc = 0.0;
-//             for r in residuals {
-//                 if *r == 0.0 {
-//                     continue;
-//                 }
-//                 let r_sqrd = r.powi(2);
-//                 acc += r_sqrd*(t_dist_nu +1.0)/(t_dist_nu + r_sqrd/variance);
-//                 n+=1.0;
-//             }
-    
-//             let var_old = variance;
-//             variance = acc/n;
-//             err = (variance-var_old).abs();
-//             it += 1;
-//         }
-    
-//         variance
-//     }
-
-//     fn compute_t_dist_weight(&self, residual: F, variance: F, t_dist_nu: F) -> F {
-//         (t_dist_nu + 1.0) / (t_dist_nu + residual.powi(2)/variance)
-//     }
-// }
-
-// impl<F> WeightingFunction<F> for TDistWeight where F : float::Float + Scalar + NumAssign + SimdRealField + ComplexField {
-//     fn weight(&self, residuals: &DVector<F>, index: usize,  variance: Option<F>) -> F {
-//         let variance = variance.expect("Variance should have been computed for T-Dist weighting!");
-//         self.compute_t_dist_weight(residuals[index],variance, self.t_dist_nu).sqrt()
-//     }
-
-//     fn estimate_standard_deviation(&self, residuals: &DVector<F>) -> Option<F> {
-//         Some(self.estimate_t_dist_variance(residuals, self.t_dist_nu,self.max_it,self.eps))
-//     }
-
-//     fn name(&self) -> &str {
-//         "T-Dist"
-//     }
-
-//     fn cost(&self, residuals: &DVector<F>) -> F {
-//         ((residuals.transpose() * residuals)[0]).sqrt()
-//     }
-
-// }
 
 

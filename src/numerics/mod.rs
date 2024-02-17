@@ -46,7 +46,10 @@ pub fn quadratic_roots<F>(a: F, b: F, c: F) -> (F,F) where F : GenericFloat {
 }
 
 pub fn estimate_std<F>(data: &DVector<F>) -> F where F : GenericFloat {
-    median_absolute_deviation(data)/convert::<f64,F>(0.67449) 
+    median_absolute_residual(data)/convert::<f64,F>(0.67449) 
+}
+pub fn median_absolute_residual<F>(data: &DVector<F>) -> F where F : GenericFloat {
+    median(data.data.as_vec().iter().map(|e| e.abs()).collect::<Vec<F>>(), true)
 }
 
 pub fn median_absolute_deviation<F>(data: &DVector<F>) -> F where F : GenericFloat {
