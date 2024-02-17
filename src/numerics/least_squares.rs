@@ -6,26 +6,10 @@ use std::ops::AddAssign;
 use std::marker::{Send,Sync};
 use num_traits::float;
 use nalgebra_sparse::{coo::CooMatrix, csr::CsrMatrix};
-use na::{convert, zero, DMatrix, DVector , OVector, Dyn, Matrix, SMatrix, SVector,Vector,Dim,storage::{Storage,StorageMut},base::{default_allocator::DefaultAllocator, allocator::Allocator},
-    VecStorage, Const, DimMin, U1
+use na::{convert, zero, DMatrix, DVector , OVector, Dyn, Matrix, SMatrix, SVector,Vector,Dim,storage::{Storage,StorageMut},base::{default_allocator::DefaultAllocator, allocator::Allocator},Const, DimMin, U1
 };
 use crate::numerics::{weighting::WeightingFunction, conjugate_gradient};
 use crate::GenericFloat;
-
-pub fn calc_weight_vec<F, D, S1>(
-    residuals: &DVector<F>,
-    std: Option<F>,
-    weight_function: &Box<dyn WeightingFunction<F> + Send + Sync>,
-    weights_vec: &mut Vector<F,D,S1>) -> () where 
-        F : GenericFloat,
-        D: Dim,
-        S1: StorageMut<F, D>{
-    for i in 0..residuals.len() {
-        //Since sparse matricies are not integrated properly we weight by sqrt so that in matrix multiplication we get the correct value
-        weights_vec[i] = float::Float::sqrt(weight_function.weight(residuals,i,std));
-    }
-
-}
 
 pub fn calc_sqrt_weight_matrix<F>(
     residuals: &DVector<F>,
@@ -37,20 +21,6 @@ pub fn calc_sqrt_weight_matrix<F>(
         coo.push(i,i,float::Float::sqrt(weight_function.weight(residuals,i,std)));
     }
     CsrMatrix::from(&coo)
-}
-
-pub fn scale_to_diagonal<F, const T: usize>(
-    mat: &mut Matrix<F, Dyn, Const<T>, VecStorage<F, Dyn, Const<T>>>,
-    residual: &DVector<F>,
-    first_deriv: F,
-    second_deriv: F,
-) -> () where F : GenericFloat {
-    for j in 0..T {
-        for i in 0..residual.nrows() {
-            mat[(i, j)] *= first_deriv + convert::<f64,F>(2.0) * second_deriv * float::Float::powi(residual[i], 2);
-        }
-    }
-
 }
 
 pub fn compute_cost<F>(residuals: &DVector<F>, std: Option<F>, weight_function: &Box<dyn WeightingFunction<F> + Send + Sync>) -> F where F : GenericFloat {
