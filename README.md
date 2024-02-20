@@ -1,12 +1,6 @@
 # Papers Implemented
 Fast http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.60.3991&rep=rep1&type=pdf
 
-Orb http://www.gwylab.com/download/ORB_2012.pdf
-
-Dense VO https://ieeexplore.ieee.org/document/6631104
-
-Imu Preintgration http://rpg.ifi.uzh.ch/docs/TRO16_forster.pdf
-
 Sparse Bundle Adjustment http://users.ics.forth.gr/~lourakis/sba/sba-toms.pdf
 
 Inverse Depth Parameterization https://www.doc.ic.ac.uk/~ajd/Publications/civera_etal_tro2008.pdf
