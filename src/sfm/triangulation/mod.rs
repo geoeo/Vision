@@ -238,9 +238,7 @@ pub fn linear_triangulation_lost(image_points_and_projections: &Vec<(&Matrix2xX<
         let mut A = MatrixXx3::<Float>::zeros(2*n_cams);
         let mut b = DVector::<Float>::zeros(2*n_cams);
         for j in 0..n_cams {
-            //let companion_idx = pick_companion_camera(i,&camera_indices,&mut sampling); // This is buggy
-            let companion_idx = 1-j;
-            assert_eq!(1-j,companion_idx); // Only valid for 2 views
+            let companion_idx = pick_companion_camera(j,&camera_indices,&mut sampling);
             // The transform transforms a point from coordiante system i to reference cam, which is 0 in our case
             let (points, inverse_intrinsics, transform_zero_i) = image_points_and_projections[j];
             let (points_companion, inverse_intrinsics_companion, transform_zero_i_companion) = image_points_and_projections[companion_idx];
