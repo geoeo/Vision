@@ -261,20 +261,19 @@ pub fn linear_triangulation_lost(image_points_and_projections: &Vec<(&Matrix2xX<
 
         }   
 
+        let svd = A.svd(true, true);
+        let landmark = svd.solve(&b,1e-6).expect("LOST LU Failed");
 
-            let svd = A.svd(true, true);
-            let landmark = svd.solve(&b,1e-6).expect("LOST LU Failed");
+        //TODO: check if this is still neccessary!
+        let sign = match landmark[2].is_sign_negative() {
+            true => -1.0,
+            false => 1.0
+        };
 
-            //TODO: check if this is still neccessary!
-            let sign = match landmark[2].is_sign_negative() {
-                true => -1.0,
-                false => 1.0
-            };
-
-            triangulated_points[(0,i)] = landmark[0]*sign;
-            triangulated_points[(1,i)] = landmark[1]*sign;
-            triangulated_points[(2,i)] = landmark[2]*sign;
-            triangulated_points[(3,i)] = 1.0;
+        triangulated_points[(0,i)] = landmark[0]*sign;
+        triangulated_points[(1,i)] = landmark[1]*sign;
+        triangulated_points[(2,i)] = landmark[2]*sign;
+        triangulated_points[(3,i)] = 1.0;
     }
 
     triangulated_points
