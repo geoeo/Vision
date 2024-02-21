@@ -1,9 +1,10 @@
 extern crate nalgebra as na;
 
+use models_cv::landmark;
+use nalgebra_lapack;
 use std::collections::{HashMap,HashSet};
 use rand::{rngs::SmallRng, SeedableRng, Rng};
-use na::{Matrix4,Matrix3,Vector3, SMatrix,DVector, SVector,MatrixXx3,Matrix4xX,MatrixXx4,Matrix2xX,OMatrix,RowOVector,U3,U4,
-    linalg::QR};
+use na::{Matrix4,Matrix3,Vector3, SMatrix,DVector, SVector,MatrixXx3,Matrix4xX,MatrixXx4,Matrix2xX,OMatrix,RowOVector,U3,U4, linalg::FullPivLU};
 use crate::image::features::{matches::Match,Feature};
 use crate::sensors::camera::Camera;
 use crate::Float;
@@ -38,6 +39,8 @@ pub fn triangulate_matches<Feat: Feature, C: Camera<Float>>(path_pair: (usize, u
 
     let c1_intrinsics = cam_1.get_projection();
     let c2_intrinsics = cam_2.get_projection();
+    let c1_inverse_intrinsics = cam_1.get_inverse_projection();
+    let c2_inverse_intrinsics = cam_2.get_inverse_projection();
     let transform_c1 = Matrix4::<Float>::identity().fixed_view::<3,4>(0,0).into_owned();
     let transform_c2 = pose.fixed_view::<3,4>(0,0).into_owned();
     let projection_1 = c1_intrinsics*transform_c1;
@@ -45,12 +48,13 @@ pub fn triangulate_matches<Feat: Feature, C: Camera<Float>>(path_pair: (usize, u
 
     let f0 = 1.0;
     let f0_prime = 1.0;
+    let pixel_error = 5.0; //TODO: configure this
 
     //TODO: Try to streamline > 2 views for applicable methods
     let landmarks = match triangulation_mode {
         Triangulation::LINEAR => linear_triangulation_svd(&vec!((&image_points_s,&projection_1),(&image_points_f,&projection_2)), true),
         Triangulation::STEREO => stereo_triangulation((&image_points_s,&projection_1),(&image_points_f,&projection_2),f0,f0_prime, true).expect("get_euclidean_landmark_state: Stereo Triangulation Failed"),
-        Triangulation::LOST => panic!("LOST not yet implemented") // Needs inverse intrinsics!
+        Triangulation::LOST => linear_triangulation_lost(&vec!((&image_points_s,&c1_inverse_intrinsics,&Matrix4::<Float>::identity()),(&image_points_f,&c2_inverse_intrinsics,pose)), pixel_error)
     };
 
     landmarks
@@ -221,6 +225,7 @@ pub fn stereo_triangulation(image_points_and_projection: (&Matrix2xX<Float>, &OM
  * LOST Triangulation 
  * See https://gtsam.org/2023/02/04/lost-triangulation.html / https://arxiv.org/pdf/2205.12197.pdf
  */
+#[allow(non_snake_case)]
 pub fn linear_triangulation_lost(image_points_and_projections: &Vec<(&Matrix2xX<Float>, &Matrix3<Float>, &Matrix4<Float>)>, pixel_error: Float) -> Matrix4xX<Float> {
     let mut sampling = rand::rngs::SmallRng::from_entropy();
 
@@ -233,7 +238,9 @@ pub fn linear_triangulation_lost(image_points_and_projections: &Vec<(&Matrix2xX<
         let mut A = MatrixXx3::<Float>::zeros(2*n_cams);
         let mut b = DVector::<Float>::zeros(2*n_cams);
         for j in 0..n_cams {
-            let companion_idx = pick_companion_camera(i,&camera_indices,&mut sampling);
+            //let companion_idx = pick_companion_camera(i,&camera_indices,&mut sampling); // This is buggy
+            let companion_idx = 1-j;
+            assert_eq!(1-j,companion_idx); // Only valid for 2 views
             // The transform transforms a point from coordiante system i to reference cam, which is 0 in our case
             let (points, inverse_intrinsics, transform_zero_i) = image_points_and_projections[j];
             let (points_companion, inverse_intrinsics_companion, transform_zero_i_companion) = image_points_and_projections[companion_idx];
@@ -254,8 +261,11 @@ pub fn linear_triangulation_lost(image_points_and_projections: &Vec<(&Matrix2xX<
             A.fixed_view_mut::<2,3>(j, 0).copy_from(&a_elem.fixed_view::<2,3>(0,0));
             b.fixed_rows_mut::<2>(j).copy_from(&b_elem_cross.fixed_rows::<2>(0));
 
-        }
-            let landmark = A.svd(true,true).solve(&b,1e-10).expect("LOST SVD Failed!");
+        }   
+
+
+            let svd = A.svd(true, true);
+            let landmark = svd.solve(&b,1e-6).expect("LOST LU Failed");
 
             //TODO: check if this is still neccessary!
             let sign = match landmark[2].is_sign_negative() {
@@ -263,11 +273,9 @@ pub fn linear_triangulation_lost(image_points_and_projections: &Vec<(&Matrix2xX<
                 false => 1.0
             };
 
-            triangulated_points.fixed_rows_mut::<3>(i).copy_from(&landmark);
-
-            triangulated_points[(0,i)] *= sign;
-            triangulated_points[(1,i)] *= sign;
-            triangulated_points[(2,i)] *= sign;
+            triangulated_points[(0,i)] = landmark[0]*sign;
+            triangulated_points[(1,i)] = landmark[1]*sign;
+            triangulated_points[(2,i)] = landmark[2]*sign;
             triangulated_points[(3,i)] = 1.0;
     }
 
