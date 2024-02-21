@@ -49,7 +49,13 @@ pub trait Feature: PartialEq + Eq + Hash + Send + Sync + Clone {
      */
     fn get_camera_ray_photogrammetric(&self, inverse_intrinsics: &Matrix3<Float>) -> Vector3<Float> {
         let ray = self.get_camera_ray(inverse_intrinsics);
-        Vector3::<Float>::new(ray[0],-ray[1],-ray[2])
+        let fx = inverse_intrinsics[(0,0)];
+        let sign = match fx {
+            v if v < 0.0 => -1.0,
+            v if v > 0.0 => 1.0,
+            _ => 0.0
+        };
+        -sign*ray
     }
     fn apply_normalisation(&self, norm: &Matrix3<Float>, depth: Float) -> Self;
     fn get_landmark_id(&self) -> Option<usize>;
