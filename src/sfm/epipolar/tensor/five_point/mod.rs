@@ -1,7 +1,7 @@
 extern crate nalgebra as na;
 extern crate nalgebra_lapack;
 
-use na::{Matrix3,Matrix4, OMatrix ,Matrix3xX, SVector, Dyn, dimension::{U10,U20,U9,U3},linalg::SymmetricEigen};
+use na::{Matrix3,Matrix4, OMatrix ,Matrix3xX, Matrix2xX, SVector, Dyn, dimension::{U10,U20,U9,U2},linalg::SymmetricEigen};
 use crate::{Float,float};
 use crate::image::features::{Feature,matches::Match};
 use crate::sfm::{triangulation::linear_triangulation_svd,epipolar::{Essential,tensor::decompose_essential_förstner}};
@@ -20,8 +20,8 @@ pub fn five_point_essential<T: Feature>(matches: &Vec<Match<T>>, projection_one:
     
     let mut camera_rays_one = Matrix3xX::<Float>::zeros(l);
     let mut camera_rays_two = Matrix3xX::<Float>::zeros(l);
-    let mut features_one = Matrix3xX::<Float>::zeros(l);
-    let mut features_two = Matrix3xX::<Float>::zeros(l);
+    let mut features_one = Matrix2xX::<Float>::zeros(l);
+    let mut features_two = Matrix2xX::<Float>::zeros(l);
     let mut A = OMatrix::<Float, Dyn,U9>::zeros(l);
 
     for i in 0..l {
@@ -32,8 +32,8 @@ pub fn five_point_essential<T: Feature>(matches: &Vec<Match<T>>, projection_one:
         camera_rays_one.column_mut(i).copy_from(&f_1_reduced);
         camera_rays_two.column_mut(i).copy_from(&f_2_reduced);
 
-        let f_1 = m.get_feature_one().get_as_homogeneous(1.0);
-        let f_2 = m.get_feature_two().get_as_homogeneous(1.0);
+        let f_1 = m.get_feature_one().get_as_2d_point();
+        let f_2 = m.get_feature_two().get_as_2d_point();
 
         features_one.column_mut(i).copy_from(&f_1);
         features_two.column_mut(i).copy_from(&f_2);
@@ -122,8 +122,8 @@ pub fn five_point_essential<T: Feature>(matches: &Vec<Match<T>>, projection_one:
 pub fn cheirality_check<T: Feature>(
         all_essential_matricies: &Vec<Essential>,
         matches: &Vec<Match<T>>,
-        points_cam_1: (&OMatrix<Float, U3,Dyn>, &Matrix3<Float>,&Matrix3<Float>), 
-        points_cam_2: (&OMatrix<Float, U3,Dyn>, &Matrix3<Float>,&Matrix3<Float>)) -> Option<Essential> {
+        points_cam_1: (&OMatrix<Float, U2,Dyn>, &Matrix3<Float>,&Matrix3<Float>), 
+        points_cam_2: (&OMatrix<Float, U2,Dyn>, &Matrix3<Float>,&Matrix3<Float>)) -> Option<Essential> {
     let mut max_accepted_cheirality_count = 0;
     let mut best_e = None;
     let mut smallest_det = float::MAX;

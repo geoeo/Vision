@@ -60,7 +60,7 @@ fn main() -> Result<()> {
     // let root_id = 5;
 
     // door 
-    // let paths = vec!(vec!(5,6,7,8));
+    // let paths = vec!(vec!(5,6));
     // let root_id = 4;
 
     // de_guerre
@@ -85,11 +85,11 @@ fn main() -> Result<()> {
     // let root_id = 4;
 
     // Fort Channing
-    let paths = vec!(vec!(8,10,11,12,13,15));
+    let paths = vec!(vec!(8,10));
     let root_id = 7;
 
     // Round Church
-    // let paths = vec!(vec!(7,8,10,11,12,13));
+    // let paths = vec!(vec!(7,8,10,11,12,13,14,15,16));
     // let root_id = 5;
 
 
@@ -123,15 +123,15 @@ fn main() -> Result<()> {
         debug: false,
         print: true,
         show_octave_result: true,
-        //intensity_weighting_function:  Box::new(weighting::SquaredWeight {}),
-        intensity_weighting_function:  Box::new(weighting::HuberWeight {}), 
+        intensity_weighting_function:  Box::new(weighting::SquaredWeight {}),
+        //intensity_weighting_function:  Box::new(weighting::HuberWeight {}), 
         cg_threshold: 1e-6,
         cg_max_it: 2e3 as usize
     };
 
     let runtime_parameters_pnp = RuntimeParameters {
         pyramid_scale: 1.0,
-        max_iterations: vec![8e2 as usize; 1],
+        max_iterations: vec![1e3 as usize; 1],
         eps: vec![1e-8],
         step_sizes: vec![1e0],
         max_norm_eps: 1e-30, 
@@ -141,7 +141,7 @@ fn main() -> Result<()> {
         debug: false,
         print: true,
         show_octave_result: true,
-        intensity_weighting_function:  Box::new(weighting::SquaredWeight {}),
+        intensity_weighting_function:  Box::new(weighting::HuberWeight {}),
         cg_threshold: 1e-6,
         cg_max_it: 2e3 as usize
     };

@@ -1,7 +1,9 @@
 extern crate nalgebra as na;
 
-use std::collections::HashMap;
-use na::{Matrix4,SMatrix, SVector,Matrix3xX,Matrix4xX,MatrixXx4,OMatrix,RowOVector,U3,U4};
+use std::collections::{HashMap,HashSet};
+use rand::{rngs::SmallRng, SeedableRng, Rng};
+use na::{Matrix4,Matrix3,Vector3, SMatrix,DVector, SVector,MatrixXx3,Matrix4xX,MatrixXx4,Matrix2xX,OMatrix,RowOVector,U3,U4,
+    linalg::QR};
 use crate::image::features::{matches::Match,Feature};
 use crate::sensors::camera::Camera;
 use crate::Float;
@@ -9,7 +11,8 @@ use crate::Float;
 #[derive(Clone, Copy)]
 pub enum Triangulation {
     LINEAR,
-    STEREO
+    STEREO,
+    LOST
 }
 
 /**
@@ -18,14 +21,14 @@ pub enum Triangulation {
 pub fn triangulate_matches<Feat: Feature, C: Camera<Float>>(path_pair: (usize, usize), pose: &Matrix4<Float>, 
     matches: & Vec<Match<Feat>>, camera_map: &HashMap<usize, C>, triangulation_mode: Triangulation) 
     -> Matrix4xX<Float> {
-    let mut image_points_s = Matrix3xX::<Float>::zeros(matches.len());
-    let mut image_points_f = Matrix3xX::<Float>::zeros(matches.len());
+    let mut image_points_s = Matrix2xX::<Float>::zeros(matches.len());
+    let mut image_points_f = Matrix2xX::<Float>::zeros(matches.len());
     
     // The position of the match in its vector indexes the value in the matrix
     for i in 0..matches.len() {
         let m = &matches[i];
-        let feat_s = m.get_feature_one().get_as_homogeneous(1.0);
-        let feat_f = m.get_feature_two().get_as_homogeneous(1.0);
+        let feat_s = m.get_feature_one().get_as_2d_point();
+        let feat_f = m.get_feature_two().get_as_2d_point();
         image_points_s.column_mut(i).copy_from(&feat_s);
         image_points_f.column_mut(i).copy_from(&feat_f);
     }
@@ -43,9 +46,11 @@ pub fn triangulate_matches<Feat: Feature, C: Camera<Float>>(path_pair: (usize, u
     let f0 = 1.0;
     let f0_prime = 1.0;
 
+    //TODO: Try to streamline > 2 views for applicable methods
     let landmarks = match triangulation_mode {
         Triangulation::LINEAR => linear_triangulation_svd(&vec!((&image_points_s,&projection_1),(&image_points_f,&projection_2)), true),
         Triangulation::STEREO => stereo_triangulation((&image_points_s,&projection_1),(&image_points_f,&projection_2),f0,f0_prime, true).expect("get_euclidean_landmark_state: Stereo Triangulation Failed"),
+        Triangulation::LOST => panic!("LOST not yet implemented") // Needs inverse intrinsics!
     };
 
     landmarks
@@ -57,12 +62,12 @@ pub fn triangulate_matches<Feat: Feature, C: Camera<Float>>(path_pair: (usize, u
  * See Triangulation by Hartley et al.
  */
 #[allow(non_snake_case)]
-pub fn linear_triangulation_svd(image_points_and_projections: &Vec<(&Matrix3xX<Float>, &OMatrix<Float,U3,U4>)>, flip_points: bool) -> Matrix4xX<Float> {
+pub fn linear_triangulation_svd(image_points_and_projections: &Vec<(&Matrix2xX<Float>, &OMatrix<Float,U3,U4>)>, flip_points: bool) -> Matrix4xX<Float> {
     let n_cams = image_points_and_projections.len();
-    let points_per_cam = image_points_and_projections.first().expect("linear_triangulation: no points!").0.ncols();
-    let mut triangulated_points = Matrix4xX::<Float>::zeros(points_per_cam);
+    let n_points = image_points_and_projections.first().expect("linear_triangulation: no points!").0.ncols();
+    let mut triangulated_points = Matrix4xX::<Float>::zeros(n_points);
 
-    for i in 0..points_per_cam {
+    for i in 0..n_points {
         let mut A = MatrixXx4::<Float>::zeros(2*n_cams);
         for j in 0..n_cams {
             let (points, projection) = image_points_and_projections[j];
@@ -117,7 +122,7 @@ pub fn linear_triangulation_svd(image_points_and_projections: &Vec<(&Matrix3xX<F
  * See 3D Rotations - Kanatani
  */
 #[allow(non_snake_case)]
-pub fn stereo_triangulation(image_points_and_projection: (&Matrix3xX<Float>, &OMatrix<Float,U3,U4>), image_points_and_projection_prime: (&Matrix3xX<Float>, &OMatrix<Float,U3,U4>), f0: Float, f0_prime: Float, flip_points: bool) -> Option<Matrix4xX<Float>> {
+pub fn stereo_triangulation(image_points_and_projection: (&Matrix2xX<Float>, &OMatrix<Float,U3,U4>), image_points_and_projection_prime: (&Matrix2xX<Float>, &OMatrix<Float,U3,U4>), f0: Float, f0_prime: Float, flip_points: bool) -> Option<Matrix4xX<Float>> {
     let (image_points, projection) =  image_points_and_projection;
     let (image_points_prime, projection_prime) =  image_points_and_projection_prime;
 
@@ -210,4 +215,91 @@ pub fn stereo_triangulation(image_points_and_projection: (&Matrix3xX<Float>, &OM
         false => None
     }
     
+}
+
+/**
+ * LOST Triangulation 
+ * See https://gtsam.org/2023/02/04/lost-triangulation.html / https://arxiv.org/pdf/2205.12197.pdf
+ */
+pub fn linear_triangulation_lost(image_points_and_projections: &Vec<(&Matrix2xX<Float>, &Matrix3<Float>, &Matrix4<Float>)>, pixel_error: Float) -> Matrix4xX<Float> {
+    let mut sampling = rand::rngs::SmallRng::from_entropy();
+
+    let n_cams = image_points_and_projections.len();
+    let n_points = image_points_and_projections.first().expect("linear_triangulation: no points!").0.ncols();
+    let mut triangulated_points = Matrix4xX::<Float>::zeros(n_points);
+    let camera_indices = (0..n_cams).collect::<HashSet<_>>();
+    
+    for i in 0..n_points {
+        let mut A = MatrixXx3::<Float>::zeros(2*n_cams);
+        let mut b = DVector::<Float>::zeros(2*n_cams);
+        for j in 0..n_cams {
+            let companion_idx = pick_companion_camera(i,&camera_indices,&mut sampling);
+            // The transform transforms a point from coordiante system i to reference cam, which is 0 in our case
+            let (points, inverse_intrinsics, transform_zero_i) = image_points_and_projections[j];
+            let (points_companion, inverse_intrinsics_companion, transform_zero_i_companion) = image_points_and_projections[companion_idx];
+
+            let u = points[(0,i)];
+            let v = points[(1,i)];
+            let u_companion = points_companion[(0,i)];
+            let v_companion = points_companion[(1,i)];
+            let pixel_pos = Vector3::<Float>::new(u,v,1.0);
+            let pixel_pos_companion = Vector3::<Float>::new(u_companion,v_companion,1.0);
+            let rotation = transform_zero_i.fixed_view::<3,3>(0,0);
+            let q_factor = compute_q_factor(pixel_error, inverse_intrinsics, inverse_intrinsics_companion, transform_zero_i, transform_zero_i_companion, &pixel_pos, &pixel_pos_companion);
+
+            let elem_cross = (inverse_intrinsics*pixel_pos).cross_matrix();
+            let a_elem = q_factor*elem_cross*rotation.transpose();
+            let b_elem_cross = a_elem*pixel_pos;
+
+            A.fixed_view_mut::<2,3>(j, 0).copy_from(&a_elem.fixed_view::<2,3>(0,0));
+            b.fixed_rows_mut::<2>(j).copy_from(&b_elem_cross.fixed_rows::<2>(0));
+
+        }
+            let landmark = A.svd(true,true).solve(&b,1e-10).expect("LOST SVD Failed!");
+
+            //TODO: check if this is still neccessary!
+            let sign = match landmark[2].is_sign_negative() {
+                true => -1.0,
+                false => 1.0
+            };
+
+            triangulated_points.fixed_rows_mut::<3>(i).copy_from(&landmark);
+
+            triangulated_points[(0,i)] *= sign;
+            triangulated_points[(1,i)] *= sign;
+            triangulated_points[(2,i)] *= sign;
+            triangulated_points[(3,i)] = 1.0;
+    }
+
+    triangulated_points
+}
+
+fn pick_companion_camera(cam_index: usize, camera_indices: &HashSet<usize>, sampling: &mut SmallRng) -> usize {
+    let reduced_indices = camera_indices.into_iter().filter(|&x| *x!= cam_index).collect::<Vec<&usize>>();
+    let max = reduced_indices.len()-1;
+    let random_idx = sampling.gen::<f32>()*(max as f32);
+    *reduced_indices[random_idx.floor() as usize]
+}
+
+fn compute_q_factor(
+    pixel_error: Float, 
+    inverse_intrinsics: &Matrix3<Float>, 
+    inverse_intrinsics_companion: &Matrix3<Float>, 
+    transform: &Matrix4<Float>,
+    transform_companion: &Matrix4<Float>,
+    pixel_pos:&Vector3<Float>,
+    pixel_pos_companion:&Vector3<Float>) -> Float {
+        let x_sigma = pixel_error * inverse_intrinsics[(0,0)];
+        let rotation = transform.fixed_view::<3,3>(0,0);
+        let position = transform.fixed_view::<3,1>(0,3);
+        let rotation_companion = transform_companion.fixed_view::<3,3>(0,0);
+        let position_companion = transform_companion.fixed_view::<3,1>(0,3);
+        let baseline = position_companion - position;
+
+        let numerator_left = rotation*inverse_intrinsics*pixel_pos;
+        let numerator_right = rotation_companion*inverse_intrinsics_companion*pixel_pos_companion;
+        let numerator = numerator_left.cross(&numerator_right).norm();
+        let denominator = x_sigma*baseline.cross(&numerator_right).norm();
+
+        numerator/denominator
 }
