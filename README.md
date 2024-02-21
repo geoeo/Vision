@@ -5,6 +5,8 @@ Sparse Bundle Adjustment http://users.ics.forth.gr/~lourakis/sba/sba-toms.pdf
 
 Inverse Depth Parameterization https://www.doc.ic.ac.uk/~ajd/Publications/civera_etal_tro2008.pdf
 
+LOST Triangulation https://arxiv.org/pdf/2205.12197.pdf
+
 8 Point https://www.cse.unr.edu/~bebis/CS485/Handouts/hartley.pdf
 
 5 Point - https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.61.9329&rep=rep1&type=pdf
