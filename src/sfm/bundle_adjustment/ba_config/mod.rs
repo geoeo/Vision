@@ -125,8 +125,7 @@ impl<C: Camera<Float> + Clone, Feat: Feature>
                 &landmark_map,
                 &pose_map,
                 &match_norm_map,
-                &camera_norm_map,
-                triangulation,
+                &camera_norm_map
             );
 
         let (min_reprojection_error_initial, max_reprojection_error_initial) =

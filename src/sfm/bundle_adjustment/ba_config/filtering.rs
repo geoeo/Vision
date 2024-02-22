@@ -104,8 +104,7 @@ pub fn filter_config<C: Camera<Float> + Clone, Feat: Feature> (
                 &new_landmark_map,
                 &new_pose_map,
                 &match_norm_map,
-                &camera_norm_map,
-                triangulation,
+                &camera_norm_map
             );
         let keys = landmark_map.keys().map(|k| *k).collect::<Vec<_>>();
         for key in keys {
@@ -275,8 +274,7 @@ pub fn compute_reprojection_maps<C: Camera<Float> + Clone, Feat: Feature>(
     landmark_map: &HashMap<(usize, usize), Vec<EuclideanLandmark<Float>>>,
     pose_map: &HashMap<(usize, usize), Isometry3<Float>>,
     match_map: &HashMap<(usize, usize), Vec<Match<Feat>>>,
-    camera_map: &HashMap<usize, C>,
-    triangulation: Triangulation,
+    camera_map: &HashMap<usize, C>
 ) -> HashMap<(usize, usize), DVector<Float>> {
     let mut reprojection_map =
         HashMap::<(usize, usize), DVector<Float>>::with_capacity(match_map.len());
