@@ -67,7 +67,6 @@ pub fn reject_landmark_outliers<Feat: Feature>(
     reprojection_error_map: &mut HashMap<(usize, usize),DVector<Float>>, 
     match_map: &mut HashMap<(usize, usize), Vec<Match<Feat>>>,
     match_norm_map: &mut HashMap<(usize, usize), Vec<Match<Feat>>>,
-    first_landmark_sighting_map: &mut HashMap<usize, usize>,
     landmark_cutoff: Float) -> HashSet<usize> {
         let keys = match_norm_map.keys().map(|key| *key).collect::<Vec<_>>();
         let mut rejected_landmark_ids = HashSet::<usize>::with_capacity(1000);
@@ -108,12 +107,6 @@ pub fn reject_landmark_outliers<Feat: Feature>(
             }
         }
 
-        for rejected_id in &rejected_landmark_ids {
-            first_landmark_sighting_map.remove(&rejected_id);
-        }
-
-        assert!(!&first_landmark_sighting_map.is_empty());
-
         rejected_camera_ids
 
 }
@@ -123,8 +116,7 @@ pub fn filter_by_rejected_landmark_ids<Feat: Feature>(
     match_norm_map: &mut HashMap<(usize, usize), Vec<Match<Feat>>>, 
     match_map: &mut HashMap<(usize, usize), Vec<Match<Feat>>>,
     landmark_map: &mut HashMap<(usize, usize), Vec<EuclideanLandmark<Float>>>, 
-    reprojection_error_map: &mut HashMap<(usize, usize),DVector<Float>>,
-    first_landmark_sighting_map: &mut HashMap<usize, usize>
+    reprojection_error_map: &mut HashMap<(usize, usize),DVector<Float>>
 ) -> () {
 
     // Update match map, match_norm_map, landmark_map, abs_landmark_map -> group 1
@@ -156,11 +148,6 @@ pub fn filter_by_rejected_landmark_ids<Feat: Feature>(
         landmark_map.insert(cam_key, landmarks_filtered);
         reprojection_error_map.insert(cam_key, reprojections_filtered);
     }
-
-    for rejected_id in rejected_landmark_ids {
-        first_landmark_sighting_map.remove(rejected_id);
-    }
-    assert!(!&first_landmark_sighting_map.is_empty());
 
 }
 

@@ -41,8 +41,7 @@ pub struct BAConfig<C, Feat: Feature> {
     pose_map: HashMap<(usize, usize), Isometry3<Float>>, // The pose transforms tuple id 2 into the coordiante system of tuple id 1 - 1_P_2
     abs_pose_map: HashMap<usize, Isometry3<Float>>, // World is the root id
     landmark_map: HashMap<(usize, usize), Vec<EuclideanLandmark<Float>>>,
-    reprojection_error_map: HashMap<(usize, usize), DVector<Float>>,
-    first_landmark_sighting_map: HashMap<usize,usize> //Map landmark id to camera id of the camera that first observed the landmark - @Might be not needed
+    reprojection_error_map: HashMap<(usize, usize), DVector<Float>>
 }
 
 impl<C: Camera<Float> + Clone, Feat: Feature>
@@ -119,7 +118,7 @@ impl<C: Camera<Float> + Clone, Feat: Feature>
         
         //TODO: Maybe remove this completely and the rejection be handled exclusively by filtring 
         let path_pairs = conversions::compute_path_id_pairs(root, &paths);
-        let (landmark_map, reprojection_error_map, first_landmark_sighting_map) =
+        let (landmark_map, reprojection_error_map) =
             compute_landmarks_and_reprojection_maps(
                 &path_pairs,
                 &pose_map,
@@ -147,8 +146,7 @@ impl<C: Camera<Float> + Clone, Feat: Feature>
             abs_pose_map,
             pose_map,
             landmark_map,
-            reprojection_error_map,
-            first_landmark_sighting_map
+            reprojection_error_map
         }
     }
 
@@ -184,9 +182,6 @@ impl<C: Camera<Float> + Clone, Feat: Feature>
     }
     pub fn landmark_map(&self) -> &HashMap<(usize,usize), Vec<EuclideanLandmark<Float>>> {
         &self.landmark_map
-    }
-    pub fn first_landmark_sighting_map(&self) -> &HashMap<usize,usize>{
-        &self.first_landmark_sighting_map
     }
 
     pub fn compute_image_score_map(pyramid_map: &HashMap<usize, BAPyramid<Feat>>) -> HashMap<usize, usize>{
@@ -915,8 +910,7 @@ impl<C: Camera<Float> + Clone, Feat: Feature>
                 match_norm_map,
                 match_map,
                 landmark_map,
-                reprojection_error_map,
-                first_landmark_sighting_map
+                reprojection_error_map
             );
         }
     }

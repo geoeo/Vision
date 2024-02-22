@@ -31,7 +31,6 @@ pub fn filter_config<C: Camera<Float> + Clone, Feat: Feature> (
     let mut reprojection_error_map = ba_config.reprojection_error_map().clone();
     let mut match_map = ba_config.match_map().clone();
     let mut match_norm_map = ba_config.match_norm_map().clone();
-    let mut first_landmark_sighting_map = ba_config.first_landmark_sighting_map().clone();
     let mut pose_map = ba_config.pose_map().clone();
     let root = ba_config.root();
     let camera_map = ba_config.camera_map().clone();
@@ -48,7 +47,6 @@ pub fn filter_config<C: Camera<Float> + Clone, Feat: Feature> (
         &mut reprojection_error_map,
         &mut match_map,
         &mut match_norm_map,
-        &mut first_landmark_sighting_map,
         landmark_cutoff_thresh,
     );
 
@@ -79,7 +77,6 @@ pub fn filter_config<C: Camera<Float> + Clone, Feat: Feature> (
             &mut match_map,
             &mut landmark_map,
             &mut reprojection_error_map,
-            &mut first_landmark_sighting_map
         );
 
         let new_rejected_camera_ids = reject_landmark_outliers(
@@ -87,7 +84,6 @@ pub fn filter_config<C: Camera<Float> + Clone, Feat: Feature> (
             &mut reprojection_error_map,
             &mut match_map,
             &mut match_norm_map,
-            &mut first_landmark_sighting_map,
             landmark_cutoff_thresh,
         );
         rejected_camera_ids.extend(new_rejected_camera_ids.iter());
@@ -101,7 +97,7 @@ pub fn filter_config<C: Camera<Float> + Clone, Feat: Feature> (
     if refine_rotation_via_rcd {
         let new_pose_map = refine_rotation_by_rcd(root, &paths, &pose_map);
         let path_pairs = conversions::compute_path_id_pairs(root, &paths);
-        let (mut new_landmark_map, mut new_reprojection_error_map, mut first_landmark_sighting_map) =
+        let (mut new_landmark_map, mut new_reprojection_error_map) =
             compute_landmarks_and_reprojection_maps(
                 &path_pairs,
                 &new_pose_map,
@@ -127,7 +123,6 @@ pub fn filter_config<C: Camera<Float> + Clone, Feat: Feature> (
                 &mut reprojection_error_map,
                 &mut match_map,
                 &mut match_norm_map,
-                &mut first_landmark_sighting_map,
                 landmark_cutoff_thresh,
             );
             rejected_camera_ids.extend(new_rejected_camera_ids.iter());
@@ -163,8 +158,7 @@ pub fn filter_config<C: Camera<Float> + Clone, Feat: Feature> (
         pose_map,
         abs_pose_map,
         landmark_map,
-        reprojection_error_map,
-        first_landmark_sighting_map
+        reprojection_error_map
     }
 
 }
@@ -254,15 +248,12 @@ pub fn compute_landmarks_and_reprojection_maps<C: Camera<Float> + Clone, Feat: F
     triangulation: Triangulation,
 ) -> (
     HashMap<(usize, usize), Vec<EuclideanLandmark<Float>>>,
-    HashMap<(usize, usize), DVector<Float>>,
-    HashMap<usize,usize>,
+    HashMap<(usize, usize), DVector<Float>>
 ) {
     let mut landmark_map =
         HashMap::<(usize, usize), Vec<EuclideanLandmark<Float>>>::with_capacity(match_map.len());
     let mut reprojection_map =
         HashMap::<(usize, usize), DVector<Float>>::with_capacity(match_map.len());
-    let mut first_landmark_sighting_map =
-        HashMap::<usize,usize>::with_capacity(match_map.len());
 
     for path in path_pairs {
         for path_pair in path {
@@ -277,13 +268,6 @@ pub fn compute_landmarks_and_reprojection_maps<C: Camera<Float> + Clone, Feat: F
                 &camera_map,
                 triangulation,
             );
-            
-            for l in &landmarks {
-                let id = l.get_id().expect("No landmark id found");
-                if first_landmark_sighting_map.get(&id).is_none() {
-                    first_landmark_sighting_map.insert(id, path_pair.0);
-                }
-            }
 
             let ms = match_map.get(path_pair).expect(
                 format!(
@@ -316,7 +300,7 @@ pub fn compute_landmarks_and_reprojection_maps<C: Camera<Float> + Clone, Feat: F
         }
     }
 
-    (landmark_map, reprojection_map, first_landmark_sighting_map)
+    (landmark_map, reprojection_map)
 }
 
 pub fn filter_outliers_by_dual_pairwise<C: Camera<Float> + Clone, Feat: Feature>(
@@ -328,8 +312,7 @@ pub fn filter_outliers_by_dual_pairwise<C: Camera<Float> + Clone, Feat: Feature>
     match_norm_map: &mut HashMap<(usize, usize), Vec<Match<Feat>>>,
     match_map: &mut HashMap<(usize, usize), Vec<Match<Feat>>>,
     landmark_map: &mut HashMap<(usize, usize), Vec<EuclideanLandmark<Float>>>,
-    reprojection_error_map: &mut HashMap<(usize, usize), DVector<Float>>,
-    first_landmark_sighting_map: &mut HashMap<usize, usize>
+    reprojection_error_map: &mut HashMap<(usize, usize), DVector<Float>>
 ) -> () {
     let feature_map = conversions::compute_features_per_image_map(
         &match_norm_map,
@@ -411,8 +394,7 @@ pub fn filter_outliers_by_dual_pairwise<C: Camera<Float> + Clone, Feat: Feature>
             match_norm_map,
             match_map,
             landmark_map,
-            reprojection_error_map,
-            first_landmark_sighting_map,
+            reprojection_error_map
         );
     }
 }
