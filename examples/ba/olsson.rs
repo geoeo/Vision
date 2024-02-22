@@ -96,7 +96,7 @@ fn main() -> Result<()> {
     //TODO: implement switch for loftr matches!
     let (match_map, camera_map, image_width, image_height) = olsen_data.get_data_for_sfm(root_id, &paths, positive_principal_distance, invert_focal_length, invert_y, transpose_features, feature_skip_count, olsen_dataset_name);
     let mut ba_config_fundamental = BAConfig::new(root_id, &paths, None, camera_map, &match_map, 
-    BifocalType::FUNDAMENTAL, Triangulation::LOST, 1.0, 2.0e1, false, image_width, image_height);
+    BifocalType::FUNDAMENTAL, Triangulation::LOST, 1.0, 2.0e0, false, image_width, image_height);
     let mut ba_config_fundamental = filter_config(&mut ba_config_fundamental,8e2, false, refince_rotation_via_rcd, Triangulation::LOST);
 
     for (key, pose) in ba_config_fundamental.pose_map().iter() {

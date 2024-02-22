@@ -16,6 +16,7 @@ use std::{
     marker::{Send, Sync},
     sync::mpsc,
     thread,
+    collections::HashSet
 };
 use termion::input::TermRead;
 
@@ -39,7 +40,10 @@ pub fn run_ba<
     
     let abs_landmark_map = generate_abs_landmark_map(sfm_config.root(),sfm_config.paths(),sfm_config.landmark_map(),sfm_config.abs_pose_map());
     let paths = trajectories.clone().into_iter().flatten().collect::<Vec<(usize,usize)>>();
-    let state_linearizer = BAStateLinearizer::new(&paths,&sfm_config.unique_landmark_ids());
+
+    // We only consider a potential subset of the paths for the solver
+    let unique_landmark_id_set = paths.iter().map(|p| abs_landmark_map.get(p).expect("No landmarks for path")).flatten().map(|l| l.get_id().expect("No id")).collect::<HashSet<_>>();
+    let state_linearizer = BAStateLinearizer::new(&paths,&unique_landmark_id_set); // This works
 
     let (tx_result, rx_result) = mpsc::channel::<(State<F, EuclideanLandmark<F>, 3>,Option<Vec<(Vec<[F; CAMERA_PARAM_SIZE]>, Vec<[F; 3]>)>>)>();
     let (tx_abort, rx_abort) = mpsc::channel::<bool>();
