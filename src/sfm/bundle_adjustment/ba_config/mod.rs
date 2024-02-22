@@ -268,6 +268,7 @@ impl<C: Camera<Float> + Clone, Feat: Feature>
             if delta > 0.0 {
                 new_reprojection_errors[i] = current_reprojection_errors[i];
                 new_relative_landmarks[i] = current_relative_landmarks[i];
+                assert_eq!(ms[i].get_landmark_id(), new_relative_landmarks[i].get_id());
             }
         }
 
@@ -299,6 +300,8 @@ impl<C: Camera<Float> + Clone, Feat: Feature>
                         let id = m.get_landmark_id().expect("Match with no landmark id!");
                         let l = landmarks[i];
 
+                        assert_eq!(Some(id),l.get_id());
+
                         feature_map_by_landmark_id.insert(id,f.clone());
                         landmark_map_by_landmark_id.insert(id, EuclideanLandmark::from_state_with_id(l.get_euclidean_representation().coords, &Some(id)));
                     }
@@ -310,6 +313,8 @@ impl<C: Camera<Float> + Clone, Feat: Feature>
                         let f = m.get_feature_two();
                         let id = m.get_landmark_id().expect("Match with no landmark id!");
                         let l = landmarks[i];
+
+                        assert_eq!(Some(id),l.get_id());
                         
                         feature_map_by_landmark_id.insert(id,f.clone());
                         landmark_map_by_landmark_id.insert(id, EuclideanLandmark::from_state_with_id(l.get_euclidean_representation().coords, &Some(id)));

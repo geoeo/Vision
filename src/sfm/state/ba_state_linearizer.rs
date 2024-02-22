@@ -175,6 +175,8 @@ impl BAStateLinearizer {
                 let landmark_id = &m.get_landmark_id().expect(format!("no landmark id found for match: {:?}",landmark_key).as_str());
                 let linear_landmark_id = self.landmark_to_linear_id_map.get(landmark_id).unwrap().clone();
                 let point_s = root_aligned_triangulated_matches_s[m_i].get_euclidean_representation();
+
+                assert_eq!(m.get_landmark_id(),root_aligned_triangulated_matches_s[m_i].get_id());
                 
                 let reprojection_error = reprojection_errors[m_i];
                 match landmark_reprojection_error_map.contains_key(landmark_id) {

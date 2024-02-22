@@ -112,7 +112,6 @@ impl<F: GenericFloat> Landmark<F, 6> for InverseLandmark<F> {
 impl<F: GenericFloat> InverseLandmark<F> {
     pub fn new<Feat: Feature>(cam_to_world: &Isometry3<F>, feature: &Feat, inverse_depth_prior: F, inverse_projection: &Matrix3<Float>, id: &Option<usize>) -> InverseLandmark<F> {
         let camera_pos = cam_to_world.translation.vector;
-        //TODO: make Feat trait generic
         let camera_ray_world = cam_to_world.rotation*feature.get_camera_ray(inverse_projection).cast::<F>();
         let h_x = camera_ray_world[0];
         let h_y = camera_ray_world[1];
@@ -123,7 +122,6 @@ impl<F: GenericFloat> InverseLandmark<F> {
         let state = Vector6::<F>::new(camera_pos[0],camera_pos[1],camera_pos[2],theta,phi,inverse_depth_prior);
         Self::from_state_with_id(state,id)
     }
-
     
     fn get_direction(&self) -> Vector3<F> {
         self.m
