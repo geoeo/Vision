@@ -5,7 +5,7 @@ use crate::image::features::{
     Feature
 };
 use crate::sensors::camera::Camera;
-use crate::sfm::bundle_adjustment::ba_config::filtering::{compute_reprojection_ranges, compute_landmarks_and_reprojection_maps};
+use crate::sfm::bundle_adjustment::ba_config::filtering::{compute_reprojection_ranges, compute_reprojection_maps, compute_landmark_maps};
 use crate::sfm::landmark::{Landmark, euclidean_landmark::EuclideanLandmark};
 use crate::sfm::state::State;
 use crate::sfm::bundle_adjustment::ba_config::outlier_rejection::{
@@ -118,9 +118,11 @@ impl<C: Camera<Float> + Clone, Feat: Feature>
         
         //TODO: Maybe remove this completely and the rejection be handled exclusively by filtring 
         let path_pairs = conversions::compute_path_id_pairs(root, &paths);
-        let (landmark_map, reprojection_error_map) =
-            compute_landmarks_and_reprojection_maps(
+        let landmark_map = compute_landmark_maps(&path_pairs, &pose_map, &match_map, &camera_map, triangulation);
+        let reprojection_error_map =
+            compute_reprojection_maps(
                 &path_pairs,
+                &landmark_map,
                 &pose_map,
                 &match_norm_map,
                 &camera_norm_map,

@@ -2,7 +2,7 @@ extern crate nalgebra as na;
 
 use std::collections::{HashMap,HashSet};
 use rand::{rngs::SmallRng, SeedableRng, Rng};
-use na::{Matrix4,Matrix3,Vector3, SMatrix,DVector, SVector,MatrixXx3,Matrix4xX,MatrixXx4,Matrix2xX,OMatrix,RowOVector,U3,U4};
+use na::{Matrix4,Matrix3,Vector3, SMatrix,DVector, SVector,MatrixXx3,Matrix4xX,MatrixXx4,Matrix2xX,OMatrix,RowOVector,U3,U4, Isometry3};
 use crate::sfm::landmark::{euclidean_landmark::EuclideanLandmark, Landmark};
 use crate::image::features::{matches::Match,Feature};
 use crate::sensors::camera::Camera;
@@ -18,9 +18,18 @@ pub enum Triangulation {
 /**
  * For a path pair (1,2) triangulates the feature in coordinate system of 1
  */
-pub fn triangulate_matches<Feat: Feature, C: Camera<Float>>(path_pair: (usize, usize), pose: &Matrix4<Float>, 
-    matches: &Vec<Match<Feat>>, camera_map: &HashMap<usize, C>, triangulation_mode: Triangulation) 
+pub fn triangulate_matches<Feat: Feature, C: Camera<Float>>(
+    path_pair: (usize, usize), 
+    pose_map: &HashMap<(usize, usize), Isometry3<Float>>,
+    match_map: &HashMap<(usize, usize), Vec<Match<Feat>>>,
+    camera_map: &HashMap<usize, C>, 
+    triangulation_mode: Triangulation) 
     -> Vec::<EuclideanLandmark<Float>> {
+
+
+    let pose = pose_map.get(&path_pair).expect(format!("triangulate_matches: pose not found with key: ({:?})",path_pair).as_str()).to_matrix();
+    let matches = match_map.get(&path_pair).expect(format!("triangulate_matches: matches not found with key: ({:?})",path_pair).as_str());
+
     let mut image_points_s = Matrix2xX::<Float>::zeros(matches.len());
     let mut image_points_f = Matrix2xX::<Float>::zeros(matches.len());
     
@@ -53,7 +62,7 @@ pub fn triangulate_matches<Feat: Feature, C: Camera<Float>>(path_pair: (usize, u
     let landmarks = match triangulation_mode {
         Triangulation::LINEAR => linear_triangulation_svd(&vec!((&image_points_s,&projection_1),(&image_points_f,&projection_2)), true),
         Triangulation::STEREO => stereo_triangulation((&image_points_s,&projection_1),(&image_points_f,&projection_2),f0,f0_prime, true).expect("get_euclidean_landmark_state: Stereo Triangulation Failed"),
-        Triangulation::LOST => linear_triangulation_lost(&vec!((&image_points_s,&c1_inverse_intrinsics,&Matrix4::<Float>::identity()),(&image_points_f,&c2_inverse_intrinsics,pose)), pixel_error)
+        Triangulation::LOST => linear_triangulation_lost(&vec!((&image_points_s,&c1_inverse_intrinsics,&Matrix4::<Float>::identity()),(&image_points_f,&c2_inverse_intrinsics,&pose)), pixel_error)
     };
 
     let mut euclidean_landmarks = Vec::<EuclideanLandmark<Float>>::with_capacity(matches.len());

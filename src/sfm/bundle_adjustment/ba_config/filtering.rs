@@ -97,9 +97,11 @@ pub fn filter_config<C: Camera<Float> + Clone, Feat: Feature> (
     if refine_rotation_via_rcd {
         let new_pose_map = refine_rotation_by_rcd(root, &paths, &pose_map);
         let path_pairs = conversions::compute_path_id_pairs(root, &paths);
-        let (mut new_landmark_map, mut new_reprojection_error_map) =
-            compute_landmarks_and_reprojection_maps(
+        let mut new_landmark_map = compute_landmark_maps(&path_pairs, &pose_map, &match_map, &camera_map, triangulation);
+        let mut new_reprojection_error_map =
+            compute_reprojection_maps(
                 &path_pairs,
+                &new_landmark_map,
                 &new_pose_map,
                 &match_norm_map,
                 &camera_norm_map,
@@ -240,35 +242,50 @@ pub fn refine_rotation_by_rcd(
     new_pose_map
 }
 
-pub fn compute_landmarks_and_reprojection_maps<C: Camera<Float> + Clone, Feat: Feature>(
+pub fn compute_landmark_maps<C: Camera<Float> + Clone, Feat: Feature>(
     path_pairs: &Vec<Vec<(usize,usize)>>,
     pose_map: &HashMap<(usize, usize), Isometry3<Float>>,
     match_map: &HashMap<(usize, usize), Vec<Match<Feat>>>,
     camera_map: &HashMap<usize, C>,
     triangulation: Triangulation,
-) -> (
-    HashMap<(usize, usize), Vec<EuclideanLandmark<Float>>>,
-    HashMap<(usize, usize), DVector<Float>>
-) {
+) -> HashMap<(usize, usize), Vec<EuclideanLandmark<Float>>> {
     let mut landmark_map =
         HashMap::<(usize, usize), Vec<EuclideanLandmark<Float>>>::with_capacity(match_map.len());
+
+
+    for path in path_pairs {
+        for path_pair in path {
+            let landmarks = triangulate_matches(
+                *path_pair,
+                pose_map,
+                match_map,
+                &camera_map,
+                triangulation,
+            );
+
+            landmark_map.insert(*path_pair, landmarks);
+        }
+    }
+
+    landmark_map
+}
+
+pub fn compute_reprojection_maps<C: Camera<Float> + Clone, Feat: Feature>(
+    path_pairs: &Vec<Vec<(usize,usize)>>,
+    landmark_map: &HashMap<(usize, usize), Vec<EuclideanLandmark<Float>>>,
+    pose_map: &HashMap<(usize, usize), Isometry3<Float>>,
+    match_map: &HashMap<(usize, usize), Vec<Match<Feat>>>,
+    camera_map: &HashMap<usize, C>,
+    triangulation: Triangulation,
+) -> HashMap<(usize, usize), DVector<Float>> {
     let mut reprojection_map =
         HashMap::<(usize, usize), DVector<Float>>::with_capacity(match_map.len());
 
     for path in path_pairs {
         for path_pair in path {
 
-            let se3 = pose_map.get(path_pair).expect(format!("triangulate_matches: pose not found with key: ({:?})",path_pair).as_str()).to_matrix();
-            let ms = match_map.get(path_pair).expect(format!("triangulate_matches: matches not found with key: ({:?})",path_pair).as_str());
-
-            let landmarks = triangulate_matches(
-                *path_pair,
-                &se3,
-                &ms,
-                &camera_map,
-                triangulation,
-            );
-
+            let landmarks = landmark_map.get(path_pair).expect(format!("compute_reprojection_maps: landmarks not found with key: ({:?})",path_pair).as_str());
+            let pose = pose_map.get(path_pair).expect(format!("compute_reprojection_maps: pose not found with key: ({:?})",path_pair).as_str()).to_matrix();
             let ms = match_map.get(path_pair).expect(
                 format!(
                     "compute_landmarks_and_reprojection_maps: matches not found with key: {:?}",
@@ -285,7 +302,7 @@ pub fn compute_landmarks_and_reprojection_maps<C: Camera<Float> + Clone, Feat: F
             let transform_c1 = Matrix4::<Float>::identity()
                 .fixed_view::<3, 4>(0, 0)
                 .into_owned();
-            let transform_c2 = se3.fixed_view::<3, 4>(0, 0).into_owned();
+            let transform_c2 = pose.fixed_view::<3, 4>(0, 0).into_owned();
             let reprojection_errors = calculate_reprojection_errors(
                 &landmarks,
                 ms,
@@ -295,12 +312,11 @@ pub fn compute_landmarks_and_reprojection_maps<C: Camera<Float> + Clone, Feat: F
                 cam_2,
             );
 
-            landmark_map.insert(*path_pair, landmarks);
             reprojection_map.insert(*path_pair, reprojection_errors);
         }
     }
 
-    (landmark_map, reprojection_map)
+    reprojection_map
 }
 
 pub fn filter_outliers_by_dual_pairwise<C: Camera<Float> + Clone, Feat: Feature>(
