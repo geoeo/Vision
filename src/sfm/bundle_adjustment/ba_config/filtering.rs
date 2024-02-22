@@ -100,10 +100,10 @@ pub fn filter_config<C: Camera<Float> + Clone, Feat: Feature> (
 
     if refine_rotation_via_rcd {
         let new_pose_map = refine_rotation_by_rcd(root, &paths, &pose_map);
+        let path_pairs = conversions::compute_path_id_pairs(root, &paths);
         let (mut new_landmark_map, mut new_reprojection_error_map, mut first_landmark_sighting_map) =
             compute_landmarks_and_reprojection_maps(
-                root,
-                &paths,
+                &path_pairs,
                 &new_pose_map,
                 &match_norm_map,
                 &camera_norm_map,
@@ -247,8 +247,7 @@ pub fn refine_rotation_by_rcd(
 }
 
 pub fn compute_landmarks_and_reprojection_maps<C: Camera<Float> + Clone, Feat: Feature>(
-    root: usize,
-    paths: &Vec<Vec<usize>>,
+    path_pairs: &Vec<Vec<(usize,usize)>>,
     pose_map: &HashMap<(usize, usize), Isometry3<Float>>,
     match_map: &HashMap<(usize, usize), Vec<Match<Feat>>>,
     camera_map: &HashMap<usize, C>,
@@ -265,8 +264,7 @@ pub fn compute_landmarks_and_reprojection_maps<C: Camera<Float> + Clone, Feat: F
     let mut first_landmark_sighting_map =
         HashMap::<usize,usize>::with_capacity(match_map.len());
 
-    let path_pairs = conversions::compute_path_id_pairs(root, paths);
-    for path in &path_pairs {
+    for path in path_pairs {
         for path_pair in path {
 
             let se3 = pose_map.get(path_pair).expect(format!("triangulate_matches: pose not found with key: ({:?})",path_pair).as_str()).to_matrix();

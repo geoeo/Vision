@@ -118,10 +118,10 @@ impl<C: Camera<Float> + Clone, Feat: Feature>
         };
         
         //TODO: Maybe remove this completely and the rejection be handled exclusively by filtring 
+        let path_pairs = conversions::compute_path_id_pairs(root, &paths);
         let (landmark_map, reprojection_error_map, first_landmark_sighting_map) =
             compute_landmarks_and_reprojection_maps(
-                root,
-                &paths,
+                &path_pairs,
                 &pose_map,
                 &match_norm_map,
                 &camera_norm_map,
