@@ -45,7 +45,7 @@ impl<
         }
     }
 
-    /**
+    /* *
      * In the format [f1_cam1, f1_cam2,...]
      * Some entries may be 0 since not all cams see all points
      * */
