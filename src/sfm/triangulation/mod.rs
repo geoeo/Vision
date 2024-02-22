@@ -16,18 +16,17 @@ pub enum Triangulation {
 }
 
 /**
- * For a path pair (1,2) triangulates the feature in coordinate system of 1
+ * For a path pair (1,2) triangulates the feature in coordinate system of 1, not world. Neccessary due to current pipeline definition
  */
 pub fn triangulate_matches<Feat: Feature, C: Camera<Float>>(
     path_pair: (usize, usize), 
-    pose_map: &HashMap<(usize, usize), Isometry3<Float>>,
+    abs_pose_map: &HashMap<usize, Isometry3<Float>>,
     match_map: &HashMap<(usize, usize), Vec<Match<Feat>>>,
     camera_map: &HashMap<usize, C>, 
     triangulation_mode: Triangulation) 
     -> Vec::<EuclideanLandmark<Float>> {
 
 
-    let pose = pose_map.get(&path_pair).expect(format!("triangulate_matches: pose not found with key: ({:?})",path_pair).as_str()).to_matrix();
     let matches = match_map.get(&path_pair).expect(format!("triangulate_matches: matches not found with key: ({:?})",path_pair).as_str());
 
     let mut image_points_s = Matrix2xX::<Float>::zeros(matches.len());
@@ -43,14 +42,17 @@ pub fn triangulate_matches<Feat: Feature, C: Camera<Float>>(
     }
     
     let cam_1 = camera_map.get(&path_pair.0).expect("triangulate_matches: camera 1 not found");
+    let pose_1 = abs_pose_map.get(&path_pair.0).expect("triangulate_matches: pose 1 not found").to_matrix();
+    let pose_1_inv = abs_pose_map.get(&path_pair.0).expect("triangulate_matches: pose 1 not found").inverse().to_matrix();
     let cam_2 = camera_map.get(&path_pair.1).expect("triangulate_matches: camera 2 not found");
+    let pose_2 = abs_pose_map.get(&path_pair.1).expect("triangulate_matches: pose 2 not found").to_matrix();
 
     let c1_intrinsics = cam_1.get_projection();
     let c2_intrinsics = cam_2.get_projection();
     let c1_inverse_intrinsics = cam_1.get_inverse_projection();
     let c2_inverse_intrinsics = cam_2.get_inverse_projection();
-    let transform_c1 = Matrix4::<Float>::identity().fixed_view::<3,4>(0,0).into_owned();
-    let transform_c2 = pose.fixed_view::<3,4>(0,0).into_owned();
+    let transform_c1 = pose_1.fixed_view::<3,4>(0,0).into_owned();
+    let transform_c2 = pose_2.fixed_view::<3,4>(0,0).into_owned();
     let projection_1 = c1_intrinsics*transform_c1;
     let projection_2 = c2_intrinsics*transform_c2;
 
@@ -59,11 +61,14 @@ pub fn triangulate_matches<Feat: Feature, C: Camera<Float>>(
     let pixel_error = 5.0; //TODO: configure this
 
     //TODO: Try to streamline > 2 views for applicable methods
-    let landmarks = match triangulation_mode {
+
+    // Transform the landmarks from world into the frame of cam 1. 
+    let landmarks = pose_1_inv * match triangulation_mode {
         Triangulation::LINEAR => linear_triangulation_svd(&vec!((&image_points_s,&projection_1),(&image_points_f,&projection_2)), true),
         Triangulation::STEREO => stereo_triangulation((&image_points_s,&projection_1),(&image_points_f,&projection_2),f0,f0_prime, true).expect("get_euclidean_landmark_state: Stereo Triangulation Failed"),
-        Triangulation::LOST => linear_triangulation_lost(&vec!((&image_points_s,&c1_inverse_intrinsics,&Matrix4::<Float>::identity()),(&image_points_f,&c2_inverse_intrinsics,&pose)), pixel_error)
+        Triangulation::LOST => linear_triangulation_lost(&vec!((&image_points_s,&c1_inverse_intrinsics,&pose_1),(&image_points_f,&c2_inverse_intrinsics,&pose_2)), pixel_error)
     };
+
 
     let mut euclidean_landmarks = Vec::<EuclideanLandmark<Float>>::with_capacity(matches.len());
 
@@ -257,7 +262,6 @@ pub fn linear_triangulation_lost(image_points_and_projections: &Vec<(&Matrix2xX<
         let mut b = DVector::<Float>::zeros(2*n_cams);
         for j in 0..n_cams {
             let companion_idx = pick_companion_camera(j,&camera_indices,&mut sampling);
-            // The transform transforms a point from coordiante system i to reference cam, which is 0 in our case
             let (points, inverse_intrinsics, transform_zero_i) = image_points_and_projections[j];
             let (points_companion, inverse_intrinsics_companion, transform_zero_i_companion) = image_points_and_projections[companion_idx];
 

@@ -32,6 +32,7 @@ pub fn filter_config<C: Camera<Float> + Clone, Feat: Feature> (
     let mut match_map = ba_config.match_map().clone();
     let mut match_norm_map = ba_config.match_norm_map().clone();
     let mut pose_map = ba_config.pose_map().clone();
+    let mut abs_pose_map = ba_config.abs_pose_map().clone();
     let root = ba_config.root();
     let camera_map = ba_config.camera_map().clone();
     let camera_norm_map = ba_config.camera_norm_map().clone();
@@ -57,8 +58,6 @@ pub fn filter_config<C: Camera<Float> + Clone, Feat: Feature> (
     println!("BA Config - Filtering: Max Reprojection Error 2): {}, Min Reprojection Error: {}", max_reprojection_error_outlier, min_reprojection_error_outlier);
 
     let mut unique_landmark_ids = landmark_map.values().map(|l_vec| l_vec).flatten().map(|l| l.get_id().expect("No id")).collect::<HashSet<_>>();
-
-    let mut abs_pose_map = conversions::compute_absolute_poses_for_root(root, &paths_pairs, &pose_map);
 
     if run_outlier_detection_pipeline {
         let tol = 5.0
@@ -96,8 +95,9 @@ pub fn filter_config<C: Camera<Float> + Clone, Feat: Feature> (
 
     if refine_rotation_via_rcd {
         let new_pose_map = refine_rotation_by_rcd(root, &paths, &pose_map);
+        let new_abs_pose_map = conversions::compute_absolute_poses_for_root(root, &paths_pairs, &new_pose_map);
         let path_pairs = conversions::compute_path_id_pairs(root, &paths);
-        let mut new_landmark_map = compute_landmark_maps(&path_pairs, &pose_map, &match_map, &camera_map, triangulation);
+        let mut new_landmark_map = compute_landmark_maps(&path_pairs, &new_abs_pose_map, &match_map, &camera_map, triangulation);
         let mut new_reprojection_error_map =
             compute_reprojection_maps(
                 &path_pairs,
@@ -118,6 +118,7 @@ pub fn filter_config<C: Camera<Float> + Clone, Feat: Feature> (
                 pose_map.insert(key, new_pose_map.get(&key).unwrap().clone());
             }
         }
+        abs_pose_map = conversions::compute_absolute_poses_for_root(root, &paths_pairs, &pose_map);
         if run_outlier_detection_pipeline {
             let new_rejected_camera_ids = reject_landmark_outliers(
                 &mut landmark_map,
@@ -243,7 +244,7 @@ pub fn refine_rotation_by_rcd(
 
 pub fn compute_landmark_maps<C: Camera<Float> + Clone, Feat: Feature>(
     path_pairs: &Vec<Vec<(usize,usize)>>,
-    pose_map: &HashMap<(usize, usize), Isometry3<Float>>,
+    pose_map: &HashMap<usize, Isometry3<Float>>,
     match_map: &HashMap<(usize, usize), Vec<Match<Feat>>>,
     camera_map: &HashMap<usize, C>,
     triangulation: Triangulation,
@@ -261,6 +262,8 @@ pub fn compute_landmark_maps<C: Camera<Float> + Clone, Feat: Feature>(
                 &camera_map,
                 triangulation,
             );
+
+
 
             landmark_map.insert(*path_pair, landmarks);
         }

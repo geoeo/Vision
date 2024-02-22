@@ -118,7 +118,10 @@ impl<C: Camera<Float> + Clone, Feat: Feature>
         
         //TODO: Maybe remove this completely and the rejection be handled exclusively by filtring 
         let path_pairs = conversions::compute_path_id_pairs(root, &paths);
-        let landmark_map = compute_landmark_maps(&path_pairs, &pose_map, &match_map, &camera_map, triangulation);
+        let abs_pose_map = conversions::compute_absolute_poses_for_root(root, &paths_pairs, &pose_map);
+
+
+        let landmark_map = compute_landmark_maps(&path_pairs, &abs_pose_map, &match_map, &camera_map, triangulation);
         let reprojection_error_map =
             compute_reprojection_maps(
                 &path_pairs,
@@ -135,7 +138,6 @@ impl<C: Camera<Float> + Clone, Feat: Feature>
             max_reprojection_error_initial, min_reprojection_error_initial
         );
 
-        let abs_pose_map = conversions::compute_absolute_poses_for_root(root, &paths_pairs, &pose_map);
 
         BAConfig {
             root,
