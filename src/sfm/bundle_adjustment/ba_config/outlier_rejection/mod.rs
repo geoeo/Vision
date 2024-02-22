@@ -1,21 +1,28 @@
 extern crate nalgebra as na;
 
-use na::{DVector,Matrix3x4,Matrix4xX};
+use na::{DVector,Matrix3x4,Vector4};
 use crate::image::features::{matches::Match,Feature};
 use crate::sensors::camera::Camera;
 use crate::{float,Float};
-use crate::sfm::landmark::euclidean_landmark::EuclideanLandmark;
+use crate::sfm::landmark::{euclidean_landmark::EuclideanLandmark, Landmark};
 use std::collections::{HashMap,HashSet};
 
 pub mod dual;
 
-pub fn calculate_reprojection_errors<Feat: Feature, C: Camera<Float>>(landmarks: &Matrix4xX<Float>, matches: &Vec<Match<Feat>>, transform_c1: &Matrix3x4<Float>, cam_1 :&C, transform_c2: &Matrix3x4<Float>, cam_2 :&C) -> DVector<Float> {
-    let landmark_count = landmarks.ncols();
+pub fn calculate_reprojection_errors<Feat: Feature, C: Camera<Float>>(landmarks: &Vec::<EuclideanLandmark<Float>>, matches: &Vec<Match<Feat>>, transform_c1: &Matrix3x4<Float>, cam_1 :&C, transform_c2: &Matrix3x4<Float>, cam_2 :&C) -> DVector<Float> {
+    let landmark_count = landmarks.len();
     let mut reprojection_errors = DVector::<Float>::zeros(landmark_count);
 
-    for i in 0..landmarks.ncols() {
-        let p = landmarks.fixed_columns::<1>(i).into_owned();
+    for i in 0..landmark_count {
+        let l = landmarks[i];
+        let l_vector = l.get_state_as_vector();
+        let p = Vector4::<Float>::new(l_vector[0],l_vector[1],l_vector[2],1.0);
         let m = &matches[i];
+        
+        assert!(m.get_landmark_id().is_some());
+        assert!(l.get_id().is_some());
+        assert_eq!(l.get_id().unwrap(),m.get_landmark_id().unwrap());
+
         let feat_1 = &m.get_feature_one().get_as_2d_point();
         let feat_2 = &m.get_feature_two().get_as_2d_point();
         let p_cam_1 = transform_c1*p;

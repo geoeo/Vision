@@ -3,6 +3,7 @@ extern crate nalgebra as na;
 use std::collections::{HashMap,HashSet};
 use rand::{rngs::SmallRng, SeedableRng, Rng};
 use na::{Matrix4,Matrix3,Vector3, SMatrix,DVector, SVector,MatrixXx3,Matrix4xX,MatrixXx4,Matrix2xX,OMatrix,RowOVector,U3,U4};
+use crate::sfm::landmark::{euclidean_landmark::EuclideanLandmark, Landmark};
 use crate::image::features::{matches::Match,Feature};
 use crate::sensors::camera::Camera;
 use crate::Float;
@@ -18,8 +19,8 @@ pub enum Triangulation {
  * For a path pair (1,2) triangulates the feature in coordinate system of 1
  */
 pub fn triangulate_matches<Feat: Feature, C: Camera<Float>>(path_pair: (usize, usize), pose: &Matrix4<Float>, 
-    matches: & Vec<Match<Feat>>, camera_map: &HashMap<usize, C>, triangulation_mode: Triangulation) 
-    -> Matrix4xX<Float> {
+    matches: &Vec<Match<Feat>>, camera_map: &HashMap<usize, C>, triangulation_mode: Triangulation) 
+    -> Vec::<EuclideanLandmark<Float>> {
     let mut image_points_s = Matrix2xX::<Float>::zeros(matches.len());
     let mut image_points_f = Matrix2xX::<Float>::zeros(matches.len());
     
@@ -55,7 +56,17 @@ pub fn triangulate_matches<Feat: Feature, C: Camera<Float>>(path_pair: (usize, u
         Triangulation::LOST => linear_triangulation_lost(&vec!((&image_points_s,&c1_inverse_intrinsics,&Matrix4::<Float>::identity()),(&image_points_f,&c2_inverse_intrinsics,pose)), pixel_error)
     };
 
-    landmarks
+    let mut euclidean_landmarks = Vec::<EuclideanLandmark<Float>>::with_capacity(matches.len());
+
+    for i in 0..matches.len() {
+        let l = landmarks.column(i);
+        let id = matches[i].get_landmark_id();
+        assert!(id.is_some());
+        let l = EuclideanLandmark::from_state_with_id(l.fixed_rows::<3>(0).into_owned(), &id);
+        euclidean_landmarks.push(l);
+    }
+
+    euclidean_landmarks
 }
 
 //TODO: maybe split up sign change

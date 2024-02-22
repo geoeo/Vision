@@ -272,7 +272,7 @@ pub fn compute_landmarks_and_reprojection_maps<C: Camera<Float> + Clone, Feat: F
             let se3 = pose_map.get(path_pair).expect(format!("triangulate_matches: pose not found with key: ({:?})",path_pair).as_str()).to_matrix();
             let ms = match_map.get(path_pair).expect(format!("triangulate_matches: matches not found with key: ({:?})",path_pair).as_str());
 
-            let trigulated_matches = triangulate_matches(
+            let landmarks = triangulate_matches(
                 *path_pair,
                 &se3,
                 &ms,
@@ -280,15 +280,10 @@ pub fn compute_landmarks_and_reprojection_maps<C: Camera<Float> + Clone, Feat: F
                 triangulation,
             );
             
-            let mut landmarks = Vec::<EuclideanLandmark<Float>>::with_capacity(ms.len());
-            for i in 0..ms.len(){
-                let l = trigulated_matches.column(i);
-                let id = ms[i].get_landmark_id();
-                assert!(id.is_some());
-                let landmark = EuclideanLandmark::from_state_with_id(l.fixed_rows::<3>(0).into_owned(), &id);
-                landmarks.push(landmark);
-                if first_landmark_sighting_map.get(&id.unwrap()).is_none() {
-                    first_landmark_sighting_map.insert(id.unwrap(), path_pair.0);
+            for l in &landmarks {
+                let id = l.get_id().expect("No landmark id found");
+                if first_landmark_sighting_map.get(&id).is_none() {
+                    first_landmark_sighting_map.insert(id, path_pair.0);
                 }
             }
 
@@ -310,7 +305,7 @@ pub fn compute_landmarks_and_reprojection_maps<C: Camera<Float> + Clone, Feat: F
                 .into_owned();
             let transform_c2 = se3.fixed_view::<3, 4>(0, 0).into_owned();
             let reprojection_errors = calculate_reprojection_errors(
-                &trigulated_matches,
+                &landmarks,
                 ms,
                 &transform_c1,
                 cam_1,

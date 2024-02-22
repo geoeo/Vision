@@ -21,7 +21,7 @@ use crate::sfm::{
 };
 use crate::image::pyramid::ba::ba_pyramid::BAPyramid;
 use crate::Float;
-use na::{DVector, Isometry3, Matrix3, Matrix4, Matrix4xX};
+use na::{DVector, Isometry3, Matrix3, Matrix4};
 use std::collections::{HashMap, HashSet};
 
 pub mod conversions;
@@ -116,7 +116,8 @@ impl<C: Camera<Float> + Clone, Feat: Feature>
                 epipolar_alg,
             ),
         };
- 
+        
+        //TODO: Maybe remove this completely and the rejection be handled exclusively by filtring 
         let (landmark_map, reprojection_error_map, first_landmark_sighting_map) =
             compute_landmarks_and_reprojection_maps(
                 root,
@@ -255,17 +256,9 @@ impl<C: Camera<Float> + Clone, Feat: Feature>
         let cam_2 = self.camera_norm_map.get(cam_id_2).expect("Cam id 2 not found");
         let ms = self.match_norm_map.get(&key).expect("Matches not found");
         let transform_c2 = self.pose_map.get(&key).expect("No cam pose").inverse();
-        let mut landmarks_as_matrix = Matrix4xX::<Float>::from_element(number_of_landmarks, 1.0);
-
-        for i in 0..new_relative_landmarks.len(){
-            let l = new_relative_landmarks[i].get_state_as_vector();
-            landmarks_as_matrix[(0,i)] = l.x;
-            landmarks_as_matrix[(1,i)] = l.y;
-            landmarks_as_matrix[(2,i)] = l.z;
-        }
 
         let mut new_reprojection_errors = calculate_reprojection_errors(
-            &landmarks_as_matrix, 
+            &new_relative_landmarks, 
             ms,
             &Matrix4::<Float>::identity().fixed_view::<3, 4>(0, 0).into_owned(),
             cam_1,
