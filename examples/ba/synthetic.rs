@@ -121,7 +121,7 @@ fn main() -> Result<()> {
     //TODO: Add GT Landmarks
     let mut ba_config_fundamental = BAConfig::new(root_id, &paths, pose_map_gt_option , camera_map, &match_map, 
         BifocalType::FUNDAMENTAL, Triangulation::LOST, 1.0, 2e0, false, image_width, image_height); 
-    let mut sfm_config_fundamental = filter_config(&mut ba_config_fundamental, 3e4, false, true, Triangulation::LOST);
+    let mut sfm_config_fundamental = filter_config(&mut ba_config_fundamental, 3e5, false, true, Triangulation::LOST);
     
     let initial_z = sfm_config_fundamental.pose_map().get(&camera_id_pairs[0]).unwrap().translation.z;
     for (key, pose) in sfm_config_fundamental.pose_map().iter() {

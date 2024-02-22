@@ -246,8 +246,6 @@ impl<C: Camera<Float> + Clone, Feat: Feature>
             }
         }).all(|v| v));
 
-        let number_of_landmarks = new_relative_landmarks.len();
-
         let cam_1 = self.camera_norm_map.get(cam_id_1).expect("Cam id 1 not found");
         let cam_2 = self.camera_norm_map.get(cam_id_2).expect("Cam id 2 not found");
         let ms = self.match_norm_map.get(&key).expect("Matches not found");
@@ -265,7 +263,7 @@ impl<C: Camera<Float> + Clone, Feat: Feature>
         let current_reprojection_errors = self.reprojection_error_map.get(&key).unwrap();
         let deltas = &new_reprojection_errors - current_reprojection_errors;
 
-        for i in 0..number_of_landmarks {
+        for i in 0..ms.len() {
             let delta = deltas[i];
             if delta > 0.0 {
                 new_reprojection_errors[i] = current_reprojection_errors[i];
