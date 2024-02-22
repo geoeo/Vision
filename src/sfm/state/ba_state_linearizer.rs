@@ -21,9 +21,8 @@ pub struct BAStateLinearizer {
 }
 
 impl BAStateLinearizer {
-    pub fn new(paths: &Vec<(usize,usize)>, abs_landmark_map: &HashMap<(usize,usize), Vec<EuclideanLandmark<Float>>>) -> BAStateLinearizer {
+    pub fn new(paths: &Vec<(usize,usize)>, unique_landmark_id_set: &HashSet<usize>) -> BAStateLinearizer {
         let cam_id_set = paths.iter().map(|(v1,v2)| vec![*v1,*v2]).flatten().collect::<HashSet<_>>();
-        let unique_landmark_id_set = paths.iter().map(|p| abs_landmark_map.get(p).expect("No landmarks for path")).flatten().map(|l| l.get_id().expect("No id")).collect::<HashSet<_>>();
 
         let mut camera_to_linear_id_map = HashMap::<usize, usize>::with_capacity(cam_id_set.len());
         let mut landmark_to_linear_id_map = HashMap::<usize, usize>::with_capacity(unique_landmark_id_set.len());

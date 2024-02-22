@@ -39,7 +39,7 @@ pub fn run_ba<
     
     let abs_landmark_map = generate_abs_landmark_map(sfm_config.root(),sfm_config.paths(),sfm_config.landmark_map(),sfm_config.abs_pose_map());
     let paths = trajectories.clone().into_iter().flatten().collect::<Vec<(usize,usize)>>();
-    let state_linearizer = BAStateLinearizer::new(&paths,&abs_landmark_map);
+    let state_linearizer = BAStateLinearizer::new(&paths,&sfm_config.unique_landmark_ids());
 
     let (tx_result, rx_result) = mpsc::channel::<(State<F, EuclideanLandmark<F>, 3>,Option<Vec<(Vec<[F; CAMERA_PARAM_SIZE]>, Vec<[F; 3]>)>>)>();
     let (tx_abort, rx_abort) = mpsc::channel::<bool>();
