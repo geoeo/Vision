@@ -95,9 +95,8 @@ pub fn filter_config<C: Camera<Float> + Clone, Feat: Feature> (
 
     if refine_rotation_via_rcd {
         let new_pose_map = refine_rotation_by_rcd(root, &paths, &pose_map);
-        let new_abs_pose_map = conversions::compute_absolute_poses_for_root(root, &paths_pairs, &new_pose_map);
         let path_pairs = conversions::compute_path_id_pairs(root, &paths);
-        let mut new_landmark_map = compute_landmark_maps(&path_pairs, &new_abs_pose_map, &match_map, &camera_map, triangulation);
+        let mut new_landmark_map = compute_landmark_maps(&path_pairs, &new_pose_map, &match_map, &camera_map, triangulation);
         let mut new_reprojection_error_map =
             compute_reprojection_maps(
                 &path_pairs,
@@ -244,7 +243,7 @@ pub fn refine_rotation_by_rcd(
 
 pub fn compute_landmark_maps<C: Camera<Float> + Clone, Feat: Feature>(
     path_pairs: &Vec<Vec<(usize,usize)>>,
-    pose_map: &HashMap<usize, Isometry3<Float>>,
+    pose_map: &HashMap<(usize,usize), Isometry3<Float>>,
     match_map: &HashMap<(usize, usize), Vec<Match<Feat>>>,
     camera_map: &HashMap<usize, C>,
     triangulation: Triangulation,
@@ -255,9 +254,14 @@ pub fn compute_landmark_maps<C: Camera<Float> + Clone, Feat: Feature>(
 
     for path in path_pairs {
         for path_pair in path {
+            let root = path_pair.0;
+            let sub_path = vec!(vec!(*path_pair));
+            let abs_pose_map = conversions::compute_absolute_poses_for_root(root, &sub_path, &pose_map);
+
+            //TODO: need to ensure that the matches are the intersection of all triangulated views. Maybe even do this before when matches are built!
             let landmarks = triangulate_matches(
-                *path_pair,
-                pose_map,
+                vec!(*path_pair),
+                &abs_pose_map,
                 match_map,
                 &camera_map,
                 triangulation,
