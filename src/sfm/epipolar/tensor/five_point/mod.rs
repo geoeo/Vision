@@ -143,7 +143,7 @@ pub fn cheirality_check<T: Feature>(
                 let p1_points = points_cam_1.0;
                 let p2_points = points_cam_2.0;
         
-                let Xs_option = Some(linear_triangulation_svd(&vec!((&p1_points,&projection_1),(&p2_points,&projection_2)), false));
+                let Xs_option = Some(linear_triangulation_svd(&vec!((&p1_points,projection_1),(&p2_points,projection_2)), false));
         
                 match Xs_option {
                     Some(Xs) => {

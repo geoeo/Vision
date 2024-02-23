@@ -19,64 +19,105 @@ pub enum Triangulation {
  * For a path pair (1,2) triangulates the feature in coordinate system of 1, not world. Neccessary due to current pipeline definition
  */
 pub fn triangulate_matches<Feat: Feature, C: Camera<Float>>(
-    path_pair: (usize, usize), 
+    path_pairs: Vec<(usize, usize)>, 
     abs_pose_map: &HashMap<usize, Isometry3<Float>>,
     match_map: &HashMap<(usize, usize), Vec<Match<Feat>>>,
     camera_map: &HashMap<usize, C>, 
     triangulation_mode: Triangulation) 
     -> Vec::<EuclideanLandmark<Float>> {
 
+    let (mut data_left, data_right) : (Vec<_>, Vec<_>) = path_pairs.iter().map(|path_pair| {
+        let matches = match_map.get(&path_pair).expect(format!("triangulate_matches: matches not found with key: ({:?})",path_pair).as_str());
 
-    let matches = match_map.get(&path_pair).expect(format!("triangulate_matches: matches not found with key: ({:?})",path_pair).as_str());
+        let mut image_points_s = Matrix2xX::<Float>::zeros(matches.len());
+        let mut image_points_f = Matrix2xX::<Float>::zeros(matches.len());
+        let mut match_ids = Vec::<usize>::with_capacity(matches.len());
+        
+        // The position of the match in its vector indexes the value in the matrix
+        for i in 0..matches.len() {
+            let m = &matches[i];
+            let feat_s = m.get_feature_one().get_as_2d_point();
+            let feat_f = m.get_feature_two().get_as_2d_point();
+            image_points_s.column_mut(i).copy_from(&feat_s);
+            image_points_f.column_mut(i).copy_from(&feat_f);
+            match_ids.push(m.get_landmark_id().expect("No landmark id for triangulated match"));
+        }
+        
+        let cam_1 = camera_map.get(&path_pair.0).expect("triangulate_matches: camera 1 not found");
+        let pose_1 = abs_pose_map.get(&path_pair.0).expect("triangulate_matches: pose 1 not found");
+        let cam_2 = camera_map.get(&path_pair.1).expect("triangulate_matches: camera 2 not found");
+        let pose_2 = abs_pose_map.get(&path_pair.1).expect("triangulate_matches: pose 2 not found");
 
-    let mut image_points_s = Matrix2xX::<Float>::zeros(matches.len());
-    let mut image_points_f = Matrix2xX::<Float>::zeros(matches.len());
+        ((image_points_s, pose_1, cam_1, match_ids.clone()), (image_points_f, pose_2, cam_2, match_ids))
     
-    // The position of the match in its vector indexes the value in the matrix
-    for i in 0..matches.len() {
-        let m = &matches[i];
-        let feat_s = m.get_feature_one().get_as_2d_point();
-        let feat_f = m.get_feature_two().get_as_2d_point();
-        image_points_s.column_mut(i).copy_from(&feat_s);
-        image_points_f.column_mut(i).copy_from(&feat_f);
+    }).collect::<Vec<_>>().into_iter().clone().unzip();
+
+    data_left.push(data_right.last().unwrap().clone());
+
+    let data = data_left;
+
+    //Sanity check that all feature ids are exactly the same
+    let all_match_ids = data.iter().map(|(_,_,_,ids)| ids).collect::<Vec<_>>();
+    for i in 0..all_match_ids.len()-1{
+        let m_1 = all_match_ids[i];
+        let m_2 = all_match_ids[i+1];
+        assert_eq!(m_1,m_2);
     }
-    
-    let cam_1 = camera_map.get(&path_pair.0).expect("triangulate_matches: camera 1 not found");
-    let pose_1 = abs_pose_map.get(&path_pair.0).expect("triangulate_matches: pose 1 not found").to_matrix();
-    let pose_1_inv = abs_pose_map.get(&path_pair.0).expect("triangulate_matches: pose 1 not found").inverse().to_matrix();
-    let cam_2 = camera_map.get(&path_pair.1).expect("triangulate_matches: camera 2 not found");
-    let pose_2 = abs_pose_map.get(&path_pair.1).expect("triangulate_matches: pose 2 not found").to_matrix();
 
-    let c1_intrinsics = cam_1.get_projection();
-    let c2_intrinsics = cam_2.get_projection();
-    let c1_inverse_intrinsics = cam_1.get_inverse_projection();
-    let c2_inverse_intrinsics = cam_2.get_inverse_projection();
-    let transform_c1 = pose_1.fixed_view::<3,4>(0,0).into_owned();
-    let transform_c2 = pose_2.fixed_view::<3,4>(0,0).into_owned();
-    let projection_1 = c1_intrinsics*transform_c1;
-    let projection_2 = c2_intrinsics*transform_c2;
-
+    let matche_ids = all_match_ids[0];
+    let pose_root_world =  data[0].1.inverse().to_matrix();
     let f0 = 1.0;
     let f0_prime = 1.0;
     let pixel_error = 5.0; //TODO: configure this
 
-    //TODO: Try to streamline > 2 views for applicable methods
+    // Transform the landmarks from world into the frame of root cam for sequence. 
+    let landmarks =  pose_root_world* match triangulation_mode {
+        Triangulation::LINEAR => {
+            let data_vec = data.iter().map(|(image_points, pose, cam,_)| {
+                let pose_mat = pose.to_matrix();
+                let transform = pose_mat.fixed_view::<3,4>(0,0).into_owned();
+                let intrinsics = cam.get_projection();
+                let projection = intrinsics*transform;
+                (image_points,projection)
+            }).collect::<Vec<_>>();
 
-    // Transform the landmarks from world into the frame of cam 1. 
-    let landmarks = pose_1_inv * match triangulation_mode {
-        Triangulation::LINEAR => linear_triangulation_svd(&vec!((&image_points_s,&projection_1),(&image_points_f,&projection_2)), true),
-        Triangulation::STEREO => stereo_triangulation((&image_points_s,&projection_1),(&image_points_f,&projection_2),f0,f0_prime, true).expect("get_euclidean_landmark_state: Stereo Triangulation Failed"),
-        Triangulation::LOST => linear_triangulation_lost(&vec!((&image_points_s,&c1_inverse_intrinsics,&pose_1),(&image_points_f,&c2_inverse_intrinsics,&pose_2)), pixel_error)
+            linear_triangulation_svd(&data_vec, true)
+        },
+        Triangulation::STEREO => {
+            let data_vec = data.iter().map(|(image_points, pose, cam,_)| {
+                let pose_mat = pose.to_matrix();
+                let transform = pose_mat.fixed_view::<3,4>(0,0).into_owned();
+                let intrinsics = cam.get_projection();
+                let projection = intrinsics*transform;
+                (image_points,projection)
+            }).collect::<Vec<_>>();
+
+            if data_vec.len() > 2 {
+                panic!("Stereo Triangulation only defined for exactly 2 views!");
+            }  
+
+            let s_frame = data_vec[0];
+            let f_frame = data_vec[1];
+
+            stereo_triangulation(s_frame,f_frame,f0,f0_prime, true).expect("get_euclidean_landmark_state: Stereo Triangulation Failed")
+        },
+        Triangulation::LOST => {
+            let data_vec = data.iter().map(|(image_points, pose, cam,_)| {
+                let pose_mat = pose.to_matrix();
+                let inverse_intrinsics = cam.get_inverse_projection();
+                (image_points,inverse_intrinsics,pose_mat)
+            }).collect::<Vec<_>>();
+
+            linear_triangulation_lost(&data_vec, pixel_error)
+        }
     };
 
+    let mut euclidean_landmarks = Vec::<EuclideanLandmark<Float>>::with_capacity(matche_ids.len());
 
-    let mut euclidean_landmarks = Vec::<EuclideanLandmark<Float>>::with_capacity(matches.len());
-
-    for i in 0..matches.len() {
+    for i in 0..matche_ids.len() {
         let l = landmarks.column(i);
-        let id = matches[i].get_landmark_id();
-        assert!(id.is_some());
-        let l = EuclideanLandmark::from_state_with_id(l.fixed_rows::<3>(0).into_owned(), &id);
+        let id = matche_ids[i];
+        let l = EuclideanLandmark::from_state_with_id(l.fixed_rows::<3>(0).into_owned(), &Some(id));
         euclidean_landmarks.push(l);
     }
 
@@ -89,7 +130,7 @@ pub fn triangulate_matches<Feat: Feature, C: Camera<Float>>(
  * See Triangulation by Hartley et al.
  */
 #[allow(non_snake_case)]
-pub fn linear_triangulation_svd(image_points_and_projections: &Vec<(&Matrix2xX<Float>, &OMatrix<Float,U3,U4>)>, flip_points: bool) -> Matrix4xX<Float> {
+pub fn linear_triangulation_svd(image_points_and_projections: &Vec<(&Matrix2xX<Float>, OMatrix<Float,U3,U4>)>, flip_points: bool) -> Matrix4xX<Float> {
     let n_cams = image_points_and_projections.len();
     let n_points = image_points_and_projections.first().expect("linear_triangulation: no points!").0.ncols();
     let mut triangulated_points = Matrix4xX::<Float>::zeros(n_points);
@@ -149,7 +190,7 @@ pub fn linear_triangulation_svd(image_points_and_projections: &Vec<(&Matrix2xX<F
  * See 3D Rotations - Kanatani
  */
 #[allow(non_snake_case)]
-pub fn stereo_triangulation(image_points_and_projection: (&Matrix2xX<Float>, &OMatrix<Float,U3,U4>), image_points_and_projection_prime: (&Matrix2xX<Float>, &OMatrix<Float,U3,U4>), f0: Float, f0_prime: Float, flip_points: bool) -> Option<Matrix4xX<Float>> {
+pub fn stereo_triangulation(image_points_and_projection: (&Matrix2xX<Float>, OMatrix<Float,U3,U4>), image_points_and_projection_prime: (&Matrix2xX<Float>, OMatrix<Float,U3,U4>), f0: Float, f0_prime: Float, flip_points: bool) -> Option<Matrix4xX<Float>> {
     let (image_points, projection) =  image_points_and_projection;
     let (image_points_prime, projection_prime) =  image_points_and_projection_prime;
 
@@ -249,7 +290,7 @@ pub fn stereo_triangulation(image_points_and_projection: (&Matrix2xX<Float>, &OM
  * See https://gtsam.org/2023/02/04/lost-triangulation.html / https://arxiv.org/pdf/2205.12197.pdf
  */
 #[allow(non_snake_case)]
-pub fn linear_triangulation_lost(image_points_and_projections: &Vec<(&Matrix2xX<Float>, &Matrix3<Float>, &Matrix4<Float>)>, pixel_error: Float) -> Matrix4xX<Float> {
+pub fn linear_triangulation_lost(image_points_and_projections: &Vec<(&Matrix2xX<Float>, Matrix3<Float>, Matrix4<Float>)>, pixel_error: Float) -> Matrix4xX<Float> {
     let mut sampling = rand::rngs::SmallRng::from_entropy();
 
     let n_cams = image_points_and_projections.len();
@@ -272,7 +313,7 @@ pub fn linear_triangulation_lost(image_points_and_projections: &Vec<(&Matrix2xX<
             let pixel_pos = Vector3::<Float>::new(u,v,1.0);
             let pixel_pos_companion = Vector3::<Float>::new(u_companion,v_companion,1.0);
             let rotation = transform_zero_i.fixed_view::<3,3>(0,0);
-            let q_factor = compute_q_factor(pixel_error, inverse_intrinsics, inverse_intrinsics_companion, transform_zero_i, transform_zero_i_companion, &pixel_pos, &pixel_pos_companion);
+            let q_factor = compute_q_factor(pixel_error, &inverse_intrinsics, &inverse_intrinsics_companion, &transform_zero_i, &transform_zero_i_companion, &pixel_pos, &pixel_pos_companion);
 
             let elem_cross = (inverse_intrinsics*pixel_pos).cross_matrix();
             let a_elem = q_factor*elem_cross*rotation.transpose();
