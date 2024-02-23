@@ -18,7 +18,7 @@ pub fn compute_absolute_poses_for_root(
 
     for path in paths {
         let mut pose_acc = Isometry3::<Float>::identity();
-        abs_pose_map.insert(path[0].0, pose_acc);
+        assert_eq!(path[0].0, root);
         for key in path {
             let pose = pose_map
                 .get(key)
