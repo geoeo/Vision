@@ -1,6 +1,5 @@
 
 use std::collections::HashMap;
-use plotters::coord::combinators::IntoLinspace;
 
 use crate::image::features::Feature;
 

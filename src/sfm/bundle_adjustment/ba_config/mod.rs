@@ -57,7 +57,6 @@ impl<C: Camera<Float> + Clone, Feat: Feature>
         triangulation: Triangulation,
         perc_tresh: Float,
         epipolar_thresh: Float,
-        run_outlier_detection_pipeline: bool,
         image_width: usize,
         image_height: usize
     ) -> BAConfig<C, Feat> {
@@ -70,15 +69,10 @@ impl<C: Camera<Float> + Clone, Feat: Feature>
             &matches_with_tracks
         ));
 
+        //TODO: add option to set windows size > 2 ( 2 is implicit at the moment)
         let mut match_map =
             Self::generate_match_map_with_landmark_ids(root, &paths, matches_with_tracks);
 
-    
-        let disparity_map = Self::compute_disparity_map(root, &paths, &match_map);
-        if run_outlier_detection_pipeline {
-            //TODO: tie this to min angular distance. Currently it also triggers on Z-only motion
-            //reject_matches_via_disparity(disparity_map, &mut match_map, disparity_cutoff_thresh);
-        }
 
         //TODO: Move this out to a prior stage
         let feature_map_per_cam = Self::generate_features_per_cam(&match_map);

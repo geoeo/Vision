@@ -28,14 +28,14 @@ fn main() -> Result<()> {
     let ahlströmer = "Jonas_Ahlströmer";
     let fountain = "fountain";
     let vasa = "vasa_statue"; // transposed features
-    let ninjo = "nijo";
+    let nijo = "nijo";
     let de_guerre = "de_guerre";
     let fort_channing = "Fort_Channing_gate";
     let park_gate = "park_gate";
     let kronan = "kronan";
     let round_church = "round_church";
 
-    let olsen_dataset_name = fort_channing;
+    let olsen_dataset_name = fountain;
     let olsen_data_path = format!("{}/Olsson/{}/",runtime_conf.dataset_path,olsen_dataset_name);
 
     let feature_skip_count = 1;
@@ -67,9 +67,13 @@ fn main() -> Result<()> {
     // let paths = vec!(vec!(5,6));
     // let root_id = 4;
 
-    // fountain
+    // nijo
     // let paths = vec!(vec!(5,6,7,8));
     // let root_id = 4;
+
+    // fountain
+    let paths = vec!(vec!(5,6,7,8));
+    let root_id = 4;
 
     // park gate 
     // let paths = vec!(vec!(5,6,7,8));
@@ -85,18 +89,18 @@ fn main() -> Result<()> {
     // let root_id = 4;
 
     // Fort Channing
-    let paths = vec!(vec!(8,10));
-    let root_id = 7;
+    // let paths = vec!(vec!(8,10));
+    // let root_id = 7;
 
-    // Round Church
-    // let paths = vec!(vec!(7,8,10,11,12,13,14,15,16));
+    // // Round Church
+    // let paths = vec!(vec!(7,8,10,11,12,13));
     // let root_id = 5;
 
 
     //TODO: implement switch for loftr matches!
     let (match_map, camera_map, image_width, image_height) = olsen_data.get_data_for_sfm(root_id, &paths, positive_principal_distance, invert_focal_length, invert_y, transpose_features, feature_skip_count, olsen_dataset_name);
     let mut ba_config_fundamental = BAConfig::new(root_id, &paths, None, camera_map, &match_map, 
-    BifocalType::FUNDAMENTAL, Triangulation::LOST, 1.0, 2.0e0, false, image_width, image_height);
+    BifocalType::FUNDAMENTAL, Triangulation::LOST, 1.0, 1.0e0, image_width, image_height);
     let mut ba_config_fundamental = filter_config(&mut ba_config_fundamental,1e5, false, refince_rotation_via_rcd, Triangulation::LOST);
 
     for (key, pose) in ba_config_fundamental.pose_map().iter() {
