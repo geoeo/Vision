@@ -112,10 +112,7 @@ impl<C: Camera<Float> + Clone, Feat: Feature>
         
         //TODO: Maybe remove this completely and the rejection be handled exclusively by filtring 
         let path_pairs = conversions::compute_path_id_pairs(root, &paths);
-
-
-
-        let landmark_map = compute_landmark_maps(&path_pairs, &pose_map, &match_map, &camera_map, triangulation);
+        let landmark_map = compute_landmark_maps(&path_pairs, &pose_map, &match_norm_map, &camera_norm_map, triangulation);
         let reprojection_error_map =
             compute_reprojection_maps(
                 &path_pairs,
@@ -190,7 +187,7 @@ impl<C: Camera<Float> + Clone, Feat: Feature>
         let camera_id_map = state.get_camera_id_map();
         let world_landmarks = state.get_landmarks();
 
-        self.update_camera_state(camera_id_map, camera_positions);
+        self.update_camera_pose_state(camera_id_map, camera_positions);
 
         let cam_pair_keys = self.landmark_map().keys().map(|(id1,id2)| (*id1,*id2)).collect::<Vec<_>>();
         for (cam_1,cam_2) in cam_pair_keys {
@@ -199,7 +196,7 @@ impl<C: Camera<Float> + Clone, Feat: Feature>
     }
 
 
-    pub fn update_camera_state(&mut self, state_cam_id_map: &HashMap<usize,usize>, state_camera_positions: &Vec<Isometry3<Float>>) -> () {
+    pub fn update_camera_pose_state(&mut self, state_cam_id_map: &HashMap<usize,usize>, state_camera_positions: &Vec<Isometry3<Float>>) -> () {
 
         //First we update all absolute poses
         for (cam_id, idx) in state_cam_id_map {

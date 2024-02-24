@@ -61,7 +61,7 @@ pub fn filter_config<C: Camera<Float> + Clone, Feat: Feature> (
 
     if run_outlier_detection_pipeline {
         let tol = 5.0
-            / camera_map
+            / camera_norm_map
                 .get(&root)
                 .expect("Root Cam missing")
                 .get_focal_x(); // rougly 5 pixels //TODO expose this
@@ -101,7 +101,7 @@ pub fn filter_config<C: Camera<Float> + Clone, Feat: Feature> (
 
     // We re-triangulate regardless of rcd because matches, landmarks may have been removed by the outlier rejection
     let path_pairs = conversions::compute_path_id_pairs(root, &paths);
-    let mut new_landmark_map = compute_landmark_maps(&path_pairs, &new_pose_map, &match_map, &camera_map, triangulation);
+    let mut new_landmark_map = compute_landmark_maps(&path_pairs, &new_pose_map, &match_norm_map, &camera_norm_map, triangulation);
     let mut new_reprojection_error_map =
         compute_reprojection_maps(
             &path_pairs,
@@ -266,6 +266,7 @@ pub fn compute_landmark_maps<C: Camera<Float> + Clone, Feat: Feature>(
             let abs_pose_map = conversions::compute_absolute_poses_for_root(root, &sub_path, &pose_map);
 
             //TODO: need to ensure that the matches are the intersection of all triangulated views. Maybe even do this before when matches are built!
+            
             let landmarks = triangulate_matches(
                 vec!(*path_pair),
                 &abs_pose_map,

@@ -65,7 +65,7 @@ pub fn run_ba<
                     );
                     let some_debug_state_list = solver.solve(
                         &mut state,
-                        &camera_map,
+                        &sfm_config.camera_norm_map(),
                         &observed_features, 
                         runtime_parameters,
                         Some(&rx_abort),
@@ -91,7 +91,7 @@ pub fn run_ba<
                     );
                     let some_debug_state_list = solver.solve(
                         &mut state,
-                        &camera_map,
+                        &sfm_config.camera_norm_map(),
                         &observed_features,
                         runtime_parameters,
                         Some(&rx_abort),
