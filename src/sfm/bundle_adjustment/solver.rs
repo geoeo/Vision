@@ -1,5 +1,4 @@
 extern crate nalgebra as na;
-extern crate simba;
 extern crate num_traits;
 
 use std::collections::HashMap;
