@@ -127,8 +127,8 @@ fn main() -> Result<()> {
         debug: false,
         print: true,
         show_octave_result: true,
-        intensity_weighting_function:  Box::new(weighting::SquaredWeight {}),
-        //intensity_weighting_function:  Box::new(weighting::HuberWeight {}), 
+        //intensity_weighting_function:  Box::new(weighting::SquaredWeight {}),
+        intensity_weighting_function:  Box::new(weighting::HuberWeight {}), 
         cg_threshold: 1e-6,
         cg_max_it: 2e3 as usize
     };

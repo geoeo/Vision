@@ -59,8 +59,8 @@ fn main() -> Result<()> {
     //let camera_id_pairs = vec!((0,1));
     //let camera_id_pairs = vec!((0,2));
     //let camera_id_pairs = vec!((0,1),(1,2));
-    //let camera_id_pairs = vec!((0,1),(1,2),(2,3));
-    let camera_id_pairs = vec!((0,1),(1,2),(2,3),(3,4)); //TODO: Investigate why this leads to spurious landmarks -> Maybe its the feature tracks
+    let camera_id_pairs = vec!((0,1),(1,2),(2,3));
+    //let camera_id_pairs = vec!((0,1),(1,2),(2,3),(3,4)); //TODO: Investigate why this leads to spurious landmarks -> Maybe its the feature tracks
     //let camera_id_pairs = vec!((0,1),(1,2),(2,3),(3,4),(4,5),(5,6));
 
     let match_map = camera_id_pairs.iter().map(|(id1,id2)| {
@@ -168,9 +168,8 @@ fn main() -> Result<()> {
 
 
 
-    //let trajectories = compute_path_id_pairs(sfm_config_fundamental.root(), sfm_config_fundamental.paths());
-
-    let trajectories = vec!(vec!((0,1)));
+    let trajectories = compute_path_id_pairs(sfm_config_fundamental.root(), sfm_config_fundamental.paths());
+    //let trajectories = vec!(vec!((0,1)));
 
     let (optimized_state, state_debug_list) = run_ba::<_,6,InverseLandmark<Float>,_,_>(&sfm_config_fundamental, &runtime_parameters, &trajectories);
     sfm_config_fundamental.update_state(&optimized_state);

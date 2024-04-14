@@ -12,6 +12,9 @@ openblas-src = {version = "*", features = ["static"]}
 nalgebra = {version="*", features=["rand-no-std"]}
 nalgebra-lapack = {version ="*"}
 nalgebra-sparse = {version ="*"}
+faer = "*"
+faer-entity= "*"
+faer-ext = "*"
 rand = {version = "*", features = ["small_rng"] }
 rand_distr = "*"
 optimization_engine = "*"
@@ -30,6 +33,9 @@ termion = "*"
 [dev-dependencies]
 kiss3d = "*"
 
+[profile.dev.package.faer]
+opt-level = 3
+
 [profile.release]
 debug = 0
 strip = "none"
@@ -39,7 +45,6 @@ strip = "none"
 [profile.bench]
 debug = 2
 strip = "debuginfo"
-
 
 [[example]]
 name = "orb_ba_features"

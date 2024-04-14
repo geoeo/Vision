@@ -3,6 +3,7 @@ extern crate num_traits;
 
 use std::collections::HashMap;
 use na::{convert, DMatrix, DVector, Dyn, Matrix, Point3, VecStorage, Vector4, U4};
+use faer::Mat;
 use std::boxed::Box;
 use std::marker::{Send, Sync};
 use std::sync::mpsc;

@@ -6,6 +6,7 @@ use serde::Deserialize;
 use std::fs;
 use na::{Scalar, RealField};
 use simba::scalar::SubsetOf;
+use faer_entity::SimpleEntity;
 
 pub mod image;
 pub mod visualize;
@@ -24,8 +25,11 @@ define_float!(f64);
 
 //TODO: Check SubsetOf
 pub trait GenericFloat: Scalar + RealField + Copy + num_traits::float::Float + num_traits::NumAssign + num_traits::identities::One + num_traits::identities::Zero + SubsetOf<f64> + std::iter::Sum {}
+pub trait GenericFloatFaer: SimpleEntity + faer_entity::RealField + Copy + num_traits::float::Float + num_traits::NumAssign + num_traits::identities::One + num_traits::identities::Zero + std::iter::Sum {}
 
 impl<Float: Scalar + RealField + Copy + num_traits::float::Float + num_traits::NumAssign + num_traits::identities::One + num_traits::identities::Zero + SubsetOf<f64> + std::iter::Sum> GenericFloat for Float {}
+
+impl<Float: SimpleEntity + faer_entity::RealField + Copy + num_traits::float::Float + num_traits::NumAssign + num_traits::identities::One + num_traits::identities::Zero + std::iter::Sum> GenericFloatFaer for Float {}
 
 #[repr(u8)]
 #[derive(Debug,Copy,Clone,PartialEq)]

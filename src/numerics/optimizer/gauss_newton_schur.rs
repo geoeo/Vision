@@ -1,18 +1,19 @@
 extern crate nalgebra as na;
 extern crate num_traits;
-extern crate simba;
 
 use std::collections::HashMap;
 use std::marker::{Send,Sync};
 use std::sync::mpsc;
 use na::{DVector,DMatrix, convert};
+use faer::Mat;
+use faer_ext::*;
 use num_traits::float;
 
 use crate::sensors::camera::Camera;
 use crate::numerics::{max_norm, least_squares::{compute_cost,calc_sqrt_weight_matrix, gauss_newton_step_with_schur}};
 use crate::sfm::{landmark::Landmark,state::State};
 use crate::sfm::runtime_parameters::RuntimeParameters; 
-use crate::{GenericFloat,Float};
+use crate::{GenericFloat,Float, GenericFloatFaer};
 
 const CAMERA_PARAM_SIZE: usize = 6; //TODO make this generic with state
 
@@ -42,17 +43,19 @@ impl<F, C : Camera<Float>, L: Landmark<F,LANDMARK_PARAM_SIZE> + Send + Sync, con
     
     pub fn optimize(&self,
         state: &mut State<F,L,LANDMARK_PARAM_SIZE>, camera_map: &HashMap<usize, C>, observed_features: &DVector<F>, runtime_parameters: &RuntimeParameters<F>, abort_receiver: Option<&mpsc::Receiver<bool>>, done_transmission: Option<&mpsc::Sender<bool>>
-    ) -> Option<Vec<State<F,L,LANDMARK_PARAM_SIZE>>> where F: GenericFloat {
+    ) -> Option<Vec<State<F,L,LANDMARK_PARAM_SIZE>>> where F: GenericFloat + GenericFloatFaer {
         
 
         let max_iterations = runtime_parameters.max_iterations[0];
         let u_span = CAMERA_PARAM_SIZE*state.n_cams;
         let v_span = LANDMARK_PARAM_SIZE*state.n_points;
         
+        //TODO: use faer crate instead of nalgebra to take advantage of sparse.
+        //Also required bundle_adjustment/solver.rs and least_squares.rs
         let mut new_state = state.clone();
         let state_size = (self.compute_state_size)(state);
         let mut jacobian = DMatrix::<F>::zeros(observed_features.nrows(),state_size); // a lot of memory
-        let mut residuals = DVector::<F>::zeros(observed_features.nrows());
+        let mut residuals = Mat::<F>::zeros(observed_features.nrows(), 1);
         let mut new_residuals = DVector::<F>::zeros(observed_features.nrows());
         let mut estimated_features = DVector::<F>::zeros(observed_features.nrows());
         let mut new_estimated_features = DVector::<F>::zeros(observed_features.nrows());
@@ -113,12 +116,15 @@ impl<F, C : Camera<Float>, L: Landmark<F,LANDMARK_PARAM_SIZE> + Send + Sync, con
             g.fill(F::zero());
             delta.fill(F::zero());
 
+            let mut I_faer = Mat::<f32>::identity(8, 7);
+            let t = I_faer.as_ref().into_nalgebra();
+
             let gauss_newton_result 
                 = gauss_newton_step_with_schur::<_,_,_,_,_,_,_,LANDMARK_PARAM_SIZE, CAMERA_PARAM_SIZE>(
                     &mut target_arrowhead,
                     &mut g,
                     &mut delta,
-                    &residuals,
+                    &residuals.as_ref().into_nalgebra(),
                     &jacobian,
                     mu,
                     tau,
