@@ -1,7 +1,7 @@
 extern crate nalgebra as na;
 extern crate num_traits;
 
-use na::{convert,U1,U3, Matrix2x3,Matrix3, Vector, Vector3, base::storage::Storage};
+use na::{convert,U1,U3, Matrix2x3,Matrix2x5,Matrix3, Vector, Vector3, base::storage::Storage};
 use simba::scalar::SupersetOf;
 use crate::image::features::geometry::point::Point;
 use crate::sensors::camera::Camera; 
@@ -102,6 +102,21 @@ impl<F: GenericFloat> Camera<F> for Perspective<F> {
             },
             _ => None
         }
+    }
+
+    fn get_jacobian_with_respect_to_intrinsics<T, F2: GenericFloat + SupersetOf<F>>(&self, position: &Vector<F2,U3,T>) -> Option<Matrix2x5<F2>> where T: Storage<F2,U3,U1> {
+        let x = position[0];
+        let y = position[1];
+        let z = position[2];
+        match z {
+            z if num_traits::Float::abs(z) > F2::zero() => {
+                Some(Matrix2x5::<F2>::new(x/z,F2::zero() , y , F2::one(), F2::zero(),
+                                          F2::zero(), y/z, F2::zero() ,F2::zero(), F2::one()))
+
+            },
+            _ => None
+        }
+
     }
 
     fn project<T, F2: GenericFloat + SupersetOf<F>>(&self, position: &Vector<F2,U3,T>) -> Option<Point<F2>> where T: Storage<F2,U3,U1> {
