@@ -131,6 +131,7 @@ impl<F: GenericFloat, L: Landmark<F,T>, const T: usize> State<F,L,T> {
         let mut cam_serial = Vec::<[F; CAMERA_PARAM_SIZE]>::with_capacity(self.n_cams);
         let mut points_serial = Vec::<[F; T]>::with_capacity(self.n_points);
 
+        //TODO: Issue for change in camera param sizes
         for i in 0..self.n_cams {
             let iso = self.camera_positions[i];
             let u = iso.translation;

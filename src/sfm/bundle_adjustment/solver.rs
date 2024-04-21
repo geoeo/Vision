@@ -159,7 +159,8 @@ impl<
             )
             .expect("get_jacobian_with_respect_to_position_in_camera_frame failed!");
         let local_jacobian = projection_jacobian * lie_jacobian;
-
+        
+        //TODO: Issue for camera param size change. 
         jacobian
             .fixed_view_mut::<2, CAMERA_PARAM_SIZE>(i, j)
             .copy_from(&local_jacobian);

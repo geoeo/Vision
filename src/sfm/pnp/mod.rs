@@ -32,7 +32,7 @@ pub fn run_pnp<
     runtime_parameters: &'a RuntimeParameters<F>,
 ) -> 
     (  State<F, EuclideanLandmark<F>, 3>,
-        Option<Vec<(Vec<[F; 6]>, Vec<[F; 3]>)>>
+        Option<Vec<(Vec<[F; CAMERA_PARAM_SIZE]>, Vec<[F; 3]>)>>
 ) {
     let mut state = get_euclidean_landmark_state::<F,Feat>(pnp_config.get_landmarks(), pnp_config.get_camera_pose_option());
     let observed_features = get_observed_features(pnp_config.get_features_norm());
