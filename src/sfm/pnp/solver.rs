@@ -11,11 +11,9 @@ use crate::sensors::camera::Camera;
 use crate::sfm::runtime_parameters::RuntimeParameters;
 use crate::sfm::{
     landmark::Landmark,
-    state::State,
+    state::{State, CAMERA_PARAM_SIZE}
 };
 use crate::{GenericFloat,Float};
-
-const CAMERA_PARAM_SIZE: usize = 6; //TODO make this generic with state
 
 pub struct Solver<
     F: Copy + GenericFloat,
@@ -68,7 +66,7 @@ impl<
             );
         }
         for i in 0..n_cams {
-            let cam_idx = 6 * i;
+            let cam_idx = CAMERA_PARAM_SIZE * i;
             let pose = state.to_se3(cam_idx);
             let cam_id = state.camera_id_by_idx[i];
             let camera = camera_map.get(&cam_id).expect("Camera missing");
@@ -130,7 +128,7 @@ impl<
         let local_jacobian = projection_jacobian * lie_jacobian;
 
         jacobian
-            .fixed_view_mut::<2, 6>(i, j)
+            .fixed_view_mut::<2, CAMERA_PARAM_SIZE>(i, j)
             .copy_from(&local_jacobian);
     }
 
