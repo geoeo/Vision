@@ -213,7 +213,7 @@ fn main() -> Result<()> {
 
     let state_serialized = serde_yaml::to_string(&optimized_state.to_serial());
     let debug_states_serialized = serde_yaml::to_string(&state_debug_list);
-    std::fs::write(format!("{}/ba.txt",runtime_conf.output_path), state_serialized?).expect("Unable to write file");
+    std::fs::write(format!("{}/sfm.txt",runtime_conf.output_path), state_serialized?).expect("Unable to write file");
 
     Ok(())
 }
