@@ -165,6 +165,11 @@ impl<
             .copy_from(&local_jacobian);
     }
 
+    /**
+     * Jacobian follow the structur of Sparse Bundle Adjustment of Lourakis et al.
+        The [0, CAMERA_PARAM_SIZE * ncams) columns reprensent camera parameter values
+        [CAMERA_PARAM_SIZE * ncams, .. ) represent landmark parameter values
+     */
     fn compute_jacobian(
         state: &State<F, L, LANDMARK_PARAM_SIZE>,
         camera_map: &HashMap<usize, C>,
@@ -192,6 +197,7 @@ impl<
                     column_cam,
                     jacobian,
                 );
+
                 Self::compute_jacobian_wrt_scene_points(
                     camera,
                     state,
