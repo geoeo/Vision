@@ -158,7 +158,7 @@ fn main() -> Result<()> {
         let pnp_config_cam = ba_config_fundamental.generate_pnp_config_from_cam_id(cam_id);
         let (optimized_state_pnp, _) = run_pnp(&pnp_config_cam,&runtime_parameters_pnp);
         ba_config_fundamental.update_state(&optimized_state_pnp);
-        let cam_pos_pnp = optimized_state_pnp.get_camera_positions().first().unwrap();
+        let cam_pos_pnp = optimized_state_pnp.get_camera_positions().first().unwrap().clone();
         println!("Cam state pnp: {}", cam_pos_pnp);
     }
 

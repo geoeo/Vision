@@ -187,7 +187,7 @@ impl<C: Camera<Float> + Clone, Feat: Feature>
         let camera_id_map = state.get_camera_id_map();
         let world_landmarks = state.get_landmarks();
 
-        self.update_camera_pose_state(camera_id_map, camera_positions);
+        self.update_camera_pose_state(camera_id_map, &camera_positions);
 
         let cam_pair_keys = self.landmark_map().keys().map(|(id1,id2)| (*id1,*id2)).collect::<Vec<_>>();
         for (cam_1,cam_2) in cam_pair_keys {
