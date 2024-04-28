@@ -9,7 +9,7 @@ use crate::sensors::camera::Camera;
 use crate::sfm::{
     landmark::Landmark,
     landmark::euclidean_landmark::EuclideanLandmark, bundle_adjustment::ba_config::{BAConfig,conversions::generate_abs_landmark_map},
-    state::{State,ba_state_linearizer::BAStateLinearizer, CAMERA_PARAM_SIZE}, 
+    state::{State,ba_state_linearizer::BAStateLinearizer, cam_extrinsic_state::CAMERA_PARAM_SIZE}, 
 };
 use crate::{GenericFloat,Float};
 use std::{

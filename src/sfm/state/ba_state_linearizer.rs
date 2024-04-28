@@ -5,7 +5,7 @@ extern crate num_traits;
 use na::{convert,Vector3, Matrix3, DVector, Vector6,Isometry3, Rotation3};
 use std::collections::{HashMap,HashSet};
 use crate::image::features::{Feature, matches::Match};
-use crate::sfm::{state::{State,CAMERA_PARAM_SIZE}, landmark::{Landmark, euclidean_landmark::EuclideanLandmark, inverse_depth_landmark::InverseLandmark}};
+use crate::sfm::{state::{State,cam_extrinsic_state::CAMERA_PARAM_SIZE}, landmark::{Landmark, euclidean_landmark::EuclideanLandmark, inverse_depth_landmark::InverseLandmark}};
 use crate::sensors::camera::Camera;
 
 use crate::{Float,GenericFloat};

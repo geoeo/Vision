@@ -11,7 +11,7 @@ use crate::sensors::camera::Camera;
 use crate::sfm::runtime_parameters::RuntimeParameters;
 use crate::sfm::{
     landmark::Landmark,
-    state::{State, CAMERA_PARAM_SIZE}
+    state::{State, cam_extrinsic_state::CAMERA_PARAM_SIZE}
 };
 use crate::{GenericFloat,Float};
 

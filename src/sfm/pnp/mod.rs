@@ -7,7 +7,7 @@ use crate::image::features::Feature;
 use crate::sfm::runtime_parameters::RuntimeParameters;
 use crate::sensors::camera::Camera;
 use crate::sfm::{
-    state::{CAMERA_PARAM_SIZE,pnp_state_linearizer::{get_euclidean_landmark_state,get_observed_features}, State},
+    state::{cam_extrinsic_state::CAMERA_PARAM_SIZE,pnp_state_linearizer::{get_euclidean_landmark_state,get_observed_features}, State},
     landmark::euclidean_landmark::EuclideanLandmark, pnp::pnp_config::PnPConfig,
 };
 use crate::{GenericFloat,Float};

@@ -3,20 +3,13 @@ extern crate simba;
 
 use std::collections::HashMap;
 use na::{DVector, SMatrix, Matrix4, Vector3, Vector6, Isometry3};
-//use crate::numerics::{lie::exp_se3,pose::from_matrix};
 use crate::sfm::landmark::{Landmark,euclidean_landmark::EuclideanLandmark};
 use crate::GenericFloat;
-use cam_extrinsic_state::CameraExtrinsicState;
+use cam_extrinsic_state::{CAMERA_PARAM_SIZE, CameraExtrinsicState};
 
 pub mod ba_state_linearizer;
 pub mod pnp_state_linearizer;
 pub mod cam_extrinsic_state;
-
-
-/**
- * Format (u,w) where u is translation and w is rotation 
- */
-pub const CAMERA_PARAM_SIZE: usize = 6; 
 
 /**
  * This is ordered [cam_1,cam_2,..,cam_n,point_1,point_2,...,point_m]
@@ -53,10 +46,6 @@ impl<F: GenericFloat, L: Landmark<F,T>, const T: usize> State<F,L,T> {
         for i in 0..n_cams {
             let offset = CAMERA_PARAM_SIZE * i;
             let arr = raw_camera_parameters.fixed_rows::<CAMERA_PARAM_SIZE>(offset);
-            //TODO: Issue for change in camera param sizes
-            //let translation = Vector3::<F>::new(arr[0], arr[1], arr[2]);
-            //let axis_angle = Vector3::<F>::new(arr[3],arr[4],arr[5]);
-            //camera_parameters.push(Isometry3::new(translation, axis_angle));
             camera_parameters.push(CameraExtrinsicState::new(arr.into_owned()));
         }
         State{camera_parameters, landmarks, camera_id_map: camera_id_map.clone(),camera_id_by_idx , n_cams, n_points}
@@ -90,16 +79,7 @@ impl<F: GenericFloat, L: Landmark<F,T>, const T: usize> State<F,L,T> {
 
     pub fn update(&mut self, perturb: &DVector<F>) -> () {
         for i in 0..self.camera_parameters.len() {
-            let linear_idx = i*CAMERA_PARAM_SIZE;
-            //TODO: Issue for change in camera param sizes
-            // let u = perturb.fixed_rows::<3>(linear_idx);
-            // let w = perturb.fixed_rows::<3>(linear_idx + 3);
-            // let delta_transform = exp_se3(&u, &w);
-            
-            // let current_transform = self.camera_parameters[i].to_matrix();
-            // let new_transform = delta_transform*current_transform;
-            // let new_isometry = from_matrix(&new_transform);
-            //self.camera_parameters[i] = new_isometry;      
+            let linear_idx = i*CAMERA_PARAM_SIZE;   
             self.camera_parameters[i].update(perturb.fixed_rows::<CAMERA_PARAM_SIZE>(linear_idx).into_owned())     
         }
         
@@ -134,19 +114,7 @@ impl<F: GenericFloat, L: Landmark<F,T>, const T: usize> State<F,L,T> {
         let mut cam_serial = Vec::<[F; CAMERA_PARAM_SIZE]>::with_capacity(self.n_cams);
         let mut points_serial = Vec::<[F; T]>::with_capacity(self.n_points);
 
-        //TODO: Issue for change in camera param sizes
         for i in 0..self.n_cams {
-            // let iso = self.camera_parameters[i];
-            // let u = iso.translation;
-            // let w = iso.rotation.scaled_axis();
-            // let arr: [F; CAMERA_PARAM_SIZE] = [
-            //     u.x,
-            //     u.y,
-            //     u.z,
-            //     w.x,
-            //     w.y,
-            //     w.z,
-            // ];
             cam_serial.push(self.camera_parameters[i].to_serial());
         }
 
@@ -164,10 +132,6 @@ impl<F: GenericFloat, L: Landmark<F,T>, const T: usize> State<F,L,T> {
 
         for i in 0..cam_serial.len() {
             let arr = cam_serial[i];
-            //TODO: Issue for change in camera param sizes
-            //let translation = Vector3::<F>::new(arr[0], arr[1], arr[2]);
-            //let axis_angle = Vector3::<F>::new(arr[3],arr[4],arr[5]);
-            //camera_parameters.push(Isometry3::new(translation, axis_angle));
             let raw_state = Vector6::<F>::new(arr[0], arr[1], arr[2],arr[3],arr[4],arr[5]);
             camera_parameters.push(CameraExtrinsicState::<F>::new(raw_state));
 
