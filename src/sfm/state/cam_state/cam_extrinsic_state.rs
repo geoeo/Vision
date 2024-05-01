@@ -13,9 +13,7 @@ pub struct CameraExtrinsicState<F: GenericFloat> {
     state: Isometry3<F>
 }
 
-impl<F: GenericFloat> CamState<F,6> for CameraExtrinsicState<F> {
-    const CAMERA_PARAM_SIZE: usize = 6; 
-
+impl<F: GenericFloat> CamState<F,CAMERA_PARAM_SIZE> for CameraExtrinsicState<F> {
     fn new(raw_state: Vector6<F>) -> CameraExtrinsicState<F> {
         let translation = Vector3::<F>::new(raw_state[0], raw_state[1], raw_state[2]);
         let axis_angle = Vector3::<F>::new(raw_state[3],raw_state[4],raw_state[5]);
