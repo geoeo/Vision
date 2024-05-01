@@ -1,5 +1,4 @@
 pub mod bundle_adjustment;
-pub mod landmark;
 pub mod epipolar;
 pub mod triangulation;
 pub mod quest;

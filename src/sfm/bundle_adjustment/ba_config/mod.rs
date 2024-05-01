@@ -6,8 +6,7 @@ use crate::image::features::{
 };
 use crate::sensors::camera::Camera;
 use crate::sfm::bundle_adjustment::ba_config::filtering::{compute_reprojection_ranges, compute_reprojection_maps, compute_landmark_maps};
-use crate::sfm::landmark::{Landmark, euclidean_landmark::EuclideanLandmark};
-use crate::sfm::state::{State,cam_extrinsic_state::{CAMERA_PARAM_SIZE,CameraExtrinsicState}};
+use crate::sfm::state::{State,cam_state::cam_extrinsic_state::{CAMERA_PARAM_SIZE,CameraExtrinsicState},landmark::{Landmark, euclidean_landmark::EuclideanLandmark}};
 use crate::sfm::bundle_adjustment::ba_config::outlier_rejection::{
     calcualte_disparities, calculate_reprojection_errors,
     filter_by_rejected_landmark_ids,

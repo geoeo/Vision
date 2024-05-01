@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use crate::image::features::{Feature, compute_linear_normalization};
 use crate::sensors::camera::Camera;
 use crate::Float;
-use crate::sfm::landmark::euclidean_landmark::EuclideanLandmark;
+use crate::sfm::state::landmark::euclidean_landmark::EuclideanLandmark;
 
 
 pub struct PnPConfig<C, Feat: Feature> {

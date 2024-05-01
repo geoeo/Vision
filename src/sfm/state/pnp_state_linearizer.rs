@@ -4,7 +4,7 @@ extern crate simba;
 use std::collections::HashMap;
 use na::{convert,Vector3,Vector2, DVector, Isometry3};
 use crate::image::features::Feature;
-use crate::sfm::{state::{State,cam_extrinsic_state::CAMERA_PARAM_SIZE, cam_extrinsic_state::CameraExtrinsicState}, landmark::{Landmark, euclidean_landmark::EuclideanLandmark}};
+use crate::sfm::state::{State,cam_state::{cam_extrinsic_state::CAMERA_PARAM_SIZE, cam_extrinsic_state::CameraExtrinsicState},landmark::{Landmark, euclidean_landmark::EuclideanLandmark}};
 use crate::{Float,GenericFloat};
 
 pub fn get_euclidean_landmark_state<F: GenericFloat, Feat: Feature>(

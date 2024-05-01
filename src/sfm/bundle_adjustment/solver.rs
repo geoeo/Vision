@@ -11,7 +11,7 @@ use crate::numerics::lie::left_jacobian_around_identity;
 use crate::numerics::optimizer::gauss_newton_schur::OptimizerGnSchur;
 use crate::sensors::camera::Camera;
 use crate::sfm::{
-    landmark::Landmark,
+    state::landmark::Landmark,
     runtime_parameters::RuntimeParameters,
     state::{ba_state_linearizer, State,cam_state::CamState},
 };

@@ -7,9 +7,12 @@ use crate::image::features::Feature;
 use crate::sfm::runtime_parameters::RuntimeParameters;
 use crate::sensors::camera::Camera;
 use crate::sfm::{
-    landmark::{Landmark,euclidean_landmark::EuclideanLandmark,euclidean_landmark, inverse_depth_landmark},
     bundle_adjustment::ba_config::{BAConfig,conversions::generate_abs_landmark_map},
-    state::{State,ba_state_linearizer::BAStateLinearizer, cam_extrinsic_state::{CAMERA_PARAM_SIZE, CameraExtrinsicState}}, 
+    state::{
+        State,
+        ba_state_linearizer::BAStateLinearizer, 
+        cam_state::cam_extrinsic_state::{CAMERA_PARAM_SIZE, CameraExtrinsicState},
+        landmark::{Landmark,euclidean_landmark::EuclideanLandmark,euclidean_landmark, inverse_depth_landmark}}, 
 };
 use crate::{GenericFloat,Float};
 use std::{

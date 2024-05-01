@@ -5,7 +5,6 @@ use na::{Isometry3, Point3, SVector, SMatrix,base::Scalar};
 pub mod euclidean_landmark;
 pub mod inverse_depth_landmark;
 
-
 pub trait Landmark<F: Scalar, const LANDMARK_PARAM_SIZE: usize> {
     fn from_state_with_id(state: SVector<F,LANDMARK_PARAM_SIZE>, id: &Option<usize>) -> Self;
     fn from_state(state: SVector<F, LANDMARK_PARAM_SIZE>) -> Self; 

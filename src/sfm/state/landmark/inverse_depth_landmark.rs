@@ -5,7 +5,7 @@ extern crate num_traits;
 use na::{Vector3,Vector6,Matrix3x6, Isometry3, Point3,SVector, SMatrix,Matrix3};
 
 use crate::image::features::Feature;
-use crate::sfm::landmark::Landmark;
+use crate::sfm::state::landmark::Landmark;
 use crate::{GenericFloat,Float};
 
 pub const LANDMARK_PARAM_SIZE: usize = 6; 

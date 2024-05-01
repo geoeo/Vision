@@ -3,7 +3,7 @@ extern crate nalgebra as na;
 use std::collections::{HashMap,HashSet};
 use rand::{rngs::SmallRng, SeedableRng, Rng};
 use na::{Matrix4,Matrix3,Vector3, SMatrix,DVector, SVector,MatrixXx3,Matrix4xX,MatrixXx4,Matrix2xX,OMatrix,RowOVector,U3,U4, Isometry3};
-use crate::sfm::landmark::{euclidean_landmark::EuclideanLandmark, Landmark};
+use crate::sfm::state::landmark::{euclidean_landmark::EuclideanLandmark, Landmark};
 use crate::image::features::{matches::Match,Feature};
 use crate::sensors::camera::Camera;
 use crate::Float;

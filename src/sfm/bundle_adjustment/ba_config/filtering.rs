@@ -3,7 +3,7 @@ extern crate nalgebra as na;
 use crate::image::features::{Feature,matches::Match};
 use crate::numerics::pose::{from_matrix, se3};
 use crate::sensors::camera::Camera;
-use crate::sfm::landmark::{Landmark, euclidean_landmark::EuclideanLandmark};
+use crate::sfm::state::landmark::{Landmark, euclidean_landmark::EuclideanLandmark};
 use crate::sfm::bundle_adjustment::ba_config::outlier_rejection::{
     calcualte_disparities, calculate_reprojection_errors,
     compute_continuous_landmark_ids_from_unique_landmarks, filter_by_rejected_landmark_ids,

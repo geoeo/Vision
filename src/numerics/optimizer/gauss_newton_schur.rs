@@ -10,9 +10,8 @@ use num_traits::float;
 
 use crate::sensors::camera::Camera;
 use crate::numerics::{max_norm, least_squares::{compute_cost,calc_sqrt_weight_matrix, gauss_newton_step_with_schur}};
-use crate::sfm::{landmark::Landmark,state::State};
 use crate::sfm::runtime_parameters::RuntimeParameters; 
-use crate::sfm::state::cam_state::CamState;
+use crate::sfm::state::{cam_state::CamState,landmark::Landmark,State};
 use crate::{GenericFloat,Float};
 
 //const CAMERA_PARAM_SIZE: usize = 6; //TODO make this generic with state

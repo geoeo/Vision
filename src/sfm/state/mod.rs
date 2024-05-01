@@ -4,14 +4,14 @@ extern crate simba;
 use std::collections::HashMap;
 use std::marker::PhantomData;
 use na::{DVector, Isometry3, Matrix4, SMatrix, SVector, Vector3};
-use crate::sfm::landmark::{Landmark,euclidean_landmark::EuclideanLandmark};
 use crate::GenericFloat;
 use cam_state::CamState;
+use landmark::{Landmark,euclidean_landmark::EuclideanLandmark};
 
 pub mod ba_state_linearizer;
 pub mod pnp_state_linearizer;
 pub mod cam_state;
-pub mod cam_extrinsic_state;
+pub mod landmark;
 
 /**
  * This is ordered [cam_1,cam_2,..,cam_n,point_1,point_2,...,point_m]

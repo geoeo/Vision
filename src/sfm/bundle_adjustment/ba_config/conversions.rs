@@ -3,7 +3,7 @@ extern crate nalgebra as na;
 use na::{Isometry3, Matrix4xX};
 use std::collections::{HashMap, HashSet};
 use crate::image::features::{matches::Match, Feature};
-use crate::sfm::landmark::{Landmark, euclidean_landmark::EuclideanLandmark};
+use crate::sfm::state::landmark::{Landmark, euclidean_landmark::EuclideanLandmark};
 use crate::Float;
 
 pub fn compute_absolute_poses_for_root(

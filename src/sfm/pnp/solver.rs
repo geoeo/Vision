@@ -9,10 +9,7 @@ use std::collections::HashMap;
 use crate::numerics::{lie::left_jacobian_around_identity, optimizer::gauss_newton::OptimizerGn};
 use crate::sensors::camera::Camera;
 use crate::sfm::runtime_parameters::RuntimeParameters;
-use crate::sfm::{
-    landmark::Landmark,
-    state::{State, cam_state::CamState}
-};
+use crate::sfm::state::{State, cam_state::CamState, landmark::Landmark};
 use crate::{GenericFloat,Float};
 
 pub struct Solver<

@@ -1,7 +1,7 @@
 extern crate nalgebra as na;
 
 use na::{Isometry3, Point3, Vector3,SVector, SMatrix};
-use crate::sfm::landmark::Landmark;
+use crate::sfm::state::landmark::Landmark;
 use crate::GenericFloat;
 
 pub const LANDMARK_PARAM_SIZE: usize = 3; 
