@@ -51,7 +51,7 @@ impl BAStateLinearizer {
         abs_pose_map: &HashMap<usize, Isometry3<Float>>,
         reprojection_error_map: &HashMap<(usize, usize),DVector<Float>>,
         camera_norm_map: &HashMap<usize, C>) 
-        -> (State<F, impl Landmark<F,{inverse_depth_landmark::LANDMARK_PARAM_SIZE}>,CameraExtrinsicState<F>,6, CAMERA_PARAM_SIZE>, DVector<F>) { 
+        -> (State<F, impl Landmark<F,{inverse_depth_landmark::LANDMARK_PARAM_SIZE}>,CameraExtrinsicState<F>,{inverse_depth_landmark::LANDMARK_PARAM_SIZE}, CAMERA_PARAM_SIZE>, DVector<F>) { 
 
             let number_of_cameras = self.camera_to_linear_id_map.len();
             let number_of_unqiue_landmarks = self.landmark_to_linear_id_map.len();
@@ -147,7 +147,7 @@ impl BAStateLinearizer {
         abs_pose_map: &HashMap<usize, Isometry3<Float>>,
         abs_landmark_map: &HashMap<(usize,usize), Vec<EuclideanLandmark<Float>>>,
         reprojection_error_map: &HashMap<(usize, usize),DVector<Float>>) 
-        -> (State<F, impl Landmark<F,{euclidean_landmark::LANDMARK_PARAM_SIZE}>,CameraExtrinsicState<F>,3, CAMERA_PARAM_SIZE>, DVector<F>) {
+        -> (State<F, impl Landmark<F,{euclidean_landmark::LANDMARK_PARAM_SIZE}>,CameraExtrinsicState<F>,{euclidean_landmark::LANDMARK_PARAM_SIZE}, CAMERA_PARAM_SIZE>, DVector<F>) {
         
         let number_of_cameras = self.camera_to_linear_id_map.len();
         let number_of_unqiue_landmarks = self.landmark_to_linear_id_map.len();
