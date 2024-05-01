@@ -7,9 +7,9 @@ use crate::image::features::Feature;
 use crate::sfm::runtime_parameters::RuntimeParameters;
 use crate::sensors::camera::Camera;
 use crate::sfm::{
-    landmark::Landmark,
-    landmark::euclidean_landmark::EuclideanLandmark, bundle_adjustment::ba_config::{BAConfig,conversions::generate_abs_landmark_map},
-    state::{State,ba_state_linearizer::BAStateLinearizer, cam_extrinsic_state::CAMERA_PARAM_SIZE}, 
+    landmark::{Landmark,euclidean_landmark::EuclideanLandmark,euclidean_landmark, inverse_depth_landmark},
+    bundle_adjustment::ba_config::{BAConfig,conversions::generate_abs_landmark_map},
+    state::{State,ba_state_linearizer::BAStateLinearizer, cam_extrinsic_state::{CAMERA_PARAM_SIZE, CameraExtrinsicState}}, 
 };
 use crate::{GenericFloat,Float};
 use std::{
@@ -34,8 +34,8 @@ pub fn run_ba<
     runtime_parameters: &RuntimeParameters<F>,
     trajectories: &Vec<Vec<(usize,usize)>>
 ) -> (
-    State<F, EuclideanLandmark<F>, 3>,
-    Option<Vec<(Vec<[F; CAMERA_PARAM_SIZE]>, Vec<[F; 3]>)>>
+    State<F, EuclideanLandmark<F>,CameraExtrinsicState<F>, {euclidean_landmark::LANDMARK_PARAM_SIZE}, CAMERA_PARAM_SIZE>,
+    Option<Vec<(Vec<[F; CAMERA_PARAM_SIZE]>, Vec<[F; euclidean_landmark::LANDMARK_PARAM_SIZE]>)>>
 ) {
     
     let abs_landmark_map = generate_abs_landmark_map(sfm_config.root(),sfm_config.paths(),sfm_config.landmark_map(),sfm_config.abs_pose_map());
@@ -45,7 +45,7 @@ pub fn run_ba<
     let unique_landmark_id_set = paths.iter().map(|p| abs_landmark_map.get(p).expect("No landmarks for path")).flatten().map(|l| l.get_id().expect("No id")).collect::<HashSet<_>>();
     let state_linearizer = BAStateLinearizer::new(&paths,&unique_landmark_id_set); // This works
 
-    let (tx_result, rx_result) = mpsc::channel::<(State<F, EuclideanLandmark<F>, 3>, Option<Vec<(Vec<[F; CAMERA_PARAM_SIZE]>, Vec<[F; 3]>)>>)>();
+    let (tx_result, rx_result) = mpsc::channel::<(State<F, EuclideanLandmark<F>,CameraExtrinsicState<F>, 3,CAMERA_PARAM_SIZE>, Option<Vec<(Vec<[F; CAMERA_PARAM_SIZE]>, Vec<[F; 3]>)>>)>();
     let (tx_abort, rx_abort) = mpsc::channel::<bool>();
     let (tx_done, rx_done) = mpsc::channel::<bool>();
 
@@ -54,7 +54,7 @@ pub fn run_ba<
 
             let (s,d) = match LP {
                 3 => {
-                    let solver = solver::Solver::<F, C, _, 3>::new();
+                    let solver = solver::Solver::<F, C, _, _, {euclidean_landmark::LANDMARK_PARAM_SIZE}, CAMERA_PARAM_SIZE>::new();
                     let (mut state, observed_features) = state_linearizer.get_euclidean_landmark_state(
                         &paths,
                         sfm_config.match_norm_map(),
@@ -80,7 +80,7 @@ pub fn run_ba<
                 },
                 6 => {
 
-                    let solver = solver::Solver::<F, C, _, 6>::new();
+                    let solver = solver::Solver::<F, C, _, _, {inverse_depth_landmark::LANDMARK_PARAM_SIZE}, CAMERA_PARAM_SIZE>::new();
                     let (mut state, observed_features) = state_linearizer.get_inverse_depth_landmark_state(
                         &paths,
                         sfm_config.match_norm_map(),

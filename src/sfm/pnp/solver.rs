@@ -11,7 +11,7 @@ use crate::sensors::camera::Camera;
 use crate::sfm::runtime_parameters::RuntimeParameters;
 use crate::sfm::{
     landmark::Landmark,
-    state::{State, cam_extrinsic_state::CAMERA_PARAM_SIZE}
+    state::{State, cam_state::CamState}
 };
 use crate::{GenericFloat,Float};
 
@@ -19,20 +19,24 @@ pub struct Solver<
     F: Copy + GenericFloat,
     C: Camera<Float> + 'static,
     L: Landmark<F, LANDMARK_PARAM_SIZE> + Copy + Clone + Send + Sync + 'static,
+    CS: CamState<F,CAMERA_PARAM_SIZE> + Copy + Clone + Send + Sync + 'static,
     const LANDMARK_PARAM_SIZE: usize,
+    const CAMERA_PARAM_SIZE: usize
 >
 {
-    optimizer: OptimizerGn<F, C, L, LANDMARK_PARAM_SIZE>,
+    optimizer: OptimizerGn<F, C, L,CS, LANDMARK_PARAM_SIZE, CAMERA_PARAM_SIZE>,
 }
 
 impl<
         F: GenericFloat,
         C: Camera<Float> + 'static,
         L: Landmark<F, LANDMARK_PARAM_SIZE> + Copy + Clone + Send + Sync + 'static,
+        CP: CamState<F,CAMERA_PARAM_SIZE>  + Copy + Clone + Send + Sync + 'static,
         const LANDMARK_PARAM_SIZE: usize,
-    > Solver<F, C, L, LANDMARK_PARAM_SIZE>
+        const CAMERA_PARAM_SIZE: usize
+    > Solver<F, C, L,CP, LANDMARK_PARAM_SIZE, CAMERA_PARAM_SIZE>
 {
-    pub fn new() -> Solver<F, C, L, LANDMARK_PARAM_SIZE> {
+    pub fn new() -> Solver<F, C, L,CP, LANDMARK_PARAM_SIZE,CAMERA_PARAM_SIZE> {
         Solver {
             optimizer: OptimizerGn::new(
                 Box::new(Self::get_estimated_features),
@@ -48,7 +52,7 @@ impl<
      * Some entries may be 0 since not all cams see all points
      * */
     fn get_estimated_features(
-        state: &State<F, L, LANDMARK_PARAM_SIZE>,
+        state: &State<F, L, CP,LANDMARK_PARAM_SIZE, CAMERA_PARAM_SIZE>,
         camera_map: &HashMap<usize, C>,
         _: &DVector<F>, //TODO: remove this
         estimated_features: &mut DVector<F>,
@@ -108,7 +112,7 @@ impl<
 
     fn compute_jacobian_wrt_camera_extrinsics(
         camera: &C,
-        state: &State<F, L, LANDMARK_PARAM_SIZE>,
+        state: &State<F, L, CP, LANDMARK_PARAM_SIZE, CAMERA_PARAM_SIZE>,
         cam_idx: usize,
         point: &Point3<F>,
         i: usize,
@@ -129,11 +133,11 @@ impl<
 
         jacobian
             .fixed_view_mut::<2, CAMERA_PARAM_SIZE>(i, j)
-            .copy_from(&local_jacobian);
+            .copy_from(&local_jacobian.fixed_view::<2,CAMERA_PARAM_SIZE>(0,0));
     }
 
     fn compute_jacobian(
-        state: &State<F, L, LANDMARK_PARAM_SIZE>,
+        state: &State<F, L,CP, LANDMARK_PARAM_SIZE, CAMERA_PARAM_SIZE>,
         camera_map : &HashMap<usize, C>,
         jacobian: &mut DMatrix<F>,
     ) -> () {
@@ -163,19 +167,19 @@ impl<
         }
     }
 
-    pub fn compute_state_size(state: &State<F, L, LANDMARK_PARAM_SIZE>) -> usize {
+    pub fn compute_state_size(state: &State<F, L,CP, LANDMARK_PARAM_SIZE, CAMERA_PARAM_SIZE>) -> usize {
         CAMERA_PARAM_SIZE * state.n_cams
     }
 
     pub fn solve(
         &self,
-        state: &mut State<F, L, LANDMARK_PARAM_SIZE>,
+        state: &mut State<F, L,CP, LANDMARK_PARAM_SIZE, CAMERA_PARAM_SIZE>,
         camera_map: &HashMap<usize, C>,
         observed_features: &DVector<F>,
         runtime_parameters: &RuntimeParameters<F>,
         abort_receiver: Option<&mpsc::Receiver<bool>>,
         done_transmission: Option<&mpsc::Sender<bool>>,
-    ) -> Option<Vec<State<F, L, LANDMARK_PARAM_SIZE>>> {
+    ) -> Option<Vec<State<F, L,CP, LANDMARK_PARAM_SIZE, CAMERA_PARAM_SIZE>>> {
         self.optimizer.optimize(
             state,
             camera_map,

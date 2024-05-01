@@ -5,7 +5,8 @@ extern crate num_traits;
 use na::{convert,Vector3, Matrix3, DVector, Vector6,Isometry3, Rotation3};
 use std::collections::{HashMap,HashSet};
 use crate::image::features::{Feature, matches::Match};
-use crate::sfm::{state::{State,cam_extrinsic_state::CAMERA_PARAM_SIZE}, landmark::{Landmark, euclidean_landmark::EuclideanLandmark, inverse_depth_landmark::InverseLandmark}};
+use crate::sfm::{state::{State,cam_extrinsic_state::CAMERA_PARAM_SIZE, cam_extrinsic_state::CameraExtrinsicState}, 
+    landmark::{Landmark, euclidean_landmark,euclidean_landmark::EuclideanLandmark,inverse_depth_landmark, inverse_depth_landmark::InverseLandmark}};
 use crate::sensors::camera::Camera;
 
 use crate::{Float,GenericFloat};
@@ -50,7 +51,7 @@ impl BAStateLinearizer {
         abs_pose_map: &HashMap<usize, Isometry3<Float>>,
         reprojection_error_map: &HashMap<(usize, usize),DVector<Float>>,
         camera_norm_map: &HashMap<usize, C>) 
-        -> (State<F, impl Landmark<F,6>,6>, DVector<F>) { 
+        -> (State<F, impl Landmark<F,{inverse_depth_landmark::LANDMARK_PARAM_SIZE}>,CameraExtrinsicState<F>,6, CAMERA_PARAM_SIZE>, DVector<F>) { 
 
             let number_of_cameras = self.camera_to_linear_id_map.len();
             let number_of_unqiue_landmarks = self.landmark_to_linear_id_map.len();
@@ -146,7 +147,7 @@ impl BAStateLinearizer {
         abs_pose_map: &HashMap<usize, Isometry3<Float>>,
         abs_landmark_map: &HashMap<(usize,usize), Vec<EuclideanLandmark<Float>>>,
         reprojection_error_map: &HashMap<(usize, usize),DVector<Float>>) 
-        -> (State<F, impl Landmark<F,3>,3>, DVector<F>) {
+        -> (State<F, impl Landmark<F,{euclidean_landmark::LANDMARK_PARAM_SIZE}>,CameraExtrinsicState<F>,3, CAMERA_PARAM_SIZE>, DVector<F>) {
         
         let number_of_cameras = self.camera_to_linear_id_map.len();
         let number_of_unqiue_landmarks = self.landmark_to_linear_id_map.len();

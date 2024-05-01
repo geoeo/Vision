@@ -8,6 +8,8 @@ use crate::image::features::Feature;
 use crate::sfm::landmark::Landmark;
 use crate::{GenericFloat,Float};
 
+pub const LANDMARK_PARAM_SIZE: usize = 6; 
+
 #[derive(Copy,Clone)]
 /**
  * state: x, y, z, theta, phi, rho (inv depth)
@@ -18,23 +20,23 @@ pub struct InverseLandmark<F: GenericFloat> {
     id: Option<usize>
 }
 
-impl<F: GenericFloat> Landmark<F, 6> for InverseLandmark<F> {
+impl<F: GenericFloat> Landmark<F, LANDMARK_PARAM_SIZE> for InverseLandmark<F> {
 
-    fn from_state(state: SVector<F,6>) -> InverseLandmark<F> {
+    fn from_state(state: SVector<F,LANDMARK_PARAM_SIZE>) -> InverseLandmark<F> {
         let theta = state[3];
         let phi = state[4];
         let m = InverseLandmark::direction(theta,phi);
         InverseLandmark{state,m,id: None}
     }
 
-    fn from_state_with_id(state: SVector<F,6>, id: &Option<usize>) -> InverseLandmark<F> {
+    fn from_state_with_id(state: SVector<F,LANDMARK_PARAM_SIZE>, id: &Option<usize>) -> InverseLandmark<F> {
         let theta = state[3];
         let phi = state[4];
         let m = InverseLandmark::direction(theta,phi);
         InverseLandmark{state,m,id: *id}
     }
 
-    fn from_array(arr: &[F; 6]) -> InverseLandmark<F> {
+    fn from_array(arr: &[F; LANDMARK_PARAM_SIZE]) -> InverseLandmark<F> {
         let state = Vector6::<F>::new(arr[0],arr[1],arr[2],arr[3],arr[4],arr[5]);
         let theta = arr[3];
         let phi = arr[4];
@@ -46,7 +48,7 @@ impl<F: GenericFloat> Landmark<F, 6> for InverseLandmark<F> {
         &self.state
     }
 
-    fn get_state_as_array(&self) -> [F; 6] {
+    fn get_state_as_array(&self) -> [F; LANDMARK_PARAM_SIZE] {
         [self.state[0], self.state[1], self.state[2],self.state[3],self.state[4],self.state[5]]
     }
 
@@ -69,7 +71,7 @@ impl<F: GenericFloat> Landmark<F, 6> for InverseLandmark<F> {
         Self::from_state_with_id(state,&self.get_id())
     }
 
-    fn jacobian(&self, world_to_cam: &Isometry3<F>) -> SMatrix<F,3,6> {
+    fn jacobian(&self, world_to_cam: &Isometry3<F>) -> SMatrix<F,3,LANDMARK_PARAM_SIZE> {
         let mut jacobian = Matrix3x6::<F>::zeros();
         let rotation_matrix = world_to_cam.rotation.to_rotation_matrix();
         let (sin_theta,cos_theta) = num_traits::Float::sin_cos(self.get_theta());
@@ -87,14 +89,14 @@ impl<F: GenericFloat> Landmark<F, 6> for InverseLandmark<F> {
         rotation_matrix*jacobian
     }
 
-    fn update(&mut self, perturb: &SVector<F,6>) -> () {
+    fn update(&mut self, perturb: &SVector<F,LANDMARK_PARAM_SIZE>) -> () {
         self.state += perturb;
         let theta = self.get_theta();
         let phi = self.get_phi();
         self.m = Self::direction(theta,phi);
     }
 
-    fn set_state(&mut self, state :&SVector<F,6>) -> () {
+    fn set_state(&mut self, state :&SVector<F,LANDMARK_PARAM_SIZE>) -> () {
        self.state = state.clone();
        let theta = self.get_theta();
        let phi = self.get_phi();

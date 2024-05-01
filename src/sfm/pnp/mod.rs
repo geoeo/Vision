@@ -7,8 +7,8 @@ use crate::image::features::Feature;
 use crate::sfm::runtime_parameters::RuntimeParameters;
 use crate::sensors::camera::Camera;
 use crate::sfm::{
-    state::{cam_extrinsic_state::CAMERA_PARAM_SIZE,pnp_state_linearizer::{get_euclidean_landmark_state,get_observed_features}, State},
-    landmark::euclidean_landmark::EuclideanLandmark, pnp::pnp_config::PnPConfig,
+    state::{cam_extrinsic_state::{CAMERA_PARAM_SIZE,CameraExtrinsicState},pnp_state_linearizer::{get_euclidean_landmark_state,get_observed_features}, State},
+    landmark::{euclidean_landmark::LANDMARK_PARAM_SIZE,euclidean_landmark::EuclideanLandmark}, pnp::pnp_config::PnPConfig,
 };
 use crate::{GenericFloat,Float};
 use std::collections::HashMap;
@@ -31,21 +31,21 @@ pub fn run_pnp<
     pnp_config: &'a PnPConfig<C, Feat>,
     runtime_parameters: &'a RuntimeParameters<F>,
 ) -> 
-    (  State<F, EuclideanLandmark<F>, 3>,
-        Option<Vec<(Vec<[F; CAMERA_PARAM_SIZE]>, Vec<[F; 3]>)>>
+    (  State<F, EuclideanLandmark<F>,CameraExtrinsicState<F>, LANDMARK_PARAM_SIZE, CAMERA_PARAM_SIZE>,
+        Option<Vec<(Vec<[F; CAMERA_PARAM_SIZE]>, Vec<[F; LANDMARK_PARAM_SIZE]>)>>
 ) {
     let mut state = get_euclidean_landmark_state::<F,Feat>(pnp_config.get_landmarks(), pnp_config.get_camera_pose_option());
     let observed_features = get_observed_features(pnp_config.get_features_norm());
     let camera_map = HashMap::from([(0,pnp_config.get_camera_norm().clone())]);
 
 
-    let (tx_result, rx_result) = mpsc::channel::<(State<F, EuclideanLandmark<F>, 3>,Option<Vec<(Vec<[F; CAMERA_PARAM_SIZE]>, Vec<[F; 3]>)>>)>();
+    let (tx_result, rx_result) = mpsc::channel::<(State<F, EuclideanLandmark<F>,CameraExtrinsicState<F>, LANDMARK_PARAM_SIZE, CAMERA_PARAM_SIZE>,Option<Vec<(Vec<[F; CAMERA_PARAM_SIZE]>, Vec<[F; LANDMARK_PARAM_SIZE]>)>>)>();
     let (tx_abort, rx_abort) = mpsc::channel::<bool>();
     let (tx_done, rx_done) = mpsc::channel::<bool>();
 
     thread::scope(|s| {   
         s.spawn(move || {
-            let solver = solver::Solver::<F, C, _, 3>::new();
+            let solver = solver::Solver::<F, C, _,_, LANDMARK_PARAM_SIZE, CAMERA_PARAM_SIZE>::new();
             let some_debug_state_list = solver.solve(
                 &mut state,
                 &camera_map,

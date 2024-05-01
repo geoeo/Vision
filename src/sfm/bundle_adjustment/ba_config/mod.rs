@@ -7,7 +7,7 @@ use crate::image::features::{
 use crate::sensors::camera::Camera;
 use crate::sfm::bundle_adjustment::ba_config::filtering::{compute_reprojection_ranges, compute_reprojection_maps, compute_landmark_maps};
 use crate::sfm::landmark::{Landmark, euclidean_landmark::EuclideanLandmark};
-use crate::sfm::state::State;
+use crate::sfm::state::{State,cam_extrinsic_state::{CAMERA_PARAM_SIZE,CameraExtrinsicState}};
 use crate::sfm::bundle_adjustment::ba_config::outlier_rejection::{
     calcualte_disparities, calculate_reprojection_errors,
     filter_by_rejected_landmark_ids,
@@ -182,7 +182,7 @@ impl<C: Camera<Float> + Clone, Feat: Feature>
         pyramid_map.iter().map(|(k,v)| (*k,v.calculate_score())).collect::<HashMap<usize, usize>>()
     }
 
-    pub fn update_state(&mut self, state: &State<Float, EuclideanLandmark<Float>, 3>) -> () {
+    pub fn update_state(&mut self, state: &State<Float, EuclideanLandmark<Float>, CameraExtrinsicState<Float>, 3, CAMERA_PARAM_SIZE>) -> () {
         let camera_positions = state.get_camera_positions();
         let camera_id_map = state.get_camera_id_map();
         let world_landmarks = state.get_landmarks();

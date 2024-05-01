@@ -12,24 +12,25 @@ use crate::sensors::camera::Camera;
 use crate::numerics::{max_norm, least_squares::{compute_cost, calc_sqrt_weight_matrix, gauss_newton_step}};
 use crate::sfm::{landmark::Landmark,state::State};
 use crate::sfm::runtime_parameters::RuntimeParameters; 
+use crate::sfm::state::cam_state::CamState;
 use crate::{Float,GenericFloat};
 
-pub struct OptimizerGn<F, C : Camera<Float>, L: Landmark<F,LANDMARK_PARAM_SIZE> + Copy + Clone + Send + Sync, const LANDMARK_PARAM_SIZE: usize> where F: GenericFloat {
-    pub get_estimated_features: Box<dyn Fn(&State<F,L,LANDMARK_PARAM_SIZE>, &HashMap<usize, C>, &DVector<F>, &mut DVector<F>) -> ()>,
+pub struct OptimizerGn<F, C : Camera<Float>, L: Landmark<F,LANDMARK_PARAM_SIZE> + Copy + Clone + Send + Sync,  CP: CamState<F, CAMERA_PARAM_SIZE> + Copy + Clone + Send + Sync, const LANDMARK_PARAM_SIZE: usize,  const CAMERA_PARAM_SIZE: usize> where F: GenericFloat {
+    pub get_estimated_features: Box<dyn Fn(&State<F,L,CP,LANDMARK_PARAM_SIZE, CAMERA_PARAM_SIZE>, &HashMap<usize, C>, &DVector<F>, &mut DVector<F>) -> ()>,
     pub compute_residual: Box<dyn Fn(&DVector<F>, &DVector<F>, &mut DVector<F>) -> ()>,
-    pub compute_jacobian: Box<dyn Fn(&State<F,L,LANDMARK_PARAM_SIZE>, &HashMap<usize, C>, &mut DMatrix<F>) -> ()>,
-    pub compute_state_size: Box<dyn Fn(&State<F,L,LANDMARK_PARAM_SIZE>) -> usize>
+    pub compute_jacobian: Box<dyn Fn(&State<F,L,CP,LANDMARK_PARAM_SIZE, CAMERA_PARAM_SIZE>, &HashMap<usize, C>, &mut DMatrix<F>) -> ()>,
+    pub compute_state_size: Box<dyn Fn(&State<F,L,CP,LANDMARK_PARAM_SIZE, CAMERA_PARAM_SIZE>) -> usize>
 }
 
-impl<F, C : Camera<Float>, L: Landmark<F,LANDMARK_PARAM_SIZE> + Copy + Clone + Send + Sync, const LANDMARK_PARAM_SIZE: usize> OptimizerGn<F,C,L,LANDMARK_PARAM_SIZE> where F: GenericFloat {
+impl<F, C : Camera<Float>, L: Landmark<F,LANDMARK_PARAM_SIZE> + Copy + Clone + Send + Sync, CP: CamState<F, CAMERA_PARAM_SIZE> + Copy + Clone + Send + Sync, const LANDMARK_PARAM_SIZE: usize, const CAMERA_PARAM_SIZE: usize> OptimizerGn<F,C,L,CP,LANDMARK_PARAM_SIZE,CAMERA_PARAM_SIZE> where F: GenericFloat {
     
     pub fn new(
-        get_estimated_features: Box<dyn Fn(&State<F,L,LANDMARK_PARAM_SIZE>, &HashMap<usize, C>, &DVector<F>, &mut DVector<F>) -> ()>,
+        get_estimated_features: Box<dyn Fn(&State<F,L,CP,LANDMARK_PARAM_SIZE, CAMERA_PARAM_SIZE>, &HashMap<usize, C>, &DVector<F>, &mut DVector<F>) -> ()>,
         compute_residual: Box<dyn Fn(&DVector<F>, &DVector<F>, &mut DVector<F>) -> ()>,
-        compute_jacobian: Box<dyn Fn( &State<F,L,LANDMARK_PARAM_SIZE>, &HashMap<usize, C>, &mut DMatrix<F>) -> ()>,
-        compute_state_size: Box<dyn Fn(&State<F,L,LANDMARK_PARAM_SIZE>) -> usize>
+        compute_jacobian: Box<dyn Fn( &State<F,L, CP, LANDMARK_PARAM_SIZE, CAMERA_PARAM_SIZE>, &HashMap<usize, C>, &mut DMatrix<F>) -> ()>,
+        compute_state_size: Box<dyn Fn(&State<F,L,CP,LANDMARK_PARAM_SIZE, CAMERA_PARAM_SIZE>) -> usize>
 
-    ) -> OptimizerGn<F,C,L,LANDMARK_PARAM_SIZE> {
+    ) -> OptimizerGn<F,C,L,CP,LANDMARK_PARAM_SIZE, CAMERA_PARAM_SIZE> {
         OptimizerGn {
             get_estimated_features,
             compute_residual,
@@ -39,8 +40,8 @@ impl<F, C : Camera<Float>, L: Landmark<F,LANDMARK_PARAM_SIZE> + Copy + Clone + S
     }
     
     pub fn optimize(&self,
-        state: &mut State<F,L,LANDMARK_PARAM_SIZE>, camera_map: &HashMap<usize, C>, observed_features: &DVector<F>, runtime_parameters: &RuntimeParameters<F>, abort_receiver: Option<&mpsc::Receiver<bool>>, done_transmission: Option<&mpsc::Sender<bool>>
-    ) -> Option<Vec<State<F,L,LANDMARK_PARAM_SIZE>>> where F: GenericFloat {
+        state: &mut State<F,L,CP,LANDMARK_PARAM_SIZE, CAMERA_PARAM_SIZE>, camera_map: &HashMap<usize, C>, observed_features: &DVector<F>, runtime_parameters: &RuntimeParameters<F>, abort_receiver: Option<&mpsc::Receiver<bool>>, done_transmission: Option<&mpsc::Sender<bool>>
+    ) -> Option<Vec<State<F,L,CP,LANDMARK_PARAM_SIZE, CAMERA_PARAM_SIZE>>> where F: GenericFloat {
     
         let max_iterations = runtime_parameters.max_iterations[0];
         
@@ -54,7 +55,7 @@ impl<F, C : Camera<Float>, L: Landmark<F,LANDMARK_PARAM_SIZE> + Copy + Clone + S
         let mut new_estimated_features = DVector::<F>::zeros(observed_features.nrows());
         
         let mut debug_state_list = match runtime_parameters.debug {
-            true => Some(Vec::<State<F,L,LANDMARK_PARAM_SIZE>>::with_capacity(max_iterations)),
+            true => Some(Vec::<State<F,L,CP,LANDMARK_PARAM_SIZE, CAMERA_PARAM_SIZE>>::with_capacity(max_iterations)),
             false => None
         };
         //let mut preconditioner = DMatrix::<F>::zeros(u_span,u_span); // a lot of memory - maybe use sparse format
