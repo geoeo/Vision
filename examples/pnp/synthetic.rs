@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use vision::{Float,load_runtime_conf};
 use vision::image::features::image_feature::ImageFeature;
 use vision::sfm::{
-    landmark::{euclidean_landmark::EuclideanLandmark,Landmark},
+    state::landmark::{euclidean_landmark::EuclideanLandmark,Landmark},
     runtime_parameters::RuntimeParameters,
     pnp::{pnp_config::PnPConfig, run_pnp}
 };

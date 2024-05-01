@@ -1,10 +1,10 @@
 extern crate nalgebra as na;
 use color_eyre::eyre::Result;
-use vision::sfm::landmark::{Landmark,inverse_depth_landmark::InverseLandmark, euclidean_landmark::EuclideanLandmark};
 
 use std::collections::{HashMap, HashSet};
 use vision::{Float,load_runtime_conf};
 use vision::sfm::{
+    state::landmark::{Landmark,inverse_depth_landmark::InverseLandmark, euclidean_landmark::EuclideanLandmark},
     triangulation::Triangulation,
     bundle_adjustment::{run_ba, ba_config::{BAConfig,conversions::compute_path_id_pairs}}, 
     epipolar::tensor::BifocalType,

@@ -9,12 +9,12 @@ use vision::sfm::{
     bundle_adjustment::run_ba, 
     epipolar::tensor::BifocalType, 
     pnp::run_pnp,runtime_parameters::RuntimeParameters,
-    bundle_adjustment::ba_config::filtering::filter_config
+    bundle_adjustment::ba_config::filtering::filter_config,
+    state::landmark::inverse_depth_landmark::InverseLandmark
 };
 use vision::numerics::weighting;
 use vision::load_runtime_conf;
 use vision::visualize;
-use vision::sfm::landmark::inverse_depth_landmark::InverseLandmark;
 use vision::Float;
 
 fn main() -> Result<()> {
