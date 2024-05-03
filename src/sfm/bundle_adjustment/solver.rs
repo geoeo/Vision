@@ -2,7 +2,7 @@ extern crate nalgebra as na;
 extern crate num_traits;
 
 use std::collections::HashMap;
-use na::{convert, DMatrix, DVector, Dyn, Matrix, Point3, VecStorage, Vector4, U4};
+use na::{convert, DMatrix, DVector, Dyn, Matrix, Point3, VecStorage, U4};
 use std::boxed::Box;
 use std::marker::{Send, Sync};
 use std::sync::mpsc;
@@ -78,7 +78,7 @@ impl<
         }
         for i in 0..n_cams {
             let cam_idx = CAMERA_PARAM_SIZE * i;
-            let pose = state.to_se3(cam_idx);
+            let pose = state.to_isometry(cam_idx).to_matrix();
             let cam_id = state.camera_id_by_idx[i];
             let camera = camera_map.get(&cam_id).expect("Camera missing");
 
@@ -127,14 +127,12 @@ impl<
         j: usize,
         jacobian: &mut DMatrix<F>,
     ) -> () {
-        let transformation = state.to_se3(cam_idx);
         let point = state.get_landmarks()[point_idx].get_euclidean_representation();
         let jacobian_world = state.jacobian_wrt_world_coordiantes(point_idx, cam_idx);
-        let transformed_point =
-            transformation * Vector4::<F>::new(point[0], point[1], point[2], F::one());
+        let transformed_point = state.to_isometry(cam_idx).transform_point(&point).coords;
         let projection_jacobian = camera
             .get_jacobian_with_respect_to_position_in_camera_frame(
-                &transformed_point.fixed_rows::<3>(0),
+                &transformed_point,
             )
             .expect("get_jacobian_with_respect_to_position_in_camera_frame failed!");
         let local_jacobian = projection_jacobian * jacobian_world;
@@ -152,10 +150,9 @@ impl<
         j: usize,
         jacobian: &mut DMatrix<F>,
     ) -> () {
-        let transformation = state.to_se3(j);
-        let transformed_point =
-            transformation * Vector4::<F>::new(point[0], point[1], point[2], F::one());
-        let lie_jacobian = left_jacobian_around_identity(&transformed_point.fixed_rows::<3>(0));
+        let isometry = state.to_isometry(j);
+        let transformed_point = isometry.transform_point(point).coords;
+        let lie_jacobian = left_jacobian_around_identity(&transformed_point);
 
         let projection_jacobian = camera
             .get_jacobian_with_respect_to_position_in_camera_frame(

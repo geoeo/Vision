@@ -9,7 +9,7 @@ pub fn vector_from_skew_symmetric<F>(w_x: &Matrix3<F>) -> Vector3<F> where F : G
 }
 
 /**
- * This is the jacobian with respect to a transformed point 
+ * This is the jacobian with respect to a transformed point
  */
 pub fn left_jacobian_around_identity<F, T>(transformed_position: &Vector<F,U3,T>) -> Matrix3x6<F> 
     where 

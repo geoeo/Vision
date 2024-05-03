@@ -3,7 +3,7 @@ extern crate simba;
 
 use std::collections::HashMap;
 use std::marker::PhantomData;
-use na::{DVector, Isometry3, Matrix4, SMatrix, SVector, Vector3};
+use na::{DVector, Isometry3, SMatrix, SVector, Vector3};
 use crate::GenericFloat;
 use cam_state::CamState;
 use landmark::{Landmark,euclidean_landmark::EuclideanLandmark};
@@ -103,10 +103,10 @@ impl<F: GenericFloat, L: Landmark<F,T>, C: CamState<F, CAMERA_PARAM_SIZE>, const
     /**
      * cam_idx is the index of a solver i.e. in CAMERA_PARAM_SIZE space
      */
-    pub fn to_se3(&self, cam_idx: usize) -> Matrix4<F> {
+    pub fn to_isometry(&self, cam_idx: usize) -> Isometry3<F> {
         assert!(cam_idx < self.n_cams*CAMERA_PARAM_SIZE);
         let state_idx = cam_idx/CAMERA_PARAM_SIZE;
-        self.camera_parameters[state_idx].get_position().to_matrix()
+        self.camera_parameters[state_idx].get_position()
     }
 
     pub fn as_matrix_point(&self) -> (Vec<Isometry3<F>>, Vec<Vector3<F>>) {

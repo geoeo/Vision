@@ -1,7 +1,7 @@
 extern crate nalgebra as na;
 extern crate num_traits;
 
-use na::{DMatrix, DVector, Point3, Vector4, Matrix, Dyn, U4, VecStorage};
+use na::{DMatrix, DVector, Point3, Matrix, Dyn, U4, VecStorage};
 use std::marker::{Send, Sync};
 use std::sync::mpsc;
 use std::collections::HashMap;
@@ -68,7 +68,7 @@ impl<
         }
         for i in 0..n_cams {
             let cam_idx = CAMERA_PARAM_SIZE * i;
-            let pose = state.to_se3(cam_idx);
+            let pose = state.to_isometry(cam_idx).to_matrix();
             let cam_id = state.camera_id_by_idx[i];
             let camera = camera_map.get(&cam_id).expect("Camera missing");
 
@@ -116,14 +116,13 @@ impl<
         j: usize,
         jacobian: &mut DMatrix<F>,
     ) -> () {
-        let transformation = state.to_se3(cam_idx);
-        let transformed_point =
-            transformation * Vector4::<F>::new(point[0], point[1], point[2], F::one());
-        let lie_jacobian = left_jacobian_around_identity(&transformed_point.fixed_rows::<3>(0));
+        let isometry = state.to_isometry(cam_idx);
+        let transformed_point = isometry.transform_point(point).coords;
+        let lie_jacobian = left_jacobian_around_identity(&transformed_point);
 
         let projection_jacobian = camera
             .get_jacobian_with_respect_to_position_in_camera_frame(
-                &transformed_point.fixed_rows::<3>(0),
+                &transformed_point,
             )
             .expect("get_jacobian_with_respect_to_position_in_camera_frame failed!");
         let local_jacobian = projection_jacobian * lie_jacobian;
