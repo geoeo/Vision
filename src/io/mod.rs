@@ -20,7 +20,7 @@ pub mod image_loading_parameters;
 pub mod imu_loading_parameters;
 pub mod octave_loader;
 pub mod olsson_loader;
-
+pub mod camera_data_frame;
 
 pub fn parse_to_float(string: &str, negate_value: bool) -> Float {
     let parts = string.trim().split("e").collect::<Vec<&str>>();

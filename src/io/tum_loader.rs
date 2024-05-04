@@ -9,8 +9,8 @@ use std::io::{BufReader,BufRead};
 use crate::Float;
 use crate::io::{image_loading_parameters::ImageLoadingParameters, parse_to_float, closest_ts_index};
 use crate::image::Image;
-use crate::sensors::camera::{camera_data_frame::CameraDataFrame,perspective::Perspective};
-use crate::io::{load_image_as_gray,load_depth_image};
+use crate::sensors::camera::perspective::Perspective;
+use crate::io::{load_image_as_gray,load_depth_image,camera_data_frame::CameraDataFrame};
 
 #[repr(u8)]
 pub enum Dataset {

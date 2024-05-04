@@ -7,7 +7,6 @@ use crate::image::features::geometry::point::Point;
 use crate::GenericFloat;
 
 pub mod perspective;
-pub mod camera_data_frame;
 
  //@TODO: unify principal distance into enum
  pub trait Camera<F: GenericFloat> {
