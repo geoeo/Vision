@@ -20,7 +20,7 @@ use crate::{float, Float};
 use na::{DVector, Isometry3, Matrix3, Matrix4};
 use std::collections::{HashMap, HashSet};
 
-pub fn filter_config<C: Camera<Float> + Clone, Feat: Feature> (
+pub fn filter_config<C: Camera<Float> + Copy + Clone, Feat: Feature> (
     ba_config: &mut BAConfig<C,Feat>, 
     landmark_cutoff_thresh: Float, 
     run_outlier_detection_pipeline: bool, 

@@ -16,6 +16,7 @@ use vision::numerics::weighting;
 use vision::load_runtime_conf;
 use vision::visualize;
 use vision::Float;
+use vision::sensors::camera::perspective::Perspective;
 
 fn main() -> Result<()> {
     color_eyre::install()?;
@@ -162,7 +163,7 @@ fn main() -> Result<()> {
         println!("Cam state pnp: {}", cam_pos_pnp);
     }
 
-    let (optimized_state, state_debug_list) = run_ba::<_,6,InverseLandmark<Float>,_,_>(&ba_config_fundamental, &runtime_parameters,&trajectories);
+    let (optimized_state, state_debug_list) = run_ba::<_,6,InverseLandmark<Float>,_,Perspective<Float>,_>(&ba_config_fundamental, &runtime_parameters,&trajectories);
     let state_serialized = serde_yaml::to_string(&optimized_state.to_serial());
     let debug_states_serialized = serde_yaml::to_string(&state_debug_list);
 

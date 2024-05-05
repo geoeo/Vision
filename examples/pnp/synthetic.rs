@@ -96,7 +96,7 @@ fn main() -> Result<()> {
         cg_max_it: 2e3 as usize
     };
 
-    let (optimized_state, state_debug_list) = run_pnp(&pnp_config,&runtime_parameters);
+    let (optimized_state, state_debug_list) = run_pnp::<_,_,Perspective<Float>,_>(&pnp_config,&runtime_parameters);
 
     let camera_positions = &optimized_state.get_camera_positions();
     let cam_pos = camera_positions[0];

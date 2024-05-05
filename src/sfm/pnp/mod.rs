@@ -27,21 +27,22 @@ pub mod pnp_config;
 pub fn run_pnp<
     'a,
     F: serde::Serialize + GenericFloat,
-    C: Camera<Float> + Copy + Send + Sync +'a + 'static,
+    CConfig: Camera<Float> + Clone + Copy + Send + Sync +'a + 'static,
+    C: Camera<F> + Clone + Copy + Send + Sync +'a + 'static,
     Feat: Feature + SolverFeature
 >(
-    pnp_config: &'a PnPConfig<C, Feat>,
+    pnp_config: &'a PnPConfig<CConfig, Feat>,
     runtime_parameters: &'a RuntimeParameters<F>,
 ) -> 
-    (  State<F, EuclideanLandmark<F>,CameraExtrinsicState<F>, LANDMARK_PARAM_SIZE, CAMERA_PARAM_SIZE>,
+    (  State<F, C, EuclideanLandmark<F>,CameraExtrinsicState<F,C>, LANDMARK_PARAM_SIZE, CAMERA_PARAM_SIZE>,
         Option<Vec<(Vec<[F; CAMERA_PARAM_SIZE]>, Vec<[F; LANDMARK_PARAM_SIZE]>)>>
 ) {
-    let mut state = get_euclidean_landmark_state::<F,Feat>(pnp_config.get_landmarks(), pnp_config.get_camera_pose_option());
+    let mut state = get_euclidean_landmark_state::<F,Feat,CConfig,C>(pnp_config.get_landmarks(), pnp_config.get_camera_pose_option(), pnp_config.get_camera_norm());
     let observed_features = get_observed_features(pnp_config.get_features_norm());
     let camera_map = HashMap::from([(0,pnp_config.get_camera_norm().clone())]);
 
 
-    let (tx_result, rx_result) = mpsc::channel::<(State<F, EuclideanLandmark<F>,CameraExtrinsicState<F>, LANDMARK_PARAM_SIZE, CAMERA_PARAM_SIZE>,Option<Vec<(Vec<[F; CAMERA_PARAM_SIZE]>, Vec<[F; LANDMARK_PARAM_SIZE]>)>>)>();
+    let (tx_result, rx_result) = mpsc::channel::<(State<F, C,EuclideanLandmark<F>,CameraExtrinsicState<F,C>, LANDMARK_PARAM_SIZE, CAMERA_PARAM_SIZE>,Option<Vec<(Vec<[F; CAMERA_PARAM_SIZE]>, Vec<[F; LANDMARK_PARAM_SIZE]>)>>)>();
     let (tx_abort, rx_abort) = mpsc::channel::<bool>();
     let (tx_done, rx_done) = mpsc::channel::<bool>();
 
@@ -50,7 +51,6 @@ pub fn run_pnp<
             let solver = solver::Solver::<F, C, _,_, LANDMARK_PARAM_SIZE, CAMERA_PARAM_SIZE>::new();
             let some_debug_state_list = solver.solve(
                 &mut state,
-                &camera_map,
                 &observed_features,
                 runtime_parameters,
                 Some(&rx_abort),

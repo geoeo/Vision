@@ -46,14 +46,14 @@ impl BAStateLinearizer {
         self.camera_to_linear_id_map.get(cam_id).expect("Cam id not present in map").clone()
     }
 
-    pub fn get_inverse_depth_landmark_state<F: GenericFloat, Feat: Feature, C: Camera<Float>>(
+    pub fn get_inverse_depth_landmark_state<F: GenericFloat, Feat: Feature, C1: Camera<Float>, C2: Camera<F> + Copy>(
         &self, 
         paths: &Vec<(usize,usize)>,
         match_map: &HashMap<(usize, usize), Vec<Match<Feat>>>, 
         abs_pose_map: &HashMap<usize, Isometry3<Float>>,
         reprojection_error_map: &HashMap<(usize, usize),DVector<Float>>,
-        camera_norm_map: &HashMap<usize, C>) 
-        -> (State<F, impl Landmark<F,{inverse_depth_landmark::LANDMARK_PARAM_SIZE}>,CameraExtrinsicState<F>,{inverse_depth_landmark::LANDMARK_PARAM_SIZE}, CAMERA_PARAM_SIZE>, DVector<F>) { 
+        camera_norm_map: &HashMap<usize, C1>) 
+        -> (State<F, C2, impl Landmark<F,{inverse_depth_landmark::LANDMARK_PARAM_SIZE}>,CameraExtrinsicState<F,C2>,{inverse_depth_landmark::LANDMARK_PARAM_SIZE}, CAMERA_PARAM_SIZE>, DVector<F>) { 
 
             let number_of_cameras = self.camera_to_linear_id_map.len();
             let number_of_unqiue_landmarks = self.landmark_to_linear_id_map.len();
@@ -133,8 +133,8 @@ impl BAStateLinearizer {
                 number_of_cameras
             );
             
-            let camera_positions = self.get_initial_camera_positions(abs_pose_map);
-            (State::new(camera_positions, landmarks, &self.camera_to_linear_id_map, number_of_cameras, number_of_unqiue_landmarks), observed_features)
+            let (camera_positions, cameras) = self.get_initial_camera_data(abs_pose_map,camera_norm_map);
+            (State::new(camera_positions, &cameras, landmarks ,&self.camera_to_linear_id_map, number_of_cameras, number_of_unqiue_landmarks), observed_features)
 
     }
 
@@ -142,14 +142,15 @@ impl BAStateLinearizer {
      * @Return: An object holding camera positions and 3d landmarks, 2d Vector of rows: point, cols: cam. Where the matrix elements are in (x,y) tuples. 
      *  First entry in 2d Vector is all the cams assocaited with a point. feature_location_lookup[point_id][cam_id]
      */
-    pub fn get_euclidean_landmark_state<F: GenericFloat, Feat: Feature>(
+    pub fn get_euclidean_landmark_state<F: GenericFloat, Feat: Feature, C1: Camera<Float>, C2: Camera<F> + Copy>(
         &self, 
         paths: &Vec<(usize,usize)>,
         match_map: &HashMap<(usize, usize), Vec<Match<Feat>>>, 
         abs_pose_map: &HashMap<usize, Isometry3<Float>>,
         abs_landmark_map: &HashMap<(usize,usize), Vec<EuclideanLandmark<Float>>>,
-        reprojection_error_map: &HashMap<(usize, usize),DVector<Float>>) 
-        -> (State<F, impl Landmark<F,{euclidean_landmark::LANDMARK_PARAM_SIZE}>,CameraExtrinsicState<F>,{euclidean_landmark::LANDMARK_PARAM_SIZE}, CAMERA_PARAM_SIZE>, DVector<F>) {
+        reprojection_error_map: &HashMap<(usize, usize),DVector<Float>>,
+        camera_norm_map: &HashMap<usize, C1>) 
+        -> (State<F, C2, impl Landmark<F,{euclidean_landmark::LANDMARK_PARAM_SIZE}>,CameraExtrinsicState<F,C2>,{euclidean_landmark::LANDMARK_PARAM_SIZE}, CAMERA_PARAM_SIZE>, DVector<F>) {
         
         let number_of_cameras = self.camera_to_linear_id_map.len();
         let number_of_unqiue_landmarks = self.landmark_to_linear_id_map.len();
@@ -232,20 +233,23 @@ impl BAStateLinearizer {
             number_of_cameras
         );
         
-        let camera_positions = self.get_initial_camera_positions(abs_pose_map);
-        (State::new(camera_positions, landmarks, &self.camera_to_linear_id_map, number_of_cameras, number_of_unqiue_landmarks), observed_features)
+        let (camera_positions, cameras) = self.get_initial_camera_data(abs_pose_map,camera_norm_map);
+        (State::new(camera_positions, &cameras, landmarks ,&self.camera_to_linear_id_map, number_of_cameras, number_of_unqiue_landmarks), observed_features)
     }
 
-    fn get_initial_camera_positions<F: GenericFloat>(
-        &self, pose_map: &HashMap<usize, Isometry3<Float>>) 
-        -> DVector::<F> {
+    fn get_initial_camera_data<F: GenericFloat, C1: Camera<Float>, C2: Camera<F> + Copy>(
+        &self, pose_map: &HashMap<usize, Isometry3<Float>>, camera_map: &HashMap<usize, C1>) 
+        -> (DVector::<F>, Vec<C2>) {
 
         let number_of_cameras = self.camera_to_linear_id_map.keys().len();
         let number_of_cam_parameters = CAMERA_PARAM_SIZE*number_of_cameras; 
         let mut camera_positions = DVector::<F>::zeros(number_of_cam_parameters);
+        let mut cameras = vec![C2::from_matrices(&Matrix3::<F>::identity(), &Matrix3::<F>::identity()); number_of_cameras];
         for (cam_id, cam_idx) in self.camera_to_linear_id_map.iter() {
             let cam_state_idx = CAMERA_PARAM_SIZE*cam_idx;
-            let pose = pose_map.get(&cam_id).expect("pose not found for path pair");
+            let pose = pose_map.get(&cam_id).expect("pose not found for cam id");
+            let camera_s = camera_map.get(&cam_id).expect("camera not found for cam id");
+            let camera_t = C2::from_matrices(&camera_s.get_projection().cast::<F>(), &camera_s.get_inverse_projection().cast::<F>());
             let translation = pose.translation.vector;
             let rotation_matrix = pose.rotation.to_rotation_matrix().matrix().clone();
             let translation_cast: Vector3<F> = translation.cast::<F>();
@@ -253,10 +257,10 @@ impl BAStateLinearizer {
             let rotation = Rotation3::from_matrix_eps(&rotation_matrix_cast, convert(2e-16), 100, Rotation3::identity());
             camera_positions.fixed_view_mut::<3,1>(cam_state_idx,0).copy_from(&translation_cast);
             camera_positions.fixed_view_mut::<3,1>(cam_state_idx+3,0).copy_from(&rotation.scaled_axis());
-            
+            cameras[*cam_idx]=camera_t;
         }
     
-        camera_positions
+        (camera_positions,cameras)
     }
 
     /**

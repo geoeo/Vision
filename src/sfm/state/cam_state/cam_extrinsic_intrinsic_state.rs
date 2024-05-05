@@ -1,7 +1,8 @@
 use na::{Vector3, Vector5,SVector, Isometry3};
 use crate::numerics::{lie::exp_se3,pose::from_matrix};
-use crate::GenericFloat;
 use crate::sfm::state::cam_state::CamState;
+use crate::sensors::camera::Camera;
+use crate::GenericFloat;
 
 
 /**
@@ -10,18 +11,19 @@ use crate::sfm::state::cam_state::CamState;
 pub const CAMERA_PARAM_SIZE: usize = 6 + 5; 
 
 #[derive(Clone, Copy)]
-pub struct CameraExtrinsicIntrinsicState<F: GenericFloat> {
+pub struct CameraExtrinsicIntrinsicState<F: GenericFloat, C: Camera<F> + Clone> {
     extrinsic: Isometry3<F>,
-    intrinsic: Vector5<F>
+    intrinsic: Vector5<F>,
+    camera: C
 }
 
-impl<F: GenericFloat> CamState<F,CAMERA_PARAM_SIZE> for CameraExtrinsicIntrinsicState<F> {
-    fn new(raw_state: SVector<F,CAMERA_PARAM_SIZE>) -> CameraExtrinsicIntrinsicState<F> {
+impl<F: GenericFloat, C: Camera<F> + Clone> CamState<F, C, CAMERA_PARAM_SIZE> for CameraExtrinsicIntrinsicState<F,C> {
+    fn new(raw_state: SVector<F,CAMERA_PARAM_SIZE>, camera: &C) -> CameraExtrinsicIntrinsicState<F,C> {
         let translation = Vector3::<F>::new(raw_state[0], raw_state[1], raw_state[2]);
         let axis_angle = Vector3::<F>::new(raw_state[3],raw_state[4],raw_state[5]);
         let extrinsic = Isometry3::new(translation, axis_angle);
         let intrinsic = Vector5::<F>::new(raw_state[6],raw_state[7],raw_state[8],raw_state[9],raw_state[10]);
-        CameraExtrinsicIntrinsicState{extrinsic,intrinsic}
+        CameraExtrinsicIntrinsicState{extrinsic,intrinsic, camera: camera.clone()}
     }
 
     fn update(&mut self, perturb: SVector<F,CAMERA_PARAM_SIZE>) -> () {
@@ -61,5 +63,9 @@ impl<F: GenericFloat> CamState<F,CAMERA_PARAM_SIZE> for CameraExtrinsicIntrinsic
 
     fn duplicate(&self) -> Self {
         self.clone() 
+    }
+
+    fn get_camera(&self) -> C {
+        self.camera.clone()
     }
 }

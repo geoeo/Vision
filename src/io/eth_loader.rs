@@ -35,8 +35,6 @@ pub fn load(root_path: &str, parameters: &ImageLoadingParameters) -> CameraDataF
     let source_indices = (parameters.starting_index..parameters.starting_index+parameters.count).step_by(parameters.step);
     let target_indices = source_indices.clone().map(|x| x + parameters.step); //TODO: check out of range
 
-
-
     assert_eq!(ground_truths.len(),ts_names.len());
 
     let intensity_camera = load_intrinsics_as_pinhole(&Path::new(&intrinsics_path), parameters.invert_focal_lengths);

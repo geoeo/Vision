@@ -5,14 +5,15 @@ extern crate rand;
 use std::{fs,result::Result};
 
 use std::path::Path;
-use kiss3d::event::{WindowEvent , Key};
+use kiss3d::event::{WindowEvent, Key};
 use kiss3d::window::Window;
 use kiss3d::text::Font;
 use kiss3d::nalgebra::{Point2,Point3,Translation3};
-use na::{Vector3, Isometry3};
+use na::{Vector3, Isometry3, Matrix3};
 
 use vision::{Float,load_runtime_conf};
 use vision::sfm::{state, state::{landmark::euclidean_landmark::EuclideanLandmark, cam_state::cam_extrinsic_state::CameraExtrinsicState}};
+use vision::sensors::camera::perspective::Perspective;
 use rand::random;
 use kiss3d::camera::ArcBall;
 
@@ -61,12 +62,13 @@ fn main() -> Result<(),()> {
     let all_states_as_string_option = fs::read_to_string(format!("{}/sfm_debug.txt", runtime_conf.output_path)); 
 
     let loaded_state: (Vec<[Float;6]>,Vec<[Float;3]>) = serde_yaml::from_str(&final_state_as_string).unwrap();
-    let ba_state = state::State::<Float,EuclideanLandmark<Float>,CameraExtrinsicState<Float>,3, 6>::from_serial(&loaded_state);
+    let dummy_camera = Perspective::from_matrix(&Matrix3::<Float>::identity(), false);
+    let ba_state = state::State::<Float,Perspective<Float>,EuclideanLandmark<Float>,CameraExtrinsicState<Float,Perspective<Float>>,3, 6>::from_serial(&loaded_state,&dummy_camera);
 
     let all_ba_states_option = match all_states_as_string_option {
         Ok(all_states_as_string) => {
             let loaded_all_states: Vec<(Vec<[Float;6]>,Vec<[Float;3]>)> = serde_yaml::from_str(&all_states_as_string).unwrap();
-            Some(loaded_all_states.iter().map(|x|  state::State::<Float,EuclideanLandmark<Float>, CameraExtrinsicState<Float>,3, 6>::from_serial(x)).collect::<Vec< state::State::<Float,EuclideanLandmark<Float>,CameraExtrinsicState<Float>,3,6>>>())
+            Some(loaded_all_states.iter().map(|x|  state::State::<Float,Perspective<Float>,EuclideanLandmark<Float>, CameraExtrinsicState<Float,Perspective<Float>>,3, 6>::from_serial(x,&dummy_camera)).collect::<Vec< state::State::<Float,Perspective<Float>,EuclideanLandmark<Float>,CameraExtrinsicState<Float,Perspective<Float>>,3,6>>>())
         },
         Err(_) => None
     };

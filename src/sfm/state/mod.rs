@@ -7,6 +7,7 @@ use na::{DVector, Isometry3, SMatrix, SVector, Vector3};
 use crate::GenericFloat;
 use cam_state::CamState;
 use landmark::{Landmark,euclidean_landmark::EuclideanLandmark};
+use crate::sensors::camera::Camera;
 
 pub mod ba_state_linearizer;
 pub mod pnp_state_linearizer;
@@ -18,41 +19,44 @@ pub mod landmark;
  * cam is parameterized by [u_1,u_2,u_3,w_1,w_2,w_3]
  * point is parameterized by [x,y,z]
  * */
-pub struct State<F: GenericFloat, L: Landmark<F,LANDMARK_PARMA_SIZE>, C: CamState<F, CAMERA_PARAM_SIZE>, const LANDMARK_PARMA_SIZE: usize, const CAMERA_PARAM_SIZE: usize> {
-    camera_parameters: Vec<C>, 
+pub struct State<F: GenericFloat, C: Camera<F>,  L: Landmark<F,LANDMARK_PARMA_SIZE>, CS: CamState<F, C, CAMERA_PARAM_SIZE>, const LANDMARK_PARMA_SIZE: usize, const CAMERA_PARAM_SIZE: usize> {
+    camera_parameters: Vec<CS>, 
     landmarks: Vec<L>,
-    pub camera_id_map: HashMap<usize, usize>, //Map of cam id to index in cam positions
-    pub camera_id_by_idx: Vec<usize>,
+    pub camera_id_map: HashMap<usize, usize>, //Map of cam id to index in cam positions, TODO: Check if depreciated
+    pub camera_id_by_idx: Vec<usize>, //TODO: Check if depreciated
     pub n_cams: usize,
     pub n_points: usize,
-    _phantom_f: PhantomData<F>
+    _phantom_f: PhantomData<F>,
+    _panthom_c: PhantomData<C>
 }
 
-impl<F: GenericFloat, L: Landmark<F,T>, C: CamState<F, CAMERA_PARAM_SIZE>, const T: usize, const CAMERA_PARAM_SIZE: usize> Clone for State<F,L,C,T, CAMERA_PARAM_SIZE> {
-    fn clone(&self) -> State<F,L,C,T, CAMERA_PARAM_SIZE> {
-        State::<F,L,C,T, CAMERA_PARAM_SIZE> {
+impl<F: GenericFloat, C: Camera<F>,  L: Landmark<F,T>, CS: CamState<F,C, CAMERA_PARAM_SIZE>, const T: usize, const CAMERA_PARAM_SIZE: usize> Clone for State<F,C,L,CS,T, CAMERA_PARAM_SIZE> {
+    fn clone(&self) -> State<F,C,L,CS,T, CAMERA_PARAM_SIZE> {
+        State::<F,C,L,CS,T, CAMERA_PARAM_SIZE> {
             camera_parameters: self.camera_parameters.iter().map(|c| c.duplicate()).collect(),
             landmarks: self.landmarks.iter().map(|l| l.duplicate()).collect(), 
             camera_id_map: self.camera_id_map.clone(),
             camera_id_by_idx: self.camera_id_by_idx.clone(),
             n_cams: self.n_cams, 
             n_points: self.n_points,
-            _phantom_f: Default::default()
+            _phantom_f: Default::default(),
+            _panthom_c: Default::default()
         }
     }
 }
 
-impl<F: GenericFloat, L: Landmark<F,T>, C: CamState<F, CAMERA_PARAM_SIZE>, const T: usize, const CAMERA_PARAM_SIZE: usize> State<F,L,C,T, CAMERA_PARAM_SIZE> {
-    pub fn new(raw_camera_parameters: DVector<F>, landmarks:  Vec<L>, camera_id_map: &HashMap<usize, usize>, n_cams: usize, n_points: usize) -> State<F,L,C,T, CAMERA_PARAM_SIZE> {
-        let mut camera_parameters = Vec::<C>::with_capacity(n_cams);
+impl<F: GenericFloat, C: Camera<F> + Copy, L: Landmark<F,T>, CS: CamState<F, C, CAMERA_PARAM_SIZE>, const T: usize, const CAMERA_PARAM_SIZE: usize> State<F,C,L,CS,T, CAMERA_PARAM_SIZE> {
+    pub fn new(raw_camera_parameters: DVector<F>, cameras: &Vec<C>, landmarks:  Vec<L>, camera_id_map: &HashMap<usize, usize>, n_cams: usize, n_points: usize) -> State<F,C,L,CS,T, CAMERA_PARAM_SIZE> {
+        let mut camera_parameters = Vec::<CS>::with_capacity(n_cams);
         let camera_id_by_idx = Self::generate_camera_id_by_idx_vec(camera_id_map);
 
         for i in 0..n_cams {
             let offset = CAMERA_PARAM_SIZE * i;
             let arr = raw_camera_parameters.fixed_rows::<CAMERA_PARAM_SIZE>(offset);
-            camera_parameters.push(C::new(arr.into_owned()));
+            let camera = cameras[i];
+            camera_parameters.push(CS::new(arr.into_owned(),&camera));
         }
-        State{camera_parameters, landmarks, camera_id_map: camera_id_map.clone(),camera_id_by_idx , n_cams, n_points,  _phantom_f: Default::default()}
+        State{camera_parameters, landmarks, camera_id_map: camera_id_map.clone(),camera_id_by_idx , n_cams, n_points,  _phantom_f: Default::default(),_panthom_c: Default::default()}
     }
 
     fn generate_camera_id_by_idx_vec(camera_id_map: &HashMap<usize, usize>) -> Vec<usize> {
@@ -70,11 +74,16 @@ impl<F: GenericFloat, L: Landmark<F,T>, C: CamState<F, CAMERA_PARAM_SIZE>, const
         self.camera_parameters.iter().map(|s| s.get_position()).collect()
     }
 
+    pub fn get_camera(&self, idx: usize) -> C {
+        assert!(idx < self.n_cams);
+        self.camera_parameters[idx].get_camera()
+    }
+
     pub fn get_camera_id_map(&self) -> &HashMap<usize, usize> {
         &self.camera_id_map
     }
 
-    pub fn copy_from(&mut self, other: &State<F,L,C,T, CAMERA_PARAM_SIZE>) -> () {
+    pub fn copy_from(&mut self, other: &State<F,C,L,CS,T, CAMERA_PARAM_SIZE>) -> () {
         assert!(self.n_cams == other.n_cams);
         assert!(self.n_points == other.n_points);
         self.camera_parameters = other.camera_parameters.iter().map(|c| c.duplicate()).collect();
@@ -129,8 +138,8 @@ impl<F: GenericFloat, L: Landmark<F,T>, C: CamState<F, CAMERA_PARAM_SIZE>, const
         (cam_serial, points_serial)
     }
 
-    pub fn from_serial((cam_serial, points_serial): &(Vec<[F; CAMERA_PARAM_SIZE]>, Vec<[F; T]>)) -> State<F,L,C,T, CAMERA_PARAM_SIZE> {
-        let mut camera_parameters = Vec::<C>::with_capacity(cam_serial.len());
+    pub fn from_serial((cam_serial, points_serial): &(Vec<[F; CAMERA_PARAM_SIZE]>, Vec<[F; T]>), camera: &C) -> State<F,C,L,CS,T, CAMERA_PARAM_SIZE> {
+        let mut camera_parameters = Vec::<CS>::with_capacity(cam_serial.len());
         let mut landmarks = Vec::<L>::with_capacity(points_serial.len());
         let mut camera_id_map = HashMap::<usize,usize>::with_capacity(camera_parameters.len());
 
@@ -140,7 +149,7 @@ impl<F: GenericFloat, L: Landmark<F,T>, C: CamState<F, CAMERA_PARAM_SIZE>, const
             for j in 0..CAMERA_PARAM_SIZE {
                 raw_state[j] = arr[j]
             }
-            camera_parameters.push(C::new(raw_state));
+            camera_parameters.push(CS::new(raw_state, camera));
 
             //TODO:Check this map
             camera_id_map.insert(i,i);
@@ -158,19 +167,21 @@ impl<F: GenericFloat, L: Landmark<F,T>, C: CamState<F, CAMERA_PARAM_SIZE>, const
             camera_id_by_idx,
             n_cams: cam_serial.len(),
             n_points: points_serial.len(),
-            _phantom_f: Default::default()
+            _phantom_f: Default::default(),
+            _panthom_c: Default::default()
         }
     }
 
-    pub fn to_euclidean_landmarks(&self) -> State<F, EuclideanLandmark<F>, C, 3, CAMERA_PARAM_SIZE> {
-        State::<F,EuclideanLandmark<F>,C,3, CAMERA_PARAM_SIZE> {
+    pub fn to_euclidean_landmarks(&self) -> State<F, C, EuclideanLandmark<F>, CS, 3, CAMERA_PARAM_SIZE> {
+        State::<F,C,EuclideanLandmark<F>,CS,3, CAMERA_PARAM_SIZE> {
             camera_parameters: self.camera_parameters.iter().map(|c| c.duplicate()).collect(),
             landmarks:  self.get_landmarks().iter().map(|l| EuclideanLandmark::<F>::from_state_with_id(l.get_euclidean_representation().coords,&l.get_id())).collect(), 
             camera_id_map: self.camera_id_map.clone(),
             camera_id_by_idx: self.camera_id_by_idx.clone(),
             n_cams: self.n_cams, 
             n_points: self.n_points,
-            _phantom_f: Default::default()
+            _phantom_f: Default::default(),
+            _panthom_c: Default::default()
         }
     }
 }

@@ -1,5 +1,6 @@
 extern crate nalgebra as na;
 use color_eyre::eyre::Result;
+use na::{Rotation3,Isometry3,Vector3,UnitQuaternion};
 
 use std::collections::{HashMap, HashSet};
 use vision::{Float,load_runtime_conf};
@@ -15,7 +16,6 @@ use vision::sfm::{
 use vision::sensors::camera::perspective::Perspective;
 use vision::image::features::{matches::Match,image_feature::ImageFeature};
 use vision::numerics::weighting;
-use na::{Rotation3,Isometry3,Vector3,UnitQuaternion};
 
 fn main() -> Result<()> {
     color_eyre::install()?;
@@ -172,7 +172,7 @@ fn main() -> Result<()> {
 
     let trajectories = vec!(vec!((0,1)));
 
-    let (optimized_state, state_debug_list) = run_ba::<_,6,InverseLandmark<Float>,_,_>(&sfm_config_fundamental, &runtime_parameters, &trajectories);
+    let (optimized_state, state_debug_list) = run_ba::<_,6,InverseLandmark<Float>,_,Perspective<Float>,_>(&sfm_config_fundamental, &runtime_parameters, &trajectories);
     sfm_config_fundamental.update_state(&optimized_state);
 
     let cam_0_idx = optimized_state.get_camera_id_map().get(&0).unwrap();

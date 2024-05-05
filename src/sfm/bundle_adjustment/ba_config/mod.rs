@@ -43,7 +43,7 @@ pub struct BAConfig<C, Feat: Feature> {
     reprojection_error_map: HashMap<(usize, usize), DVector<Float>>
 }
 
-impl<C: Camera<Float> + Clone, Feat: Feature>
+impl<C: Camera<Float> + Copy + Clone, Feat: Feature>
     BAConfig<C, Feat>
 {
     pub fn new(
@@ -181,7 +181,7 @@ impl<C: Camera<Float> + Clone, Feat: Feature>
         pyramid_map.iter().map(|(k,v)| (*k,v.calculate_score())).collect::<HashMap<usize, usize>>()
     }
 
-    pub fn update_state(&mut self, state: &State<Float, EuclideanLandmark<Float>, CameraExtrinsicState<Float>, 3, CAMERA_PARAM_SIZE>) -> () {
+    pub fn update_state(&mut self, state: &State<Float, C ,EuclideanLandmark<Float>, CameraExtrinsicState<Float,C>, 3, CAMERA_PARAM_SIZE>) -> () {
         let camera_positions = state.get_camera_positions();
         let camera_id_map = state.get_camera_id_map();
         let world_landmarks = state.get_landmarks();

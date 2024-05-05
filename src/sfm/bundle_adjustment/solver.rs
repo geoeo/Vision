@@ -1,7 +1,6 @@
 extern crate nalgebra as na;
 extern crate num_traits;
 
-use std::collections::HashMap;
 use na::{convert, DMatrix, DVector, Dyn, Matrix, Point3, VecStorage, U4};
 use std::boxed::Box;
 use std::marker::{Send, Sync};
@@ -10,19 +9,19 @@ use std::sync::mpsc;
 use crate::numerics::lie::left_jacobian_around_identity;
 use crate::numerics::optimizer::gauss_newton_schur::OptimizerGnSchur;
 use crate::sensors::camera::Camera;
+use crate::sfm::state::cam_state::cam_extrinsic_intrinsic_state::CAMERA_PARAM_SIZE;
 use crate::sfm::{
     state::landmark::Landmark,
     runtime_parameters::RuntimeParameters,
     state::{ba_state_linearizer, State,cam_state::CamState},
 };
-
-use crate::{GenericFloat,Float};
+use crate::GenericFloat;
 
 pub struct Solver<
     F: GenericFloat,
-    C: Camera<Float> + 'static,
+    C: Camera<F> + Clone + Copy + 'static,
     L: Landmark<F, LANDMARK_PARAM_SIZE> + Send + Sync + 'static,
-    CS: CamState<F,CAMERA_PARAM_SIZE> + Copy + Send + Sync + 'static,
+    CS: CamState<F,C, CAMERA_PARAM_SIZE> + Copy + Send + Sync + 'static,
     const LANDMARK_PARAM_SIZE: usize,
     const CAMERA_PARAM_SIZE: usize
 >
@@ -32,9 +31,9 @@ pub struct Solver<
 
 impl<
         F: GenericFloat,
-        C: Camera<Float> + 'static,
+        C: Camera<F> + Clone + Copy + 'static,
         L: Landmark<F, LANDMARK_PARAM_SIZE> + Send + Sync + 'static,
-        CP: CamState<F,CAMERA_PARAM_SIZE> + Copy + Send + Sync + 'static,
+        CP: CamState<F,C, CAMERA_PARAM_SIZE> + Copy + Send + Sync + 'static,
         const LANDMARK_PARAM_SIZE: usize,
         const CAMERA_PARAM_SIZE: usize
     > Solver<F, C, L, CP, LANDMARK_PARAM_SIZE, CAMERA_PARAM_SIZE>
@@ -59,8 +58,7 @@ impl<
      * Some entries may be 0 since not all cams see all points
      * */
     fn get_estimated_features(
-        state: &State<F, L, CP, LANDMARK_PARAM_SIZE, CAMERA_PARAM_SIZE>,
-        camera_map: &HashMap<usize, C>,
+        state: &State<F, C, L, CP, LANDMARK_PARAM_SIZE, CAMERA_PARAM_SIZE>,
         observed_features: &DVector<F>,
         estimated_features: &mut DVector<F>,
     ) -> () {
@@ -79,8 +77,7 @@ impl<
         for i in 0..n_cams {
             let cam_idx = CAMERA_PARAM_SIZE * i;
             let pose = state.to_isometry(cam_idx).to_matrix();
-            let cam_id = state.camera_id_by_idx[i];
-            let camera = camera_map.get(&cam_id).expect("Camera missing");
+            let camera = state.get_camera(i);
 
             //TODO: use transform_into_other_camera_frame
             let transformed_points = pose * &position_world;
@@ -119,8 +116,7 @@ impl<
     }
 
     fn compute_jacobian_wrt_scene_points(
-        camera: &C,
-        state: &State<F, L, CP, LANDMARK_PARAM_SIZE, CAMERA_PARAM_SIZE>,
+        state: &State<F, C, L, CP, LANDMARK_PARAM_SIZE, CAMERA_PARAM_SIZE>,
         cam_idx: usize,
         point_idx: usize,
         i: usize,
@@ -130,6 +126,7 @@ impl<
         let point = state.get_landmarks()[point_idx].get_euclidean_representation();
         let jacobian_world = state.jacobian_wrt_world_coordiantes(point_idx, cam_idx);
         let transformed_point = state.to_isometry(cam_idx).transform_point(&point).coords;
+        let camera = state.get_camera(cam_idx/CAMERA_PARAM_SIZE); //@Rework
         let projection_jacobian = camera
             .get_jacobian_with_respect_to_position_in_camera_frame(
                 &transformed_point,
@@ -143,8 +140,7 @@ impl<
     }
 
     fn compute_jacobian_wrt_camera_extrinsics(
-        camera: &C,
-        state: &State<F, L, CP, LANDMARK_PARAM_SIZE, CAMERA_PARAM_SIZE>,
+        state: &State<F, C, L, CP, LANDMARK_PARAM_SIZE, CAMERA_PARAM_SIZE>,
         point: &Point3<F>,
         i: usize,
         j: usize,
@@ -153,6 +149,7 @@ impl<
         let isometry = state.to_isometry(j);
         let transformed_point = isometry.transform_point(point).coords;
         let lie_jacobian = left_jacobian_around_identity(&transformed_point);
+        let camera = state.get_camera(j/CAMERA_PARAM_SIZE);
 
         let projection_jacobian = camera
             .get_jacobian_with_respect_to_position_in_camera_frame(
@@ -173,16 +170,13 @@ impl<
         [CAMERA_PARAM_SIZE * ncams, .. ) represent landmark parameter values
      */
     fn compute_jacobian(
-        state: &State<F, L, CP, LANDMARK_PARAM_SIZE, CAMERA_PARAM_SIZE>,
-        camera_map: &HashMap<usize, C>,
+        state: &State<F, C, L, CP, LANDMARK_PARAM_SIZE, CAMERA_PARAM_SIZE>,
         jacobian: &mut DMatrix<F>,
     ) -> () {
         //cam
         let number_of_cam_params = CAMERA_PARAM_SIZE * state.n_cams;
         for column_cam in (0..number_of_cam_params).step_by(CAMERA_PARAM_SIZE) {
             let cam_idx = column_cam / CAMERA_PARAM_SIZE;
-            let cam_id = state.camera_id_by_idx[cam_idx];
-            let camera = camera_map.get(&cam_id).expect("Camera missing");
 
             //landmark
             for point_id in 0..state.n_points {
@@ -192,7 +186,6 @@ impl<
                 let column_landmark = number_of_cam_params + (LANDMARK_PARAM_SIZE * point_id);
 
                 Self::compute_jacobian_wrt_camera_extrinsics(
-                    camera,
                     state,
                     &point,
                     row,
@@ -201,7 +194,6 @@ impl<
                 );
 
                 Self::compute_jacobian_wrt_scene_points(
-                    camera,
                     state,
                     column_cam,
                     point_id,
@@ -213,22 +205,20 @@ impl<
         }
     }
 
-    pub fn compute_state_size(state: &State<F, L, CP, LANDMARK_PARAM_SIZE, CAMERA_PARAM_SIZE>) -> usize {
+    pub fn compute_state_size(state: &State<F, C, L, CP, LANDMARK_PARAM_SIZE, CAMERA_PARAM_SIZE>) -> usize {
         CAMERA_PARAM_SIZE * state.n_cams + LANDMARK_PARAM_SIZE * state.n_points
     }
 
     pub fn solve(
         &self,
-        state: &mut State<F, L, CP, LANDMARK_PARAM_SIZE, CAMERA_PARAM_SIZE>,
-        camera_map: &HashMap<usize, C>,
+        state: &mut State<F, C, L, CP, LANDMARK_PARAM_SIZE, CAMERA_PARAM_SIZE>,
         observed_features: &DVector<F>,
         runtime_parameters: &RuntimeParameters<F>,
         abort_receiver: Option<&mpsc::Receiver<bool>>,
         done_transmission: Option<&mpsc::Sender<bool>>,
-    ) -> Option<Vec<State<F, L, CP, LANDMARK_PARAM_SIZE, CAMERA_PARAM_SIZE>>> {
+    ) -> Option<Vec<State<F, C, L, CP, LANDMARK_PARAM_SIZE, CAMERA_PARAM_SIZE>>> {
         self.optimizer.optimize(
             state,
-            camera_map,
             observed_features,
             runtime_parameters,
             abort_receiver,
