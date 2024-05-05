@@ -9,7 +9,6 @@ use std::sync::mpsc;
 use crate::numerics::lie::left_jacobian_around_identity;
 use crate::numerics::optimizer::gauss_newton_schur::OptimizerGnSchur;
 use crate::sensors::camera::Camera;
-use crate::sfm::state::cam_state::cam_extrinsic_intrinsic_state::CAMERA_PARAM_SIZE;
 use crate::sfm::{
     state::landmark::Landmark,
     runtime_parameters::RuntimeParameters,

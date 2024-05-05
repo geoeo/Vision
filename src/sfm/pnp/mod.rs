@@ -13,7 +13,6 @@ use crate::sfm::{
     pnp::pnp_config::PnPConfig,
 };
 use crate::{GenericFloat,Float};
-use std::collections::HashMap;
 use std::{
     marker::{Send, Sync},
     sync::mpsc,
@@ -39,8 +38,6 @@ pub fn run_pnp<
 ) {
     let mut state = get_euclidean_landmark_state::<F,Feat,CConfig,C>(pnp_config.get_landmarks(), pnp_config.get_camera_pose_option(), pnp_config.get_camera_norm());
     let observed_features = get_observed_features(pnp_config.get_features_norm());
-    let camera_map = HashMap::from([(0,pnp_config.get_camera_norm().clone())]);
-
 
     let (tx_result, rx_result) = mpsc::channel::<(State<F, C,EuclideanLandmark<F>,CameraExtrinsicState<F,C>, LANDMARK_PARAM_SIZE, CAMERA_PARAM_SIZE>,Option<Vec<(Vec<[F; CAMERA_PARAM_SIZE]>, Vec<[F; LANDMARK_PARAM_SIZE]>)>>)>();
     let (tx_abort, rx_abort) = mpsc::channel::<bool>();

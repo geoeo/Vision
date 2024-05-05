@@ -57,13 +57,6 @@ impl<F: GenericFloat, C: Camera<F> + Copy, L: Landmark<F,T>, CS: CamState<F, C, 
         State{camera_parameters, landmarks, camera_id_map, n_cams, n_points,  _phantom_f: Default::default(),_panthom_c: Default::default()}
     }
 
-    fn generate_camera_id_by_idx_vec(camera_id_map: &HashMap<usize, usize>) -> Vec<usize> {
-        let mut cam_map_kvs = camera_id_map.iter().collect::<Vec<(_,_)>>();
-        // Sort by index
-        cam_map_kvs.sort_by(|(_,a),(_,b)| a.partial_cmp(b).unwrap());
-        cam_map_kvs.into_iter().map(|(k,_)| *k).collect::<Vec<_>>()
-    }
-
     pub fn get_landmarks(&self) -> &Vec<L> {
         &self.landmarks
     }
@@ -157,7 +150,6 @@ impl<F: GenericFloat, C: Camera<F> + Copy, L: Landmark<F,T>, CS: CamState<F, C, 
             landmarks.push(L::from_array(&points_serial[i]));
         }
 
-        let camera_id_by_idx = Self::generate_camera_id_by_idx_vec(&camera_id_map);
         State {
             camera_parameters,
             landmarks,

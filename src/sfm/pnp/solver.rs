@@ -136,7 +136,6 @@ impl<
         //cam
         let number_of_cam_params = CAMERA_PARAM_SIZE * state.n_cams;
         for cam_num in (0..number_of_cam_params).step_by(CAMERA_PARAM_SIZE) {
-            let cam_idx = cam_num / CAMERA_PARAM_SIZE;
             let column = cam_num;
 
             //landmark
