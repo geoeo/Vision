@@ -134,7 +134,7 @@ impl BAStateLinearizer {
             );
             
             let (camera_positions, cameras) = self.get_initial_camera_data(abs_pose_map,camera_norm_map);
-            (State::new(camera_positions, &cameras, landmarks ,&self.camera_to_linear_id_map, number_of_cameras, number_of_unqiue_landmarks), observed_features)
+            (State::new(camera_positions, &cameras, landmarks , number_of_cameras, number_of_unqiue_landmarks), observed_features)
 
     }
 
@@ -234,17 +234,17 @@ impl BAStateLinearizer {
         );
         
         let (camera_positions, cameras) = self.get_initial_camera_data(abs_pose_map,camera_norm_map);
-        (State::new(camera_positions, &cameras, landmarks ,&self.camera_to_linear_id_map, number_of_cameras, number_of_unqiue_landmarks), observed_features)
+        (State::new(camera_positions, &cameras, landmarks, number_of_cameras, number_of_unqiue_landmarks), observed_features)
     }
 
     fn get_initial_camera_data<F: GenericFloat, C1: Camera<Float>, C2: Camera<F> + Copy>(
         &self, pose_map: &HashMap<usize, Isometry3<Float>>, camera_map: &HashMap<usize, C1>) 
-        -> (DVector::<F>, Vec<C2>) {
+        -> (DVector::<F>, Vec<(C2,usize)>) {
 
         let number_of_cameras = self.camera_to_linear_id_map.keys().len();
         let number_of_cam_parameters = CAMERA_PARAM_SIZE*number_of_cameras; 
         let mut camera_positions = DVector::<F>::zeros(number_of_cam_parameters);
-        let mut cameras = vec![C2::from_matrices(&Matrix3::<F>::identity(), &Matrix3::<F>::identity()); number_of_cameras];
+        let mut cameras = vec![(C2::from_matrices(&Matrix3::<F>::identity(), &Matrix3::<F>::identity()),0); number_of_cameras];
         for (cam_id, cam_idx) in self.camera_to_linear_id_map.iter() {
             let cam_state_idx = CAMERA_PARAM_SIZE*cam_idx;
             let pose = pose_map.get(&cam_id).expect("pose not found for cam id");
@@ -257,7 +257,7 @@ impl BAStateLinearizer {
             let rotation = Rotation3::from_matrix_eps(&rotation_matrix_cast, convert(2e-16), 100, Rotation3::identity());
             camera_positions.fixed_view_mut::<3,1>(cam_state_idx,0).copy_from(&translation_cast);
             camera_positions.fixed_view_mut::<3,1>(cam_state_idx+3,0).copy_from(&rotation.scaled_axis());
-            cameras[*cam_idx]=camera_t;
+            cameras[*cam_idx]=(camera_t,*cam_id);
         }
     
         (camera_positions,cameras)

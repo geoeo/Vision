@@ -33,8 +33,8 @@ pub fn get_euclidean_landmark_state<F: GenericFloat, Feat: Feature,C1: Camera<Fl
 
     let number_of_landmarks = euclidean_landmarks.len();
     let camera_2 = C2::from_matrices(&camera.get_projection().cast::<F>(), &camera.get_inverse_projection().cast::<F>());
-    let cameras: Vec<C2> = vec![camera_2];
-    State::new(initial_cam_pose, &cameras, euclidean_landmarks, &HashMap::from([(0, 0)]), 1, number_of_landmarks)
+    let cameras: Vec<(C2,usize)> = vec![(camera_2,0)];
+    State::new(initial_cam_pose, &cameras, euclidean_landmarks, 1, number_of_landmarks)
 }
 
 pub fn get_observed_features<F: GenericFloat, Feat: Feature>(features: &Vec<Feat>) -> DVector<F> {
