@@ -1,12 +1,22 @@
 extern crate nalgebra as na;
 extern crate simba;
 
+use std::collections::HashMap;
 use na::{U1,U3,Vector,Vector3,Matrix2x3,Matrix2x5,Matrix3,Matrix3x4,Matrix4, base::storage::Storage};
 use simba::scalar::SupersetOf;
 use crate::image::features::geometry::point::Point;
 use crate::GenericFloat;
 
 pub mod perspective;
+
+#[derive(Hash,PartialEq,Eq,Copy,Clone)]
+pub enum INTRINSICS {
+    FX,
+    FY,
+    CX,
+    CY,
+    S
+}
 
  //@TODO: unify principal distance into enum
  pub trait Camera<F: GenericFloat> {
@@ -19,6 +29,7 @@ pub mod perspective;
     fn get_focal_x(&self) -> F;
     fn get_focal_y(&self) -> F;
     fn from_matrices(projection: &Matrix3<F>, inverse_projection: &Matrix3<F>) -> Self;
+    fn update(&mut self,perturb: &HashMap<INTRINSICS,F>) -> ();
 }
 
 /**

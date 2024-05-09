@@ -1,7 +1,8 @@
+use std::collections::HashMap;
 use na::{Vector3, Vector5,SVector, Isometry3};
 use crate::numerics::{lie::exp_se3,pose::from_matrix};
 use crate::sfm::state::cam_state::CamState;
-use crate::sensors::camera::Camera;
+use crate::sensors::camera::{INTRINSICS,Camera};
 use crate::GenericFloat;
 
 
@@ -36,7 +37,8 @@ impl<F: GenericFloat, C: Camera<F> + Clone> CamState<F, C, CAMERA_PARAM_SIZE> fo
         let new_isometry = from_matrix(&new_transform);
         self.extrinsic = new_isometry;
 
-        panic!("TODO intrinsic");
+        let update_map = HashMap::<INTRINSICS,F>::from([(INTRINSICS::FX,perturb[6]),(INTRINSICS::FY,perturb[7]),(INTRINSICS::CX,perturb[8]),(INTRINSICS::CY,perturb[9]),(INTRINSICS::S,perturb[10])]);
+        self.camera.update(&update_map);
     }
 
     fn to_serial(&self) ->  [F; CAMERA_PARAM_SIZE] {

@@ -1,10 +1,11 @@
 extern crate nalgebra as na;
 extern crate num_traits;
 
+use std::collections::HashMap;
 use na::{convert,U1,U3, Matrix2x3,Matrix2x5,Matrix3, Vector, Vector3, base::storage::Storage};
 use simba::scalar::SupersetOf;
 use crate::image::features::geometry::point::Point;
-use crate::sensors::camera::Camera; 
+use crate::sensors::camera::{INTRINSICS,Camera}; 
 use crate::GenericFloat;
 
 const IDENTITY_EPS: f32 = 1e-12f32;
@@ -15,30 +16,36 @@ pub struct Perspective<F: GenericFloat> {
     pub inverse_projection: Matrix3<F>
 }
 
- //@TODO: unify principal distance into enum
+ //@TODO: unify principal distance into enum, re-evaluate invert focal length
 impl<F: GenericFloat> Perspective<F> {
     pub fn new(fx: F, fy: F, cx: F, cy: F, s: F, invert_focal_length: bool) -> Perspective<F> {
-       let factor = match invert_focal_length {
-           true => -F::one(),
-           false => F::one()
-       };
-       let fx_scaled = factor*fx;
-       let fy_scaled = factor*fy;
-       let cx_scaled = cx;
-       let cy_scaled = cy;
-       let projection = Matrix3::<F>::new(fx_scaled, s, cx_scaled,
-                                              F::zero(), fy_scaled, cy_scaled,
-                                              F::zero(),  F::zero(), F::one());
-        
+        let factor = match invert_focal_length {
+            true => -F::one(),
+            false => F::one()
+        };
 
-       let k = -cx_scaled/fx_scaled + s*cy_scaled*fx_scaled/fy_scaled;
-       let inverse_projection = Matrix3::<F>::new(F::one()/fx_scaled, -s*fx_scaled/fy_scaled, k,
-                                                  F::zero(), F::one()/fy_scaled, -cy_scaled/fy_scaled,
-                                                  F::zero(), F::zero(), F::one());
+        let fx_scaled = factor*fx;
+        let fy_scaled = factor*fy;
+        let cx_scaled = cx;
+        let cy_scaled = cy;
 
-        
+        let (projection,inverse_projection) = Self::compute_projections(fx_scaled,fy_scaled,cx_scaled,cy_scaled,s);
         assert!(num_traits::Float::abs((projection*inverse_projection).determinant())- F::one() <= F::from_f32(IDENTITY_EPS).expect("Converstion failed!"));
         Perspective{projection,inverse_projection}
+    }
+
+    fn compute_projections(fx: F,fy: F, cx: F, cy: F, s: F) -> (Matrix3<F>,Matrix3<F>) {
+        let projection = Matrix3::<F>::new(fx, s, cx,
+            F::zero(), fy, cy,
+            F::zero(),  F::zero(), F::one());
+
+
+        let k = -cx/fx + s*cy*fx/fy;
+        let inverse_projection = Matrix3::<F>::new(F::one()/fx, -s*fx/fy, k,
+                        F::zero(), F::one()/fy, -cy/fy,
+                        F::zero(), F::zero(), F::one());
+
+        (projection,inverse_projection)
     }
 
 
@@ -111,7 +118,7 @@ impl<F: GenericFloat> Camera<F> for Perspective<F> {
         match z {
             z if num_traits::Float::abs(z) > F2::zero() => {
                 Some(Matrix2x5::<F2>::new(x/z,F2::zero() , y , F2::one(), F2::zero(),
-                                          F2::zero(), y/z, F2::zero() ,F2::zero(), F2::one()))
+                    F2::zero(), y/z, F2::zero() ,F2::zero(), F2::one()))
 
             },
             _ => None
@@ -144,6 +151,18 @@ impl<F: GenericFloat> Camera<F> for Perspective<F> {
 
     fn get_focal_y(&self) -> F {
         self.get_fy()
+    }
+
+    fn update(&mut self, perturb: &HashMap<INTRINSICS,F>) -> () {
+        let fx = perturb.get(&INTRINSICS::FX).expect("fx not found in perturb update");
+        let fy = perturb.get(&INTRINSICS::FY).expect("fy not found in perturb update");
+        let cx = perturb.get(&INTRINSICS::CX).expect("cx not found in perturb update");
+        let cy = perturb.get(&INTRINSICS::CY).expect("cy not found in perturb update");
+        let s = perturb.get(&INTRINSICS::S).expect("s not found in perturb update");
+
+        let (projection,inverse_projection) = Self::compute_projections(*fx,*fy,*cx,*cy,*s);
+        self.projection = projection;
+        self.inverse_projection = inverse_projection;
     }
 
 }
