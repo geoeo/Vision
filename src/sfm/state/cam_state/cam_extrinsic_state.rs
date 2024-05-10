@@ -1,4 +1,4 @@
-use na::{Vector3, Vector6, Isometry3};
+use na::{Vector3, Vector6, Isometry3, SMatrix, Point3, Matrix3x6};
 use crate::numerics::{lie::exp_se3,pose::from_matrix};
 use crate::sfm::state::cam_state::CamState;
 use crate::sensors::camera::Camera;
@@ -58,4 +58,10 @@ impl<F: GenericFloat, C: Camera<F> + Clone> CamState<F,C,CAMERA_PARAM_SIZE> for 
     fn get_camera(&self) -> C {
         self.camera.clone()
     }
+
+    fn get_jacobian(&self, point: &Point3<F>, lie_jacobian: &Matrix3x6<F>) -> SMatrix<F,2,CAMERA_PARAM_SIZE> {
+        self.camera.get_jacobian_with_respect_to_position_in_camera_frame(&point.coords).expect("Could not compute jacobian for camera state")*lie_jacobian
+    }
+
+    
 }

@@ -2,7 +2,7 @@ extern crate nalgebra as na;
 extern crate num_traits;
 
 use std::collections::HashMap;
-use na::{convert,U1,U3, Matrix2x3,Matrix2x5,Matrix3, Vector, Vector3, base::storage::Storage};
+use na::{convert,U1,U3, Matrix2x3,Matrix2x5,Matrix3, Vector, Vector3,SMatrix, base::storage::Storage};
 use simba::scalar::SupersetOf;
 use crate::image::features::geometry::point::Point;
 use crate::sensors::camera::{INTRINSICS,Camera}; 
@@ -138,6 +138,21 @@ impl<F: GenericFloat> Camera<F> for Perspective<F> {
             _ => None
         }
 
+    }
+
+    fn get_full_jacobian<T, F2: GenericFloat + SupersetOf<F>>(&self, position: &Vector<F2,U3,T>) -> Option<SMatrix<F2,2,8>> where T: Storage<F2,U3,U1> {
+        let option_j_p = self.get_jacobian_with_respect_to_position_in_camera_frame(position);
+        let option_j_i = self.get_jacobian_with_respect_to_intrinsics(position);
+
+        match (option_j_p,option_j_i) {
+            (Some(j_p),Some(j_i)) => {
+                let mut j = SMatrix::<F2,2,8>::zeros();
+                j.fixed_view_mut::<2,3>(0,0).copy_from(&j_p);
+                j.fixed_view_mut::<2,5>(0,3).copy_from(&j_i);
+                Some(j)
+            },
+            _ => None
+        }
     }
 
     fn backproject(&self, point: &Point<F>, depth: F) -> Vector3<F> {

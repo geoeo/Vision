@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use na::{Vector3, Vector5,SVector, Isometry3};
+use na::{Vector3, Vector5,SVector, Isometry3, SMatrix, Point3, Matrix3x6};
 use crate::numerics::{lie::exp_se3,pose::from_matrix};
 use crate::sfm::state::cam_state::CamState;
 use crate::sensors::camera::{INTRINSICS,Camera};
@@ -69,5 +69,13 @@ impl<F: GenericFloat, C: Camera<F> + Clone> CamState<F, C, CAMERA_PARAM_SIZE> fo
 
     fn get_camera(&self) -> C {
         self.camera.clone()
+    }
+
+    fn get_jacobian(&self, point: &Point3<F>,lie_jacobian: &Matrix3x6<F>) -> SMatrix<F,2,CAMERA_PARAM_SIZE> {
+        let j_c = self.camera.get_full_jacobian(&point.coords).expect("Could not compute jacobian for camera state");
+        let mut j_t = SMatrix::<F,8,CAMERA_PARAM_SIZE>::zeros();
+        j_t.fixed_view_mut::<5,5>(3,6).copy_from(&SMatrix::<F,5,5>::identity());
+        j_t.fixed_view_mut::<3,6>(0,0).copy_from(lie_jacobian);
+        j_c*j_t
     }
 }

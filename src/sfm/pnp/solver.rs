@@ -5,7 +5,7 @@ use na::{DMatrix, DVector, Point3, Matrix, Dyn, U4, VecStorage};
 use std::marker::{Send, Sync};
 use std::sync::mpsc;
 
-use crate::numerics::{lie::left_jacobian_around_identity, optimizer::gauss_newton::OptimizerGn};
+use crate::numerics::optimizer::gauss_newton::OptimizerGn;
 use crate::sensors::camera::Camera;
 use crate::sfm::runtime_parameters::RuntimeParameters;
 use crate::sfm::state::{State, cam_state::CamState, landmark::Landmark};
@@ -104,29 +104,16 @@ impl<
         }
     }
 
-    fn compute_jacobian_wrt_camera_extrinsics(
+    fn compute_jacobian_wrt_camera(
         state: &State<F, C, L, CP, LANDMARK_PARAM_SIZE, CAMERA_PARAM_SIZE>,
-        cam_idx: usize,
         point: &Point3<F>,
-        i: usize,
-        j: usize,
+        landmark_index: usize,
+        cam_idx: usize,
         jacobian: &mut DMatrix<F>,
     ) -> () {
-        let isometry = state.to_isometry(cam_idx);
-        let transformed_point = isometry.transform_point(point).coords;
-        let lie_jacobian = left_jacobian_around_identity(&transformed_point);
-        let camera = state.get_camera(cam_idx/CAMERA_PARAM_SIZE);
-
-        let projection_jacobian = camera
-            .get_jacobian_with_respect_to_position_in_camera_frame(
-                &transformed_point,
-            )
-            .expect("get_jacobian_with_respect_to_position_in_camera_frame failed!");
-        let local_jacobian = projection_jacobian * lie_jacobian;
-
         jacobian
-            .fixed_view_mut::<2, CAMERA_PARAM_SIZE>(i, j)
-            .copy_from(&local_jacobian.fixed_view::<2,CAMERA_PARAM_SIZE>(0,0));
+            .fixed_view_mut::<2, CAMERA_PARAM_SIZE>(landmark_index, cam_idx)
+            .copy_from(&state.jacobian_wrt_camera(point,cam_idx/CAMERA_PARAM_SIZE));
     }
 
     fn compute_jacobian(
@@ -143,9 +130,8 @@ impl<
                 let point = state.get_landmarks()[point_id].get_euclidean_representation();
                 let row = Self::get_feature_index_in_residual(point_id);
 
-                Self::compute_jacobian_wrt_camera_extrinsics(
+                Self::compute_jacobian_wrt_camera(
                     state,
-                    cam_num,
                     &point,
                     row,
                     column,

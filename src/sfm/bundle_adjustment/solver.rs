@@ -6,7 +6,6 @@ use std::boxed::Box;
 use std::marker::{Send, Sync};
 use std::sync::mpsc;
 
-use crate::numerics::lie::left_jacobian_around_identity;
 use crate::numerics::optimizer::gauss_newton_schur::OptimizerGnSchur;
 use crate::sensors::camera::Camera;
 use crate::sfm::{
@@ -123,7 +122,7 @@ impl<
         jacobian: &mut DMatrix<F>,
     ) -> () {
         let point = state.get_landmarks()[point_idx].get_euclidean_representation();
-        let jacobian_world = state.jacobian_wrt_world_coordiantes(point_idx, cam_idx);
+        let jacobian_world = state.jacobian_wrt_landmarks(point_idx, cam_idx);
         let transformed_point = state.to_isometry(cam_idx).transform_point(&point).coords;
         let camera = state.get_camera(cam_idx/CAMERA_PARAM_SIZE); //@Rework
         let projection_jacobian = camera
@@ -138,29 +137,16 @@ impl<
             .copy_from(&local_jacobian.fixed_view::<2, LANDMARK_PARAM_SIZE>(0, 0));
     }
 
-    fn compute_jacobian_wrt_camera_extrinsics(
+    fn compute_jacobian_wrt_camera(
         state: &State<F, C, L, CP, LANDMARK_PARAM_SIZE, CAMERA_PARAM_SIZE>,
         point: &Point3<F>,
-        i: usize,
-        j: usize,
+        landmark_index: usize,
+        cam_idx: usize,
         jacobian: &mut DMatrix<F>,
     ) -> () {
-        let isometry = state.to_isometry(j);
-        let transformed_point = isometry.transform_point(point).coords;
-        let lie_jacobian = left_jacobian_around_identity(&transformed_point);
-        let camera = state.get_camera(j/CAMERA_PARAM_SIZE);
-
-        let projection_jacobian = camera
-            .get_jacobian_with_respect_to_position_in_camera_frame(
-                &transformed_point.fixed_rows::<3>(0),
-            )
-            .expect("get_jacobian_with_respect_to_position_in_camera_frame failed!");
-        let local_jacobian = projection_jacobian * lie_jacobian;
-        
-        //TODO: Issue for camera param size change!
         jacobian
-            .fixed_view_mut::<2, CAMERA_PARAM_SIZE>(i, j)
-            .copy_from(&local_jacobian.fixed_view::<2,CAMERA_PARAM_SIZE>(0,0)); 
+            .fixed_view_mut::<2, CAMERA_PARAM_SIZE>(landmark_index, cam_idx)
+            .copy_from(&state.jacobian_wrt_camera(point,cam_idx/CAMERA_PARAM_SIZE));
     }
 
     /**
@@ -184,7 +170,7 @@ impl<
                 let row = Self::get_feature_index_in_residual(cam_idx, point_id, state.n_cams);
                 let column_landmark = number_of_cam_params + (LANDMARK_PARAM_SIZE * point_id);
 
-                Self::compute_jacobian_wrt_camera_extrinsics(
+                Self::compute_jacobian_wrt_camera(
                     state,
                     &point,
                     row,
