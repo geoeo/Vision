@@ -24,16 +24,15 @@ pub mod solver;
 pub mod pnp_config;
 
 pub fn run_pnp<
-    'a,
     F: serde::Serialize + GenericFloat,
     const CP: usize,
     CS: CamState<F,C,CP> + Copy + Send + Sync + 'static,
-    CConfig: Camera<Float> + Clone + Copy + Send + Sync +'a + 'static,
-    C: Camera<F> + Clone + Copy + Send + Sync +'a + 'static,
+    CConfig: Camera<Float> + Clone + Copy + Send + Sync + 'static,
+    C: Camera<F> + Clone + Copy + Send + Sync + 'static,
     Feat: Feature + SolverFeature
 >(
-    pnp_config: &'a PnPConfig<CConfig, Feat>,
-    runtime_parameters: &'a RuntimeParameters<F>,
+    pnp_config: &PnPConfig<CConfig, Feat>,
+    runtime_parameters: &RuntimeParameters<F>,
 ) -> 
     (  State<F, C, EuclideanLandmark<F>,CS, LANDMARK_PARAM_SIZE, CP>,
         Option<Vec<(Vec<[F; CP]>, Vec<[F; LANDMARK_PARAM_SIZE]>)>>
