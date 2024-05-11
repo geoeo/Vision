@@ -6,7 +6,7 @@ use crate::image::features::{
 };
 use crate::sensors::camera::Camera;
 use crate::sfm::bundle_adjustment::ba_config::filtering::{compute_reprojection_ranges, compute_reprojection_maps, compute_landmark_maps};
-use crate::sfm::state::{State,cam_state::cam_extrinsic_state::{CAMERA_PARAM_SIZE,CameraExtrinsicState},landmark::{Landmark, euclidean_landmark::EuclideanLandmark}};
+use crate::sfm::state::{State,cam_state::CamState,landmark::{Landmark, euclidean_landmark::EuclideanLandmark}};
 use crate::sfm::bundle_adjustment::ba_config::outlier_rejection::{
     calcualte_disparities, calculate_reprojection_errors,
     filter_by_rejected_landmark_ids,
@@ -181,7 +181,9 @@ impl<C: Camera<Float> + Copy + Clone, Feat: Feature>
         pyramid_map.iter().map(|(k,v)| (*k,v.calculate_score())).collect::<HashMap<usize, usize>>()
     }
 
-    pub fn update_state(&mut self, state: &State<Float, C ,EuclideanLandmark<Float>, CameraExtrinsicState<Float,C>, 3, CAMERA_PARAM_SIZE>) -> () {
+    pub fn update_state<
+        L: Landmark<Float, LANDMARK_PARAM_SIZE> ,CS: CamState<Float,C, CAMERA_PARAM_SIZE> + Copy,const LANDMARK_PARAM_SIZE: usize, const CAMERA_PARAM_SIZE: usize
+    >(&mut self, state: &State<Float, C ,L, CS, LANDMARK_PARAM_SIZE, CAMERA_PARAM_SIZE>) -> () {
         let camera_positions = state.get_camera_positions();
         let camera_id_map = state.get_camera_id_map();
         let world_landmarks = state.get_landmarks();
@@ -214,7 +216,9 @@ impl<C: Camera<Float> + Copy + Clone, Feat: Feature>
     }
 
     pub fn 
-    update_landmark_state(&mut self, cam_id_1: &usize, cam_id_2: &usize,  new_world_landmarks: &Vec<EuclideanLandmark<Float>>) -> () {
+    update_landmark_state<
+        L: Landmark<Float, LANDMARK_PARAM_SIZE>,const LANDMARK_PARAM_SIZE: usize, 
+        >(&mut self, cam_id_1: &usize, cam_id_2: &usize,  new_world_landmarks: &Vec<L>) -> () {
         let key = (*cam_id_1,*cam_id_2);
         let current_relative_landmarks = self.landmark_map.get(&key).expect("No Landmarks found");
         let pose_world_cam_1 = self.abs_pose_map.get(&cam_id_1).expect("No cam pose");

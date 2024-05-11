@@ -19,7 +19,7 @@ pub enum INTRINSICS {
 
  pub trait Camera<F: GenericFloat> {
     fn get_projection(&self) -> Matrix3<F>;
-    fn get_inverse_projection(&self) -> Matrix3<F>; //@TODO: rename to camera/intrinsic matrix
+    fn get_inverse_projection(&self) -> Matrix3<F>;
     fn get_jacobian_with_respect_to_position_in_camera_frame<S>(&self, position: &Vector<F,U3,S>) -> Option<Matrix2x3<F>> where S: Storage<F,U3,U1>;
     fn get_jacobian_with_respect_to_intrinsics<S>(&self, position: &Vector<F,U3,S>) -> Option<Matrix2x5<F>> where S: Storage<F,U3,U1>;
     fn get_full_jacobian<S>(&self, position: &Vector<F,U3,S>) -> Option<SMatrix<F,2,8>> where S: Storage<F,U3,U1>;
