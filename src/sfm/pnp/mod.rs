@@ -7,7 +7,7 @@ use crate::image::features::Feature;
 use crate::sfm::runtime_parameters::RuntimeParameters;
 use crate::sensors::camera::Camera;
 use crate::sfm::{
-    state::{cam_state::cam_extrinsic_state::{CAMERA_PARAM_SIZE,CameraExtrinsicState},
+    state::{cam_state::CamState,
     pnp_state_linearizer::{get_euclidean_landmark_state,get_observed_features},
     State,landmark::{euclidean_landmark::LANDMARK_PARAM_SIZE,euclidean_landmark::EuclideanLandmark}},
     pnp::pnp_config::PnPConfig,
@@ -26,6 +26,8 @@ pub mod pnp_config;
 pub fn run_pnp<
     'a,
     F: serde::Serialize + GenericFloat,
+    const CP: usize,
+    CS: CamState<F,C,CP> + Copy + Send + Sync + 'static,
     CConfig: Camera<Float> + Clone + Copy + Send + Sync +'a + 'static,
     C: Camera<F> + Clone + Copy + Send + Sync +'a + 'static,
     Feat: Feature + SolverFeature
@@ -33,19 +35,19 @@ pub fn run_pnp<
     pnp_config: &'a PnPConfig<CConfig, Feat>,
     runtime_parameters: &'a RuntimeParameters<F>,
 ) -> 
-    (  State<F, C, EuclideanLandmark<F>,CameraExtrinsicState<F,C>, LANDMARK_PARAM_SIZE, CAMERA_PARAM_SIZE>,
-        Option<Vec<(Vec<[F; CAMERA_PARAM_SIZE]>, Vec<[F; LANDMARK_PARAM_SIZE]>)>>
+    (  State<F, C, EuclideanLandmark<F>,CS, LANDMARK_PARAM_SIZE, CP>,
+        Option<Vec<(Vec<[F; CP]>, Vec<[F; LANDMARK_PARAM_SIZE]>)>>
 ) {
-    let mut state = get_euclidean_landmark_state::<F,Feat,CConfig,C>(pnp_config.get_landmarks(), pnp_config.get_camera_pose_option(), pnp_config.get_camera_norm());
+    let mut state = get_euclidean_landmark_state::<F,Feat,CConfig,C,CS,CP>(pnp_config.get_landmarks(), pnp_config.get_camera_pose_option(), pnp_config.get_camera_norm());
     let observed_features = get_observed_features(pnp_config.get_features_norm());
 
-    let (tx_result, rx_result) = mpsc::channel::<(State<F, C,EuclideanLandmark<F>,CameraExtrinsicState<F,C>, LANDMARK_PARAM_SIZE, CAMERA_PARAM_SIZE>,Option<Vec<(Vec<[F; CAMERA_PARAM_SIZE]>, Vec<[F; LANDMARK_PARAM_SIZE]>)>>)>();
+    let (tx_result, rx_result) = mpsc::channel::<(State<F, C,EuclideanLandmark<F>,CS, LANDMARK_PARAM_SIZE, CP>,Option<Vec<(Vec<[F; CP]>, Vec<[F; LANDMARK_PARAM_SIZE]>)>>)>();
     let (tx_abort, rx_abort) = mpsc::channel::<bool>();
     let (tx_done, rx_done) = mpsc::channel::<bool>();
 
     thread::scope(|s| {   
         s.spawn(move || {
-            let solver = solver::Solver::<F, C, _,_, LANDMARK_PARAM_SIZE, CAMERA_PARAM_SIZE>::new();
+            let solver = solver::Solver::<F, C, _,_, LANDMARK_PARAM_SIZE, CP>::new();
             let some_debug_state_list = solver.solve(
                 &mut state,
                 &observed_features,

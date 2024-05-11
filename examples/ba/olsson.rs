@@ -10,7 +10,10 @@ use vision::sfm::{
     epipolar::tensor::BifocalType, 
     pnp::run_pnp,runtime_parameters::RuntimeParameters,
     bundle_adjustment::ba_config::filtering::filter_config,
-    state::landmark::{euclidean_landmark,inverse_depth_landmark}
+    state::{
+        cam_state::cam_extrinsic_state,
+        landmark::{euclidean_landmark,inverse_depth_landmark}
+    }
 };
 use vision::numerics::weighting;
 use vision::load_runtime_conf;
@@ -157,13 +160,13 @@ fn main() -> Result<()> {
 
     for &cam_id in camera_ids.keys() {
         let pnp_config_cam = ba_config_fundamental.generate_pnp_config_from_cam_id(cam_id);
-        let (optimized_state_pnp, _) = run_pnp(&pnp_config_cam,&runtime_parameters_pnp);
+        let (optimized_state_pnp, _) = run_pnp::<_,{cam_extrinsic_state::CAMERA_PARAM_SIZE},cam_extrinsic_state::CameraExtrinsicState<Float,_>,_,Perspective<Float>,_>(&pnp_config_cam,&runtime_parameters_pnp);
         ba_config_fundamental.update_state(&optimized_state_pnp);
         let cam_pos_pnp = optimized_state_pnp.get_camera_positions().first().unwrap().clone();
         println!("Cam state pnp: {}", cam_pos_pnp);
     }
 
-    let (optimized_state, state_debug_list) = run_ba::<_,{inverse_depth_landmark::LANDMARK_PARAM_SIZE},inverse_depth_landmark::InverseLandmark<Float>,_,Perspective<Float>,_>(&ba_config_fundamental, &runtime_parameters,&trajectories);
+    let (optimized_state, state_debug_list) = run_ba::<_,{inverse_depth_landmark::LANDMARK_PARAM_SIZE},{cam_extrinsic_state::CAMERA_PARAM_SIZE},cam_extrinsic_state::CameraExtrinsicState<Float,_>,inverse_depth_landmark::InverseLandmark<Float>,_,Perspective<Float>,_>(&ba_config_fundamental, &runtime_parameters,&trajectories);
     let state_serialized = serde_yaml::to_string(&optimized_state.to_serial());
     let debug_states_serialized = serde_yaml::to_string(&state_debug_list);
 

@@ -6,7 +6,9 @@ use std::collections::HashMap;
 use vision::{Float,load_runtime_conf};
 use vision::image::features::image_feature::ImageFeature;
 use vision::sfm::{
-    state::landmark::{euclidean_landmark::EuclideanLandmark,Landmark},
+    state::{
+        cam_state::cam_extrinsic_state,
+        landmark::{euclidean_landmark::EuclideanLandmark,Landmark}},
     runtime_parameters::RuntimeParameters,
     pnp::{pnp_config::PnPConfig, run_pnp}
 };
@@ -96,7 +98,7 @@ fn main() -> Result<()> {
         cg_max_it: 2e3 as usize
     };
 
-    let (optimized_state, state_debug_list) = run_pnp::<_,_,Perspective<Float>,_>(&pnp_config,&runtime_parameters);
+    let (optimized_state, state_debug_list) = run_pnp::<_,{cam_extrinsic_state::CAMERA_PARAM_SIZE},cam_extrinsic_state::CameraExtrinsicState<Float,_>,_,Perspective<Float>,_>(&pnp_config,&runtime_parameters);
 
     let camera_positions = &optimized_state.get_camera_positions();
     let cam_pos = camera_positions[0];
