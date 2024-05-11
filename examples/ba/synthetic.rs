@@ -5,7 +5,7 @@ use na::{Rotation3,Isometry3,Vector3,UnitQuaternion};
 use std::collections::{HashMap, HashSet};
 use vision::{Float,load_runtime_conf};
 use vision::sfm::{
-    state::landmark::{Landmark,inverse_depth_landmark::InverseLandmark, euclidean_landmark::EuclideanLandmark},
+    state::landmark::{Landmark,inverse_depth_landmark, euclidean_landmark},
     triangulation::Triangulation,
     bundle_adjustment::{run_ba, ba_config::{BAConfig,conversions::compute_path_id_pairs}}, 
     epipolar::tensor::BifocalType,
@@ -172,7 +172,7 @@ fn main() -> Result<()> {
 
     let trajectories = vec!(vec!((0,1)));
 
-    let (optimized_state, state_debug_list) = run_ba::<_,6,InverseLandmark<Float>,_,Perspective<Float>,_>(&sfm_config_fundamental, &runtime_parameters, &trajectories);
+    let (optimized_state, state_debug_list) = run_ba::<_,{inverse_depth_landmark::LANDMARK_PARAM_SIZE},inverse_depth_landmark::InverseLandmark<Float>,_,Perspective<Float>,_>(&sfm_config_fundamental, &runtime_parameters, &trajectories);
     sfm_config_fundamental.update_state(&optimized_state);
 
     let cam_0_idx = optimized_state.get_camera_id_map().get(&0).unwrap();

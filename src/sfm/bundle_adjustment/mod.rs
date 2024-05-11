@@ -41,7 +41,6 @@ pub fn run_ba<
     State<F, C,EuclideanLandmark<F>,CameraExtrinsicState<F,C>, {euclidean_landmark::LANDMARK_PARAM_SIZE}, CAMERA_PARAM_SIZE>,
     Option<Vec<(Vec<[F; CAMERA_PARAM_SIZE]>, Vec<[F; euclidean_landmark::LANDMARK_PARAM_SIZE]>)>>
 ) {
-    
     let abs_landmark_map = generate_abs_landmark_map(sfm_config.root(),sfm_config.paths(),sfm_config.landmark_map(),sfm_config.abs_pose_map());
     let paths = trajectories.clone().into_iter().flatten().collect::<Vec<(usize,usize)>>();
 
@@ -49,7 +48,7 @@ pub fn run_ba<
     let unique_landmark_id_set = paths.iter().map(|p| abs_landmark_map.get(p).expect("No landmarks for path")).flatten().map(|l| l.get_id().expect("No id")).collect::<HashSet<_>>();
     let state_linearizer = BAStateLinearizer::new(&paths,&unique_landmark_id_set); // This works
 
-    let (tx_result, rx_result) = mpsc::channel::<(State<F,C, EuclideanLandmark<F>,CameraExtrinsicState<F,C>, 3,CAMERA_PARAM_SIZE>, Option<Vec<(Vec<[F; CAMERA_PARAM_SIZE]>, Vec<[F; 3]>)>>)>();
+    let (tx_result, rx_result) = mpsc::channel::<(State<F,C, EuclideanLandmark<F>,CameraExtrinsicState<F,C>, {euclidean_landmark::LANDMARK_PARAM_SIZE},CAMERA_PARAM_SIZE>, Option<Vec<(Vec<[F; CAMERA_PARAM_SIZE]>, Vec<[F; 3]>)>>)>();
     let (tx_abort, rx_abort) = mpsc::channel::<bool>();
     let (tx_done, rx_done) = mpsc::channel::<bool>();
 
@@ -57,7 +56,7 @@ pub fn run_ba<
         s.spawn(move || {
 
             let (s,d) = match LP {
-                3 => {
+                euclidean_landmark::LANDMARK_PARAM_SIZE => {
                     let solver = solver::Solver::<F, C, _, _, {euclidean_landmark::LANDMARK_PARAM_SIZE}, CAMERA_PARAM_SIZE>::new();
                     let (mut state, observed_features) = state_linearizer.get_euclidean_landmark_state(
                         &paths,
@@ -82,8 +81,7 @@ pub fn run_ba<
                     let s = state.to_euclidean_landmarks();
                     (s,debug_state)
                 },
-                6 => {
-
+                inverse_depth_landmark::LANDMARK_PARAM_SIZE => {
                     let solver = solver::Solver::<F, C, _, _, {inverse_depth_landmark::LANDMARK_PARAM_SIZE}, CAMERA_PARAM_SIZE>::new();
                     let (mut state, observed_features) = state_linearizer.get_inverse_depth_landmark_state(
                         &paths,

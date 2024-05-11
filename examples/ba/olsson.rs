@@ -10,7 +10,7 @@ use vision::sfm::{
     epipolar::tensor::BifocalType, 
     pnp::run_pnp,runtime_parameters::RuntimeParameters,
     bundle_adjustment::ba_config::filtering::filter_config,
-    state::landmark::inverse_depth_landmark::InverseLandmark
+    state::landmark::{euclidean_landmark,inverse_depth_landmark}
 };
 use vision::numerics::weighting;
 use vision::load_runtime_conf;
@@ -36,7 +36,7 @@ fn main() -> Result<()> {
     let kronan = "kronan";
     let round_church = "round_church";
 
-    let olsen_dataset_name = park_gate;
+    let olsen_dataset_name = fountain;
     let olsen_data_path = format!("{}/Olsson/{}/",runtime_conf.dataset_path,olsen_dataset_name);
 
     let feature_skip_count = 1;
@@ -163,7 +163,7 @@ fn main() -> Result<()> {
         println!("Cam state pnp: {}", cam_pos_pnp);
     }
 
-    let (optimized_state, state_debug_list) = run_ba::<_,6,InverseLandmark<Float>,_,Perspective<Float>,_>(&ba_config_fundamental, &runtime_parameters,&trajectories);
+    let (optimized_state, state_debug_list) = run_ba::<_,{inverse_depth_landmark::LANDMARK_PARAM_SIZE},inverse_depth_landmark::InverseLandmark<Float>,_,Perspective<Float>,_>(&ba_config_fundamental, &runtime_parameters,&trajectories);
     let state_serialized = serde_yaml::to_string(&optimized_state.to_serial());
     let debug_states_serialized = serde_yaml::to_string(&state_debug_list);
 
