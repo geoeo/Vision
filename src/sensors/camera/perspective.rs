@@ -92,33 +92,33 @@ impl<F: GenericFloat> Camera<F> for Perspective<F> {
         self.inverse_projection
     }
 
-    fn get_jacobian_with_respect_to_position_in_camera_frame<T, F2: GenericFloat + SupersetOf<F>>(&self, position: &Vector<F2,U3,T>) -> Option<Matrix2x3<F2>> where T: Storage<F2,U3,U1> {
+    fn get_jacobian_with_respect_to_position_in_camera_frame<S>(&self, position: &Vector<F,U3,S>) -> Option<Matrix2x3<F>> where S: Storage<F,U3,U1> {
         let x = position[0];
         let y = position[1];
         let z = position[2];
         match z {
-            z if num_traits::Float::abs(z) > F2::zero() => {
+            z if num_traits::Float::abs(z) > F::zero() => {
                 let z_sqrd = num_traits::Float::powi(z,2);
 
-                let fx = na::convert::<F,F2>(self.get_fx());
-                let fy = na::convert::<F,F2>(self.get_fy());
-                let s = na::convert::<F,F2>(self.get_s());
+                let fx = self.get_fx();
+                let fy = self.get_fy();
+                let s = self.get_s();
         
-                Some(Matrix2x3::<F2>::new(fx/z, s/z , -(fx*x)/z_sqrd,
-                                        F2::zero(), fy/z,  -(fy*y)/z_sqrd))
+                Some(Matrix2x3::<F>::new(fx/z, s/z , -(fx*x)/z_sqrd,
+                                        F::zero(), fy/z,  -(fy*y)/z_sqrd))
             },
             _ => None
         }
     }
 
-    fn get_jacobian_with_respect_to_intrinsics<T, F2: GenericFloat + SupersetOf<F>>(&self, position: &Vector<F2,U3,T>) -> Option<Matrix2x5<F2>> where T: Storage<F2,U3,U1> {
+    fn get_jacobian_with_respect_to_intrinsics<S>(&self, position: &Vector<F,U3,S>) -> Option<Matrix2x5<F>> where S: Storage<F,U3,U1> {
         let x = position[0];
         let y = position[1];
         let z = position[2];
         match z {
-            z if num_traits::Float::abs(z) > F2::zero() => {
-                Some(Matrix2x5::<F2>::new(x/z,F2::zero() , y , F2::one(), F2::zero(),
-                    F2::zero(), y/z, F2::zero() ,F2::zero(), F2::one()))
+            z if num_traits::Float::abs(z) > F::zero() => {
+                Some(Matrix2x5::<F>::new(x/z,F::zero() , y , F::one(), F::zero(),
+                    F::zero(), y/z, F::zero() ,F::zero(), F::one()))
 
             },
             _ => None
@@ -126,27 +126,27 @@ impl<F: GenericFloat> Camera<F> for Perspective<F> {
 
     }
 
-    fn project<T, F2: GenericFloat + SupersetOf<F>>(&self, position: &Vector<F2,U3,T>) -> Option<Point<F2>> where T: Storage<F2,U3,U1> {
+    fn project<S>(&self, position: &Vector<F,U3,S>) -> Option<Point<F>> where S: Storage<F,U3,U1> {
         let z = position[2];
         match z {
-            z if num_traits::Float::abs(z) > F2::zero() => {
+            z if num_traits::Float::abs(z) > F::zero() => {
                 let homogeneous = position/z;
-                let proj = Matrix3::<F2>::from_iterator(self.projection.iter().map(|v| na::convert::<F,F2>(*v)));
+                let proj =self.get_projection();
                 let projected_coordiantes = proj*homogeneous;
-                Some(Point::<F2>::new(projected_coordiantes[0],projected_coordiantes[1]))
+                Some(Point::<F>::new(projected_coordiantes[0],projected_coordiantes[1]))
             },
             _ => None
         }
 
     }
 
-    fn get_full_jacobian<T, F2: GenericFloat + SupersetOf<F>>(&self, position: &Vector<F2,U3,T>) -> Option<SMatrix<F2,2,8>> where T: Storage<F2,U3,U1> {
+    fn get_full_jacobian<S>(&self, position: &Vector<F,U3,S>) -> Option<SMatrix<F,2,8>> where S: Storage<F,U3,U1> {
         let option_j_p = self.get_jacobian_with_respect_to_position_in_camera_frame(position);
         let option_j_i = self.get_jacobian_with_respect_to_intrinsics(position);
 
         match (option_j_p,option_j_i) {
             (Some(j_p),Some(j_i)) => {
-                let mut j = SMatrix::<F2,2,8>::zeros();
+                let mut j = SMatrix::<F,2,8>::zeros();
                 j.fixed_view_mut::<2,3>(0,0).copy_from(&j_p);
                 j.fixed_view_mut::<2,5>(0,3).copy_from(&j_i);
                 Some(j)

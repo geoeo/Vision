@@ -3,7 +3,6 @@ extern crate simba;
 
 use std::collections::HashMap;
 use na::{U1,U3,Vector,Vector3,Matrix2x3,Matrix2x5,Matrix3,Matrix3x4,Matrix4,SMatrix, base::storage::Storage};
-use simba::scalar::SupersetOf;
 use crate::image::features::geometry::point::Point;
 use crate::GenericFloat;
 
@@ -18,14 +17,13 @@ pub enum INTRINSICS {
     S
 }
 
- //@TODO: unify principal distance into enum
  pub trait Camera<F: GenericFloat> {
     fn get_projection(&self) -> Matrix3<F>;
     fn get_inverse_projection(&self) -> Matrix3<F>; //@TODO: rename to camera/intrinsic matrix
-    fn get_jacobian_with_respect_to_position_in_camera_frame<T, F2: GenericFloat + SupersetOf<F>>(&self, position: &Vector<F2,U3,T>) -> Option<Matrix2x3<F2>> where T: Storage<F2,U3,U1>;
-    fn get_jacobian_with_respect_to_intrinsics<T, F2: GenericFloat + SupersetOf<F>>(&self, position: &Vector<F2,U3,T>) -> Option<Matrix2x5<F2>> where T: Storage<F2,U3,U1>;
-    fn get_full_jacobian<T, F2: GenericFloat + SupersetOf<F>>(&self, position: &Vector<F2,U3,T>) -> Option<SMatrix<F2,2,8>> where T: Storage<F2,U3,U1>;
-    fn project<T, F2: GenericFloat + SupersetOf<F>>(&self, position: &Vector<F2,U3,T>) -> Option<Point<F2>> where T: Storage<F2,U3,U1>;
+    fn get_jacobian_with_respect_to_position_in_camera_frame<S>(&self, position: &Vector<F,U3,S>) -> Option<Matrix2x3<F>> where S: Storage<F,U3,U1>;
+    fn get_jacobian_with_respect_to_intrinsics<S>(&self, position: &Vector<F,U3,S>) -> Option<Matrix2x5<F>> where S: Storage<F,U3,U1>;
+    fn get_full_jacobian<S>(&self, position: &Vector<F,U3,S>) -> Option<SMatrix<F,2,8>> where S: Storage<F,U3,U1>;
+    fn project<S>(&self, position: &Vector<F,U3,S>) -> Option<Point<F>> where S: Storage<F,U3,U1>;
     fn backproject(&self, point: &Point<F>, depth: F) -> Vector3<F>;
     fn get_focal_x(&self) -> F;
     fn get_focal_y(&self) -> F;
