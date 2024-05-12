@@ -7,6 +7,7 @@ use vision::{Float,load_runtime_conf};
 use vision::sfm::{
     state::{
         cam_state::cam_extrinsic_state,
+        cam_state::cam_extrinsic_intrinsic_state,
         landmark::{Landmark,inverse_depth_landmark, euclidean_landmark}
     },
     triangulation::Triangulation,
@@ -175,7 +176,7 @@ fn main() -> Result<()> {
 
     let trajectories = vec!(vec!((0,1)));
 
-    let (optimized_state, state_debug_list) = run_ba::<_,{inverse_depth_landmark::LANDMARK_PARAM_SIZE},{cam_extrinsic_state::CAMERA_PARAM_SIZE},cam_extrinsic_state::CameraExtrinsicState<Float,_>,inverse_depth_landmark::InverseLandmark<Float>,_,Perspective<Float>,_>(&sfm_config_fundamental, &runtime_parameters, &trajectories);
+    let (optimized_state, state_debug_list) = run_ba::<_,{inverse_depth_landmark::LANDMARK_PARAM_SIZE},{cam_extrinsic_intrinsic_state::CAMERA_PARAM_SIZE},cam_extrinsic_intrinsic_state::CameraExtrinsicIntrinsicState<Float,_>,inverse_depth_landmark::InverseLandmark<Float>,_,Perspective<Float>,_>(&sfm_config_fundamental, &runtime_parameters, &trajectories);
     sfm_config_fundamental.update_state(&optimized_state);
 
     let cam_0_idx = optimized_state.get_camera_id_map().get(&0).unwrap();

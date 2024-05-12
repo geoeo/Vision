@@ -29,12 +29,10 @@ pub fn filter_config<C: Camera<Float> + Copy + Clone, Feat: Feature> (
 
     let mut landmark_map = ba_config.landmark_map().clone();
     let mut reprojection_error_map = ba_config.reprojection_error_map().clone();
-    let mut match_map = ba_config.match_map().clone();
     let mut match_norm_map = ba_config.match_norm_map().clone();
     let mut pose_map = ba_config.pose_map().clone();
     let mut abs_pose_map = ba_config.abs_pose_map().clone();
     let root = ba_config.root();
-    let camera_map = ba_config.camera_map().clone();
     let camera_norm_map = ba_config.camera_norm_map().clone();
 
     let paths = ba_config.paths().clone();
@@ -46,7 +44,6 @@ pub fn filter_config<C: Camera<Float> + Copy + Clone, Feat: Feature> (
     let mut rejected_camera_ids = reject_landmark_outliers(
         &mut landmark_map,
         &mut reprojection_error_map,
-        &mut match_map,
         &mut match_norm_map,
         landmark_cutoff_thresh,
     );
@@ -73,7 +70,6 @@ pub fn filter_config<C: Camera<Float> + Copy + Clone, Feat: Feature> (
             &mut unique_landmark_ids,
             &mut abs_pose_map,
             &mut match_norm_map,
-            &mut match_map,
             &mut landmark_map,
             &mut reprojection_error_map,
         );
@@ -81,7 +77,6 @@ pub fn filter_config<C: Camera<Float> + Copy + Clone, Feat: Feature> (
         let new_rejected_camera_ids = reject_landmark_outliers(
             &mut landmark_map,
             &mut reprojection_error_map,
-            &mut match_map,
             &mut match_norm_map,
             landmark_cutoff_thresh,
         );
@@ -128,7 +123,6 @@ pub fn filter_config<C: Camera<Float> + Copy + Clone, Feat: Feature> (
         let new_rejected_camera_ids = reject_landmark_outliers(
             &mut landmark_map,
             &mut reprojection_error_map,
-            &mut match_map,
             &mut match_norm_map,
             landmark_cutoff_thresh,
         );
@@ -142,8 +136,8 @@ pub fn filter_config<C: Camera<Float> + Copy + Clone, Feat: Feature> (
 
 
 
-    for (k,v) in match_map.iter(){
-        println!("Final matches for Cam {:?} : {}",k,v.len());
+    for (k,v) in match_norm_map.iter(){
+       println!("Final matches for Cam {:?} : {}",k,v.len());
     }
 
     // for id in &rejected_camera_ids {
@@ -159,9 +153,7 @@ pub fn filter_config<C: Camera<Float> + Copy + Clone, Feat: Feature> (
     BAConfig {
         root,
         paths,
-        camera_map,
         camera_norm_map,
-        match_map,
         match_norm_map,
         pose_map,
         abs_pose_map,
@@ -339,7 +331,6 @@ pub fn filter_outliers_by_dual_pairwise<C: Camera<Float> + Clone, Feat: Feature>
     unique_landmark_ids: &mut HashSet<usize>,
     abs_pose_map: &HashMap<usize, Isometry3<Float>>,
     match_norm_map: &mut HashMap<(usize, usize), Vec<Match<Feat>>>,
-    match_map: &mut HashMap<(usize, usize), Vec<Match<Feat>>>,
     landmark_map: &mut HashMap<(usize, usize), Vec<EuclideanLandmark<Float>>>,
     reprojection_error_map: &mut HashMap<(usize, usize), DVector<Float>>
 ) -> () {
@@ -421,7 +412,6 @@ pub fn filter_outliers_by_dual_pairwise<C: Camera<Float> + Clone, Feat: Feature>
         filter_by_rejected_landmark_ids(
             &rejected_landmark_ids,
             match_norm_map,
-            match_map,
             landmark_map,
             reprojection_error_map
         );

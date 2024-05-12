@@ -33,9 +33,7 @@ mod outlier_rejection;
 pub struct BAConfig<C, Feat: Feature> {
     root: usize,
     paths: Vec<Vec<usize>>,
-    camera_map: HashMap<usize, C>, 
     camera_norm_map: HashMap<usize, C>, 
-    match_map: HashMap<(usize, usize), Vec<Match<Feat>>>,
     match_norm_map: HashMap<(usize, usize), Vec<Match<Feat>>>,
     pose_map: HashMap<(usize, usize), Isometry3<Float>>, // The pose transforms tuple id 2 into the coordiante system of tuple id 1 - 1_P_2
     abs_pose_map: HashMap<usize, Isometry3<Float>>, // World is the root id
@@ -132,9 +130,7 @@ impl<C: Camera<Float> + Copy + Clone, Feat: Feature>
         BAConfig {
             root,
             paths: paths.clone(),
-            camera_map,
             camera_norm_map,
-            match_map,
             match_norm_map,
             abs_pose_map,
             pose_map,
@@ -149,18 +145,12 @@ impl<C: Camera<Float> + Copy + Clone, Feat: Feature>
     pub fn paths(&self) -> &Vec<Vec<usize>> {
         &self.paths
     }
-    pub fn camera_map(&self) -> &HashMap<usize, C> {
-        &self.camera_map
-    }
     pub fn camera_norm_map(&self) -> &HashMap<usize, C> {
         &self.camera_norm_map
     }
     pub fn match_norm_map(&self) -> &HashMap<(usize, usize), Vec<Match<Feat>>> {
         &self.match_norm_map
     }
-    pub fn match_map(&self) -> &HashMap<(usize, usize), Vec<Match<Feat>>> {
-        &self.match_map
-    } 
     pub fn abs_pose_map(&self) -> &HashMap<usize, Isometry3<Float>> {
         &self.abs_pose_map
     }
@@ -181,14 +171,16 @@ impl<C: Camera<Float> + Copy + Clone, Feat: Feature>
         pyramid_map.iter().map(|(k,v)| (*k,v.calculate_score())).collect::<HashMap<usize, usize>>()
     }
 
+    //TODO: Make this generic in Float, since given state may to be of the same precision as config
     pub fn update_state<
         L: Landmark<Float, LANDMARK_PARAM_SIZE> ,CS: CamState<Float,C, CAMERA_PARAM_SIZE> + Copy,const LANDMARK_PARAM_SIZE: usize, const CAMERA_PARAM_SIZE: usize
     >(&mut self, state: &State<Float, C ,L, CS, LANDMARK_PARAM_SIZE, CAMERA_PARAM_SIZE>) -> () {
         let camera_positions = state.get_camera_positions();
+        let cameras = state.get_cameras();
         let camera_id_map = state.get_camera_id_map();
         let world_landmarks = state.get_landmarks();
 
-        self.update_camera_pose_state(camera_id_map, &camera_positions);
+        self.update_camera_state(camera_id_map, &camera_positions, &cameras);
 
         let cam_pair_keys = self.landmark_map().keys().map(|(id1,id2)| (*id1,*id2)).collect::<Vec<_>>();
         for (cam_1,cam_2) in cam_pair_keys {
@@ -197,12 +189,14 @@ impl<C: Camera<Float> + Copy + Clone, Feat: Feature>
     }
 
 
-    pub fn update_camera_pose_state(&mut self, state_cam_id_map: &HashMap<usize,usize>, state_camera_positions: &Vec<Isometry3<Float>>) -> () {
+    pub fn update_camera_state(&mut self, state_cam_id_map: &HashMap<usize,usize>, state_camera_positions: &Vec<Isometry3<Float>>, state_camera: &Vec<C>) -> () {
 
         //First we update all absolute poses
         for (cam_id, idx) in state_cam_id_map {
             let new_cam_pos = state_camera_positions[*idx];
+            let new_cam_norm = state_camera[*idx];
             self.abs_pose_map.insert(*cam_id, new_cam_pos.clone());
+            self.camera_norm_map.insert(*cam_id,new_cam_norm);
         }
 
         //Then we recalculate relative poses
@@ -274,20 +268,20 @@ impl<C: Camera<Float> + Copy + Clone, Feat: Feature>
     }
 
     pub fn generate_pnp_config_from_cam_id(&self, cam_id: usize) -> PnPConfig<C,Feat> {
-        let camera = self.camera_map.get(&cam_id).expect("Camera not found in generate_pnp_config_from_cam_id");
+        let camera_norm = self.camera_norm_map.get(&cam_id).expect("Camera not found in generate_pnp_config_from_cam_id");
         let camera_pose = self.abs_pose_map.get(&cam_id).expect("Camera pose not found in generate_pnp_config_from_cam_id");
         let abs_landmark_map = conversions::generate_abs_landmark_map(self.root,&self.paths,&self.landmark_map,&self.abs_pose_map);
         let pairs_with_cam_id = self.pose_map.keys().filter(|(id1,id2)| *id1 == cam_id || *id2 == cam_id).map(|(id1,id2)| (*id1,*id2)).collect::<Vec<_>>();
-        let match_map_for_cam_pairs = pairs_with_cam_id.iter().map(|k| (k, self.match_map.get(k).expect("Feature map could no be found"))).collect::<Vec<_>>();
+        let match_norm_map_for_cam_pairs = pairs_with_cam_id.iter().map(|k| (k, self.match_norm_map.get(k).expect("Feature map could no be found"))).collect::<Vec<_>>();
         let abs_landmark_map_for_cam_pairs = pairs_with_cam_id.iter().map(|k| abs_landmark_map.get(k).expect("Feature map could no be found")).collect::<Vec<_>>();
 
         let number_of_landmarks = abs_landmark_map_for_cam_pairs.iter().map(|m| m.len()).sum();
-        let number_of_matches: usize = match_map_for_cam_pairs.iter().map(|(_,v)| v.len()).sum();
+        let number_of_matches: usize = match_norm_map_for_cam_pairs.iter().map(|(_,v)| v.len()).sum();
 
         let mut landmark_map_by_landmark_id = HashMap::<usize,EuclideanLandmark<Float>>::with_capacity(number_of_landmarks);
-        let mut feature_map_by_landmark_id = HashMap::<usize, Feat>::with_capacity(number_of_matches);
+        let mut feature_norm_map_by_landmark_id = HashMap::<usize, Feat>::with_capacity(number_of_matches);
 
-        for ((k, ms), landmarks) in match_map_for_cam_pairs.iter().zip(abs_landmark_map_for_cam_pairs.iter()) {
+        for ((k, ms), landmarks) in match_norm_map_for_cam_pairs.iter().zip(abs_landmark_map_for_cam_pairs.iter()) {
             match k {
                 (id1, _) if *id1 == cam_id => {
                     for i in 0..ms.len() {
@@ -298,7 +292,7 @@ impl<C: Camera<Float> + Copy + Clone, Feat: Feature>
 
                         assert_eq!(Some(id),l.get_id());
 
-                        feature_map_by_landmark_id.insert(id,f.clone());
+                        feature_norm_map_by_landmark_id.insert(id,f.clone());
                         landmark_map_by_landmark_id.insert(id, EuclideanLandmark::from_state_with_id(l.get_euclidean_representation().coords, &Some(id)));
                     }
 
@@ -312,7 +306,7 @@ impl<C: Camera<Float> + Copy + Clone, Feat: Feature>
 
                         assert_eq!(Some(id),l.get_id());
                         
-                        feature_map_by_landmark_id.insert(id,f.clone());
+                        feature_norm_map_by_landmark_id.insert(id,f.clone());
                         landmark_map_by_landmark_id.insert(id, EuclideanLandmark::from_state_with_id(l.get_euclidean_representation().coords, &Some(id)));
                     }
                 },
@@ -321,7 +315,7 @@ impl<C: Camera<Float> + Copy + Clone, Feat: Feature>
 
         }
 
-        PnPConfig::new(camera, &landmark_map_by_landmark_id, &feature_map_by_landmark_id, &Some(camera_pose.clone()))
+        PnPConfig::new(camera_norm, &landmark_map_by_landmark_id, &feature_norm_map_by_landmark_id, &Some(camera_pose.clone()))
     }
 
     fn check_for_duplicate_pixel_entries(matches: &Vec<Vec<Vec<Match<Feat>>>>) -> bool {
@@ -908,7 +902,6 @@ impl<C: Camera<Float> + Copy + Clone, Feat: Feature>
             filter_by_rejected_landmark_ids(
                 &rejected_landmark_ids,
                 match_norm_map,
-                match_map,
                 landmark_map,
                 reprojection_error_map
             );

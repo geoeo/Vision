@@ -111,13 +111,13 @@ fn main() -> Result<()> {
         println!("Key: {:?}, Pose: {:?}", key, pose)
     }
 
-    for (i,j) in compute_path_id_pairs(ba_config_fundamental.root(),ba_config_fundamental.paths()).into_iter().flatten().collect::<Vec<_>>() {
-        let im_1 = olsen_data.get_image(i);
-        let im_2 = olsen_data.get_image(j);
-        let matches = ba_config_fundamental.match_map().get(&(i,j)).expect(format!("Match ({},{}) not present!",i,j).as_str());
-        let vis_matches = visualize::display_matches_for_pyramid(im_1,im_2,&matches,true,125.0,1.0, invert_y);
-        vis_matches.to_image().save(format!("{}/olsen_matches_{}_{}_{}.jpg",runtime_conf.output_path,olsen_dataset_name,i,j)).unwrap();
-    }
+    // for (i,j) in compute_path_id_pairs(ba_config_fundamental.root(),ba_config_fundamental.paths()).into_iter().flatten().collect::<Vec<_>>() {
+    //     let im_1 = olsen_data.get_image(i);
+    //     let im_2 = olsen_data.get_image(j);
+    //     let matches = ba_config_fundamental.match_map().get(&(i,j)).expect(format!("Match ({},{}) not present!",i,j).as_str());
+    //     let vis_matches = visualize::display_matches_for_pyramid(im_1,im_2,&matches,true,125.0,1.0, invert_y);
+    //     vis_matches.to_image().save(format!("{}/olsen_matches_{}_{}_{}.jpg",runtime_conf.output_path,olsen_dataset_name,i,j)).unwrap();
+    // }
 
     let runtime_parameters = RuntimeParameters {
         pyramid_scale: 1.0,
@@ -156,11 +156,11 @@ fn main() -> Result<()> {
 
 
     let trajectories = compute_path_id_pairs(ba_config_fundamental.root(), ba_config_fundamental.paths());
-    let camera_ids = ba_config_fundamental.camera_map().clone();
+    let camera_map = ba_config_fundamental.camera_norm_map().clone();
 
-    for &cam_id in camera_ids.keys() {
+    for &cam_id in camera_map.keys() {
         let pnp_config_cam = ba_config_fundamental.generate_pnp_config_from_cam_id(cam_id);
-        let (optimized_state_pnp, _) = run_pnp::<_,{cam_extrinsic_state::CAMERA_PARAM_SIZE},cam_extrinsic_state::CameraExtrinsicState<Float,_>,_,Perspective<Float>,_>(&pnp_config_cam,&runtime_parameters_pnp);
+        let (optimized_state_pnp, _) = run_pnp::<_,{cam_extrinsic_intrinsic_state::CAMERA_PARAM_SIZE},cam_extrinsic_intrinsic_state::CameraExtrinsicIntrinsicState<Float,_>,_,Perspective<Float>,_>(&pnp_config_cam,&runtime_parameters_pnp);
         ba_config_fundamental.update_state(&optimized_state_pnp);
         let cam_pos_pnp = optimized_state_pnp.get_camera_positions().first().unwrap().clone();
         println!("Cam state pnp: {}", cam_pos_pnp);

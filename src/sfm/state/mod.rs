@@ -26,7 +26,7 @@ pub mod landmark;
 pub struct State<F: GenericFloat, C: Camera<F>,  L: Landmark<F,LANDMARK_PARMA_SIZE>, CS: CamState<F, C, CAMERA_PARAM_SIZE>, const LANDMARK_PARMA_SIZE: usize, const CAMERA_PARAM_SIZE: usize> {
     camera_parameters: Vec<CS>, 
     landmarks: Vec<L>,
-    pub camera_id_map: HashMap<usize, usize>, //Map of cam id to index in cam positions, TODO: To Vector
+    pub camera_id_map: HashMap<usize, usize>, //Map of cam id to index in cam positions
     pub n_cams: usize,
     pub n_points: usize,
     _phantom_f: PhantomData<F>,
@@ -67,6 +67,10 @@ impl<F: GenericFloat, C: Camera<F> + Copy, L: Landmark<F,LANDMARK_PARMA_SIZE>, C
 
     pub fn get_camera_positions(&self) -> Vec<Isometry3<F>> {
         self.camera_parameters.iter().map(|s| s.get_position()).collect()
+    }
+
+    pub fn get_cameras(&self) -> Vec<C> {
+        self.camera_parameters.iter().map(|s| s.get_camera()).collect()
     }
 
     pub fn get_camera(&self, idx: usize) -> C {
