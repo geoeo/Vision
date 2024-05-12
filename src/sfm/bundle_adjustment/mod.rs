@@ -1,7 +1,3 @@
-extern crate nalgebra as na;
-extern crate num_traits;
-extern crate simba;
-
 use crate::image::features::solver_feature::SolverFeature;
 use crate::image::features::Feature;
 use crate::sfm::runtime_parameters::RuntimeParameters;
@@ -78,10 +74,10 @@ pub fn run_ba<
                     );
                     let debug_state = match some_debug_state_list {
                         None => None,
-                        Some(list) => Some(list.iter().map(|s| s.to_euclidean_landmarks().to_serial()).collect())
+                        Some(list) => Some(list.iter().map(|s| s.to_default_state().to_serial()).collect())
                     };
 
-                    let s = state.to_euclidean_landmarks();
+                    let s = state.to_default_state();
                     (s,debug_state)
                 },
                 inverse_depth_landmark::LANDMARK_PARAM_SIZE => {
@@ -102,10 +98,10 @@ pub fn run_ba<
                     );
                     let debug_state = match some_debug_state_list {
                         None => None,
-                        Some(list) => Some(list.iter().map(|s| s.to_euclidean_landmarks().to_serial()).collect())
+                        Some(list) => Some(list.iter().map(|s| s.to_default_state().to_serial()).collect())
                     };
 
-                    let s = state.to_euclidean_landmarks();
+                    let s = state.to_default_state();
                     (s,debug_state)
                 },
                 _ => panic!("Invalid Landmark Param")

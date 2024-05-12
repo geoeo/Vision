@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use std::marker::PhantomData;
 use na::{DVector, Isometry3, SMatrix, SVector, Vector3, Point3};
 use cam_state::CamState;
-use landmark::{Landmark,euclidean_landmark::EuclideanLandmark};
+use landmark::{Landmark,euclidean_landmark,euclidean_landmark::EuclideanLandmark};
 use crate::{
     GenericFloat,
     sensors::camera::Camera,
@@ -154,7 +154,7 @@ impl<F: GenericFloat, C: Camera<F> + Copy, L: Landmark<F,LANDMARK_PARMA_SIZE>, C
             }
             camera_parameters.push(CS::new(raw_state, camera));
 
-            //TODO:Check this map
+            //TODO: Check this map
             camera_id_map.insert(i,i);
         }
 
@@ -173,8 +173,8 @@ impl<F: GenericFloat, C: Camera<F> + Copy, L: Landmark<F,LANDMARK_PARMA_SIZE>, C
         }
     }
 
-    pub fn to_euclidean_landmarks(&self) -> State<F, C, EuclideanLandmark<F>, CS, 3, CAMERA_PARAM_SIZE> {
-        State::<F,C,EuclideanLandmark<F>,CS,3, CAMERA_PARAM_SIZE> {
+    pub fn to_default_state(&self) -> State<F, C, EuclideanLandmark<F>, CS, {euclidean_landmark::LANDMARK_PARAM_SIZE}, CAMERA_PARAM_SIZE> {
+        State::<F,C,EuclideanLandmark<F>,CS,{euclidean_landmark::LANDMARK_PARAM_SIZE}, CAMERA_PARAM_SIZE> {
             camera_parameters: self.camera_parameters.iter().map(|c| c.duplicate()).collect(),
             landmarks:  self.get_landmarks().iter().map(|l| EuclideanLandmark::<F>::from_state_with_id(l.get_euclidean_representation().coords,&l.get_id())).collect(), 
             camera_id_map: self.camera_id_map.clone(),

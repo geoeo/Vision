@@ -2,7 +2,7 @@ extern crate nalgebra as na;
 extern crate num_traits;
 
 use std::collections::HashMap;
-use na::{convert,U1,U3, Matrix2x3,Matrix2x5,Matrix3, Vector, Vector3,SMatrix, base::storage::Storage};
+use na::{convert,U1,U3, Matrix2x3,Matrix2x5,Matrix3, Vector, Vector3,Vector5,SMatrix, base::storage::Storage};
 use simba::scalar::SupersetOf;
 use crate::image::features::geometry::point::Point;
 use crate::sensors::camera::{INTRINSICS,Camera}; 
@@ -160,22 +160,25 @@ impl<F: GenericFloat> Camera<F> for Perspective<F> {
         (self.inverse_projection*homogeneous).scale(depth)
     }
 
-    fn get_focal_x(&self) -> F {
-        self.get_fx()
+    fn get_intrinsics(&self) -> Vector5<F> {
+        Vector5::<F>::new(self.get_fx(),self.get_fy(),self.get_cx(),self.get_cy(),self.get_s())
     }
 
-    fn get_focal_y(&self) -> F {
-        self.get_fy()
-    }
 
     fn update(&mut self, perturb: &HashMap<INTRINSICS,F>) -> () {
-        let fx = perturb.get(&INTRINSICS::FX).expect("fx not found in perturb update");
-        let fy = perturb.get(&INTRINSICS::FY).expect("fy not found in perturb update");
-        let cx = perturb.get(&INTRINSICS::CX).expect("cx not found in perturb update");
-        let cy = perturb.get(&INTRINSICS::CY).expect("cy not found in perturb update");
-        let s = perturb.get(&INTRINSICS::S).expect("s not found in perturb update");
+        let delta_fx = perturb.get(&INTRINSICS::FX).expect("fx not found in perturb update");
+        let delta_fy = perturb.get(&INTRINSICS::FY).expect("fy not found in perturb update");
+        let delta_cx = perturb.get(&INTRINSICS::CX).expect("cx not found in perturb update");
+        let delta_cy = perturb.get(&INTRINSICS::CY).expect("cy not found in perturb update");
+        let delta_s = perturb.get(&INTRINSICS::S).expect("s not found in perturb update");
 
-        let (projection,inverse_projection) = Self::compute_projections(*fx,*fy,*cx,*cy,*s);
+        let new_fx = self.get_fx() + *delta_fx;
+        let new_fy = self.get_fy() + *delta_fy;
+        let new_cx = self.get_cx() + *delta_cx;
+        let new_cy = self.get_cy() + *delta_cy;
+        let new_s = self.get_s() + *delta_s;
+
+        let (projection,inverse_projection) = Self::compute_projections(new_fx,new_fy,new_cx,new_cy,new_s);
         self.projection = projection;
         self.inverse_projection = inverse_projection;
     }

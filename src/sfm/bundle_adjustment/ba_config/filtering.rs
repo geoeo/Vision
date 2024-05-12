@@ -64,7 +64,7 @@ pub fn filter_config<C: Camera<Float> + Copy + Clone, Feat: Feature> (
             / camera_norm_map
                 .get(&root)
                 .expect("Root Cam missing")
-                .get_focal_x(); // rougly 5 pixels //TODO expose this
+                .get_intrinsics()[0]; // rougly 5 pixels //TODO expose this
 
         filter_outliers_by_dual_pairwise::<C,Feat>(
             tol,

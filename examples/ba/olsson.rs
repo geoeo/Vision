@@ -11,7 +11,7 @@ use vision::sfm::{
     pnp::run_pnp,runtime_parameters::RuntimeParameters,
     bundle_adjustment::ba_config::filtering::filter_config,
     state::{
-        cam_state::cam_extrinsic_state,
+        cam_state::{cam_extrinsic_state,cam_extrinsic_intrinsic_state},
         landmark::{euclidean_landmark,inverse_depth_landmark}
     }
 };
@@ -166,7 +166,7 @@ fn main() -> Result<()> {
         println!("Cam state pnp: {}", cam_pos_pnp);
     }
 
-    let (optimized_state, state_debug_list) = run_ba::<_,{inverse_depth_landmark::LANDMARK_PARAM_SIZE},{cam_extrinsic_state::CAMERA_PARAM_SIZE},cam_extrinsic_state::CameraExtrinsicState<Float,_>,inverse_depth_landmark::InverseLandmark<Float>,_,Perspective<Float>,_>(&ba_config_fundamental, &runtime_parameters,&trajectories);
+    let (optimized_state, state_debug_list) = run_ba::<_,{inverse_depth_landmark::LANDMARK_PARAM_SIZE},{cam_extrinsic_intrinsic_state::CAMERA_PARAM_SIZE},cam_extrinsic_intrinsic_state::CameraExtrinsicIntrinsicState<Float,_>,inverse_depth_landmark::InverseLandmark<Float>,_,Perspective<Float>,_>(&ba_config_fundamental, &runtime_parameters,&trajectories);
     let state_serialized = serde_yaml::to_string(&optimized_state.to_serial());
     let debug_states_serialized = serde_yaml::to_string(&state_debug_list);
 

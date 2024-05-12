@@ -1,8 +1,7 @@
 extern crate nalgebra as na;
-extern crate simba;
 
 use std::collections::HashMap;
-use na::{U1,U3,Vector,Vector3,Matrix2x3,Matrix2x5,Matrix3,Matrix3x4,Matrix4,SMatrix, base::storage::Storage};
+use na::{U1,U3,Vector,Vector3,Vector5,Matrix2x3,Matrix2x5,Matrix3,Matrix3x4,Matrix4,SMatrix, base::storage::Storage};
 use crate::image::features::geometry::point::Point;
 use crate::GenericFloat;
 
@@ -25,8 +24,7 @@ pub enum INTRINSICS {
     fn get_full_jacobian<S>(&self, position: &Vector<F,U3,S>) -> Option<SMatrix<F,2,8>> where S: Storage<F,U3,U1>;
     fn project<S>(&self, position: &Vector<F,U3,S>) -> Option<Point<F>> where S: Storage<F,U3,U1>;
     fn backproject(&self, point: &Point<F>, depth: F) -> Vector3<F>;
-    fn get_focal_x(&self) -> F;
-    fn get_focal_y(&self) -> F;
+    fn get_intrinsics(&self) -> Vector5<F>;
     fn from_matrices(projection: &Matrix3<F>, inverse_projection: &Matrix3<F>) -> Self;
     fn update(&mut self,perturb: &HashMap<INTRINSICS,F>) -> ();
 }
