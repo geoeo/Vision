@@ -168,6 +168,9 @@ pub fn decompose_essential_förstner<T : Feature>(
 
     let mut translation : Option<Vector3<Float>> = None;
     let mut rotation : Option<Matrix3<Float>> = None;
+
+    // Eventhough Photogrammetric Computer Vision defines a different coordiante system. 
+    // Due to the ambiguity of the Essential Matrix our coordiante system is one of the 4 options
     for i in 0..4 {
         let h = h_vecs[i];
         let R = R_matrices[i];
