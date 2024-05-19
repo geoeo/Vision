@@ -41,10 +41,11 @@ impl<T: Feature> FeatureTrack<T> {
         (t.0, t.1)
     }
 
-    pub fn get_track_length(&self) -> usize {
+    pub fn get_track_score(&self) -> usize {
         let max_track_len = self.track.capacity();
         let start_offset = self.track.first().expect("FeatureTrack: Called get_track_length on empty track").1;
         
+        // Here we allow tracks that dont start at the first image
         match self.track.len() {
             l if l > 2 && l < max_track_len => l + start_offset,
             l => l

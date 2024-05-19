@@ -49,8 +49,8 @@ pub trait Feature: PartialEq + Eq + Hash + Send + Sync + Clone {
      */
     fn get_camera_ray_photogrammetric(&self, inverse_intrinsics: &Matrix3<Float>) -> Vector3<Float> {
         let ray = self.get_camera_ray(inverse_intrinsics);
-        let fx = inverse_intrinsics[(0,0)];
-        let sign = match fx {
+        let x3 = inverse_intrinsics[(2,2)];
+        let sign = match x3 {
             v if v < 0.0 => -1.0,
             v if v > 0.0 => 1.0,
             _ => 0.0

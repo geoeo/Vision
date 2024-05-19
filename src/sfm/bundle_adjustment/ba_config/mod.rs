@@ -523,24 +523,24 @@ impl<C: Camera<Float> + Copy + Clone, Feat: Feature>
             }
         }
 
-        let max_track_lengths = feature_tracks
+        let max_track_score = feature_tracks
             .iter()
             .map(|l| {
                 l.iter()
-                    .map(|x| x.get_track_length())
+                    .map(|x| x.get_track_score())
                     .reduce(|max, l| if l > max { l } else { max })
                     .expect("filter_by_max_tracks: tracks is empty!")
             })
             .collect::<Vec<usize>>();
 
-        println!("Max Track len: {:?}", max_track_lengths);
+        println!("Max Track len: {:?}", max_track_score);
 
         let max_tracks: Vec<Vec<FeatureTrack<Feat>>> = feature_tracks
             .into_iter()
-            .zip(max_track_lengths)
+            .zip(max_track_score)
             .map(|(xs, max)| {
                 xs.into_iter()
-                    .filter(|x| x.get_track_length() == max)
+                    .filter(|x| x.get_track_score() == max)
                     .collect()
             })
             .collect();
