@@ -8,6 +8,8 @@ use crate::image::features::{matches::Match,Feature};
 use crate::sensors::camera::Camera;
 use crate::Float;
 
+pub mod covariance_estimation;
+
 #[derive(Clone, Copy)]
 pub enum Triangulation {
     LINEAR,
