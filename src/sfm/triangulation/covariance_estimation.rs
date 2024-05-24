@@ -1,18 +1,22 @@
 extern crate nalgebra as na;
 
-use na::{Matrix3,Matrix4,Matrix5,Matrix6,Vector3,Vector4,Isometry3,Matrix3x4,Matrix4x6};
+use na::{Matrix3,Matrix4,Matrix5,Matrix6,Vector4,Isometry3,Matrix3x4,Matrix4x6};
+use std::collections::HashMap;
+use crate::sfm::state::landmark::Landmark;
 use crate::Float;
 use crate::image::features::{matches::Match,Feature};
+use crate::sensors::camera::Camera;
+use crate::sfm::state::landmark::euclidean_landmark::EuclideanLandmark;
 
 /**
  * Determining an initial image pair for fixing the
  * scale of a 3d reconstruction from an image
  * sequence. Beder et al.
  */
-
-pub fn estimate_covariance_for_match<Feat: Feature>(
+ #[allow(non_snake_case)]
+fn estimate_covariance_for_match<Feat: Feature>(
         m: &Match<Feat>, 
-        landmark_world: Vector4<Float>, 
+        landmark_world: &Vector4<Float>, 
         extrinsics_one: &Isometry3<Float>,
         inverse_intrinsics_one: &Matrix3<Float>,
         extrinsics_two: &Isometry3<Float>,
@@ -67,7 +71,43 @@ pub fn estimate_covariance_for_match<Feat: Feature>(
 /**
  * Score covariance by roundness factor. Best value for reconstruction is a score of sqrt(1/2)
  */
-pub fn score_covariance(cov: &Matrix3<Float>) -> Float {
+fn score_covariance(cov: &Matrix3<Float>) -> Float {
     let svd = cov.svd(false, false);
     (svd.singular_values[0] / svd.singular_values[2]).sqrt()
+}
+
+pub fn score_camera_pairs<Feat: Feature, C: Camera<Float>>(
+    match_map:  &HashMap<(usize, usize), 
+    Vec<Match<Feat>>>, cam_map: &HashMap<usize, C>,
+    landmark_map: &HashMap<(usize, usize), Vec<EuclideanLandmark<Float>>>,
+    abs_pose_map: &HashMap<usize, Isometry3<Float>>,
+    pixel_std: Float
+) -> HashMap<(usize,usize),Float> {
+    match_map.iter().map(|((cam_id_1, cam_id_2),ms)| {
+        let cam_1 = cam_map.get(cam_id_1).expect("score_camera_pair: Could not find cam");
+        let cam_2 = cam_map.get(cam_id_2).expect("score_camera_pair: Could not find cam");
+        let landmarks = landmark_map.get(&(*cam_id_1, *cam_id_2)).expect("score_camera_pair: Could not find landmarks");
+        let p1 = abs_pose_map.get(cam_id_1).expect("score_camera_pair: could not find pose");
+        let p2 = abs_pose_map.get(cam_id_2).expect("score_camera_pair: could not find pose");
+        
+        // As per the paper we remap poses such that cam 1 is the origin
+        let p1_prime = p1.inverse()*p1;
+        let p2_prime = p1.inverse()*p2;
+        let inv_intrinsics_1 = cam_1.get_inverse_projection();
+        let inv_intrinsics_2 = cam_2.get_inverse_projection();
+
+        let mut score_acc: Float = 0.0;
+        for i in 0..landmarks.len() {
+            let m = &ms[i];
+            let l_vec = landmarks[i].get_state_as_vector();
+            let l_vec4 = Vector4::<Float>::new(l_vec.x,l_vec.y,l_vec.z,1.0);
+            let cov = estimate_covariance_for_match(m,&l_vec4,&p1_prime,&inv_intrinsics_1,&p2_prime,&inv_intrinsics_2,pixel_std);
+            let score_for_m = score_covariance(&cov);
+            score_acc += score_for_m;
+        }
+
+        let score_avg = score_acc/(landmarks.len() as Float);
+
+        ((*cam_id_1, *cam_id_2), score_avg)
+    }).collect()
 }

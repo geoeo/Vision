@@ -17,7 +17,6 @@ use vision::sfm::{
 };
 use vision::numerics::weighting;
 use vision::load_runtime_conf;
-use vision::visualize;
 use vision::Float;
 use vision::sensors::camera::perspective::Perspective;
 
@@ -39,7 +38,7 @@ fn main() -> Result<()> {
     let kronan = "kronan";
     let round_church = "round_church";
 
-    let olsen_dataset_name = fountain;
+    let olsen_dataset_name = park_gate;
     let olsen_data_path = format!("{}/Olsson/{}/",runtime_conf.dataset_path,olsen_dataset_name);
 
     let feature_skip_count = 1;
@@ -49,6 +48,9 @@ fn main() -> Result<()> {
     let invert_focal_length = false;
     let refince_rotation_via_rcd = true;
     let mut transpose_features = false;
+
+    // vasa
+    // transpose_features = true;
 
 
     // let paths = vec!(vec!(6));
@@ -87,8 +89,6 @@ fn main() -> Result<()> {
     // let paths = vec!(vec!(5,6,7,8));
     // let root_id = 4;
     
-    // vasa
-    // transpose_features = true;
     // let paths = vec!(vec!(5,6,7,8,9,10));
     // let root_id = 4;
 
@@ -104,7 +104,7 @@ fn main() -> Result<()> {
     //TODO: implement switch for loftr matches!
     let (match_map, camera_map, image_width, image_height) = olsen_data.get_data_for_sfm(root_id, &paths, positive_principal_distance, invert_focal_length, invert_y, transpose_features, feature_skip_count, olsen_dataset_name);
     let mut ba_config_fundamental = BAConfig::new(root_id, &paths, None, camera_map, &match_map, 
-    BifocalType::FUNDAMENTAL, Triangulation::LOST, 1.0, 1.0e0, image_width, image_height);
+    BifocalType::FUNDAMENTAL, Triangulation::LOST, 1.0, 2.0e0, image_width, image_height);
     let mut ba_config_fundamental = filter_config(&mut ba_config_fundamental,1e4, false, refince_rotation_via_rcd, Triangulation::LOST);
 
     for (key, pose) in ba_config_fundamental.pose_map().iter() {
@@ -121,7 +121,7 @@ fn main() -> Result<()> {
 
     let runtime_parameters = RuntimeParameters {
         pyramid_scale: 1.0,
-        max_iterations: vec![5e4 as usize; 1],
+        max_iterations: vec![100 as usize; 1],
         eps: vec![1e-2],
         step_sizes: vec![1e0],
         max_norm_eps: 1e-30, 
@@ -139,7 +139,7 @@ fn main() -> Result<()> {
 
     let runtime_parameters_pnp = RuntimeParameters {
         pyramid_scale: 1.0,
-        max_iterations: vec![1e3 as usize; 1],
+        max_iterations: vec![1e4 as usize; 1],
         eps: vec![1e-8],
         step_sizes: vec![1e0],
         max_norm_eps: 1e-30, 
@@ -149,7 +149,7 @@ fn main() -> Result<()> {
         debug: false,
         print: true,
         show_octave_result: true,
-        intensity_weighting_function:  Box::new(weighting::HuberWeight {}),
+        intensity_weighting_function:  Box::new(weighting::SquaredWeight {}),
         cg_threshold: 1e-6,
         cg_max_it: 2e3 as usize
     };
@@ -161,7 +161,7 @@ fn main() -> Result<()> {
     for &cam_id in camera_map.keys() {
         let pnp_config_cam = ba_config_fundamental.generate_pnp_config_from_cam_id(cam_id);
         let (optimized_state_pnp, _) = run_pnp::<_,{cam_extrinsic_intrinsic_state::CAMERA_PARAM_SIZE},cam_extrinsic_intrinsic_state::CameraExtrinsicIntrinsicState<Float,_>,_,Perspective<Float>,_>(&pnp_config_cam,&runtime_parameters_pnp);
-        ba_config_fundamental.update_state(&optimized_state_pnp);
+        //ba_config_fundamental.update_state(&optimized_state_pnp);
         let cam_pos_pnp = optimized_state_pnp.get_camera_positions().first().unwrap().clone();
         println!("Cam state pnp: {}", cam_pos_pnp);
     }
