@@ -62,8 +62,8 @@ fn estimate_covariance_for_match<Feat: Feature>(
         let cov_point = n_inv.fixed_view::<4,4>(0,0);
         let j_e = Matrix3x4::<Float>::new(
             1.0/landmark_cam.w,0.0,0.0,-landmark_cam.x/landmark_cam.w.powi(2),
-            0.0,1.0/landmark_cam.y,0.0,-landmark_cam.y/landmark_cam.w.powi(2),
-            0.0,0.0,landmark_cam.z,-landmark_cam.z/landmark_cam.w.powi(2)
+            0.0,1.0/landmark_cam.w,0.0,-landmark_cam.y/landmark_cam.w.powi(2),
+            0.0,0.0,1.0/landmark_cam.w,-landmark_cam.z/landmark_cam.w.powi(2)
         );
         j_e*cov_point*j_e.transpose()
 }
@@ -73,12 +73,12 @@ fn estimate_covariance_for_match<Feat: Feature>(
  */
 fn score_covariance(cov: &Matrix3<Float>) -> Float {
     let svd = cov.svd(false, false);
-    (svd.singular_values[0] / svd.singular_values[2]).sqrt()
+    (svd.singular_values[2] / svd.singular_values[0]).sqrt()
 }
 
 pub fn score_camera_pairs<Feat: Feature, C: Camera<Float>>(
-    match_map:  &HashMap<(usize, usize), 
-    Vec<Match<Feat>>>, cam_map: &HashMap<usize, C>,
+    match_map:  &HashMap<(usize, usize), Vec<Match<Feat>>>, 
+    cam_map: &HashMap<usize, C>,
     landmark_map: &HashMap<(usize, usize), Vec<EuclideanLandmark<Float>>>,
     abs_pose_map: &HashMap<usize, Isometry3<Float>>,
     pixel_std: Float
@@ -103,7 +103,8 @@ pub fn score_camera_pairs<Feat: Feature, C: Camera<Float>>(
             let l_vec4 = Vector4::<Float>::new(l_vec.x,l_vec.y,l_vec.z,1.0);
             let cov = estimate_covariance_for_match(m,&l_vec4,&p1_prime,&inv_intrinsics_1,&p2_prime,&inv_intrinsics_2,pixel_std);
             let score_for_m = score_covariance(&cov);
-            score_acc += score_for_m;
+            let diff_to_target = ((0.5 as Float).sqrt() - score_for_m).abs();
+            score_acc += diff_to_target;
         }
 
         let score_avg = score_acc/(landmarks.len() as Float);
